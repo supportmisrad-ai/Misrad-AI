@@ -77,10 +77,10 @@ export const AssetsView: React.FC = () => {
       setFormTitle(asset.title);
       setFormValue(asset.value);
       setFormTags(asset.tags.join(', '));
-      setFormType(asset.type as any);
+      setFormType(asset.type as 'link' | 'credential' | 'file');
       
       // Try to find if a tag matches a client name or if clientId is set
-      const clientByTag = clients.find((c: any) => asset.tags.includes(c.companyName));
+      const clientByTag = clients.find((c) => asset.tags.includes((c as unknown as Record<string, unknown>).companyName as string));
       setSelectedClientId(asset.clientId || (clientByTag ? clientByTag.id : ''));
       
       setIsShaking(false);
@@ -115,7 +115,7 @@ export const AssetsView: React.FC = () => {
       
       // Auto-add client name tag if selected
       if (selectedClientId) {
-          const client = clients.find((c: any) => c.id === selectedClientId);
+          const client = clients.find((c) => (c as unknown as Record<string, unknown>).id === selectedClientId);
           if (client && !tagsArray.includes(client.companyName)) {
               tagsArray.push(client.companyName);
           }
@@ -191,7 +191,7 @@ export const AssetsView: React.FC = () => {
                             ].map((t) => (
                                 <button
                                     key={t.id}
-                                    onClick={() => setFormType(t.id as any)}
+                                    onClick={() => setFormType(t.id as 'link' | 'credential' | 'file')}
                                     className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
                                         formType === t.id 
                                         ? 'border-gray-200 bg-gray-900 text-white shadow-md' 
@@ -273,7 +273,7 @@ export const AssetsView: React.FC = () => {
                                     onChange={setSelectedClientId}
                                     options={[
                                         { value: '', label: '-- ללא שיוך --' },
-                                        ...clients.map((client: any) => ({ value: client.id, label: client.companyName }))
+                                        ...clients.map((client) => { const cl = client as unknown as Record<string, unknown>; return { value: String(cl.id ?? ''), label: String(cl.companyName ?? '') }; })
                                     ]}
                                     className="text-sm"
                                 />
@@ -344,7 +344,7 @@ export const AssetsView: React.FC = () => {
               ].map(tab => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id as 'all' | 'credentials' | 'files')}
                     className={`px-3 md:px-6 py-2 md:py-2.5 md:py-3 text-[11px] md:text-sm font-bold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                         activeTab === tab.id 
                         ? 'border-gray-300 text-black' 

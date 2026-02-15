@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 /**
  * Trial & Subscription Management Server Actions
  */
@@ -75,7 +77,7 @@ export async function getCurrentUserTrialInfo(): Promise<{
       isActive: trialInfo.isActive,
     });
   } catch (error: unknown) {
-    console.error('[getCurrentUserTrialInfo] Error:', error);
+    logger.error('getCurrentUserTrialInfo', 'Error:', error);
     return createErrorResponse(error, 'שגיאה בטעינת פרטי טריאל');
   }
 }
@@ -143,7 +145,7 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
           });
           updatedCount++;
         } catch (updateError: unknown) {
-          console.error(`[checkAndUpdateExpiredTrials] Error updating user ${String(user.id)}:`, updateError);
+          logger.error('checkAndUpdateExpiredTrials', 'Error updating user ${String(user.id)}:', updateError);
         }
       }
     }
@@ -152,7 +154,7 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
       }
     );
   } catch (error: unknown) {
-    console.error('[checkAndUpdateExpiredTrials] Error:', error);
+    logger.error('checkAndUpdateExpiredTrials', 'Error:', error);
     return createErrorResponse(error, 'שגיאה בעדכון טריאלים פגי תוקף');
   }
 }
@@ -197,7 +199,7 @@ export async function startSubscription(): Promise<{
       }
     );
   } catch (error: unknown) {
-    console.error('[startSubscription] Error:', error);
+    logger.error('startSubscription', 'Error:', error);
     return createErrorResponse(error, 'שגיאה בהפעלת מנוי');
   }
 }
@@ -241,7 +243,7 @@ export async function cancelSubscription(): Promise<{
       }
     );
   } catch (error: unknown) {
-    console.error('[cancelSubscription] Error:', error);
+    logger.error('cancelSubscription', 'Error:', error);
     return createErrorResponse(error, 'שגיאה בביטול מנוי');
   }
 }

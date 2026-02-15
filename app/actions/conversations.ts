@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { Conversation } from '@/types/social';
 import type { SocialPlatform } from '@/types/social';
 import prisma from '@/lib/prisma';
@@ -83,7 +85,7 @@ export async function getConversations(
       data: conversations,
     };
   } catch (error: unknown) {
-    console.error('Error in getConversations:', error);
+    logger.error('conversations', 'Error in getConversations:', error);
     return {
       success: false,
       error: getErrorMessage(error) || 'שגיאה בטעינת שיחות',

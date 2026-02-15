@@ -1,6 +1,6 @@
 import 'server-only';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { asObject } from '@/lib/shared/unknown';
 
@@ -49,6 +49,7 @@ export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
   try {
     const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'feature_flags' },
+      ...accelerateCache({ ttl: 30, swr: 60 }),
     });
 
     if (!row) {

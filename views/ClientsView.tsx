@@ -71,7 +71,7 @@ export const ClientsView: React.FC = () => {
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     // Filter only onboarding templates
-    const onboardingTemplates = templates.filter((t: any) => t.category === 'onboarding');
+    const onboardingTemplates = templates.filter((t: { category?: string }) => t.category === 'onboarding');
 
     // View Mode with Persistence (Safely)
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -118,7 +118,7 @@ export const ClientsView: React.FC = () => {
         const loadFirstPage = async () => {
             setIsRefreshing(true);
             try {
-                const res: any = await fetchClients({ take: 100, search: appliedSearch || undefined });
+                const res = asObject(await fetchClients({ take: 100, search: appliedSearch || undefined }));
                 if (cancelled) return;
                 const list = Array.isArray(res?.clients) ? (res.clients as Client[]) : [];
                 setClients(list);
@@ -170,7 +170,7 @@ export const ClientsView: React.FC = () => {
 
         setIsLoadingMore(true);
         try {
-            const res: any = await fetchClients({ take: 100, cursor: nextCursor, search: appliedSearch || undefined });
+            const res = asObject(await fetchClients({ take: 100, cursor: nextCursor, search: appliedSearch || undefined }));
             const list = Array.isArray(res?.clients) ? (res.clients as Client[]) : [];
             setClients((prev) => [...prev, ...list]);
             setCachedClients((prev) => [...prev, ...list]);
@@ -324,7 +324,7 @@ export const ClientsView: React.FC = () => {
                                         <CustomSelect 
                                             value={newPackage}
                                             onChange={(val) => setNewPackage(val)}
-                                            options={products.map((p: any) => ({ value: p.name, label: p.name }))}
+                                            options={products.map((p: { name?: string }) => ({ value: String(p?.name ?? ''), label: String(p?.name ?? '') }))}
                                         />
                                     </div>
                                 </div>
@@ -345,11 +345,17 @@ export const ClientsView: React.FC = () => {
                                         <PlayCircle size={14} /> הפעלת תהליך קליטה (Playbook)
                                     </label>
                                     <div className="space-y-2">
-                                        {onboardingTemplates.map((template: any) => (
+                                        {(onboardingTemplates as unknown as Record<string, unknown>[]).map((tplRaw) => {
+                                            const template = asObject(tplRaw);
+                                            const tId = String(template?.id ?? '');
+                                            const tName = String(template?.name ?? '');
+                                            const tItems = Array.isArray(template?.items) ? template.items : [];
+                                            const tDesc = String(template?.description ?? '');
+                                            return (
                                             <label 
-                                                key={template.id} 
+                                                key={tId} 
                                                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                                                    selectedOnboardingFlow === template.id 
+                                                    selectedOnboardingFlow === tId 
                                                     ? 'bg-white border-blue-500 ring-1 ring-blue-500 shadow-sm' 
                                                     : 'bg-white border-gray-200 hover:border-blue-300'
                                                 }`}
@@ -357,16 +363,17 @@ export const ClientsView: React.FC = () => {
                                                 <input 
                                                     type="radio" 
                                                     name="onboardingFlow" 
-                                                    checked={selectedOnboardingFlow === template.id}
-                                                    onChange={() => setSelectedOnboardingFlow(template.id)}
+                                                    checked={selectedOnboardingFlow === tId}
+                                                    onChange={() => setSelectedOnboardingFlow(tId)}
                                                     className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                                                 />
                                                 <div className="flex-1">
-                                                    <div className="font-bold text-sm text-gray-900">{template.name}</div>
-                                                    <div className="text-xs text-gray-500">{template.items.length} צעדים • {template.description}</div>
+                                                    <div className="font-bold text-sm text-gray-900">{tName}</div>
+                                                    <div className="text-xs text-gray-500">{tItems.length} צעדים • {tDesc}</div>
                                                 </div>
                                             </label>
-                                        ))}
+                                            );
+                                        })}
                                         <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer bg-white border-gray-200 hover:bg-gray-50`}>
                                             <input 
                                                 type="radio" 

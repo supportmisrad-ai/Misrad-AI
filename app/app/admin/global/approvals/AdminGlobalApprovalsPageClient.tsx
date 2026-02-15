@@ -27,8 +27,8 @@ export default function AdminGlobalApprovalsPageClient() {
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="אישורים" subtitle="ניהול אישורי משתמשים" icon={UserCheck} />
       <UserApprovalsPanel
-        approvalRequests={safeRequests as any}
-        tenants={safeTenants as any}
+        approvalRequests={safeRequests}
+        tenants={safeTenants}
         onApprove={approveUserRequest}
         onReject={rejectUserRequest}
         onAddAllowedEmail={addAllowedEmail}

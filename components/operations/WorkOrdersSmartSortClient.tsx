@@ -107,8 +107,8 @@ export default function WorkOrdersSmartSortClient({
 
       setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       setMode('location');
-    } catch (e: any) {
-      const msg = e?.message ? String(e.message) : 'לא הצלחנו לקבל מיקום. נא לאפשר הרשאת מיקום.';
+    } catch (e: unknown) {
+      const msg = e instanceof Error && e.message ? String(e.message) : 'לא הצלחנו לקבל מיקום. נא לאפשר הרשאת מיקום.';
       setError(msg);
     } finally {
       setIsSorting(false);

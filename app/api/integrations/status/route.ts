@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getConnectedPlatforms } from '@/lib/services/meeting-service';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,13 +36,18 @@ export async function GET() {
       );
     }
 
-    const platforms = await getConnectedPlatforms(userId, profile.organizationId);
+    return await withTenantIsolationContext(
+      { source: 'api_integrations_status', organizationId: profile.organizationId, reason: 'get_integration_status' },
+      async () => {
+        const platforms = await getConnectedPlatforms(userId, profile.organizationId);
 
-    return NextResponse.json({
-      zoom: platforms.zoom,
-      meet: platforms.meet,
-      googleCalendar: platforms.meet, // Meet requires Calendar
-    });
+        return NextResponse.json({
+          zoom: platforms.zoom,
+          meet: platforms.meet,
+          googleCalendar: platforms.meet, // Meet requires Calendar
+        });
+      }
+    );
   } catch (error) {
     if (IS_PROD) console.error('[Integration Status] Error');
     else console.error('[Integration Status] Error:', error);

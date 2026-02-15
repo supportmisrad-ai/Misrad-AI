@@ -258,8 +258,8 @@ export function AiAssistantWidget() {
         timestamp: Date.now()
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (e: any) {
-      setError(String(e?.message || 'שגיאה בשליחת ההודעה'));
+    } catch (e: unknown) {
+      setError(String(e instanceof Error ? e.message : e || 'שגיאה בשליחת ההודעה'));
     } finally {
       setIsLoading(false);
     }
@@ -267,10 +267,10 @@ export function AiAssistantWidget() {
 
   // Typing animation
   useEffect(() => {
-    const msgs = (messages as any[]).filter((m: any) => m && m.role === 'assistant');
+    const msgs = (messages as ChatMessage[]).filter((m) => m && m.role === 'assistant');
     if (!msgs.length) return;
 
-    const pending = msgs.find((m: any) => {
+    const pending = msgs.find((m) => {
       const id = String(m.id);
       const full = extractText(m);
       const current = typedByIdRef.current[id] ?? '';

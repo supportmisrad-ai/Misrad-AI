@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 export const PWAInstaller = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<unknown>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -16,7 +16,7 @@ export const PWAInstaller = () => {
         return true;
       }
       // Also check if running as PWA
-      if ((window.navigator as any).standalone === true) {
+      if ((window.navigator as unknown as { standalone?: boolean }).standalone === true) {
         setIsInstalled(true);
         setShowInstallButton(false);
         return true;
@@ -103,8 +103,8 @@ export const PWAInstaller = () => {
     }
 
     try {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+      (deferredPrompt as { prompt: () => void; userChoice: Promise<{ outcome: string }> }).prompt();
+      const { outcome } = await (deferredPrompt as { prompt: () => void; userChoice: Promise<{ outcome: string }> }).userChoice;
       
       console.log(`User ${outcome} the install prompt`);
       

@@ -12,6 +12,7 @@ import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
 import type { SocialInitialData, SocialNavigationItem } from '@/lib/services/social-service';
 import { DataProvider } from '@/context/DataContext';
+import type { User, OrganizationProfile } from '@/types';
 
 import { SocialSessionProvider } from '@/contexts/SocialSessionContext';
 import { SocialUIProvider } from '@/contexts/SocialUIContext';
@@ -31,12 +32,12 @@ export default function SocialShellClient({
   isTeamEnabled?: boolean;
   initialSocialData?: SocialInitialData;
   initialNavigationMenu?: SocialNavigationItem[];
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: unknown;
+  initialOrganization?: unknown;
 }) {
   const { shabbatTimes } = useShabbat();
 
-  const isShabbatProtected = (initialOrganization as any)?.isShabbatProtected !== false;
+  const isShabbatProtected = (initialOrganization as { isShabbatProtected?: boolean } | undefined)?.isShabbatProtected !== false;
 
   const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/social`, [orgSlug]);
 
@@ -50,7 +51,7 @@ export default function SocialShellClient({
         <AuthProvider>
           <ToastProvider>
             <BrandProvider>
-              <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+              <DataProvider initialCurrentUser={initialCurrentUser as User | undefined} initialOrganization={initialOrganization as Partial<OrganizationProfile> | undefined}>
                 <SocialSessionProvider>
                   <SocialUIProvider>
                     <SocialDataProvider>
@@ -58,8 +59,8 @@ export default function SocialShellClient({
                         basePath={basePath}
                         orgSlug={orgSlug}
                         isTeamEnabled={isTeamEnabled}
-                        initialOrganization={initialOrganization}
-                        initialCurrentUser={initialCurrentUser}
+                        initialOrganization={initialOrganization as Partial<OrganizationProfile> | null | undefined}
+                        initialCurrentUser={initialCurrentUser as { name?: string | null; role?: string | null; avatarUrl?: string | null } | null | undefined}
                       >
                         {children}
                       </SocialFrame>

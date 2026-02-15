@@ -12,7 +12,7 @@ export default function AdminNexusControlPageClient() {
   return (
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="בקרה" subtitle="בקרת מערכת Nexus" icon={Shield} />
-      <NexusControlPanel organization={organization as any} updateSystemFlag={updateSystemFlag as any} hideHeader />
+      <NexusControlPanel organization={organization} updateSystemFlag={updateSystemFlag} hideHeader />
     </div>
   );
 }

@@ -24,7 +24,7 @@ interface AIAnalyticsViewProps {
 
 const COLORS = ['#A21D3C', '#3730A3', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
-const renderActiveShape = (props: any) => {
+const renderActiveShape = (props: { cx: number; cy: number; innerRadius: number; outerRadius: number; startAngle: number; endAngle: number; fill: string; payload: { name: string }; percent: number }) => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
     return (
         <g>
@@ -307,7 +307,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
     return insights;
   }, [revenueMetrics, sourceData, filteredLeads]);
 
-  const onPieEnter = useCallback((_: any, index: number) => {
+  const onPieEnter = useCallback((_: unknown, index: number) => {
           setActiveIndex(index);
   }, []);
 
@@ -352,7 +352,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
             ].map((p) => (
               <button
                 key={p.id}
-                onClick={() => setPeriod(p.id as any)}
+                onClick={() => setPeriod(p.id as 'week' | 'month' | 'quarter' | 'year')}
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                   period === p.id 
                   ? 'bg-slate-900 text-white shadow-lg' 
@@ -475,7 +475,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  {...({ activeIndex, activeShape: renderActiveShape } as any)}
+                  {...({ activeIndex, activeShape: renderActiveShape } as Record<string, unknown>)}
                   data={stageData}
                   cx="50%"
                   cy="50%"

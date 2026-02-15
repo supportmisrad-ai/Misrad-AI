@@ -80,9 +80,9 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             const payload = extractData<{ invitations?: EmployeeInvitation[] }>(data);
             const next = Array.isArray(payload?.invitations) ? payload.invitations : [];
             setInvitations(next);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[EmployeeInvitations] Error loading invitations:', error);
-            addToast(error.message || 'שגיאה בטעינת קישורים', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בטעינת קישורים', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -151,9 +151,9 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             
             // Reload invitations
             await loadInvitations();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[EmployeeInvitations] Error creating invitation:', error);
-            addToast(error.message || 'שגיאה ביצירת קישור', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה ביצירת קישור', 'error');
         } finally {
             setIsCreating(false);
         }

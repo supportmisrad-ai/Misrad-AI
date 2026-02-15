@@ -5,7 +5,7 @@ import { X, Server, CheckCircle, ArrowRight, Database, Code2, User, Briefcase, D
 import { Skeleton } from '@/components/ui/skeletons';
 
 interface HandoverDialogProps {
-  payload: any;
+  payload: Record<string, unknown>;
   lead: Lead;
   onClose: () => void;
   onConfirm: (data: HandoverData) => void;
@@ -182,7 +182,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                           <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-2">
                               <Briefcase size={12} /> סיכום עסקה
                           </div>
-                          <h2 className="text-3xl font-bold tracking-tight mb-1">{String(payload?.deal_details?.package_type ?? '').replace(/_/g, ' ') || 'Package'}</h2>
+                          <h2 className="text-3xl font-bold tracking-tight mb-1">{String(((payload as Record<string, unknown>).deal_details as Record<string, unknown> | undefined)?.package_type ?? '').replace(/_/g, ' ') || 'Package'}</h2>
                           <div className="flex items-center gap-2 text-slate-400 text-sm font-mono">
                               <span>מזהה: {lead.id}</span>
                               <span>•</span>
@@ -191,7 +191,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                       </div>
                       <div className="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl min-w-[140px] text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-wider">שווי סגירה</div>
-                          <div className="text-3xl font-mono font-bold text-emerald-400">₪{payload.deal_details.value.toLocaleString()}</div>
+                          <div className="text-3xl font-mono font-bold text-emerald-400">₪{(((payload as Record<string, unknown>).deal_details as Record<string, unknown> | undefined)?.value as number || 0).toLocaleString()}</div>
                       </div>
                   </div>
               </div>

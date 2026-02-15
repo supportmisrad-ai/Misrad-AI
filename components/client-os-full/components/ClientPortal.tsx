@@ -20,6 +20,13 @@ interface ClientPortalProps {
 
 type PortalScreen = 'dashboard' | 'vault' | 'journey' | 'metrics' | 'concierge' | 'finance';
 
+type MoodOption = {
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  color: string;
+  hover?: string;
+};
+
 const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
   const { clients, meetings, completeClientAction, updateFormStatus } = useNexus();
   const client = clients.find(c => c.id === clientId) || clients[0];
@@ -31,7 +38,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
   const [showTestimonialCard, setShowTestimonialCard] = useState(true);
   
   // Pulse Check State
-  const [selectedMood, setSelectedMood] = useState<{label: string, icon: any, color: string} | null>(null);
+  const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [moodComment, setMoodComment] = useState('');
   const [isSubmittingMood, setIsSubmittingMood] = useState(false);
   const [moodSubmitted, setMoodSubmitted] = useState(false);
@@ -186,7 +193,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
             showTestimonialCard={showTestimonialCard}
             onCloseTestimonial={() => setShowTestimonialCard(false)}
             onActionComplete={handleActionComplete}
-            onNavigate={setActiveScreen}
+            onNavigate={(screen: unknown) => setActiveScreen(screen as PortalScreen)}
             selectedMood={selectedMood}
             setSelectedMood={setSelectedMood}
             moodComment={moodComment}
@@ -212,7 +219,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
       case 'metrics':
         return (
           <PortalMetrics 
-            performanceHistory={performanceHistory}
+            performanceHistory={performanceHistory as unknown as { date: string; value: number }[]}
             client={client}
             aiProgressSummary={aiProgressSummary}
             isAnalyzingMetrics={isAnalyzingMetrics}
@@ -257,7 +264,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
 
       <PortalSidebar 
         activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
+        setActiveScreen={setActiveScreen as (screen: unknown) => void}
         onShowFriction={() => setShowFrictionModal(true)}
         onBack={onBack}
         client={client}

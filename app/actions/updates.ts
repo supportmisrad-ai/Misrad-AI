@@ -1,14 +1,14 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
@@ -23,23 +23,6 @@ function isMissingTableError(error: unknown, tableName: string) {
     code === 'p2021' ||
     code === '42p01' ||
     msg.includes(`Could not find the table 'public.${tableName}' in the schema cache`)
-  );
-}
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toLowerCase();
-  const msg = String(obj.message ?? '').toLowerCase();
-  return (
-    code === 'p2021' ||
-    code === 'p2022' ||
-    code === '42p01' ||
-    code === '42703' ||
-    msg.includes('could not find the table') ||
-    msg.includes('schema cache') ||
-    msg.includes('does not exist') ||
-    msg.includes('relation') ||
-    msg.includes('column')
   );
 }
 
@@ -129,7 +112,7 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
 
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
-    console.error('Error getting updates:', error);
+    logger.error('updates', 'Error getting updates:', error);
     if (isMissingTableError(error, 'app_updates') || isSchemaMismatchError(error)) {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] app_updates missing table/column (${getErrorMessage(error) || 'missing relation'})`);
@@ -198,7 +181,7 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
 
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
-    console.error('Error getting updates with status:', error);
+    logger.error('updates', 'Error getting updates with status:', error);
     if (isMissingTableError(error, 'app_updates') || isSchemaMismatchError(error)) {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] app_updates/user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
@@ -251,7 +234,7 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error marking update as viewed:', error);
+    logger.error('updates', 'Error marking update as viewed:', error);
     if (isMissingTableError(error, 'user_update_views') || isSchemaMismatchError(error)) {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
@@ -310,7 +293,7 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
 
     return { success: true, count: unreadCount };
   } catch (error: unknown) {
-    console.error('Error getting unread count:', error);
+    logger.error('updates', 'Error getting unread count:', error);
     if (
       isMissingTableError(error, 'app_updates') ||
       isMissingTableError(error, 'user_update_views') ||

@@ -89,7 +89,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                 <select 
                     className="w-full h-full pl-4 pr-10 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-600 focus:outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors border border-transparent focus:border-indigo-200 focus:bg-white"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value)}
                 >
                     <option value="all">כל הסטטוסים</option>
                     {STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
@@ -165,7 +165,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                             <td className="px-6 py-4">
                                 <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String((lead as any)?.phone ?? '').replace(/-/g, '')}`, '_blank'); }} 
+                                        onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String(lead.phone ?? '').replace(/-/g, '')}`, '_blank'); }} 
                                         className="p-2 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                                         title="וואטסאפ"
                                     >
@@ -240,7 +240,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                               <Phone size={14} /> חייג
                           </button>
                           <button 
-                              onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String((lead as any)?.phone ?? '').replace(/-/g, '')}`, '_blank'); }}
+                              onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String(lead.phone ?? '').replace(/-/g, '')}`, '_blank'); }}
                               className="flex-1 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-emerald-100"
                           >
                               <MessageSquare size={14} /> וואטסאפ

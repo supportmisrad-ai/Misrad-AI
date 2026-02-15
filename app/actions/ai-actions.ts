@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { PostVariation, AIOpportunity, ClientDNA } from "@/types/social";
 import { AIService } from "@/lib/services/ai/AIService";
 
@@ -110,7 +112,7 @@ export async function generatePostVariationsAction(
     
     return [];
   } catch (error) {
-    console.error('Error generating post variations:', error);
+    logger.error('ai-actions', 'Error generating post variations:', error);
     return [];
   }
 }
@@ -123,7 +125,7 @@ export async function generateAIImageAction(prompt: string): Promise<string> {
     // This is a placeholder - actual image generation would use Gemini's image generation API
     return `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/600`;
   } catch (error) {
-    console.error('Error generating image:', error);
+    logger.error('ai-actions', 'Error generating image:', error);
     return '';
   }
 }
@@ -158,7 +160,7 @@ export async function draftAIResponseAction(message: string, context: string): P
     });
     return out.text || '';
   } catch (error) {
-    console.error('Error drafting response:', error);
+    logger.error('ai-actions', 'Error drafting response:', error);
     return '';
   }
 }
@@ -211,7 +213,7 @@ export async function getGlobalAgencyAuditAction(clients: unknown[], team: unkno
 
     return out.text || 'לא ניתן לקבל ניתוח כרגע';
   } catch (error) {
-    console.error('Error getting agency audit:', error);
+    logger.error('ai-actions', 'Error getting agency audit:', error);
     return 'שגיאה בניתוח - נסה שוב מאוחר יותר';
   }
 }

@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
 import { Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AnalysisReport, Priority } from '../types';
+import { AnalysisReport, Priority, Task, Lead, Asset, TimeEntry } from '../types';
 import { useSearchParams } from 'next/navigation';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
@@ -60,7 +60,7 @@ export const IntelligenceView: React.FC = () => {
             // Prepare raw data for server-side filtering
             // Server will filter based on actual permissions
             const rawData = {
-                tasks: tasks.map((t: any) => ({
+                tasks: tasks.map((t: Task) => ({
                     id: t.id,
                     title: t.title,
                     status: t.status,
@@ -69,12 +69,12 @@ export const IntelligenceView: React.FC = () => {
                     dueDate: t.dueDate,
                     tags: t.tags
                 })),
-                clients: clients.map((c: any) => ({
+                clients: clients.map((c: { id: string; companyName?: string; status?: string }) => ({
                     id: c.id,
                     companyName: c.companyName,
                     status: c.status
                 })),
-                assets: assets.map((a: any) => ({
+                assets: assets.map((a: Asset) => ({
                     id: a.id,
                     title: a.title,
                     type: a.type,
@@ -82,10 +82,10 @@ export const IntelligenceView: React.FC = () => {
                 })),
                 financials: isManager ? {
                     monthlyGoals,
-                    revenue: leads.filter((l: any) => l.status === 'Won').reduce((acc: number, l: any) => acc + l.value, 0),
+                    revenue: leads.filter((l: Lead) => l.status === 'Won').reduce((acc: number, l: Lead) => acc + l.value, 0),
                     target: monthlyGoals.revenue
                 } : undefined,
-                timeEntries: timeEntries.filter((t: any) => t.userId === currentUser.id).slice(0, 5)
+                timeEntries: timeEntries.filter((t: TimeEntry) => t.userId === currentUser.id).slice(0, 5)
             };
 
             // Call secure API - server will filter data based on permissions
@@ -215,7 +215,7 @@ export const IntelligenceView: React.FC = () => {
 
     const handleClearHistory = () => {
         if (window.confirm('האם למחוק את כל היסטוריית החיפושים?')) {
-            analysisHistory.forEach((item: any) => deleteAnalysis(item.id));
+            analysisHistory.forEach((item: AnalysisReport) => deleteAnalysis(item.id));
             setReport(null);
             addToast('ההיסטוריה נוקתה בהצלחה', 'info');
         }
@@ -312,8 +312,8 @@ export const IntelligenceView: React.FC = () => {
                         <span className="text-[9px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">30 יום</span>
                     </div>
                     {analysisHistory
-                        .filter((r: any) => r.mode === (isManager ? 'manager' : 'employee'))
-                        .map((item: any) => (
+                        .filter((r: AnalysisReport) => r.mode === (isManager ? 'manager' : 'employee'))
+                        .map((item: AnalysisReport) => (
                         <div 
                             key={item.id} 
                             onClick={() => setReport(item)}

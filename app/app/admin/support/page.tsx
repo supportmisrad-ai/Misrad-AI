@@ -54,8 +54,8 @@ export default function AdminSupportSettingsPage() {
       }
 
       setStatus({ type: 'success', message: 'נשמר בהצלחה' });
-    } catch (e: any) {
-      setStatus({ type: 'error', message: e?.message || 'שגיאה בשמירה' });
+    } catch (e: unknown) {
+      setStatus({ type: 'error', message: (e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירה' });
     } finally {
       setIsSaving(false);
     }

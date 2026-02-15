@@ -42,7 +42,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
 
       // Visualizer Setup - Only if AudioContext is allowed
       try {
-          const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+          const AudioContextClass = (window.AudioContext || (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext);
           if (AudioContextClass) {
               if (!audioContextRef.current) {
                   audioContextRef.current = new AudioContextClass();
@@ -87,7 +87,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
       setIsSimulation(true);
       addToast('מיקרופון לא נמצא - עבר למצב ללא מיקרופון', 'warning');
       try {
-          const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+          const AudioContextClass = (window.AudioContext || (window as unknown as Record<string, unknown>).webkitAudioContext as typeof AudioContext);
           const ctx = new AudioContextClass();
           audioContextRef.current = ctx;
           
@@ -124,13 +124,15 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       handleStreamSetup(stream);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Error accessing microphone:', err);
       // Fallback to simulation if device not found (common in certain web containers or if no mic exists)
-      if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError' || err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      const errObj = err instanceof DOMException ? err : (err instanceof Error ? err : null);
+      const errName = errObj?.name || '';
+      if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError' || errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
           startSimulation();
       } else {
-          alert('שגיאה בגישה למיקרופון: ' + (err.message || 'שגיאה לא ידועה'));
+          alert('שגיאה בגישה למיקרופון: ' + (errObj?.message || 'שגיאה לא ידועה'));
           onClose();
       }
     }
@@ -177,7 +179,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
       if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
       
       animationFrameRef.current = requestAnimationFrame(draw);
-      analyserRef.current!.getByteFrequencyData(dataArrayRef.current as any);
+      analyserRef.current!.getByteFrequencyData(dataArrayRef.current! as Uint8Array<ArrayBuffer>);
 
       ctx.clearRect(0, 0, width, height);
 

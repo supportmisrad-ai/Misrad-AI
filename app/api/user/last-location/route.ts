@@ -27,7 +27,7 @@ async function safeUpdateLastLocation({
   orgSlug: string | null;
   moduleKey: OSModuleKey | null;
 }) {
-  const updateData: Record<string, any> = {
+  const updateData: Record<string, unknown> = {
     updated_at: new Date(),
   };
 

@@ -18,7 +18,7 @@ interface CommunicationViewProps {
   onUpdateLead?: (leadId: string, updates: Partial<Lead>) => void;
   onAddTask?: (task: Task) => void;
   initialTab?: 'phone' | 'inbox';
-  user?: { id: string; phone?: string; [key: string]: any };
+  user?: { id: string; phone?: string; [key: string]: unknown };
 }
 
 const CommunicationView: React.FC<CommunicationViewProps> = ({
@@ -33,15 +33,15 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
     <CommunicationViewBase
       leads={leads as unknown as CommunicationLead[]}
       onAddActivity={onAddActivity}
-      onUpdateLead={onUpdateLead as any}
+      onUpdateLead={onUpdateLead as ((leadId: string, updates: Partial<CommunicationLead>) => void) | undefined}
       onAddTask={onAddTask as unknown as ((task: CommunicationTask) => void)}
       initialTab={initialTab}
       user={user}
       useToast={useToast}
-      useOnClickOutside={useOnClickOutside as any}
-      CallButton={CallButton as any}
-      QUICK_ASSETS={QUICK_ASSETS as any}
-      STAGES={STAGES as any}
+      useOnClickOutside={useOnClickOutside as unknown as (ref: React.RefObject<HTMLElement>, handler: (event: MouseEvent | TouchEvent) => void) => void}
+      CallButton={CallButton as unknown as React.ComponentType<{ phoneNumber: string; size?: string; variant?: string; className?: string; onCallInitiated?: (phone: string) => void }>}
+      QUICK_ASSETS={QUICK_ASSETS as unknown as Array<{ id: string; label: string; value: string; icon?: string }>}
+      STAGES={STAGES as unknown as Array<{ id: string; label: string; color?: string; accent?: string }>}
       aiDraft={async ({ activeLead, selectedSendChannel }) => {
         const lastMessages = (activeLead.activities || [])
           .filter((a) => ['whatsapp', 'sms', 'email'].includes(String(a.type)))
@@ -51,7 +51,7 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
 
         const prompt = `You are a professional sales assistant for Sistem.OS. 
           Lead Name: ${activeLead.name}
-          Context: ${activeLead.status}, value ₪${(activeLead as any).value}.
+          Context: ${activeLead.status}, value ₪${(activeLead as unknown as Record<string, unknown>).value}.
           Recent History:
           ${lastMessages}
 
@@ -65,8 +65,9 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
           body: JSON.stringify({ query: prompt, rawData: { leadId: activeLead.id, channel: selectedSendChannel } }),
         });
 
-        const data = (await res.json().catch(() => ({}))) as any;
-        const text = data?.result?.summary || '';
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const result = (data?.result && typeof data.result === 'object' ? data.result : {}) as Record<string, unknown>;
+        const text = String(result?.summary || '');
         return text ? String(text).trim() : null;
       }}
     />

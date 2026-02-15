@@ -70,13 +70,13 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
     if (hasHydratedInitialData) return;
     if (typeof window === 'undefined') return;
 
-    const readOrgId = (payload?: any) => {
-      const userData = payload ?? ((window as any).__CLIENT_OS_USER__ as any);
+    const readOrgId = (payload?: Record<string, unknown>) => {
+      const userData = payload ?? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as Record<string, unknown> | undefined);
       const nextOrgId = userData?.organizationId ?? null;
       setOrgId(nextOrgId ? String(nextOrgId) : null);
     };
 
-    const onUserUpdated = (e: any) => readOrgId(e?.detail);
+    const onUserUpdated = (e: unknown) => readOrgId((e && typeof e === 'object' && 'detail' in e) ? (e as Record<string, unknown>).detail as Record<string, unknown> : undefined);
 
     readOrgId();
     window.addEventListener('client-os-user-updated', onUserUpdated);
@@ -118,9 +118,9 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
         );
         setMeetings(allSessions.flat());
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ClientOS] error refreshing clients', {
-        error: error?.message || String(error),
+        error: (error instanceof Error ? error.message : String(error)),
       });
     }
   };
@@ -184,10 +184,10 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
             setMeetings([]);
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[ClientOS] error loading data', {
-          error: error?.message || String(error),
-          stack: error?.stack,
+          error: (error instanceof Error ? error.message : String(error)),
+          stack: (error instanceof Error ? error.stack : undefined),
         });
         if (isMounted) {
           setClients([]);
@@ -334,9 +334,9 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
       await refreshClients();
 
       console.debug('[ClientOS] task created', { clientId, taskId: created.id });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ClientOS] error creating task', {
-        error: error?.message || String(error),
+        error: (error instanceof Error ? error.message : String(error)),
         clientId,
       });
       // Still update UI optimistically

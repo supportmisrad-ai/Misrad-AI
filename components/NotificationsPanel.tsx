@@ -34,10 +34,11 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
 
   const unreadCount = userNotifications.filter((n: Notification) => !n.read).length;
 
-  const handleNotificationClick = (notification: any) => {
-      markNotificationRead(notification.id);
-      if (notification.taskId) {
-          openTask(notification.taskId);
+  const handleNotificationClick = (notification: unknown) => {
+      const notif = notification as Record<string, unknown>;
+      markNotificationRead(String(notif.id));
+      if (notif.taskId) {
+          openTask(String(notif.taskId));
           onClose(); // Close the panel so user sees the modal
       }
   };

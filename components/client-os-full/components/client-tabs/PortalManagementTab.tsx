@@ -14,11 +14,13 @@ interface PortalManagementTabProps {
   client: Client;
 }
 
+type TaskType = 'APPROVAL' | 'UPLOAD' | 'SIGNATURE' | 'FORM';
+
 export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client }) => {
   const { updateClientGoal, addClientTask, removeClientTask, addClientAsset, syncPortal } = useNexus();
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', type: 'APPROVAL' as any, isBlocking: false });
+  const [newTask, setNewTask] = useState<{ title: string; description: string; type: TaskType; isBlocking: boolean }>({ title: '', description: '', type: 'APPROVAL', isBlocking: false });
   const [recommendation, setRecommendation] = useState<{tip: string, expectedBenefit: string} | null>(null);
   const [isLoadingRec, setIsLoadingRec] = useState(false);
 
@@ -34,7 +36,7 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({ clientName: client.name, healthScore: client.healthScore }),
           });
-          const json = await res.json().catch(() => ({} as any));
+          const json = await res.json().catch(() => ({} as Record<string, unknown>));
           if (!res.ok) throw new Error(json?.error || 'Failed to load recommendation');
           setRecommendation({ tip: json.tip, expectedBenefit: json.expectedBenefit });
       } catch (e) {
@@ -218,7 +220,7 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
                                 <select 
                                     className="flex-1 text-[10px] font-bold bg-gray-50 p-2.5 rounded-xl outline-none border border-gray-100"
                                     value={newTask.type}
-                                    onChange={e => setNewTask({...newTask, type: e.target.value as any})}
+                                    onChange={e => setNewTask({...newTask, type: e.target.value as 'APPROVAL' | 'UPLOAD' | 'SIGNATURE' | 'FORM'})}
                                 >
                                     <option value="APPROVAL">אישור תוצר</option>
                                     <option value="UPLOAD">העלאת קובץ</option>
@@ -247,6 +249,7 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
                                 </div>
                                 <div>
                                     <h6 className="font-bold text-sm text-gray-900">{action.title}</h6>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">{action.type === 'APPROVAL' ? 'APPROVAL' : action.type}</span>
                                     <span className="text-[10px] text-gray-400 font-bold uppercase">{action.type}</span>
                                 </div>
                             </div>

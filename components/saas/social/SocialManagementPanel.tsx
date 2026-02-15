@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plug, SlidersHorizontal, Sparkles, Users } from 'lucide-react';
 import { useData } from '@/context/DataContext';
+import { Tenant } from '@/types';
 import { IntegrationsTab } from './tabs/IntegrationsTab';
 import { AutomationTab } from './tabs/AutomationTab';
 import { QuotasTab } from './tabs/QuotasTab';
@@ -17,7 +18,7 @@ export function SocialManagementPanel() {
   const tenantOptions = useMemo(() => {
     const list = Array.isArray(tenants) ? tenants : [];
     const seen = new Set<string>();
-    return list.filter((t: any) => {
+    return list.filter((t: Tenant) => {
       const id = String(t?.id || '');
       if (!id) return false;
       if (seen.has(id)) return false;
@@ -40,7 +41,7 @@ export function SocialManagementPanel() {
   }, [selectedTenantId, tenantOptions]);
 
   const selectedTenant = useMemo(() => {
-    return tenantOptions.find((t: any) => String(t.id) === String(selectedTenantId)) || null;
+    return tenantOptions.find((t: Tenant) => String(t.id) === String(selectedTenantId)) || null;
   }, [selectedTenantId, tenantOptions]);
 
   const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
@@ -75,9 +76,9 @@ export function SocialManagementPanel() {
               {tenantOptions.length === 0 ? (
                 <option value="">אין טננטים</option>
               ) : (
-                tenantOptions.map((t: any) => (
+                tenantOptions.map((t: Tenant) => (
                   <option key={t.id} value={String(t.id)}>
-                    {t.name || t.slug || t.id}
+                    {t.name || t.id}
                   </option>
                 ))
               )}

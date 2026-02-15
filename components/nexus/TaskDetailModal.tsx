@@ -36,8 +36,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
   // CRM Integration Check
   const linkedClient = task.clientId 
-      ? clients.find((c: any) => c.id === task.clientId) 
-      : clients.find((c: any) => task.tags.some(t => t.toLowerCase() === c.companyName.toLowerCase()));
+      ? clients.find((c: { id: string; companyName: string }) => c.id === task.clientId) 
+      : clients.find((c: { id: string; companyName: string }) => task.tags.some(t => t.toLowerCase() === c.companyName.toLowerCase()));
 
   // Scroll to top on mobile when modal opens
   useEffect(() => {
@@ -86,20 +86,21 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           return;
       }
       
-      const coords: any = {
+      const coords: unknown = {
           top: rect.bottom + 5,
           width: Math.max(rect.width, 180)
       };
 
       // Handle RTL alignment properly or time popover special alignment
+      const typedCoords = coords as { top: number; left?: number; right?: number; width?: number };
       if (type === 'estimate') {
-          coords.left = rect.left;
-          coords.top = rect.bottom + 8;
+          typedCoords.left = rect.left;
+          typedCoords.top = rect.bottom + 8;
       } else {
-          coords.right = window.innerWidth - rect.right;
+          typedCoords.right = window.innerWidth - rect.right;
       }
 
-      setPopoverCoords(coords);
+      setPopoverCoords(typedCoords);
       setActivePopover(type);
   };
 
@@ -155,7 +156,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       onClose();
   };
 
-  const RenderLabel = ({ icon, label }: { icon: any; label: string }) => (
+  const RenderLabel = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
     <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
       {icon} {label}
     </div>

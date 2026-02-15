@@ -152,7 +152,7 @@ function SubscribeCheckoutContent({
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const result = await getSubscriptionPaymentConfig(packageType as any);
+        const result = await getSubscriptionPaymentConfig(packageType);
         if (!result.success) return;
         setPaymentTitle(result.data?.title ?? null);
         setQrImageUrl(result.data?.qrImageUrl ?? null);
@@ -230,10 +230,11 @@ function SubscribeCheckoutContent({
       }
 
       setOrderId(result.data.id);
-      setOrderOrgKey((result.data as any).organizationId || null);
+      const orgId = (result.data as Record<string, unknown>).organizationId;
+      setOrderOrgKey(typeof orgId === 'string' ? orgId : null);
       setOrderAmount(typeof result.data.amount === 'number' ? result.data.amount : null);
-    } catch (e: any) {
-      setError(e?.message || 'שגיאה ביצירת הזמנה');
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || 'שגיאה ביצירת הזמנה');
     } finally {
       setIsCreating(false);
     }
@@ -255,8 +256,8 @@ function SubscribeCheckoutContent({
       }
       setIsPendingVerification(true);
       setIsSuccess(true);
-    } catch (e: any) {
-      setError(e?.message || 'שגיאה בשליחת אישור');
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || 'שגיאה בשליחת אישור');
     } finally {
       setIsSubmittingProof(false);
     }

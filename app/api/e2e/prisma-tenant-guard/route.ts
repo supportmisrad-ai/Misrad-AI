@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 
 import prisma from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -7,6 +8,9 @@ import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const blocked = blockE2eInProduction();
+  if (blocked) return blocked;
+
   try {
     const expected = process.env.E2E_API_KEY;
     const provided = req.headers.get('x-e2e-key');

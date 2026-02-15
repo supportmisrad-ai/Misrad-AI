@@ -14,7 +14,7 @@ const META_STORE_NAME = 'meta';
 interface BackupData {
     id: string;
     timestamp: number;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     version: string;
 }
 
@@ -112,7 +112,7 @@ export async function initOfflineBackup(): Promise<boolean> {
 /**
  * Create a backup of current data
  */
-export async function createOfflineBackup(data: Record<string, any>): Promise<string | null> {
+export async function createOfflineBackup(data: Record<string, unknown>): Promise<string | null> {
     if (!db) {
         const initialized = await initOfflineBackup();
         if (!initialized) return null;
@@ -185,7 +185,7 @@ export async function getOfflineBackups(): Promise<BackupData[]> {
 /**
  * Restore from a backup
  */
-export async function restoreOfflineBackup(backupId: string): Promise<Record<string, any> | null> {
+export async function restoreOfflineBackup(backupId: string): Promise<Record<string, unknown> | null> {
     if (!db) {
         const initialized = await initOfflineBackup();
         if (!initialized) return null;
@@ -252,7 +252,7 @@ export async function deleteOfflineBackup(backupId: string): Promise<boolean> {
 /**
  * Auto-backup on data changes (call this when data changes)
  */
-export async function autoBackup(data: Record<string, any>): Promise<void> {
+export async function autoBackup(data: Record<string, unknown>): Promise<void> {
     // Only backup if offline or if last backup was more than 1 hour ago
     const lastBackupTime = await getMetaValue('last_offline_backup');
     const now = Date.now();
@@ -279,7 +279,7 @@ export async function autoBackup(data: Record<string, any>): Promise<void> {
 /**
  * Get backup size estimate
  */
-export function getBackupSizeEstimate(data: Record<string, any>): string {
+export function getBackupSizeEstimate(data: Record<string, unknown>): string {
     const jsonString = JSON.stringify(data);
     const sizeInBytes = new Blob([jsonString]).size;
     

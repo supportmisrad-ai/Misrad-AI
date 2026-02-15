@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
+import { orgExec, orgQuery, prisma, prismaForInteractiveTransaction } from '@/lib/services/operations/db';
 import { asObject, getUnknownErrorMessage, logOperationsError } from '@/lib/services/operations/shared';
 import { ensureOperationsVehicleHolderIdTx } from '@/lib/services/operations/stock-holders';
 import type { OperationsTechnicianOption } from '@/lib/services/operations/types';
@@ -90,7 +90,7 @@ export async function setOperationsTechnicianActiveVehicleForOrganizationId(para
       vehicleName = obj.name ? String(obj.name) : 'רכב';
     }
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await orgExec(
         tx,
         params.organizationId,

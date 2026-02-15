@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
 import PaywallModal from '@/components/shared/PaywallModal';
+import type { PackageType } from '@/lib/billing/pricing';
 
 export default function VisionIdentifyFillSearch({
   formId,
@@ -23,7 +24,7 @@ export default function VisionIdentifyFillSearch({
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [paywallTitle, setPaywallTitle] = useState('');
   const [paywallMessage, setPaywallMessage] = useState('');
-  const [recommendedPackageType, setRecommendedPackageType] = useState<any>(undefined);
+  const [recommendedPackageType, setRecommendedPackageType] = useState<PackageType | undefined>(undefined);
 
   async function onPickFile(file: File) {
     if (busy) return;
@@ -53,11 +54,11 @@ export default function VisionIdentifyFillSearch({
         }),
       });
 
-      const json = (await res.json().catch(() => ({}))) as any;
-      const payload = json?.data && typeof json.data === 'object' ? json.data : json;
+      const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const payload = (json?.data && typeof json.data === 'object' ? json.data : json) as Record<string, unknown>;
       if (!res.ok) {
         if (res.status === 402) {
-          const pw = json?.paywall;
+          const pw = json?.paywall as Record<string, unknown> | undefined;
           setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
           setPaywallMessage(
             String(
@@ -67,14 +68,14 @@ export default function VisionIdentifyFillSearch({
                 'הגעת למכסת סריקות ה-AI בחבילת הניסיון. שדרג לחבילת תפעול כדי להמשיך.'
             )
           );
-          setRecommendedPackageType(pw?.recommendedPackageType || 'the_operator');
+          setRecommendedPackageType(String(pw?.recommendedPackageType || 'the_operator') as PackageType);
           setIsPaywallOpen(true);
           return;
         }
         throw new Error(String(json?.error || payload?.error || 'שגיאה בזיהוי תמונה'));
       }
 
-      const name = payload?.name ? String(payload.name).trim() : '';
+      const name = payload?.name ? String(payload['name']).trim() : '';
       if (!name) {
         throw new Error('זיהוי נכשל (שם חלק ריק)');
       }
@@ -117,8 +118,8 @@ export default function VisionIdentifyFillSearch({
           const f = e.target.files?.[0];
           e.target.value = '';
           if (f) {
-            onPickFile(f).catch((err: any) => {
-              alert(String(err?.message || err || 'שגיאה'));
+            onPickFile(f).catch((err: unknown) => {
+              alert(String(err instanceof Error ? err.message : err || 'שגיאה'));
             });
           }
         }}

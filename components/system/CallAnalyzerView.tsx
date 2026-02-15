@@ -71,9 +71,9 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
             const nextTitle = String(tempTitle || '').trim();
             updateHistoryItem(state.result.id, { title: nextTitle });
             addToast('הכותרת נשמרה', 'success');
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('[CallAnalyzer] failed to save title', e);
-            addToast(e?.message || 'שגיאה בשמירת הכותרת', 'error');
+            addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירת הכותרת', 'error');
         } finally {
             setIsEditingTitle(false);
         }
@@ -102,14 +102,14 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     };
 
-    const isCallAnalysisTask = (t: any): t is CallAnalysisTask => {
-        return Boolean(t && typeof t === 'object' && typeof t.title === 'string');
+    const isCallAnalysisTask = (t: unknown): t is CallAnalysisTask => {
+        return Boolean(t && typeof t === 'object' && typeof (t as Record<string, unknown>).title === 'string');
     };
 
     const updateTaskAtIndex = (idx: number, patch: Partial<CallAnalysisTask>) => {
         if (!state.result?.id || !state.result?.topics) return;
         const existing = state.result.topics.tasks || [];
-        const next = existing.map((t: any, i: number) => {
+        const next = existing.map((t: unknown, i: number) => {
             if (i !== idx) return t;
             if (!isCallAnalysisTask(t)) return t;
             return { ...t, ...patch };
@@ -117,7 +117,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         updateHistoryItem(state.result.id, {
             topics: {
                 ...state.result.topics,
-                tasks: next,
+                tasks: next as (string | CallAnalysisTask)[],
             },
         });
     };
@@ -171,9 +171,9 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                 dismissed: false,
             });
             addToast('נקבע ביומן', 'success');
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            addToast(e?.message || 'שגיאה בקביעת תזכורת', 'error');
+            addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בקביעת תזכורת', 'error');
         } finally {
             setCreatingTaskIndex(null);
         }

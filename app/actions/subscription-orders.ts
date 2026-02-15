@@ -9,7 +9,7 @@ import { calculateOrderAmount } from '@/lib/billing/pricing';
 import { CouponEngine } from '@/lib/server/couponEngine';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 import { Prisma, type subscription_orders } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
@@ -330,7 +330,7 @@ export async function createSubscriptionOrder(
     };
 
     try {
-      await prisma.$transaction(async (tx) => {
+      await prismaForInteractiveTransaction().$transaction(async (tx) => {
         try {
           await tx.subscription_orders.create({ data: createData });
         } catch (error: unknown) {

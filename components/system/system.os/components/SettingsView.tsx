@@ -14,7 +14,7 @@ import SystemTargetsView from './SalesTargetsView';
 import { Lead } from '../types';
 
 interface SettingsViewProps {
-  logs?: any[]; 
+  logs?: unknown[]; 
   leads?: Lead[];
 }
 

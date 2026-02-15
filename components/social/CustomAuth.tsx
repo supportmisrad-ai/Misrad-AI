@@ -8,6 +8,11 @@ import { useRouter } from 'next/navigation';
 import { translateClerkError } from '@/lib/errorTranslations';
 import { OAuthStrategy } from '@clerk/types';
 
+interface ClerkAPIError {
+  errors?: Array<{ code?: string; message?: string }>;
+  message?: string;
+}
+
 const LEGAL_CONSENT_STORAGE_KEY = 'pending_legal_consent_v1';
 
 interface CustomAuthProps {
@@ -133,9 +138,10 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       } else {
         setError('ההתחברות נכשלה. נסה שוב.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Sign in error:', err);
-      const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות. נסה שוב.';
+      const clerkErr = err as ClerkAPIError;
+      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בהתחברות. נסה שוב.';
       setError(translateClerkError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -166,8 +172,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         password: password,
       });
 
-      if ((result as any)?.status === 'complete') {
-        const sessionId = (result as any)?.createdSessionId;
+      if (result.status === 'complete') {
+        const sessionId = result.createdSessionId;
         if (sessionId) {
           if (typeof setActive === 'function') {
             await setActive({ session: sessionId });
@@ -187,9 +193,10 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setStep('verify');
       setInfo('שלחנו קוד אימות לאימייל. הזן את הקוד כדי להשלים הרשמה.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Sign up error:', err);
-      const errorMsg = err.errors?.[0]?.message || 'שגיאה בהרשמה. נסה שוב.';
+      const clerkErr = err as ClerkAPIError;
+      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בהרשמה. נסה שוב.';
       setError(translateClerkError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -221,8 +228,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       }
 
       const result = await signUp.attemptEmailAddressVerification({ code });
-      if ((result as any)?.status === 'complete') {
-        const sessionId = (result as any)?.createdSessionId;
+      if (result.status === 'complete') {
+        const sessionId = result.createdSessionId;
         if (sessionId) {
           if (typeof setActive === 'function') {
             await setActive({ session: sessionId });
@@ -240,9 +247,10 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       }
 
       setError('האימות לא הושלם. בדוק את הקוד ונסה שוב.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Email verification error:', err);
-      const errorMsg = err.errors?.[0]?.message || 'שגיאה באימות האימייל. נסה שוב.';
+      const clerkErr = err as ClerkAPIError;
+      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה באימות האימייל. נסה שוב.';
       setError(translateClerkError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -281,13 +289,14 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       } else {
         setError('ההתחברות עם טביעת אצבע לא הושלמה');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Passkey sign in error:', err);
+      const clerkErr = err as ClerkAPIError;
       // Check if user doesn't have passkeys set up
-      if (err.errors?.[0]?.code === 'passkey_not_found' || err.errors?.[0]?.message?.includes('passkey')) {
+      if (clerkErr?.errors?.[0]?.code === 'passkey_not_found' || clerkErr?.errors?.[0]?.message?.includes('passkey')) {
         setError('לא נמצאה טביעת אצבע. נא ליצור טביעת אצבע בפרופיל החשבון תחילה.');
       } else {
-        const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות עם טביעת אצבע';
+        const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בהתחברות עם טביעת אצבע';
         setError(translateClerkError(errorMsg));
       }
     } finally {
@@ -329,9 +338,10 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
           redirectUrlComplete: '/',
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('OAuth sign in error:', err);
-      const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות עם ' + (strategy === 'oauth_google' ? 'גוגל' : 'רשת חברתית');
+      const clerkErr = err as ClerkAPIError;
+      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בהתחברות עם ' + (strategy === 'oauth_google' ? 'גוגל' : 'רשת חברתית');
       setError(translateClerkError(errorMsg));
       setIsLoading(false);
     }
@@ -458,8 +468,9 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
                     if (!signUpLoaded || !signUp) return;
                     await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
                     setInfo('שלחנו קוד חדש לאימייל.');
-                  } catch (err: any) {
-                    const errorMsg = err.errors?.[0]?.message || 'שגיאה בשליחת קוד. נסה שוב.';
+                  } catch (err: unknown) {
+                    const clerkErr = err as ClerkAPIError;
+                    const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בשליחת קוד. נסה שוב.';
                     setError(translateClerkError(errorMsg));
                   }
                 }}

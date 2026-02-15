@@ -10,6 +10,7 @@ import prisma from '@/lib/prisma';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -20,19 +21,24 @@ async function GETHandler(request: NextRequest) {
         // Only users with manage_system permission can view permissions
         await requirePermission('manage_system');
 
-        const rows = await prisma.scale_permissions.findMany({
-            orderBy: { id: 'asc' },
-            select: { id: true, label: true, description: true, category: true },
-        });
+        return await withTenantIsolationContext(
+            { source: 'api_permissions', reason: 'list_permissions', suppressReporting: true },
+            async () => {
+                const rows = await prisma.scale_permissions.findMany({
+                    orderBy: { id: 'asc' },
+                    select: { id: true, label: true, description: true, category: true },
+                });
 
-        const permissions = (rows || []).map((p) => ({
-            id: p.id,
-            label: p.label,
-            description: p.description,
-            category: p.category || 'access',
-        }));
-        
-        return NextResponse.json({ permissions });
+                const permissions = (rows || []).map((p) => ({
+                    id: p.id,
+                    label: p.label,
+                    description: p.description,
+                    category: p.category || 'access',
+                }));
+                
+                return NextResponse.json({ permissions });
+            }
+        );
         
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error fetching permissions');

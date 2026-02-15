@@ -11,7 +11,7 @@ export default function AdminSystemAnnouncementsPageClient() {
   return (
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="הודעות" subtitle="הודעות מערכת" icon={MessageSquare} />
-      <AnnouncementsPanel currentUser={currentUser} addToast={addToast as any} hideHeader />
+      <AnnouncementsPanel currentUser={currentUser} addToast={addToast} hideHeader />
     </div>
   );
 }

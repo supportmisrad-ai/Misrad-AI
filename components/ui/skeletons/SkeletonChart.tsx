@@ -40,7 +40,7 @@ export function SkeletonChart({ variant = 'bar', height = 320 }: { variant?: 'ba
                     <Skeleton
                       key={i}
                       className="flex-1 rounded-t-2xl"
-                      style={{ height: `${20 + ((i * 7) % 70)}%` } as any}
+                      style={{ height: `${20 + ((i * 7) % 70)}%` } as React.CSSProperties}
                     />
                   ))}
                 </div>

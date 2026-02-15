@@ -29,7 +29,7 @@ interface MobileMenuProps {
   setShowMorningBrief: (show: boolean) => void;
   openSupport: () => void;
   startTutorial: () => void;
-  navigate: (path: string, options?: any) => void;
+  navigate: (path: string, options?: Record<string, unknown>) => void;
   plusGradient?: string;
 }
 

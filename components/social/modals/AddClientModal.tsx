@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useUser } from '@clerk/nextjs';
-import { PricingPlan, SocialPlatform } from '@/types/social';
+import { PricingPlan, SocialPlatform, Client } from '@/types/social';
 import { createClientForWorkspace } from '@/app/actions/clients';
 import { translateError } from '@/lib/errorTranslations';
 import { usePathname } from 'next/navigation';
@@ -172,7 +172,7 @@ export default function AddClientModal() {
           responsivenessScore: 100,
           revisionCount: 0,
         }
-      } as any, user.id);
+      } as unknown as Partial<Client>, user.id);
 
       if (result.success && result.data) {
         setClients(prev => [...prev, result.data!]);
@@ -221,12 +221,13 @@ export default function AddClientModal() {
           }
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errObj = error instanceof Error ? error : null;
       console.error('Error creating client:', {
         error,
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name,
+        message: errObj?.message,
+        stack: errObj?.stack,
+        name: errObj?.name,
         clientData: {
           name: name.trim(),
           companyName: invoiceName || name,
@@ -236,7 +237,7 @@ export default function AddClientModal() {
         }
       });
       
-      const errorMsg = error?.message ? translateError(error.message) : 'שגיאה ביצירת לקוח';
+      const errorMsg = errObj?.message ? translateError(errObj.message) : 'שגיאה ביצירת לקוח';
       
           // Check for specific error types
           if (errorMsg.includes('משתמש') || errorMsg.includes('user') || errorMsg.includes('ארגון') || errorMsg.includes('organization')) {

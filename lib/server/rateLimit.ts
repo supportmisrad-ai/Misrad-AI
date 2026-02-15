@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { Redis } from '@upstash/redis';
+import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 
 export type RateLimitMode = 'normal' | 'fail_closed' | 'degraded';
 
@@ -90,16 +91,7 @@ function isRedisDisabledExplicitly(): boolean {
 
 function getRedisClient(): Redis | null {
   if (isRedisDisabledExplicitly()) return null;
-
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-
-  try {
-    return new Redis({ url, token });
-  } catch {
-    return null;
-  }
+  return getUpstashRedisClient();
 }
 
 async function promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<{ ok: true; value: T } | { ok: false }> {
@@ -263,5 +255,68 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
     remaining: Math.max(0, effectiveLimit - existing.count),
     resetAt: existing.resetAt,
     degraded: isDegraded,
+  };
+}
+
+// ─── Global per-IP rate limiter ─────────────────────────────────────────────
+
+const GLOBAL_RATE_LIMIT = (() => {
+  const raw = Number(process.env.MISRAD_GLOBAL_RATE_LIMIT || 200);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 200;
+})();
+
+const GLOBAL_RATE_WINDOW_MS = (() => {
+  const raw = Number(process.env.MISRAD_GLOBAL_RATE_WINDOW_MS || 60_000);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 60_000;
+})();
+
+export type GlobalRateLimitResult =
+  | { allowed: true; headers: Record<string, string> }
+  | { allowed: false; headers: Record<string, string>; response: Response };
+
+/**
+ * Global per-IP rate limiter — call at the top of every API route handler.
+ * Returns `{ allowed: true }` if the request is within limits, or
+ * `{ allowed: false, response }` with a ready-to-return 429 Response.
+ *
+ * Limits: 200 req/min per IP (configurable via MISRAD_GLOBAL_RATE_LIMIT).
+ * Falls back to in-memory if Redis is unavailable (degraded mode).
+ */
+export async function globalRateLimit(req: Request): Promise<GlobalRateLimitResult> {
+  const ip = getClientIpFromRequest(req);
+
+  const result = await rateLimit({
+    namespace: 'global',
+    key: ip,
+    limit: GLOBAL_RATE_LIMIT,
+    windowMs: GLOBAL_RATE_WINDOW_MS,
+    mode: 'degraded',
+    degradedLimit: Math.max(1, Math.floor(GLOBAL_RATE_LIMIT / 3)),
+  });
+
+  const headers = buildRateLimitHeaders({
+    limit: GLOBAL_RATE_LIMIT,
+    remaining: result.remaining,
+    resetAt: result.resetAt,
+    retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,
+    label: 'Global',
+  });
+
+  if (result.ok) {
+    return { allowed: true, headers };
+  }
+
+  const body = JSON.stringify({
+    error: 'Too many requests',
+    retryAfterSeconds: result.retryAfterSeconds,
+  });
+
+  return {
+    allowed: false,
+    headers,
+    response: new Response(body, {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', ...headers },
+    }),
   };
 }

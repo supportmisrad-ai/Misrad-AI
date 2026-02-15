@@ -17,8 +17,8 @@ export const IntegrationsTab: React.FC = () => {
     const [oauthSuccess, setOauthSuccess] = useState<string | null>(null);
     const [oauthConfig, setOauthConfig] = useState<{
         configured: boolean;
-        details?: any;
-        recommendations?: any;
+        details?: Record<string, unknown>;
+        recommendations?: Record<string, unknown>;
     } | null>(null);
     const [isCheckingOAuth, setIsCheckingOAuth] = useState(true);
     const [integrationStatus, setIntegrationStatus] = useState<{
@@ -493,8 +493,8 @@ export const IntegrationsTab: React.FC = () => {
                                     <div className="font-bold mb-1">מפתחות OAuth לא מוגדרים</div>
                                     {oauthConfig.recommendations && (
                                         <ul className="list-disc list-inside space-y-1 mr-2">
-                                            {Object.values(oauthConfig.recommendations).map((rec: any, i: number) => (
-                                                <li key={i}>{rec}</li>
+                                            {Object.values(oauthConfig.recommendations).map((rec: unknown, i: number) => (
+                                                <li key={i}>{String(rec)}</li>
                                             ))}
                                         </ul>
                                     )}

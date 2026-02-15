@@ -26,7 +26,7 @@ import { ScreenGuard } from './components/ScreenGuard';
 import { PrivacyView, TermsView, SecurityView, AboutView, ContactView, BlogView, CareersView } from './views/PublicPages';
 
 // Sales OS Imports
-import { SalesLayout } from './components/SalesLayout';
+import { SalesLayout } from './views/SalesLayout';
 import { SalesDashboard } from './views/SalesDashboard';
 import { SalesPipeline } from './views/SalesPipeline';
 import { SalesTargets } from './views/SalesTargets';
@@ -37,8 +37,8 @@ interface RouteWrapperProps {
 
 // Wrapper to protect routes (Authentication only)
 const ProtectedRoute = ({ children }: RouteWrapperProps) => {
-  const { isAuthenticated } = useData();
-  if (!isAuthenticated) {
+  const data = useData() as { isAuthenticated?: boolean };
+  if (!data.isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -46,11 +46,12 @@ const ProtectedRoute = ({ children }: RouteWrapperProps) => {
 
 // Permission Route Wrapper
 const PermissionRoute = ({ children, permission }: { children?: React.ReactNode; permission: PermissionId }) => {
-    const { isAuthenticated, hasPermission } = useData();
+    const data = useData() as { isAuthenticated?: boolean; hasPermission?: (p: string) => boolean };
+    const { isAuthenticated, hasPermission } = data;
     
     if (!isAuthenticated) return <Navigate to="/login" replace />;
     
-    if (!hasPermission(permission)) {
+    if (!hasPermission || !hasPermission(permission)) {
         return <Layout><AccessDeniedView /></Layout>; 
     }
     
@@ -59,17 +60,19 @@ const PermissionRoute = ({ children, permission }: { children?: React.ReactNode;
 
 // Super Admin Route
 const SuperAdminRoute = ({ children }: RouteWrapperProps) => {
-    const { isAuthenticated, currentUser } = useData();
+    const data = useData() as { isAuthenticated?: boolean; currentUser?: { isSuperAdmin?: boolean } };
+    const { isAuthenticated, currentUser } = data;
     if (!isAuthenticated) return <Navigate to="/login" replace />;
     
-    if (!currentUser.isSuperAdmin) {
+    if (!currentUser?.isSuperAdmin) {
         return <Layout><AccessDeniedView /></Layout>;
     }
     return <>{children}</>;
 };
 
 const PublicRoute = ({ children }: RouteWrapperProps) => {
-    const { isAuthenticated } = useData();
+    const data = useData() as { isAuthenticated?: boolean };
+    const { isAuthenticated } = data;
     if (isAuthenticated) {
       return <Navigate to="/" replace />;
     }

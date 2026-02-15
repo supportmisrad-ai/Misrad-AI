@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 // IMPORTANT:
 // This file is an adapter layer.
 // It keeps the existing Client OS UI contracts intact while routing core data
@@ -311,7 +313,7 @@ export async function getClientOSTasks(orgId: string, clientId: string): Promise
     });
     return tasks.map(mapClinicTaskToClientAction);
   } catch (error: unknown) {
-    console.error('[getClientOSTasks] error', {
+    logger.error('getClientOSTasks', 'error', {
       message: getErrorMessage(error) || String(error),
     });
     return [];
@@ -341,7 +343,7 @@ export async function getClientOSSessions(orgId: string, clientId: string): Prom
       recordingUrl: resolvedUrls[idx] || m.recordingUrl,
     }));
   } catch (error: unknown) {
-    console.error('[getClientOSSessions] error', {
+    logger.error('getClientOSSessions', 'error', {
       message: getErrorMessage(error) || String(error),
     });
     return [];
@@ -371,7 +373,7 @@ export async function getOrganizationSessions(orgId: string): Promise<Meeting[]>
       recordingUrl: resolvedUrls[idx] || m.recordingUrl,
     }));
   } catch (error: unknown) {
-    console.error('[getOrganizationSessions] error', {
+    logger.error('getOrganizationSessions', 'error', {
       message: getErrorMessage(error) || String(error),
     });
     return [];
@@ -426,7 +428,7 @@ export async function getClientOSFeedbacks(orgId: string, clientId?: string): Pr
 
     return feedbacks.map((f) => mapClinicFeedbackToFeedbackItem(f, clientMap.get(f.clientId) || 'לקוח'));
   } catch (error: unknown) {
-    console.error('[getClientOSFeedbacks] error', {
+    logger.error('getClientOSFeedbacks', 'error', {
       message: getErrorMessage(error) || String(error),
     });
     return [];
@@ -450,7 +452,7 @@ export async function createClientOSFeedback(params: {
 export async function getClientIdByClerkEmail(params: { orgId: string }): Promise<{ clientId: string } | null> {
   const { orgId } = params;
   if (!orgId) {
-    console.warn('[getClientIdByClerkEmail] orgId is required');
+    logger.warn('getClientIdByClerkEmail', 'orgId is required');
     return null;
   }
 
@@ -466,7 +468,7 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
     });
 
     if (!email) {
-      console.warn('[getClientIdByClerkEmail] no email found for user');
+      logger.warn('getClientIdByClerkEmail', 'no email found for user');
       return null;
     }
 
@@ -479,7 +481,7 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
     });
 
     if (!data?.id) {
-      console.warn('[getClientIdByClerkEmail] no client found with matching email', {
+      logger.warn('getClientIdByClerkEmail', 'no client found with matching email', {
         searchedEmail: email ? `${email.substring(0, 3)}***` : 'no email',
         organizationId: workspace.id,
       });
@@ -493,7 +495,7 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
 
     return { clientId: data.id };
   } catch (error: unknown) {
-    console.error('[getClientIdByClerkEmail] unexpected error', {
+    logger.error('getClientIdByClerkEmail', 'unexpected error', {
       message: getErrorMessage(error) || String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });

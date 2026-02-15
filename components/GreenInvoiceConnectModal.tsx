@@ -50,8 +50,8 @@ export const GreenInvoiceConnectModal: React.FC<GreenInvoiceConnectModalProps> =
             onSuccess();
             onClose();
             setApiKey('');
-        } catch (err: any) {
-            setError(err.message || 'שגיאה בחיבור למורנינג');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setIsConnecting(false);
         }

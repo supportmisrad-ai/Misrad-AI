@@ -104,9 +104,10 @@ const IntegrationsView: React.FC = () => {
         cache: 'no-store',
       });
 
-      const data: any = await response.json().catch(() => ({}));
-      const connected = Boolean(data?.connected);
-      const lastSynced = typeof data?.lastSynced === 'string' ? data.lastSynced : null;
+      const data: unknown = await response.json().catch(() => ({}));
+      const dataObj = data as Record<string, unknown>;
+      const connected = Boolean(dataObj?.connected);
+      const lastSynced = typeof dataObj?.lastSynced === 'string' ? dataObj.lastSynced : null;
 
       setGreenInvoiceStatus({
         isLoading: false,
@@ -114,12 +115,12 @@ const IntegrationsView: React.FC = () => {
         lastSynced,
         error: null,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setGreenInvoiceStatus({
         isLoading: false,
         connected: false,
         lastSynced: null,
-        error: String(error?.message || 'שגיאה בבדיקת סטטוס חיבור'),
+        error: String(error instanceof Error ? error.message : error || 'שגיאה בבדיקת סטטוס חיבור'),
       });
     }
   }, []);
@@ -182,13 +183,13 @@ const IntegrationsView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{integration.name}</h3>
-                  <p className="text-sm text-slate-500">{integration.description}</p>
+                  <p className="text-xs text-slate-500">{(integration as Record<string, unknown>).lastSynced ? `עודכן לאחרונה: ${new Date((integration as Record<string, unknown>).lastSynced as string).toLocaleDateString('he-IL')}` : 'לא סונכרן עדיין'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-slate-500">
-                  <XCircle size={20} />
-                  <span className="text-sm font-medium">לא זמין</span>
+                <div className={`flex items-center gap-2 ${(integration as Record<string, unknown>).connected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  <CheckCircle2 size={20} />
+                  <span className="text-sm font-medium">מחובר</span>
                 </div>
               </div>
             </div>

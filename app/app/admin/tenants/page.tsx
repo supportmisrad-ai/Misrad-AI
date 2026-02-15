@@ -69,8 +69,8 @@ export default function AdminTenantsPage() {
       for (const t of loaded) {
         if (!existingIds.has(t.id)) addTenant(t);
       }
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת חשבונות SaaS', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת חשבונות SaaS', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -146,8 +146,8 @@ export default function AdminTenantsPage() {
           // ignore
         }
       }, 3500);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת חשבון SaaS', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה ביצירת חשבון SaaS', 'error');
       setIsAddTenantOpen(true);
     }
   };
@@ -172,8 +172,8 @@ export default function AdminTenantsPage() {
     try {
       await handleUpdateTenant(id, { status: newStatus });
       addToast('חשבון SaaS עודכן בהצלחה!', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון חשבון SaaS', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בעדכון חשבון SaaS', 'error');
     }
   };
 
@@ -192,8 +192,8 @@ export default function AdminTenantsPage() {
 
     try {
       await handleUpdateTenant(editingTenant.id, { modules: next });
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון מודולים', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בעדכון מודולים', 'error');
     }
   };
 
@@ -210,8 +210,8 @@ export default function AdminTenantsPage() {
 
     try {
       await handleUpdateTenant(editingTenant.id, { modules: next });
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון מודולים', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בעדכון מודולים', 'error');
     }
   };
 

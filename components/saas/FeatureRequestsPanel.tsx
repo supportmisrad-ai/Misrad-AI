@@ -44,9 +44,9 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
             }
             const data = await response.json();
             setRequests(data.requests || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[FeatureRequestsPanel] Error loading requests:', err);
-            addToast(err.message || 'שגיאה בטעינת בקשות פיצ\'רים', 'error');
+            addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בטעינת בקשות פיצ\'רים', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -55,7 +55,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
     const handleStatusChange = async (requestId: string, newStatus: string, adminNotes?: string, rejectionReason?: string) => {
         setUpdatingStatus(requestId);
         try {
-            const body: any = { status: newStatus };
+            const body: Record<string, string> = { status: newStatus };
             if (adminNotes) body.admin_notes = adminNotes;
             if (rejectionReason) body.rejection_reason = rejectionReason;
 
@@ -84,9 +84,9 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                 }).then(r => r.json());
                 setSelectedRequest(updated);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[FeatureRequestsPanel] Error updating status:', err);
-            addToast(err.message || 'שגיאה בעדכון סטטוס', 'error');
+            addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בעדכון סטטוס', 'error');
         } finally {
             setUpdatingStatus(null);
         }
@@ -117,9 +117,9 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                 }).then(r => r.json());
                 setSelectedRequest(updated);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[FeatureRequestsPanel] Error adding notes:', err);
-            addToast(err.message || 'שגיאה בהוספת הערות', 'error');
+            addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בהוספת הערות', 'error');
         }
     };
 

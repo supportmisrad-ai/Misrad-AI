@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
+import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 
 import { createServiceRoleClient } from '@/lib/supabase';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
@@ -54,6 +55,9 @@ function coerceRowWithId(data: unknown): { id: string } & Record<string, unknown
 }
 
 export async function POST(req: Request) {
+  const blocked = blockE2eInProduction();
+  if (blocked) return blocked;
+
   try {
     const expected = process.env.E2E_API_KEY;
     const provided = req.headers.get('x-e2e-key');

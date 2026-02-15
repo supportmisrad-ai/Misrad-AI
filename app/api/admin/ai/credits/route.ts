@@ -1,6 +1,6 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { requireSuperAdmin } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
@@ -104,7 +104,7 @@ async function POSTHandler(req: Request) {
         isSuperAdmin: true,
       },
       async () =>
-        await prisma.$transaction(async (tx) => {
+        await prismaForInteractiveTransaction().$transaction(async (tx) => {
           const existing = await tx.organization_settings.findUnique({
             where: { organization_id: String(organizationId) },
             select: { ai_quota_cents: true },

@@ -35,8 +35,8 @@ export default function DevicePairingModal(props: {
       await props.approvePairing({ code, approvedForUserId });
       props.addToast('המכשיר צומד בהצלחה', 'success');
       props.onClose();
-    } catch (e: any) {
-      props.addToast(e?.message || 'שגיאה בצימוד מכשיר', 'error');
+    } catch (e: unknown) {
+      props.addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בצימוד מכשיר', 'error');
     } finally {
       setIsSubmitting(false);
     }

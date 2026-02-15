@@ -77,7 +77,7 @@ export default function ClientWorkspace() {
   const handlers = useClientWorkspaceHandlers({
     activeClient,
     orgSlug,
-    setActiveDraft,
+    setActiveDraft: setActiveDraft as unknown as (draft: unknown) => void,
     setPosts,
     setIdeas,
     setClients,
@@ -89,7 +89,7 @@ export default function ClientWorkspace() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab client={activeClient} posts={clientPosts} requests={clientRequestsList} onEditPost={handlers.handleEditPost} onEnterPortal={() => setIsClientMode(true)} setActiveTab={setActiveTab} />;
+        return <OverviewTab client={activeClient} posts={clientPosts} requests={clientRequestsList} onEditPost={handlers.handleEditPost} onEnterPortal={() => setIsClientMode(true)} setActiveTab={setActiveTab as unknown as (tab: unknown) => void} />;
       case 'content':
         return <ContentTab client={activeClient} posts={clientPosts} onNewPost={handlers.handleNewPostFromContext} onEditPost={handlers.handleEditPost} onDeletePost={handlers.handleDeletePost} />;
       case 'requests':
@@ -103,7 +103,7 @@ export default function ClientWorkspace() {
       case 'messages':
         return <MessagesTab conversations={clientConversations} onSendMessage={handlers.handleSendMessage} />;
       default:
-        return <OverviewTab client={activeClient} posts={clientPosts} requests={clientRequestsList} onEditPost={handlers.handleEditPost} onEnterPortal={() => setIsClientMode(true)} setActiveTab={setActiveTab} />;
+        return <OverviewTab client={activeClient} posts={clientPosts} requests={clientRequestsList} onEditPost={handlers.handleEditPost} onEnterPortal={() => setIsClientMode(true)} setActiveTab={setActiveTab as unknown as (tab: unknown) => void} />;
     }
   };
 

@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import type { MemberType, TeamMember, TeamMemberRole } from '@/types/social';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
@@ -134,7 +136,7 @@ export async function getTeamMembers(orgSlug: string): Promise<{ success: boolea
       data: teamMembers,
     };
   } catch (error: unknown) {
-    console.error('Error in getTeamMembers:', error);
+    logger.error('team', 'Error in getTeamMembers:', error);
     return {
       success: false,
       error: getUnknownErrorMessage(error) || 'שגיאה בטעינת חברי צוות',

@@ -6,5 +6,5 @@ import { AnnouncementsPanel } from '@/components/saas/AnnouncementsPanel';
 
 export default function AdminClientAnnouncementsPageClient() {
   const { currentUser, addToast } = useData();
-  return <AnnouncementsPanel currentUser={currentUser} addToast={addToast as any} />;
+  return <AnnouncementsPanel currentUser={currentUser} addToast={addToast} />;
 }

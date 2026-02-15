@@ -101,9 +101,10 @@ export const ResetPasswordView: React.FC = () => {
       setStep('code');
       setCode(''); // Clear any previous code
       setError(''); // Clear any previous errors
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[ResetPassword] Send code error:', err);
-      const errorMessage = err.errors?.[0]?.message || err.message || 'שגיאה בשליחת קוד אימות. נא לנסות שוב.';
+      const clerkErr = err as { errors?: Array<{ message?: string }>; message?: string };
+      const errorMessage = clerkErr.errors?.[0]?.message || (err as Record<string, unknown>)?.message as string || 'שגיאה בשליחת קוד אימות. נא לנסות שוב.';
       setError(errorMessage);
       setSuccess(''); // Clear success message on error
       // Reset auto-send flag on error so user can retry
@@ -205,9 +206,10 @@ export const ResetPasswordView: React.FC = () => {
       } else {
         setError('שגיאה באימות הקוד. נא לנסות שוב.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Verify code error:', err);
-      setError(err.errors?.[0]?.message || 'קוד אימות שגוי. נא לנסות שוב.');
+      const clerkErr2 = err as { errors?: Array<{ message?: string }> };
+      setError(clerkErr2.errors?.[0]?.message || 'קוד אימות שגוי. נא לנסות שוב.');
       codeInputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -256,9 +258,10 @@ export const ResetPasswordView: React.FC = () => {
       } else {
         setError('שגיאה באיפוס הסיסמה. נא לנסות שוב.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reset password error:', err);
-      setError(err.errors?.[0]?.message || 'שגיאה באיפוס הסיסמה. נא לנסות שוב.');
+      const errObj = err as { errors?: Array<{ message?: string }> };
+      setError(errObj.errors?.[0]?.message || 'שגיאה באיפוס הסיסמה. נא לנסות שוב.');
     } finally {
       setIsLoading(false);
     }

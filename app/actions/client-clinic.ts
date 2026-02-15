@@ -1,30 +1,13 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { Prisma } from '@prisma/client';
 import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toLowerCase();
-  const message = String(getErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'p2021' ||
-    code === 'p2022' ||
-    code === '42p01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export type ClinicClient = {
   id: string;
@@ -203,7 +186,7 @@ export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
     }
     const eObj = asObject(e);
     const stack = e instanceof Error ? e.stack : typeof eObj?.stack === 'string' ? eObj.stack : null;
-    console.error('[getClinicClients] unexpected error', {
+    logger.error('getClinicClients', 'unexpected error', {
       message: getErrorMessage(e),
       stack,
     });
@@ -666,7 +649,7 @@ export async function listClinicFeedbacks(params: {
       });
       return [];
     }
-    console.error('[listClinicFeedbacks] unexpected error', {
+    logger.error('listClinicFeedbacks', 'unexpected error', {
       message: getErrorMessage(e),
     });
     return [];

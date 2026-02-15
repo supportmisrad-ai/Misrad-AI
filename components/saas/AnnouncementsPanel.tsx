@@ -17,7 +17,7 @@ interface Announcement {
 }
 
 interface AnnouncementsPanelProps {
-    currentUser: any;
+    currentUser: { id: string; name?: string; role?: string; isSuperAdmin?: boolean };
     addToast: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     hideHeader?: boolean;
 }
@@ -47,10 +47,10 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
             if (!response.ok) {
                 throw new Error('Failed to load announcements');
             }
-            const data = await response.json().catch(() => ({}));
-            const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-            setAnnouncements((payload as any).announcements || []);
-        } catch (error: any) {
+            const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+            const payload = data?.data && typeof data.data === 'object' ? (data.data as Record<string, unknown>) : data;
+            setAnnouncements((Array.isArray(payload.announcements) ? payload.announcements : []) as Announcement[]);
+        } catch (error: unknown) {
             console.error('Error loading announcements:', error);
             addToast('שגיאה בטעינת הודעות', 'error');
         } finally {
@@ -116,9 +116,9 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    const errPayload = (errorData as any)?.data && typeof (errorData as any).data === 'object' ? (errorData as any).data : errorData;
-                    throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to create announcement');
+                    const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+                    const errPayload = errorData?.data && typeof errorData.data === 'object' ? (errorData.data as Record<string, unknown>) : errorData;
+                    throw new Error(String(errorData?.error || errPayload?.error || 'Failed to create announcement'));
                 }
 
                 addToast('הודעה נוצרה ונשלחה בהצלחה', 'success');
@@ -126,9 +126,10 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
 
             setIsModalOpen(false);
             loadAnnouncements();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving announcement:', error);
-            addToast(error.message || 'שגיאה בשמירת הודעה', 'error');
+            const msg = error instanceof Error ? error.message : 'שגיאה בשמירת הודעה';
+            addToast(msg, 'error');
         }
     };
 
@@ -150,7 +151,7 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
 
             addToast('הודעה נמחקה בהצלחה', 'success');
             loadAnnouncements();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error deleting announcement:', error);
             addToast('שגיאה במחיקת הודעה', 'error');
         }

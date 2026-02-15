@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { getOrCreateOrganizationUserAction } from '@/app/actions/social-users';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -14,26 +16,7 @@ import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { saveGoogleTokensForOrganizationUser } from '@/lib/services/integrations/google-tokens';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toLowerCase();
-  const message = String(getErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'p2021' ||
-    code === 'p2022' ||
-    code === '42p01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: string }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   const organizationId = requireOrganizationId('requireOrganizationOwner', workspace.id);
@@ -112,7 +95,7 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error saving Morning credentials for workspace:', error);
+    logger.error('integrations', 'Error saving Morning credentials for workspace:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת פרטי Morning') };
   }
 }
@@ -191,9 +174,12 @@ export async function getMorningApiKeyForWorkspace(
     }
 
     const decrypted = await decryptObject(encryptedValueStr);
-    return { success: true, apiKey: decrypted.api_key || null };
+    const apiKey = typeof decrypted === 'object' && decrypted !== null && 'api_key' in decrypted
+      ? String(decrypted.api_key || '')
+      : '';
+    return { success: true, apiKey: apiKey || null };
   } catch (error: unknown) {
-    console.error('Error getting Morning API key for workspace:', error);
+    logger.error('integrations', 'Error getting Morning API key for workspace:', error);
     return { success: false, apiKey: null, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת מפתח Morning') };
   }
 }
@@ -222,7 +208,7 @@ export async function getAllIntegrationsStatusForWorkspace(orgSlug: string) {
 
     return { success: true, data: list };
   } catch (error: unknown) {
-    console.error('Error getting integrations status for workspace:', error);
+    logger.error('integrations', 'Error getting integrations status for workspace:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציות') };
   }
 }
@@ -248,7 +234,7 @@ export async function getIntegrationStatus(integrationName: string) {
 
     return { success: true, data: data || null };
   } catch (error: unknown) {
-    console.error('Error getting integration status:', error);
+    logger.error('integrations', 'Error getting integration status:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציה') };
   }
 }
@@ -261,7 +247,7 @@ export async function getGoogleCalendarAuthUrl() {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.calendar);
     return { success: true, authUrl };
   } catch (error: unknown) {
-    console.error('Error generating Google Calendar auth URL:', error);
+    logger.error('integrations', 'Error generating Google Calendar auth URL:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
@@ -274,7 +260,7 @@ export async function getGoogleDriveAuthUrl() {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.drive);
     return { success: true, authUrl };
   } catch (error: unknown) {
-    console.error('Error generating Google Drive auth URL:', error);
+    logger.error('integrations', 'Error generating Google Drive auth URL:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
@@ -287,7 +273,7 @@ export async function getGoogleSheetsAuthUrl() {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.sheets);
     return { success: true, authUrl };
   } catch (error: unknown) {
-    console.error('Error generating Google Sheets auth URL:', error);
+    logger.error('integrations', 'Error generating Google Sheets auth URL:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
@@ -325,7 +311,7 @@ export async function saveGoogleTokens(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error saving Google tokens:', error);
+    logger.error('integrations', 'Error saving Google tokens:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת טוקנים') };
   }
 }
@@ -398,7 +384,7 @@ export async function syncGoogleCalendar() {
 
     return { success: true, events: events.items || [] };
   } catch (error: unknown) {
-    console.error('Error syncing Google Calendar:', error);
+    logger.error('integrations', 'Error syncing Google Calendar:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסנכרון Google Calendar') };
   }
 }
@@ -464,7 +450,7 @@ export async function syncGoogleDrive(clientId?: string) {
 
     return { success: true, files: files.files || [] };
   } catch (error: unknown) {
-    console.error('Error syncing Google Drive:', error);
+    logger.error('integrations', 'Error syncing Google Drive:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסנכרון Google Drive') };
   }
 }
@@ -518,7 +504,7 @@ export async function disconnectIntegration(integrationName: string, orgSlug?: s
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error disconnecting integration:', error);
+    logger.error('integrations', 'Error disconnecting integration:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בהתנתקות') };
   }
 }
@@ -601,7 +587,7 @@ export async function triggerWebhookEvent(params: {
 
     return { success: true, delivered };
   } catch (error: unknown) {
-    console.error('Error triggering webhook event:', error);
+    logger.error('integrations', 'Error triggering webhook event:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשליחת webhook') };
   }
 }
@@ -662,7 +648,7 @@ export async function saveWebhookConfig(
 
     return { success: true, secretKey };
   } catch (error: unknown) {
-    console.error('Error saving webhook config:', error);
+    logger.error('integrations', 'Error saving webhook config:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת הגדרות webhook') };
   }
 }
@@ -718,7 +704,7 @@ export async function saveMorningCredentials(apiKey: string) {
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error saving Morning credentials:', error);
+    logger.error('integrations', 'Error saving Morning credentials:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת פרטי Morning') };
   }
 }
@@ -757,9 +743,12 @@ export async function getMorningApiKey(): Promise<string | null> {
     }
 
     const decrypted = await decryptObject(encryptedValueStr);
-    return decrypted.api_key || null;
+    const apiKey = typeof decrypted === 'object' && decrypted !== null && 'api_key' in decrypted
+      ? String(decrypted.api_key || '')
+      : '';
+    return apiKey || null;
   } catch (error: unknown) {
-    console.error('Error getting Morning API key:', error);
+    logger.error('integrations', 'Error getting Morning API key:', error);
     return null;
   }
 }
@@ -780,7 +769,7 @@ export async function getAllIntegrationsStatus() {
 
     return { success: true, data: data || [] };
   } catch (error: unknown) {
-    console.error('Error getting integrations status:', error);
+    logger.error('integrations', 'Error getting integrations status:', error);
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציות') };
   }
 }

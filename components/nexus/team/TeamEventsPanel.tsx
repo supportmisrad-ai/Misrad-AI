@@ -452,8 +452,8 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                                     {currentUser && (
                                         (event.requiredAttendees?.includes(currentUser.id) || 
                                          event.optionalAttendees?.includes(currentUser.id)) && (() => {
-                                            const myAttendance = attendanceMap[event.id]?.find((a: any) => 
-                                                (a.userId === currentUser.id) || (a.user_id === currentUser.id)
+                                            const myAttendance = attendanceMap[event.id]?.find((a: EventAttendance) => 
+                                                a.userId === currentUser.id
                                             );
                                             const myStatus = myAttendance?.status;
                                             
@@ -512,8 +512,9 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                                             </button>
                                             {viewingAttendance === event.id && attendanceMap[event.id] && (
                                                 <div className="mt-2 space-y-1">
-                                                    {attendanceMap[event.id].map((att: any) => {
-                                                        const userName = att.userName || users.find((u: any) => u.id === att.userId || u.id === att.user_id)?.name || `משתמש ${(att.userId || att.user_id || '').slice(0, 8)}...`;
+                                                    {attendanceMap[event.id].map((att: EventAttendance) => {
+                                                        const attUser = users.find((u: { id: string; name: string }) => u.id === att.userId);
+                                                        const userName = attUser?.name || `משתמש ${(att.userId || '').slice(0, 8)}...`;
                                                         return (
                                                             <div key={att.id} className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg">
                                                                 <span className="text-gray-700">{userName}</span>

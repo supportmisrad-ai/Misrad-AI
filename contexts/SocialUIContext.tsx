@@ -91,8 +91,8 @@ export function SocialUIProvider({ children }: { children: React.ReactNode }) {
       isTaskModalOpen: app.isTaskModalOpen,
       setIsTaskModalOpen: app.setIsTaskModalOpen,
 
-      toasts: app.toasts as any,
-      setToasts: app.setToasts as any,
+      toasts: app.toasts as unknown as Toast[],
+      setToasts: app.setToasts as unknown as React.Dispatch<React.SetStateAction<Toast[]>>,
       addToast: app.addToast,
     }),
     [

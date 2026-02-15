@@ -155,12 +155,13 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                         body: formData,
                     });
 
-                    const json = await res.json().catch(() => null as any);
+                    const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
                     if (!res.ok || !json?.success) {
                         throw new Error(String(json?.error || 'Transcription failed'));
                     }
 
-                    const transcriptText = String(json?.data?.transcriptText || '').trim();
+                    const jsonData = (json?.data as Record<string, unknown> | undefined);
+                    const transcriptText = String((json?.data as Record<string, unknown>)?.transcriptText || '').trim();
                     if (transcriptText) {
                         setMessageText(prev => prev + (prev ? ' ' : '') + transcriptText);
                     } else {
@@ -224,7 +225,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                     const isMe = msg.senderId === currentUser.id; 
                     const isSystem = msg.type === 'system';
                     const isGuest = msg.type === 'guest';
-                    const sender = users.find((u: any) => u.id === msg.senderId);
+                    const sender = users.find((u) => u.id === msg.senderId);
                     const isVoice = msg.text.startsWith('🎤');
                     const isEditing = editingMessageId === msg.id;
                     const isOpen = openMenuId === msg.id;

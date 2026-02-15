@@ -130,10 +130,10 @@ function KioskScanPageClient() {
     let cancelled = false;
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current, (result: any, err: any) => {
+      .decodeFromVideoDevice(undefined, videoRef.current, (result: unknown, err: unknown) => {
         if (cancelled) return;
         if (result) {
-          const text = result.getText();
+          const text = (result as { getText: () => string }).getText();
           loginWithToken(text);
         }
         if (err) {

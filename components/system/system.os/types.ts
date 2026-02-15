@@ -49,7 +49,7 @@ export interface Activity {
   content: string;
   timestamp: Date;
   direction?: 'inbound' | 'outbound'; 
-  metadata?: any; 
+  metadata?: Record<string, unknown>; 
 }
 
 export interface HandoverData {

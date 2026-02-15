@@ -1,6 +1,6 @@
 'use server';
 
-import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { PaymentOrder } from '@/types/social';
 import type { Invoice as FinanceInvoice } from '@/types/finance';
 import type { InvoiceStatus } from '@/types/finance';
@@ -8,9 +8,10 @@ import { randomUUID } from 'crypto';
 import { updateClinicClient } from '@/app/actions/client-clinic';
 import prisma, { queryRawOrgScoped, executeRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
+import { z } from 'zod';
+
 
 import { asObject } from '@/lib/shared/unknown';
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -61,16 +62,6 @@ function captureActionException(error: unknown, context: Record<string, unknown>
   });
 }
 
-async function requireCurrentOrganizationId(orgSlug: string): Promise<string> {
-  const resolvedOrgSlug = String(orgSlug || '').trim();
-  if (!resolvedOrgSlug) {
-    throw new Error('Missing orgSlug');
-  }
-
-  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
-  return String(workspace.id);
-}
-
 async function assertClientInOrganization(params: { organizationId: string; clientId: string }): Promise<void> {
   const organizationId = String(params.organizationId || '').trim();
   const clientId = String(params.clientId || '').trim();
@@ -117,43 +108,43 @@ export async function createPaymentOrder(
       return createErrorResponse(null, 'קלט לא תקין ליצירת הזמנת תשלום');
     }
 
-    const authCheck = await requireAuth();
-    if (!authCheck.success) {
-      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
-    }
+    return await withWorkspaceTenantContext(
+      String(parsed.data.orgSlug || ''),
+      async ({ organizationId }) => {
+        await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
 
-    const organizationId = await requireCurrentOrganizationId(String(parsed.data.orgSlug || ''));
-    await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
+        const paymentOrder: PaymentOrder = {
+          id: randomUUID(),
+          clientId: parsed.data.clientId,
+          amount: parsed.data.amount,
+          description: parsed.data.description,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          installmentsAllowed: parsed.data.installmentsAllowed,
+        };
 
-    const paymentOrder: PaymentOrder = {
-      id: randomUUID(),
-      clientId: parsed.data.clientId,
-      amount: parsed.data.amount,
-      description: parsed.data.description,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      installmentsAllowed: parsed.data.installmentsAllowed,
-    };
+        // Save payment order to database
+        type SocialPaymentOrdersCreateArgs = Parameters<typeof prisma.socialMediaPaymentOrder.create>[0];
+        type SocialPaymentOrdersCreateData = NonNullable<SocialPaymentOrdersCreateArgs>['data'];
+        const createData: SocialPaymentOrdersCreateData = {
+          id: paymentOrder.id,
+          client_id: paymentOrder.clientId,
+          amount: new Prisma.Decimal(paymentOrder.amount),
+          description: paymentOrder.description,
+          status: 'pending',
+          installments_allowed: paymentOrder.installmentsAllowed,
+          created_at: new Date(paymentOrder.createdAt),
+          updated_at: new Date(paymentOrder.createdAt),
+        };
+        await prisma.socialMediaPaymentOrder.create({
+          data: createData,
+          select: { id: true },
+        });
 
-    // Save payment order to database
-    type SocialPaymentOrdersCreateArgs = Parameters<typeof prisma.socialMediaPaymentOrder.create>[0];
-    type SocialPaymentOrdersCreateData = NonNullable<SocialPaymentOrdersCreateArgs>['data'];
-    const createData: SocialPaymentOrdersCreateData = {
-      id: paymentOrder.id,
-      client_id: paymentOrder.clientId,
-      amount: new Prisma.Decimal(paymentOrder.amount),
-      description: paymentOrder.description,
-      status: 'pending',
-      installments_allowed: paymentOrder.installmentsAllowed,
-      created_at: new Date(paymentOrder.createdAt),
-      updated_at: new Date(paymentOrder.createdAt),
-    };
-    await prisma.socialMediaPaymentOrder.create({
-      data: createData,
-      select: { id: true },
-    });
-
-    return createSuccessResponse(paymentOrder);
+        return createSuccessResponse(paymentOrder);
+      },
+      { source: 'server_actions_payments', reason: 'createPaymentOrder' }
+    );
   } catch (error: unknown) {
     captureActionException(error, { action: 'createPaymentOrder' });
     return createErrorResponse(error, 'שגיאה ביצירת הזמנת תשלום');
@@ -186,139 +177,138 @@ export async function processPayment(
       return createErrorResponse(null, 'קלט לא תקין לעיבוד תשלום');
     }
 
-    const authCheck = await requireAuth();
-    if (!authCheck.success) {
-      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
-    }
-
-    const organizationId = await requireCurrentOrganizationId(String(parsed.data.orgSlug || ''));
-
-    // Get payment order
-    const order = await prisma.socialMediaPaymentOrder.findUnique({
-      where: { id: String(paymentOrderId) },
-      select: {
-        id: true,
-        client_id: true,
-        amount: true,
-        description: true,
-        installments_allowed: true,
-        status: true,
-      },
-    });
-
-    if (!order?.id) {
-      return createErrorResponse(null, 'הזמנת תשלום לא נמצאה');
-    }
-
-    await assertClientInOrganization({ organizationId, clientId: String(order.client_id) });
-
-    // Generate transaction ID
-    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Calculate installment amount
-    const totalAmount = order.amount instanceof Prisma.Decimal ? order.amount.toNumber() : Number(order.amount ?? 0);
-    const installmentAmount = totalAmount / parsed.data.installments;
-
-    if (!Number.isFinite(installmentAmount) || installmentAmount <= 0) {
-      return createErrorResponse(null, 'סכום תשלום לא תקין');
-    }
-
-    // Create payment record
-    const paymentId = randomUUID();
-    const paymentCreatedAt = new Date().toISOString();
-    const insertedPayments = await executeRawOrgScoped(prisma, {
-      organizationId,
-      reason: 'payments_insert_payment',
-      query: `
-        insert into payments (
-          id,
-          payment_order_id,
-          client_id,
-          amount,
-          total_amount,
-          installments,
-          transaction_id,
-          status,
-          payment_method,
-          created_at
-        )
-        select
-          $1,
-          $2,
-          $3,
-          $4,
-          $5,
-          $6,
-          $7,
-          $8,
-          $9,
-          $10
-        where exists (
-          select 1
-          from clients c
-          where c.id = $3
-            and c.organization_id = $11
-        )
-      `,
-      values: [
-        paymentId,
-        String(parsed.data.paymentOrderId),
-        String(order.client_id),
-        installmentAmount,
-        totalAmount,
-        parsed.data.installments,
-        transactionId,
-        'completed',
-        'credit_card',
-        paymentCreatedAt,
-        organizationId,
-      ],
-    });
-
-    if (!insertedPayments) {
-      return createErrorResponse(null, 'שגיאה בעיבוד התשלום');
-    }
-
-    // Update payment order status
-    try {
-      await prisma.socialMediaPaymentOrder.update({
-        where: { id: String(parsed.data.paymentOrderId) },
-        data: { status: 'paid', updated_at: new Date() },
-      });
-    } catch (e: unknown) {
-      captureActionException(e, { action: 'processPayment', stage: 'update_payment_order', paymentOrderId: String(parsed.data.paymentOrderId) });
-    }
-
-    // Update client payment status
-    try {
-      const clientRow = await prisma.clientClient.findFirst({
-        where: { id: String(order.client_id) },
-        select: { id: true, organizationId: true, metadata: true },
-      });
-
-      const clientIdVal = String(clientRow?.id ?? '').trim();
-      const orgIdVal = String(clientRow?.organizationId ?? '').trim();
-      if (clientIdVal && orgIdVal) {
-        const existingMeta = asRecord(clientRow?.metadata) ?? {};
-        const nextMetadata = {
-          ...existingMeta,
-          paymentStatus: 'paid',
-          lastPaymentDate: new Date().toISOString(),
-        };
-        await updateClinicClient({
-          orgId: orgIdVal,
-          clientId: clientIdVal,
-          updates: { metadata: nextMetadata },
+    return await withWorkspaceTenantContext(
+      String(parsed.data.orgSlug || ''),
+      async ({ organizationId }) => {
+        // Get payment order
+        const order = await prisma.socialMediaPaymentOrder.findUnique({
+          where: { id: String(paymentOrderId) },
+          select: {
+            id: true,
+            client_id: true,
+            amount: true,
+            description: true,
+            installments_allowed: true,
+            status: true,
+          },
         });
-      }
-    } catch (e: unknown) {
-      captureActionException(e, { action: 'processPayment', stage: 'update_client_metadata', clientId: String(order.client_id) });
-    }
 
-    // Create invoice
-    await createInvoice(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
+        if (!order?.id) {
+          return createErrorResponse(null, 'הזמנת תשלום לא נמצאה');
+        }
 
-    return createSuccessResponse({ transactionId });
+        await assertClientInOrganization({ organizationId, clientId: String(order.client_id) });
+
+        // Generate transaction ID
+        const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+        // Calculate installment amount
+        const totalAmount = order.amount instanceof Prisma.Decimal ? order.amount.toNumber() : Number(order.amount ?? 0);
+        const installmentAmount = totalAmount / parsed.data.installments;
+
+        if (!Number.isFinite(installmentAmount) || installmentAmount <= 0) {
+          return createErrorResponse(null, 'סכום תשלום לא תקין');
+        }
+
+        // Create payment record
+        const paymentId = randomUUID();
+        const paymentCreatedAt = new Date().toISOString();
+        const insertedPayments = await executeRawOrgScoped(prisma, {
+          organizationId,
+          reason: 'payments_insert_payment',
+          query: `
+            insert into payments (
+              id,
+              payment_order_id,
+              client_id,
+              amount,
+              total_amount,
+              installments,
+              transaction_id,
+              status,
+              payment_method,
+              created_at
+            )
+            select
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              $6,
+              $7,
+              $8,
+              $9,
+              $10
+            where exists (
+              select 1
+              from clients c
+              where c.id = $3
+                and c.organization_id = $11
+            )
+          `,
+          values: [
+            paymentId,
+            String(parsed.data.paymentOrderId),
+            String(order.client_id),
+            installmentAmount,
+            totalAmount,
+            parsed.data.installments,
+            transactionId,
+            'completed',
+            'credit_card',
+            paymentCreatedAt,
+            organizationId,
+          ],
+        });
+
+        if (!insertedPayments) {
+          return createErrorResponse(null, 'שגיאה בעיבוד התשלום');
+        }
+
+        // Update payment order status
+        try {
+          await prisma.socialMediaPaymentOrder.update({
+            where: { id: String(parsed.data.paymentOrderId) },
+            data: { status: 'paid', updated_at: new Date() },
+          });
+        } catch (e: unknown) {
+          captureActionException(e, { action: 'processPayment', stage: 'update_payment_order', paymentOrderId: String(parsed.data.paymentOrderId) });
+        }
+
+        // Update client payment status
+        try {
+          const clientRow = await prisma.clientClient.findFirst({
+            where: { id: String(order.client_id) },
+            select: { id: true, organizationId: true, metadata: true },
+          });
+
+          const clientIdVal = String(clientRow?.id ?? '').trim();
+          const orgIdVal = String(clientRow?.organizationId ?? '').trim();
+          if (clientIdVal && orgIdVal) {
+            const existingMeta = asRecord(clientRow?.metadata) ?? {};
+            const nextMetadata = {
+              ...existingMeta,
+              paymentStatus: 'paid',
+              lastPaymentDate: new Date().toISOString(),
+            };
+            await updateClinicClient({
+              orgId: orgIdVal,
+              clientId: clientIdVal,
+              updates: { metadata: nextMetadata },
+            });
+          }
+        } catch (e: unknown) {
+          captureActionException(e, { action: 'processPayment', stage: 'update_client_metadata', clientId: String(order.client_id) });
+        }
+
+        // Create invoice
+        await createInvoice(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
+
+        return createSuccessResponse({ transactionId });
+      },
+      { source: 'server_actions_payments', reason: 'processPayment' }
+    );
   } catch (error: unknown) {
     captureActionException(error, { action: 'processPayment' });
     return createErrorResponse(error, 'שגיאה בעיבוד התשלום');
@@ -409,52 +399,52 @@ export async function getInvoices(
       return createErrorResponse(null, 'קלט לא תקין לטעינת חשבוניות');
     }
 
-    const authCheck = await requireAuth();
-    if (!authCheck.success) {
-      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
-    }
+    return await withWorkspaceTenantContext(
+      String(parsed.data.orgSlug || ''),
+      async ({ organizationId }) => {
+        await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
 
-    const organizationId = await requireCurrentOrganizationId(String(parsed.data.orgSlug || ''));
-    await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
+        const data = await queryRawOrgScoped<unknown[]>(prisma, {
+          organizationId,
+          reason: 'payments_get_invoices',
+          query: `
+            select i.*
+            from invoices i
+            join clients c on c.id = i.client_id
+            where i.client_id = $1
+              and c.organization_id = $2
+            order by i.created_at desc
+          `,
+          values: [String(clientId), organizationId],
+        });
 
-    const data = await queryRawOrgScoped<unknown[]>(prisma, {
-      organizationId,
-      reason: 'payments_get_invoices',
-      query: `
-        select i.*
-        from invoices i
-        join clients c on c.id = i.client_id
-        where i.client_id = $1
-          and c.organization_id = $2
-        order by i.created_at desc
-      `,
-      values: [String(clientId), organizationId],
-    });
+        const list: unknown[] = Array.isArray(data) ? data : [];
+        const invoices: FinanceInvoice[] = list.map((inv) => {
+          const obj = asObject(inv) ?? {};
+          const id = String(obj.id ?? '');
+          const number = String(obj.invoice_number ?? obj.number ?? id.slice(0, 8));
+          const status = isInvoiceStatus(obj.status) ? obj.status : 'paid';
 
-    const list: unknown[] = Array.isArray(data) ? data : [];
-    const invoices: FinanceInvoice[] = list.map((inv) => {
-      const obj = asObject(inv) ?? {};
-      const id = String(obj.id ?? '');
-      const number = String(obj.invoice_number ?? obj.number ?? id.slice(0, 8));
-      const status = isInvoiceStatus(obj.status) ? obj.status : 'paid';
+          return {
+            id,
+            number,
+            clientName: String(obj.client_name ?? ''),
+            clientEmail: obj.client_email == null ? undefined : String(obj.client_email),
+            amount: Number(obj.amount) || 0,
+            currency: String(obj.currency ?? 'ILS'),
+            status,
+            issueDate: obj.issue_date ? new Date(String(obj.issue_date)) : new Date(),
+            dueDate: obj.due_date ? new Date(String(obj.due_date)) : new Date(),
+            paidDate: obj.paid_date ? new Date(String(obj.paid_date)) : undefined,
+            description: obj.description == null ? undefined : String(obj.description),
+            url: `/api/invoices/${id}/download`,
+          };
+        });
 
-      return {
-        id,
-        number,
-        clientName: String(obj.client_name ?? ''),
-        clientEmail: obj.client_email == null ? undefined : String(obj.client_email),
-        amount: Number(obj.amount) || 0,
-        currency: String(obj.currency ?? 'ILS'),
-        status,
-        issueDate: obj.issue_date ? new Date(String(obj.issue_date)) : new Date(),
-        dueDate: obj.due_date ? new Date(String(obj.due_date)) : new Date(),
-        paidDate: obj.paid_date ? new Date(String(obj.paid_date)) : undefined,
-        description: obj.description == null ? undefined : String(obj.description),
-        url: `/api/invoices/${id}/download`,
-      };
-    });
-
-    return createSuccessResponse(invoices);
+        return createSuccessResponse(invoices);
+      },
+      { source: 'server_actions_payments', reason: 'getInvoices' }
+    );
   } catch (error: unknown) {
     captureActionException(error, { action: 'getInvoices' });
     return createErrorResponse(error, 'שגיאה בטעינת חשבוניות');
@@ -475,31 +465,31 @@ export async function getPaymentHistory(
       return createErrorResponse(null, 'קלט לא תקין לטעינת היסטוריית תשלומים');
     }
 
-    const authCheck = await requireAuth();
-    if (!authCheck.success) {
-      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
-    }
+    return await withWorkspaceTenantContext(
+      String(parsed.data.orgSlug || ''),
+      async ({ organizationId }) => {
+        await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
 
-    const organizationId = await requireCurrentOrganizationId(String(parsed.data.orgSlug || ''));
-    await assertClientInOrganization({ organizationId, clientId: parsed.data.clientId });
+        const data = await queryRawOrgScoped<unknown[]>(prisma, {
+          organizationId,
+          reason: 'payments_get_history',
+          query: `
+            select p.*
+            from payments p
+            join clients c on c.id = p.client_id
+            where p.client_id = $1
+              and c.organization_id = $2
+            order by p.created_at desc
+            limit 50
+          `,
+          values: [String(clientId), organizationId],
+        });
 
-    const data = await queryRawOrgScoped<unknown[]>(prisma, {
-      organizationId,
-      reason: 'payments_get_history',
-      query: `
-        select p.*
-        from payments p
-        join clients c on c.id = p.client_id
-        where p.client_id = $1
-          and c.organization_id = $2
-        order by p.created_at desc
-        limit 50
-      `,
-      values: [String(clientId), organizationId],
-    });
-
-    const list: unknown[] = Array.isArray(data) ? data : [];
-    return createSuccessResponse(list);
+        const list: unknown[] = Array.isArray(data) ? data : [];
+        return createSuccessResponse(list);
+      },
+      { source: 'server_actions_payments', reason: 'getPaymentHistory' }
+    );
   } catch (error: unknown) {
     captureActionException(error, { action: 'getPaymentHistory' });
     return createErrorResponse(error, 'שגיאה בטעינת היסטוריית תשלומים');

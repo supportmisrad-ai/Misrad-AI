@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 
 interface AdminPanelLayoutProps {
   activeTab: AdminTab;
-  tabs: Array<{ id: AdminTab; label: string; icon: any; badgeCount?: number }>;
+  tabs: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; badgeCount?: number }>;
   onTabChange: (tab: AdminTab) => void;
   onBackToDashboard: () => void;
   onRefresh: () => void;

@@ -70,8 +70,8 @@ export default function AdminUsersPage() {
       router.push(
         `/w/${encodeURIComponent(String(orgSlug))}/social/workspace?clientId=${encodeURIComponent(String(clientId))}`
       );
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בהתחזות', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בהתחזות', 'error');
     }
   };
 

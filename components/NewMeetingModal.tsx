@@ -8,7 +8,7 @@ interface NewMeetingModalProps {
   leads: Lead[];
   initialLeadId?: string;
   onClose: () => void;
-  onSave: (meeting: any) => void;
+  onSave: (meeting: unknown) => void;
 }
 
 const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId, onClose, onSave }) => {
@@ -251,7 +251,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                             key={opt.id}
                                                             type="button"
                                                             onClick={() => {
-                                                                setReminders({...reminders, timing: opt.id as any});
+                                                                setReminders({...reminders, timing: opt.id as 'immediate' | '1h_before' | '24h_before'});
                                                                 setIsTimingOpen(false);
                                                             }}
                                                             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-right group ${reminders.timing === opt.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
@@ -297,7 +297,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                         <button
                                             key={opt.id}
                                             type="button"
-                                            onClick={() => setPostMeeting({...postMeeting, type: opt.id as any})}
+                                            onClick={() => setPostMeeting({...postMeeting, type: opt.id as 'summary' | 'thank_you' | 'proposal_link'})}
                                             className={`py-2 rounded-xl text-[10px] font-bold border transition-colors ${postMeeting.type === opt.id ? 'bg-white border-emerald-300 text-emerald-700 shadow-md scale-105' : 'bg-emerald-100/30 border-transparent text-emerald-600'}`}
                                         >
                                             {opt.label}
@@ -310,7 +310,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                         <label className="text-[10px] font-bold text-emerald-700 uppercase mr-1">מתי?</label>
                                         <select 
                                             value={postMeeting.delay}
-                                            onChange={(e) => setPostMeeting({...postMeeting, delay: e.target.value as any})}
+                                            onChange={(e) => setPostMeeting({...postMeeting, delay: e.target.value as '1h_after' | 'morning_after'})}
                                             className="w-full bg-white border border-emerald-100 text-xs font-bold text-emerald-800 rounded-xl py-2.5 px-3 focus:ring-0 cursor-pointer"
                                         >
                                             <option value="1h_after">שעה אחרי</option>

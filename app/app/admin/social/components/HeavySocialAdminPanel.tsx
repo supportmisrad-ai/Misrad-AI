@@ -184,7 +184,7 @@ function HeavySocialAdminPanelInner() {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6">
         <AnimatePresence mode="wait">
-          {activeTab === 'pulse' ? <PulseTab key="pulse" liveKPIs={liveKPIs} metrics={metrics} /> : null}
+          {activeTab === 'pulse' ? <PulseTab key="pulse" liveKPIs={liveKPIs ?? {}} metrics={metrics} /> : null}
           {activeTab === 'overview' ? <OverviewTab key="overview" metrics={metrics} /> : null}
 
           {activeTab === 'users' ? (

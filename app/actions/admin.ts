@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
@@ -417,7 +419,7 @@ export async function getSecurityAuditLog(params?: {
 
     return createSuccessResponse(fallbackLogs);
   } catch (error) {
-    console.error('[getSecurityAuditLog] Error:', error);
+    logger.error('getSecurityAuditLog', 'Error:', error);
     // Return empty array instead of mock data
     return createSuccessResponse([]);
   }
@@ -488,7 +490,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
       void displayName;
     } catch (logError) {
       // Logging is optional
-      console.warn('[impersonateUser] Failed to log action:', logError);
+      logger.warn('impersonateUser', 'Failed to log action:', logError);
     }
 
     return createSuccessResponse({ impersonationToken: session?.token ? String(session.token) : token });

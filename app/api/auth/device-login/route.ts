@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/server/workspace-access/utils';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,9 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'Missing token' }, { status: 400 });
   }
 
+  return await withTenantIsolationContext(
+    { source: 'api_auth_device_login', reason: 'device_login', suppressReporting: true },
+    async () => {
   let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findUnique>> | null = null;
   try {
     row = await prisma.devicePairingToken.findUnique({
@@ -116,6 +120,8 @@ async function POSTHandler(request: NextRequest) {
   });
 
   return res;
+    }
+  );
 }
 
 export const POST = shabbatGuard(POSTHandler);

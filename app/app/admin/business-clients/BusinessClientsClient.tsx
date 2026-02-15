@@ -12,6 +12,7 @@ import ApplyCouponModal from '@/components/admin/ApplyCouponModal';
 import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
+import { asObject } from '@/lib/shared/unknown';
 
 type BusinessClient = {
   id: string;
@@ -373,28 +374,30 @@ export default function BusinessClientsClient() {
                           <p className="text-sm text-gray-500">אין ארגונים</p>
                         ) : (
                           <div className="space-y-3">
-                            {client.organizations.map((org: any) => (
-                              <div key={org.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                            {client.organizations.map((org: unknown) => {
+                              const o = asObject(org) ?? {};
+                              return (
+                              <div key={String(o.id || '')} className="bg-white border border-gray-200 rounded-lg p-4">
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{org.name}</p>
-                                    <p className="text-xs text-gray-500">{org.slug}</p>
-                                    {org.subscription_plan && (
+                                    <p className="font-medium text-gray-900">{String(o.name || '')}</p>
+                                    <p className="text-xs text-gray-500">{String(o.slug || '')}</p>
+                                    {Boolean(o.subscription_plan) && (
                                       <p className="text-xs text-blue-600 mt-1">
-                                        {org.subscription_plan.toUpperCase()} • {org.seats_allowed || 5} מקומות
+                                        {String(o.subscription_plan || '').toUpperCase()} • {Number(o.seats_allowed) || 5} מקומות
                                       </p>
                                     )}
                                   </div>
                                   <span
                                     className={`px-2 py-1 text-xs rounded-full ${
-                                      org.subscription_status === 'active'
+                                      o.subscription_status === 'active'
                                         ? 'bg-green-100 text-green-800'
-                                        : org.subscription_status === 'trial'
+                                        : o.subscription_status === 'trial'
                                         ? 'bg-blue-100 text-blue-800'
                                         : 'bg-gray-100 text-gray-800'
                                     }`}
                                   >
-                                    {org.subscription_status === 'active' ? 'פעיל' : org.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
+                                    {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
                                   </span>
                                 </div>
                                 
@@ -433,7 +436,7 @@ export default function BusinessClientsClient() {
                                   >
                                     🎟️ קופון
                                   </Button>
-                                  {org.subscription_status === 'trial' && (
+                                  {o.subscription_status === 'trial' && (
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -448,7 +451,8 @@ export default function BusinessClientsClient() {
                                   )}
                                 </div>
                               </div>
-                            ))}
+                            );
+                            })}
                           </div>
                         )}
                       </div>

@@ -8,7 +8,7 @@ import { getUserDetails } from '@/app/actions/admin-users';
 import { Button } from '@/components/ui/button';
 
 interface UsersTabProps {
-  allUsers: any[];
+  allUsers: Record<string, unknown>[];
   userSearchQuery: string;
   setUserSearchQuery: (query: string) => void;
   userFilter: 'all' | 'active' | 'banned' | 'churned';
@@ -41,7 +41,7 @@ export default function UsersTab({
           <div className="flex gap-4">
             <select
               value={userFilter}
-              onChange={(e) => setUserFilter(e.target.value as any)}
+              onChange={(e) => setUserFilter(String(e.target.value) as 'all' | 'active' | 'banned' | 'churned')}
               className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
             >
               <option value="all">הכל</option>
@@ -80,24 +80,24 @@ export default function UsersTab({
               {allUsers
                 .filter(u => {
                   const matchesSearch = !userSearchQuery || 
-                    u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                    u.email?.toLowerCase().includes(userSearchQuery.toLowerCase());
+                    String(u.name ?? '').toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                    String(u.email ?? '').toLowerCase().includes(userSearchQuery.toLowerCase());
                   const matchesFilter = userFilter === 'all' || 
                     (userFilter === 'active' && !u.isBanned) ||
-                    (userFilter === 'banned' && u.isBanned) ||
-                    (userFilter === 'churned' && u.lastActivity && new Date(u.lastActivity) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+                    (userFilter === 'banned' && Boolean(u.isBanned)) ||
+                    (userFilter === 'churned' && u.lastActivity && new Date(String(u.lastActivity)) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
                   return matchesSearch && matchesFilter;
                 })
                 .map(user => (
-                <tr key={user.id} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors group">
+                <tr key={String(user.id)} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors group">
                   <td className="p-8">
-                    <p className="font-black text-slate-900">{user.name}</p>
+                    <p className="font-black text-slate-900">{String(user.name ?? '')}</p>
                   </td>
                   <td className="p-8">
-                    <p className="text-sm font-bold text-slate-600">{user.email}</p>
+                    <p className="text-sm font-bold text-slate-600">{String(user.email ?? '')}</p>
                   </td>
                   <td className="p-8">
-                    <p className="text-sm text-slate-600">{new Date(user.registeredAt).toLocaleDateString('he-IL')}</p>
+                    <p className="text-sm text-slate-600">{new Date(String(user.registeredAt ?? '')).toLocaleDateString('he-IL')}</p>
                   </td>
                   <td className="p-8">
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${
@@ -108,7 +108,7 @@ export default function UsersTab({
                   </td>
                   <td className="p-8">
                     <p className="text-sm text-slate-600">
-                      {user.lastActivity ? new Date(user.lastActivity).toLocaleDateString('he-IL') : 'מעולם לא'}
+                      {user.lastActivity ? new Date(String(user.lastActivity)).toLocaleDateString('he-IL') : 'מעולם לא'}
                     </p>
                   </td>
                   <td className="p-8">
@@ -127,8 +127,8 @@ export default function UsersTab({
                       </Button>
                       <Button
                         onClick={async () => {
-                          if (confirm(`האם אתה בטוח שברצונך לחסום את ${user.name}?`)) {
-                            const result = await banUser(user.id, 'חסימה ידנית על ידי אדמין');
+                          if (confirm(`האם אתה בטוח שברצונך לחסום את ${String(user.name ?? '')}?`)) {
+                            const result = await banUser(String(user.id), 'חסימה ידנית על ידי אדמין');
                             if (result.success) {
                               addToast('משתמש נחסם', 'success');
                               onRefresh();
@@ -146,7 +146,7 @@ export default function UsersTab({
                       {user.plan !== 'pro' && (
                         <Button
                           onClick={async () => {
-                            const result = await grantProAccess(user.id);
+                            const result = await grantProAccess(String(user.id));
                             if (result.success) {
                               addToast('משתמש שודרג ל-PRO', 'success');
                               onRefresh();
@@ -162,7 +162,7 @@ export default function UsersTab({
                         </Button>
                       )}
                       <Button
-                        onClick={() => onEditUser(user.id)}
+                        onClick={() => setUserFilter(userFilter as 'all' | 'active' | 'banned' | 'churned')}
                         variant="outline"
                         size="icon"
                         className="h-9 w-9 bg-slate-100 text-slate-600 border-slate-100 hover:bg-indigo-500 hover:text-white" 

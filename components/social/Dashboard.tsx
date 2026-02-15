@@ -54,8 +54,11 @@ export default function Dashboard({
   }, [initialScripts]);
 
   const counters = useMemo(() => {
-    const list = Array.isArray(posts) ? (posts as any[]) : [];
-    const statusCount = (s: string) => list.filter((p: any) => String(p.status || '').toLowerCase() === s).length;
+    const list = Array.isArray(posts) ? (posts as unknown[]) : [];
+    const statusCount = (s: string) => list.filter((p: unknown) => {
+      const post = p as Record<string, unknown>;
+      return String(post.status || '').toLowerCase() === s;
+    }).length;
     return {
       postsTotal: list.length,
       postsDraft: statusCount('draft'),
@@ -64,9 +67,10 @@ export default function Dashboard({
     };
   }, [posts]);
 
-  const todayPostsCount = (Array.isArray(posts) ? posts : []).filter((p: any) => {
-    if (!p?.scheduledAt) return false;
-    const d = new Date(p.scheduledAt);
+  const todayPostsCount = (Array.isArray(posts) ? posts : []).filter((p: unknown) => {
+    const post = p as Record<string, unknown>;
+    if (!post.scheduledAt) return false;
+    const d = new Date(post.scheduledAt as string);
     const today = new Date();
     return (
       d.getFullYear() === today.getFullYear() &&

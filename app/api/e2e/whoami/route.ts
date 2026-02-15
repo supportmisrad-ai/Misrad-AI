@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,9 @@ function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
 }
 
 export async function GET(req: Request) {
+  const blocked = blockE2eInProduction();
+  if (blocked) return blocked;
+
   const expected = process.env.E2E_API_KEY;
   const provided = req.headers.get('x-e2e-key');
 

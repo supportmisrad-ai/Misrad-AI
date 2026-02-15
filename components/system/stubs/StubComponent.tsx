@@ -3,7 +3,7 @@
 import React from 'react';
 
 // Generic stub component for components that haven't been converted yet
-export const StubComponent: React.FC<{ name: string; [key: string]: any }> = ({ name, ...props }) => {
+export const StubComponent: React.FC<{ name: string; [key: string]: unknown }> = ({ name, ...props }) => {
   return (
     <div className="p-8 text-center">
       <div className="bg-slate-100 rounded-xl p-6 max-w-md mx-auto">

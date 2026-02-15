@@ -27,7 +27,7 @@ const ICON_COLORS: Record<string, string> = {
 };
 
 // Default items (fallback if DB is empty)
-const DEFAULT_ITEMS = [
+const DEFAULT_ITEMS: SocialNavigationItem[] = [
   { id: 'dashboard', label: 'מרכז שליטה', icon: 'Home', view: 'dashboard', section: 'global', order: 1, isVisible: true },
   { id: 'all-clients', label: 'כל הלקוחות', icon: 'Users', view: 'all-clients', section: 'global', order: 2, isVisible: true },
   { id: 'calendar', label: 'לוח שידורים', icon: 'Calendar', view: 'calendar', section: 'global', order: 3, isVisible: true },
@@ -69,24 +69,24 @@ function NavigationImpl({
   const selectedClientId = clientIdFromParams || activeClientId || null;
   const selectedClientName = clientNameFromParams
     ? decodeURIComponent(clientNameFromParams)
-    : (activeClient ? String((activeClient as any)?.companyName || (activeClient as any)?.name || '') : null);
+    : (activeClient ? String((activeClient as unknown as { companyName?: string; name?: string })?.companyName || (activeClient as unknown as { companyName?: string; name?: string })?.name || '') : null);
 
-  const menuItems = (Array.isArray(initialMenuItems) && initialMenuItems.length > 0
+  const menuItems: SocialNavigationItem[] = Array.isArray(initialMenuItems) && initialMenuItems.length > 0
     ? initialMenuItems
-    : (DEFAULT_ITEMS as any)) as any[];
+    : DEFAULT_ITEMS;
 
   // Filter items based on visibility only.
   // IMPORTANT: This sidebar is intentionally "dead" (no hooks / no RBAC / no active client coupling)
   // so it can stay stable and never rerender due to client state.
-  const getFilteredItems = (section: string, items: any[]) => {
+  const getFilteredItems = (section: string, items: SocialNavigationItem[]) => {
     return items
-      .filter((item: any) => {
+      .filter((item) => {
         if (item.section !== section) return false;
         if (!item.isVisible) return false;
         if (item.id === 'team' && isTeamEnabled === false) return false;
         return true;
       })
-      .sort((a: any, b: any) => a.order - b.order);
+      .sort((a, b) => a.order - b.order);
   };
 
   const globalItems = getFilteredItems('global', menuItems);
@@ -115,8 +115,8 @@ function NavigationImpl({
     return map[view] || joinPath(basePath, '/dashboard');
   };
 
-  const NavItem = memo(function NavItem({ item }: { item: any }) {
-    const IconComponent = (Icons as any)[item.icon] || Icons.Home;
+  const NavItem = memo(function NavItem({ item }: { item: SocialNavigationItem }) {
+    const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>)[item.icon] || Icons.Home;
     const color = ICON_COLORS[item.icon] || 'text-slate-600';
     const href = getRouteForView(item.view);
 
@@ -190,7 +190,7 @@ function NavigationImpl({
               כללי
             </span>
           )}
-          {globalItems.map((item: any) => (
+          {globalItems.map((item) => (
             <NavItem key={item.id} item={item} />
           ))}
         </div>
@@ -207,7 +207,7 @@ function NavigationImpl({
               </div>
             )}
             <div className="flex flex-col gap-1">
-              {clientItems.map((item: any) => (
+              {clientItems.map((item) => (
                 <NavItem key={item.id} item={item} />
               ))}
             </div>
@@ -222,7 +222,7 @@ function NavigationImpl({
               ניהול
             </span>
           )}
-          {managementItems.map((item: any) => (
+          {managementItems.map((item) => (
             <NavItem key={item.id} item={item} />
           ))}
         </div>
@@ -237,7 +237,7 @@ function NavigationImpl({
                   הגדרות
                 </span>
               )}
-              {settingsItems.map((item: any) => (
+              {settingsItems.map((item) => (
                 <NavItem key={item.id} item={item} />
               ))}
             </div>

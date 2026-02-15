@@ -38,7 +38,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
 
     // Mock progress interval
     useEffect(() => {
-        let interval: any;
+        let interval: NodeJS.Timeout | undefined;
         if (isPlaying && !src) {
             interval = setInterval(() => {
                 setCurrentTime(prev => {
@@ -50,7 +50,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src }) => {
                 });
             }, 1000);
         }
-        return () => clearInterval(interval);
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [isPlaying, src, duration]);
 
     return (

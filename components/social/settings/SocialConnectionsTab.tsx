@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Info, Globe } from 'lucide-react';
 import { SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
-import { useApp } from '@/contexts/AppContext';
+import { useApp, type SettingsSubView } from '@/contexts/AppContext';
 
 export default function SocialConnectionsTab() {
   const { setSettingsSubView } = useApp();
@@ -25,7 +25,7 @@ export default function SocialConnectionsTab() {
         </div>
 
         <button
-          onClick={() => setSettingsSubView('integrations' as any)}
+          onClick={() => setSettingsSubView('integrations' as SettingsSubView)}
           className="mb-8 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-black transition-all"
           type="button"
         >
@@ -45,7 +45,7 @@ export default function SocialConnectionsTab() {
                   </div>
                 </div>
                 <button
-                  onClick={() => setSettingsSubView('integrations' as any)}
+                  onClick={() => setSettingsSubView('integrations' as SettingsSubView)}
                   className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs"
                   type="button"
                 >

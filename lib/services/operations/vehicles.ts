@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
+import { orgExec, orgQuery, prisma, prismaForInteractiveTransaction } from '@/lib/services/operations/db';
 import { asObject, getUnknownErrorMessage, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
 import type { OperationsVehicleRow } from '@/lib/services/operations/types';
 
@@ -69,7 +69,7 @@ export async function deleteOperationsVehicleForOrganizationId(params: {
     const id = String(params.id || '').trim();
     if (!id) return { success: false, error: 'חסר מזהה רכב' };
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await orgExec(
         tx,
         params.organizationId,

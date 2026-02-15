@@ -49,8 +49,8 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
         return;
       }
       setItems(Array.isArray(res.data) ? res.data : []);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת סרטונים', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת סרטונים', 'error');
       setItems([]);
     } finally {
       setLoading(false);
@@ -100,8 +100,8 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
       setIsAdding(false);
       setDraft({ moduleKey: draft.moduleKey, title: '', videoUrl: '', order: 0, duration: '' });
       await load();
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת סרטון', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה ביצירת סרטון', 'error');
     }
   };
 
@@ -114,8 +114,8 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
       }
       setItems((prev) => prev.map((p) => (p.id === id && res.data ? res.data : p)));
       addToast('עודכן', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון סרטון', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בעדכון סרטון', 'error');
     }
   };
 
@@ -131,8 +131,8 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
       }
       addToast('נמחק', 'success');
       setItems((prev) => prev.filter((p) => p.id !== id));
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה במחיקת סרטון', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה במחיקת סרטון', 'error');
     }
   };
 
@@ -156,7 +156,7 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
         <div className="flex items-center gap-2 justify-end">
           <select
             value={moduleFilter}
-            onChange={(e) => setModuleFilter(e.target.value as any)}
+            onChange={(e) => setModuleFilter(e.target.value as 'all' | OSModuleKey)}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold outline-none focus:ring-4 ring-slate-100"
           >
             <option value="all">כל המודולים</option>

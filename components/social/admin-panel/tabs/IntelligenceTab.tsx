@@ -6,8 +6,15 @@ import { TrendingUp, Brain, MessageSquare, Users, Mail } from 'lucide-react';
 import { sendChurnEmail } from '@/app/actions/admin-cockpit';
 import { Button } from '@/components/ui/button';
 
+interface AdminAnalytics {
+  buttonClicks?: unknown[];
+  aiSatisfaction?: { satisfactionRate?: number; copied?: number; retried?: number };
+  feedback?: Array<{ message?: string; feedback?: string; created_at: string }>;
+  churnedUsers?: Array<{ id: string; name: string; daysSinceActive: number }>;
+}
+
 interface IntelligenceTabProps {
-  analytics: any;
+  analytics: AdminAnalytics | null;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -54,8 +61,8 @@ export default function IntelligenceTab({ analytics, onRefresh, addToast }: Inte
             <MessageSquare className="text-blue-500" size={24}/> משוב משתמשים
           </h3>
           <div className="flex flex-col gap-4 max-h-96 overflow-y-auto">
-            {(analytics?.feedback || []).length > 0 ? (
-              analytics.feedback.map((fb: any, i: number) => (
+            {(analytics?.feedback && Array.isArray(analytics.feedback) && analytics.feedback.length > 0) ? (
+              analytics.feedback.map((fb: { message?: string; feedback?: string; created_at: string }, i: number) => (
                 <div key={i} className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                   <p className="text-sm font-black text-slate-900">{fb.message || fb.feedback || 'משוב'}</p>
                   <p className="text-[10px] font-bold text-slate-500 mt-1">
@@ -84,7 +91,7 @@ export default function IntelligenceTab({ analytics, onRefresh, addToast }: Inte
               <Button
                 type="button"
                 onClick={async () => {
-                  const userIds = analytics?.churnedUsers?.map((u: any) => u.id) || [];
+                  const userIds = analytics?.churnedUsers?.map((u: { id: string }) => u.id) || [];
                   if (userIds.length > 0) {
                     const result = await sendChurnEmail(userIds);
                     if (result.success) {
@@ -98,7 +105,7 @@ export default function IntelligenceTab({ analytics, onRefresh, addToast }: Inte
               </Button>
             </div>
             <div className="max-h-64 overflow-y-auto">
-              {(analytics?.churnedUsers || []).slice(0, 5).map((user: any, i: number) => (
+              {(analytics?.churnedUsers || []).slice(0, 5).map((user: { name: string; daysSinceActive: number }, i: number) => (
                 <div key={i} className="p-3 bg-slate-50 rounded-lg mb-2">
                   <p className="text-sm font-black text-slate-900">{user.name}</p>
                   <p className="text-[10px] text-slate-500">{user.daysSinceActive} ימים ללא פעילות</p>

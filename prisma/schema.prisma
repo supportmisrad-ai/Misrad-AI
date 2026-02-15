@@ -1190,6 +1190,7 @@ model MisradActivityLog {
   type            MisradActivityLogType
   description     String
   date            String
+  dateAt          DateTime?             @map("date_at") @db.Timestamptz(6)
   isRisk          Boolean
   created_at      DateTime              @default(now())
   client          MisradClient          @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1229,6 +1230,7 @@ model MisradAiTask {
   bucket          String
   task            String
   deadline        String
+  deadlineAt      DateTime?                   @map("deadline_at") @db.Date
   priority        MisradTaskPriority
   status          MisradTaskStatus
   created_at      DateTime                    @default(now())
@@ -1252,7 +1254,9 @@ model MisradAssignedForm {
   status          MisradAssignedFormStatus
   progress        Int
   dateSent        String
+  dateSentAt      DateTime?                @map("date_sent_at") @db.Timestamptz(6)
   lastActivity    String?
+  lastActivityAt  DateTime?                @map("last_activity_at") @db.Timestamptz(6)
   created_at      DateTime                 @default(now())
   updated_at      DateTime                 @updatedAt
   client          MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1287,6 +1291,7 @@ model MisradClient {
   lastContact                      String
   lastContactAt                    DateTime?                          @map("last_contact_at")
   nextRenewal                      String
+  nextRenewalAt                    DateTime?                          @map("next_renewal_at") @db.Date
   mainContact                      String
   mainContactRole                  String
   strengths                        String[]
@@ -1294,6 +1299,7 @@ model MisradClient {
   sentimentTrend                   MisradSentiment[]
   referralStatus                   String
   cancellationDate                 String?
+  cancellationDateAt               DateTime?                          @map("cancellation_date_at") @db.Date
   cancellationReason               String?
   cancellationNote                 String?
   cycleId                          String?                            @db.Uuid
@@ -1344,8 +1350,10 @@ model MisradClientAction {
   type             MisradClientActionType
   status           MisradClientActionStatus
   dueDate          String
+  dueDateAt        DateTime?                @map("due_date_at") @db.Date
   isBlocking       Boolean
   lastReminderSent String?
+  lastReminderSentAt DateTime?              @map("last_reminder_sent_at") @db.Timestamptz(6)
   created_at       DateTime                 @default(now())
   updated_at       DateTime                 @updatedAt
   client           MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1364,7 +1372,9 @@ model MisradClientAgreement {
   title           String
   type            MisradAgreementType
   signedDate      String
+  signedDateAt    DateTime?             @map("signed_date_at") @db.Date
   expiryDate      String?
+  expiryDateAt    DateTime?             @map("expiry_date_at") @db.Date
   status          MisradAgreementStatus
   fileUrl         String
   created_at      DateTime              @default(now())
@@ -1388,6 +1398,7 @@ model MisradClientAsset {
   category        MisradAssetCategory
   uploadedBy      MisradUploadedBy
   date            String
+  dateAt          DateTime?           @map("date_at") @db.Date
   created_at      DateTime            @default(now())
   updated_at      DateTime            @updatedAt
   client          MisradClient        @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1409,6 +1420,7 @@ model MisradClientDeliverable {
   thumbnailUrl    String?
   status          MisradDeliverableStatus
   date            String
+  dateAt          DateTime?               @map("date_at") @db.Date
   tags            String[]
   created_at      DateTime                @default(now())
   updated_at      DateTime                @updatedAt
@@ -1427,6 +1439,7 @@ model MisradClientHandoff {
   client_id               String       @unique @db.Uuid
   salesRep                String
   handoffDate             String
+  handoffDateAt           DateTime?    @map("handoff_date_at") @db.Date
   keyPromises             String[]
   mainPainPoint           String
   successDefinition30Days String
@@ -1466,7 +1479,9 @@ model MisradCycle {
   name            String
   description     String
   startDate       String
+  startDateAt     DateTime?          @map("start_date_at") @db.Date
   endDate         String
+  endDateAt       DateTime?          @map("end_date_at") @db.Date
   status          MisradCycleStatus
   groupLinks      Json
   created_at      DateTime           @default(now())
@@ -1492,6 +1507,7 @@ model MisradCycleAsset {
   category        MisradAssetCategory
   uploadedBy      MisradUploadedBy
   date            String
+  dateAt          DateTime?           @map("date_at") @db.Date
   created_at      DateTime            @default(now())
   cycle           MisradCycle         @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
 
@@ -1510,8 +1526,10 @@ model MisradCycleTask {
   type             MisradClientActionType
   status           MisradClientActionStatus
   dueDate          String
+  dueDateAt        DateTime?                @map("due_date_at") @db.Date
   isBlocking       Boolean
   lastReminderSent String?
+  lastReminderSentAt DateTime?              @map("last_reminder_sent_at") @db.Timestamptz(6)
   created_at       DateTime                 @default(now())
   updated_at       DateTime                 @updatedAt
   cycle            MisradCycle              @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
@@ -1532,6 +1550,7 @@ model MisradEmail {
   snippet         String
   body            String
   timestamp       String
+  timestampAt     DateTime?     @map("timestamp_at") @db.Timestamptz(6)
   isRead          Boolean
   tags            String[]
   avatarUrl       String?
@@ -1554,6 +1573,7 @@ model MisradFeedbackItem {
   score           Int
   comment         String
   date            String
+  dateAt          DateTime?               @map("date_at") @db.Date
   keywords        String[]
   sentiment       MisradFeedbackSentiment
   source          MisradFeedbackSource
@@ -1652,6 +1672,7 @@ model MisradGroupEvent {
   title           String
   type            MisradGroupEventType
   date            String
+  dateAt          DateTime?              @map("date_at") @db.Date
   targetSegment   String
   attendeesCount  Int
   link            String
@@ -1702,6 +1723,7 @@ model MisradJourneyStage {
   name                 String
   status               MisradJourneyStageStatus
   date                 String?
+  dateAt               DateTime?                @map("date_at") @db.Date
   completionPercentage Int?
   created_at           DateTime                 @default(now())
   updated_at           DateTime                 @updatedAt
@@ -1719,6 +1741,7 @@ model MisradMeeting {
   organization_id String                       @db.Uuid
   client_id       String                       @db.Uuid
   date            String
+  dateAt          DateTime?                    @map("date_at") @db.Date
   meetingAt       DateTime?                    @map("meeting_at") @db.Timestamptz(6)
   title           String
   location        MisradMeetingLocation
@@ -1833,6 +1856,7 @@ model MisradMetricHistory {
   client_id       String            @db.Uuid
   goal_id         String            @db.Uuid
   date            String
+  dateAt          DateTime?         @map("date_at") @db.Date
   value           Float
   created_at      DateTime          @default(now())
   client          MisradClient      @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1887,6 +1911,7 @@ model MisradNotification {
   title           String
   message         String
   timestamp       String
+  timestampAt     DateTime?              @map("timestamp_at") @db.Timestamptz(6)
   isRead          Boolean                @map("is_read")
   link            String?
   created_at      DateTime               @default(now())
@@ -1925,6 +1950,7 @@ model MisradRoiRecord {
   organization_id String            @db.Uuid
   client_id       String            @db.Uuid
   date            String
+  dateAt          DateTime?         @map("date_at") @db.Date
   value           Float
   description     String
   category        MisradRoiCategory
@@ -1948,6 +1974,7 @@ model MisradStakeholder {
   influence       Int
   sentiment       Int
   lastContact     String
+  lastContactAt   DateTime?             @map("last_contact_at") @db.Timestamptz(6)
   email           String?
   avatarUrl       String?
   notes           String
@@ -1971,8 +1998,10 @@ model MisradSuccessGoal {
   metricTarget    Float
   unit            String
   deadline        String
+  deadlineAt      DateTime?               @map("deadline_at") @db.Date
   status          MisradSuccessGoalStatus
   lastUpdated     String
+  lastUpdatedAt   DateTime?               @map("last_updated_at") @db.Timestamptz(6)
   aiForecast      String?
   created_at      DateTime                @default(now())
   updated_at      DateTime                @updatedAt

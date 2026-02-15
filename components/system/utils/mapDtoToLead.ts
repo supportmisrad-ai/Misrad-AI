@@ -54,7 +54,7 @@ export const mapDtoToLead = (dto: SystemLeadDTO): Lead => {
           content: String(a?.content || ''),
           timestamp: toDateOrNow(a?.timestamp),
           direction,
-          metadata: a?.metadata ?? null,
+          metadata: (a?.metadata as Record<string, unknown> | null) ?? undefined,
         };
       })
     : [];

@@ -87,14 +87,19 @@ const WorkflowBuilder: React.FC = () => {
         setIsEditing(false);
     };
 
-    const handleAssignToClient = (client: any) => {
+    const handleAssignToClient = (client: unknown) => {
+        const clientName =
+            client && typeof client === 'object' && 'name' in client ? String((client as Record<string, unknown>).name || '') : '';
+
         // In a real app, this would make an API call to assign workflow
-        window.dispatchEvent(new CustomEvent('nexus-toast', { 
-            detail: { 
-                message: `התהליך "${activeBP?.name}" הופעל בהצלחה עבור ${client.name}!`, 
-                type: 'success' 
-            } 
-        }));
+        window.dispatchEvent(
+            new CustomEvent('nexus-toast', {
+                detail: {
+                    message: `התהליך "${activeBP?.name}" הופעל בהצלחה עבור ${clientName}!`,
+                    type: 'success',
+                },
+            }),
+        );
         setShowClientSelector(false);
         setClientSearchTerm('');
     };

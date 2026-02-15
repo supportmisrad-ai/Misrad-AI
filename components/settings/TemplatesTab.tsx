@@ -35,7 +35,7 @@ export const TemplatesTab: React.FC = () => {
         }]);
     };
 
-    const handleUpdateItem = (index: number, field: string, value: any) => {
+    const handleUpdateItem = (index: number, field: string, value: unknown) => {
         const updated = [...templateItems];
         updated[index] = { ...updated[index], [field]: value };
         setTemplateItems(updated);

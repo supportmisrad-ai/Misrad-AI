@@ -12,6 +12,7 @@ import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -43,6 +44,9 @@ async function GETHandler(
             });
         }
 
+        return await withTenantIsolationContext(
+            { source: 'api_invitations_token', reason: 'read_invitation_link', suppressReporting: true },
+            async () => {
         try {
             const invitation = await prisma.system_invitation_links.findUnique({
                 where: { token: String(token) },
@@ -140,6 +144,8 @@ async function GETHandler(
             const msg = getUnknownErrorMessage(error) || safeMsg;
             return apiError(IS_PROD ? safeMsg : msg, { status: 500 });
         }
+            }
+        );
 
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error getting invitation link');

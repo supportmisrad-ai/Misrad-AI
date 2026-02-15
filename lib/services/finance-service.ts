@@ -2,33 +2,7 @@ import 'server-only';
 import prisma from '@/lib/prisma';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-function isMissingColumnError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = typeof obj.code === 'string' ? obj.code : '';
-  const message = typeof obj.message === 'string' ? obj.message.toLowerCase() : '';
-  return code === '42703' || (message.includes('column') && message.includes('does not exist'));
-}
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toUpperCase();
-  const msg = getErrorMessage(error).toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    msg.includes('does not exist') ||
-    msg.includes('relation') ||
-    msg.includes('column') ||
-    msg.includes('could not find the table') ||
-    msg.includes('schema cache')
-  );
-}
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 type FinanceUserLite = {
   id: string;
@@ -110,7 +84,7 @@ async function selectUsersInWorkspaceByIds(params: {
         },
       });
     } catch (error: unknown) {
-      if (isMissingColumnError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      if ((error as { code?: string })?.code === 'P2003' && ALLOW_SCHEMA_FALLBACKS) {
         reportSchemaFallback({
           source: 'lib/services/finance-service.selectUsersInWorkspaceByIds',
           reason: 'nexusUser columns missing (fallback to minimal select)',

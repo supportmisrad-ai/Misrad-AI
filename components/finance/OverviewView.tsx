@@ -3,12 +3,13 @@
 import React from 'react';
 import { TrendingUp, DollarSign, FileText, AlertCircle } from 'lucide-react';
 
-const OverviewView: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinanceOverview }) => {
-  const totalRevenue = Number(initialFinanceOverview?.totalRevenue || 0);
-  const totalCost = Number(initialFinanceOverview?.totalCost || 0);
-  const netProfit = Number(initialFinanceOverview?.netProfit || 0);
-  const openInvoicesCount = Number(initialFinanceOverview?.openInvoicesCount || 0);
-  const pendingReceivables = Number(initialFinanceOverview?.pendingReceivables || 0);
+const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialFinanceOverview }) => {
+  const data = initialFinanceOverview as Record<string, unknown> | null | undefined;
+  const totalRevenue = Number(data?.totalRevenue || 0);
+  const totalCost = Number(data?.totalCost || 0);
+  const netProfit = Number(data?.netProfit || 0);
+  const openInvoicesCount = Number(data?.openInvoicesCount || 0);
+  const pendingReceivables = Number(data?.pendingReceivables || 0);
 
   return (
     <div className="p-8">

@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { enterTenantIsolationContext, withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { ALLOW_SCHEMA_FALLBACKS, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import {
   getErrorMessage,
   getErrorStatus,
@@ -22,8 +22,6 @@ import {
   getPackageModules as getPackageModulesInternal,
   inferOrganizationPackageType as inferOrganizationPackageTypeInternal,
 } from '@/lib/server/workspace-access/entitlements';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type PackageType = import('@/lib/billing/pricing').PackageType;
 

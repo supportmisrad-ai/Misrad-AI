@@ -5,26 +5,7 @@ import { Prisma } from '@prisma/client';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error);
-  const code = String(obj?.code ?? '').toUpperCase();
-  const message = String(getErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export type NexusBillingCadence = 'monthly' | 'ad_hoc';
 

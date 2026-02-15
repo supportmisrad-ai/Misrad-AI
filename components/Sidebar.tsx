@@ -9,7 +9,7 @@ import { useBrand } from '../contexts/BrandContext';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (id: string) => void;
-  user: any;
+  user: { name?: string; role?: string; avatar?: string; id?: string };
   logout: () => void;
   mobile?: boolean;
   onClose?: () => void;

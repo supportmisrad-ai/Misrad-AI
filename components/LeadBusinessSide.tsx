@@ -11,7 +11,7 @@ interface LeadBusinessSideProps {
     lead: Lead;
     onClose: () => void;
     onAddActivity: (leadId: string, activity: Activity) => void;
-    onStatusChange?: (id: string, status: any) => void;
+    onStatusChange?: (id: string, status: unknown) => void;
     onOpenClientPortal?: () => void;
 }
 

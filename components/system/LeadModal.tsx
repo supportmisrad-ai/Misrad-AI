@@ -5,37 +5,32 @@ import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { Lead, Activity, Task } from './types';
 import { STAGES } from './constants';
-import { 
-    X, Phone, Mail, ArrowRight, MessageSquare, CalendarClock, Paperclip, Share2, ArrowLeft, Copy
-} from 'lucide-react';
+import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import LogCallModal from './LogCallModal';
 import { useToast } from './contexts/ToastContext';
 import { useAuth } from './contexts/AuthContext';
 import { createSystemLeadActivity, getSystemLeadActivities } from '@/app/actions/system-leads';
 import { uploadCallRecordingFile } from '@/app/actions/files';
-import { Skeleton } from '@/components/ui/skeletons';
 import { approveConnectOfferDisclosure, createConnectMarketplaceListing, getConnectListingRequests } from '@/app/actions/connect-marketplace';
 import { createWorkListing } from '@/app/actions/work-listings';
 import { createNexusTaskByOrgSlug, listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import { Priority as NexusPriority } from '../../types';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
-function getStageLabel(status: Lead['status']): string {
-  const s = STAGES.find((x) => x.id === status);
-  return s?.label || String(status || '');
-}
+import {
+  LeadModalCallAnalysis,
+  LeadModalShareView,
+  LeadModalTransferDialog,
+  LeadModalActionBar,
+} from './lead-modal';
+import {
+  asObject,
+  getErrorMessage,
+  getStageLabel,
+  isSameLocalDay,
+  formatDateTimeShort,
+  toLocalDateTimeInputValue,
+  getDefaultPublicDescription,
+  orgSlugFromPathname,
+} from './lead-modal/utils';
 
 interface LeadModalProps {
   lead: Lead;
@@ -97,25 +92,8 @@ const LeadModal: React.FC<LeadModalProps> = ({
   const [isCreatingTransfer, setIsCreatingTransfer] = useState(false);
   const [transferUrl, setTransferUrl] = useState<string>('');
 
-  const isSameLocalDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-  const formatDateTimeShort = (date: Date): string => {
-    return date.toLocaleString('he-IL', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const toLocalDateTimeInputValue = (date: Date) => {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  };
-
   const handleApproveDisclosure = async (token: string) => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
       addToast('לא ניתן לאשר (orgSlug חסר)', 'error');
       return;
@@ -137,16 +115,6 @@ const LeadModal: React.FC<LeadModalProps> = ({
     } finally {
       setApprovingToken(null);
     }
-  };
-
-  const getDefaultPublicDescription = (l: Lead) => {
-    const stage = getStageLabel(l.status);
-    const company = String(l.company || '').trim();
-    const name = String(l.name || '').trim();
-    const lObj = asObject(l);
-    const address = String(lObj?.installationAddress || l.address || '').trim();
-    const parts = [company || 'לקוח פרטי', name || 'פנייה חדשה', stage ? `סטטוס: ${stage}` : null, address ? `כתובת: ${address}` : null].filter(Boolean);
-    return parts.join('\n');
   };
 
   const [followUpInput, setFollowUpInput] = useState<string>('');
@@ -187,13 +155,13 @@ const LeadModal: React.FC<LeadModalProps> = ({
   }, [lead.id]);
 
   const loadActivities = async () => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) return;
     if (isLoadingActivities) return;
     setIsLoadingActivities(true);
     try {
       const rows = await getSystemLeadActivities({ orgSlug, leadId: String(lead.id), take: 80 });
-      const mapped: Activity[] = (Array.isArray(rows) ? rows : []).map((a: unknown) => {
+      const mapped = (Array.isArray(rows) ? rows : []).map((a: unknown): Activity => {
         const aObj = asObject(a) ?? {};
         const directionRaw = aObj.direction ? String(aObj.direction) : '';
         const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? directionRaw : undefined;
@@ -221,7 +189,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
           content: String(aObj.content || ''),
           timestamp,
           direction,
-          metadata: aObj.metadata ?? null,
+          metadata: (aObj.metadata ?? null) as Activity['metadata'],
         };
       });
       setActivities(mapped.filter((a) => a.id));
@@ -251,7 +219,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   };
 
   const loadNexusTasksForLead = async () => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) return;
     setIsLoadingNexusTasks(true);
     try {
@@ -272,7 +240,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   }, [lead.id]);
 
   const handleCreateTransfer = async (mode: 'link' | 'marketplace') => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
       addToast('לא ניתן ליצור קישור (orgSlug חסר)', 'error');
       return;
@@ -328,7 +296,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   };
 
   const loadShareRequests = async () => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
       addToast('לא ניתן לטעון בקשות (orgSlug חסר)', 'error');
       return;
@@ -398,7 +366,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
     const current = String(lead.status || '').trim();
     if (!current) return base;
     if (base.some((s) => String(s.id) === current)) return base;
-    return [...base, { id: current as any, label: current, color: 'border-slate-200', accent: 'bg-slate-300' }];
+    return [...base, { id: current as unknown, label: current, color: 'border-slate-200', accent: 'bg-slate-300' }];
   }, [lead.status]);
 
   const canOpenPortal = !!String(lead.email || '').trim();
@@ -443,15 +411,8 @@ const LeadModal: React.FC<LeadModalProps> = ({
     window.open(`https://wa.me/${digits}`);
   };
 
-  const orgSlugFromPathname = () => {
-    const parts = String(pathname || '').split('/').filter(Boolean);
-    const wIndex = parts.indexOf('w');
-    if (wIndex === -1) return null;
-    return parts[wIndex + 1] || null;
-  };
-
   const handleCreateShareLink = async () => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
       addToast('לא ניתן ליצור קישור (orgSlug חסר)', 'error');
       return;
@@ -510,7 +471,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   };
 
   const handleUploadRecording = async (file: File) => {
-    const orgSlug = orgSlugFromPathname();
+    const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
       addToast('לא ניתן להעלות הקלטה (orgSlug חסר)', 'error');
       return;
@@ -630,7 +591,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
         content: activityContent,
         timestamp: Number.isNaN(ts.getTime()) ? new Date() : ts,
         direction: activityObj.direction === 'inbound' || activityObj.direction === 'outbound' ? activityObj.direction : undefined,
-        metadata: activityObj.metadata ?? undefined,
+        metadata: (activityObj.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     } catch (e: unknown) {
       console.error(e);
@@ -640,161 +601,58 @@ const LeadModal: React.FC<LeadModalProps> = ({
     }
   };
 
-  const renderCallAnalysisActivity = (act: Activity) => {
-    const ca = asObject(asObject(act.metadata)?.callAnalysis);
-    if (!ca) return null;
+  const handleCreateAiTask = async (key: string, taskText: string) => {
+    const orgSlug = orgSlugFromPathname(pathname);
+    if (!orgSlug) {
+      addToast('לא ניתן ליצור משימה (orgSlug חסר)', 'error');
+      return;
+    }
 
-    const audio = asObject(ca.audio) ?? {};
-    const audioSrc = String(audio.signedUrl || audio.url || '').trim();
-    const analysis = asObject(ca.analysis) ?? {};
-    const score = Number.isFinite(Number(analysis.score)) ? Number(analysis.score) : null;
-    const summary = String(analysis.summary || '').trim();
+    const assigneeId = String(draftAssignedAgentId || lead.assignedAgentId || user?.id || '').trim();
+    if (!assigneeId) {
+      addToast('לא ניתן ליצור משימה ללא אחראי', 'error');
+      return;
+    }
 
-    const topics = asObject(analysis.topics) ?? {};
-    const tasks = Array.isArray(topics.tasks) ? topics.tasks : [];
-    const promises = Array.isArray(topics.promises) ? topics.promises : [];
-    const objections = Array.isArray(analysis.objections) ? analysis.objections : [];
-    const transcript = Array.isArray(analysis.transcript) ? analysis.transcript : [];
+    const now = new Date();
+    const suggested = new Date(now);
+    suggested.setDate(suggested.getDate() + 1);
+    suggested.setHours(10, 0, 0, 0);
 
-    return (
-      <div className="mt-3 space-y-3">
-        {audioSrc ? (
-          <audio controls className="w-full">
-            <source src={audioSrc} />
-          </audio>
-        ) : null}
+    setCreatingAiTaskKey(key);
+    try {
+      const dueDate = suggested.toISOString().slice(0, 10);
+      const dueTime = suggested.toTimeString().slice(0, 8);
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">ציון</div>
-            <div className="text-lg font-black text-slate-900">{score == null ? '—' : score}</div>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 md:col-span-2">
-            <div className="text-[11px] font-black text-slate-500">סיכום</div>
-            <div className="text-sm font-bold text-slate-800 whitespace-pre-wrap">{summary || '—'}</div>
-          </div>
-        </div>
+      await createNexusTaskByOrgSlug({
+        orgSlug,
+        input: {
+          title: taskText,
+          description: '',
+          status: 'todo',
+          priority: NexusPriority.HIGH,
+          assigneeId,
+          assigneeIds: [assigneeId],
+          tags: ['Call', 'Follow Up'],
+          dueDate,
+          dueTime,
+          timeSpent: 0,
+          isTimerRunning: false,
+          messages: [],
+          createdAt: new Date().toISOString(),
+          leadId: String(lead.id),
+        },
+      });
 
-        {(promises.length || tasks.length) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="bg-white border border-slate-200 rounded-2xl p-3">
-              <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
-              <div className="mt-2 space-y-1">
-                {(promises.length ? promises : ['—']).slice(0, 8).map((p: unknown, idx: number) => (
-                  <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-3">
-              <div className="text-[11px] font-black text-slate-500">משימות</div>
-              <div className="mt-2 space-y-1">
-                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => {
-                  const taskText = String(t);
-                  const key = `${String(act.id)}:${idx}:${taskText}`;
-                  const disabled = createdAiTaskKeys.includes(key) || creatingAiTaskKey === key;
-
-                  return (
-                    <div key={key} className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-bold text-slate-800 min-w-0 truncate">{taskText}</div>
-                      <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={async () => {
-                          const orgSlug = orgSlugFromPathname();
-                          if (!orgSlug) {
-                            addToast('לא ניתן ליצור משימה (orgSlug חסר)', 'error');
-                            return;
-                          }
-
-                          const assigneeId = String(draftAssignedAgentId || lead.assignedAgentId || user?.id || '').trim();
-                          if (!assigneeId) {
-                            addToast('לא ניתן ליצור משימה ללא אחראי', 'error');
-                            return;
-                          }
-
-                          const now = new Date();
-                          const suggested = new Date(now);
-                          suggested.setDate(suggested.getDate() + 1);
-                          suggested.setHours(10, 0, 0, 0);
-
-                          setCreatingAiTaskKey(key);
-                          try {
-                            const dueDate = suggested.toISOString().slice(0, 10);
-                            const dueTime = suggested.toTimeString().slice(0, 8);
-
-                            await createNexusTaskByOrgSlug({
-                              orgSlug,
-                              input: {
-                                title: taskText,
-                                description: '',
-                                status: 'todo',
-                                priority: NexusPriority.HIGH,
-                                assigneeId,
-                                assigneeIds: [assigneeId],
-                                tags: ['Call', 'Follow Up'],
-                                dueDate,
-                                dueTime,
-                                timeSpent: 0,
-                                isTimerRunning: false,
-                                messages: [],
-                                createdAt: new Date().toISOString(),
-                                leadId: String(lead.id),
-                              },
-                            });
-
-                            setCreatedAiTaskKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-                            addToast('נוצרה משימה', 'success');
-                            await loadNexusTasksForLead();
-                          } catch (e: unknown) {
-                            console.error(e);
-                            addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
-                          } finally {
-                            setCreatingAiTaskKey(null);
-                          }
-                        }}
-                        className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black disabled:opacity-50"
-                      >
-                        קבע
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {objections.length ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
-            <div className="mt-2 space-y-2">
-              {objections.slice(0, 6).map((o: unknown, idx: number) => (
-                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                  <div className="text-xs font-black text-slate-900">{String((asObject(o)?.objection as unknown) || '')}</div>
-                  <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String((asObject(o)?.reply as unknown) || '')}</div>
-                  {asObject(o)?.next_question ? (
-                    <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(asObject(o)?.next_question)}</div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {transcript.length ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
-            <div className="mt-2 space-y-2">
-              {transcript.slice(0, 10).map((t: unknown, idx: number) => (
-                <div key={idx} className="text-sm font-bold text-slate-800">
-                  <span className="text-slate-500">{String((asObject(t)?.speaker as unknown) || '')}:</span> {String((asObject(t)?.text as unknown) || '')}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
+      setCreatedAiTaskKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+      addToast('נוצרה משימה', 'success');
+      await loadNexusTasksForLead();
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
+    } finally {
+      setCreatingAiTaskKey(null);
+    }
   };
 
   const modal = (
@@ -842,155 +700,22 @@ const LeadModal: React.FC<LeadModalProps> = ({
         </div>
 
         {connectShareMode === 'share' ? (
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              <div className="p-4 md:p-6 space-y-4">
-                <div className="bg-white border border-slate-200 rounded-3xl p-4">
-                  <div className="text-lg font-black text-slate-900">העבר עבודה / שתף</div>
-                  <div className="text-sm font-bold text-slate-500 mt-1">
-                    צור קישור ציבורי לקבלן אחר. אל תכתוב פרטים רגישים בתיאור.
-                  </div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-3xl p-4 space-y-4">
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-black text-slate-500">דמי רצינות / מחיר המכירה (אופציונלי)</div>
-                    <input
-                      type="number"
-                      value={sharePriceInput}
-                      onChange={(e) => setSharePriceInput(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                    />
-                    <div className="text-xs font-bold text-slate-400">ריק או 0 = חינם</div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-black text-slate-500">תיאור ציבורי</div>
-                    <textarea
-                      value={shareDescription}
-                      onChange={(e) => setShareDescription(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none h-32 resize-none"
-                      placeholder="כתוב תיאור קצר לעבודה..."
-                    />
-                  </div>
-
-                  {shareUrl ? (
-                    <div className="space-y-2">
-                      <div className="text-[11px] font-black text-slate-500">הקישור</div>
-                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 font-mono text-xs text-slate-800 break-all">{shareUrl}</div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void handleCopyShareLink()}
-                          className="px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black"
-                        >
-                          <Copy size={16} className="inline-block ml-2" /> העתק קישור
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleWhatsappShareLink}
-                          className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black"
-                        >
-                          <MessageSquare size={16} className="inline-block ml-2" /> שתף בוואטסאפ
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void handleCreateShareLink()}
-                      disabled={isCreatingShare}
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black disabled:opacity-50"
-                    >
-                      {isCreatingShare ? 'יוצר קישור...' : 'צור קישור שיתוף'}
-                    </button>
-                  )}
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-3xl p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-black text-slate-900">בקשות שהתקבלו</div>
-                    <button
-                      type="button"
-                      onClick={() => void loadShareRequests()}
-                      disabled={isLoadingRequests}
-                      className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
-                    >
-                      רענן
-                    </button>
-                  </div>
-
-                  {isLoadingRequests ? (
-                    <div className="mt-3 text-sm font-bold text-slate-500">טוען...</div>
-                  ) : shareRequests.length === 0 ? (
-                    <div className="mt-3 text-sm font-bold text-slate-500">עדיין לא התקבלו בקשות.</div>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {shareRequests.map((r) => {
-                        const approved = Boolean(r.approvedAt);
-                        const dt = r.interestedAt ? new Date(r.interestedAt) : null;
-
-                        return (
-                          <div key={r.token} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="text-sm font-black text-slate-900 truncate">{String(r.interestedName || '—')}</div>
-                                <div className="mt-1 text-sm font-bold text-slate-700" dir="ltr">
-                                  {String(r.interestedPhone || '').trim() ? String(r.interestedPhone) : '—'}
-                                </div>
-                                <div className="mt-1 text-[11px] font-bold text-slate-500">
-                                  {dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleString('he-IL') : '—'}
-                                </div>
-                              </div>
-
-                              <div className="shrink-0 text-right space-y-2">
-                                <div
-                                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black border ${
-                                    approved ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'
-                                  }`}
-                                >
-                                  {approved ? 'אושר' : 'ממתין'}
-                                </div>
-
-                                {!approved ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleApproveDisclosure(String(r.token))}
-                                    disabled={Boolean(approvingToken)}
-                                    className="w-full px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black disabled:opacity-50"
-                                  >
-                                    {approvingToken === String(r.token) ? 'מאשר...' : 'אשר חשיפה'}
-                                  </button>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            {String(r.interestedPhone || '').trim() ? (
-                              <div className="mt-3">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const p = String(r.interestedPhone || '').trim();
-                                    if (!p) return;
-                                    window.location.href = `tel:${p}`;
-                                  }}
-                                  className="w-full px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black"
-                                >
-                                  חייג למתעניין
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <LeadModalShareView
+            sharePriceInput={sharePriceInput}
+            onSharePriceChange={setSharePriceInput}
+            shareDescription={shareDescription}
+            onShareDescriptionChange={setShareDescription}
+            shareUrl={shareUrl}
+            isCreatingShare={isCreatingShare}
+            onCreateShareLink={() => void handleCreateShareLink()}
+            onCopyShareLink={() => void handleCopyShareLink()}
+            onWhatsappShareLink={handleWhatsappShareLink}
+            isLoadingRequests={isLoadingRequests}
+            shareRequests={shareRequests}
+            onRefreshRequests={() => void loadShareRequests()}
+            approvingToken={approvingToken}
+            onApproveDisclosure={(token) => void handleApproveDisclosure(token)}
+          />
         ) : (
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="h-full overflow-y-auto">
@@ -1174,7 +899,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
                         onChange={(e) => onStatusChange(lead.id, e.target.value as Lead['status'])}
                         className="bg-white border border-slate-200 rounded-full px-3 py-2 text-xs font-black"
                       >
-                        {stagesForSelect.map((s: { id: string; label: string }) => (
+                        {stagesForSelect.map((s) => (
                           <option key={String(s.id)} value={String(s.id)}>
                             {String(s.label)}
                           </option>
@@ -1227,7 +952,12 @@ const LeadModal: React.FC<LeadModalProps> = ({
                           <div className="text-[11px] font-bold text-slate-400">{new Date(act.timestamp).toLocaleString('he-IL')}</div>
                         </div>
                         <div className="text-sm text-slate-700 whitespace-pre-wrap">{act.content}</div>
-                        {renderCallAnalysisActivity(act)}
+                        <LeadModalCallAnalysis
+                          activity={act}
+                          createdAiTaskKeys={createdAiTaskKeys}
+                          creatingAiTaskKey={creatingAiTaskKey}
+                          onCreateTask={handleCreateAiTask}
+                        />
                       </div>
                     ))}
 
@@ -1242,89 +972,20 @@ const LeadModal: React.FC<LeadModalProps> = ({
         )}
 
         {connectShareMode === 'lead' ? (
-          <div className="sticky bottom-0 bg-white border-t border-slate-200 px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-              <label
-                className={`px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black cursor-pointer ${
-                  isUploadingRecording ? 'opacity-60 pointer-events-none' : ''
-                }`}
-              >
-                {isUploadingRecording ? (
-                  <>
-                    <span className="inline-flex items-center gap-2">
-                      <Skeleton className="w-4 h-4 rounded-full" />
-                      מעבד...
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Paperclip size={14} className="inline-block ml-1" /> העלה הקלטה
-                  </>
-                )}
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="audio/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.currentTarget.value = '';
-                    if (!f) return;
-                    void handleUploadRecording(f);
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={openTel}
-                disabled={!String(lead.phone || '').trim()}
-                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
-              >
-                <Phone size={14} className="inline-block ml-1" /> חייג
-              </button>
-              <button
-                type="button"
-                onClick={openWhatsapp}
-                disabled={!String(lead.phone || '').trim()}
-                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
-              >
-                <MessageSquare size={14} className="inline-block ml-1" /> וואטסאפ
-              </button>
-              <button
-                type="button"
-                onClick={openEmail}
-                disabled={!String(lead.email || '').trim()}
-                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-800 text-xs font-black disabled:opacity-40"
-              >
-                <Mail size={14} className="inline-block ml-1" /> מייל
-              </button>
-              <button
-                type="button"
-                onClick={() => onScheduleMeeting(lead.id)}
-                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-800 text-xs font-black"
-              >
-                <CalendarClock size={14} className="inline-block ml-1" /> מעקב
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsTransferOpen(true)}
-                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black"
-              >
-                <Share2 size={14} className="inline-block ml-1" /> העבר לקבלן
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onOpenClientPortal?.()}
-              disabled={!canOpenPortal || !onOpenClientPortal}
-              className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
-            >
-              פורטל
-            </button>
-          </div>
-        </div>
+          <LeadModalActionBar
+            leadPhone={String(lead.phone || '')}
+            leadEmail={String(lead.email || '')}
+            leadId={lead.id}
+            isUploadingRecording={isUploadingRecording}
+            canOpenPortal={canOpenPortal}
+            onOpenTel={openTel}
+            onOpenWhatsapp={openWhatsapp}
+            onOpenEmail={openEmail}
+            onScheduleMeeting={onScheduleMeeting}
+            onOpenTransfer={() => setIsTransferOpen(true)}
+            onOpenClientPortal={onOpenClientPortal}
+            onUploadRecording={(f) => void handleUploadRecording(f)}
+          />
         ) : null}
 
         {connectShareMode === 'lead' ? (
@@ -1340,7 +1001,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
               const text = String(content || '').trim();
               if (!text) return;
 
-              const orgSlug = orgSlugFromPathname();
+              const orgSlug = orgSlugFromPathname(pathname);
               if (!orgSlug) {
                 addToast('לא ניתן לשמור סיכום שיחה (orgSlug חסר)', 'error');
                 return;
@@ -1368,88 +1029,22 @@ const LeadModal: React.FC<LeadModalProps> = ({
                 content: text,
                 timestamp: Number.isNaN(ts.getTime()) ? new Date() : ts,
                 direction: 'outbound',
-                metadata: activityObj.metadata ?? undefined,
+                metadata: (activityObj.metadata as Record<string, unknown> | undefined) ?? undefined,
               });
             }}
           />
         ) : null}
 
         {isTransferOpen ? (
-          <div
-            className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => (isCreatingTransfer ? null : setIsTransferOpen(false))}
-          >
-            <div
-              className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-base font-black text-slate-900">העבר לקבלן</div>
-                <button
-                  type="button"
-                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
-                  onClick={() => (isCreatingTransfer ? null : setIsTransferOpen(false))}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="mt-2 text-sm font-bold text-slate-600">בחר איך לשתף את העבודה.</div>
-
-              {!transferUrl ? (
-                <div className="mt-4 grid grid-cols-1 gap-2">
-                  <button
-                    type="button"
-                    disabled={isCreatingTransfer}
-                    onClick={() => void handleCreateTransfer('link')}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black disabled:opacity-50"
-                  >
-                    {isCreatingTransfer ? 'יוצר...' : 'שתף באמצעות לינק'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isCreatingTransfer}
-                    onClick={() => void handleCreateTransfer('marketplace')}
-                    className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black disabled:opacity-50"
-                  >
-                    {isCreatingTransfer ? 'מפרסם...' : 'פרסם לזירה (ממתין)'}
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  <div className="text-[11px] font-black text-slate-500">הקישור</div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 font-mono text-xs text-slate-800 break-all">{transferUrl}</div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleCopyTransferUrl()}
-                      className="px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black"
-                    >
-                      <Copy size={16} className="inline-block ml-2" /> העתק קישור
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleWhatsappTransferUrl}
-                      className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black"
-                    >
-                      <MessageSquare size={16} className="inline-block ml-2" /> שתף בוואטסאפ
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTransferUrl('');
-                    }}
-                    className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-black"
-                  >
-                    צור קישור חדש
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <LeadModalTransferDialog
+            isCreatingTransfer={isCreatingTransfer}
+            transferUrl={transferUrl}
+            onCreateTransfer={(mode) => void handleCreateTransfer(mode)}
+            onCopyTransferUrl={() => void handleCopyTransferUrl()}
+            onWhatsappTransferUrl={handleWhatsappTransferUrl}
+            onResetTransferUrl={() => setTransferUrl('')}
+            onClose={() => setIsTransferOpen(false)}
+          />
         ) : null}
 
       </div>

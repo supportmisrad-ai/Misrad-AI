@@ -6,8 +6,15 @@ import { RefreshCw, Trash2 } from 'lucide-react';
 import { createBackup, runSystemCleanup } from '@/app/actions/admin-maintenance';
 import { Button } from '@/components/ui/button';
 
+interface MaintenanceInfo {
+  systemVersion?: string;
+  databaseSize?: string;
+  lastBackup?: string;
+  uptime?: number;
+}
+
 interface MaintenanceTabProps {
-  maintenanceInfo: any;
+  maintenanceInfo: MaintenanceInfo | null;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }

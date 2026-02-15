@@ -2,18 +2,26 @@
 import React from 'react';
 import { Sparkles, Target, ArrowLeft, PenTool, FileSignature, CheckCircle2, ThumbsUp, RefreshCw, ThumbsDown, MessageSquarePlus, Check } from 'lucide-react';
 import TestimonialPrompt from '../TestimonialPrompt';
+import { Client, ClientAction, SuccessGoal } from '../../types';
+
+ type MoodOption = {
+   label: string;
+   icon: React.ComponentType<{ size?: number }>;
+   color: string;
+   hover?: string;
+ };
 
 interface PortalDashboardProps {
-  client: any;
-  pendingTasks: any[];
-  approvals: any[];
-  northStarGoal: any;
+  client: Client;
+  pendingTasks: ClientAction[];
+  approvals: ClientAction[];
+  northStarGoal: SuccessGoal | null;
   showTestimonialCard: boolean;
   onCloseTestimonial: () => void;
   onActionComplete: (id: string, title: string) => void;
-  onNavigate: (screen: any) => void;
-  selectedMood: any;
-  setSelectedMood: (mood: any) => void;
+  onNavigate: (screen: unknown) => void;
+  selectedMood: MoodOption | null;
+  setSelectedMood: (mood: MoodOption | null) => void;
   moodComment: string;
   setMoodComment: (val: string) => void;
   isSubmittingMood: boolean;
@@ -113,6 +121,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
               </div>
             )) : (
               <div className="text-center py-6">
+                {selectedMood && selectedMood.icon && React.createElement(selectedMood.icon as React.ComponentType<{ size?: number; className?: string }>, { size: 32, className: "text-white" })}
                 <CheckCircle2 size={32} className="mx-auto text-green-500 mb-2 opacity-20" />
                 <p className="text-slate-400 text-sm italic">אין מסמכים הממתינים לאישור.</p>
               </div>
@@ -155,7 +164,10 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
               ) : (
                 <div className="space-y-4 animate-slide-up">
                   <div className={`flex items-center gap-4 p-4 rounded-2xl border ${selectedMood.color} border-current opacity-20`}>
-                    <selectedMood.icon size={20} />
+                    {(() => {
+                      const SelectedIcon = selectedMood.icon;
+                      return <SelectedIcon size={20} />;
+                    })()}
                     <span className="text-sm font-bold">נבחר: {selectedMood.label}</span>
                   </div>
                   <div className="space-y-3">

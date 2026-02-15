@@ -1,9 +1,10 @@
 'use client';
 
+import React from 'react';
 import { Lead, SystemStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
 import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
-type NavItem = { id: string; label: string; icon: any };
+type NavItem = { id: string; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> };
 type NavGroup = { title: string; items: NavItem[] };
 
 export const STAGES: { id: SystemStage; label: string; color: string; accent: string }[] = [

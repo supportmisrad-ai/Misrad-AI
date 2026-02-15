@@ -15,6 +15,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -272,6 +273,10 @@ async function POSTHandler(
             return apiError('הזמנה לא משויכת לארגון', { status: 400 });
         }
 
+        return await withTenantIsolationContext(
+            { source: 'api_employees_invite_complete', organizationId, reason: 'employee_invite_complete' },
+            async () => {
+
         const org = await prisma.organization.findUnique({
             where: { id: String(organizationId) },
             select: {
@@ -434,6 +439,9 @@ async function POSTHandler(
             },
             signupUrl: `/login?mode=sign-up&email=${encodeURIComponent(normalizedEmail)}&invited=true&employee=true&redirect=${encodeURIComponent(lobbyPath)}`
         }, { status: 201 });
+
+            }
+        );
 
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error in /api/employees/invite/[token]/complete POST');

@@ -14,10 +14,10 @@ type VoiceCommandResponse = {
   ok: boolean;
   transcript?: string;
   action?: string;
-  command?: any;
+  command?: { action?: string };
   message: string;
   error?: string;
-  actionResult?: any;
+  actionResult?: { url?: string };
 };
 
 export function triggerVoiceCommandOverlay() {
@@ -52,9 +52,9 @@ export function VoiceCommandFab() {
       setIsOpen(true);
     };
 
-    window.addEventListener('nexus:open-voice-command', handler as any);
+    window.addEventListener('nexus:open-voice-command', handler);
     return () => {
-      window.removeEventListener('nexus:open-voice-command', handler as any);
+      window.removeEventListener('nexus:open-voice-command', handler);
     };
   }, []);
 
@@ -105,9 +105,10 @@ export function VoiceCommandFab() {
 
       recorder.start();
       setIsRecording(true);
-    } catch (e: any) {
+    } catch (e: unknown) {
       cleanupStream();
-      setMessage(e?.message ? `שגיאה בגישה למיקרופון: ${e.message}` : 'שגיאה בגישה למיקרופון');
+      const msg = e instanceof Error ? e.message : '';
+      setMessage(msg ? `שגיאה בגישה למיקרופון: ${msg}` : 'שגיאה בגישה למיקרופון');
     }
   }, [cleanupStream, isProcessing]);
 
@@ -169,8 +170,9 @@ export function VoiceCommandFab() {
             }
           }, 0);
         }
-      } catch (e: any) {
-        setMessage(e?.message ? `שגיאה: ${e.message}` : 'שגיאה בשליחה לשרת');
+      } catch (e: unknown) {
+        const errMsg = e instanceof Error ? e.message : '';
+        setMessage(errMsg ? `שגיאה: ${errMsg}` : 'שגיאה בשליחה לשרת');
       } finally {
         setIsProcessing(false);
       }

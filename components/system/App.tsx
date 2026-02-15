@@ -33,7 +33,7 @@ import { useOnClickOutside } from './hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import MobileBottomNav from '../shared/MobileBottomNav';
 
-declare const confetti: any;
+declare const confetti: unknown;
 
 const SystemBootScreen = ({ onComplete }: { onComplete: () => void }) => {
     const [progress, setProgress] = useState(0);

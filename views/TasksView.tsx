@@ -658,9 +658,11 @@ export const TasksView: React.FC = () => {
   };
 
   const taskForStatusSheet = taskStatusSheetTaskId ? tasks.find(t => t.id === taskStatusSheetTaskId) : null;
-  const orderedStages = [...(workflowStages || [])].sort((a: any, b: any) => {
-      const ao = typeof a?.order === 'number' ? a.order : 0;
-      const bo = typeof b?.order === 'number' ? b.order : 0;
+  const orderedStages = [...(workflowStages || [])].sort((a: unknown, b: unknown) => {
+      const ar = (a && typeof a === 'object' ? a : {}) as Record<string, unknown>;
+      const br = (b && typeof b === 'object' ? b : {}) as Record<string, unknown>;
+      const ao = typeof ar.order === 'number' ? ar.order : 0;
+      const bo = typeof br.order === 'number' ? br.order : 0;
       return ao - bo;
   });
 

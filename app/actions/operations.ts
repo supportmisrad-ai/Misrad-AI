@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
  
 
@@ -119,7 +121,7 @@ export async function getOperationsVehicles(params: {
       { source: 'server_actions_operations', reason: 'getOperationsVehicles' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsVehicles failed', e);
+    logger.error('operations', 'getOperationsVehicles failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכבים' };
   }
 }
@@ -135,7 +137,7 @@ export async function createOperationsVehicle(params: {
       { source: 'server_actions_operations', reason: 'createOperationsVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsVehicle failed', e);
+    logger.error('operations', 'createOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהוספת רכב' };
   }
 }
@@ -159,7 +161,7 @@ export async function createOperationsItem(params: {
       { source: 'server_actions_operations', reason: 'createOperationsItem' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsItem failed', e);
+    logger.error('operations', 'createOperationsItem failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
   }
 }
@@ -175,7 +177,7 @@ export async function deleteOperationsVehicle(params: {
       { source: 'server_actions_operations', reason: 'deleteOperationsVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsVehicle failed', e);
+    logger.error('operations', 'deleteOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת רכב' };
   }
 }
@@ -197,7 +199,7 @@ export async function setOperationsTechnicianActiveVehicle(params: {
       { source: 'server_actions_operations', reason: 'setOperationsTechnicianActiveVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsTechnicianActiveVehicle failed', e);
+    logger.error('operations', 'setOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת רכב פעיל' };
   }
 }
@@ -221,7 +223,7 @@ export async function getOperationsTechnicianActiveVehicle(params: {
       { source: 'server_actions_operations', reason: 'getOperationsTechnicianActiveVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsTechnicianActiveVehicle failed', e);
+    logger.error('operations', 'getOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכב פעיל' };
   }
 }
@@ -237,7 +239,7 @@ export async function getOperationsStockSourceOptions(params: {
       { source: 'server_actions_operations', reason: 'getOperationsStockSourceOptions' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsStockSourceOptions failed', e);
+    logger.error('operations', 'getOperationsStockSourceOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מקורות מלאי' };
   }
 }
@@ -259,7 +261,7 @@ export async function setOperationsWorkOrderStockSource(params: {
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStockSource' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSource failed', e);
+    logger.error('operations', 'setOperationsWorkOrderStockSource failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת מקור מלאי' };
   }
 }
@@ -280,7 +282,7 @@ export async function setOperationsWorkOrderStockSourceToMyActiveVehicle(params:
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStockSourceToMyActiveVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    logger.error('operations', 'setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
   }
 }
@@ -300,7 +302,7 @@ export async function getOperationsVehicleStockBalances(params: {
       { source: 'server_actions_operations', reason: 'getOperationsVehicleStockBalances' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsVehicleStockBalances failed', e);
+    logger.error('operations', 'getOperationsVehicleStockBalances failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי רכב' };
   }
 }
@@ -324,7 +326,7 @@ export async function transferOperationsStockToVehicle(params: {
       { source: 'server_actions_operations', reason: 'transferOperationsStockToVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] transferOperationsStockToVehicle failed', e);
+    logger.error('operations', 'transferOperationsStockToVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהעברת מלאי לרכב' };
   }
 }
@@ -348,7 +350,7 @@ export async function addOperationsStockToActiveVehicle(params: {
       { source: 'server_actions_operations', reason: 'addOperationsStockToActiveVehicle' }
     );
   } catch (e: unknown) {
-    console.error('[operations] addOperationsStockToActiveVehicle failed', e);
+    logger.error('operations', 'addOperationsStockToActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקליטת מלאי לרכב' };
   }
 }
@@ -376,7 +378,7 @@ export async function getOperationsClientOptions(params: {
       { source: 'server_actions_operations', reason: 'getOperationsClientOptions' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsClientOptions failed', e);
+    logger.error('operations', 'getOperationsClientOptions failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הלקוחות',
@@ -401,7 +403,7 @@ export async function setOperationsWorkOrderCompletionSignature(params: {
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderCompletionSignature' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderCompletionSignature failed', e);
+    logger.error('operations', 'setOperationsWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }
@@ -418,7 +420,7 @@ export async function contractorSetWorkOrderCompletionSignature(params: {
       signatureUrl: params.signatureUrl,
     });
   } catch (e: unknown) {
-    console.error('[operations] contractorSetWorkOrderCompletionSignature failed', e);
+    logger.error('operations', 'contractorSetWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }
@@ -450,7 +452,7 @@ export async function addOperationsWorkOrderAttachment(params: {
       { source: 'server_actions_operations', reason: 'addOperationsWorkOrderAttachment' }
     );
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderAttachment failed', e);
+    logger.error('operations', 'addOperationsWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
   }
 }
@@ -465,7 +467,7 @@ export async function getOperationsLocations(params: {
       { source: 'server_actions_operations', reason: 'getOperationsLocations' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsLocations failed', e);
+    logger.error('operations', 'getOperationsLocations failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מחסנים' };
   }
 }
@@ -481,7 +483,7 @@ export async function createOperationsLocation(params: {
       { source: 'server_actions_operations', reason: 'createOperationsLocation' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsLocation failed', e);
+    logger.error('operations', 'createOperationsLocation failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת מחסן' };
   }
 }
@@ -497,7 +499,7 @@ export async function deleteOperationsLocation(params: {
       { source: 'server_actions_operations', reason: 'deleteOperationsLocation' }
     );
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsLocation failed', e);
+    logger.error('operations', 'deleteOperationsLocation failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת מחסן' };
   }
 }
@@ -512,7 +514,7 @@ export async function getOperationsWorkOrderTypes(params: {
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrderTypes' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderTypes failed', e);
+    logger.error('operations', 'getOperationsWorkOrderTypes failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת סוגי קריאות' };
   }
 }
@@ -528,7 +530,7 @@ export async function createOperationsWorkOrderType(params: {
       { source: 'server_actions_operations', reason: 'createOperationsWorkOrderType' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsWorkOrderType failed', e);
+    logger.error('operations', 'createOperationsWorkOrderType failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת סוג קריאה' };
   }
 }
@@ -544,7 +546,7 @@ export async function deleteOperationsWorkOrderType(params: {
       { source: 'server_actions_operations', reason: 'deleteOperationsWorkOrderType' }
     );
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsWorkOrderType failed', e);
+    logger.error('operations', 'deleteOperationsWorkOrderType failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת סוג קריאה' };
   }
 }
@@ -559,7 +561,7 @@ export async function getOperationsTechnicianOptions(params: {
       { source: 'server_actions_operations', reason: 'getOperationsTechnicianOptions' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsTechnicianOptions failed', e);
+    logger.error('operations', 'getOperationsTechnicianOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הטכנאים' };
   }
 }
@@ -581,7 +583,7 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderAssignedTechnician' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderAssignedTechnician failed', e);
+    logger.error('operations', 'setOperationsWorkOrderAssignedTechnician failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשיוך טכנאי לקריאה' };
   }
 }
@@ -602,7 +604,7 @@ export async function getOperationsWorkOrderAttachments(params: {
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrderAttachments' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderAttachments failed', e);
+    logger.error('operations', 'getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };
   }
 }
@@ -622,7 +624,7 @@ export async function getOperationsWorkOrderCheckins(params: {
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrderCheckins' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderCheckins failed', e);
+    logger.error('operations', 'getOperationsWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
   }
 }
@@ -652,7 +654,7 @@ export async function addOperationsWorkOrderCheckin(params: {
       { source: 'server_actions_operations', reason: 'addOperationsWorkOrderCheckin' }
     );
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderCheckin failed', e);
+    logger.error('operations', 'addOperationsWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }
@@ -667,7 +669,7 @@ export async function getOperationsInventoryOptions(params: {
       { source: 'server_actions_operations', reason: 'getOperationsInventoryOptions' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptions failed', e);
+    logger.error('operations', 'getOperationsInventoryOptions failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי',
@@ -751,7 +753,7 @@ export async function getOperationsInventoryOptionsForHolder(params: {
       { source: 'server_actions_operations', reason: 'getOperationsInventoryOptionsForHolder' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptionsForHolder failed', e);
+    logger.error('operations', 'getOperationsInventoryOptionsForHolder failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי לפי מקור',
@@ -778,7 +780,7 @@ export async function consumeOperationsInventoryForWorkOrder(params: {
       { source: 'server_actions_operations', reason: 'consumeOperationsInventoryForWorkOrder' }
     );
   } catch (e: unknown) {
-    console.error('[operations] consumeOperationsInventoryForWorkOrder failed', e);
+    logger.error('operations', 'consumeOperationsInventoryForWorkOrder failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בהורדת מלאי',
@@ -805,7 +807,7 @@ export async function getOperationsMaterialsForWorkOrder(params: {
       { source: 'server_actions_operations', reason: 'getOperationsMaterialsForWorkOrder' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsMaterialsForWorkOrder failed', e);
+    logger.error('operations', 'getOperationsMaterialsForWorkOrder failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת חומרים לקריאה',
@@ -830,7 +832,7 @@ export async function createOperationsContractorToken(params: {
       { source: 'server_actions_operations', reason: 'createOperationsContractorToken' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsContractorToken failed', e);
+    logger.error('operations', 'createOperationsContractorToken failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה ביצירת טוקן קבלן',
@@ -860,7 +862,7 @@ export async function getOperationsContractorPortalData(params: {
   try {
     return await getOperationsContractorPortalDataByToken({ token: params.token });
   } catch (e: unknown) {
-    console.error('[operations] getOperationsContractorPortalData failed', e);
+    logger.error('operations', 'getOperationsContractorPortalData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת פורטל קבלן',
@@ -878,7 +880,7 @@ export async function contractorMarkWorkOrderDone(params: {
       workOrderId: params.workOrderId,
     });
   } catch (e: unknown) {
-    console.error('[operations] contractorMarkWorkOrderDone failed', e);
+    logger.error('operations', 'contractorMarkWorkOrderDone failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס',
@@ -896,7 +898,7 @@ export async function getOperationsDashboardData(params: {
       { source: 'server_actions_operations', reason: 'getOperationsDashboardData' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsDashboardData failed', e);
+    logger.error('operations', 'getOperationsDashboardData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת נתוני הדשבורד',
@@ -914,7 +916,7 @@ export async function getOperationsProjectsData(params: {
       { source: 'server_actions_operations', reason: 'getOperationsProjectsData' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsProjectsData failed', e);
+    logger.error('operations', 'getOperationsProjectsData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הפרויקטים',
@@ -932,7 +934,7 @@ export async function getOperationsInventoryData(params: {
       { source: 'server_actions_operations', reason: 'getOperationsInventoryData' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryData failed', e);
+    logger.error('operations', 'getOperationsInventoryData failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
   }
 }
@@ -947,7 +949,7 @@ export async function getOperationsProjectOptions(params: {
       { source: 'server_actions_operations', reason: 'getOperationsProjectOptions' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsProjectOptions failed', e);
+    logger.error('operations', 'getOperationsProjectOptions failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הפרויקטים',
@@ -974,7 +976,7 @@ export async function getOperationsWorkOrdersData(params: {
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrdersData' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrdersData failed', e);
+    logger.error('operations', 'getOperationsWorkOrdersData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאות',
@@ -1003,7 +1005,7 @@ export async function createOperationsWorkOrder(params: {
       { source: 'server_actions_operations', reason: 'createOperationsWorkOrder' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsWorkOrder failed', e);
+    logger.error('operations', 'createOperationsWorkOrder failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה ביצירת קריאה',
@@ -1046,7 +1048,7 @@ export async function getOperationsWorkOrderById(params: {
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrderById' }
     );
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderById failed', e);
+    logger.error('operations', 'getOperationsWorkOrderById failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאה',
@@ -1071,7 +1073,7 @@ export async function setOperationsWorkOrderStatus(params: {
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStatus' }
     );
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStatus failed', e);
+    logger.error('operations', 'setOperationsWorkOrderStatus failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס קריאה',
@@ -1098,7 +1100,7 @@ export async function createOperationsProject(params: {
       { source: 'server_actions_operations', reason: 'createOperationsProject' }
     );
   } catch (e: unknown) {
-    console.error('[operations] createOperationsProject failed', e);
+    logger.error('operations', 'createOperationsProject failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פרויקט',

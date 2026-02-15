@@ -90,8 +90,8 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             if (orgSlug) {
                 formData.append('orgSlug', String(orgSlug));
             }
-            if ((currentUser as any)?.id) {
-                formData.append('userId', String((currentUser as any).id));
+            if (currentUser && typeof currentUser === 'object' && 'id' in currentUser && currentUser.id) {
+                formData.append('userId', String(currentUser.id));
             }
 
             const response = await fetch('/api/storage/upload', {
@@ -109,13 +109,14 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             const attachment = {
                 name: file.name,
                 type,
-                url: String(data?.ref || data?.url || '') // Prefer stable sb:// reference for DB
+                senderId: String((currentUser as unknown as { id?: string }).id),
+                url: String((data as Record<string, unknown>)?.id || data?.url || '') // Prefer stable sb:// reference for DB
             };
 
             // Add message with attachment
             addMessage(task.id, '', attachment, 'user', task);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[TaskDetailChat] File upload error:', error);
             // Fallback: use blob URL if upload fails (for development)
             if (process.env.NODE_ENV === 'development') {
@@ -123,7 +124,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                 const attachment = { name: file.name, type, url };
                 addMessage(task.id, '', attachment, 'user', task);
             } else {
-                alert(`שגיאה בהעלאת הקובץ: ${error.message}`);
+                alert(`שגיאה בהעלאת הקובץ: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
     };
@@ -204,7 +205,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                         body: formData,
                     });
 
-                    const json = await res.json().catch(() => null as any);
+                    const json = await res.json().catch(() => null as unknown);
                     if (!res.ok || !json?.success) {
                         throw new Error(String(json?.error || 'Transcription failed'));
                     }

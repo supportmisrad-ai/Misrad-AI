@@ -14,7 +14,7 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   activeTab: string;
-  user: any;
+  user: { name?: string; role?: string; avatar?: string; id?: string };
   logout: () => void;
   mobile?: boolean;
   onClose?: () => void;

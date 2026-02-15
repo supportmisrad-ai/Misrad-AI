@@ -153,6 +153,8 @@ export interface Message {
     attachment?: Attachment;
 }
 
+export type GuestMessage = Message;
+
 export interface TaskContributor {
     userId: string;
     timeSpent: number; // Seconds

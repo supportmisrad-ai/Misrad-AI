@@ -61,15 +61,15 @@ export default function GlobalAdminPageClient() {
   const content =
     tab === 'versions' ? (
       <VersionManagementPanel
-        tenants={safeTenants as any}
+        tenants={safeTenants}
         availableVersions={safeVersions}
         onUpdateVersion={updateTenantVersion}
         onRollback={(tenantId, version) => updateTenantVersion(tenantId, version)}
       />
     ) : tab === 'approvals' ? (
       <UserApprovalsPanel
-        approvalRequests={(userApprovalRequests || []) as any}
-        tenants={safeTenants as any}
+        approvalRequests={userApprovalRequests || []}
+        tenants={safeTenants}
         onApprove={approveUserRequest}
         onReject={rejectUserRequest}
         onAddAllowedEmail={addAllowedEmail}
@@ -79,7 +79,7 @@ export default function GlobalAdminPageClient() {
     ) : tab === 'announcements' ? (
       <AnnouncementsPanel currentUser={currentUser} addToast={addToast} />
     ) : (
-      <GlobalUsersPanel tenants={safeTenants as any} addToast={addToast} />
+      <GlobalUsersPanel tenants={safeTenants} addToast={addToast} />
     );
 
   return (

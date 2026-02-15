@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
+import { orgExec, orgQuery, prisma, prismaForInteractiveTransaction } from '@/lib/services/operations/db';
 import { asObject, firstRowField, getUnknownErrorMessage, logOperationsError, toNumberSafe } from '@/lib/services/operations/shared';
 import { ensureOperationsPrimaryWarehouseHolderId, ensureOperationsVehicleHolderId } from '@/lib/services/operations/stock-holders';
 
@@ -34,7 +34,7 @@ export async function transferOperationsStockToVehicleForOrganizationId(params: 
     const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
     const vehicleHolderId = await ensureOperationsVehicleHolderId({ organizationId: params.organizationId, vehicleId, label: vehicleName });
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await orgExec(
         tx,
         params.organizationId,
@@ -159,7 +159,7 @@ export async function addOperationsStockToActiveVehicleForOrganizationId(params:
       label: vehicleName,
     });
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.operationsInventory.upsert({
         where: { organizationId_itemId: { organizationId: params.organizationId, itemId } },
         create: {

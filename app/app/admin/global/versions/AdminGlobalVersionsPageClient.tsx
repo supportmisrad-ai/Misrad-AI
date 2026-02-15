@@ -22,7 +22,7 @@ export default function AdminGlobalVersionsPageClient() {
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="גרסאות" subtitle="ניהול גרסאות לקוחות" icon={Package} />
       <VersionManagementPanel
-        tenants={safeTenants as any}
+        tenants={safeTenants}
         availableVersions={safeVersions}
         onUpdateVersion={updateTenantVersion}
         onRollback={(tenantId, version) => updateTenantVersion(tenantId, version)}

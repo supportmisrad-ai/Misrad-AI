@@ -12,6 +12,8 @@ import { useUser } from '@clerk/nextjs';
 import { UserProfile, UserRole } from '../types';
 import { useAuth as useNexusAuth } from '@/hooks/useAuth';
 
+type User = { id?: string; name?: string; email?: string; role?: string; avatar?: string } | undefined;
+
 interface AuthContextType {
   user: UserProfile | null;
   login: (role: UserRole) => void;
@@ -27,12 +29,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: any }> = ({
+export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: unknown }> = ({
   children,
   initialCurrentUser,
 }) => {
-  const addToast = () => {};
-  const nexusAuth = useNexusAuth(addToast as any, initialCurrentUser);
+  const addToast = (() => {}) as (msg: string, type?: string) => void;
+  const nexusAuth = useNexusAuth(addToast, initialCurrentUser as unknown as Parameters<typeof useNexusAuth>[1]);
 
   let isClerkLoaded = false;
   try {
@@ -42,9 +44,10 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
     isClerkLoaded = true;
   }
 
+  const cu = (nexusAuth?.currentUser ?? {}) as unknown as Record<string, unknown>;
   const systemUserId =
-    (nexusAuth?.currentUser as any)?.profileId && String((nexusAuth?.currentUser as any)?.profileId).trim()
-      ? String((nexusAuth?.currentUser as any)?.profileId)
+    cu.profileId && String(cu.profileId).trim()
+      ? String(cu.profileId)
       : nexusAuth?.currentUser?.id;
 
   const user: UserProfile | null = nexusAuth?.currentUser?.id
@@ -84,7 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
     console.warn('[System Auth] switchRole() called - Role switching is not supported with real auth');
     if (user) {
       const updatedUser = { ...user, role };
-      (updatedUser as any).role = role;
+      (updatedUser as Record<string, unknown>).role = role;
     }
   };
 

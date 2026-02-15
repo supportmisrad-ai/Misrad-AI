@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 import { motion } from 'framer-motion';
 import { Building2, User, Mail, Phone, Globe, MapPin, FileText, Upload, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 interface InvitationData {
     token: string;
@@ -145,8 +146,8 @@ export default function InvitePage() {
                         additionalNotes: payload.invitation.prefill.additionalNotes || ''
                     });
                 }
-            } catch (err: any) {
-                setError(err.message || 'שגיאה בטעינת הקישור');
+            } catch (err: unknown) {
+                setError((err instanceof Error ? err.message : String(err)) || 'שגיאה בטעינת הקישור');
             } finally {
                 setIsLoading(false);
             }
@@ -266,8 +267,8 @@ export default function InvitePage() {
             await response.json().catch(() => ({}));
             setSuccess(true);
             setError(null);
-        } catch (err: any) {
-            setError(err.message || 'שגיאה בשליחת הטופס');
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'שגיאה בשליחת הטופס');
         } finally {
             setIsSubmitting(false);
         }

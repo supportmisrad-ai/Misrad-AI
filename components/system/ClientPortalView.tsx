@@ -14,7 +14,7 @@ import { Lead, PortalApproval, PortalTask, SupportTicket } from './types';
 import { useToast } from './contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-declare const confetti: any;
+declare const confetti: unknown;
 
 interface ClientPortalProps {
     client: Lead;
@@ -131,7 +131,7 @@ const ClientPortalView: React.FC<ClientPortalProps> = ({ client, onExit }) => {
                     ].map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id as 'assets' | 'dashboard' | 'support' | 'billing')}
                             className={`px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
                                 activeTab === tab.id 
                                 ? 'bg-primary text-white shadow-lg' 

@@ -212,7 +212,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
           const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-          const interval: any = setInterval(function() {
+          const interval: ReturnType<typeof setInterval> = setInterval(function() {
             const timeLeft = animationEnd - Date.now();
 
             if (timeLeft <= 0) {
@@ -278,12 +278,12 @@ export const Layout = ({ children }: LayoutProps) => {
     .some((n: Notification) => !n.read);
 
   const headerCurrentUser = useMemo(() => {
-    const base: any = currentUser || { name: 'משתמש', role: '' };
+    const base = (currentUser || { name: 'משתמש', role: '' }) as unknown as Record<string, unknown>;
     return {
       ...base,
-      name: workspaceSystemIdentity?.name || base.name || 'משתמש',
-      role: workspaceSystemIdentity?.role || base.role || '',
-      avatar: workspaceSystemIdentity?.avatarUrl || base.avatar || '',
+      name: String(workspaceSystemIdentity?.name || base.name || 'משתמש'),
+      role: String(workspaceSystemIdentity?.role || base.role || ''),
+      avatar: String(workspaceSystemIdentity?.avatarUrl || base.avatar || ''),
     };
   }, [currentUser, workspaceSystemIdentity?.avatarUrl, workspaceSystemIdentity?.name, workspaceSystemIdentity?.role]);
 
@@ -456,7 +456,7 @@ export const Layout = ({ children }: LayoutProps) => {
     navigate(href);
   };
 
-  const handleSelectLead = (lead: any) => {
+  const handleSelectLead = (lead: unknown) => {
     navigate('/leads');
     // Optionally, you could open a lead detail modal here
   };

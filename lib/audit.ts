@@ -31,7 +31,7 @@ export interface AuditLog {
     action: AuditAction;
     resourceType: string;
     resourceId?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
     ipAddress?: string;
     userAgent?: string;
     timestamp: string;
@@ -48,7 +48,7 @@ export async function logAuditEvent(
     resourceType: string,
     options: {
         resourceId?: string;
-        details?: Record<string, any>;
+        details?: Record<string, unknown>;
         success?: boolean;
         error?: string;
     } = {}
@@ -132,7 +132,7 @@ export async function logIntegrationEvent(
     resourceType: string,
     options: {
         resourceId?: string;
-        details?: Record<string, any>;
+        details?: Record<string, unknown>;
         success?: boolean;
         error?: string;
         ipAddress?: string;

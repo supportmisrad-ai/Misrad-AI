@@ -18,8 +18,8 @@ export default function SocialShell({
   children: React.ReactNode;
   initialSocialData?: SocialInitialData;
   initialNavigationMenu?: SocialNavigationItem[];
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: unknown;
+  initialOrganization?: unknown;
 }) {
   return (
     <SocialShellClient

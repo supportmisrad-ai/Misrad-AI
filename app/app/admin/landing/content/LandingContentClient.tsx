@@ -162,7 +162,7 @@ export default function LandingContentClient() {
     }
   };
 
-  const updateTestimonial = (id: string, field: keyof Testimonial, value: any) => {
+  const updateTestimonial = (id: string, field: keyof Testimonial, value: unknown) => {
     setTestimonials(
       testimonials.map((t) =>
         t.id === id ? { ...t, [field]: value } : t

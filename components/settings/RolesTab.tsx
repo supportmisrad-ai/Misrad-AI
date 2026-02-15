@@ -27,7 +27,7 @@ export const RolesTab: React.FC = () => {
                 await createRole(newRoleDef);
                 setNewRoleName('');
                 setIsAddingRole(false);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Error already handled in createRole
             }
         } else if (roleDefinitions.some((r: RoleDefinition) => r.name === newRoleName.trim())) {
@@ -46,7 +46,7 @@ export const RolesTab: React.FC = () => {
             try {
                 await deleteRole(roleToDelete);
                 setRoleToDelete(null);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Error already handled in deleteRole
             }
         }
@@ -54,12 +54,12 @@ export const RolesTab: React.FC = () => {
 
     const togglePermission = async (roleName: string, permission: PermissionId) => {
         const role = roleDefinitions.find((r: RoleDefinition) => r.name === roleName);
-        if (!role || !(role as any).id) {
+        if (!role || !(role as unknown as { id?: string }).id) {
             addToast('שגיאה: תפקיד לא נמצא', 'error');
             return;
         }
         
-        const roleId = (role as any).id;
+        const roleId = String((role as unknown as { id?: string }).id || '');
         const hasPermission = role.permissions.includes(permission);
         const newPermissions = hasPermission 
             ? role.permissions.filter((p: PermissionId) => p !== permission)
@@ -67,7 +67,7 @@ export const RolesTab: React.FC = () => {
         
         try {
             await updateRole(roleId, { permissions: newPermissions });
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Error already handled in updateRole
         }
     };

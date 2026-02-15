@@ -9,7 +9,7 @@ interface TasksTabProps {
   requests: ManagerRequest[];
   onCompleteRequest: (reqId: string) => void;
   onUploadNow: (request: ManagerRequest) => void;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: unknown) => void;
 }
 
 const TasksTab: React.FC<TasksTabProps> = ({ requests, onCompleteRequest, onUploadNow, setActiveTab }) => {

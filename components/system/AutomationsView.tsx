@@ -41,7 +41,7 @@ interface SimpleAutomation {
 interface AutomationsViewProps {
   leads: Lead[];
   onAddTask: (task: Task) => void;
-  onAddActivity: (leadId: string, activity: any) => void;
+  onAddActivity: (leadId: string, activity: unknown) => void;
   onStatusChange?: (leadId: string, newStatus: PipelineStage) => void;
 }
 
@@ -526,7 +526,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                                   <div 
                                     className={`w-3 h-3 rounded-full ${
                                       formData.trigger.status === stage.id 
-                                        ? `${stage.accent} border-2 ${String((stage as any)?.accent ?? '').replace('bg-', 'border-')}`
+                                        ? `${(stage as Record<string, unknown>).accent} border-2 ${String((stage as Record<string, unknown>).accent ?? '').replace('bg-', 'border-')}`
                                         : 'border-2 border-slate-300 bg-transparent'
                                     }`}
                                   />
@@ -657,7 +657,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                                     onClick={() => {
                                       setFormData({
                                         ...formData,
-                                        action: { ...formData.action, taskPriority: priority.value as any }
+                                        action: { ...formData.action, taskPriority: priority.value as 'high' | 'medium' | 'low' | 'critical' }
                                       });
                                       setIsPriorityDropdownOpen(false);
                                     }}

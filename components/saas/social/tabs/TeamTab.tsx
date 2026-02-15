@@ -44,10 +44,10 @@ export function TeamTab({
       if (!res.success) {
         throw new Error(res.error || 'שגיאה בטעינת צוות');
       }
-      setRows((res.data || []) as any);
-    } catch (e: any) {
+      setRows((res.data || []) as TeamUser[]);
+    } catch (e: unknown) {
       console.error('[TeamTab] Failed to load team:', e);
-      addToast(e?.message || 'שגיאה בטעינת צוות', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת צוות', 'error');
       setRows([]);
     } finally {
       setIsLoading(false);
@@ -72,9 +72,9 @@ export function TeamTab({
       }
       addToast('התפקיד עודכן', 'success');
       await load(tenantId);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[TeamTab] Failed to update role:', e);
-      addToast(e?.message || 'שגיאה בעדכון תפקיד', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בעדכון תפקיד', 'error');
     } finally {
       setIsUpdatingRole(null);
     }
@@ -93,9 +93,9 @@ export function TeamTab({
       }
       addToast('המשתמש הוסר', 'success');
       await load(tenantId);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[TeamTab] Failed to remove user:', e);
-      addToast(e?.message || 'שגיאה בהסרת משתמש', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בהסרת משתמש', 'error');
     } finally {
       setIsRemoving(null);
     }

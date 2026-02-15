@@ -5,13 +5,14 @@ import {
   HelpCircle, MessageSquareWarning, LogOut 
 } from 'lucide-react';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { Client } from '../../types';
 
 interface PortalSidebarProps {
   activeScreen: string;
-  setActiveScreen: (screen: any) => void;
+  setActiveScreen: (screen: unknown) => void;
   onShowFriction: () => void;
   onBack: () => void;
-  client: any;
+  client: Client;
 }
 
 export const PortalSidebar: React.FC<PortalSidebarProps> = ({ 

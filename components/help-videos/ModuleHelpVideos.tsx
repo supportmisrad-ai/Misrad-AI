@@ -78,8 +78,9 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
       setIsOpen(true);
     };
 
-    window.addEventListener('os:open-help-videos', onOpen as any);
-    return () => window.removeEventListener('os:open-help-videos', onOpen as any);
+    const listener = onOpen as unknown as EventListener;
+    window.addEventListener('os:open-help-videos', listener);
+    return () => window.removeEventListener('os:open-help-videos', listener);
   }, []);
 
   useEffect(() => {
@@ -94,8 +95,9 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('keydown', onKeyDown, { capture: true });
-    return () => document.removeEventListener('keydown', onKeyDown, { capture: true } as any);
+    const options: AddEventListenerOptions = { capture: true };
+    document.addEventListener('keydown', onKeyDown, options);
+    return () => document.removeEventListener('keydown', onKeyDown, options);
   }, [isOpen]);
 
   const active = useMemo(() => items.find((v) => v.id === activeId) || null, [activeId, items]);

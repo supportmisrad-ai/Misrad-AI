@@ -11,26 +11,7 @@ import { Prisma } from '@prisma/client';
 import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-    const obj = asObject(error) ?? {};
-    const code = String(obj.code ?? '').toLowerCase();
-    const message = String(getErrorMessage(error) || '').toLowerCase();
-    return (
-        code === 'p2021' ||
-        code === 'p2022' ||
-        code === '42p01' ||
-        code === '42703' ||
-        message.includes('does not exist') ||
-        message.includes('relation') ||
-        message.includes('column') ||
-        message.includes('could not find the table') ||
-        message.includes('schema cache')
-    );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 function toStringArray(value: unknown): string[] {
     if (!Array.isArray(value)) return [];

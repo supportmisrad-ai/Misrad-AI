@@ -1,12 +1,13 @@
 'use server';
 
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { AIService } from '@/lib/services/ai/AIService';
 import { getSystemPipelineStagesForOrganizationId } from '@/lib/services/system/pipeline-stages';
 import { createSystemPipelineStageForOrganizationId } from '@/lib/services/system/pipeline-stages';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { getUnknownErrorMessageOrUnexpected } from '@/lib/shared/unknown';
+import { isSchemaMismatchError } from '@/lib/server/schema-fallbacks';
 import crypto from 'crypto';
 
 export type SmartImportTargetField =
@@ -57,20 +58,6 @@ function normalizeHeader(value: unknown): string {
     .replace(/\s+/g, ' ');
 }
 
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
-  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
-  const message = String((obj as { message?: unknown })?.message || '').toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column')
-  );
-}
 
 function toSafeKeyFromHeader(input: string): string {
   const raw = String(input || '').trim();
@@ -653,7 +640,7 @@ export async function importSystemLeadsFromFile(params: {
           return { ok: true, created: 0, skipped, invalid, issues, receivedRows, consideredRows, truncated };
         }
 
-        const createdCount = await prisma.$transaction(async (tx) => {
+        const createdCount = await prismaForInteractiveTransaction().$transaction(async (tx) => {
           const candidates = new Set<string>();
           for (const p of prepared) {
             for (const v of getPhoneVariantsForDb(p.phoneKey)) {

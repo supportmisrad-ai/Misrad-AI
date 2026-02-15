@@ -71,9 +71,9 @@ export default function Campaigns() {
          <EditCampaignModal 
             isOpen={isEditModalOpen} 
             onClose={() => setIsEditModalOpen(false)} 
-            campaign={selectedCampaign} 
-            clients={clients as any} 
-            onUpdate={handleUpdateCampaign} 
+            campaign={selectedCampaign as unknown as Parameters<typeof EditCampaignModal>[0]['campaign']} 
+            clients={clients as Client[]} 
+            onUpdate={handleUpdateCampaign as (updatedCampaign: unknown) => void} 
          />
          
          <button onClick={() => setSelectedCampaignId(null)} className="flex items-center gap-3 text-slate-400 font-black text-sm hover:text-slate-900 transition-all self-start">
@@ -99,7 +99,7 @@ export default function Campaigns() {
                <button onClick={() => setIsEditModalOpen(true)} className="bg-slate-100 px-8 py-4 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all flex items-center gap-2">
                   <Edit3 size={18} /> ערוך הגדרות
                </button>
-               <button onClick={(e) => toggleStatus(selectedCampaign.id, e as any)} className={`px-8 py-4 rounded-2xl font-black text-sm text-white shadow-xl transition-all ${selectedCampaign.status === 'active' ? 'bg-red-500 shadow-red-100' : 'bg-green-600 shadow-green-100'}`}>
+               <button onClick={(e) => toggleStatus(selectedCampaign.id, e)} className={`px-8 py-4 rounded-2xl font-black text-sm text-white shadow-xl transition-all ${selectedCampaign.status === 'active' ? 'bg-red-500 shadow-red-100' : 'bg-green-600 shadow-green-100'}`}>
                   {selectedCampaign.status === 'active' ? 'השהה קמפיין' : 'הפעל קמפיין'}
                </button>
             </div>

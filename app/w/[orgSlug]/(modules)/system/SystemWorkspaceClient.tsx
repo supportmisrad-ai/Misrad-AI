@@ -225,7 +225,7 @@ export default function SystemWorkspaceClient({
       type: String(activity?.type || 'note'),
       content: String(activity?.content || ''),
       direction: activity?.direction ?? null,
-      metadata: activity?.metadata ?? null,
+      metadata: (activity?.metadata ?? null) as import('@prisma/client').Prisma.InputJsonValue | null,
     });
 
     if (!res.ok) {

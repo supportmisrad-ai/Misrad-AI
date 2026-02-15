@@ -4,12 +4,15 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, ArrowRight, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPlatform } from '@/types/social';
+import { SocialPlatform, StrategicCharacterization, Client } from '@/types/social';
 import { updateClientForWorkspace } from '@/app/actions/clients';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
-const PLATFORM_ICONS: Record<SocialPlatform, any> = {
+type OnboardingStatus = 'invited' | 'completed' | 'in_progress' | 'pending';
+type ClientStatus = 'Active' | 'Inactive' | 'Paused' | 'Trial';
+
+const PLATFORM_ICONS: Record<SocialPlatform, React.ComponentType<{ size?: number; className?: string }>> = {
   facebook: Facebook,
   instagram: Instagram,
   linkedin: Linkedin,
@@ -99,8 +102,8 @@ export default function ClientOnboardingPortal() {
 
       setLogo(url);
       addToast('התמונה עודכנה');
-    } catch (error: any) {
-      addToast(error?.message || 'שגיאה בהעלאה', 'error');
+    } catch (error: unknown) {
+      addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בהעלאה', 'error');
     } finally {
       setIsUploadingLogo(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -144,13 +147,13 @@ export default function ClientOnboardingPortal() {
             forbidden: forbiddenWords.split(',').map(w => w.trim()).filter(Boolean)
           }
         },
-        onboardingStatus: (activeClient.onboardingStatus === 'invited' ? 'completed' : activeClient.onboardingStatus) as any,
-        status: (activeClient.onboardingStatus === 'invited' ? 'Active' : activeClient.status) as any,
+        onboardingStatus: (activeClient.onboardingStatus === 'invited' ? 'completed' : activeClient.onboardingStatus) as OnboardingStatus,
+        status: (activeClient.onboardingStatus === 'invited' ? 'Active' : activeClient.status) as ClientStatus,
         paymentStatus: 'pending' as const
       };
 
       // Save to database
-      const result = await updateClientForWorkspace(orgSlug, activeClient.id, updateData);
+      const result = await updateClientForWorkspace(orgSlug, activeClient.id, updateData as unknown as Partial<Client>);
 
       if (!result.success) {
         addToast(result.error || 'שגיאה בשמירת הנתונים', 'error');
@@ -163,7 +166,7 @@ export default function ClientOnboardingPortal() {
         c.id === activeClient.id 
           ? {
               ...c,
-              ...updateData
+              ...updateData as unknown as Partial<Client>
             }
           : c
       ));
@@ -171,9 +174,9 @@ export default function ClientOnboardingPortal() {
       setIsSubmitting(false);
       setIsOnboardingMode(false);
       addToast('הגדרות הלקוח הושלמו בהצלחה!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error completing onboarding:', error);
-      addToast('שגיאה בשמירת הנתונים: ' + (error.message || 'שגיאה לא ידועה'), 'error');
+      addToast('שגיאה בשמירת הנתונים: ' + (error instanceof Error ? error.message : 'שגיאה לא ידועה'), 'error');
       setIsSubmitting(false);
     }
   };

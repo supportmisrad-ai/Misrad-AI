@@ -26,7 +26,7 @@ const MeetingAnalyzer: React.FC = () => {
   const [location, setLocation] = useState<'ZOOM' | 'FRONTAL' | 'PHONE'>('ZOOM');
 
   const orgId = (typeof window !== 'undefined'
-    ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
+    ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
     : null) ?? null;
 
   const handleAnalyze = async () => {
@@ -118,7 +118,7 @@ const MeetingAnalyzer: React.FC = () => {
                 <select
                   className="w-full bg-transparent border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:border-nexus-primary"
                   value={location}
-                  onChange={(e) => setLocation(e.target.value as any)}
+                  onChange={(e) => setLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
                 >
                   <option value="ZOOM">ZOOM</option>
                   <option value="FRONTAL">FRONTAL</option>

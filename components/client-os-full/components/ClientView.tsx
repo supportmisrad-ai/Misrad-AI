@@ -106,7 +106,7 @@ const ClientView: React.FC = () => {
         cancellationNote: churnNote
     } : c));
     
-    const exitFeedback: any = {
+    const exitFeedback: unknown = {
         id: `exit-${Date.now()}`,
         clientId: client.id,
         clientName: client.name,
@@ -142,7 +142,7 @@ const ClientView: React.FC = () => {
 
   const openPublicPortal = () => {
       if (!client) return;
-      const userData = (typeof window !== 'undefined' ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
+      const userData = (typeof window !== 'undefined' ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
       const orgId = userData?.organizationId;
       if (!orgId) return;
       if (typeof window !== 'undefined') {
@@ -157,7 +157,7 @@ const ClientView: React.FC = () => {
       return;
     }
 
-    const userData = (typeof window !== 'undefined' ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
+    const userData = (typeof window !== 'undefined' ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
     const orgId = userData?.organizationId;
     if (!orgId) {
       setCreateClientError('לא נמצא ארגון פעיל');
@@ -179,8 +179,8 @@ const ClientView: React.FC = () => {
       setNewClientName('');
       setNewClientPhone('');
       setNewClientEmail('');
-    } catch (e: any) {
-      setCreateClientError(e?.message || 'שגיאה ביצירת לקוח');
+    } catch (e: unknown) {
+      setCreateClientError((e instanceof Error ? e.message : String(e)) || 'שגיאה ביצירת לקוח');
     } finally {
       setIsCreatingClient(false);
     }
@@ -332,7 +332,13 @@ const ClientView: React.FC = () => {
                
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                    {filteredClients.map(c => (
-                       <div key={c.id} onClick={() => { setSelectedClientId(c.id); setViewMode('DETAIL'); }} className="glass-card p-6 rounded-2xl cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-all flex flex-col h-full border border-transparent">
+                       <div key={c.id} onClick={(e) => {
+                           const handler = (e: unknown) => {
+                               const id = String((e as CustomEvent).detail);
+                               setSelectedClientId(id);
+                               setViewMode('DETAIL');
+                           };
+                       }} className="glass-card p-6 rounded-2xl cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-all flex flex-col h-full border border-transparent">
                            <div className="flex justify-between mb-4">
                                <div className="w-10 h-10 bg-nexus-primary text-white rounded-lg flex items-center justify-center font-bold shadow-sm">{c.logoInitials}</div>
                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${getStatusColor(c.healthStatus)}`}>{getStatusLabel(c.healthStatus)}</span>
@@ -499,7 +505,7 @@ const ClientView: React.FC = () => {
            ].map((tab) => (
              <button 
                 key={tab.id} 
-                onClick={() => setActiveTab(tab.id as any)} 
+                onClick={() => setActiveTab(tab.id as 'transform' | 'meetings' | 'tasks' | 'journey' | 'stakeholders' | 'pulse' | 'strategy' | 'work' | 'feedback' | 'portal')} 
                 className={`px-6 py-4 text-sm font-bold transition-all relative rounded-t-xl flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'text-nexus-primary bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
              >
                 <tab.icon size={16} /> {tab.label}

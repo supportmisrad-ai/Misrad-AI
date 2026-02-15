@@ -1,4 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+
+function asObj(v: unknown): Record<string, unknown> | undefined {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+  return undefined;
+}
 import { useParams } from 'next/navigation';
 import {
   Client,
@@ -71,8 +76,8 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const list = await getClientOSClients(orgId);
         console.debug('[ClientPortal] client list loaded', {
           count: Array.isArray(list) ? list.length : 0,
-          ids: Array.isArray(list) ? (list as any[]).map((c) => c?.id).slice(0, 10) : [],
-          clients: Array.isArray(list) ? (list as any[]).slice(0, 3).map((c) => ({ id: c?.id, name: c?.name || c?.fullName })) : [],
+          ids: Array.isArray(list) ? (list as unknown[]).map((c: unknown) => (c as Record<string, unknown>)?.id).slice(0, 10) : [],
+          clients: Array.isArray(list) ? (list as unknown[]).slice(0, 3).map((c: unknown) => { const o = c as Record<string, unknown>; return { id: o?.id, name: o?.name || o?.fullName }; }) : [],
         });
 
         if (!Array.isArray(list) || list.length === 0) {
@@ -82,7 +87,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
 
         // Try to find client by email mapping
-        let targetClient: any = null;
+        let targetClient: unknown = null;
         try {
           const mapping = await getClientIdByClerkEmail({ orgId });
           console.debug('[ClientPortal] client mapping resolved', { 
@@ -92,19 +97,19 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           });
           
           if (mapping?.clientId) {
-            targetClient = list.find((c: any) => String(c.id) === String(mapping.clientId));
+            targetClient = list.find((c: unknown) => String(asObj(c)?.id) === String(mapping.clientId));
             console.debug('[ClientPortal] found client by mapping', {
               found: !!targetClient,
               searchedId: mapping.clientId,
-              foundId: targetClient?.id,
-              foundName: targetClient?.name || targetClient?.fullName,
+              foundId: asObj(targetClient)?.id,
+              foundName: asObj(targetClient)?.name || asObj(targetClient)?.fullName,
             });
           } else {
             console.debug('[ClientPortal] no mapping found, will use first client');
           }
-        } catch (mappingError: any) {
+        } catch (mappingError: unknown) {
           console.warn('[ClientPortal] failed to get client by email mapping, will use first client', {
-            error: mappingError?.message || String(mappingError),
+            error: (mappingError instanceof Error ? mappingError.message : String(mappingError)),
           });
         }
 
@@ -112,8 +117,8 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (!targetClient && list.length > 0) {
           targetClient = list[0];
           console.debug('[ClientPortal] using first client from list', {
-            clientId: targetClient?.id,
-            clientName: targetClient?.name || targetClient?.fullName,
+            clientId: asObj(targetClient)?.id,
+            clientName: asObj(targetClient)?.name || asObj(targetClient)?.fullName,
           });
         }
 
@@ -124,13 +129,15 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
 
         // Load tasks and sessions for this client
+        const tc = asObj(targetClient);
+        const tcId = String(tc?.id ?? '');
         console.debug('[ClientPortal] loading tasks and sessions', {
-          clientId: targetClient.id,
+          clientId: tcId,
         });
 
         const [tasks, sessions] = await Promise.all([
-          getClientOSTasks(orgId, targetClient.id),
-          getClientOSSessions(orgId, targetClient.id),
+          getClientOSTasks(orgId, tcId),
+          getClientOSSessions(orgId, tcId),
         ]);
 
         console.debug('[ClientPortal] tasks and sessions loaded', {
@@ -145,20 +152,21 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         };
 
         // IMPORTANT: keep shape compatible with existing UI by only swapping the client object.
+        const cwt = asObj(clientWithTasks);
         console.debug('[ClientPortal] setting client with tasks and sessions', {
-          clientId: clientWithTasks.id,
-          clientName: clientWithTasks.name || clientWithTasks.fullName,
+          clientId: cwt?.id,
+          clientName: cwt?.name || cwt?.fullName,
           tasksCount: clientWithTasks.pendingActions.length,
         });
 
         if (mounted) {
-          setClients([clientWithTasks as any]);
+          setClients([clientWithTasks as Client]);
           setMeetings(sessions);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[ClientPortal] error loading client', {
-          error: error?.message || String(error),
-          stack: error?.stack,
+          error: (error instanceof Error ? error.message : String(error)),
+          stack: (error instanceof Error ? error.stack : undefined),
         });
         if (mounted) {
           setClients([]);
@@ -231,9 +239,9 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       );
 
       console.debug('[ClientPortal] task completed', { clientId, actionId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ClientPortal] error completing task', {
-        error: error?.message || String(error),
+        error: (error instanceof Error ? error.message : String(error)),
         clientId,
         actionId,
       });

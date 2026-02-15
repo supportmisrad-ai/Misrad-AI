@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
 import { auth } from '@clerk/nextjs/server';
@@ -172,7 +174,7 @@ export async function getPosts(params: {
 
     return { success: true, data: posts };
   } catch (error: unknown) {
-    console.error('Error in getPosts:', error);
+    logger.error('posts', 'Error in getPosts:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בטעינת פוסטים'),
@@ -264,7 +266,7 @@ export async function createPost(
         select: { id: true },
       });
     } catch (postError: unknown) {
-      console.error('Error creating post:', postError);
+      logger.error('posts', 'Error creating post:', postError);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(postError) || 'שגיאה ביצירת פוסט'),
@@ -283,7 +285,7 @@ export async function createPost(
           skipDuplicates: true,
         });
       } catch (platformsError) {
-        console.error('Error adding platforms:', platformsError);
+        logger.error('posts', 'Error adding platforms:', platformsError);
         // Don't fail the whole operation, just log it
       }
     }
@@ -302,7 +304,7 @@ export async function createPost(
       error: 'הפוסט נוצר אך נכשל בטעינת הנתונים המלאים',
     };
   } catch (error: unknown) {
-    console.error('Error in createPost:', error);
+    logger.error('posts', 'Error in createPost:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה ביצירת פוסט'),
@@ -378,7 +380,7 @@ export async function updatePost(
         data: updateData,
       });
     } catch (updateError: unknown) {
-      console.error('Error updating post:', updateError);
+      logger.error('posts', 'Error updating post:', updateError);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(updateError) || 'שגיאה בעדכון פוסט'),
@@ -404,7 +406,7 @@ export async function updatePost(
             skipDuplicates: true,
           });
         } catch (platformsError) {
-          console.error('Error updating platforms:', platformsError);
+          logger.error('posts', 'Error updating platforms:', platformsError);
         }
       }
     }
@@ -420,7 +422,7 @@ export async function updatePost(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in updatePost:', error);
+    logger.error('posts', 'Error in updatePost:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בעדכון פוסט'),
@@ -460,7 +462,7 @@ export async function deletePost(postId: string, orgSlug: string): Promise<{ suc
         },
       });
     } catch (error: unknown) {
-      console.error('Error deleting post:', error);
+      logger.error('posts', 'Error deleting post:', error);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת פוסט'),
@@ -498,13 +500,13 @@ export async function deletePost(postId: string, orgSlug: string): Promise<{ suc
         }
       } catch (fileError) {
         // Log error but don't fail the post deletion
-        console.error('Error deleting media file:', fileError);
+        logger.error('posts', 'Error deleting media file:', fileError);
       }
     }
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in deletePost:', error);
+    logger.error('posts', 'Error in deletePost:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת פוסט'),
@@ -594,7 +596,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
         },
       });
     } catch (error: unknown) {
-      console.error('Error publishing post:', error);
+      logger.error('posts', 'Error publishing post:', error);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(error) || 'שגיאה בפרסום פוסט'),
@@ -603,7 +605,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in publishPost:', error);
+    logger.error('posts', 'Error in publishPost:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בפרסום פוסט'),

@@ -92,7 +92,12 @@ async function main() {
     bestEffortRemoveWindowsQueryEngine(clientDir);
 
     try {
-      const cmd = `"${prismaBin}" generate --schema "${schemaPath}"`;
+      // When using Prisma Accelerate (prisma:// or prisma+postgres:// URL),
+      // generate without the query engine so the client accepts Accelerate URLs.
+      const dbUrl = String(process.env.DATABASE_URL || '').trim();
+      const isAccelerate = dbUrl.startsWith('prisma://') || dbUrl.startsWith('prisma+postgres://');
+      const noEngineFlag = isAccelerate ? ' --no-engine' : '';
+      const cmd = `"${prismaBin}" generate --schema "${schemaPath}"${noEngineFlag}`;
       const stdout = cp.execSync(cmd, {
         cwd: repoRoot,
         stdio: ['ignore', 'pipe', 'pipe'],

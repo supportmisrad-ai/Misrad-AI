@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { X, Check, ArrowLeft } from 'lucide-react';
+import { AssignedForm } from '../../types';
 
 interface PortalFormFillerProps {
-  activeForm: any;
+  activeForm: AssignedForm;
   onClose: () => void;
   onSubmit: () => void;
 }

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Search, Plus, Zap, Trash2, Globe } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
-import { Idea } from '@/types/social';
+import { Idea, AIOpportunity } from '@/types/social';
 import { Avatar } from '@/components/Avatar';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 
@@ -38,7 +38,7 @@ export default function Vault() {
       type: 'gap',
       draftContent: idea.text,
       createdAt: new Date().toISOString()
-    } as any);
+    } as unknown as AIOpportunity | null);
     const basePath = getSocialBasePath(pathname);
     router.push(joinPath(basePath, '/machine'));
   };
@@ -74,7 +74,7 @@ export default function Vault() {
           {['assets', 'dna', 'ideas', 'connections'].map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab as 'assets' | 'dna' | 'ideas' | 'connections')}
               className={`px-6 py-2.5 rounded-xl text-sm font-extrabold transition-all ${activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
             >
               {tab === 'assets' ? 'מדיה' : tab === 'dna' ? 'DNA' : tab === 'ideas' ? 'רעיונות' : 'חיבורים'}

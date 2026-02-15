@@ -62,8 +62,8 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
             a.click();
             a.remove();
             setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        } catch (e: any) {
-            alert(String(e?.message || e));
+        } catch (e: unknown) {
+            alert(String(e instanceof Error ? e.message : e));
         } finally {
             setIsExporting(false);
         }
@@ -100,7 +100,7 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                                 <div>
                                     <h3 className="font-bold text-slate-900 text-lg">{screen.label}</h3>
                                     <p className="text-xs text-slate-500 font-mono mt-1">ID: {screen.id}</p>
-                                    <p className="text-[11px] text-slate-600 font-bold mt-2">חוצה מודולים: {resolveCrossModulesLabel(screen as any)}</p>
+                                    <p className="text-[11px] text-slate-600 font-bold mt-2">חוצה מודולים: {resolveCrossModulesLabel(screen)}</p>
                                 </div>
                                 <span className="text-[10px] bg-slate-50/80 backdrop-blur-sm text-slate-600 px-2 py-1 rounded border border-slate-200 uppercase tracking-wide">
                                     {screen.category}
@@ -119,7 +119,10 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                                 <Button
                                     size="sm"
                                     variant={currentFlag === 'maintenance' ? 'default' : 'ghost'}
-                                    onClick={() => updateSystemFlag(screen.id, 'maintenance')}
+                                    onClick={() => {
+                                        const addonObj = screen as { id?: string; category?: string };
+                                        updateSystemFlag(addonObj?.id || '', 'maintenance');
+                                    }}
                                     className={`${currentFlag === 'maintenance' ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-200/60 hover:from-yellow-600 hover:to-orange-600' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'} rounded-lg text-xs`}
                                 >
                                     תחזוקה

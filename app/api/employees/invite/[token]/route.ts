@@ -12,6 +12,7 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -42,6 +43,10 @@ async function GETHandler(
                 },
             });
         }
+
+        return await withTenantIsolationContext(
+            { source: 'api_employees_invite_token', reason: 'read_employee_invitation', suppressReporting: true },
+            async () => {
 
         const invitation = await prisma.nexus_employee_invitation_links.findUnique({
             where: { token: String(token) },
@@ -115,6 +120,9 @@ async function GETHandler(
                 expiresAt: invitation.expires_at
             }
         });
+
+            }
+        );
 
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error in /api/employees/invite/[token] GET');

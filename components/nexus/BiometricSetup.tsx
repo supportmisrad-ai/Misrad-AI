@@ -37,31 +37,33 @@ export const BiometricSetup: React.FC = () => {
             // Clerk Passkeys API - try multiple methods
             // Note: Clerk's Passkey API might vary by version
             let passkeyCreated = false;
-            let lastError: any = null;
+            let lastError: unknown = null;
 
             // Method 1: Try user.createPasskey() - Clerk's standard method
-            if (user && typeof (user as any).createPasskey === 'function') {
+            const userRecord = user as unknown as Record<string, unknown>;
+            if (user && typeof userRecord.createPasskey === 'function') {
                 try {
                     console.log('Trying user.createPasskey()...');
-                    await (user as any).createPasskey({
+                    await (userRecord.createPasskey as (opts: { name: string }) => Promise<unknown>)({
                         name: 'MISRAD AI - זיהוי ביומטרי',
                     });
                     passkeyCreated = true;
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error('user.createPasskey() failed:', err);
                     lastError = err;
                 }
             }
 
             // Method 2: Try user.passkeys.create() - alternative API
-            if (!passkeyCreated && user?.passkeys && typeof (user.passkeys as any).create === 'function') {
+            const passkeysRecord = user?.passkeys as unknown as Record<string, unknown> | undefined;
+            if (!passkeyCreated && passkeysRecord && typeof passkeysRecord.create === 'function') {
                 try {
                     console.log('Trying user.passkeys.create()...');
-                    await (user.passkeys as any).create({
+                    await (passkeysRecord.create as (opts: { name: string }) => Promise<unknown>)({
                         name: 'MISRAD AI - זיהוי ביומטרי',
                     });
                     passkeyCreated = true;
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error('user.passkeys.create() failed:', err);
                     lastError = err;
                 }
@@ -71,13 +73,15 @@ export const BiometricSetup: React.FC = () => {
             if (!passkeyCreated && clerk) {
                 try {
                     console.log('Trying clerk.user.createPasskey()...');
-                    if (typeof (clerk as any).user?.createPasskey === 'function') {
-                        await (clerk as any).user.createPasskey({
+                    const clerkRecord = clerk as unknown as Record<string, unknown>;
+                    const clerkUser = clerkRecord.user as Record<string, unknown> | undefined;
+                    if (clerkUser && typeof clerkUser.createPasskey === 'function') {
+                        await (clerkUser.createPasskey as (opts: { name: string }) => Promise<unknown>)({
                             name: 'MISRAD AI - זיהוי ביומטרי',
                         });
                         passkeyCreated = true;
                     }
-                } catch (err: any) {
+                } catch (err: unknown) {
                     console.error('clerk.user.createPasskey() failed:', err);
                     lastError = err;
                 }
@@ -85,7 +89,7 @@ export const BiometricSetup: React.FC = () => {
 
             // If all methods fail, provide helpful error message
             if (!passkeyCreated) {
-                const errorDetails = lastError?.message || lastError?.toString() || 'לא ידוע';
+                const errorDetails = lastError instanceof Error ? lastError.message : String(lastError || 'לא ידוע');
                 console.error('All passkey creation methods failed. Last error:', errorDetails);
                 
                 // Check if it's a specific Clerk error
@@ -109,20 +113,21 @@ export const BiometricSetup: React.FC = () => {
                 setStatus('idle');
             }, 3000);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Passkey creation error:', error);
+            const errorObj = error instanceof Error ? error : null;
             console.error('Error details:', {
-                message: error.message,
-                name: error.name,
-                stack: error.stack,
+                message: errorObj?.message,
+                name: errorObj?.name,
+                stack: errorObj?.stack,
                 user: user ? 'exists' : 'missing',
                 clerk: clerk ? 'exists' : 'missing',
             });
             
             let errorMsg = 'שגיאה בהפעלת זיהוי ביומטרי';
             
-            if (error.message) {
-                const msg = error.message.toLowerCase();
+            if (errorObj?.message) {
+                const msg = errorObj.message.toLowerCase();
                 
                 if (msg.includes('not supported') || msg.includes('לא תומך') || msg.includes('unsupported')) {
                     errorMsg = 'המכשיר או הדפדפן שלך לא תומכים בזיהוי ביומטרי. נסה ב-Chrome, Safari או Edge.';
@@ -135,12 +140,12 @@ export const BiometricSetup: React.FC = () => {
                 } else if (msg.includes('not allowed') || msg.includes('permission')) {
                     errorMsg = 'אין הרשאה ליצור Passkey. אנא בדוק את הגדרות הדפדפן.';
                 } else if (msg.includes('passkey') || msg.includes('webauthn')) {
-                    errorMsg = `בעיה ביצירת Passkey: ${error.message}`;
+                    errorMsg = `בעיה ביצירת Passkey: ${errorObj.message}`;
                 } else {
-                    errorMsg = error.message;
+                    errorMsg = errorObj.message;
                 }
             } else {
-                errorMsg = `שגיאה לא ידועה: ${error.toString()}`;
+                errorMsg = `שגיאה לא ידועה: ${String(error)}`;
             }
             
             // Add debugging info for developer

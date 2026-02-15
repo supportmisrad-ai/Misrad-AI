@@ -89,8 +89,8 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
                 throw new Error(err?.error || 'שגיאה בשמירה');
             }
             updateSettings('founderImage', next);
-        } catch (e: any) {
-            addToast(e?.message || 'שגיאה בשמירה', 'error');
+        } catch (e: unknown) {
+            addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירה', 'error');
         }
     };
 

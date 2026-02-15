@@ -12,7 +12,7 @@ const getOrgHeaders = () => {
 const getOrgIdFromClientOsContext = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    const raw = (window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
+    const raw = (window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
     const orgId = raw?.organizationId ? String(raw.organizationId) : null;
     return orgId || null;
   } catch {
@@ -42,8 +42,10 @@ export const analyzeMeetingTranscript = async (transcript: string): Promise<Meet
     };
   }
 
-  const data = (await res.json().catch(() => null)) as any;
-  return (data?.analysis || data?.data?.analysis || data) as MeetingAnalysisResult;
+  const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!data) return { summary: '', sentimentScore: 0, frictionKeywords: [], objections: [], compliments: [], decisions: [], agencyTasks: [], clientTasks: [], liabilityRisks: [] };
+  const nested = (data.data && typeof data.data === 'object' ? data.data : null) as Record<string, unknown> | null;
+  return (data.analysis || nested?.analysis || data) as unknown as MeetingAnalysisResult;
 };
 
 export const generateClientInsight = async (clientName: string, healthScore: number, sentimentTrend: string[]) => {
@@ -53,12 +55,12 @@ export const generateClientInsight = async (clientName: string, healthScore: num
     body: JSON.stringify({ clientName, healthScore, sentimentTrend }),
   });
 
-  const parsed = (await res.json().catch(() => ({}))) as any;
+  const parsed = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) return { insight: 'הלקוח דורש תשומת לב מוגברת סביב נושאי תקציב.', action: 'קבע שיחת בירור' };
 
   return {
-    insight: parsed?.tip || parsed?.insight || 'הלקוח דורש תשומת לב מוגברת סביב נושאי תקציב.',
-    action: parsed?.expectedBenefit || parsed?.action || 'קבע שיחת בירור',
+    insight: String(parsed?.tip || parsed?.insight || 'הלקוח דורש תשומת לב מוגברת סביב נושאי תקציב.'),
+    action: String(parsed?.expectedBenefit || parsed?.action || 'קבע שיחת בירור'),
   };
 };
 
@@ -76,14 +78,14 @@ export const generateDailyBriefing = async (riskyClientsCount: number, opportuni
       return { greeting: 'בוקר טוב.', focusPoints: [], quote: '' };
     }
 
-    const data = (await res.json().catch(() => ({}))) as any;
-    const result = data?.result;
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const result = (data?.result && typeof data.result === 'object' ? data.result : null) as Record<string, unknown> | null;
     if (!result) return { greeting: 'בוקר טוב.', focusPoints: [], quote: '' };
 
     return {
-      greeting: result.greeting || 'בוקר טוב.',
-      focusPoints: result.focusPoints || result.actionableSteps || [],
-      quote: result.quote || '',
+      greeting: String(result.greeting || 'בוקר טוב.'),
+      focusPoints: (Array.isArray(result.focusPoints) ? result.focusPoints : Array.isArray(result.actionableSteps) ? result.actionableSteps : []) as string[],
+      quote: String(result.quote || ''),
     };
 };
 
@@ -107,14 +109,14 @@ export const generateSuccessRecommendation = async (clientName: string, healthSc
       body: JSON.stringify({ clientName, healthScore }),
     });
 
-    const parsed = (await res.json().catch(() => ({}))) as any;
+    const parsed = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
       return { tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.', expectedBenefit: 'שיפור בשימור לקוח (Retention)' };
     }
 
     return {
-      tip: parsed?.tip || 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
-      expectedBenefit: parsed?.expectedBenefit || 'שיפור בשימור לקוח (Retention)',
+      tip: String(parsed?.tip || 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.'),
+      expectedBenefit: String(parsed?.expectedBenefit || 'שיפור בשימור לקוח (Retention)'),
     };
 };
 
@@ -133,7 +135,7 @@ export const generateSmartReply = async (emailBody: string, senderName: string, 
     });
 
     if (!res.ok) return 'תודה על המייל, קיבלתי ומטפל.';
-    const data = (await res.json().catch(() => ({}))) as any;
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     return String(data?.draft || 'תודה על המייל, קיבלתי ומטפל.');
 };
 
@@ -145,7 +147,7 @@ export const generateWorkflowBlueprint = async (prompt: string): Promise<Workflo
       totalDuration: '',
       tags: [],
       stages: [],
-    } as any;
+    } as unknown as WorkflowBlueprint;
 };
 
 export const generateFormTemplate = async (prompt: string): Promise<FormTemplate> => {
@@ -156,7 +158,7 @@ export const generateFormTemplate = async (prompt: string): Promise<FormTemplate
      category: 'ONBOARDING',
      steps: [],
      isActive: true,
-   } as any;
+   } as unknown as FormTemplate;
 };
 
 export const generateVideoScript = async (clientName: string, recentSuccess: string) => {

@@ -12,11 +12,11 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (id: string) => void;
-  user: any;
+  user: { name?: string; role?: string; avatar?: string; id?: string };
   logout: () => void;
   mobile?: boolean;
   onClose?: () => void;
-  navItems: Array<{ id: string; label: string; icon: React.ComponentType<any> }>;
+  navItems: Array<{ id: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }>;
 }
 
 const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = false, onClose, navItems }: SidebarProps) => {
@@ -33,7 +33,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
   };
 
   const safeUserName = isProbablyTokenOrId(String(user?.name ?? ''))
-    ? (String(user?.email ?? '').split('@')[0] || 'משתמש')
+    ? 'משתמש'
     : String(user?.name ?? '');
 
   const handleNavClick = (id: string) => {
@@ -117,7 +117,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                                     )}
                                     
                                     <div className={`relative z-10 flex items-center gap-4 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-900'}`}>
-                                        <Icon size={20} strokeWidth={isActive ? 3 : 2} className={`transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-500'}`} />
+                                        <Icon size={20} className={`transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-500'}`} />
                                         <span className="text-sm font-bold tracking-tight">{item.label}</span>
                                     </div>
                                 </button>
@@ -141,7 +141,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                 {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:') || user.avatar.startsWith('/')) ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                    <span className="text-sm font-bold text-slate-700">{safeUserName?.charAt(0) || 'U'}</span>
+                    <div className="text-sm font-medium text-slate-700">{(user as Record<string, any>).email}</div>
                 )}
             </div>
             <div className="flex-1 min-w-0">

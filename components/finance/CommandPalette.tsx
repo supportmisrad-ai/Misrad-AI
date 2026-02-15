@@ -37,8 +37,8 @@ export default function CommandPalette({
   const aiResponse = lastAssistant
     ? {
         type: error ? 'error' : 'success',
-        text: String((lastAssistant as any)?.content || ''),
-        sources: Array.isArray((lastAssistant as any)?.sources) ? (lastAssistant as any).sources : [],
+        text: String(lastAssistant.content || ''),
+        sources: Array.isArray(lastAssistant.sources) ? lastAssistant.sources : [],
       }
     : null;
 
@@ -128,8 +128,8 @@ export default function CommandPalette({
                   <div>
                     <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider mb-1">Nexus Intelligence</div>
                     <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
-                    {Array.isArray((aiResponse as any).sources) && (aiResponse as any).sources.length ? (
-                      <ChatSources sources={(aiResponse as any).sources} />
+                    {Array.isArray(aiResponse.sources) && aiResponse.sources.length ? (
+                      <ChatSources sources={aiResponse.sources} />
                     ) : null}
                   </div>
                 </div>

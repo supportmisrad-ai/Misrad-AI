@@ -32,7 +32,7 @@ interface CallButtonProps {
   /**
    * Optional: Current user object with phone property
    */
-  user?: { phone?: string; [key: string]: any };
+  user?: { phone?: string; [key: string]: unknown };
   
   /**
    * Optional: Toast function for notifications
@@ -111,10 +111,10 @@ export const CallButton: React.FC<CallButtonProps> = ({
       if (onCallInitiated) {
         onCallInitiated(phoneNumber);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error initiating call:', error);
       if (onToast) {
-        onToast(error.message || 'שגיאה בהפעלת השיחה', 'error');
+        onToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בהפעלת השיחה', 'error');
       }
     } finally {
       setIsCalling(false);

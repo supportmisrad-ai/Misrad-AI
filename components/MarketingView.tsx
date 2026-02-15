@@ -176,7 +176,7 @@ const MarketingView: React.FC<MarketingViewProps> = ({
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveSubTab(tab.id as any)}
+                        onClick={() => setActiveSubTab(tab.id as 'content' | 'forms' | 'campaigns' | 'partners')}
                         className={`flex items-center gap-2 py-3 px-1 border-b-2 transition-all whitespace-nowrap text-xs font-bold ${
                             activeSubTab === tab.id 
                             ? 'border-primary text-primary-dark' 

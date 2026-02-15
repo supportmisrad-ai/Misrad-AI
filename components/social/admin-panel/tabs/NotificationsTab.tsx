@@ -6,7 +6,7 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NotificationsTabProps {
-  notificationHistory: any[];
+  notificationHistory: Record<string, unknown>[];
   onSendNotification: () => void;
   onPrevPage?: () => void;
   onNextPage?: () => void;
@@ -62,7 +62,7 @@ export default function NotificationsTab({
             </div>
             <div className="flex flex-col gap-4 max-h-96 overflow-y-auto">
               {notificationHistory.length > 0 ? (
-                notificationHistory.map((notif: any, i: number) => (
+                (notificationHistory as unknown as { title?: string; action?: string; message?: string; created_at: string; type?: string }[]).map((notif, i: number) => (
                   <div key={i} className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

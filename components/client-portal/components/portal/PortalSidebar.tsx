@@ -10,12 +10,13 @@ import {
 } from 'lucide-react';
 import { getOSModule } from '@/types/os-modules';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { Client } from '../../types';
 
 interface PortalSidebarProps {
   activeScreen: string;
-  setActiveScreen: (screen: any) => void;
+  setActiveScreen: (screen: unknown) => void;
   onShowFriction: () => void;
-  client?: any;
+  client?: Client;
 }
 
 export const PortalSidebar: React.FC<PortalSidebarProps> = ({

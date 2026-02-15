@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import AiOutOfCreditsModal from '../../AiOutOfCreditsModal';
 import { CallAnalysisTask, Lead } from '../types';
+import { Priority, Task } from '@/types';
 import { createNexusTaskByOrgSlug } from '../../../../app/actions/nexus';
 import { Skeleton } from '../../../ui/skeletons';
 
@@ -109,24 +110,24 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     };
 
-    const isCallAnalysisTask = (t: any): t is CallAnalysisTask => {
+    const isCallAnalysisTask = (t: string | CallAnalysisTask): t is CallAnalysisTask => {
         return Boolean(t && typeof t === 'object' && typeof t.title === 'string');
     };
 
     const updateTaskAtIndex = (idx: number, patch: Partial<CallAnalysisTask>) => {
         if (!state.result?.id || !state.result?.topics) return;
         const existing = state.result.topics.tasks || [];
-        const next = existing.map((t: any, i: number) => {
+        const next = existing.map((t, i) => {
             if (i !== idx) return t;
             if (!isCallAnalysisTask(t)) return t;
             return { ...t, ...patch };
         });
         updateHistoryItem(state.result.id, {
             topics: {
-                ...(state.result.topics as any),
+                ...state.result.topics,
                 tasks: next,
-            } as any,
-        } as any);
+            },
+        });
     };
 
     const confirmTask = async (idx: number, dueDateIso: string) => {
@@ -162,15 +163,11 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     assigneeId,
                     assigneeIds: [assigneeId],
                     dueDate,
-                    priority: 'medium' as any,
-                    status: 'todo' as any,
-                    tags: ['Call Analyzer'],
-                    timeSpent: 0,
-                    isTimerRunning: false,
-                    messages: [],
+                    priority: Priority.MEDIUM,
+                    status: 'Todo',
                     createdAt: new Date().toISOString(),
                     leadId: state.result?.leadId ? String(state.result.leadId) : null,
-                } as any,
+                } as never
             });
 
             updateTaskAtIndex(idx, {
@@ -179,9 +176,10 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                 dismissed: false,
             });
             addToast('נקבע ביומן', 'success');
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            addToast(e?.message || 'שגיאה בקביעת תזכורת', 'error');
+            const msg = e instanceof Error ? e.message : 'שגיאה בקביעת תזכורת';
+            addToast(msg, 'error');
         } finally {
             setCreatingTaskIndex(null);
         }
@@ -234,7 +232,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
 
             let recorder: MediaRecorder;
             const preferred = 'audio/webm;codecs=opus';
-            if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(preferred)) {
+            if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(preferred)) {
                 recorder = new MediaRecorder(stream, { mimeType: preferred });
             } else {
                 recorder = new MediaRecorder(stream);
@@ -270,8 +268,9 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     );
 
                     if (!transcribeRes.ok) return;
-                    const json = (await transcribeRes.json().catch(() => ({} as any))) as any;
-                    const text = String(json?.data?.transcriptText || json?.transcriptText || '').trim();
+                    const json = (await transcribeRes.json().catch(() => ({}))) as Record<string, unknown>;
+                    const nested = (json?.data && typeof json.data === 'object' ? json.data : {}) as Record<string, unknown>;
+                    const text = String(nested?.transcriptText || json?.transcriptText || '').trim();
                     if (!text) return;
 
                     let nextTranscript = '';
@@ -305,8 +304,9 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                 );
 
                                 if (!insightRes.ok) return;
-                                const insightJson = (await insightRes.json().catch(() => ({} as any))) as any;
-                                const insight = String(insightJson?.data?.insight || insightJson?.insight || '').trim();
+                                const insightJson = (await insightRes.json().catch(() => ({}))) as Record<string, unknown>;
+                                const nestedInsight = (insightJson?.data && typeof insightJson.data === 'object' ? insightJson.data : {}) as Record<string, unknown>;
+                                const insight = String(nestedInsight?.insight || insightJson?.insight || '').trim();
                                 if (insight) setLiveInsight(insight);
                             } finally {
                                 liveInsightInFlightRef.current = false;
@@ -319,9 +319,10 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
             };
 
             recorder.start(2000);
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            addToast(e?.message || 'שגיאה בהפעלת Live', 'error');
+            const msg = e instanceof Error ? e.message : 'שגיאה בהפעלת Live';
+            addToast(msg, 'error');
             setIsLiveOpen(false);
             setIsLiveActive(false);
         }

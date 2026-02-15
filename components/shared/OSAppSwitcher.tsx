@@ -16,8 +16,8 @@ function shouldOpenModuleInNewTab(): boolean {
   if (typeof window === 'undefined') return false;
   const isStandalone =
     window.matchMedia?.('(display-mode: standalone)')?.matches ||
-    (window.navigator as any)?.standalone ||
-    Boolean((window as any)?.Capacitor?.isNativePlatform?.());
+    (window.navigator as unknown as { standalone?: boolean })?.standalone ||
+    Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } })?.Capacitor?.isNativePlatform?.());
   return !isStandalone;
 }
 
@@ -155,7 +155,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
       }
     };
 
-    const w = window as any;
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
       const id = w.requestIdleCallback(run, { timeout: 1200 });
       return () => {

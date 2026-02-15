@@ -13,6 +13,7 @@ import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -63,13 +64,18 @@ async function GETHandler(request: NextRequest) {
         
         // All authenticated users can view roles (needed for selecting roles when editing users)
         // Only creating/editing roles requires manage_system permission
-        const data = await prisma.scale_roles.findMany({
-            orderBy: { name: 'asc' },
-        });
+        return await withTenantIsolationContext(
+            { source: 'api_roles', reason: 'list_roles', suppressReporting: true },
+            async () => {
+                const data = await prisma.scale_roles.findMany({
+                    orderBy: { name: 'asc' },
+                });
 
-        const roles = (Array.isArray(data) ? data : []).map((row) => mapRoleRow(row));
-        
-        return NextResponse.json({ roles });
+                const roles = (Array.isArray(data) ? data : []).map((row) => mapRoleRow(row));
+                
+                return NextResponse.json({ roles });
+            }
+        );
         
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error fetching roles');
@@ -124,40 +130,45 @@ async function POSTHandler(request: NextRequest) {
         }
 
         const parsedPermissions = normalizePermissions(permissions);
-        
-        let created;
-        try {
-            created = await prisma.scale_roles.create({
-                data: {
-                    name: name.trim(),
-                    permissions: parsedPermissions,
-                    is_system: Boolean(isSystem),
-                    description: description == null ? null : String(description),
-                },
-            });
-        } catch (e: unknown) {
-            // Prisma unique constraint
-            const code = String(asObject(e)?.code || '');
-            if (code === 'P2002') {
-                return NextResponse.json(
-                    { error: 'Role with this name already exists' },
-                    { status: 409 }
-                );
-            }
-            throw e;
-        }
 
-        const createdRole = mapRoleRow(created);
-        
-        await logAuditEvent('role.create', 'role', {
-            resourceId: createdRole.id,
-            details: {
-                createdBy: user.id,
-                roleName: createdRole.name
+        return await withTenantIsolationContext(
+            { source: 'api_roles', reason: 'create_role', mode: 'global_admin', isSuperAdmin: true },
+            async () => {
+                let created;
+                try {
+                    created = await prisma.scale_roles.create({
+                        data: {
+                            name: name.trim(),
+                            permissions: parsedPermissions,
+                            is_system: Boolean(isSystem),
+                            description: description == null ? null : String(description),
+                        },
+                    });
+                } catch (e: unknown) {
+                    // Prisma unique constraint
+                    const code = String(asObject(e)?.code || '');
+                    if (code === 'P2002') {
+                        return NextResponse.json(
+                            { error: 'Role with this name already exists' },
+                            { status: 409 }
+                        );
+                    }
+                    throw e;
+                }
+
+                const createdRole = mapRoleRow(created);
+                
+                await logAuditEvent('role.create', 'role', {
+                    resourceId: createdRole.id,
+                    details: {
+                        createdBy: user.id,
+                        roleName: createdRole.name
+                    }
+                });
+                
+                return NextResponse.json({ success: true, role: createdRole });
             }
-        });
-        
-        return NextResponse.json({ success: true, role: createdRole });
+        );
         
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error creating role');

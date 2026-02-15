@@ -10,6 +10,7 @@ interface LeadScoringToolProps {
 const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [verdict, setVerdict] = useState<string>('');
+  const [scoreResult, setScoreResult] = useState<{ score: number; breakdown: Record<string, number>; recommendation: string } | null>(null);
   const leadActivities = lead.activities ?? [];
   
   // Scoring parameters (simulated calculation based on lead data)
@@ -39,8 +40,9 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
         body: JSON.stringify({ query: prompt, rawData: { leadId: lead.id } }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as any;
-      setVerdict(String(data?.result?.summary || 'לא ניתן לייצר פסק דין כרגע.'));
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const result = data?.result as Record<string, unknown> | undefined;
+      setVerdict(String(result?.summary || 'לא ניתן לייצר פסק דין כרגע.'));
     } catch (error) {
       console.error("Scoring analysis failed:", error);
       setVerdict("שגיאה בניתוח הנתונים.");
@@ -92,9 +94,9 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
                     strokeWidth="6" 
                     fill="transparent" 
                     strokeDasharray="213.6"
-                    strokeDashoffset={213.6 - (213.6 * lead.score) / 100}
+                    strokeDashoffset={213.6 - (213.6 * (scoreResult?.score ?? lead.score)) / 100}
                     strokeLinecap="round"
-                    className={`transition-all duration-1000 ${getScoreColor(lead.score)}`}
+                    className={`transition-all duration-1000 ${getScoreColor(scoreResult?.score ?? lead.score)}`}
                   />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">

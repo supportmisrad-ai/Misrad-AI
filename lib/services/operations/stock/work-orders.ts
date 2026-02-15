@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
+import { orgExec, orgQuery, prisma, prismaForInteractiveTransaction } from '@/lib/services/operations/db';
 import {
   asObject,
   firstRowField,
@@ -218,7 +218,7 @@ export async function consumeOperationsInventoryForWorkOrderForOrganizationId(pa
     if (!inventoryId) return { success: false, error: 'חובה לבחור פריט' };
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       const woRows = await orgQuery<unknown[]>(
         tx,
         params.organizationId,

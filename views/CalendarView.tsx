@@ -86,7 +86,7 @@ export const CalendarView: React.FC = () => {
       const isoDate = localDate.toISOString().split('T')[0];
 
       // 1. Tasks
-      const dayTasks = tasks.filter((t: any) => {
+      const dayTasks = tasks.filter((t: Task) => {
           if (!t.dueDate) return false;
           if (t.status === Status.DONE || t.status === Status.CANCELED) return false;
           
@@ -99,7 +99,7 @@ export const CalendarView: React.FC = () => {
       });
 
       // 2. Calendar Events
-      const dayEvents = calendarEvents.filter((e: any) => {
+      const dayEvents = (calendarEvents as unknown as CalendarEvent[]).filter((e) => {
           return e.start.getDate() === date.getDate() && 
                  e.start.getMonth() === date.getMonth() &&
                  e.start.getFullYear() === date.getFullYear();
@@ -108,7 +108,7 @@ export const CalendarView: React.FC = () => {
       return { dayTasks, dayEvents };
   };
 
-  const unscheduledTasks = tasks.filter((t: any) => !t.dueDate && t.status !== Status.DONE && t.status !== Status.CANCELED);
+  const unscheduledTasks = tasks.filter((t: Task) => !t.dueDate && t.status !== Status.DONE && t.status !== Status.CANCELED);
 
   const changeMonth = (delta: number) => {
       const newDate = new Date(currentDate);
@@ -162,7 +162,7 @@ export const CalendarView: React.FC = () => {
           updateTask(dropConfirmState.taskId, {
               dueDate: formattedDate,
               // If it was backlog, move to Todo
-              status: tasks.find((t: any) => t.id === dropConfirmState.taskId)?.status === Status.BACKLOG ? Status.TODO : undefined
+              status: tasks.find((t: Task) => t.id === dropConfirmState.taskId)?.status === Status.BACKLOG ? Status.TODO : undefined
           });
           
           setDropConfirmState({ isOpen: false, taskId: null, targetDate: null, taskTitle: '' });
@@ -400,7 +400,7 @@ export const CalendarView: React.FC = () => {
                               {/* Mobile: Dots Only - Better contrast */}
                               <div className="md:hidden flex flex-wrap gap-1.5 justify-center mt-1 pointer-events-none">
                                   {/* Events - Softer, smaller dots */}
-                                  {dayEvents.map((e: any) => (
+                                  {dayEvents.map((e) => (
                                       <div 
                                           key={e.id} 
                                           className="w-1.5 h-1.5 rounded-full opacity-60 border border-blue-300/30" 
@@ -408,7 +408,7 @@ export const CalendarView: React.FC = () => {
                                       ></div>
                                   ))}
                                   {/* Tasks - More prominent, larger dots with ring */}
-                                  {dayTasks.map((t: any) => (
+                                  {dayTasks.map((t: Task) => (
                                       <div 
                                           key={t.id} 
                                           className={`w-2 h-2 rounded-full ring-1 ${
@@ -424,7 +424,7 @@ export const CalendarView: React.FC = () => {
                               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 hidden md:block">
                                   
                                   {/* 1. External Events - Softer, background-like appearance */}
-                                  {dayEvents.map((event: any) => (
+                                  {dayEvents.map((event) => (
                                       <div 
                                         key={event.id}
                                         onClick={(e) => e.stopPropagation()} 
@@ -442,7 +442,7 @@ export const CalendarView: React.FC = () => {
                                   ))}
 
                                   {/* 3. Internal Tasks - More prominent, actionable appearance */}
-                                  {dayTasks.map((task: any) => (
+                                  {dayTasks.map((task: Task) => (
                                       <motion.div 
                                         layoutId={task.id}
                                         key={task.id}
@@ -541,7 +541,7 @@ export const CalendarView: React.FC = () => {
               </div>
               
               <div className="flex-1 overflow-y-auto p-3 pb-4 md:pb-3 space-y-3 bg-gray-50/50">
-                  {unscheduledTasks.length > 0 ? unscheduledTasks.map((task: any) => (
+                  {unscheduledTasks.length > 0 ? unscheduledTasks.map((task: Task) => (
                       <div 
                         key={task.id}
                         draggable
@@ -591,7 +591,7 @@ export const CalendarView: React.FC = () => {
                           </div>
                           
                           <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-4 md:pb-4 space-y-3 bg-gray-50/50">
-                              {unscheduledTasks.length > 0 ? unscheduledTasks.map((task: any) => (
+                              {unscheduledTasks.length > 0 ? unscheduledTasks.map((task: Task) => (
                                   <div 
                                     key={task.id}
                                     draggable
@@ -708,7 +708,7 @@ export const CalendarView: React.FC = () => {
                                                 אירועים בלוח השנה
                                             </h4>
                                             <div className="space-y-2">
-                                                {dayEvents.map((event: any) => (
+                                                {dayEvents.map((event) => (
                                                     <div key={event.id} className="p-3 bg-blue-50/30 border border-blue-200/50 rounded-lg flex items-center gap-3 opacity-90">
                                                         <div className="w-10 h-10 bg-white/80 rounded-lg flex flex-col items-center justify-center text-blue-500 shadow-sm shrink-0 border border-blue-200/30">
                                                             <span className="text-[10px] font-medium">{event.start.getHours()}:00</span>
@@ -728,7 +728,7 @@ export const CalendarView: React.FC = () => {
                                         <div>
                                             <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3 px-1">משימות ({dayTasks.length})</h4>
                                             <div className="space-y-2">
-                                                {dayTasks.map((task: any) => (
+                                                {dayTasks.map((task: Task) => (
                                                     <TaskItem 
                                                         key={task.id} 
                                                         task={task} 

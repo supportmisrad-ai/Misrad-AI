@@ -65,10 +65,11 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 }
 
                 if (orgSlug) {
-                    let uiPreferences: any = { profileCompleted: true };
+                    let uiPreferences: unknown = { profileCompleted: true };
                     try {
                         const current = await getMyProfile({ orgSlug });
-                        const p: any = current.success ? (current as any).data?.profile : null;
+                        const currentData = current.success ? (current as Record<string, unknown>).data as Record<string, unknown> | undefined : null;
+                        const p = currentData?.profile as Record<string, unknown> | undefined;
                         const existing = p?.ui_preferences;
                         if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
                             uiPreferences = { ...existing, profileCompleted: true };
@@ -92,8 +93,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
 
                 updateUser(currentUser.id, { avatar: avatarUrl });
                 addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
-            } catch (err: any) {
-                addToast(err?.message || 'שגיאה בעדכון תמונת פרופיל', 'error');
+            } catch (err: unknown) {
+                addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בעדכון תמונת פרופיל', 'error');
             } finally {
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
@@ -140,11 +141,12 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
         if (orgSlug) {
-            let uiPreferences: any = { profileCompleted: true };
+            let uiPreferences: unknown = { profileCompleted: true };
             try {
                 const current = await getMyProfile({ orgSlug });
-                const p: any = current.success ? (current as any).data?.profile : null;
-                const existing = p?.ui_preferences;
+                const currentData2 = current.success ? (current as Record<string, unknown>).data as Record<string, unknown> | undefined : null;
+                const p2 = currentData2?.profile as Record<string, unknown> | undefined;
+                const existing = p2?.ui_preferences;
                 if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
                     uiPreferences = { ...existing, profileCompleted: true };
                 }

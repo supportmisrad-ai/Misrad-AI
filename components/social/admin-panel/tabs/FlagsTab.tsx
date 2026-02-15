@@ -15,8 +15,8 @@ import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { Button } from '@/components/ui/button';
 
 interface FlagsTabProps {
-  featureFlags: any;
-  setFeatureFlags: (flags: any) => void;
+  featureFlags: Record<string, unknown> | null;
+  setFeatureFlags: (flags: Record<string, unknown> | null) => void;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -39,7 +39,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
         const res = await getModuleIcons();
         if (cancelled) return;
         if (res.success && res.data && typeof res.data === 'object') {
-          setModuleIcons(res.data as any);
+          setModuleIcons(res.data as Partial<Record<OSModuleKey, string>>);
         }
       } finally {
         if (!cancelled) setIsLoadingIcons(false);
@@ -129,7 +129,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={featureFlags?.enable_payment_credit_card || false}
+                checked={Boolean((featureFlags as Record<string, unknown>)?.enable_payment_credit_card) || false}
                 onChange={async (e) => {
                   const result = await updateFeatureFlags({ enable_payment_credit_card: e.target.checked });
                   if (result.success) {
@@ -151,7 +151,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={featureFlags?.fullOfficeRequiresFinance || false}
+                checked={Boolean((featureFlags as Record<string, unknown>)?.fullOfficeRequiresFinance) || false}
                 onChange={async (e) => {
                   const result = await updateFeatureFlags({ fullOfficeRequiresFinance: e.target.checked });
                   if (result.success) {
@@ -173,7 +173,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={featureFlags?.maintenanceMode || false}
+                checked={Boolean((featureFlags as Record<string, unknown>)?.maintenanceMode) || false}
                 onChange={async (e) => {
                   const result = await updateFeatureFlags({ maintenanceMode: e.target.checked });
                   if (result.success) {
@@ -213,9 +213,9 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
             <h4 className="font-black text-slate-900 mb-4">הודעה מתפרצת (Banner)</h4>
             <p className="text-sm text-slate-600 mb-4">שדה טקסט שבו אתה כותב הודעה שמופיעה לכל המשתמשים בראש המסך</p>
             <textarea
-              value={featureFlags?.bannerMessage || ''}
+              value={String(featureFlags?.bannerMessage || '')}
               onChange={(e) => {
-                setFeatureFlags((prev: any) => ({ ...prev, bannerMessage: e.target.value }));
+                setFeatureFlags({ ...featureFlags, bannerMessage: e.target.value });
               }}
               onBlur={async (e) => {
                 const result = await updateFeatureFlags({ bannerMessage: e.target.value || null });

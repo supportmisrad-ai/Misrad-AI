@@ -26,11 +26,13 @@ interface PortalManagementTabProps {
   client: Client;
 }
 
+type TaskType = 'APPROVAL' | 'UPLOAD' | 'SIGNATURE' | 'FORM';
+
 export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client }) => {
   const { updateClientGoal, addClientTask, removeClientTask, syncPortal } = useNexus();
   const [isSyncing, setIsSyncing] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
-  const [newTask, setNewTask] = useState({ title: '', description: '', type: 'APPROVAL' as any, isBlocking: false });
+  const [newTask, setNewTask] = useState<{ title: string; description: string; type: TaskType; isBlocking: boolean }>({ title: '', description: '', type: 'APPROVAL', isBlocking: false });
   const [recommendation, setRecommendation] = useState<{ tip: string; expectedBenefit: string } | null>(null);
   const [isLoadingRec, setIsLoadingRec] = useState(false);
 
@@ -224,7 +226,7 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
                   <select
                     className="flex-1 text-[10px] font-bold bg-gray-50 p-2.5 rounded-xl outline-none border border-gray-100"
                     value={newTask.type}
-                    onChange={(e) => setNewTask({ ...newTask, type: e.target.value as any })}
+                    onChange={(e) => setNewTask({ ...newTask, type: e.target.value as TaskType })}
                   >
                     <option value="APPROVAL">אישור תוצר</option>
                     <option value="UPLOAD">העלאת קובץ</option>

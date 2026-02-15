@@ -1,6 +1,6 @@
 /**
  * Type-safe API response types
- * מחליף את הדפוס הבעייתי של unwrap(data: any)
+ * מחליף את הדפוס הבעייתי של unwrap(data: unknown)
  */
 
 import { asObject } from './unknown';

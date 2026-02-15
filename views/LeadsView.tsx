@@ -148,12 +148,12 @@ export const LeadsView: React.FC = () => {
                                 
                                 <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
                                     {colLeads.map((lead: Lead) => {
-                                        const product = (products as any[]).find((p: any) => p.name === (lead as any).interestedIn);
+                                        const product = (products as unknown[]).find((p: unknown) => (p as { name?: string }).name === (lead as unknown as { interestedIn?: string }).interestedIn);
                                         return (
                                             <motion.div
                                                 key={lead.id}
                                                 draggable
-                                                onDragStart={(e) => handleDragStart(e as any, lead.id)}
+                                                onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent<Element>, lead.id)}
                                                 {...(typeof window !== 'undefined' && window.innerWidth >= 768 && { whileHover: { y: -2 } })}
                                                 className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-blue-300 transition-all group"
                                             >
@@ -170,7 +170,7 @@ export const LeadsView: React.FC = () => {
 
                                                 {lead.interestedIn && (
                                                     <div className="flex items-center gap-1 mb-3">
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? String((product as any)?.color ?? '').replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? String((product as Record<string, unknown>)?.color ?? '').replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
                                                             <ShoppingBag size={10} /> {lead.interestedIn}
                                                         </span>
                                                     </div>

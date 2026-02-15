@@ -16,8 +16,8 @@ export const SupportModal: React.FC = () => {
     const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
 
     const setCategory = (category: string) => setSupportDraft((prev) => ({ ...prev, category }));
-    const setSubject = (subject: string) => setSupportDraft((prev: any) => ({ ...prev, subject }));
-    const setMessage = (message: string) => setSupportDraft((prev: any) => ({ ...prev, message }));
+    const setSubject = (subject: string) => setSupportDraft((prev) => ({ ...prev, subject }));
+    const setMessage = (message: string) => setSupportDraft((prev) => ({ ...prev, message }));
 
     useEffect(() => {
         let cancelled = false;
@@ -72,7 +72,7 @@ export const SupportModal: React.FC = () => {
             addNotification({
                 recipientId: 'all',
                 type: 'system',
-                text: `פניית תמיכה חדשה (${String((payload as any)?.ticket?.ticket_number || '')}) מאת ${currentUser.name}: ${supportDraft.subject}`,
+                text: `פניית תמיכה חדשה (${String(payload?.ticket?.ticket_number || '')}) מאת ${currentUser.name}: ${supportDraft.subject}`,
                 actorName: 'System Support',
             });
 
@@ -167,7 +167,7 @@ export const SupportModal: React.FC = () => {
                                             <button
                                                 key={cat.id}
                                                 type="button"
-                                                onClick={() => setCategory(cat.id as any)}
+                                                onClick={() => setCategory(cat.id as string)}
                                                 className={`flex items-center gap-2 p-3 rounded-xl border text-sm font-medium transition-all ${
                                                     supportDraft.category === cat.id 
                                                     ? 'bg-blue-50 border-blue-200 text-blue-700 ring-1 ring-blue-100' 

@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { createErrorResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
 
@@ -94,7 +96,7 @@ export async function getOrganizationUserRoleFromSupabaseAction(
     // Default to 'team_member' if no role found
     return { success: true, role: 'team_member' };
   } catch (error: unknown) {
-    console.error('[getOrganizationUserRoleFromSupabaseAction] Error getting role:', error);
+    logger.error('getOrganizationUserRoleFromSupabaseAction', 'Error getting role:', error);
     return createErrorResponse('Failed to get user role', getUnknownErrorMessage(error) || 'Failed to get user role');
   }
 }

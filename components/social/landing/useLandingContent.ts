@@ -37,11 +37,14 @@ export function useLandingContent() {
           setHeroSubtitle(subtitleResult.data);
         }
         if (featuresResult.success && featuresResult.data) {
-          const mappedFeatures = featuresResult.data.map((f: any) => ({
-            ...f,
-            icon: ICON_MAP[f.icon] || Rocket,
-          }));
-          setFeatures(mappedFeatures);
+          const mappedFeatures = featuresResult.data.map((f: unknown) => {
+            const feat = f as Record<string, unknown>;
+            return {
+              ...feat,
+              icon: ICON_MAP[feat.icon as string] || Rocket,
+            };
+          });
+          setFeatures(mappedFeatures as typeof features);
         }
         if (testimonialsResult.success && testimonialsResult.data) {
           setTestimonials(testimonialsResult.data);

@@ -44,8 +44,9 @@ const NexusCommand: React.FC<NexusCommandProps> = ({ onNavigate, onSelectClient 
     return [...list].reverse().find((m) => m.role === 'assistant') || null;
   }, [messages]);
 
-  const aiResponse = lastAssistant ? String((lastAssistant as any)?.content || '') : null;
-  const aiSources = lastAssistant && Array.isArray((lastAssistant as any)?.sources) ? (lastAssistant as any).sources : [];
+  const lastAsRec = lastAssistant as Record<string, unknown> | null;
+  const aiResponse = lastAssistant ? String(lastAsRec?.content || '') : null;
+  const aiSources = lastAssistant && Array.isArray(lastAsRec?.sources) ? lastAsRec.sources : [];
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);

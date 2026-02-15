@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Prisma } from '@prisma/client';
 
-import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
+import { orgExec, orgQuery, prisma, prismaForInteractiveTransaction } from '@/lib/services/operations/db';
 import {
   asObject,
   firstRowField,
@@ -370,7 +370,7 @@ async function transferOperationsStockToVehicleForOrganizationId(params: {
     const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
     const vehicleHolderId = await ensureOperationsVehicleHolderId({ organizationId: params.organizationId, vehicleId, label: vehicleName });
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       // Best effort ensure rows exist
       await orgExec(
         tx,
@@ -496,7 +496,7 @@ async function addOperationsStockToActiveVehicleForOrganizationId(params: {
       label: vehicleName,
     });
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.operationsInventory.upsert({
         where: { organizationId_itemId: { organizationId: params.organizationId, itemId } },
         create: {
@@ -721,7 +721,7 @@ async function consumeOperationsInventoryForWorkOrderForOrganizationId(params: {
     if (!inventoryId) return { success: false, error: 'חובה לבחור פריט' };
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
 
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       const woRows = await orgQuery<unknown[]>(
         tx,
         params.organizationId,

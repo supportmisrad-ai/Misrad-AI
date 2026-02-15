@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { Redis } from '@upstash/redis';
+import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 import { getClientIpFromRequest, rateLimit } from './rateLimit';
 
 type RateWindow = { limit: number; windowMs: number; label: string };
@@ -46,14 +47,7 @@ function stableHash(input: string): string {
 }
 
 function getRedisClient(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  try {
-    return new Redis({ url, token });
-  } catch {
-    return null;
-  }
+  return getUpstashRedisClient();
 }
 
 function buildRateLimitHeaders(params: {

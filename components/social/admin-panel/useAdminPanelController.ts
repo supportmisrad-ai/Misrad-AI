@@ -11,7 +11,7 @@ import {
   updateClientStatus,
   toggleClientAccess,
 } from '@/app/actions/admin';
-import { getAllNavigationItems } from '@/app/actions/admin-navigation';
+import { getAllNavigationItems, type NavigationItem } from '@/app/actions/admin-navigation';
 import {
   getFeatureFlags,
   getFeatureUsageAnalytics,
@@ -54,7 +54,7 @@ export function useAdminPanelController() {
   >('pulse');
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [metrics, setMetrics] = useState<GlobalSystemMetrics & { trends?: any }>({
+  const [metrics, setMetrics] = useState<GlobalSystemMetrics & { trends?: Record<string, unknown> }>({
     totalMRR: 0,
     activeSubscriptions: 0,
     overdueInvoicesCount: 0,
@@ -64,30 +64,30 @@ export function useAdminPanelController() {
     trends: {},
   });
 
-  const [apiHealth, setApiHealth] = useState<any[]>([]);
-  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [apiHealth, setApiHealth] = useState<Record<string, unknown>[]>([]);
+  const [auditLog, setAuditLog] = useState<Record<string, unknown>[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [liveKPIs, setLiveKPIs] = useState<any>(null);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [deletedItems, setDeletedItems] = useState<any[]>([]);
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [featureFlags, setFeatureFlags] = useState<any>(null);
+  const [liveKPIs, setLiveKPIs] = useState<Record<string, unknown> | null>(null);
+  const [allUsers, setAllUsers] = useState<Record<string, unknown>[]>([]);
+  const [deletedItems, setDeletedItems] = useState<Record<string, unknown>[]>([]);
+  const [analytics, setAnalytics] = useState<Record<string, unknown> | null>(null);
+  const [featureFlags, setFeatureFlags] = useState<Record<string, unknown> | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'active' | 'banned' | 'churned'>('all');
-  const [payments, setPayments] = useState<any>(null);
-  const [notificationHistory, setNotificationHistory] = useState<any[]>([]);
+  const [payments, setPayments] = useState<Record<string, unknown> | null>(null);
+  const [notificationHistory, setNotificationHistory] = useState<Record<string, unknown>[]>([]);
   const [auditOffset, setAuditOffset] = useState(0);
   const [notificationsOffset, setNotificationsOffset] = useState(0);
   const pageSize = 25;
-  const [maintenanceInfo, setMaintenanceInfo] = useState<any>(null);
+  const [maintenanceInfo, setMaintenanceInfo] = useState<Record<string, unknown> | null>(null);
 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<Record<string, unknown> | null>(null);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
 
-  const [siteContent, setSiteContent] = useState<any>(null);
-  const [navigationItems, setNavigationItems] = useState<any[]>([]);
+  const [siteContent, setSiteContent] = useState<Record<string, unknown> | null>(null);
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
   const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({});
 
   const loadMetrics = async () => {
@@ -199,8 +199,8 @@ export function useAdminPanelController() {
   }, [hasAccess]);
 
   const pendingVerificationCount = useMemo(() => {
-    const orders = payments?.subscriptionOrders || [];
-    return orders.filter((o: any) => o?.status === 'pending_verification').length;
+    const orders = (Array.isArray(payments?.subscriptionOrders) ? payments.subscriptionOrders : []) as Record<string, unknown>[];
+    return orders.filter((o) => o?.status === 'pending_verification').length;
   }, [payments]);
 
   const didToastPendingRef = useRef(false);
@@ -346,10 +346,10 @@ export function useAdminPanelController() {
     }
   };
 
-  const handleSaveUserProfile = async (updates: any) => {
+  const handleSaveUserProfile = async (updates: unknown) => {
     if (!editingUser) return;
 
-    const result = await updateUserProfile(editingUser.id, updates);
+    const result = await updateUserProfile(String(editingUser.id), updates as Record<string, unknown>);
     if (result.success) {
       addToast('פרופיל המשתמש עודכן בהצלחה', 'success');
       setIsEditProfileModalOpen(false);
@@ -360,14 +360,15 @@ export function useAdminPanelController() {
     }
   };
 
-  const filteredClients = clients.filter((c: any) =>
-    String(c.companyName || '')
+  const filteredClients = clients.filter((c) => {
+    const co = c as unknown as Record<string, unknown>;
+    return String(co.companyName || '')
       .toLowerCase()
       .includes(searchQuery.toLowerCase()) ||
-    String(c.email || '')
+    String(co.email || '')
       .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
+      .includes(searchQuery.toLowerCase());
+  });
 
   return {
     basePath,

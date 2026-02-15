@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
     const newEventObj: GroupEvent = {
       id: `evt-${Date.now()}`,
       title: newEventData.title,
-      type: newEventData.type as any,
+      type: newEventData.type as 'WEBINAR' | 'WORKSHOP' | 'MASTERCLASS',
       date: new Date(newEventData.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       targetSegment: audienceMode === 'TAG' ? selectedTag || 'General' : 'Custom',
       attendeesCount: getSelectedCount(),
@@ -286,7 +286,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[600px]">
         <div className={`lg:col-span-${modules.cycles ? '2' : '3'} flex flex-col gap-6`}>
-          <ClientsMap clients={filteredMapClients as any} onSelectClientAction={openClientDashboard} />
+          <ClientsMap clients={filteredMapClients} onSelectClientAction={openClientDashboard} />
 
           {modules.cycles && (
             <div className="glass-card p-6 rounded-2xl border-l-4 border-l-nexus-accent animate-fade-in">

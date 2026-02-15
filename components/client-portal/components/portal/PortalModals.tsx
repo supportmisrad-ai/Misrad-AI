@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquareWarning, X, Send, Star, Quote, Copy, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { JourneyStage } from '../../types';
 
 interface PortalModalsProps {
   showFrictionModal: boolean;
@@ -9,11 +10,11 @@ interface PortalModalsProps {
   setFrictionText: (val: string) => void;
   isSubmittingFeedback: boolean;
   onSubmitFriction: () => void;
-  celebratingStage: any;
-  setCelebratingStage: (val: any) => void;
+  celebratingStage: JourneyStage | null;
+  setCelebratingStage: (val: JourneyStage | null) => void;
   testimonialInput: string;
   setTestimonialInput: (val: string) => void;
-  generatedTestimonial: any;
+  generatedTestimonial: { quote: string; linkedinPost: string } | null;
   isGeneratingTestimonial: boolean;
   onGenerateTestimonial: () => void;
 }
@@ -119,12 +120,12 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
               <div className="space-y-6 animate-fade-in text-right">
                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 italic relative">
                   <Quote size={24} className="absolute -top-3 -right-3 text-nexus-accent opacity-30" />
-                  <p className="text-slate-700 leading-relaxed">"{generatedTestimonial.quote}"</p>
+                  <p className="text-slate-700 leading-relaxed">"{String((generatedTestimonial as Record<string, unknown>).quote || '')}"</p>
                 </div>
 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
                   <span className="text-[10px] font-bold text-blue-600 uppercase block mb-1">טיוטה ללינקדאין</span>
-                  <p className="text-xs text-blue-900">{generatedTestimonial.linkedinPost}</p>
+                  <p className="text-xs text-blue-900">{String((generatedTestimonial as Record<string, unknown>).linkedinPost || '')}</p>
                 </div>
 
                 <div className="flex gap-4">

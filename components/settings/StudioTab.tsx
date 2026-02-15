@@ -49,7 +49,7 @@ export const StudioTab: React.FC = () => {
         if (!newPlatform.label.trim()) return;
         
         // Generate ID from label if not manually set (though we don't expose manual ID set here)
-        const id = String((newPlatform as any)?.label ?? '').toLowerCase().replace(/\s+/g, '-');
+        const id = newPlatform.label.toLowerCase().replace(/\s+/g, '-');
         const platformToAdd = { ...newPlatform, id };
         
         updateSettings('platforms', [...platforms, platformToAdd]);

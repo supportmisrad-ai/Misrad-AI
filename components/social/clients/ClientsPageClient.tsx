@@ -8,12 +8,13 @@ import ClientsHeaderActions from '@/components/social/clients/ClientsHeaderActio
 import { Avatar } from '@/components/Avatar';
 import { joinPath } from '@/lib/os/social-routing';
 import { getClientsPage } from '@/app/actions/clients';
+import type { Client } from '@/types/social';
 
 export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
   const basePath = `/w/${orgSlug}/social`;
   const { addToast, clients: contextClients } = useApp();
 
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +50,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
           query: query.trim() || undefined,
           plan: planFilter === 'all' ? undefined : planFilter,
           onboardingStatus: onboardingFilter === 'all' ? undefined : onboardingFilter,
-        } as any);
+        });
 
         if (!res.success) {
           setClients([]);
@@ -59,14 +60,15 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
           return;
         }
 
-        setClients(res.data.clients as any);
+        setClients(res.data.clients);
         setNextCursor(res.data.nextCursor);
         setHasMore(Boolean(res.data.hasMore));
-      } catch (e: any) {
+      } catch (e: unknown) {
         setClients([]);
         setNextCursor(null);
         setHasMore(false);
-        addToast(e?.message || 'שגיאה בטעינת לקוחות', 'error');
+        const msg = e instanceof Error ? e.message : 'שגיאה בטעינת לקוחות';
+        addToast(msg, 'error');
       } finally {
         setIsLoading(false);
       }
@@ -78,7 +80,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
   const filtered = useMemo(() => {
     const base = list;
 
-    return base.sort((a: any, b: any) => {
+    return base.sort((a, b) => {
       const an = String(a.companyName || a.name || '').trim();
       const bn = String(b.companyName || b.name || '').trim();
       const cmp = an.localeCompare(bn, 'he', { sensitivity: 'base' });
@@ -110,7 +112,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
               <select
                 value={planFilter}
                 onChange={(e) => {
-                  setPlanFilter(e.target.value as any);
+                  setPlanFilter(e.target.value as typeof planFilter);
                 }}
                 className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               >
@@ -127,7 +129,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
               <select
                 value={onboardingFilter}
                 onChange={(e) => {
-                  setOnboardingFilter(e.target.value as any);
+                  setOnboardingFilter(e.target.value as typeof onboardingFilter);
                 }}
                 className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               >
@@ -141,7 +143,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
               <ArrowUpDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
+                onChange={(e) => setSort(e.target.value as typeof sort)}
                 className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               >
                 <option value="name_asc">שם (א-ת)</option>
@@ -173,7 +175,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-        {filtered.map((client: any) => {
+        {filtered.map((client) => {
           const href = joinPath(
             basePath,
             `/workspace?clientId=${encodeURIComponent(String(client.id))}&clientName=${encodeURIComponent(String(client.companyName || ''))}${client.onboardingStatus === 'invited' ? '&onboarding=1' : ''}`
@@ -220,7 +222,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
                   query: query.trim() || undefined,
                   plan: planFilter === 'all' ? undefined : planFilter,
                   onboardingStatus: onboardingFilter === 'all' ? undefined : onboardingFilter,
-                } as any);
+                });
 
                 if (!res.success) {
                   addToast(res.error || 'שגיאה בטעינת לקוחות', 'error');
@@ -229,8 +231,8 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
 
                 setClients((prev) => {
                   const base = Array.isArray(prev) ? prev : [];
-                  const incoming = Array.isArray(res.data.clients) ? (res.data.clients as any[]) : [];
-                  const byId = new Map<string, any>();
+                  const incoming = Array.isArray(res.data.clients) ? res.data.clients : [];
+                  const byId = new Map<string, Client>();
                   for (const c of base) byId.set(String(c?.id), c);
                   for (const c of incoming) byId.set(String(c?.id), c);
                   return Array.from(byId.values());
@@ -238,8 +240,9 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
 
                 setNextCursor(res.data.nextCursor);
                 setHasMore(Boolean(res.data.hasMore));
-              } catch (e: any) {
-                addToast(e?.message || 'שגיאה בטעינת לקוחות', 'error');
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'שגיאה בטעינת לקוחות';
+                addToast(msg, 'error');
               } finally {
                 setIsLoading(false);
               }

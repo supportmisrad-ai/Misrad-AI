@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -25,29 +26,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
-    // שמירת feedback למסד הנתונים
-    // כרגע רק לוג - אפשר להוסיף פריזמה אחר כך
-    if (!IS_PROD) {
-      console.log('[AI Feedback]', {
-        sessionId,
-        rating,
-        helpful,
-        feedback: feedback?.substring(0, 100),
-        timestamp: new Date().toISOString(),
-      });
-    }
+    return await withTenantIsolationContext(
+      { source: 'api_ai_feedback', reason: 'save_ai_feedback', suppressReporting: true },
+      async () => {
+        // שמירת feedback למסד הנתונים
+        // כרגע רק לוג - אפשר להוסיף פריזמה אחר כך
+        if (!IS_PROD) {
+          console.log('[AI Feedback]', {
+            sessionId,
+            rating,
+            helpful,
+            feedback: feedback?.substring(0, 100),
+            timestamp: new Date().toISOString(),
+          });
+        }
 
-    // TODO: שמירה בפועל למסד נתונים
-    // await prisma.$executeRaw`
-    //   UPDATE ai_chat_sessions 
-    //   SET user_rating = ${rating}, helpful_yn = ${helpful}, user_feedback = ${feedback}
-    //   WHERE session_id = ${sessionId}
-    // `;
+        // TODO: שמירה בפועל למסד נתונים
+        // await prisma.$executeRaw`
+        //   UPDATE ai_chat_sessions 
+        //   SET user_rating = ${rating}, helpful_yn = ${helpful}, user_feedback = ${feedback}
+        //   WHERE session_id = ${sessionId}
+        // `;
 
-    return NextResponse.json({ 
-      success: true,
-      message: 'תודה על המשוב! 💚'
-    });
+        return NextResponse.json({ 
+          success: true,
+          message: 'תודה על המשוב! 💚'
+        });
+      }
+    );
   } catch (error) {
     const msg = getErrorMessage(error);
     if (IS_PROD) console.error('[AI Feedback Error]');

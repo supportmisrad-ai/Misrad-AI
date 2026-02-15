@@ -14,6 +14,7 @@ import prisma from '@/lib/prisma';
 import type { scale_roles } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -102,22 +103,27 @@ async function PATCHHandler(
         if (allowedUpdates.description !== undefined) dbUpdates.description = allowedUpdates.description;
         dbUpdates.updated_at = new Date();
 
-        const data = await prisma.scale_roles.update({
-            where: { id: String(roleId) },
-            data: dbUpdates,
-        });
+        return await withTenantIsolationContext(
+            { source: 'api_roles_id', reason: 'update_role', mode: 'global_admin', isSuperAdmin: true },
+            async () => {
+                const data = await prisma.scale_roles.update({
+                    where: { id: String(roleId) },
+                    data: dbUpdates,
+                });
 
-        const updatedRole = mapRoleRow(data);
-        
-        await logAuditEvent('role.update', 'role', {
-            resourceId: updatedRole.id,
-            details: {
-                updatedBy: user.id,
-                updates: allowedUpdates
+                const updatedRole = mapRoleRow(data);
+                
+                await logAuditEvent('role.update', 'role', {
+                    resourceId: updatedRole.id,
+                    details: {
+                        updatedBy: user.id,
+                        updates: allowedUpdates
+                    }
+                });
+                
+                return NextResponse.json({ success: true, role: updatedRole });
             }
-        });
-        
-        return NextResponse.json({ success: true, role: updatedRole });
+        );
         
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error updating role');
@@ -154,30 +160,35 @@ async function DELETEHandler(
         
         const { id: roleId } = params;
 
-        // Check if role is system role
-        const roleRow = await prisma.scale_roles.findUnique({
-            where: { id: String(roleId) },
-            select: { is_system: true },
-        });
+        return await withTenantIsolationContext(
+            { source: 'api_roles_id', reason: 'delete_role', mode: 'global_admin', isSuperAdmin: true },
+            async () => {
+                // Check if role is system role
+                const roleRow = await prisma.scale_roles.findUnique({
+                    where: { id: String(roleId) },
+                    select: { is_system: true },
+                });
 
-        if (!roleRow) {
-            return NextResponse.json({ error: 'Role not found' }, { status: 404 });
-        }
+                if (!roleRow) {
+                    return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+                }
 
-        if (roleRow.is_system) {
-            throw new Error('Cannot delete system role');
-        }
+                if (roleRow.is_system) {
+                    throw new Error('Cannot delete system role');
+                }
 
-        await prisma.scale_roles.delete({ where: { id: String(roleId) } });
-        
-        await logAuditEvent('role.delete', 'role', {
-            resourceId: roleId,
-            details: {
-                deletedBy: user.id
+                await prisma.scale_roles.delete({ where: { id: String(roleId) } });
+                
+                await logAuditEvent('role.delete', 'role', {
+                    resourceId: roleId,
+                    details: {
+                        deletedBy: user.id
+                    }
+                });
+                
+                return NextResponse.json({ success: true, message: 'Role deleted successfully' });
             }
-        });
-        
-        return NextResponse.json({ success: true, message: 'Role deleted successfully' });
+        );
         
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error deleting role');

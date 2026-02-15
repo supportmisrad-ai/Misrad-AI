@@ -30,13 +30,13 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
     
     const usersWithCurrent = (() => {
         const list = Array.isArray(users) ? [...users] : [];
-        if (currentUser?.id && !list.some((u: any) => u?.id === currentUser.id)) {
-            list.unshift(currentUser as any);
+        if (currentUser?.id && !list.some((u) => u?.id === currentUser.id)) {
+            list.unshift(currentUser);
         }
         return list;
     })();
 
-    const availableUsers = usersWithCurrent.filter((u: any) => {
+    const availableUsers = usersWithCurrent.filter((u) => {
         // Always include current user
         if (u.id === currentUser.id) return true;
         // Super Admin sees everyone (all tenants)
@@ -49,18 +49,18 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
         return false;
     });
 
-    const isExplicitlyUnassigned = (task as any).assigneeId === null;
+    const isExplicitlyUnassigned = task.assigneeId === null;
     const effectiveAssigneeIds: string[] = (() => {
         if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
         if (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId)) return [String(task.assigneeId)];
         if (isExplicitlyUnassigned) return [];
-        const fallback = (task.creatorId || currentUser.id) as any;
+        const fallback = task.creatorId || currentUser.id;
         return fallback ? [String(fallback)] : [];
     })();
 
-    const assignedUsers = availableUsers.filter((u: any) => effectiveAssigneeIds.includes(String(u.id)));
+    const assignedUsers = availableUsers.filter((u) => effectiveAssigneeIds.includes(String(u.id)));
 
-    const filteredUsers = availableUsers.filter((u: any) => 
+    const filteredUsers = availableUsers.filter((u) => 
         u.name.toLowerCase().includes(assigneeSearch.toLowerCase())
     );
 
@@ -73,7 +73,7 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
     }, [task.estimatedTime, activePopover]);
 
     const setExplicitUnassigned = () => {
-        updateTask(task.id, { assigneeIds: [], assigneeId: null as any });
+        updateTask(task.id, { assigneeIds: [], assigneeId: undefined });
         onClose();
     };
 
@@ -277,8 +277,8 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
                             )}
                         </button>
 
-                        {filteredUsers.map((u: any, index: number) => {
-                            const isAssigned = assignedUsers.some((au: any) => String(au.id) === String(u.id));
+                        {filteredUsers.map((u, index) => {
+                            const isAssigned = assignedUsers.some((au) => String(au.id) === String(u.id));
                             return (
                                 <button 
                                     key={u.id || u.email || `${u.name}-${index}`}

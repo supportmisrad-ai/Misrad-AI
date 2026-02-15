@@ -74,7 +74,7 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">סוג</label>
                                 <select
                                     value={newProject.type}
-                                    onChange={(e) => setNewProject((p) => ({ ...p, type: e.target.value as any }))}
+                                    onChange={(e) => setNewProject((p) => ({ ...p, type: e.target.value as 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV' }))}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
                                 >
                                     <option value="CAMPAIGN">CAMPAIGN</option>

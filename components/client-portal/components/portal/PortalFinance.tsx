@@ -1,8 +1,9 @@
 import React from 'react';
 import { Wallet, CreditCard, Zap, Receipt, Download, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
+import { Client, Invoice, ClientAgreement } from '../../types';
 
 interface PortalFinanceProps {
-  client: any;
+  client: Client;
   isPaying: boolean;
   onSimulatePayment: () => void;
 }
@@ -94,7 +95,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {client.invoices?.map((inv: any) => (
+                {client.invoices?.map((inv: Invoice) => (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-5 font-mono text-sm font-bold">{inv.number}</td>
                     <td className="px-6 py-5 text-sm text-slate-500">{inv.date}</td>
@@ -127,7 +128,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {client.agreements?.map((ag: any) => (
+              {client.agreements?.map((ag: ClientAgreement) => (
                 <div
                   key={ag.id}
                   className="p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between group hover:border-blue-200 transition-all shadow-sm"

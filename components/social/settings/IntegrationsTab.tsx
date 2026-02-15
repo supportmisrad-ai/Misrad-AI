@@ -25,7 +25,7 @@ interface IntegrationsTabProps {
 interface IntegrationConfig {
   id: string;
   name: string;
-  icon: any;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   color: string;
   desc: string;
   type: 'oauth' | 'webhook' | 'api_key';
@@ -35,12 +35,12 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
   const { addToast } = useApp();
   const pathname = usePathname();
   const routeInfo = parseWorkspaceRoute(pathname);
-  const [integrations, setIntegrations] = useState<any[]>([]);
+  const [integrations, setIntegrations] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
   const [showModal, setShowModal] = useState<string | null>(null);
-  const [modalData, setModalData] = useState<any>({});
+  const [modalData, setModalData] = useState<Record<string, unknown>>({});
 
   const integrationConfigs: IntegrationConfig[] = [
     { id: 'make', name: 'Make.com', icon: Workflow, color: 'bg-[#6D28D9]', desc: 'חיבור וובוקים (Webhooks) ואוטומציות מורכבות לניהול זרימת עבודה חכמה.', type: 'webhook' },
@@ -89,8 +89,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else {
         onNotify(result.error || 'שגיאה בבדיקת החיבור', 'error');
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בבדיקת החיבור', 'error');
+    } catch (error: unknown) {
+      onNotify((error instanceof Error ? error.message : String(error)) || 'שגיאה בבדיקת החיבור', 'error');
     } finally {
       setTesting(null);
     }
@@ -149,8 +149,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
         setShowModal(id);
         setModalData({ apiKey: '' });
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בחיבור', 'error');
+    } catch (error: unknown) {
+      onNotify((error instanceof Error ? error.message : String(error)) || 'שגיאה בחיבור', 'error');
     }
   };
 
@@ -158,8 +158,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
     try {
       const result = await saveWebhookConfig(
         id as 'zapier' | 'make',
-        modalData.webhookUrl,
-        modalData.events || []
+        String(modalData.webhookUrl ?? ''),
+        (Array.isArray(modalData.events) ? modalData.events : []) as string[]
       );
 
       if (result.success) {
@@ -170,8 +170,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else {
         onNotify(result.error || 'שגיאה בשמירה', 'error');
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בשמירה', 'error');
+    } catch (error: unknown) {
+      onNotify((error instanceof Error ? error.message : String(error)) || 'שגיאה בשמירה', 'error');
     }
   };
 
@@ -183,7 +183,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
         return;
       }
 
-      const result = await saveMorningCredentialsForWorkspace(orgSlug, modalData.apiKey);
+      const result = await saveMorningCredentialsForWorkspace(orgSlug, String(modalData.apiKey ?? ''));
 
       if (result.success) {
         onNotify('חובר ל-Morning בהצלחה! 🎉');
@@ -193,8 +193,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else {
         onNotify(result.error || 'שגיאה בשמירה', 'error');
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בשמירה', 'error');
+    } catch (error: unknown) {
+      onNotify((error instanceof Error ? error.message : String(error)) || 'שגיאה בשמירה', 'error');
     }
   };
 
@@ -212,8 +212,12 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else {
         onNotify(result?.error || 'שגיאה בסנכרון', 'error');
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בסנכרון', 'error');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        onNotify(error.message, 'error');
+      } else {
+        onNotify(String(error), 'error');
+      }
     } finally {
       setSyncing(null);
     }
@@ -237,8 +241,8 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else {
         onNotify(result.error || 'שגיאה בהתנתקות', 'error');
       }
-    } catch (error: any) {
-      onNotify(error.message || 'שגיאה בהתנתקות', 'error');
+    } catch (error: unknown) {
+      onNotify((error instanceof Error ? error.message : String(error)) || 'שגיאה בהתנתקות', 'error');
     }
   };
 
@@ -359,7 +363,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                 <label className="block text-sm font-black mb-2">Webhook URL</label>
                 <input
                   type="url"
-                  value={modalData.webhookUrl || ''}
+                  value={String(modalData.webhookUrl ?? '')}
                   onChange={(e) => setModalData({ ...modalData, webhookUrl: e.target.value })}
                   placeholder="כתובת Webhook"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
@@ -372,9 +376,9 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                     <label key={event} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={modalData.events?.includes(event) || false}
+                        checked={Array.isArray(modalData.events) && (modalData.events as string[]).includes(event)}
                         onChange={(e) => {
-                          const events = modalData.events || [];
+                          const events = Array.isArray(modalData.events) ? (modalData.events as string[]) : [];
                           if (e.target.checked) {
                             setModalData({ ...modalData, events: [...events, event] });
                           } else {
@@ -414,7 +418,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                 <label className="block text-sm font-black mb-2">API Key</label>
                 <input
                   type="password"
-                  value={modalData.apiKey || ''}
+                  value={String(modalData.apiKey ?? '')}
                   onChange={(e) => setModalData({ ...modalData, apiKey: e.target.value })}
                   placeholder="הכנס את מפתח ה-API מ-Morning"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"

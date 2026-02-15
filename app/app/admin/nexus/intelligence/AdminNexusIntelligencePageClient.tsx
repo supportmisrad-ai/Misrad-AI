@@ -44,8 +44,8 @@ export default function AdminNexusIntelligencePageClient() {
       <div className="space-y-6 pb-24" dir="rtl">
         <AdminPageHeader title="בינה" subtitle="בינה עסקית ודוחות" icon={Sparkles} />
         <IntelligencePanel
-          systemReports={(systemReports || []) as any}
-          feedbacks={(feedbacks || []) as any}
+          systemReports={systemReports || []}
+          feedbacks={feedbacks || []}
           onViewReport={handleViewReport}
           onGenerateReport={handleGenerateManualReport}
           hideHeader
@@ -53,7 +53,7 @@ export default function AdminNexusIntelligencePageClient() {
       </div>
 
       {selectedReport ? (
-        <ReportDetailModal report={selectedReport as any} onClose={() => setSelectedReport(null)} onDownload={handleDownloadReport} />
+        <ReportDetailModal report={selectedReport} onClose={() => setSelectedReport(null)} onDownload={handleDownloadReport} />
       ) : null}
     </>
   );

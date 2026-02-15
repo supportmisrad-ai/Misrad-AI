@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 import { Eye, Lock, Unlock, Settings } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
+import type { Client } from '@/types/social';
 
 interface ClientsTabProps {
-  filteredClients: any[];
+  filteredClients: Client[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onImpersonate: (clientId: string) => void;

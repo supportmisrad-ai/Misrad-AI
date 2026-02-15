@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import { Idea } from '@/types/social';
 import { translateError } from '@/lib/errorTranslations';
@@ -86,7 +88,7 @@ export async function getIdeas(
 
     return { success: true, data: ideas };
   } catch (error: unknown) {
-    console.error('Error in getIdeas:', error);
+    logger.error('ideas', 'Error in getIdeas:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בטעינת רעיונות'),
@@ -141,7 +143,7 @@ export async function createIdea(
     }
 
     // Insert idea
-    let idea: any = null;
+    let idea: unknown = null;
     try {
       const createData = {
         organizationId,
@@ -152,7 +154,7 @@ export async function createIdea(
         data: createData,
       });
     } catch (ideaError: unknown) {
-      console.error('Error creating idea:', ideaError);
+      logger.error('ideas', 'Error creating idea:', ideaError);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(ideaError) || 'שגיאה ביצירת רעיון'),
@@ -171,7 +173,7 @@ export async function createIdea(
 
     return { success: true, data: formattedIdea };
   } catch (error: unknown) {
-    console.error('Error in createIdea:', error);
+    logger.error('ideas', 'Error in createIdea:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה ביצירת רעיון'),
@@ -250,7 +252,7 @@ export async function updateIdea(
         throw new Error('Forbidden');
       }
     } catch (updateError: unknown) {
-      console.error('Error updating idea:', updateError);
+      logger.error('ideas', 'Error updating idea:', updateError);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(updateError) || 'שגיאה בעדכון רעיון'),
@@ -268,7 +270,7 @@ export async function updateIdea(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in updateIdea:', error);
+    logger.error('ideas', 'Error in updateIdea:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בעדכון רעיון'),
@@ -308,7 +310,7 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
         throw new Error('Forbidden');
       }
     } catch (error: unknown) {
-      console.error('Error deleting idea:', error);
+      logger.error('ideas', 'Error deleting idea:', error);
       return {
         success: false,
         error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת רעיון'),
@@ -317,7 +319,7 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in deleteIdea:', error);
+    logger.error('ideas', 'Error in deleteIdea:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת רעיון'),

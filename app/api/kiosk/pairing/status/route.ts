@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { asObject } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 async function POSTHandler(request: NextRequest) {
   const pairingSecret = process.env.KIOSK_PAIRING_SECRET;
@@ -25,51 +26,56 @@ async function POSTHandler(request: NextRequest) {
     return apiError('Missing code/deviceNonce', { status: 400 });
   }
 
-  let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findFirst>> | null = null;
-  try {
-    row = await prisma.devicePairingToken.findFirst({
-      where: { code: String(code), deviceNonce: String(deviceNonce) },
-    });
-  } catch {
-    return apiError('שגיאה בטעינת סטטוס', { status: 500 });
-  }
+  return await withTenantIsolationContext(
+    { source: 'api_kiosk_pairing_status', reason: 'kiosk_status_check', suppressReporting: true },
+    async () => {
+      let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findFirst>> | null = null;
+      try {
+        row = await prisma.devicePairingToken.findFirst({
+          where: { code: String(code), deviceNonce: String(deviceNonce) },
+        });
+      } catch {
+        return apiError('שגיאה בטעינת סטטוס', { status: 500 });
+      }
 
-  if (!row?.id) {
-    return apiSuccess({ status: 'NOT_FOUND' });
-  }
+      if (!row?.id) {
+        return apiSuccess({ status: 'NOT_FOUND' });
+      }
 
-  const now = new Date();
-  const expiresAt = row.expiresAt ? new Date(row.expiresAt) : null;
-  const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
+      const now = new Date();
+      const expiresAt = row.expiresAt ? new Date(row.expiresAt) : null;
+      const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
 
-  if (isExpired && String(row.status || '').toUpperCase() === 'PENDING') {
-    await prisma.devicePairingToken.update({
-      where: { id: String(row.id) },
-      data: { status: 'EXPIRED' },
-    });
+      if (isExpired && String(row.status || '').toUpperCase() === 'PENDING') {
+        await prisma.devicePairingToken.update({
+          where: { id: String(row.id) },
+          data: { status: 'EXPIRED' },
+        });
 
-    return apiSuccess({ status: 'EXPIRED' });
-  }
+        return apiSuccess({ status: 'EXPIRED' });
+      }
 
-  const status = String(row.status || '').toUpperCase();
+      const status = String(row.status || '').toUpperCase();
 
-  if (status === 'APPROVED' && row.signInToken && !row.consumedAt) {
-    await prisma.devicePairingToken.update({
-      where: { id: String(row.id) },
-      data: { status: 'CONSUMED', consumedAt: now },
-    });
+      if (status === 'APPROVED' && row.signInToken && !row.consumedAt) {
+        await prisma.devicePairingToken.update({
+          where: { id: String(row.id) },
+          data: { status: 'CONSUMED', consumedAt: now },
+        });
 
-    return apiSuccess({
-      status: 'APPROVED',
-      signInToken: String(row.signInToken),
-      organizationId: row.organizationId ? String(row.organizationId) : null,
-    });
-  }
+        return apiSuccess({
+          status: 'APPROVED',
+          signInToken: String(row.signInToken),
+          organizationId: row.organizationId ? String(row.organizationId) : null,
+        });
+      }
 
-  return apiSuccess({
-    status,
-    expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
-  });
+      return apiSuccess({
+        status,
+        expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
+      });
+    }
+  );
 }
 
 export const POST = shabbatGuard(POSTHandler);

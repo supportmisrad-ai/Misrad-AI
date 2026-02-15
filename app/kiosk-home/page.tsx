@@ -264,8 +264,8 @@ function KioskHomePageInner() {
                         setActiveShift(res.activeShift);
                       }
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!');
-                    } catch (e: any) {
-                      const msg = String(e?.message || e);
+                    } catch (e: unknown) {
+                      const msg = String(e instanceof Error ? e.message : e);
                       if (msg.toLowerCase().includes('denied')) {
                         setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת');
                       } else {
@@ -293,8 +293,8 @@ function KioskHomePageInner() {
                       const res = await punchOut(orgSlug, attendanceNote, location);
                       setActiveShift(null);
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!');
-                    } catch (e: any) {
-                      const msg = String(e?.message || e);
+                    } catch (e: unknown) {
+                      const msg = String(e instanceof Error ? e.message : e);
                       if (msg.toLowerCase().includes('denied')) {
                         setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת');
                       } else {

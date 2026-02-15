@@ -101,7 +101,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
                     </div>
                     <button className="text-slate-400 hover:text-white relative">
                         <Bell size={20} />
-                        {notifications.some((n: any) => !n.read) && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>}
+                        {notifications.some((n: unknown) => !(n as Record<string, unknown>).read) && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>}
                     </button>
                 </div>
             </header>

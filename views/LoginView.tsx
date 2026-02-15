@@ -10,6 +10,11 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { translateClerkError } from '@/lib/errorTranslations';
 import { getSystemIconUrl } from '@/lib/metadata';
 
+function asObj(v: unknown): Record<string, unknown> | undefined {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+  return undefined;
+}
+
 export const LoginView: React.FC<{ organizationName?: string }> = ({ organizationName }) => {
   const orgName = organizationName || 'MISRAD AI';
   const router = useRouter();
@@ -163,7 +168,7 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
           return;
         }
 
-        const status = (direct as any)?.status;
+        const status = asObj(direct)?.status;
         const msg =
           status === 'needs_second_factor'
             ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
@@ -192,9 +197,9 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
         }
 
         if (init.status === 'needs_first_factor') {
-          const supported = (init as any)?.supportedFirstFactors;
+          const supported = asObj(init)?.supportedFirstFactors;
           const supportsPassword = Array.isArray(supported)
-            ? supported.some((f: any) => String(f?.strategy || '').toLowerCase() === 'password')
+            ? supported.some((f: unknown) => String(asObj(f)?.strategy || '').toLowerCase() === 'password')
             : true;
 
           if (!supportsPassword) {
@@ -219,18 +224,18 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
             return;
           }
 
-          const status = (result as any)?.status;
+          const status2 = asObj(result)?.status;
           const msg =
-            status === 'needs_second_factor'
+            status2 === 'needs_second_factor'
               ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
-              : status === 'needs_new_password'
+              : status2 === 'needs_new_password'
                 ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
-                : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+                : `ההתחברות לא הושלמה (סטטוס: ${String(status2 || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
           setError(msg);
           return;
         }
 
-        const status = (init as any)?.status;
+        const status = asObj(init)?.status;
         const msg =
           status === 'needs_second_factor'
             ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
@@ -241,17 +246,19 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
                 : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
         setError(msg);
       }
-    } catch (err: any) {
-      const clerkError = err?.errors?.[0];
+    } catch (err: unknown) {
+      const errObj = asObj(err);
+      const errorsArr = Array.isArray(errObj?.errors) ? errObj.errors : [];
+      const clerkError = asObj(errorsArr[0]);
       const errType = typeof err;
-      const errString = errType === 'string' ? err : err instanceof Error ? err.message : String(err || '');
-      const errKeys = err && (errType === 'object' || errType === 'function') ? Object.keys(err) : [];
+      const errString = errType === 'string' ? (err as string) : err instanceof Error ? err.message : String(err || '');
+      const errKeys = errObj ? Object.keys(errObj) : [];
 
       const details = {
         errType: errType || null,
         errString: errString || null,
         errKeys,
-        hasErrorsArray: Array.isArray(err?.errors),
+        hasErrorsArray: errorsArr.length > 0,
         clerkErrorCode: clerkError?.code ?? null,
         clerkErrorMessage: clerkError?.message ?? null,
         clerkErrorLongMessage: clerkError?.longMessage ?? null,
@@ -272,10 +279,10 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
         console.warn('Login error details (json):', detailsJson);
       }
 
-      const errorKey = clerkError?.code || clerkError?.message || err?.message || errString || '';
+      const errorKey = String(clerkError?.code || clerkError?.message || (err instanceof Error ? err.message : '') || errString || '');
       const fallbackMessage =
-        clerkError?.message ||
-        err?.message ||
+        String(clerkError?.message || '') ||
+        (err instanceof Error ? err.message : '') ||
         errString ||
         'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.';
       setError(translateClerkError(errorKey || fallbackMessage));
@@ -319,11 +326,13 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
         return;
       }
 
-      const status = (result as any)?.status;
+      const status = asObj(result)?.status;
       setError(`ההתחברות עם זיהוי ביומטרי לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב.`);
-    } catch (err: any) {
-      const clerkError = err?.errors?.[0];
-      const errorKey = clerkError?.code || clerkError?.message || err?.message || String(err || '');
+    } catch (err: unknown) {
+      const errObj2 = asObj(err);
+      const errorsArr2 = Array.isArray(errObj2?.errors) ? errObj2.errors : [];
+      const clerkError = asObj(errorsArr2[0]);
+      const errorKey = String(clerkError?.code || clerkError?.message || (err instanceof Error ? err.message : '') || String(err || ''));
       setError(translateClerkError(errorKey || 'שגיאה בהתחברות עם זיהוי ביומטרי'));
     } finally {
       setIsLoading(false);
@@ -355,18 +364,19 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
         redirectUrlComplete: loginReturnUrl,
       });
       // אם ה-redirect מצליח, לא נגיע לכאן כי הדפדפן ינותב.
-    } catch (errRedirect: any) {
+    } catch (errRedirect: unknown) {
       console.warn('Redirect Google failed, trying popup', errRedirect);
       try {
         // ניסוי שני: Popup
-        const result = (await signIn.authenticateWithPopup({
+        const resultRaw = await signIn.authenticateWithPopup({
           strategy: 'oauth_google',
           redirectUrl: loginReturnUrl,
           redirectUrlComplete: loginReturnUrl,
           popup: window,
-        })) as any;
+        });
+        const result = asObj(resultRaw);
         if (result?.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
+          await setActive({ session: result.createdSessionId as string });
           const returnUrl = getLoginReturnUrl();
           if (typeof window !== 'undefined') {
             window.location.assign(returnUrl);
@@ -377,11 +387,13 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
         } else {
           setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');
         }
-      } catch (errPopup: any) {
+      } catch (errPopup: unknown) {
         console.error('Google popup error:', errPopup);
+        const popupErrs = Array.isArray(asObj(errPopup)?.errors) ? (asObj(errPopup)?.errors as unknown[]) : [];
+        const redirErrs = Array.isArray(asObj(errRedirect)?.errors) ? (asObj(errRedirect)?.errors as unknown[]) : [];
         setError(
-          errPopup?.errors?.[0]?.message ||
-            errRedirect?.errors?.[0]?.message ||
+          String(asObj(popupErrs[0])?.message || '') ||
+            String(asObj(redirErrs[0])?.message || '') ||
             'שגיאה בהתחברות עם Google. נא לנסות שוב.'
         );
       } finally {
