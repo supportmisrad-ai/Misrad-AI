@@ -197,10 +197,18 @@ const _rawExecuteOriginal = prismaClientProto?.$executeRaw ?? prismaRawProto?.$e
 setRawSqlOriginals(_rawQueryUnsafeOriginal, _rawExecuteUnsafeOriginal);
 
 // ── Tenant guard ──
+// Note: Prisma Accelerate (engine=none with $extends) does not support $use middleware.
+// When using Accelerate, tenant isolation must be enforced through RLS policies in the database.
 
 if (!globalThis.__MISRAD_PRISMA_TENANT_GUARD_INSTALLED__) {
-  installPrismaTenantGuard(prisma);
-
+  if (_isAccelerateUrl) {
+    console.warn(
+      '[Prisma] Tenant guard middleware skipped (Prisma Accelerate enabled). ' +
+      'Ensure tenant isolation is enforced via database RLS policies.'
+    );
+  } else {
+    installPrismaTenantGuard(prisma);
+  }
   globalThis.__MISRAD_PRISMA_TENANT_GUARD_INSTALLED__ = true;
 }
 
