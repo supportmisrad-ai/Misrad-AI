@@ -180,7 +180,8 @@ async function GETHandler() {
     const workspaces = await loadPromise;
     workspacesCache.set(clerkUserId, { value: workspaces, expiresAt: Date.now() + WORKSPACES_TTL_MS });
     return apiSuccess({ workspaces });
-  } catch {
+  } catch (error: unknown) {
+    console.error('[/api/workspaces] Failed to load workspaces:', error);
     return apiError('שגיאה לא צפויה', { status: 500 });
   } finally {
     workspacesInFlight.delete(clerkUserId);

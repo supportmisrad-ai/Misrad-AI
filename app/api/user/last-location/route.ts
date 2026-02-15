@@ -50,23 +50,28 @@ async function GETHandler() {
     return apiError('Unauthorized', { status: 401 });
   }
 
-  const data = await prisma.organizationUser.findUnique({
-    where: { clerk_user_id: clerkUserId },
-    select: { last_location_org: true, last_module: true },
-  });
+  try {
+    const data = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { last_location_org: true, last_module: true },
+    });
 
-  await logAuditEvent('data.read', 'user.last-location', {
-    details: {
-      clerkUserId,
+    await logAuditEvent('data.read', 'user.last-location', {
+      details: {
+        clerkUserId,
+        orgSlug: data?.last_location_org ?? null,
+        module: (data?.last_module as OSModuleKey | null) ?? null,
+      },
+    });
+
+    return apiSuccess({
       orgSlug: data?.last_location_org ?? null,
       module: (data?.last_module as OSModuleKey | null) ?? null,
-    },
-  });
-
-  return apiSuccess({
-    orgSlug: data?.last_location_org ?? null,
-    module: (data?.last_module as OSModuleKey | null) ?? null,
-  });
+    });
+  } catch (error: unknown) {
+    console.error('[/api/user/last-location GET] Error:', error);
+    return apiError('Failed to get last location', { status: 500 });
+  }
 }
 
 async function POSTHandler(req: NextRequest) {
