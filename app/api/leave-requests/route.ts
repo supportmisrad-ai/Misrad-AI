@@ -563,8 +563,12 @@ async function GETHandler(request: NextRequest) {
             return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
         }
         const safeMsg = 'שגיאה בטעינת בקשות חופש';
+        const status = msg.includes('Unauthorized') ? 401 : 500;
+        if (status >= 500) {
+            return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
+        }
         return apiError(IS_PROD ? safeMsg : error, {
-            status: msg.includes('Unauthorized') ? 401 : 500,
+            status,
             message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }

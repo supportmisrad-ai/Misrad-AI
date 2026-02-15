@@ -101,7 +101,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
         voided_at
       )
       VALUES (
-        $organizationId$::uuid,
+        ${String(workspace.id)}::uuid,
         ${String(dbUser.id)}::uuid,
         ${now.toISOString()}::timestamptz,
         NULL,

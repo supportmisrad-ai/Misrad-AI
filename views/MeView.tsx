@@ -176,12 +176,6 @@ export const MeView: React.FC<{
   );
 
   const openProfileEditor = () => {
-    if (needsProfileCompletion) {
-      const target = `${toNexusPath(basePath, '/me')}?edit=profile`;
-      router.push(target);
-      setActiveSettingModal('personal');
-      return;
-    }
     setActiveSettingModal('personal');
   };
   const [activeSettingModal, setActiveSettingModal] = useState<string | null>(null);
