@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
@@ -9,26 +11,7 @@ import type { OSModuleKey } from '@/lib/os/modules/types';
 import { Prisma } from '@prisma/client';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
-  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 function isOSModuleKey(value: unknown): value is OSModuleKey {
   return (
@@ -191,9 +174,9 @@ export async function getAllUsers(): Promise<{
     try {
       const clerkUsersResponse = await client.users.getUserList({ limit: 500 });
       clerkUsers = Array.isArray(clerkUsersResponse.data) ? (clerkUsersResponse.data as unknown[]) : [];
-      console.log('[getAllUsers] Found', clerkUsers.length, 'users in Clerk');
+      logger.debug('getAllUsers', 'Found', clerkUsers.length, 'users in Clerk');
     } catch (clerkError: unknown) {
-      console.error('[getAllUsers] Error fetching users from Clerk:', clerkError);
+      logger.error('getAllUsers', 'Error fetching users from Clerk:', clerkError);
       // Continue with Supabase users only
     }
 
@@ -210,7 +193,7 @@ export async function getAllUsers(): Promise<{
         })
         .filter((v): v is string => Boolean(v))
     );
-    console.log('[getAllUsers] Existing emails in Supabase:', Array.from(existingEmails));
+    logger.debug('getAllUsers', 'Existing emails in Supabase:', Array.from(existingEmails));
     
     // Sync Clerk users with Supabase - create missing entries
     const { getOrCreateSupabaseUserAction } = await import('./users');
@@ -222,14 +205,14 @@ export async function getAllUsers(): Promise<{
       const firstEmail = Array.isArray(emailAddresses) && emailAddresses.length > 0 ? asObject(emailAddresses[0])?.emailAddress : null;
       const email = typeof firstEmail === 'string' ? firstEmail : null;
       if (!email) {
-        console.log('[getAllUsers] Skipping user without email:', String(clerkObj.id ?? ''));
+        logger.debug('getAllUsers', 'Skipping user without email:', String(clerkObj.id ?? ''));
         continue;
       }
       
       const emailLower = email.toLowerCase();
       const existsInSupabase = existingEmails.has(emailLower);
       
-      console.log('[getAllUsers] Checking user:', {
+      logger.debug('getAllUsers', 'Checking user:', {
         email,
         clerkId: String(clerkObj.id ?? ''),
         existsInSupabase,
@@ -240,7 +223,7 @@ export async function getAllUsers(): Promise<{
       if (!existsInSupabase) {
         // User exists in Clerk but not in Supabase - create it
         try {
-          console.log('[getAllUsers] 🔄 Syncing user from Clerk to Supabase:', email);
+          logger.debug('getAllUsers', '🔄 Syncing user from Clerk to Supabase:', email);
           const firstName = clerkObj.firstName ? String(clerkObj.firstName) : '';
           const lastName = clerkObj.lastName ? String(clerkObj.lastName) : '';
           const fullName = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || 'User';
@@ -253,7 +236,7 @@ export async function getAllUsers(): Promise<{
             typeof clerkObj.imageUrl === 'string' ? clerkObj.imageUrl : undefined
           );
           
-          console.log('[getAllUsers] getOrCreateSupabaseUserAction result:', {
+          logger.debug('getAllUsers', 'getOrCreateSupabaseUserAction result:', {
             success: supabaseResult.success,
             userId: supabaseResult.userId,
             error: supabaseResult.error,
@@ -267,7 +250,7 @@ export async function getAllUsers(): Promise<{
 
             const organizationId = socialRow?.organization_id ? String(socialRow.organization_id) : '';
             if (!organizationId) {
-              console.warn('[getAllUsers] Skipping sync: missing organization_id for clerk user', {
+              logger.warn('getAllUsers', 'Skipping sync: missing organization_id for clerk user', {
                 clerkUserId,
                 email,
               });
@@ -285,7 +268,7 @@ export async function getAllUsers(): Promise<{
             });
 
             if (existingMember?.id) {
-              console.log('[getAllUsers] ✓ User already exists in nexus_users:', email);
+              logger.debug('getAllUsers', '✓ User already exists in nexus_users:', email);
               continue;
             }
 
@@ -306,26 +289,26 @@ export async function getAllUsers(): Promise<{
               } satisfies Prisma.NexusUserCreateInput,
             });
 
-            console.log('[getAllUsers] ✅ Synced user to nexus_users:', email);
+            logger.debug('getAllUsers', '✅ Synced user to nexus_users:', email);
             syncedCount++;
             existingEmails.add(emailLower);
           } else {
-            console.error('[getAllUsers] ❌ Failed to create user in Supabase:', supabaseResult.error);
+            logger.error('getAllUsers', '❌ Failed to create user in Supabase:', supabaseResult.error);
           }
         } catch (syncError: unknown) {
-          console.error('[getAllUsers] ❌ Error syncing user:', email, syncError);
-          console.error('[getAllUsers] Error details:', {
+          logger.error('getAllUsers', '❌ Error syncing user:', email, syncError);
+          logger.error('getAllUsers', 'Error details:', {
             message: getUnknownErrorMessage(syncError),
             stack: asObject(syncError)?.stack,
           });
           // Continue with other users
         }
       } else {
-        console.log('[getAllUsers] ✓ User already exists in Supabase:', email);
+        logger.debug('getAllUsers', '✓ User already exists in Supabase:', email);
       }
     }
     
-    console.log('[getAllUsers] Synced', syncedCount, 'users from Clerk to Supabase');
+    logger.debug('getAllUsers', 'Synced', syncedCount, 'users from Clerk to Supabase');
     
     // Get updated team members after sync
     const updatedTeamMembers = await prisma.nexusUser.findMany({

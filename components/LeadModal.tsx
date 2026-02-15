@@ -15,7 +15,7 @@ interface LeadModalProps {
   onClose: () => void;
   onAddActivity: (leadId: string, activity: Activity) => void;
   onScheduleMeeting: (leadId: string) => void;
-  onStatusChange?: (id: string, status: any) => void; 
+  onStatusChange?: (id: string, status: unknown) => void; 
   onOpenClientPortal?: () => void;
   onAddTask?: (task: Task) => void;
 }
@@ -121,7 +121,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
             <div className="p-4 md:p-6 border-b border-slate-100 bg-white z-20 shrink-0">
                 <div className="flex gap-4 mb-3">
                     {[{ id: 'note', label: 'פתק', icon: FileText }, { id: 'call', label: 'שיחה', icon: Phone }, { id: 'task', label: 'משימה', icon: CheckSquare }, { id: 'email', label: 'מייל', icon: Mail }].map(tab => (
-                        <button key={tab.id} onClick={() => setComposerTab(tab.id as any)} className={`flex items-center gap-2 pb-2 text-sm font-bold border-b-2 transition-colors ${composerTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-400'}`}>
+                        <button key={tab.id} onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')} className={`flex items-center gap-2 pb-2 text-sm font-bold border-b-2 transition-colors ${composerTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-400'}`}>
                             <tab.icon size={14} /> {tab.label}
                         </button>
                     ))}

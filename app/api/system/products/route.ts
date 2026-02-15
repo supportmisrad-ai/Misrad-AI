@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
@@ -67,6 +67,7 @@ async function readProducts(): Promise<Product[]> {
   const row = await prisma.coreSystemSettings.findUnique({
     where: { key: PRODUCTS_SETTINGS_KEY },
     select: { value: true },
+    ...accelerateCache({ ttl: 60, swr: 120 }),
   });
 
   const rawValue: unknown = row?.value ?? null;

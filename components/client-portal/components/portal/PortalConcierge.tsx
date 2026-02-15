@@ -1,9 +1,10 @@
 import React from 'react';
 import { Calendar, MessageCircle, MessageSquareQuote, Download } from 'lucide-react';
+import { Client, Meeting } from '../../types';
 
 interface PortalConciergeProps {
-  client: any;
-  clientMeetings: any[];
+  client: Client;
+  clientMeetings: Meeting[];
 }
 
 export const PortalConcierge: React.FC<PortalConciergeProps> = ({ clientMeetings }) => {

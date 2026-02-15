@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { ClientRequest, ManagerRequest } from '@/types/social';
@@ -174,7 +176,7 @@ export async function getClientRequests(
 
     return { success: true, data: requests };
   } catch (error: unknown) {
-    console.error('Error in getClientRequests:', error);
+    logger.error('requests', 'Error in getClientRequests:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בטעינת בקשות לקוח'),
@@ -218,7 +220,7 @@ export async function getManagerRequests(
 
     return { success: true, data: requests };
   } catch (error: unknown) {
-    console.error('Error in getManagerRequests:', error);
+    logger.error('requests', 'Error in getManagerRequests:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בטעינת בקשות מנהל'),
@@ -317,7 +319,7 @@ export async function createClientRequest(
 
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
-    console.error('Error in createClientRequest:', error);
+    logger.error('requests', 'Error in createClientRequest:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה ביצירת בקשה'),
@@ -378,7 +380,7 @@ export async function createManagerRequest(
 
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
-    console.error('Error in createManagerRequest:', error);
+    logger.error('requests', 'Error in createManagerRequest:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה ביצירת בקשה'),
@@ -429,14 +431,14 @@ export async function approveClientRequest(
     if (postId) {
       const result = await updatePost(postId, { status: 'pending_approval', orgSlug });
       if (!result.success) {
-        console.error('Error updating post status:', result.error);
+        logger.error('requests', 'Error updating post status:', result.error);
         // Don't fail the whole operation
       }
     }
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in approveClientRequest:', error);
+    logger.error('requests', 'Error in approveClientRequest:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה באישור בקשה'),
@@ -489,7 +491,7 @@ export async function rejectClientRequest(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in rejectClientRequest:', error);
+    logger.error('requests', 'Error in rejectClientRequest:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בדחיית בקשה'),
@@ -551,7 +553,7 @@ export async function updateManagerRequest(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in updateManagerRequest:', error);
+    logger.error('requests', 'Error in updateManagerRequest:', error);
     return {
       success: false,
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בעדכון בקשה'),

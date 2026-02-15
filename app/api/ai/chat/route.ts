@@ -12,7 +12,7 @@ import { queryRawOrgScoped } from '@/lib/prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { Redis } from '@upstash/redis';
+import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 import { MisradInvoiceStatus, Prisma } from '@prisma/client';
 
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
@@ -104,15 +104,8 @@ function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
-function getRedisClient(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  try {
-    return new Redis({ url, token });
-  } catch {
-    return null;
-  }
+function getRedisClient() {
+  return getUpstashRedisClient();
 }
 
 function cacheGet(key: string): CachedChatResponse | null {

@@ -9,6 +9,7 @@ import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getNexusMe, listNexusTimeEntries } from '@/app/actions/nexus';
 import { punchOut } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
+import type { TimeEntry } from '@/types/team';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -120,13 +121,13 @@ export default function AttendanceMiniStatus() {
         page: 1,
         pageSize: 200,
       });
-      const list = Array.isArray(data?.timeEntries) ? data.timeEntries : [];
+      const list: TimeEntry[] = Array.isArray(data?.timeEntries) ? data.timeEntries : [];
       const active = list
-        .filter((e: any) => !e?.endTime)
-        .sort((a: any, b: any) => new Date(b?.startTime || 0).getTime() - new Date(a?.startTime || 0).getTime())[0];
+        .filter((entry: TimeEntry) => !entry.endTime)
+        .sort((a: TimeEntry, b: TimeEntry) => new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime())[0];
 
       if (active?.id && active?.startTime) {
-        const next = { entryId: String(active.id), startTime: new Date(active.startTime).toISOString() };
+        const next = { entryId: active.id, startTime: new Date(active.startTime).toISOString() };
         setEntryId(next.entryId);
         setStartTime(next.startTime);
         broadcast({ orgSlug, entryId: next.entryId, startTime: next.startTime });
@@ -207,8 +208,8 @@ export default function AttendanceMiniStatus() {
       setStartTime(null);
       broadcast({ orgSlug, entryId: null, startTime: null });
       void loadActiveShift();
-    } catch (e: any) {
-      const msg = String(e?.message || e);
+    } catch (e: unknown) {
+      const msg = String(e instanceof Error ? e.message : e);
       if (msg.toLowerCase().includes('denied')) {
         setErrorMessage('נדרש אישור גישה למיקום כדי לבצע יציאה');
       } else {

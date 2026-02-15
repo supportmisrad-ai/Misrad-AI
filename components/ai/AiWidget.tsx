@@ -162,7 +162,7 @@ export function AiWidget() {
           }),
         });
 
-        const data = (await res.json().catch(() => ({}))) as any;
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         if (!res.ok) {
           throw new Error(String(data?.error || `Chat failed (${res.status})`));
         }
@@ -174,8 +174,8 @@ export function AiWidget() {
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
-      } catch (e: any) {
-        setError(String(e?.message || 'שגיאה בשליחת ההודעה'));
+      } catch (e: unknown) {
+        setError(String(e instanceof Error ? e.message : e || 'שגיאה בשליחת ההודעה'));
       } finally {
         setIsLoading(false);
       }

@@ -31,9 +31,11 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
         try {
             const clientName = client?.name ?? '';
             const clientMainContact = client?.mainContact ?? '';
-            const healthScore = (client as any)?.healthScore ?? 'N/A';
-            const healthStatus = (client as any)?.healthStatus ?? 'N/A';
-            const lastNote = (client as any)?.handoffData?.notes ?? 'None';
+            const clientRec = client as Record<string, unknown> | null;
+            const healthScore = clientRec?.healthScore ?? 'N/A';
+            const healthStatus = clientRec?.healthStatus ?? 'N/A';
+            const handoffData = clientRec?.handoffData as Record<string, unknown> | null | undefined;
+            const lastNote = handoffData?.notes ?? 'None';
 
             const healthContext = `Health Score: ${healthScore}, Status: ${healthStatus}, Last Note: ${lastNote}`;
             const result = await generateEmailDraft(clientName, clientMainContact, intent, tone, healthContext);

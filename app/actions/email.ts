@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { resend, isResendConfigured } from '@/lib/resend';
 import { Client } from '@/types';
 import { sendMisradWelcomeEmail } from '@/lib/email';
@@ -143,7 +145,7 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.error('email', 'Resend error:', error);
       return {
         success: false,
         error: error.message || 'שגיאה בשליחת מייל',
@@ -156,7 +158,7 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
       message: 'מייל הזמנה נשלח בהצלחה',
     };
   } catch (error: unknown) {
-    console.error('Error sending invitation email:', error);
+    logger.error('email', 'Error sending invitation email:', error);
     return {
       success: false,
       error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',
@@ -209,7 +211,7 @@ export async function sendMisradWelcomeEmailAction(params: {
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error sending MISRAD welcome email (action):', error);
+    logger.error('email', 'Error sending MISRAD welcome email (action):', error);
     return {
       success: false,
       error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',
@@ -269,7 +271,7 @@ export async function sendTestEmail(to: string) {
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.error('email', 'Resend error:', error);
       return {
         success: false,
         error: error.message || 'שגיאה בשליחת מייל בדיקה',
@@ -282,7 +284,7 @@ export async function sendTestEmail(to: string) {
       message: 'מייל בדיקה נשלח בהצלחה',
     };
   } catch (error: unknown) {
-    console.error('Error sending test email:', error);
+    logger.error('email', 'Error sending test email:', error);
     return {
       success: false,
       error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',

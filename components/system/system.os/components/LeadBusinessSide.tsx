@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Briefcase, X, Activity as ActivityIcon, Clock, Gauge, AlertCircle, ExternalLink, Presentation, Layers, UserX, RotateCcw } from 'lucide-react';
-import { Lead, Activity } from '../types';
+import { Lead, Activity, PipelineStage } from '../types';
 import ProposalModal from './ProposalModal';
 import QBRGeneratorModal from './QBRGeneratorModal';
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
@@ -11,7 +11,7 @@ interface LeadBusinessSideProps {
     lead: Lead;
     onClose: () => void;
     onAddActivity: (leadId: string, activity: Activity) => void;
-    onStatusChange?: (id: string, status: any) => void;
+    onStatusChange?: (id: string, status: PipelineStage) => void;
     onOpenClientPortal?: () => void;
 }
 

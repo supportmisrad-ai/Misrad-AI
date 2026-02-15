@@ -47,8 +47,8 @@ export default function GeoCheckInButton({
       if (accInput) accInput.value = String(position.coords.accuracy);
 
       form.requestSubmit();
-    } catch (e: any) {
-      const msg = String(e?.message || e);
+    } catch (e: unknown) {
+      const msg = String(e instanceof Error ? e.message : e);
       if (msg.toLowerCase().includes('denied')) {
         alert('נדרש אישור גישה למיקום כדי לבצע דיווח הגעה');
       } else {

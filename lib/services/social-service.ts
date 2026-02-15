@@ -5,11 +5,9 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import type { ActivityLog, Client, ClientRequest, Conversation, Idea, ManagerRequest, PostStatus, SocialPlatform, SocialPost, SocialTask, TeamMember } from '@/types/social';
 import * as React from 'react';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { createStorageClient } from '@/lib/supabase';
 import { resolveStorageUrlsMaybeBatchedServiceRole, resolveStorageUrlsMaybeBatchedWithClient, toSbRefMaybe } from '@/lib/services/operations/storage';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 type CacheFn = <Args extends unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
 function identityCache<Args extends unknown[], R>(fn: (...args: Args) => R) {

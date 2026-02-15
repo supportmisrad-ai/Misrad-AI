@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -70,77 +71,82 @@ export async function GET() {
       });
     }
 
-    const socialUser = await prisma.organizationUser.findUnique({
-      where: { clerk_user_id: clerkUserId },
-      select: { 
-        id: true, 
-        organization_id: true,
-        email: true,
-        full_name: true,
-        created_at: true,
-      },
-    });
-
-    let organizations: OrgSummary[] = [];
-    if (socialUser?.id) {
-      const [ownedOrgs, memberOrgs] = await Promise.all([
-        prisma.organization.findMany({
-          where: { owner_id: socialUser.id },
-          select: { id: true, slug: true, name: true },
-        }),
-        prisma.teamMember.findMany({
-          where: { user_id: socialUser.id },
-          select: {
+    return await withTenantIsolationContext(
+      { source: 'api_debug_auth_status', reason: 'debug_auth', suppressReporting: true },
+      async () => {
+        const socialUser = await prisma.organizationUser.findUnique({
+          where: { clerk_user_id: clerkUserId },
+          select: { 
+            id: true, 
             organization_id: true,
+            email: true,
+            full_name: true,
+            created_at: true,
           },
-        }),
-      ]);
+        });
 
-      const ids = new Set<string>();
-      if (socialUser.organization_id) ids.add(String(socialUser.organization_id));
-      for (const o of ownedOrgs || []) {
-        if (o?.id) ids.add(String(o.id));
+        let organizations: OrgSummary[] = [];
+        if (socialUser?.id) {
+          const [ownedOrgs, memberOrgs] = await Promise.all([
+            prisma.organization.findMany({
+              where: { owner_id: socialUser.id },
+              select: { id: true, slug: true, name: true },
+            }),
+            prisma.teamMember.findMany({
+              where: { user_id: socialUser.id },
+              select: {
+                organization_id: true,
+              },
+            }),
+          ]);
+
+          const ids = new Set<string>();
+          if (socialUser.organization_id) ids.add(String(socialUser.organization_id));
+          for (const o of ownedOrgs || []) {
+            if (o?.id) ids.add(String(o.id));
+          }
+          for (const m of memberOrgs || []) {
+            if (m?.organization_id) ids.add(String(m.organization_id));
+          }
+
+          const unique = Array.from(ids).filter(Boolean);
+          organizations = unique.length
+            ? await prisma.organization.findMany({
+                where: { id: { in: unique } },
+                select: { id: true, slug: true, name: true },
+              })
+            : [];
+        }
+
+        return NextResponse.json({
+          status: 'authenticated',
+          clerkUserId,
+          serverAuthError: null,
+          socialUser,
+          organizations,
+          organizationCount: organizations.length,
+          request: {
+            host,
+            forwardedHost,
+            forwardedProto,
+            forwardedFor,
+            cookieCount: cookieNames.length,
+            cookieNames,
+            hasSessionCookie:
+              cookieNames.includes('__session') || cookieNames.some((n: string) => n.startsWith('__session_')),
+            hasClerkDbJwt:
+              cookieNames.includes('__clerk_db_jwt') || cookieNames.some((n: string) => n.startsWith('__clerk_db_jwt_')),
+            hasClerkActiveContext: cookieNames.includes('clerk_active_context'),
+          },
+          env: {
+            publishableKeyPrefix: clerkPublishableKey ? clerkPublishableKey.slice(0, 8) : null,
+            secretKeyPrefix: clerkSecretKey ? clerkSecretKey.slice(0, 8) : null,
+            secretKeyLooksValid:
+              clerkSecretKey.startsWith('sk_test_') || clerkSecretKey.startsWith('sk_live_'),
+          },
+        });
       }
-      for (const m of memberOrgs || []) {
-        if (m?.organization_id) ids.add(String(m.organization_id));
-      }
-
-      const unique = Array.from(ids).filter(Boolean);
-      organizations = unique.length
-        ? await prisma.organization.findMany({
-            where: { id: { in: unique } },
-            select: { id: true, slug: true, name: true },
-          })
-        : [];
-    }
-
-    return NextResponse.json({
-      status: 'authenticated',
-      clerkUserId,
-      serverAuthError: null,
-      socialUser,
-      organizations,
-      organizationCount: organizations.length,
-      request: {
-        host,
-        forwardedHost,
-        forwardedProto,
-        forwardedFor,
-        cookieCount: cookieNames.length,
-        cookieNames,
-        hasSessionCookie:
-          cookieNames.includes('__session') || cookieNames.some((n: string) => n.startsWith('__session_')),
-        hasClerkDbJwt:
-          cookieNames.includes('__clerk_db_jwt') || cookieNames.some((n: string) => n.startsWith('__clerk_db_jwt_')),
-        hasClerkActiveContext: cookieNames.includes('clerk_active_context'),
-      },
-      env: {
-        publishableKeyPrefix: clerkPublishableKey ? clerkPublishableKey.slice(0, 8) : null,
-        secretKeyPrefix: clerkSecretKey ? clerkSecretKey.slice(0, 8) : null,
-        secretKeyLooksValid:
-          clerkSecretKey.startsWith('sk_test_') || clerkSecretKey.startsWith('sk_live_'),
-      },
-    });
+    );
   } catch (error) {
     return NextResponse.json({
       status: 'error',

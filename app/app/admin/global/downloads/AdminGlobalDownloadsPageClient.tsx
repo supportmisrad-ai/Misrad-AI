@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useData } from '@/context/DataContext';
 import { adminGetGlobalDownloadLinks, adminUpdateGlobalDownloadLinks } from '@/app/actions/global-download-links';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 export default function AdminGlobalDownloadsPageClient() {
   const { addToast } = useData();
@@ -27,8 +28,8 @@ export default function AdminGlobalDownloadsPageClient() {
       }
       setWindowsDownloadUrl(String(res.data?.windowsDownloadUrl || ''));
       setAndroidDownloadUrl(String(res.data?.androidDownloadUrl || ''));
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת לינקים', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת לינקים', 'error');
     } finally {
       setLoading(false);
     }
@@ -53,8 +54,8 @@ export default function AdminGlobalDownloadsPageClient() {
       setWindowsDownloadUrl(String(res.data?.windowsDownloadUrl || ''));
       setAndroidDownloadUrl(String(res.data?.androidDownloadUrl || ''));
       addToast('נשמר בהצלחה', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בשמירה', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בשמירה', 'error');
     } finally {
       setSaving(false);
     }

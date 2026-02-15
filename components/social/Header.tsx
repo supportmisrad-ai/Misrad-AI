@@ -122,11 +122,11 @@ export default function Header() {
         setUnreadCount(result.count);
       }
       unreadFailureCountRef.current = 0;
-    } catch (error: any) {
+    } catch (error: unknown) {
       unreadFailureCountRef.current += 1;
       // Silently handle network errors (common during dev server restarts)
       // Only log if it's not a network/fetch error
-      if (error?.message && !error.message.includes('Failed to fetch') && !error.message.includes('fetch')) {
+      if (error instanceof Error && error.message && !error.message.includes('Failed to fetch') && !error.message.includes('fetch')) {
         console.error('Error loading unread count:', error);
       }
       // Keep current count on error, don't reset to 0

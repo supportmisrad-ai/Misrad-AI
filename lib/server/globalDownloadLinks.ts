@@ -1,12 +1,10 @@
 import 'server-only';
 
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+import { ALLOW_SCHEMA_FALLBACKS, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
@@ -45,6 +43,7 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     const row = await prisma.global_settings.findUnique({
       where: { id: 'global' },
       select: { windows_download_url: true, android_download_url: true },
+      ...accelerateCache({ ttl: 120, swr: 300 }),
     });
 
     if (row) {

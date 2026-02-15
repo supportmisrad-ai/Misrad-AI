@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
-declare const confetti: any;
+declare const confetti: ((opts?: Record<string, unknown>) => void) | undefined;
 
 interface ProposalModalProps {
   lead: Lead;

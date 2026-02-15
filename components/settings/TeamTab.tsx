@@ -181,7 +181,7 @@ export const TeamTab: React.FC = () => {
                 });
                 
                 // Update local state
-                updateUser(editingUser.id, updated as any);
+                updateUser(editingUser.id, updated as Partial<User>);
                 if (orgSlug) {
                     queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
                 }
@@ -202,7 +202,7 @@ export const TeamTab: React.FC = () => {
                     commissionPct: Number(memberForm.commissionPct),
                     bonusPerTask: Number(memberForm.bonusPerTask),
                     managerId: memberForm.managerId || null,
-                } as any);
+                } as Omit<User, 'id'>);
                 
                 // Send invitation email
                 try {
@@ -224,14 +224,15 @@ export const TeamTab: React.FC = () => {
                 }
 
                 // Add to local state
-                addUser(createdUser as any);
+                addUser(createdUser as User);
                 if (orgSlug) {
                     queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
                 }
             }
             setIsTeamModalOpen(false);
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בשמירת המשתמש', 'error');
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'שגיאה בשמירת המשתמש';
+            addToast(msg, 'error');
             console.error('Error saving member:', error);
         }
     };
@@ -250,8 +251,9 @@ export const TeamTab: React.FC = () => {
             if (orgSlug) {
                 queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
             }
-        } catch (error: any) {
-            addToast(error?.message || 'שגיאה במחיקת המשתמש', 'error');
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'שגיאה במחיקת המשתמש';
+            addToast(msg, 'error');
         } finally {
             setUserToDelete(null);
         }
@@ -558,14 +560,14 @@ export const TeamTab: React.FC = () => {
                     open={isPairDeviceQrModalOpen}
                     onCloseAction={() => setIsPairDeviceQrModalOpen(false)}
                     createTokenAction={createKioskQrPairingToken}
-                    addToastAction={addToast as any}
+                    addToastAction={addToast}
                 />
                 <DevicePairingModal
                     open={isPairDeviceModalOpen}
                     onClose={() => setIsPairDeviceModalOpen(false)}
                     users={users.map((u: User) => ({ id: u.id, name: u.name, role: u.role }))}
                     approvePairing={approveKioskPairing}
-                    addToast={addToast as any}
+                    addToast={addToast}
                 />
                 {isTeamModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
@@ -685,7 +687,7 @@ export const TeamTab: React.FC = () => {
                                         <label className="block text-xs font-bold text-emerald-600 uppercase mb-1">מודל שכר</label>
                                         <CustomSelect 
                                             value={memberForm.paymentType}
-                                            onChange={(val) => setMemberForm({...memberForm, paymentType: val as any})}
+                                            onChange={(val) => setMemberForm({...memberForm, paymentType: val as 'hourly' | 'monthly'})}
                                             options={[
                                                 { value: 'hourly', label: 'שעתי' },
                                                 { value: 'monthly', label: 'חודשי' }

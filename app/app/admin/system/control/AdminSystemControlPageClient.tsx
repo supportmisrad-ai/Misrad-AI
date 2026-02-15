@@ -12,7 +12,7 @@ export default function AdminSystemControlPageClient() {
   return (
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="בקרה" subtitle="בקרת מערכת System" icon={Settings} />
-      <SystemOSControlPanel organization={organization as any} updateSystemFlag={updateSystemFlag as any} hideHeader />
+      <SystemOSControlPanel organization={organization } updateSystemFlag={updateSystemFlag } hideHeader />
     </div>
   );
 }

@@ -98,10 +98,11 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         setTimeout(() => reject(new Error('Timeout: יצירת משתמש לוקחת יותר מדי זמן')), 30000)
       );
       
-      const result = await Promise.race([
+      const resultUnknown = await Promise.race([
         createUser(userDataToSend),
         timeoutPromise
-      ]) as any;
+      ]) as unknown;
+      const result = resultUnknown as Record<string, unknown>;
 
       console.log('[AddUserModal] createUser result:', result);
       console.log('[AddUserModal] createUser result details:', JSON.stringify(result, null, 2));
@@ -114,7 +115,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         handleClose();
       } else {
         // Ensure error message is in Hebrew
-        let errorMsg = result.error || 'שגיאה ביצירת משתמש';
+        let errorMsg = String(result.error || 'שגיאה ביצירת משתמש');
         
         console.error('[AddUserModal] Error creating user:', errorMsg);
         console.error('[AddUserModal] Full error result:', JSON.stringify(result, null, 2));
@@ -141,8 +142,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         console.error('[AddUserModal] Setting error message:', errorMsg);
         setError(errorMsg);
       }
-    } catch (err: any) {
-      let errorMsg = err.message || 'שגיאה ביצירת משתמש';
+    } catch (err: unknown) {
+      const errorObj = err as Record<string, unknown>;
+      let errorMsg = String(errorObj.message || 'שגיאה ביצירת משתמש');
       
       // Translate common errors to Hebrew
       const errorLower = errorMsg.toLowerCase();

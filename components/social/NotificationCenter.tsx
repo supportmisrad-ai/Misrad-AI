@@ -28,7 +28,7 @@ export default function NotificationCenter() {
 
   const loadNotifications = async () => {
     // Load regular notifications from database
-    const regularNotifications: any[] = [];
+    const regularNotifications: unknown[] = [];
 
     // Load unread updates
     try {
@@ -52,10 +52,10 @@ export default function NotificationCenter() {
       } else {
         setNotifications(regularNotifications);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Silently handle network errors (common during dev server restarts)
       // Only log if it's not a network/fetch error
-      if (error?.message && !error.message.includes('Failed to fetch') && !error.message.includes('fetch')) {
+      if (error instanceof Error && error.message && !error.message.includes('Failed to fetch') && !error.message.includes('fetch')) {
         console.error('Error loading updates:', error);
       }
       setNotifications(regularNotifications);

@@ -8,26 +8,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
-  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 type ProfileRecord = {
   id: string;

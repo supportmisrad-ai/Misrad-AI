@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { SocialTask } from '@/types/social';
@@ -72,7 +74,7 @@ export async function getTasks(orgSlug?: string, clientId?: string): Promise<{ s
       data: tasks,
     };
   } catch (error: unknown) {
-    console.error('Error in getTasks:', error);
+    logger.error('tasks', 'Error in getTasks:', error);
     return {
       success: false,
       error: getErrorMessage(error) || 'שגיאה בטעינת משימות',

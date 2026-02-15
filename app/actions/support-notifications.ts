@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 
 export type NotificationChannel = 'push' | 'email' | 'both';
@@ -61,7 +63,7 @@ async function sendPushNotification(
   message: string
 ): Promise<boolean> {
   try {
-    console.log('[Support Notifications] Push notification:', {
+    logger.debug('Support Notifications', 'Push notification:', {
       ticketId: payload.ticketId,
       subject: payload.subject,
       message,
@@ -69,7 +71,7 @@ async function sendPushNotification(
 
     return true;
   } catch (error) {
-    console.error('[Support Notifications] Push notification failed:', error);
+    logger.error('Support Notifications', 'Push notification failed:', error);
     return false;
   }
 }
@@ -80,13 +82,13 @@ async function sendEmailNotification(
 ): Promise<boolean> {
   try {
     if (!payload.userEmail) {
-      console.warn('[Support Notifications] No email address provided');
+      logger.warn('Support Notifications', 'No email address provided');
       return false;
     }
 
     const emailBody = generateEmailBody(payload, message);
 
-    console.log('[Support Notifications] Email notification:', {
+    logger.debug('Support Notifications', 'Email notification:', {
       to: payload.userEmail,
       subject: `תקלה #${payload.ticketId.slice(0, 8)} - ${payload.subject}`,
       bodyPreview: emailBody.slice(0, 100),
@@ -94,7 +96,7 @@ async function sendEmailNotification(
 
     return true;
   } catch (error) {
-    console.error('[Support Notifications] Email notification failed:', error);
+    logger.error('Support Notifications', 'Email notification failed:', error);
     return false;
   }
 }
@@ -129,7 +131,7 @@ export async function notifyAdminsOfNewTicket(params: {
       return createErrorResponse('Unauthorized', authCheck.error || 'נדרשת התחברות');
     }
 
-    console.log('[Support Notifications] Notifying admins of new ticket:', {
+    logger.debug('Support Notifications', 'Notifying admins of new ticket:', {
       ticketId: params.ticketId,
       subject: params.subject,
       category: params.category,

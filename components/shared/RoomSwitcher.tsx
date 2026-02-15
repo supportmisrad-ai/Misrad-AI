@@ -41,9 +41,10 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
         });
         if (!response.ok) return;
         const data = await response.json();
-        const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-        if ((payload as any)?.rooms) {
-          setRooms((prev) => ({ ...prev, ...(payload as any).rooms }));
+        const dataObj = data as Record<string, unknown>;
+        const payload = dataObj.data && typeof dataObj.data === 'object' ? dataObj.data as Record<string, unknown> : dataObj;
+        if (payload.rooms && typeof payload.rooms === 'object') {
+          setRooms((prev) => ({ ...prev, ...(payload.rooms as Record<string, boolean>) }));
         }
       } catch {
         // ignore

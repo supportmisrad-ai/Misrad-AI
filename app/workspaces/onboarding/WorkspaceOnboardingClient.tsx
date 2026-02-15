@@ -62,8 +62,8 @@ export default function WorkspaceOnboardingClient(props: {
       }
 
       router.push(`/w/${encodeURIComponent(props.organizationKey)}`);
-    } catch (err: any) {
-      setError(err?.message || 'שגיאה בשמירה');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : String(err)) || 'שגיאה בשמירה');
     } finally {
       setIsSaving(false);
     }

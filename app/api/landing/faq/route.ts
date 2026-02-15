@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 type UnknownRecord = Record<string, unknown>;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -26,38 +27,43 @@ function getNumberField(obj: UnknownRecord, key: string, fallback: number): numb
 }
 
 export async function GET() {
-  try {
-    const faqs = await prisma.landing_faq.findMany({
-      where: { is_active: true },
-      orderBy: { sort_order: 'asc' },
-      select: {
-        id: true,
-        question: true,
-        answer: true,
-        video_url: true,
-        cover_image_url: true,
-        sort_order: true,
-      },
-    });
+  return await withTenantIsolationContext(
+    { source: 'api_landing_faq', reason: 'read_faq', suppressReporting: true },
+    async () => {
+      try {
+        const faqs = await prisma.landing_faq.findMany({
+          where: { is_active: true },
+          orderBy: { sort_order: 'asc' },
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+            video_url: true,
+            cover_image_url: true,
+            sort_order: true,
+          },
+        });
 
-    return NextResponse.json({ 
-      faqs: faqs.map(f => ({
-        id: f.id,
-        question: f.question,
-        answer: f.answer,
-        videoUrl: f.video_url,
-        coverImageUrl: f.cover_image_url,
-        sortOrder: f.sort_order,
-      }))
-    });
-  } catch (error: unknown) {
-    if (IS_PROD) console.error('Error fetching FAQ');
-    else console.error('Error fetching FAQ:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch FAQ' },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ 
+          faqs: faqs.map(f => ({
+            id: f.id,
+            question: f.question,
+            answer: f.answer,
+            videoUrl: f.video_url,
+            coverImageUrl: f.cover_image_url,
+            sortOrder: f.sort_order,
+          }))
+        });
+      } catch (error: unknown) {
+        if (IS_PROD) console.error('Error fetching FAQ');
+        else console.error('Error fetching FAQ:', error);
+        return NextResponse.json(
+          { error: 'Failed to fetch FAQ' },
+          { status: 500 }
+        );
+      }
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -69,6 +75,9 @@ export async function POST(request: NextRequest) {
     const faq = asObject(bodyObj.faq) ?? {};
     const faqs = Array.isArray(bodyObj.faqs) ? bodyObj.faqs : null;
 
+    return await withTenantIsolationContext(
+      { source: 'api_landing_faq', reason: 'manage_faq', mode: 'global_admin', isSuperAdmin: true },
+      async () => {
     if (action === 'create') {
       const question = getStringField(faq, 'question');
       const answer = getStringField(faq, 'answer');
@@ -136,6 +145,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Invalid action' },
       { status: 400 }
+    );
+      }
     );
   } catch (error: unknown) {
     if (IS_PROD) console.error('Error saving FAQ');

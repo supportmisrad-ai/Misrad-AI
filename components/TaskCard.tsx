@@ -51,8 +51,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick }) => {
   
   // Find linked client if exists
   const linkedClient = task.clientId 
-    ? clients.find((c: any) => c.id === task.clientId)
-    : clients.find((c: any) => task.tags.some(tag => tag.toLowerCase() === c.companyName.toLowerCase()));
+    ? clients.find((c: unknown) => (c as Record<string, unknown>).id === task.clientId)
+    : clients.find((c: unknown) => task.tags.some(tag => tag.toLowerCase() === String((c as Record<string, unknown>).companyName || '').toLowerCase()));
 
   const snoozeCount = task.snoozeCount || 0;
   const isPendingApproval = task.approvalStatus === 'pending';

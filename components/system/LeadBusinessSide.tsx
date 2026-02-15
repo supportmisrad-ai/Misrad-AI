@@ -11,13 +11,13 @@ interface LeadBusinessSideProps {
     lead: Lead;
     onClose: () => void;
     onAddActivity: (leadId: string, activity: Activity) => void;
-    onStatusChange?: (id: string, status: any) => void;
+    onStatusChange?: (id: string, status: unknown) => void;
     onOpenClientPortal?: () => void;
 }
 
 // Stub components - will be replaced with real components later
-const ProposalModal = (props: any) => <StubComponent name="ProposalModal" {...props} />;
-const QBRGeneratorModal = (props: any) => <StubComponent name="QBRGeneratorModal" {...props} />;
+const ProposalModal = (props: Record<string, unknown>) => <StubComponent name="ProposalModal" {...props} />;
+const QBRGeneratorModal = (props: Record<string, unknown>) => <StubComponent name="QBRGeneratorModal" {...props} />;
 
 const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAddActivity, onStatusChange, onOpenClientPortal }) => {
     const { history } = useCallAnalysis();
@@ -168,7 +168,7 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
                 </div>
             </div>
 
-            {showProposalModal && <ProposalModal lead={lead} onClose={() => setShowProposalModal(false)} onSend={(p: any) => addToast('הצעה נשלחה', 'success')} />}
+            {showProposalModal && <ProposalModal lead={lead} onClose={() => setShowProposalModal(false)} onSend={(p: unknown) => addToast('הצעה נשלחה', 'success')} />}
             {showQBRModal && <QBRGeneratorModal lead={lead} onClose={() => setShowQBRModal(false)} />}
         </>
     );

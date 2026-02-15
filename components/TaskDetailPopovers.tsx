@@ -24,18 +24,18 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
     const isGlobalAdmin = currentUser.isSuperAdmin || currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין';
     const isManager = hasPermission('manage_team');
     
-    const availableUsers = users.filter((u: any) => {
+    const availableUsers = users.filter((u) => {
         if (isGlobalAdmin) return true; 
         if (isManager) return u.department === currentUser.department; 
         return u.id === currentUser.id; 
     });
 
-    const assignedUsers = availableUsers.filter((u: any) => 
+    const assignedUsers = availableUsers.filter((u) => 
         (task.assigneeIds && task.assigneeIds.includes(u.id)) || 
         (task.assigneeId === u.id)
     );
 
-    const filteredUsers = availableUsers.filter((u: any) => 
+    const filteredUsers = availableUsers.filter((u) => 
         u.name.toLowerCase().includes(assigneeSearch.toLowerCase())
     );
 
@@ -161,8 +161,8 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
                         </div>
                     </div>
                     <div className="p-1.5 space-y-0.5 max-h-60 overflow-y-auto custom-scrollbar">
-                        {filteredUsers.map((u: any) => {
-                            const isAssigned = assignedUsers.some((au: any) => au.id === u.id);
+                        {filteredUsers.map((u) => {
+                            const isAssigned = assignedUsers.some((au) => au.id === u.id);
                             return (
                                 <button 
                                     key={u.id}

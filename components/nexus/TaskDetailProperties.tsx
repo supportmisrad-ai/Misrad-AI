@@ -69,7 +69,7 @@ const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
     }
 };
 
-const RenderLabel = ({ icon, label }: { icon: any, label: string }) => (
+const RenderLabel = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
     <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
         {icon} {label}
     </div>
@@ -85,16 +85,16 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
     const priorityButtonRef = useRef<HTMLButtonElement>(null);
     const estimateButtonRef = useRef<HTMLButtonElement>(null);
 
-    const isExplicitlyUnassigned = (task as any).assigneeId === null;
+    const isExplicitlyUnassigned = task.assigneeId === null;
     const effectiveAssigneeIds: string[] = (() => {
         if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
         if (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId)) return [String(task.assigneeId)];
         if (isExplicitlyUnassigned) return [];
-        const fallback = (task.creatorId || currentUser?.id) as any;
+        const fallback = task.creatorId || currentUser?.id;
         return fallback ? [String(fallback)] : [];
     })();
 
-    const assignedUsers = users.filter((u: any) => effectiveAssigneeIds.includes(String(u.id)));
+    const assignedUsers = users.filter((u) => effectiveAssigneeIds.includes(String(u.id)));
 
     // Persist default assignee to DB so previews/cards match (unless explicitly unassigned)
     useEffect(() => {
@@ -103,7 +103,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
             (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) ||
             (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId));
         if (hasExplicit) return;
-        const fallback = (task.creatorId || currentUser?.id) as any;
+        const fallback = task.creatorId || currentUser?.id;
         if (!fallback) return;
         updateTask(task.id, { assigneeIds: [String(fallback)], assigneeId: String(fallback) });
     }, [
@@ -134,8 +134,8 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
     };
 
     const handleClientChange = (newClientId: string) => {
-        const client = clients.find((c: any) => c.id === newClientId);
-        const oldTags = task.tags.filter((t: any) => !clients.some((c: any) => c.companyName === t));
+        const client = clients.find((c) => c.id === newClientId);
+        const oldTags = task.tags.filter((t) => !clients.some((c) => c.companyName === t));
         updateTask(task.id, { 
             clientId: newClientId,
             tags: client ? [...oldTags, client.companyName] : oldTags
@@ -170,7 +170,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                 <CustomSelect 
                     value={task.status}
                     onChange={(val) => updateTask(task.id, { status: val })}
-                    options={workflowStages.map((s: any) => ({ 
+                    options={workflowStages.map((s) => ({ 
                         value: s.id, 
                         label: s.name, 
                         icon: <div className={`w-2 h-2 rounded-full ${getStatusSolidColor(s.color)}`} /> 
@@ -209,7 +209,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                             {assignedUsers.length > 0 ? (
                                 <>
                                     <div className="flex -space-x-2 space-x-reverse shrink-0">
-                                        {assignedUsers.slice(0,2).map((u: any, index: number) => (
+                                        {assignedUsers.slice(0,2).map((u, index) => (
                                             <img key={u.id || u.email || `${u.name}-${index}`} src={u.avatar} className="w-5 h-5 rounded-full border border-white shadow-sm" />
                                         ))}
                                     </div>
@@ -267,7 +267,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                         onChange={handleClientChange}
                         options={[
                             { value: '', label: 'פנימי / ללא' },
-                            ...clients.map((c: any) => ({ value: c.id, label: c.companyName }))
+                            ...clients.map((c) => ({ value: c.id, label: c.companyName }))
                         ]}
                         icon={<Briefcase size={16} />}
                         placeholder="שיוך לקוח"

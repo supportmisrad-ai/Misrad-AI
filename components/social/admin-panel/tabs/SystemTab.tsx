@@ -6,8 +6,8 @@ import { Activity, ShieldCheck, Lock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SystemTabProps {
-  apiHealth: any[];
-  auditLog: any[];
+  apiHealth: Record<string, unknown>[];
+  auditLog: Record<string, unknown>[];
   onPrevAuditPage?: () => void;
   onNextAuditPage?: () => void;
   disablePrevAudit?: boolean;
@@ -39,11 +39,11 @@ export default function SystemTab({
             <div key={i} className="flex items-center justify-between p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
               <div className="flex items-center gap-4">
                 <div className={`w-3 h-3 rounded-full ${api.status === 'תקין' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : api.status === 'תחזוקה' ? 'bg-amber-500' : 'bg-rose-500'}`}></div>
-                <span className="font-black text-slate-700">{api.name}</span>
+                <span className="font-black text-slate-700">{String(api.name)}</span>
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-black text-slate-500 uppercase">{api.status}</p>
-                <p className="text-xs font-black text-slate-900">{api.latency}</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase">{String(api.status)}</p>
+                <p className="text-xs font-black text-slate-900">{String(api.latency)}</p>
               </div>
             </div>
           ))}
@@ -72,14 +72,19 @@ export default function SystemTab({
           </Button>
         </div>
         <div className="flex flex-col gap-4">
-          {(auditLog.length > 0 ? auditLog.map((log: any) => ({
-            action: log.action,
-            user: log.user,
-            time: log.time,
-            icon: log.action.includes('חסימה') ? Lock : log.action.includes('התחברות') ? ShieldCheck : Zap,
-            color: log.action.includes('חסימה') ? 'text-rose-500' : log.action.includes('התחברות') ? 'text-indigo-500' : 'text-amber-500',
-            bgColor: log.action.includes('חסימה') ? 'bg-rose-50' : log.action.includes('התחברות') ? 'bg-indigo-50' : 'bg-amber-50',
-          })) : []).map((log, i) => {
+          {(auditLog.length > 0 ? auditLog.map((log) => {
+            const action = String(log.action ?? '');
+            const user = String(log.user ?? '');
+            const time = String(log.time ?? '');
+            return {
+              action,
+              user,
+              time,
+              icon: action.includes('חסימה') ? Lock : action.includes('התחברות') ? ShieldCheck : Zap,
+              color: action.includes('חסימה') ? 'text-rose-500' : action.includes('התחברות') ? 'text-indigo-500' : 'text-amber-500',
+              bgColor: action.includes('חסימה') ? 'bg-rose-50' : action.includes('התחברות') ? 'bg-indigo-50' : 'bg-amber-50',
+            };
+          }) : []).map((log, i) => {
             const Icon = log.icon;
             return (
               <div key={i} className="flex items-center gap-6 p-4 border-b border-indigo-100 last:border-0 group hover:bg-indigo-50/50 rounded-xl transition-colors">

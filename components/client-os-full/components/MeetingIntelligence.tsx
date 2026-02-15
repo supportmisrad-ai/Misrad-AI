@@ -45,8 +45,8 @@ const MeetingIntelligence: React.FC = () => {
     });
   }, [getToken]);
 
-  const orgId = (typeof window !== 'undefined'
-    ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
+  const orgId = (typeof globalThis !== 'undefined'
+    ? ((globalThis as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
     : null) ?? null;
 
   // Sync meetings from context
@@ -56,7 +56,7 @@ const MeetingIntelligence: React.FC = () => {
 
   const startLiveSession = async () => {
     if (!liveCoachEnabled) {
-      window.dispatchEvent(
+      globalThis.dispatchEvent(
         new CustomEvent('nexus-toast', {
           detail: { message: 'Live Coach מושבת לערב השקה (עובד רק דרך שרת).', type: 'info' },
         })
@@ -66,7 +66,7 @@ const MeetingIntelligence: React.FC = () => {
 
     try {
       if (!orgId) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
+        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
         return;
       }
 
@@ -75,7 +75,7 @@ const MeetingIntelligence: React.FC = () => {
 
       let recorder: MediaRecorder;
       const preferred = 'audio/webm;codecs=opus';
-      if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(preferred)) {
+      if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(preferred)) {
         recorder = new MediaRecorder(stream, { mimeType: preferred });
       } else {
         recorder = new MediaRecorder(stream);
@@ -108,8 +108,9 @@ const MeetingIntelligence: React.FC = () => {
           });
 
           if (!res.ok) return;
-          const data = (await res.json().catch(() => ({}))) as any;
-          const text = String(data?.text || data?.data?.text || '').trim();
+          const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+          const nested = (data?.data && typeof data.data === 'object' ? data.data : {}) as Record<string, unknown>;
+          const text = String(data?.text || nested?.text || '').trim();
           if (!text) return;
 
           let nextTranscript = '';
@@ -139,8 +140,9 @@ const MeetingIntelligence: React.FC = () => {
                   body: JSON.stringify({ orgId, transcript: nextTranscript }),
                 });
                 if (!insightRes.ok) return;
-                const insightJson = (await insightRes.json().catch(() => ({}))) as any;
-                const insight = String(insightJson?.insight || insightJson?.data?.insight || '').trim();
+                const insightJson = (await insightRes.json().catch(() => ({}))) as Record<string, unknown>;
+                const nestedInsight = (insightJson?.data && typeof insightJson.data === 'object' ? insightJson.data : {}) as Record<string, unknown>;
+                const insight = String(insightJson?.insight || nestedInsight?.insight || '').trim();
                 if (insight) setLiveInsight(insight);
               } finally {
                 liveInsightInFlightRef.current = false;
@@ -153,8 +155,9 @@ const MeetingIntelligence: React.FC = () => {
       };
 
       recorder.start(2000);
-    } catch (e: any) {
-      window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפעלת Live', type: 'error' } }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'שגיאה בהפעלת Live';
+      globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
       setIsLiveActive(false);
       setActiveView('LIST');
     }
@@ -202,17 +205,19 @@ const MeetingIntelligence: React.FC = () => {
           body: JSON.stringify({ orgId, transcript }),
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({} as any));
-          throw new Error(err?.error || 'Failed to analyze');
+          const err = await res.json().catch(() => ({} as Record<string, unknown>));
+          throw new Error(String(err?.error || 'Failed to analyze'));
         }
-        const json = (await res.json().catch(() => ({} as any))) as any;
-        const analysis = (json?.analysis || json?.data?.analysis) as MeetingAnalysisResult | undefined;
+        const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const nestedData = (json?.data && typeof json.data === 'object' ? json.data : {}) as Record<string, unknown>;
+        const analysis = (json?.analysis || nestedData?.analysis) as MeetingAnalysisResult | undefined;
         if (!analysis) throw new Error('Missing analysis');
 
         setAnalysisResult(analysis);
         setActiveView('RESULT');
-      } catch (e: any) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפקת דוח Live', type: 'error' } }));
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'שגיאה בהפקת דוח Live';
+        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
         setActiveView('LIST');
       } finally {
         setIsLiveFinalizing(false);
@@ -227,20 +232,20 @@ const MeetingIntelligence: React.FC = () => {
       const isAudio = mime.startsWith('audio/');
       const isVideo = mime.startsWith('video/');
       if (!isAudio && !isVideo) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ניתן להעלות קבצי שמע/וידאו בלבד.', type: 'error' } }));
+        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ניתן להעלות קבצי שמע/וידאו בלבד.', type: 'error' } }));
         e.target.value = '';
         return;
       }
 
       if (!orgId) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
+        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
         e.target.value = '';
         return;
       }
 
       const effectiveClientId = selectedClientId || clients?.[0]?.id;
       if (!effectiveClientId) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'בחר לקוח לפני העלאה.', type: 'error' } }));
+        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'בחר לקוח לפני העלאה.', type: 'error' } }));
         e.target.value = '';
         return;
       }
@@ -267,7 +272,7 @@ const MeetingIntelligence: React.FC = () => {
           });
 
           if (!uploadUrlRes.ok) {
-            const err = await uploadUrlRes.json().catch(() => ({} as any));
+            const err = await uploadUrlRes.json().catch(() => ({} as Record<string, unknown>));
             throw new Error(err?.error || 'Failed to get upload URL');
           }
 
@@ -304,7 +309,7 @@ const MeetingIntelligence: React.FC = () => {
           });
 
           if (!res.ok) {
-            const err = await res.json().catch(() => ({} as any));
+            const err = await res.json().catch(() => ({} as Record<string, unknown>));
             throw new Error(err?.error || 'Processing failed');
           }
 
@@ -312,9 +317,10 @@ const MeetingIntelligence: React.FC = () => {
           if (!json.analysis) throw new Error('Missing analysis');
           setAnalysisResult(json.analysis);
           setActiveView('RESULT');
-          window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
-        } catch (err: any) {
-          window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: err?.message || 'שגיאה בניתוח ההקלטה', type: 'error' } }));
+          globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'שגיאה בניתוח ההקלטה';
+          globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
           setActiveView('LIST');
         } finally {
           setProcessingFileName(null);
@@ -431,7 +437,7 @@ const MeetingIntelligence: React.FC = () => {
                 <select
                   className="w-full bg-transparent border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
                   value={meetingLocation}
-                  onChange={(e) => setMeetingLocation(e.target.value as any)}
+                  onChange={(e) => setMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
                 >
                   <option value="ZOOM">ZOOM</option>
                   <option value="FRONTAL">FRONTAL</option>

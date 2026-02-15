@@ -11,13 +11,14 @@ import {
   Download,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { ClientAction, ClientAsset } from '../../types';
 
 interface PortalVaultProps {
-  pendingTasks: any[];
-  clientAssets: any[];
+  pendingTasks: ClientAction[];
+  clientAssets: ClientAsset[];
   isUploading: string | null;
   onUpload: (id: string, title: string) => void;
-  onOpenForm: (task: any) => void;
+  onOpenForm: (task: ClientAction) => void;
   onActionComplete: (id: string, title: string) => void;
 }
 

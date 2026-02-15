@@ -59,7 +59,7 @@ function calculateSchedule(tasksToSchedule: {id: string, title: string, duration
                 id: `evt-${collision.start}`,
                 startTime: minutesToTime(collision.start),
                 endTime: minutesToTime(collision.end),
-                type: collision.type as any,
+                type: collision.type as 'task' | 'event' | 'break' | 'gap',
                 title: collision.title,
                 duration: collision.end - collision.start,
                 isFixed: true
@@ -621,9 +621,9 @@ export const MorningBriefing: React.FC = () => {
                                         transition={{ duration: 0.2 }}
                                         className="flex items-start gap-4 md:gap-6 group relative"
                                         draggable={!slot.isFixed}
-                                        onDragStart={(e) => handleDragStart(e as any, idx)}
-                                        onDragOver={(e) => handleDragOver(e as any, idx)}
-                                        onDrop={(e) => handleDrop(e as any)}
+                                        onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent, idx)}
+                                        onDragOver={(e) => handleDragOver(e as unknown as React.DragEvent, idx)}
+                                        onDrop={(e) => handleDrop(e as unknown as React.DragEvent)}
                                         style={{ opacity: draggedSlotIndex === idx ? 0.4 : 1 }}
                                     >
                                         {/* Time Column */}

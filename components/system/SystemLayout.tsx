@@ -22,7 +22,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
   const { currentUser, notifications, organization } = useData();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isShabbat } = useShabbat();
-  const isShabbatProtected = (organization as any)?.isShabbatProtected !== false;
+  const isShabbatProtected = (organization as { isShabbatProtected?: boolean } | null)?.isShabbatProtected !== false;
 
   const isActive = (path: string) => (pathname || '/') === toNexusPath(basePath, path);
   

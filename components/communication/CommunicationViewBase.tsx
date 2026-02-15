@@ -7,121 +7,53 @@ import {
   CalendarPlus,
   Check,
   CheckCheck,
-  Clock,
   CloudLightning,
-  Delete,
   FileText,
   Globe,
-  GripHorizontal,
   Layers,
   Link,
   Mail,
   MessageSquare,
-  Mic,
-  MicOff,
   MoreVertical,
-  Paperclip,
-  Pause,
   Phone,
-  PhoneOff,
-  Play,
   Search,
   Send,
-  Share2,
-  ShieldAlert,
   Smartphone,
-  Sparkles,
-  User,
-  UserPlus,
   Wand2,
-  X,
   Zap,
-  ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
-import type { ToastType } from '@/contexts/ToastContext';
+import { CommCallAnalysis, CommPhoneTab } from './comm-view';
+import type {
+  CommunicationActivity,
+  CommunicationLead,
+  CommunicationTask,
+  AddToastFn,
+  UseToastHook,
+  QuickAsset,
+  Stage,
+  UseOnClickOutsideHook,
+  AIDraftFn,
+  CallButtonComponent,
+  ChannelFilter,
+  SendChannel,
+} from './comm-view/types';
 
-type DateLike = string | number | Date;
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-export type CommunicationActivityType = 'whatsapp' | 'sms' | 'email' | 'note' | 'call' | string;
-
-export interface CommunicationActivity {
-  id: string;
-  type: CommunicationActivityType;
-  content: string;
-  timestamp: DateLike;
-  direction?: 'outbound' | 'inbound' | string;
-  metadata?: unknown;
-}
-
-export interface CommunicationLead {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  company?: string;
-  status: string;
-  value?: number;
-  createdAt: DateLike;
-  isHot?: boolean;
-  activities: CommunicationActivity[];
-  productInterest?: string;
-  [key: string]: unknown;
-}
-
-export interface CommunicationTask {
-  id: string;
-  title: string;
-  assigneeId?: string;
-  dueDate?: DateLike;
-  priority?: unknown;
-  status?: unknown;
-  tags?: unknown;
-  [key: string]: unknown;
-}
-
-export type AddToastFn = (message: string, type?: ToastType) => void;
-
-export type UseToastHook = () => { addToast: AddToastFn };
-
-export interface QuickAsset {
-  id: string;
-  label: string;
-  value: string;
-}
-
-export interface Stage {
-  id: string;
-  label: string;
-  accent?: string;
-}
-
-export type UseOnClickOutsideHook = (
-  ref: React.RefObject<HTMLElement>,
-  handler: (event: MouseEvent | TouchEvent) => void
-) => void;
-
-export type AIDraftFn = (ctx: {
-  activeLead: CommunicationLead;
-  selectedSendChannel: 'whatsapp' | 'sms' | 'email';
-}) => Promise<string | null>;
-
-export type CallButtonComponent = React.ComponentType<{
-  phoneNumber: string;
-  size?: string;
-  variant?: string;
-  className?: string;
-  user?: unknown;
-  onToast?: AddToastFn;
-  onCallInitiated?: (phone: string) => void;
-}>;
+// Re-export all types so consumers keep importing from this file
+export type {
+  CommunicationActivityType,
+  CommunicationActivity,
+  CommunicationLead,
+  CommunicationTask,
+  AddToastFn,
+  UseToastHook,
+  QuickAsset,
+  Stage,
+  UseOnClickOutsideHook,
+  AIDraftFn,
+  CallButtonComponent,
+} from './comm-view/types';
 
 export interface CommunicationViewBaseProps {
   leads: CommunicationLead[];
@@ -160,8 +92,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 }) => {
   const { addToast } = useToast();
 
-  type ChannelFilter = 'all' | 'whatsapp' | 'sms' | 'email';
-  type SendChannel = 'whatsapp' | 'sms' | 'email';
   type AISuggestion = { title?: string; content?: string } & Record<string, unknown>;
 
   const [activeTab, setActiveTab] = useState<'phone' | 'inbox'>(initialTab);
@@ -173,7 +103,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [transcript, setTranscript] = useState<{ sender: string; text: string }[]>([]);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
@@ -283,105 +212,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
       });
   }, [activeLead]);
 
-  const renderCallAnalysisActivity = (metadata: unknown) => {
-    const ca = asObject(asObject(metadata)?.callAnalysis);
-    if (!ca) return null;
-
-    const audio = asObject(ca.audio);
-    const audioSrc = String(audio?.signedUrl || audio?.url || '').trim();
-    const analysis = asObject(ca.analysis);
-    const score = Number.isFinite(Number(analysis?.score)) ? Number(analysis?.score) : null;
-    const summary = String(analysis?.summary || '').trim();
-    const topics = asObject(analysis?.topics);
-    const tasks = Array.isArray(topics?.tasks) ? topics.tasks : [];
-    const promises = Array.isArray(topics?.promises) ? topics.promises : [];
-    const objections = Array.isArray(analysis?.objections) ? analysis.objections : [];
-    const transcript = Array.isArray(analysis?.transcript) ? analysis.transcript : [];
-
-    return (
-      <div className="mt-3 space-y-3">
-        {audioSrc ? (
-          <audio controls className="w-full">
-            <source src={audioSrc} />
-          </audio>
-        ) : null}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">ציון</div>
-            <div className="text-lg font-black text-slate-900">{score == null ? '—' : score}</div>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 md:col-span-2">
-            <div className="text-[11px] font-black text-slate-500">סיכום</div>
-            <div className="text-sm font-bold text-slate-800 whitespace-pre-wrap">{summary || '—'}</div>
-          </div>
-        </div>
-
-        {promises.length || tasks.length ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="bg-white border border-slate-200 rounded-2xl p-3">
-              <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
-              <div className="mt-2 space-y-1">
-                {(promises.length ? promises : ['—']).slice(0, 8).map((p: unknown, idx: number) => (
-                  <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-3">
-              <div className="text-[11px] font-black text-slate-500">משימות</div>
-              <div className="mt-2 space-y-1">
-                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => (
-                  <div key={idx} className="text-sm font-bold text-slate-800">{String(t)}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {objections.length ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
-            <div className="mt-2 space-y-2">
-              {objections.slice(0, 6).map((o: unknown, idx: number) => {
-                const oObj = asObject(o);
-                const objection = typeof oObj?.objection === 'string' ? oObj.objection : '';
-                const reply = typeof oObj?.reply === 'string' ? oObj.reply : '';
-                const nextQuestion = typeof oObj?.next_question === 'string' ? oObj.next_question : '';
-                return (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                    <div className="text-xs font-black text-slate-900">{String(objection || '')}</div>
-                    <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String(reply || '')}</div>
-                    {nextQuestion ? (
-                      <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(nextQuestion)}</div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        {transcript.length ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
-            <div className="mt-2 space-y-2">
-              {transcript.slice(0, 10).map((t: unknown, idx: number) => {
-                const tObj = asObject(t);
-                const speaker = typeof tObj?.speaker === 'string' ? tObj.speaker : '';
-                const text = typeof tObj?.text === 'string' ? tObj.text : '';
-                return (
-                  <div key={idx} className="text-sm font-bold text-slate-800">
-                    <span className="text-slate-500">{String(speaker || '')}:</span> {String(text || '')}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   useEffect(() => {
     if (isCalling) {
       const interval = setInterval(() => {
@@ -391,11 +221,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
     }
   }, [isCalling]);
 
-  useEffect(() => {
-    if (transcriptEndRef.current) {
-      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [transcript]);
 
   const handleUpdateStatus = (statusId: string) => {
     if (selectedChatId && onUpdateLead) {
@@ -809,7 +634,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                             <div className="p-4">
                               <p className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${isMe ? 'text-white' : 'text-slate-700'}`}>{msg.text}</p>
 
-                              {String(msg.type) === 'call' ? renderCallAnalysisActivity(msg.metadata) : null}
+                              {String(msg.type) === 'call' ? <CommCallAnalysis metadata={msg.metadata} /> : null}
 
                               <div className={`text-[10px] mt-2 flex items-center justify-end gap-1.5 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
                                 <span className="font-mono">{msg.time}</span>
@@ -967,176 +792,24 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
         {activeTab === 'phone' && (
           <div className="flex h-full">
-            {isCalling && activeCall ? (
-              <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 p-4 md:p-8 gap-8 overflow-y-auto">
-                <div className="flex flex-col items-center justify-center bg-slate-50 rounded-3xl border border-slate-200 p-8 shadow-inner">
-                  <div
-                    className={`w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center text-4xl font-bold mb-6 shadow-xl border-4 border-white ${
-                      isOnHold ? 'bg-amber-100 text-amber-500 animate-pulse' : 'bg-onyx-900 text-white'
-                    }`}
-                  >
-                    {activeCall.name.charAt(0)}
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-1 text-center">{activeCall.name}</h2>
-                  <p className="text-slate-500 font-mono text-lg mb-6">{activeCall.phone}</p>
-                  <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full text-sm font-bold text-primary shadow-sm mb-12">
-                    <Clock size={16} /> {Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 w-full max-w-sm">
-                    <button
-                      onClick={() => setIsMuted(!isMuted)}
-                      className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all ${
-                        isMuted ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                      <span className="text-xs font-bold mt-2">השתק</span>
-                    </button>
-                    <button
-                      onClick={() => setIsOnHold(!isOnHold)}
-                      className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all ${
-                        isOnHold ? 'bg-amber-500 text-white' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                      }`}
-                    >
-                      {isOnHold ? <Play size={24} fill="currentColor" /> : <Pause size={24} fill="currentColor" />}
-                      <span className="text-xs font-bold mt-2">המתנה</span>
-                    </button>
-                    <button className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all">
-                      <GripHorizontal size={24} />
-                      <span className="text-xs font-bold mt-2">מקשים</span>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleHangup}
-                    className="mt-8 w-full max-w-sm bg-red-500 text-white font-bold py-4 rounded-2xl hover:bg-red-600 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2"
-                  >
-                    <PhoneOff size={24} fill="currentColor" /> נתק שיחה
-                  </button>
-                </div>
-
-                <div className="flex flex-col gap-6">
-                  <div className="flex-1 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col overflow-hidden min-h-[300px]">
-                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <MessageSquare size={18} className="text-primary" /> תמלול AI בזמן אמת
-                    </h3>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 bg-slate-50 p-4 rounded-xl">
-                      {transcript.map((line, i) => (
-                        <div key={i} className={`flex ${line.sender === 'agent' ? 'justify-start' : 'justify-end'}`}>
-                          <div
-                            className={`max-w-[90%] p-3 rounded-xl text-xs leading-relaxed font-medium ${
-                              line.sender === 'agent' ? 'bg-onyx-800 text-white' : 'bg-white text-slate-800 border border-slate-200 shadow-sm'
-                            }`}
-                          >
-                            <span className="font-black block mb-1 opacity-70 text-[9px] uppercase tracking-wider">{line.sender === 'agent' ? 'אני (סוכן)' : 'לקוח'}</span>
-                            {line.text}
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={transcriptEndRef}></div>
-                    </div>
-                  </div>
-
-                  <div className="h-1/3 bg-gradient-to-br from-rose-50 to-white border border-rose-100 rounded-3xl p-6 shadow-sm overflow-y-auto min-h-[150px]">
-                    <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                      <Zap size={18} className="text-primary" /> המלצות טקטיות (Nexus AI)
-                    </h3>
-                    <div className="space-y-2">
-                      {aiSuggestions.map((s, i) => (
-                        <div key={i} className="bg-white p-3 rounded-xl border border-rose-100 shadow-sm flex gap-3 animate-scale-in">
-                          <div className="mt-0.5 text-amber-500">
-                            <ShieldAlert size={16} />
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-800 text-sm">{s.title}</div>
-                            <div className="text-xs text-slate-600 mt-1 font-medium">{s.content}</div>
-                          </div>
-                        </div>
-                      ))}
-                      {aiSuggestions.length === 0 && <p className="text-xs text-slate-400 text-center mt-4 font-bold">המערכת מאזינה ומנתחת התנגדויות...</p>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/30">
-                <div className="w-full max-w-sm bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200">
-                  {onUploadRecordingAction ? (
-                    <div className="mb-5 flex justify-center">
-                      <label
-                        className={`px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black cursor-pointer ${
-                          isUploadingRecording ? 'opacity-60 pointer-events-none' : ''
-                        }`}
-                      >
-                        {isUploadingRecording ? (
-                          <>
-                            <Skeleton className="inline-block ml-2 w-4 h-4 rounded-full" /> מעבד...
-                          </>
-                        ) : (
-                          <>
-                            <Paperclip size={16} className="inline-block ml-2" /> העלה הקלטה
-                          </>
-                        )}
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="audio/*"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            e.currentTarget.value = '';
-                            if (!f) return;
-                            void handleUploadRecording(f);
-                          }}
-                        />
-                      </label>
-                    </div>
-                  ) : null}
-                  <div className="mb-8 relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={dialNumber}
-                      placeholder="חייג מספר..."
-                      dir="ltr"
-                      className="w-full text-4xl font-mono text-center bg-transparent focus:outline-none text-slate-800 placeholder:text-slate-200 h-16 font-black tracking-wider"
-                    />
-                    {dialNumber && (
-                      <button
-                        onClick={() => setDialNumber((prev) => prev.slice(0, -1))}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Delete size={24} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 mb-8">
-                    {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((d) => (
-                      <button
-                        key={d}
-                        onClick={() => setDialNumber((prev) => prev + d)}
-                        className="h-16 rounded-full bg-slate-50 shadow-sm border border-slate-100 text-2xl font-bold text-slate-700 hover:bg-white hover:border-rose-200 hover:text-primary active:scale-95 transition-all flex items-center justify-center"
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-center">
-                    <button
-                      onClick={() => handleCall()}
-                      disabled={!dialNumber}
-                      className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl text-white transition-all transform hover:scale-105 active:scale-95 ${
-                        dialNumber ? 'bg-emerald-50 hover:bg-emerald-600 shadow-emerald-200' : 'bg-slate-200 cursor-not-allowed'
-                      }`}
-                    >
-                      <Phone size={32} fill="currentColor" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <CommPhoneTab
+              isCalling={isCalling}
+              activeCall={activeCall}
+              callDuration={callDuration}
+              dialNumber={dialNumber}
+              isMuted={isMuted}
+              isOnHold={isOnHold}
+              transcript={transcript}
+              aiSuggestions={aiSuggestions}
+              isUploadingRecording={isUploadingRecording}
+              showUploadRecording={Boolean(onUploadRecordingAction)}
+              onSetDialNumber={setDialNumber}
+              onSetIsMuted={setIsMuted}
+              onSetIsOnHold={setIsOnHold}
+              onHangup={handleHangup}
+              onCall={handleCall}
+              onUploadRecording={(f) => void handleUploadRecording(f)}
+            />
           </div>
         )}
       </div>

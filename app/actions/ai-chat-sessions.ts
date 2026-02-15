@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireAuth } from '@/lib/errorHandler';
@@ -139,7 +141,7 @@ export async function upsertChatSession(data: ChatSessionData) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error upserting chat session:', error);
+    logger.error('ai-chat-sessions', 'Error upserting chat session:', error);
     return { success: false, error: String(error) };
   }
 }
@@ -187,7 +189,7 @@ export async function endChatSession(data: EndSessionData) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error ending chat session:', error);
+    logger.error('ai-chat-sessions', 'Error ending chat session:', error);
     return { success: false, error: String(error) };
   }
 }
@@ -231,7 +233,7 @@ export async function saveChatMessage(sessionId: string, role: 'user' | 'assista
 
     return { success: true };
   } catch (error) {
-    console.error('Error saving chat message:', error);
+    logger.error('ai-chat-sessions', 'Error saving chat message:', error);
     return { success: false, error: String(error) };
   }
 }
@@ -348,7 +350,7 @@ export async function getAIInsights(filters?: {
       },
     };
   } catch (error) {
-    console.error('Error getting AI insights:', error);
+    logger.error('ai-chat-sessions', 'Error getting AI insights:', error);
     return { success: false, error: String(error) };
   }
 }

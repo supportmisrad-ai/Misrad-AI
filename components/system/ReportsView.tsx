@@ -38,7 +38,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
     );
 
     const totalSpent = useMemo(
-      () => campaigns.reduce((sum, c) => sum + (Number((c as any).spent) || 0), 0),
+      () => campaigns.reduce((sum, c) => sum + (Number((c as unknown as { spent?: number }).spent) || 0), 0),
       [campaigns]
     );
 
@@ -93,7 +93,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
                         ].map((p) => (
                             <button
                                 key={p.id}
-                                onClick={() => setPeriod(p.id as any)}
+                                onClick={() => setPeriod(p.id as 'month' | 'quarter' | 'year')}
                                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                                     period === p.id 
                                     ? 'bg-slate-900 text-white shadow-lg' 

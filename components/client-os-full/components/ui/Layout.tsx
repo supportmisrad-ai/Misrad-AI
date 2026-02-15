@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
   const fallbackIcon = <OSModuleSquircleIcon moduleKey="client" boxSize={40} iconSize={18} className="shadow-none" />;
 
-  const [clientUserData, setClientUserData] = useState<any>(null);
+  const [clientUserData, setClientUserData] = useState<Record<string, unknown> | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('—');
   const [greeting, setGreeting] = useState<string>('');
   const [isMounted, setIsMounted] = useState(false);
@@ -59,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     setIsMounted(true);
 
     try {
-      setClientUserData(((window as any).__CLIENT_OS_USER__ as any) || null);
+      setClientUserData(((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as Record<string, unknown>) || null);
     } catch {
       setClientUserData(null);
     }
@@ -74,9 +74,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   }, []);
 
   const userLabel = useMemo(() => {
-    const userData = clientUserData;
-    const rawName = userData?.identity?.name || userData?.name || '';
-    const rawRole = userData?.identity?.role || userData?.role || '';
+    const userData = clientUserData as Record<string, unknown> | null | undefined;
+    const identity = userData?.identity as Record<string, unknown> | undefined;
+    const rawName = identity?.name || userData?.name || '';
+    const rawRole = identity?.role || userData?.role || '';
     const name = String(rawName || '').trim();
     const roleLabel = String(rawRole || '').trim();
     const initials = name
@@ -123,11 +124,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const userData = ((window as any).__CLIENT_OS_USER__ as any) || null;
-    const orgName = userData?.organization?.name || userData?.organization?.name_he || userData?.organization?.id || null;
-    const logoUrl = userData?.organization?.logo || null;
+    const userData = ((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as Record<string, unknown> | null) || null;
+    const orgSlug = String(userData?.organizationSlug || userData?.orgSlug || '') || null;
+    const org = (userData?.organization && typeof userData.organization === 'object' ? userData.organization : null) as Record<string, unknown> | null;
+    const orgName = org?.name || org?.name_he || org?.id || null;
+    const logoUrl = (typeof org?.logo === 'string' ? org.logo : null) as string | null;
     if (!orgName) return;
-    setWorkspaceBrand({ name: String(orgName), logoUrl });
+    setWorkspaceBrand({ name: String(orgName), logoUrl: String(logoUrl || '') });
   }, []);
 
   useEffect(() => {
@@ -296,7 +299,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     try {
       const organizationId =
         (typeof window !== 'undefined'
-          ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
+          ? ((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
           : null) ?? null;
 
       const response = await fetch('/api/support', {
@@ -314,18 +317,20 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errPayload = (errorData as any)?.data && typeof (errorData as any).data === 'object' ? (errorData as any).data : errorData;
-        throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
+        const errorData = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        const errPayload = errorData?.data && typeof errorData.data === 'object' ? (errorData.data as Record<string, unknown>) : errorData;
+        throw new Error(String(errorData?.error || errPayload?.error || 'שגיאה ביצירת קריאת תמיכה'));
       }
 
-      const data = await response.json().catch(() => ({}));
-      const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-      const ticketNumber = String((payload as any)?.ticket?.ticket_number || '').trim();
+      const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      const payload = data?.data && typeof data.data === 'object' ? (data.data as Record<string, unknown>) : data;
+      const ticket = (payload?.ticket && typeof payload.ticket === 'object' ? payload.ticket : null) as Record<string, unknown> | null;
+      const ticketNumber = String(ticket?.ticket_number || '').trim();
       setSupportTicketId(ticketNumber || '');
       setSupportDraft({ category: 'Tech', subject: '', message: '' });
-    } catch (err: any) {
-      setSupportError(err?.message || 'שגיאה ביצירת קריאת תמיכה. אנא נסה שוב.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'שגיאה ביצירת קריאת תמיכה. אנא נסה שוב.';
+      setSupportError(msg);
     } finally {
       setIsSubmittingSupport(false);
     }

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 export const dynamic = 'force-dynamic';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -16,24 +17,29 @@ async function GETHandler(req: Request) {
     return NextResponse.json({ error: 'Missing module_id' }, { status: 400 });
   }
 
-  try {
-    const items = await prisma.strategic_content.findMany({
-      where: {
-        module_id: String(moduleId),
-        ...(category ? { category: String(category) } : {}),
-      },
-      select: { id: true, category: true, title: true, content: true, module_id: true },
-      orderBy: [{ category: 'asc' }, { title: 'asc' }],
-    });
+  return await withTenantIsolationContext(
+    { source: 'api_strategic_content', reason: 'read_strategic_content', suppressReporting: true },
+    async () => {
+      try {
+        const items = await prisma.strategic_content.findMany({
+          where: {
+            module_id: String(moduleId),
+            ...(category ? { category: String(category) } : {}),
+          },
+          select: { id: true, category: true, title: true, content: true, module_id: true },
+          orderBy: [{ category: 'asc' }, { title: 'asc' }],
+        });
 
-    return NextResponse.json({ items: items || [] });
-  } catch (e: unknown) {
-    const safeMsg = 'Failed';
-    return NextResponse.json(
-      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
-      { status: 500 }
-    );
-  }
+        return NextResponse.json({ items: items || [] });
+      } catch (e: unknown) {
+        const safeMsg = 'Failed';
+        return NextResponse.json(
+          { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+          { status: 500 }
+        );
+      }
+    }
+  );
 }
 
 export const GET = shabbatGuard(GETHandler);

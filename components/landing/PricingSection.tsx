@@ -152,12 +152,12 @@ export default function PricingSection({
   const recommendedPricing = (() => {
     try {
       return calculateOrderAmount({
-        packageType: recommendedPackageType as any,
+        packageType: recommendedPackageType as 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire' | 'the_mentor',
         billingCycle: checkoutBillingCycle,
         seats: users,
       });
     } catch {
-      return { amount: BILLING_PACKAGES[recommendedPackageType].monthlyPrice, modules: recommendedModules, includedSeats: 1, extraSeats: 0 } as any;
+      return { amount: BILLING_PACKAGES[recommendedPackageType].monthlyPrice, modules: recommendedModules, includedSeats: 1, extraSeats: 0 };
     }
   })();
 
@@ -181,7 +181,7 @@ export default function PricingSection({
         seats: users,
       });
     } catch {
-      return { amount: 149, modules: [selectedSoloModule], includedSeats: 1, extraSeats: 0 } as any;
+      return { amount: 149, modules: [selectedSoloModule], includedSeats: 1, extraSeats: 0 };
     }
   })();
 

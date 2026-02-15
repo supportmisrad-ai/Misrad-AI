@@ -80,7 +80,7 @@ export function LandingPackageVideosPanel({ hideHeader }: { hideHeader?: boolean
         const results = await Promise.all(
           rows.map(async (r) => {
             const res = await getContentByKey('landing', 'package_landings', r.contentKey);
-            return { key: r.key, value: res.success ? (res.data as any) : null };
+            return { key: r.key, value: res.success ? (res.data as unknown) : null };
           })
         );
 
@@ -121,8 +121,8 @@ export function LandingPackageVideosPanel({ hideHeader }: { hideHeader?: boolean
         return;
       }
       addToast('נשמר', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בשמירה', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירה', 'error');
     } finally {
       setSaving((s) => ({ ...s, [row.key]: false }));
     }

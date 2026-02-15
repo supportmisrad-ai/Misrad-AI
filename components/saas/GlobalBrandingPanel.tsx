@@ -107,8 +107,8 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
       if (!url) throw new Error('לא התקבל URL מהעלאה');
 
       await saveDefaultLogoUrl(url);
-    } catch (err: any) {
-      alert(err?.message || 'שגיאה');
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || 'שגיאה');
     } finally {
       setIsSaving(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -119,8 +119,8 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
     if (!confirm('למחוק לוגו ברירת־מחדל?')) return;
     try {
       await saveDefaultLogoUrl(null);
-    } catch (e: any) {
-      alert(e?.message || 'שגיאה');
+    } catch (e: unknown) {
+      alert((e instanceof Error ? e.message : String(e)) || 'שגיאה');
     }
   };
 

@@ -187,8 +187,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
       if (!res.ok) throw new Error(data.error || 'שגיאה בהרצת אינדוקס');
       alert(`אינדוקס הסתיים\n\nSystem Leads: ${data.systemLeads?.succeeded || 0}/${data.systemLeads?.attempted || 0}\nNexus Clients: ${data.nexusClients?.succeeded || 0}/${data.nexusClients?.attempted || 0}`);
       await loadCreditStatus(selectedOrgId);
-    } catch (e: any) {
-      alert(String(e?.message || e));
+    } catch (e: unknown) {
+      alert(String(e instanceof Error ? e.message : e));
     } finally {
       setRunningIngest(false);
     }
@@ -278,8 +278,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
               try {
                 await adjustCredits(1000);
                 alert('נוספו 10₪ קרדיטים (1000 סנט)');
-              } catch (e: any) {
-                alert(String(e?.message || e));
+              } catch (e: unknown) {
+                alert(String(e instanceof Error ? e.message : e));
               }
             }}
             disabled={!selectedOrgId}
@@ -293,8 +293,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
             onClick={async () => {
               try {
                 await downloadAiBackup();
-              } catch (e: any) {
-                alert(String(e?.message || e));
+              } catch (e: unknown) {
+                alert(String(e instanceof Error ? e.message : e));
               }
             }}
             disabled={!selectedOrgId}

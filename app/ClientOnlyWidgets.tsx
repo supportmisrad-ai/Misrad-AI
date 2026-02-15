@@ -129,7 +129,7 @@ export function ClientOnlyClerkWidgets() {
       setEnablePasskeyPrompt(true);
     };
 
-    const w = window as any;
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
       const id = w.requestIdleCallback(enable, { timeout: 1500 });
       return () => {
@@ -157,7 +157,7 @@ export function ClientOnlyClerkWidgets() {
       setEnableAiAssistant(true);
     };
 
-    const w = window as any;
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
       const id = w.requestIdleCallback(enable, { timeout: 1500 });
       return () => {
@@ -198,7 +198,7 @@ export function ClientOnlyGlobalWidgets() {
       setEnableGlobalWidgets(true);
     };
 
-    const w = window as any;
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
       const id = w.requestIdleCallback(enable, { timeout: 1500 });
       return () => {

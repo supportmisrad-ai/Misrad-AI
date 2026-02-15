@@ -9,6 +9,7 @@ import { asObject } from '@/lib/shared/unknown';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -48,7 +49,9 @@ async function GETHandler() {
     return apiSuccess({ workspaces });
   }
 
-  const loadPromise = (async () => {
+  const loadPromise = withTenantIsolationContext(
+    { source: 'api_workspaces_list', reason: 'list_user_workspaces', suppressReporting: true },
+    async () => {
     let socialUser: { id: string; organization_id: string | null } | null = null;
     try {
       socialUser = await prisma.organizationUser.findUnique({
@@ -169,7 +172,8 @@ async function GETHandler() {
     });
 
     return resolved;
-  })();
+  }
+  );
 
   workspacesInFlight.set(clerkUserId, loadPromise);
   try {

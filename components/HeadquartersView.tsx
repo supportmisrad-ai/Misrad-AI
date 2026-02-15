@@ -5,7 +5,7 @@ import { Heart, Book, Activity, Lock, Building2, Users } from 'lucide-react';
 import HRView from './HRView';
 import KnowledgeBaseView from './KnowledgeBaseView';
 import TrainingView from './TrainingView';
-import AssetsView from './AssetsView';
+import { AssetsView } from '@/views/AssetsView';
 
 type LeadLite = {
     id: string;
@@ -33,7 +33,7 @@ const HeadquartersView: React.FC<HeadquartersViewProps> = ({ onAddTask, leads = 
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'hr' | 'knowledge' | 'training' | 'assets')}
                         className={`flex items-center gap-2 py-3 px-1 border-b-2 transition-all whitespace-nowrap text-base font-bold ${
                             activeTab === tab.id 
                             ? 'border-primary text-primary' 

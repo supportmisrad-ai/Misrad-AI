@@ -88,8 +88,7 @@ export default function ChatInterface({
     await loadHistory();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const doSubmit = () => {
     if (!input.trim() || isLoading) return;
 
     const resolvedOrgSlug = String(orgSlug || '').trim();
@@ -131,8 +130,8 @@ export default function ChatInterface({
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(String((data as any)?.error || 'שגיאה בבוט. נסה שוב.'));
+          const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+          throw new Error(String(data?.error || 'שגיאה בבוט. נסה שוב.'));
         }
 
         const text = await res.text();
@@ -148,18 +147,23 @@ export default function ChatInterface({
 
         // Auto-save after AI response
         setTimeout(() => saveCurrentChat(), 1000);
-      } catch (err: any) {
-        setError(String(err?.message || 'שגיאה בבוט. נסה שוב.'));
+      } catch (err: unknown) {
+        setError(String(err instanceof Error ? err.message : err || 'שגיאה בבוט. נסה שוב.'));
       } finally {
         setIsLoading(false);
       }
     })();
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSubmit();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as any);
+      doSubmit();
     }
   };
 

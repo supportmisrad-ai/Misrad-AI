@@ -11,32 +11,13 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { MisradNotificationType, Prisma } from '@prisma/client';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { isUuidLike } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
 const IS_PROD = process.env.NODE_ENV === 'production';
-
-function isSchemaMismatchError(error: unknown): boolean {
-    const obj = asObject(error) ?? {};
-    const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
-    const msg = String(getUnknownErrorMessage(error) || '').toLowerCase();
-    return (
-        code === 'P2021' ||
-        code === 'P2022' ||
-        code === '42P01' ||
-        code === '42703' ||
-        msg.includes('does not exist') ||
-        msg.includes('relation') ||
-        msg.includes('column') ||
-        msg.includes('could not find the table') ||
-        msg.includes('schema cache')
-    );
-}
 
 type SystemInvitationUpdateData = Parameters<typeof prisma.system_invitation_links.update>[0]['data'];
 type NexusClientUpdateManyData = Parameters<typeof prisma.nexusClient.updateMany>[0]['data'];

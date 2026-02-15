@@ -72,7 +72,8 @@ export function PasskeyOnboardingPrompt() {
         } catch {
         }
 
-        const hasPasskeys = Boolean((user as any)?.passkeys?.length);
+        const userMeta = (user?.publicMetadata as Record<string, unknown> | undefined);
+        const hasPasskeys = userMeta?.passkeys && Array.isArray(userMeta.passkeys) && userMeta.passkeys.length > 0;
         setIsOpen(!hasPasskeys);
       } finally {
         setIsChecking(false);
@@ -100,12 +101,13 @@ export function PasskeyOnboardingPrompt() {
         return;
       }
 
-      if (typeof (user as any).createPasskey === 'function') {
-        await (user as any).createPasskey({
+      const userObj = user as unknown as { createPasskey?: (opts: { name: string }) => Promise<unknown>; passkeys?: { create: (opts: { name: string }) => Promise<unknown> } };
+      if (typeof userObj.createPasskey === 'function') {
+        await userObj.createPasskey({
           name: 'MISRAD AI - זיהוי ביומטרי',
         });
-      } else if ((user as any).passkeys && typeof (user as any).passkeys.create === 'function') {
-        await (user as any).passkeys.create({
+      } else if (userObj.passkeys && typeof userObj.passkeys.create === 'function') {
+        await userObj.passkeys.create({
           name: 'MISRAD AI - זיהוי ביומטרי',
         });
       } else {
@@ -114,8 +116,9 @@ export function PasskeyOnboardingPrompt() {
       }
 
       dismiss();
-    } catch (e: any) {
-      const msg = e?.errors?.[0]?.message || e?.message || 'שגיאה בהפעלת זיהוי ביומטרי';
+    } catch (e: unknown) {
+      const clerkErr = e as { errors?: Array<{ message?: string }>; message?: string };
+                const msg = clerkErr?.errors?.[0]?.message || clerkErr?.message || 'שגיאה בהפעלת זיהוי ביומטרי';
       setError(String(msg));
     } finally {
       setIsCreating(false);

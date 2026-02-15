@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 import { randomBytes } from 'crypto';
 import { createClient, createServiceRoleClient } from '@/lib/supabase';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
@@ -24,6 +25,9 @@ function formatError(err: unknown) {
 }
 
 export async function POST(req: Request) {
+  const blocked = blockE2eInProduction();
+  if (blocked) return blocked;
+
   try {
     const expectedKey = process.env.E2E_API_KEY;
     const providedKey = req.headers.get('x-e2e-key');

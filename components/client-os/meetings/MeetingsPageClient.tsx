@@ -100,7 +100,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
 
         let recorder: MediaRecorder;
         const preferred = 'audio/webm;codecs=opus';
-        if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(preferred)) {
+        if (typeof MediaRecorder !== 'undefined' && typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(preferred)) {
           recorder = new MediaRecorder(stream, { mimeType: preferred });
         } else {
           recorder = new MediaRecorder(stream);
@@ -133,8 +133,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
             });
 
             if (!res.ok) return;
-            const data = (await res.json().catch(() => ({}))) as any;
-            const text = String(data?.text || data?.data?.text || '').trim();
+            const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+            const nested = (data?.data && typeof data.data === 'object' ? data.data : {}) as Record<string, unknown>;
+            const text = String(data?.text || nested?.text || '').trim();
             if (!text) return;
 
             let nextTranscript = '';
@@ -164,8 +165,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                     body: JSON.stringify({ orgId, transcript: nextTranscript }),
                   });
                   if (!insightRes.ok) return;
-                  const insightJson = (await insightRes.json().catch(() => ({}))) as any;
-                  const insight = String(insightJson?.insight || insightJson?.data?.insight || '').trim();
+                  const insightJson = (await insightRes.json().catch(() => ({}))) as Record<string, unknown>;
+                  const nestedInsight = (insightJson?.data && typeof insightJson.data === 'object' ? insightJson.data : {}) as Record<string, unknown>;
+                  const insight = String(insightJson?.insight || nestedInsight?.insight || '').trim();
                   if (insight) setLiveInsight(insight);
                 } finally {
                   liveInsightInFlightRef.current = false;
@@ -178,8 +180,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
         };
 
         recorder.start(2000);
-      } catch (e: any) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפעלת Live', type: 'error' } }));
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'שגיאה בהפעלת Live';
+        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
         setIsLiveActive(false);
         setActiveView('LIST');
       }
@@ -226,17 +229,19 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
             body: JSON.stringify({ orgId, transcript }),
           });
           if (!res.ok) {
-            const err = await res.json().catch(() => ({} as any));
+            const err = await res.json().catch(() => ({} as Record<string, unknown>));
             throw new Error(err?.error || 'Failed to analyze');
           }
-          const json = (await res.json().catch(() => ({} as any))) as any;
-          const analysis = (json?.analysis || json?.data?.analysis) as MeetingAnalysisResult | undefined;
+          const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+          const nestedData = (json?.data && typeof json.data === 'object' ? json.data : {}) as Record<string, unknown>;
+          const analysis = (json?.analysis || nestedData?.analysis) as MeetingAnalysisResult | undefined;
           if (!analysis) throw new Error('Missing analysis');
 
           setAnalysisResult(analysis);
           setActiveView('RESULT');
-        } catch (e: any) {
-          window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפקת דוח Live', type: 'error' } }));
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : 'שגיאה בהפקת דוח Live';
+          window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
           setActiveView('LIST');
         } finally {
           setIsLiveFinalizing(false);
@@ -266,8 +271,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
         setNewClientEmail('');
         setNewClientPhone('');
         router.refresh();
-    } catch (error: any) {
-        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: error.message || 'שגיאה ביצירת לקוח', type: 'error' } }));
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'שגיאה ביצירת לקוח';
+        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
     } finally {
         setIsCreatingClient(false);
     }
@@ -320,7 +326,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                   });
 
                   if (!uploadUrlRes.ok) {
-                      const err = await uploadUrlRes.json().catch(() => ({} as any));
+                      const err = await uploadUrlRes.json().catch(() => ({} as Record<string, unknown>));
                       throw new Error(err?.error || 'Failed to get upload URL');
                   }
 
@@ -357,7 +363,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                   });
 
                   if (!res.ok) {
-                      const err = await res.json().catch(() => ({} as any));
+                      const err = await res.json().catch(() => ({} as Record<string, unknown>));
                       throw new Error(err?.error || 'Processing failed');
                   }
 
@@ -366,8 +372,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                   setAnalysisResult(json.analysis);
                   setActiveView('RESULT');
                   window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
-              } catch (err: any) {
-                  window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: err?.message || 'שגיאה בניתוח ההקלטה', type: 'error' } }));
+              } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : 'שגיאה בניתוח ההקלטה';
+                  window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
                   setActiveView('LIST');
               } finally {
                   setProcessingFileName(null);
@@ -401,8 +408,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
       window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'פגישה נוצרה בהצלחה', type: 'success' } }));
       setActiveView('LIST');
       router.refresh(); 
-    } catch (error: any) {
-      window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: error.message || 'שגיאה ביצירת פגישה', type: 'error' } }));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'שגיאה ביצירת פגישה';
+      window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
     } finally {
       setIsAdding(false);
     }
@@ -481,7 +489,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                         <select 
                         className="w-full bg-slate-50 border-slate-200 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-primary/5 transition-all outline-none"
                         value={newMeetingLocation}
-                        onChange={(e) => setNewMeetingLocation(e.target.value as any)}
+                        onChange={(e) => setNewMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
                         >
                         <option value="ZOOM">שיחת ZOOM / וידאו</option>
                         <option value="FRONTAL">פגישה פרונטלית</option>
@@ -707,7 +715,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                           <select
                               className="w-full bg-slate-50 border-transparent rounded-2xl p-4 font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none border border-slate-100"
                               value={meetingLocation}
-                              onChange={(e) => setMeetingLocation(e.target.value as any)}
+                              onChange={(e) => setMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
                           >
                               <option value="ZOOM">ZOOM / וידאו</option>
                               <option value="FRONTAL">פרונטלי</option>

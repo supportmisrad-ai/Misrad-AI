@@ -41,9 +41,9 @@ export const RequestsTab: React.FC = () => {
             }
             const data = await response.json();
             setFeatureRequests(data.requests || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[RequestsTab] Error loading feature requests:', err);
-            setError(err.message || 'שגיאה בטעינת בקשות פיצ\'רים');
+            setError((err as Error).message || 'שגיאה בטעינת בקשות פיצ\'רים');
         } finally {
             setIsLoading(false);
         }
@@ -88,9 +88,9 @@ export const RequestsTab: React.FC = () => {
         setReqTitle('');
         setReqDesc('');
         setReqType('feature');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[RequestsTab] Error creating feature request:', err);
-            setError(err.message || 'שגיאה ביצירת בקשת פיצ\'ר');
+            setError((err as Error).message || 'שגיאה ביצירת בקשת פיצ\'ר');
         } finally {
             setIsSubmitting(false);
         }
@@ -128,7 +128,7 @@ export const RequestsTab: React.FC = () => {
 
             // Reload requests to get updated vote count
             await loadFeatureRequests();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[RequestsTab] Error voting:', err);
         }
     };
@@ -317,7 +317,7 @@ export const RequestsTab: React.FC = () => {
                                                 onClick={() => setReqType(type.id as FeatureRequestType)}
                                                 className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${
                                                     reqType === type.id 
-                                                    ? `${String((type as any)?.color ?? '').replace('text-', 'border-')} bg-white shadow-md scale-[1.02]` 
+                                                    ? `${String((type as Record<string, unknown>).color ?? '').replace('text-', 'border-')} bg-white shadow-md scale-[1.02]` 
                                                     : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
                                                 }`}
                                             >

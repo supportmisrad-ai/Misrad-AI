@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
@@ -93,7 +95,7 @@ export async function createClient(
       clientId,
     };
   } catch (error) {
-    console.error('[createClient] Error:', error);
+    logger.error('createClient', 'Error:', error);
     
     if (error instanceof Error) {
       return { ok: false, error: `שגיאה: ${error.message}` };
@@ -130,7 +132,7 @@ export async function getClients() {
     
     return { ok: true, data: result };
   } catch (error) {
-    console.error('[getClients] Error:', error);
+    logger.error('getClients', 'Error:', error);
     return { ok: false, error: 'שגיאה בטעינת לקוחות' };
   }
 }

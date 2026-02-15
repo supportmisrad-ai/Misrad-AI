@@ -183,7 +183,7 @@ export const ContentMachineView: React.FC = () => {
           ].map((tab) => (
               <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as 'ideas' | 'pipeline' | 'bank')}
                   className={`
                       flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all
                       ${activeTab === tab.id 
@@ -210,7 +210,7 @@ export const ContentMachineView: React.FC = () => {
                             <div key={stage.id} className="w-[320px] flex flex-col h-full rounded-2xl bg-gray-50/50 border border-gray-200">
                                 <div className={`p-4 border-b border-gray-200/50 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-md rounded-t-2xl z-10`}>
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-3 h-3 rounded-full ${String((stage as any)?.color ?? '').split(' ')[0].replace('bg-', 'bg-')}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${String((stage as unknown as Record<string, unknown>).color ?? '').split(' ')[0]}`}></div>
                                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{stage.name}</h3>
                                     </div>
                                     <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500">

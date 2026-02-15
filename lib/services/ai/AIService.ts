@@ -23,6 +23,7 @@ import { AnthropicProvider } from './providers/AnthropicProvider';
 import { GroqProvider } from './providers/GroqProvider';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { decrypt } from '@/lib/encryption';
 
 type LoadedFeatureSettings = {
   settings: AIFeatureSettingsRow;
@@ -1117,6 +1118,15 @@ export class AIService {
     return false;
   }
 
+  private async decryptKeyOrPlaintext(raw: string): Promise<string> {
+    try {
+      return await decrypt(raw);
+    } catch {
+      // Backward-compatible: key is still plain text (not yet migrated)
+      return raw;
+    }
+  }
+
   private async getProviderKey(params: { provider: AIProviderName; organizationId: string }): Promise<string> {
     const orgKeyRow = await prisma.ai_provider_keys.findFirst({
       where: { provider: params.provider, organization_id: params.organizationId, enabled: true },
@@ -1124,7 +1134,7 @@ export class AIService {
     });
 
     const orgKey = orgKeyRow?.api_key ? String(orgKeyRow.api_key) : null;
-    if (orgKey) return orgKey;
+    if (orgKey) return this.decryptKeyOrPlaintext(orgKey);
 
     const globalKeyRow = await prisma.ai_provider_keys.findFirst({
       where: { provider: params.provider, organization_id: null, enabled: true },
@@ -1133,7 +1143,7 @@ export class AIService {
 
     const globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
 
-    if (globalKey) return globalKey;
+    if (globalKey) return this.decryptKeyOrPlaintext(globalKey);
 
     if (params.provider === 'google') {
       const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;

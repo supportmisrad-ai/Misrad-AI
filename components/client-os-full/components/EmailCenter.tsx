@@ -21,14 +21,14 @@ export const EmailCenter: React.FC = () => {
 
     const orgId = useMemo(() => {
         const userData = (typeof window !== 'undefined'
-            ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null; identity?: { role?: string | null; id?: string | null } | null } | undefined)
+            ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null; identity?: { role?: string | null; id?: string | null } | null } | undefined)
             : undefined);
         return userData?.organizationId ?? null;
     }, []);
 
     const isClientView = useMemo(() => {
         const userData = (typeof window !== 'undefined'
-            ? ((window as any).__CLIENT_OS_USER__ as { identity?: { role?: string | null; id?: string | null } | null } | undefined)
+            ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { identity?: { role?: string | null; id?: string | null } | null } | undefined)
             : undefined);
 
         const role = userData?.identity?.role ?? null;
@@ -43,7 +43,7 @@ export const EmailCenter: React.FC = () => {
                 setEmails(inbox);
             } catch (e) {
                 console.error(e);
-                const msg = (e as any)?.message;
+                const msg = e instanceof Error ? e.message : String(e);
                 window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg || 'שגיאה בטעינת ההודעות.', type: 'error' } }));
             }
         };
@@ -94,7 +94,7 @@ export const EmailCenter: React.FC = () => {
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({} as any));
+                const err = await res.json().catch(() => ({} as unknown));
                 throw new Error(err?.error || 'Failed to generate reply');
             }
 
@@ -144,9 +144,9 @@ export const EmailCenter: React.FC = () => {
                 setReplyText('');
 
                 await refreshInbox();
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error(e);
-                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בשליחת הודעה.', type: 'error' } }));
+                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: (e instanceof Error ? e.message : String(e)) || 'שגיאה בשליחת הודעה.', type: 'error' } }));
             }
         })();
     };
@@ -195,9 +195,9 @@ export const EmailCenter: React.FC = () => {
                 setComposeSubject('');
                 setComposeBody('');
                 await refreshInbox();
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error(e);
-                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בשליחת הודעה.', type: 'error' } }));
+                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: (e instanceof Error ? e.message : String(e)) || 'שגיאה בשליחת הודעה.', type: 'error' } }));
             } finally {
                 setIsSendingCompose(false);
             }

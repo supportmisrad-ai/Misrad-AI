@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Target, Users, DollarSign, Save, Rocket, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Client } from '@/types/social';
+import { Client, type Campaign } from '@/types/social';
 
 interface EditCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
-  campaign: any;
+  campaign: Campaign | null;
   clients: Client[];
-  onUpdate: (updatedCampaign: any) => void;
+  onUpdate: (updatedCampaign: unknown) => void;
 }
 
 const OBJECTIVES = [
@@ -29,8 +29,8 @@ const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ isOpen, onClose, 
   useEffect(() => {
     if (campaign && isOpen) {
       setName(campaign.name);
-      setObjective(campaign.objective || 'engagement');
-      setBudget(campaign.budget);
+      setObjective((campaign as unknown as Record<string, unknown>).objective as string || 'engagement');
+      setBudget(campaign.budget as number);
     }
   }, [campaign, isOpen]);
 

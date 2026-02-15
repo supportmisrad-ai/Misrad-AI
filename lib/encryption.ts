@@ -5,7 +5,13 @@
  * Note: For production, consider using Supabase Vault or a dedicated key management service
  */
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-change-in-production-32chars!!';
+const ENCRYPTION_KEY = (() => {
+  const key = process.env.ENCRYPTION_KEY || '';
+  if (!key && process.env.NODE_ENV === 'production') {
+    throw new Error('[FATAL] ENCRYPTION_KEY env var is required in production');
+  }
+  return key || 'default-key-change-in-production-32chars!!';
+})();
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 const SALT_LENGTH = 16;
@@ -117,7 +123,7 @@ export async function decrypt(encryptedValue: string): Promise<string> {
 /**
  * Encrypt an object (for storing multiple credentials)
  */
-export async function encryptObject(obj: Record<string, any>): Promise<string> {
+export async function encryptObject(obj: Record<string, unknown>): Promise<string> {
   const jsonString = JSON.stringify(obj);
   return encrypt(jsonString);
 }
@@ -125,7 +131,7 @@ export async function encryptObject(obj: Record<string, any>): Promise<string> {
 /**
  * Decrypt an object
  */
-export async function decryptObject(encryptedValue: string): Promise<Record<string, any>> {
+export async function decryptObject(encryptedValue: string): Promise<Record<string, unknown>> {
   const decrypted = await decrypt(encryptedValue);
   return JSON.parse(decrypted);
 }

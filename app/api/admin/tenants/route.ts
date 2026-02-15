@@ -300,7 +300,7 @@ async function POSTHandler(request: NextRequest) {
                     defaultLanguage: tenantData.defaultLanguage ?? null,
                     activationDate: tenantData.activationDate ? new Date(tenantData.activationDate) : null,
                     notes: tenantData.notes ?? null,
-                } as any,
+                },
             });
         } catch (e: unknown) {
             const obj = asObject(e) ?? {};

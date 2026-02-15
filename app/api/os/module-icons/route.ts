@@ -1,48 +1,55 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+
 
 import { asObject } from '@/lib/shared/unknown';
 async function GETHandler() {
-  try {
-    const row = await prisma.coreSystemSettings.findUnique({
-      where: { key: 'module_icons' },
-      select: { value: true },
-    });
-
-    const rawValue: unknown = row?.value;
-    let parsedValue: unknown = null;
-    if (rawValue && typeof rawValue === 'string') {
+  return await withTenantIsolationContext(
+    { source: 'api_os_module_icons', reason: 'read_module_icons', suppressReporting: true },
+    async () => {
       try {
-        parsedValue = JSON.parse(rawValue) as unknown;
+        const row = await prisma.coreSystemSettings.findUnique({
+          where: { key: 'module_icons' },
+          select: { value: true },
+        });
+
+        const rawValue: unknown = row?.value;
+        let parsedValue: unknown = null;
+        if (rawValue && typeof rawValue === 'string') {
+          try {
+            parsedValue = JSON.parse(rawValue) as unknown;
+          } catch {
+            parsedValue = null;
+          }
+        } else if (asObject(rawValue)) {
+          parsedValue = rawValue;
+        }
+
+        const moduleIcons = asObject(parsedValue) ?? {};
+
+        return NextResponse.json(
+          { moduleIcons },
+          {
+            headers: {
+              'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+            },
+          },
+        );
       } catch {
-        parsedValue = null;
+        return NextResponse.json(
+          { moduleIcons: {} },
+          {
+            headers: {
+              'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+            },
+          },
+        );
       }
-    } else if (asObject(rawValue)) {
-      parsedValue = rawValue;
     }
-
-    const moduleIcons = asObject(parsedValue) ?? {};
-
-    return NextResponse.json(
-      { moduleIcons },
-      {
-        headers: {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-        },
-      },
-    );
-  } catch {
-    return NextResponse.json(
-      { moduleIcons: {} },
-      {
-        headers: {
-          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
-        },
-      },
-    );
-  }
+  );
 }
 
 export const GET = shabbatGuard(GETHandler);

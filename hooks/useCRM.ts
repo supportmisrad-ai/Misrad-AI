@@ -92,9 +92,9 @@ export const useCRM = (
             }
 
             return true;
-        } catch (e: any) {
+        } catch (e: unknown) {
             setProducts(prev);
-            addToast(e?.message || 'שגיאה בשמירת קטלוג מוצרים', 'error');
+            addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירת קטלוג מוצרים', 'error');
             return false;
         }
     };

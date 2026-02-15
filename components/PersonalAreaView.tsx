@@ -130,7 +130,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'overview' | 'settings' | 'activity')}
                         className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-all font-bold whitespace-nowrap text-sm md:text-base ${
                             activeTab === tab.id 
                             ? 'border-slate-900 text-slate-900' 

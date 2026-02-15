@@ -40,9 +40,9 @@ export function AutomationTab({
           enableAutoReplySystem: Boolean(res.data.enableAutoReplySystem),
           allowExternalWebhooks: Boolean(res.data.allowExternalWebhooks),
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('[AutomationTab] Failed to load automation:', e);
-        addToast(e?.message || 'שגיאה בטעינת אוטומציות', 'error');
+        addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת אוטומציות', 'error');
         setForm({ enableAutoReplySystem: false, allowExternalWebhooks: false });
       } finally {
         setIsLoading(false);
@@ -71,9 +71,9 @@ export function AutomationTab({
         throw new Error(res.error || 'שגיאה בשמירת אוטומציות');
       }
       addToast('אוטומציות נשמרו', 'success');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[AutomationTab] Failed to save automation:', e);
-      addToast(e?.message || 'שגיאה בשמירת אוטומציות', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירת אוטומציות', 'error');
     } finally {
       setIsSaving(false);
     }

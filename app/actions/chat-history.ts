@@ -1,30 +1,13 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { headers } from 'next/headers';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
-
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toLowerCase();
-  const message = String(getErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'p2021' ||
-    code === 'p2022' ||
-    code === '42p01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
 
 type ChatMessage = {
   id: string;
@@ -169,7 +152,7 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
         },
       });
     }
-    console.error('Error saving chat history:', error);
+    logger.error('chat-history', 'Error saving chat history:', error);
     return { success: false, error: String(error) };
   }
 }
@@ -246,7 +229,7 @@ export async function getChatHistory(params: GetChatHistoryParams) {
         },
       });
     }
-    console.error('Error getting chat history:', error);
+    logger.error('chat-history', 'Error getting chat history:', error);
     return { success: false, error: String(error), data: [] };
   }
 }
@@ -303,7 +286,7 @@ export async function deleteChatHistory(params: { moduleKey: string; chatSession
         },
       });
     }
-    console.error('Error deleting chat history:', error);
+    logger.error('chat-history', 'Error deleting chat history:', error);
     return { success: false, error: String(error) };
   }
 }

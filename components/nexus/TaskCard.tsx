@@ -49,16 +49,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
   const toggleTimer = propToggleTimer || contextToggleTimer;
   const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
   const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
-  const isExplicitlyUnassigned = (task as any).assigneeId === null;
+  const isExplicitlyUnassigned = task.assigneeId === null;
   const effectiveAssigneeIds: string[] = (() => {
     if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
     if (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId)) return [String(task.assigneeId)];
     if (isExplicitlyUnassigned) return [];
-    const fallback = (task.creatorId as any);
+    const fallback = task.creatorId;
     return fallback ? [String(fallback)] : [];
   })();
 
-  const assignedUsers = users.filter(u => effectiveAssigneeIds.includes(String((u as any).id)));
+  const assignedUsers = users.filter(u => effectiveAssigneeIds.includes(String(u.id)));
   
   // Find linked client if exists
   const linkedClient = task.clientId 
@@ -97,9 +97,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
           // Store touch start for scroll detection
           const touch = e.touches[0];
           if (touch) {
-              (e.currentTarget as any)._touchStartX = touch.clientX;
-              (e.currentTarget as any)._touchStartY = touch.clientY;
-              (e.currentTarget as any)._touchStartTime = Date.now();
+              const el = e.currentTarget as HTMLElement & { _touchStartX?: number; _touchStartY?: number; _touchStartTime?: number };
+              el._touchStartX = touch.clientX;
+              el._touchStartY = touch.clientY;
+              el._touchStartTime = Date.now();
           }
       }}
       onTouchEnd={(e) => {
@@ -109,7 +110,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
               return;
           }
           
-          const element = e.currentTarget as any;
+          const element = e.currentTarget as HTMLElement & { _touchStartX?: number; _touchStartY?: number; _touchStartTime?: number };
           const touchStartX = element._touchStartX;
           const touchStartY = element._touchStartY;
           const touchStartTime = element._touchStartTime;

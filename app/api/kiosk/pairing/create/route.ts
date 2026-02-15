@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { asObject } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const runtime = 'nodejs';
 
@@ -39,6 +40,10 @@ async function POSTHandler(request: NextRequest) {
   const bodyJson: unknown = await request.json().catch(() => ({}));
   const bodyObj = asObject(bodyJson) ?? {};
   const deviceNonce = String(bodyObj.deviceNonce || '').trim() || randomUUID();
+
+  return await withTenantIsolationContext(
+    { source: 'api_kiosk_pairing_create', reason: 'kiosk_pairing', suppressReporting: true },
+    async () => {
 
   const existing = await prisma.devicePairingToken.findUnique({
     where: { deviceNonce },
@@ -128,6 +133,8 @@ async function POSTHandler(request: NextRequest) {
   }
 
   return apiError('שגיאה ביצירת קוד', { status: 500 });
+  }
+  );
 }
 
 export const POST = shabbatGuard(POSTHandler);

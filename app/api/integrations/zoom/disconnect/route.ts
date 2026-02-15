@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,20 +35,25 @@ export async function POST() {
       );
     }
 
-    // Deactivate integration
-    await prisma.scale_integrations.updateMany({
-      where: {
-        user_id: userId,
-        tenant_id: profile.organizationId,
-        service_type: 'zoom',
-      },
-      data: {
-        is_active: false,
-        updated_at: new Date(),
-      },
-    });
+    return await withTenantIsolationContext(
+      { source: 'api_integrations_zoom_disconnect', organizationId: profile.organizationId, reason: 'zoom_disconnect' },
+      async () => {
+        // Deactivate integration
+        await prisma.scale_integrations.updateMany({
+          where: {
+            user_id: userId,
+            tenant_id: profile.organizationId,
+            service_type: 'zoom',
+          },
+          data: {
+            is_active: false,
+            updated_at: new Date(),
+          },
+        });
 
-    return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true });
+      }
+    );
   } catch (error) {
     if (IS_PROD) console.error('[Zoom Disconnect] Error');
     else console.error('[Zoom Disconnect] Error:', error);

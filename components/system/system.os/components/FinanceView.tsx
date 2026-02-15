@@ -61,7 +61,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
         const now = new Date();
         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-        const active = activeSubscriptions as any[];
+        const active = activeSubscriptions;
         if (!active.length) return { stable: 0, medium: 0, high: 0 };
 
         let stable = 0;
@@ -282,7 +282,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
                                                     <span className="text-slate-600 font-medium">{client.productInterest === 'mastermind_group' ? 'מאסטרמיינד' : 'ליווי פרימיום'}</span>
                                                 </td>
                                                 <td className="px-6 py-4 font-mono font-bold text-indigo-600">₪{client.productInterest === 'mastermind_group' ? '5,000' : '15,000'}</td>
-                                                <td className="px-6 py-4 text-slate-500 font-medium">{(client as any)?.subscriptionEndDate ? new Date((client as any).subscriptionEndDate).toLocaleDateString('he-IL') : '—'}</td>
+                                                <td className="px-6 py-4 text-slate-500 font-medium">{client.subscriptionEndDate ? new Date(client.subscriptionEndDate).toLocaleDateString('he-IL') : '—'}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>

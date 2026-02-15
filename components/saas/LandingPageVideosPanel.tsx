@@ -115,7 +115,7 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                 if (cancelled) return;
                 const dbVideos = Array.isArray(data?.videos) ? data.videos : null;
                 if (dbVideos) {
-                    setVideos(dbVideos as any);
+                    setVideos(dbVideos as LandingPageVideo[]);
                 }
             } catch {
                 // ignore
@@ -159,8 +159,8 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                 }
                 updateSettings('landingPageVideos', updatedVideos);
                 addToast('סרטונים עודכנו בהצלחה!', 'success');
-            } catch (e: any) {
-                addToast(e?.message || 'שגיאה בשמירה', 'error');
+            } catch (e: unknown) {
+                addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירה', 'error');
             }
         })();
     };
@@ -355,7 +355,7 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                                         />
                                         <select
                                             value={displayVideo.accent}
-                                            onChange={(e) => setEditedVideo({ ...displayVideo, accent: e.target.value as any })}
+                                            onChange={(e) => setEditedVideo({ ...displayVideo, accent: e.target.value as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
                                             className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         >
                                             <option value="indigo">אינדיגו</option>
@@ -541,7 +541,7 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                                 />
                                 <select
                                     value={newVideo.accent}
-                                    onChange={(e) => setNewVideo({ ...newVideo, accent: e.target.value as any })}
+                                    onChange={(e) => setNewVideo({ ...newVideo, accent: e.target.value as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
                                     className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                 >
                                     <option value="indigo">Indigo</option>

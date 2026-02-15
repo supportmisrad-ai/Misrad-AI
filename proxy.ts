@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isLegacyLoginEntrypointPathname, legacyAppPathnameRedirect, normalizeLegacyRedirectPath } from "@/lib/os/legacy-routing";
+import { edgeGlobalRateLimit } from "@/lib/edge-rate-limit";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -155,10 +156,34 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
+  const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+
+  // Hard block: /api/e2e/* routes are NEVER accessible in production
+  if (!isDev && pathname.startsWith('/api/e2e')) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // Global per-IP rate limiting for all API routes
+  if (pathname.startsWith('/api/')) {
+    try {
+      const rl = await edgeGlobalRateLimit(req);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: 'Too many requests', retryAfterSeconds: rl.retryAfterSeconds },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(rl.retryAfterSeconds) },
+          }
+        );
+      }
+    } catch {
+      // Rate limiter failure must never block requests — degrade gracefully
+    }
+  }
+
   const isE2E =
     String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' ||
     String(process.env.IS_E2E_TESTING || '').toLowerCase() === '1';
-  const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
   const allowDevMaintenance =
     String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === 'true' ||
     String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === '1';

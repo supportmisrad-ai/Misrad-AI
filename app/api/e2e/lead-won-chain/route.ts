@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
+import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 import { Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -14,6 +15,9 @@ function isUuid(value: string): boolean {
 }
 
 export async function POST(req: Request) {
+  const blocked = blockE2eInProduction();
+  if (blocked) return blocked;
+
   try {
     const expected = process.env.E2E_API_KEY;
     const provided = req.headers.get('x-e2e-key');
@@ -51,7 +55,7 @@ export async function POST(req: Request) {
         const maybeId = isUuid(orgSlug) ? orgSlug : undefined;
         const e2eOwnerId = crypto.randomUUID();
 
-        const created = await prisma.$transaction(async (tx) => {
+        const created = await prismaForInteractiveTransaction().$transaction(async (tx) => {
           await tx.organizationUser.create({
             data: {
               id: e2eOwnerId,

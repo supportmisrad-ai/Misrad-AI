@@ -19,7 +19,7 @@ const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ onClose, onSubmit }
     e.preventDefault();
     onSubmit({
       name,
-      platform: (platformMode === 'custom' ? customPlatform : platform) as any,
+      platform: platformMode === 'custom' ? customPlatform : platform,
       budget: Number(budget),
       status: 'active'
     });

@@ -14,7 +14,7 @@ interface OverviewTabProps {
   requests: ClientRequest[];
   onEditPost: (post: SocialPost) => void;
   onEnterPortal: () => void;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: unknown) => void;
 }
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEditPost, onEnterPortal, setActiveTab }) => {

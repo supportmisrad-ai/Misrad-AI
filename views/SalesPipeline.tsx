@@ -70,7 +70,7 @@ export const SalesPipeline: React.FC = () => {
                                             key={lead.id}
                                             layoutId={lead.id}
                                             draggable
-                                            onDragStart={(e) => handleDragStart(e as any, lead.id)}
+                                            onDragStart={(e) => handleDragStart(e as unknown as React.DragEvent<Element>, lead.id)}
                                             whileHover={{ y: -2, scale: 1.02 }}
                                             className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg cursor-grab active:cursor-grabbing group hover:border-slate-600 transition-colors"
                                         >

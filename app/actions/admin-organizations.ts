@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
@@ -479,7 +481,7 @@ export async function createOrganization(input: {
         });
       }
     } catch (e) {
-      console.error('[createOrganization] welcome email failed (ignored)', e);
+      logger.error('createOrganization', 'welcome email failed (ignored)', e);
     }
 
     return createSuccessResponse({ organizationId: createdOrg.id });

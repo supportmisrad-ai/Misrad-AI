@@ -35,8 +35,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
 
   // CRM Integration Check
   const linkedClient = task.clientId 
-      ? clients.find((c: any) => c.id === task.clientId) 
-      : clients.find((c: any) => task.tags.some(t => t.toLowerCase() === c.companyName.toLowerCase()));
+      ? clients.find((c) => c.id === task.clientId) 
+      : clients.find((c) => task.tags.some(t => t.toLowerCase() === c.companyName.toLowerCase()));
 
   // Flash "Saved" when task updates
   useEffect(() => {
@@ -77,7 +77,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           return;
       }
       
-      const coords: any = {
+      const coords: { top: number; left?: number; right?: number; width?: number } = {
           top: rect.bottom + 5,
           width: Math.max(rect.width, 180)
       };
@@ -146,7 +146,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       onClose();
   };
 
-  const RenderLabel = ({ icon, label }: { icon: any, label: string }) => (
+  const RenderLabel = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
       <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
           {icon} {label}
       </div>

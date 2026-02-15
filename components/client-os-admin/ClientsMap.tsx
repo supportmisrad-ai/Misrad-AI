@@ -19,8 +19,8 @@ export function ClientsMap({
     const q = search.trim().toLowerCase();
 
     return clients.filter((c) => {
-      if (status === 'ACTIVE' && c.status !== (ClientStatus as any).ACTIVE) return false;
-      if (status === 'PENDING' && c.status === (ClientStatus as any).ACTIVE) return false;
+      if (status === 'ACTIVE' && c.status !== (ClientStatus as Record<string, unknown>).ACTIVE) return false;
+      if (status === 'PENDING' && c.status === (ClientStatus as Record<string, unknown>).ACTIVE) return false;
 
       if (!q) return true;
       return (c.name || '').toLowerCase().includes(q);
@@ -47,7 +47,7 @@ export function ClientsMap({
             <div className="flex-1 sm:flex-none sm:w-44">
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
+                onChange={(e) => setStatus(e.target.value as 'ALL' | 'ACTIVE' | 'PENDING')}
                 className="w-full py-2.5 px-3 bg-white/50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:border-nexus-primary/30"
               >
                 <option value="ALL">כל הסטטוסים</option>
@@ -64,7 +64,7 @@ export function ClientsMap({
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((client) => {
-            const isActive = client.status === (ClientStatus as any).ACTIVE;
+            const isActive = client.status === (ClientStatus as Record<string, unknown>).ACTIVE;
             const statusLabel = isActive ? 'פעיל' : 'בהמתנה';
             const statusClass = isActive
               ? 'bg-signal-success/10 text-signal-success border-signal-success/20'
@@ -80,7 +80,7 @@ export function ClientsMap({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-12 h-12 rounded-2xl bg-white/50 border border-gray-200 flex items-center justify-center font-black text-gray-800">
-                      {(client as any).logoInitials || client.name?.slice(0, 2) || 'CL'}
+                      {(client as unknown as { logoInitials?: string }).logoInitials || client.name?.slice(0, 2) || 'CL'}
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-gray-900 truncate">{client.name}</div>

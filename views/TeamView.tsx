@@ -543,7 +543,7 @@ export const TeamView: React.FC = () => {
       <BonusConfirmationModal
         isOpen={isBonusConfirmOpen}
         onClose={() => setIsBonusConfirmOpen(false)}
-        recommendation={rewardRecommendation}
+        recommendation={rewardRecommendation as unknown as { amount: number; userName: string } | null}
         onConfirm={approveReward}
       />
 
@@ -561,7 +561,7 @@ export const TeamView: React.FC = () => {
         onClose={() => setIsMemberModalOpen(false)}
         mode={modalMode}
         initialData={editingUser}
-        onSave={handleSaveMember}
+        onSave={handleSaveMember as unknown as (data: unknown) => void}
         roleDefinitions={availableRoles.length > 0 ? availableRoles : roleDefinitions}
         departments={departments}
         isGlobalAdmin={isGlobalAdmin}

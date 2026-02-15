@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
@@ -161,7 +163,7 @@ export async function createBusinessClient(input: BusinessClientInput) {
       },
     };
   } catch (error) {
-    console.error('[createBusinessClient] Error:', error);
+    logger.error('createBusinessClient', 'Error:', error);
     return { ok: false, error: 'שגיאה ביצירת לקוח עסקי' };
   }
 }
@@ -180,7 +182,7 @@ export async function getBusinessClients(filters?: {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    const where: any = {
+    const where: Record<string, unknown> = {
       deleted_at: null,
     };
 
@@ -246,7 +248,7 @@ export async function getBusinessClients(filters?: {
 
     return { ok: true, clients };
   } catch (error) {
-    console.error('[getBusinessClients] Error:', error);
+    logger.error('getBusinessClients', 'Error:', error);
     return { ok: false, error: 'שגיאה בטעינת לקוחות עסקיים' };
   }
 }
@@ -314,7 +316,7 @@ export async function getBusinessClient(clientId: string) {
 
     return { ok: true, client };
   } catch (error) {
-    console.error('[getBusinessClient] Error:', error);
+    logger.error('getBusinessClient', 'Error:', error);
     return { ok: false, error: 'שגיאה בטעינת לקוח עסקי' };
   }
 }
@@ -381,7 +383,7 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
 
     return { ok: true, client };
   } catch (error) {
-    console.error('[updateBusinessClient] Error:', error);
+    logger.error('updateBusinessClient', 'Error:', error);
     const message = error instanceof Error ? String(error.message || '').trim() : '';
     if (message === 'מייל זה כבר בשימוש' || message === 'מספר עוסק/ח.פ זה כבר בשימוש') {
       return { ok: false, error: message };
@@ -455,7 +457,7 @@ export async function addContactToClient(clientId: string, input: ContactInput) 
 
     return { ok: true, contact };
   } catch (error) {
-    console.error('[addContactToClient] Error:', error);
+    logger.error('addContactToClient', 'Error:', error);
     return { ok: false, error: 'שגיאה בהוספת איש קשר' };
   }
 }
@@ -491,7 +493,7 @@ export async function removeContactFromClient(clientId: string, userId: string) 
 
     return { ok: true };
   } catch (error) {
-    console.error('[removeContactFromClient] Error:', error);
+    logger.error('removeContactFromClient', 'Error:', error);
     return { ok: false, error: 'שגיאה בהסרת איש קשר' };
   }
 }
@@ -524,7 +526,7 @@ export async function createOrganizationForClient(
     const appliedTrialDays = input.trial_days ?? DEFAULT_TRIAL_DAYS;
     if (input.coupon_code) {
       // TODO: Validate coupon and adjust trial_days or subscription_plan
-      console.log('[createOrganizationForClient] Coupon code provided:', input.coupon_code);
+      logger.debug('createOrganizationForClient', 'Coupon code provided:', input.coupon_code);
     }
 
     // Create organization
@@ -579,7 +581,7 @@ export async function createOrganizationForClient(
 
     return { ok: true, organization: org };
   } catch (error) {
-    console.error('[createOrganizationForClient] Error:', error);
+    logger.error('createOrganizationForClient', 'Error:', error);
     return { ok: false, error: 'שגיאה ביצירת ארגון' };
   }
 }
@@ -628,7 +630,7 @@ export async function updateOrganization(orgId: string, input: {
 
     return { ok: true, organization: org };
   } catch (error) {
-    console.error('[updateOrganization] Error:', error);
+    logger.error('updateOrganization', 'Error:', error);
     return { ok: false, error: 'שגיאה בעדכון ארגון' };
   }
 }
@@ -660,7 +662,7 @@ export async function deleteBusinessClient(clientId: string) {
 
     return { ok: true };
   } catch (error) {
-    console.error('[deleteBusinessClient] Error:', error);
+    logger.error('deleteBusinessClient', 'Error:', error);
     return { ok: false, error: 'שגיאה במחיקת לקוח עסקי' };
   }
 }
@@ -725,7 +727,7 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
 
     return { ok: true, users };
   } catch (error) {
-    console.error('[searchUsersForContact] Error:', error);
+    logger.error('searchUsersForContact', 'Error:', error);
     return { ok: false, error: 'שגיאה בחיפוש משתמשים' };
   }
 }

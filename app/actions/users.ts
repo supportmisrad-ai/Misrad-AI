@@ -1,10 +1,12 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { currentUser } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
-import prisma from '@/lib/prisma';
-import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
@@ -82,7 +84,7 @@ async function upsertOrganizationUserForClerkUser(params: {
   });
 
   if (!orgExists?.id) {
-    console.warn(`[upsertOrganizationUserForClerkUser] organization ${organizationId} not found - skipping organization_user creation`);
+    logger.warn('upsertOrganizationUserForClerkUser', 'organization ${organizationId} not found - skipping organization_user creation');
     return null;
   }
 
@@ -363,7 +365,7 @@ async function upsertProfileForClerkUser(params: {
   const avatarUrl = params.imageUrl ? String(params.imageUrl) : null;
 
   const tempOrgId = crypto.randomUUID();
-  const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
+  const { createdOrg, createdProfile } = await prismaForInteractiveTransaction().$transaction(async (tx) => {
     const organizationUser = (tx as unknown as { organizationUser: typeof prisma.organizationUser }).organizationUser;
     const organization = tx.social_organizations;
 
@@ -449,7 +451,7 @@ async function upsertProfileForClerkUser(params: {
       });
     }
   } catch (e) {
-    console.error('[upsertProfileForClerkUser] welcome email failed (ignored)', e);
+    logger.error('upsertProfileForClerkUser', 'welcome email failed (ignored)', e);
   }
 
   return {
@@ -488,30 +490,35 @@ export async function getOrCreateSupabaseUserAction(
       return { success: true, userId: String(clerkUserId) };
     }
 
-    const preferredKeyRaw = preferredOrganizationKey ? String(preferredOrganizationKey).trim() : '';
-    const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
-    const isEmployeeInviteMode = preferredKeyRaw.toLowerCase().startsWith('employee-invite:');
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.getOrCreateSupabaseUserAction', reason: 'user_bootstrap', suppressReporting: true },
+      async () => {
+        const preferredKeyRaw = preferredOrganizationKey ? String(preferredOrganizationKey).trim() : '';
+        const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
+        const isEmployeeInviteMode = preferredKeyRaw.toLowerCase().startsWith('employee-invite:');
 
-    const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
+        const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
 
-    // Option A: webhook is the manager. If the user arrives with invite token, do NOT provision anything here.
-    if (isOrgInviteMode) {
-      return { success: true, userId: String(clerkUserId) };
-    }
+        // Option A: webhook is the manager. If the user arrives with invite token, do NOT provision anything here.
+        if (isOrgInviteMode) {
+          return { success: true, userId: String(clerkUserId) };
+        }
 
-    const out = await upsertProfileForClerkUser({
-      clerkUserId,
-      email,
-      fullName,
-      imageUrl,
-      preferredOrganizationKey: safePreferredOrganizationKey,
-      sendWelcomeEmail,
-    });
+        const out = await upsertProfileForClerkUser({
+          clerkUserId,
+          email,
+          fullName,
+          imageUrl,
+          preferredOrganizationKey: safePreferredOrganizationKey,
+          sendWelcomeEmail,
+        });
 
-    return { success: true, userId: out.profileId };
+        return { success: true, userId: out.profileId };
+      }
+    );
   } catch (error: unknown) {
     const message = getUnknownErrorMessage(error);
-    console.error('[getOrCreateSupabaseUserAction] Unexpected error:', {
+    logger.error('getOrCreateSupabaseUserAction', 'Unexpected error:', {
       error: serializeUnknownError(error),
       message,
       clerkUserId,
@@ -546,39 +553,44 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
       return createErrorResponse('Missing clerkUserId/organizationId');
     }
 
-    const role = params.role ? String(params.role) : 'owner';
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.ensureProfileForClerkUserInOrganizationAction', reason: 'admin_ensure_profile', mode: 'global_admin', isSuperAdmin: true, organizationId },
+      async () => {
+        const role = params.role ? String(params.role) : 'owner';
 
-    const existing = await prisma.profile.findFirst({
-      where: { clerkUserId, organizationId },
-      select: { id: true },
-    });
+        const existing = await prisma.profile.findFirst({
+          where: { clerkUserId, organizationId },
+          select: { id: true },
+        });
 
-    if (existing?.id) {
-      await prisma.profile.updateMany({
-        where: { id: existing.id, organizationId },
-        data: {
-          email: params.email ?? undefined,
-          fullName: params.fullName ?? undefined,
-          avatarUrl: params.imageUrl ?? undefined,
-          role,
-        },
-      });
-      return { success: true, profileId: existing.id };
-    }
+        if (existing?.id) {
+          await prisma.profile.updateMany({
+            where: { id: existing.id, organizationId },
+            data: {
+              email: params.email ?? undefined,
+              fullName: params.fullName ?? undefined,
+              avatarUrl: params.imageUrl ?? undefined,
+              role,
+            },
+          });
+          return { success: true, profileId: existing.id };
+        }
 
-    const created = await prisma.profile.create({
-      data: {
-        organizationId,
-        clerkUserId,
-        email: params.email ?? null,
-        fullName: params.fullName ?? null,
-        avatarUrl: params.imageUrl ?? null,
-        role,
-      },
-      select: { id: true },
-    });
+        const created = await prisma.profile.create({
+          data: {
+            organizationId,
+            clerkUserId,
+            email: params.email ?? null,
+            fullName: params.fullName ?? null,
+            avatarUrl: params.imageUrl ?? null,
+            role,
+          },
+          select: { id: true },
+        });
 
-    return { success: true, profileId: created.id };
+        return { success: true, profileId: created.id };
+      }
+    );
   } catch (error: unknown) {
     return createErrorResponse(error, getUnknownErrorMessage(error) || 'Failed to ensure profile');
   }
@@ -634,61 +646,66 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
       return createErrorResponse('Missing clerkUserId');
     }
 
-    const email = params.email ? String(params.email).trim() : undefined;
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.getOrCreateSupabaseUserFromClerkWebhookAction', reason: 'webhook_user_sync', suppressReporting: true },
+      async () => {
+        const email = params.email ? String(params.email).trim() : undefined;
 
-    // Webhook path: keep backwards compatible behavior with /api/webhooks/clerk/route.ts
-    // which expects userId to be social_users.id (UUID) for downstream operations.
-    const now = new Date();
+        // Webhook path: keep backwards compatible behavior with /api/webhooks/clerk/route.ts
+        // which expects userId to be social_users.id (UUID) for downstream operations.
+        const now = new Date();
 
-    const existing = await prisma.organizationUser.findUnique({
-      where: { clerk_user_id: clerkUserId },
-      select: { id: true },
-    });
+        const existing = await prisma.organizationUser.findUnique({
+          where: { clerk_user_id: clerkUserId },
+          select: { id: true },
+        });
 
-    const updateData: {
-      email: string | null;
-      full_name: string | null;
-      avatar_url: string | null;
-      updated_at: Date;
-    } = {
-      email: email ? String(email).trim().toLowerCase() : null,
-      full_name: params.fullName ? String(params.fullName) : null,
-      avatar_url: params.imageUrl ? String(params.imageUrl) : null,
-      updated_at: now,
-    };
+        const updateData: {
+          email: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          updated_at: Date;
+        } = {
+          email: email ? String(email).trim().toLowerCase() : null,
+          full_name: params.fullName ? String(params.fullName) : null,
+          avatar_url: params.imageUrl ? String(params.imageUrl) : null,
+          updated_at: now,
+        };
 
-    if (existing?.id) {
-      await prisma.organizationUser.update({
-        where: { clerk_user_id: clerkUserId },
-        data: updateData,
-        select: { id: true },
-      });
+        if (existing?.id) {
+          await prisma.organizationUser.update({
+            where: { clerk_user_id: clerkUserId },
+            data: updateData,
+            select: { id: true },
+          });
 
-      return { success: true, userId: String(existing.id) };
-    }
+          return { success: true, userId: String(existing.id) };
+        }
 
-    const createData: {
-      clerk_user_id: string;
-      email: string | null;
-      full_name: string | null;
-      avatar_url: string | null;
-      created_at: Date;
-      updated_at: Date;
-    } = {
-      clerk_user_id: clerkUserId,
-      email: updateData.email,
-      full_name: updateData.full_name,
-      avatar_url: updateData.avatar_url,
-      created_at: now,
-      updated_at: now,
-    };
+        const createData: {
+          clerk_user_id: string;
+          email: string | null;
+          full_name: string | null;
+          avatar_url: string | null;
+          created_at: Date;
+          updated_at: Date;
+        } = {
+          clerk_user_id: clerkUserId,
+          email: updateData.email,
+          full_name: updateData.full_name,
+          avatar_url: updateData.avatar_url,
+          created_at: now,
+          updated_at: now,
+        };
 
-    const created = await prisma.organizationUser.create({
-      data: createData,
-      select: { id: true },
-    });
+        const created = await prisma.organizationUser.create({
+          data: createData,
+          select: { id: true },
+        });
 
-    return { success: true, userId: created?.id ? String(created.id) : undefined };
+        return { success: true, userId: created?.id ? String(created.id) : undefined };
+      }
+    );
   } catch (error: unknown) {
     return createErrorResponse(error, getUnknownErrorMessage(error) || 'Failed to sync user from webhook');
   }
@@ -705,46 +722,51 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
       return createErrorResponse('Not authenticated');
     }
 
-    let pendingPlan: PackageType | undefined = undefined;
-    try {
-      const jar = await cookies();
-      const cookieVal = jar.get('pending_plan')?.value;
-      const candidate = String(cookieVal || '').trim();
-      if (candidate && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, candidate)) {
-        pendingPlan = candidate as PackageType;
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.provisionCurrentUserWorkspaceAction', reason: 'workspace_provision', suppressReporting: true },
+      async () => {
+        let pendingPlan: PackageType | undefined = undefined;
+        try {
+          const jar = await cookies();
+          const cookieVal = jar.get('pending_plan')?.value;
+          const candidate = String(cookieVal || '').trim();
+          if (candidate && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, candidate)) {
+            pendingPlan = candidate as PackageType;
+          }
+        } catch {
+          pendingPlan = undefined;
+        }
+
+        const user = await currentUser();
+        const email = user?.emailAddresses?.[0]?.emailAddress
+          ? String(user.emailAddresses[0].emailAddress)
+          : undefined;
+        const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined;
+        const imageUrl = user?.imageUrl ? String(user.imageUrl) : undefined;
+
+        const out = await upsertProfileForClerkUser({
+          clerkUserId,
+          email,
+          fullName,
+          imageUrl,
+          preferredOrganizationKey: undefined,
+          pendingPlan,
+          sendWelcomeEmail: false,
+        });
+
+        if (pendingPlan) {
+          try {
+            const jar = await cookies();
+            jar.delete('pending_plan');
+          } catch {
+            // ignore
+          }
+        }
+
+        const organizationKey = String(out.organizationSlug || out.organizationId);
+        return { success: true, organizationKey };
       }
-    } catch {
-      pendingPlan = undefined;
-    }
-
-    const user = await currentUser();
-    const email = user?.emailAddresses?.[0]?.emailAddress
-      ? String(user.emailAddresses[0].emailAddress)
-      : undefined;
-    const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || undefined;
-    const imageUrl = user?.imageUrl ? String(user.imageUrl) : undefined;
-
-    const out = await upsertProfileForClerkUser({
-      clerkUserId,
-      email,
-      fullName,
-      imageUrl,
-      preferredOrganizationKey: undefined,
-      pendingPlan,
-      sendWelcomeEmail: false,
-    });
-
-    if (pendingPlan) {
-      try {
-        const jar = await cookies();
-        jar.delete('pending_plan');
-      } catch {
-        // ignore
-      }
-    }
-
-    const organizationKey = String(out.organizationSlug || out.organizationId);
-    return { success: true, organizationKey };
+    );
   } catch (error: unknown) {
     return createErrorResponse(error, getUnknownErrorMessage(error) || 'Failed to provision workspace');
   }
@@ -760,10 +782,15 @@ export async function getCurrentSupabaseUserId(): Promise<{ success: boolean; us
       return createErrorResponse('Not authenticated');
     }
 
-    const result = await getOrCreateSupabaseUserAction(clerkUserId);
-    return result;
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.getCurrentSupabaseUserId', reason: 'get_current_user', suppressReporting: true },
+      async () => {
+        const result = await getOrCreateSupabaseUserAction(clerkUserId);
+        return result;
+      }
+    );
   } catch (error: unknown) {
-    console.error('Error in getCurrentSupabaseUserId:', error);
+    logger.error('upsertOrganizationUserForClerkUser', 'Error in getCurrentSupabaseUserId:', error);
     return createErrorResponse('Failed to get user ID', getUnknownErrorMessage(error) || 'Failed to get user ID');
   }
 }
@@ -784,36 +811,41 @@ export async function getCurrentUserInfo(): Promise<{
       return createErrorResponse('Not authenticated');
     }
 
-    // Bootstrap: ensure profile exists
-    const sync = await getOrCreateSupabaseUserAction(clerkUserId);
-    if (!sync.success || !sync.userId) {
-      return createErrorResponse('Failed to get user', sync.error);
-    }
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.getCurrentUserInfo', reason: 'get_current_user_info', suppressReporting: true },
+      async () => {
+        // Bootstrap: ensure profile exists
+        const sync = await getOrCreateSupabaseUserAction(clerkUserId);
+        if (!sync.success || !sync.userId) {
+          return createErrorResponse('Failed to get user', sync.error);
+        }
 
-    // Resolve org+role by clerkUserId (allowed by tenant-guard exception)
-    const profile = await prisma.profile.findFirst({
-      where: { clerkUserId: String(clerkUserId) },
-      select: { id: true, organizationId: true, role: true },
-    });
+        // Resolve org+role by clerkUserId (allowed by tenant-guard exception)
+        const profile = await prisma.profile.findFirst({
+          where: { clerkUserId: String(clerkUserId) },
+          select: { id: true, organizationId: true, role: true },
+        });
 
-    // Soft mode: if webhook provisioning hasn't completed yet, return success without org.
-    if (!profile?.id || !profile.organizationId) {
-      return {
-        success: true,
-        userId: sync.userId,
-        role: 'team_member',
-        organizationId: undefined,
-      };
-    }
+        // Soft mode: if webhook provisioning hasn't completed yet, return success without org.
+        if (!profile?.id || !profile.organizationId) {
+          return {
+            success: true,
+            userId: sync.userId,
+            role: 'team_member',
+            organizationId: undefined,
+          };
+        }
 
-    return {
-      success: true,
-      userId: profile.id,
-      role: profile.role || 'team_member',
-      organizationId: profile.organizationId,
-    };
+        return {
+          success: true,
+          userId: profile.id,
+          role: profile.role || 'team_member',
+          organizationId: profile.organizationId,
+        };
+      }
+    );
   } catch (error: unknown) {
-    console.error('Error in getCurrentUserInfo:', error);
+    logger.error('upsertOrganizationUserForClerkUser', 'Error in getCurrentUserInfo:', error);
     return createErrorResponse('Failed to get user info', getUnknownErrorMessage(error) || 'Failed to get user info');
   }
 }
@@ -843,18 +875,23 @@ export async function getUserRoleFromSupabaseAction(
       return { success: true, role: 'team_member' };
     }
 
-    const profile = await prisma.profile.findFirst({
-      where: { clerkUserId: String(clerkUserId) },
-      select: { role: true, organizationId: true },
-    });
+    return await withTenantIsolationContext(
+      { source: 'app/actions/users.getUserRoleFromSupabaseAction', reason: 'get_user_role', suppressReporting: true },
+      async () => {
+        const profile = await prisma.profile.findFirst({
+          where: { clerkUserId: String(clerkUserId) },
+          select: { role: true, organizationId: true },
+        });
 
-    return {
-      success: true,
-      role: profile?.role || 'team_member',
-      organizationId: profile?.organizationId || undefined,
-    };
+        return {
+          success: true,
+          role: profile?.role || 'team_member',
+          organizationId: profile?.organizationId || undefined,
+        };
+      }
+    );
   } catch (error: unknown) {
-    console.error('[getUserRoleFromSupabaseAction] Error getting role:', error);
+    logger.error('getUserRoleFromSupabaseAction', 'Error getting role:', error);
     return createErrorResponse('Failed to get user role', getUnknownErrorMessage(error) || 'Failed to get user role');
   }
 }

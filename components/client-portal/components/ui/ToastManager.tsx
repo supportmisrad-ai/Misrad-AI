@@ -12,16 +12,12 @@ export const ToastManager: React.FC = () => {
 
   useEffect(() => {
     const handleToast = (e: CustomEvent) => {
-      const newToast = {
-        id: Math.random().toString(36).substr(2, 9),
-        message: (e as any).detail.message,
-        type: (e as any).detail.type || 'info',
-      };
+      const detail = e.detail as { message?: string; type?: string };
 
-      setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => [...prev, { id: `toast-${Date.now()}`, message: String(detail.message || ''), type: (detail.type === 'success' || detail.type === 'error' || detail.type === 'info' ? detail.type : 'info') }]);
 
       setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
+        setToasts((prev) => prev.filter((t) => t.id !== `toast-${Date.now()}`));
       }, 4000);
     };
 

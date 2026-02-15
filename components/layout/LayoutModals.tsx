@@ -18,7 +18,7 @@ interface LayoutModalsProps {
   setIsVoiceRecorderOpen: (open: boolean) => void;
   isCreateTaskOpen: boolean;
   closeCreateTask: () => void;
-  taskToComplete: any;
+  taskToComplete: Task | null;
   isSupportModalOpen: boolean;
   currentOpenedTask: Task | null;
   openedTaskId: string | null;

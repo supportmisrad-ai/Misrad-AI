@@ -148,8 +148,8 @@ function SupportPageInner() {
       const ticket = asObject(asObject(payload)?.ticket);
       const id = getStringProp(ticket, 'id') || getStringProp(ticket, 'ticket_number') || 'success';
       setSuccessId(id);
-    } catch (err: any) {
-      setError(err?.message || 'שגיאה ביצירת קריאת תמיכה');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : String(err)) || 'שגיאה ביצירת קריאת תמיכה');
     } finally {
       setIsSubmitting(false);
     }

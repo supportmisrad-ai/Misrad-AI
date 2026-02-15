@@ -17,7 +17,7 @@ interface Asset {
     category: AssetCategory;
     type: 'link' | 'password' | 'file';
     value: string; // The url, password, or file link
-    icon?: any;
+    icon?: React.ReactNode;
     color?: string;
     isSecure?: boolean; // Requires toggle to see
 }

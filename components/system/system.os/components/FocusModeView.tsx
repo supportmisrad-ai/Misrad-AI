@@ -31,7 +31,7 @@ const FocusModeView: React.FC = () => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        let interval: any;
+        let interval: ReturnType<typeof setInterval> | undefined;
         if (isActive && timeLeft > 0) {
             interval = setInterval(() => {
                 setTimeLeft((prev) => prev - 1);

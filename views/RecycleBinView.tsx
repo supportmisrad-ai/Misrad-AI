@@ -5,6 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, RotateCcw, Search, CheckSquare, Briefcase, DollarSign, File, X, Archive, Lightbulb, Users, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
+function asObj(v: unknown): Record<string, unknown> | undefined {
+    if (v && typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+    return undefined;
+}
+
 type TabType = 'tasks' | 'clients' | 'leads' | 'assets' | 'requests' | 'team' | 'time';
 
 export const RecycleBinView: React.FC = () => {
@@ -81,11 +86,13 @@ export const RecycleBinView: React.FC = () => {
         }
     };
 
-    const filteredItems = getItems().filter((item: any) => {
+    const filteredItems = getItems().filter((item: unknown) => {
         if (!item) return false;
+        const o = asObj(item);
+        if (!o) return false;
         const term = searchTerm.toLowerCase();
-        const name = item.title || item.name || item.companyName || (item.date ? `דיווח שעות: ${item.date}` : 'ללא שם');
-        const id = item.id || '';
+        const name = String(o.title || o.name || o.companyName || (o.date ? `דיווח שעות: ${o.date}` : 'ללא שם'));
+        const id = String(o.id || '');
         return (name && name.toLowerCase().includes(term)) || id.toLowerCase().includes(term);
     });
 
@@ -207,11 +214,14 @@ export const RecycleBinView: React.FC = () => {
                     {/* Items List */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-5 pb-4 md:pb-5">
                         <AnimatePresence mode="popLayout">
-                            {filteredItems.length > 0 ? filteredItems.map((item: any) => {
-                                const itemName = item.title || item.name || item.companyName || (item.date ? `דיווח שעות: ${item.date}` : 'ללא שם');
+                            {filteredItems.length > 0 ? filteredItems.map((itemRaw: unknown) => {
+                                const item = asObj(itemRaw);
+                                if (!item) return null;
+                                const itemId = String(item.id || '');
+                                const itemName = String(item.title || item.name || item.companyName || (item.date ? `דיווח שעות: ${item.date}` : 'ללא שם'));
                                 return (
                                     <motion.div 
-                                        key={item.id}
+                                        key={itemId}
                                         layout
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -233,20 +243,20 @@ export const RecycleBinView: React.FC = () => {
                                                     {itemName}
                                                 </h3>
                                                 <p className="text-[9px] md:text-[10px] text-gray-400 font-mono mt-0.5 flex items-center gap-1">
-                                                    ID: <span className="bg-gray-50 px-1 rounded">{item.id}</span>
+                                                    ID: <span className="bg-gray-50 px-1 rounded">{itemId}</span>
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center gap-2 self-end md:self-auto">
                                             <button 
-                                                onClick={(e) => handleRestore(item.id, e)}
+                                                onClick={(e) => handleRestore(itemId, e)}
                                                 className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 md:py-2 bg-green-50 text-green-700 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold hover:bg-green-100 transition-colors border border-green-100"
                                             >
                                                 <RotateCcw size={12} className="md:w-3.5 md:h-3.5" /> שחזר
                                             </button>
                                             <button 
-                                                onClick={(e) => handleDeleteClick(item.id, itemName, e)}
+                                                onClick={(e) => handleDeleteClick(itemId, itemName, e)}
                                                 className="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 md:py-2 bg-red-50 text-red-700 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold hover:bg-red-100 transition-colors border border-red-100"
                                                 title="מחיקה לצמיתות"
                                             >

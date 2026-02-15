@@ -152,9 +152,9 @@ export default function InviteClientModal() {
       setIsGenerating(false);
       setStep(2);
       addToast('לינק הקמה נוצר בהצלחה!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating client:', error);
-      const errorMsg = error.message ? translateError(error.message) : 'שגיאה ביצירת לקוח';
+      const errorMsg = error instanceof Error && error.message ? translateError(error.message) : 'שגיאה ביצירת לקוח';
       setError(errorMsg);
       addToast('שגיאה ביצירת לקוח: ' + errorMsg, 'error');
       setIsGenerating(false);

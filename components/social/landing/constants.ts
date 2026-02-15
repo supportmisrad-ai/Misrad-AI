@@ -35,7 +35,7 @@ export const DEFAULT_FEATURES = [
   },
 ];
 
-export const ICON_MAP: Record<string, any> = {
+export const ICON_MAP: Record<string, unknown> = {
   Rocket,
   Zap,
   ShieldCheck,

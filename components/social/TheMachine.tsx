@@ -61,7 +61,7 @@ export default function TheMachine() {
   const [postingTimes, setPostingTimes] = useState<PostingTimesResult | null>(null);
   const [showTimesModal, setShowTimesModal] = useState(false);
 
-  const editingPostId = String((activeDraft as any)?.id || '').trim();
+  const editingPostId = String((activeDraft as Record<string, unknown> | null)?.id || '').trim();
   const editingPost = editingPostId && !editingPostId.startsWith('draft-') ? posts.find((p) => String(p.id) === editingPostId) : undefined;
   const isEditingExistingPost = Boolean(editingPost?.id);
 
@@ -82,9 +82,9 @@ export default function TheMachine() {
       setIsGeneratingImage(false);
     };
 
-    window.addEventListener('social:machine:new', handler as any);
+    window.addEventListener('social:machine:new', handler as EventListener);
     return () => {
-      window.removeEventListener('social:machine:new', handler as any);
+      window.removeEventListener('social:machine:new', handler as EventListener);
     };
   }, [setActiveDraft]);
 
@@ -203,7 +203,7 @@ export default function TheMachine() {
                 content: editableContent,
                 platforms: selectedPlatforms,
                 mediaUrl,
-                status: shouldPublish ? 'published' : (p.status as any),
+                status: shouldPublish ? 'published' : p.status,
                 publishedAt: publishedAt || p.publishedAt,
               }
             : p

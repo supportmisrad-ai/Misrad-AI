@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle2, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice, ManagerRequest } from '@/types/social';
+import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice, ManagerRequest, ClientRequest, SocialPlatform } from '@/types/social';
+import type { Invoice as FinanceInvoice } from '@/types/finance';
 import PaymentCheckoutPortal from './PaymentCheckoutPortal';
 import { Avatar } from '@/components/Avatar';
 import { getInvoices } from '@/app/actions/payments';
@@ -42,7 +43,7 @@ export default function ClientPortal() {
     text?: string;
     isUrgent?: boolean;
     contentType?: 'post' | 'story' | 'reel' | '';
-    targetPlatforms?: any[];
+    targetPlatforms?: SocialPlatform[];
   } | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -72,7 +73,14 @@ export default function ClientPortal() {
     ] : [],
   };
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = (useChat as any)(chatConfig);
+  const chatHelpers = useChat(chatConfig as any);
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = chatHelpers as unknown as {
+    messages: Array<{ id: string; role: string; parts?: Array<{ type: string; text?: string }> }>;
+    input: string;
+    handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+    handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+    isLoading: boolean;
+  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -94,7 +102,15 @@ export default function ClientPortal() {
     try {
       const result = await getInvoices(activeClient.id, orgSlug || undefined);
       if (result.success && result.data) {
-        setInvoices(result.data as any);
+        const mapped: Invoice[] = (result.data as FinanceInvoice[]).map((fi) => ({
+          id: fi.id,
+          clientId: activeClient?.id ?? '',
+          amount: fi.amount,
+          date: fi.issueDate instanceof Date ? fi.issueDate.toISOString() : String(fi.issueDate ?? ''),
+          status: fi.status === 'paid' ? 'paid' as const : fi.status === 'overdue' ? 'overdue' as const : 'pending' as const,
+          downloadUrl: '',
+        }));
+        setInvoices(mapped);
       }
     } catch (error) {
       console.error('Error loading invoices:', error);
@@ -126,7 +142,14 @@ ${String(request.description || '').trim()}`.trim();
 
   const isLockedDown = activeClient?.paymentStatus === 'overdue' && (activeClient?.businessMetrics.daysOverdue || 0) >= 5;
 
-  const [notifications] = useState<any[]>([]);
+  interface PortalNotification {
+    id: string;
+    title: string;
+    message: string;
+    timestamp: string;
+    isRead: boolean;
+  }
+  const [notifications] = useState<PortalNotification[]>([]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -283,7 +306,7 @@ ${String(request.description || '').trim()}`.trim();
       }
 
       if (res.data) {
-        setClientRequests((prev) => [res.data as any, ...(Array.isArray(prev) ? prev : [])]);
+        setClientRequests((prev) => [res.data as ClientRequest, ...(Array.isArray(prev) ? prev : [])]);
       }
 
       const managerRequestId = String(uploadPrefill?.key || '').trim();
@@ -346,13 +369,13 @@ ${String(request.description || '').trim()}`.trim();
   const renderTabContent = () => {
     switch (activeTab) {
       case 'approvals': return <ApprovalsTab posts={clientPosts} onApprove={handleApprove} onReject={handleReject} />;
-      case 'tasks': return <TasksTab requests={clientManagerRequests} onCompleteRequest={handleCompleteRequest} onUploadNow={handleUploadNow} setActiveTab={setActiveTab} />;
+      case 'tasks': return <TasksTab requests={clientManagerRequests} onCompleteRequest={handleCompleteRequest} onUploadNow={handleUploadNow} setActiveTab={setActiveTab as (tab: unknown) => void} />;
       case 'store': return <StoreTab marketplaceAddons={marketplaceAddons} cart={cart} updateCart={updateCart} handleCheckoutStore={() => startPayment(totalCartPrice, 'רכישת שירותים')} totalCartPrice={totalCartPrice} />;
       case 'calendar': return <CalendarTab posts={clientPosts} />;
       case 'upload':
         return (
           <UploadTab
-            client={activeClient as any}
+            client={activeClient!}
             clientRequests={clientRequestsList}
             onUpload={handleUpload}
             prefill={
@@ -360,15 +383,15 @@ ${String(request.description || '').trim()}`.trim();
                 ? {
                     text: uploadPrefill.text,
                     isUrgent: uploadPrefill.isUrgent,
-                    contentType: (uploadPrefill.contentType as any) ?? '',
-                    targetPlatforms: (uploadPrefill.targetPlatforms as any) ?? [],
+                    contentType: uploadPrefill.contentType ?? '',
+                    targetPlatforms: uploadPrefill.targetPlatforms ?? [],
                   }
                 : undefined
             }
           />
         );
-      case 'billing': return <BillingTab client={activeClient as any} invoices={invoices as any} onStartPayment={startPayment} />;
-      case 'analytics': return <AnalyticsTab client={activeClient as any} posts={clientPosts} />;
+      case 'billing': return <BillingTab client={activeClient!} invoices={invoices} onStartPayment={startPayment} />;
+      case 'analytics': return <AnalyticsTab client={activeClient!} posts={clientPosts} />;
       default: return <ApprovalsTab posts={clientPosts} onApprove={handleApprove} onReject={handleReject} />;
     }
   };
@@ -426,7 +449,7 @@ ${String(request.description || '').trim()}`.trim();
                   </div>
                 ) : (
                   <div className="max-h-[60vh] overflow-y-auto">
-                    {notifications.map((n: any) => (
+                    {notifications.map((n) => (
                       <div key={n.id} className="px-4 py-3 border-b border-slate-100">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -462,7 +485,7 @@ ${String(request.description || '').trim()}`.trim();
             ].map(tab => {
               const Icon = tab.icon;
               return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full font-black text-[11px] md:text-sm transition-all whitespace-nowrap relative ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-200'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full font-black text-[11px] md:text-sm transition-all whitespace-nowrap relative ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border border-slate-200'}`}>
                 <Icon size={14} /> {tab.label}
                 {tab.count ? <span className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[8px] font-black border border-white ml-1">{tab.count}</span> : null}
               </button>
@@ -514,7 +537,7 @@ ${String(request.description || '').trim()}`.trim();
                 </button>
              </div>
              <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 flex flex-col gap-3 sm:gap-4 bg-slate-50">
-                {messages.map((message: any) => (
+                {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex flex-col gap-2 ${
@@ -528,7 +551,7 @@ ${String(request.description || '').trim()}`.trim();
                           : 'bg-white text-slate-800 border-slate-200'
                       }`}
                     >
-                      {message.parts?.map((part: any, i: number) => {
+                      {message.parts?.map((part: { type: string; text?: string }, i: number) => {
                         if (part.type === 'text') {
                           return (
                             <div key={`${message.id}-${i}`} className="whitespace-pre-wrap break-words">
@@ -538,7 +561,7 @@ ${String(request.description || '').trim()}`.trim();
                         }
                         return null;
                       })}
-                      {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
+                      {isLoading && messages.length > 0 && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
                         <span className="inline-flex items-center gap-1 text-slate-400 font-bold">
                           <span className="animate-bounce">.</span>
                           <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>.</span>
@@ -548,7 +571,7 @@ ${String(request.description || '').trim()}`.trim();
                     </div>
                   </div>
                 ))}
-                {isLoading && messages[messages.length - 1]?.role === 'user' && (
+                {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
                   <div className="flex items-start gap-2">
                     <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm font-bold text-xs sm:text-sm border border-slate-200">
                       <div className="space-y-2 w-32 sm:w-40">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, TrendingUp, Plug, Settings, Menu, User, Compass } from 'lucide-react';
+import { CreditCard, TrendingUp, Plug, Settings, Menu, User as UserIcon, Compass } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import type { User as AppUser } from '@/types';
 
 // Import placeholder components
 import IntegrationsView from './integrations/IntegrationsView';
@@ -59,9 +60,9 @@ const FinanceBootScreen = ({ onComplete }: { onComplete: () => void }) => {
 };
 
 const FinanceOSApp: React.FC<{
-  initialFinanceOverview?: any;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialFinanceOverview?: unknown;
+  initialCurrentUser?: AppUser;
+  initialOrganization?: Partial<{ name: string; logo: string; slug: string; id: string }>;
 }> = ({ initialFinanceOverview, initialCurrentUser, initialOrganization }) => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
@@ -76,10 +77,11 @@ const FinanceOSApp: React.FC<{
 
   const orgSlug = React.useMemo(() => parseWorkspaceRoute(nextPathname).orgSlug, [nextPathname]);
 
+  const userRecord = user as unknown as Record<string, unknown> | null;
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
-    name: (user as any)?.name ?? null,
-    role: (user as any)?.role ?? null,
-    avatarUrl: (user as any)?.avatar ?? null,
+    name: (userRecord?.name as string) ?? null,
+    role: (userRecord?.role as string) ?? null,
+    avatarUrl: (userRecord?.avatar as string) ?? null,
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -389,7 +391,7 @@ const FinanceOSApp: React.FC<{
         onSetOpenAction={setIsSidebarOpen}
         brand={{
           name: String(initialOrganization?.name || moduleTitle),
-          logoUrl: (initialOrganization as any)?.logo || null,
+          logoUrl: initialOrganization?.logo || null,
           fallbackIcon,
           badgeModuleKey: 'finance',
         }}
@@ -424,7 +426,7 @@ const FinanceOSApp: React.FC<{
           currentDate={currentDate}
           mobileBrand={{
             name: moduleTitle,
-            logoUrl: (initialOrganization as any)?.logo || null,
+            logoUrl: initialOrganization?.logo || null,
             fallbackIcon,
             badgeModuleKey: 'finance',
           }}
@@ -492,7 +494,7 @@ const FinanceOSApp: React.FC<{
                   { id: 'overview', label: 'סקירה', icon: TrendingUp, onClick: () => navigateToTab('overview') },
                   { id: 'integrations', label: 'אינטגרציות', icon: Plug, onClick: () => navigateToTab('integrations') },
                   { id: 'hub', label: 'הגדרות', icon: Settings, onClick: () => navigateToTab('hub') },
-                  { id: 'me', label: 'פרופיל', icon: User, onClick: goToMe },
+                  { id: 'me', label: 'פרופיל', icon: UserIcon, onClick: goToMe },
                 ].map((item) => {
                   const isActiveItem = item.id === 'me' ? activeTab === 'me' : activeTab === item.id;
                   const Icon = item.icon;

@@ -90,8 +90,8 @@ const ClientView: React.FC = () => {
   }, [client, selectedClientId]);
 
   useEffect(() => {
-    const handler = (e: any) => {
-      const id = String(e.detail);
+    const handler = (e: unknown) => {
+      const id = String((e as CustomEvent).detail);
       setSelectedClientId(id);
       setViewMode('DETAIL');
     };
@@ -148,7 +148,7 @@ const ClientView: React.FC = () => {
       )
     );
 
-    const exitFeedback: any = {
+    const exitFeedback: unknown = {
       id: `exit-${Date.now()}`,
       clientId: client.id,
       clientName: client.name,
@@ -160,7 +160,7 @@ const ClientView: React.FC = () => {
       source: 'EXIT_INTERVIEW',
     };
 
-    (MOCK_FEEDBACK as any).push(exitFeedback);
+    (MOCK_FEEDBACK as unknown as { push: (item: unknown) => void }).push(exitFeedback);
     window.dispatchEvent(
       new CustomEvent('nexus-toast', {
         detail: { message: `הלקוח ${client.name} הועבר לארכיון נטישה.`, type: 'info' },
@@ -481,7 +481,7 @@ const ClientView: React.FC = () => {
         {availableTabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'transform' | 'meetings' | 'tasks' | 'journey' | 'stakeholders' | 'pulse' | 'strategy' | 'work' | 'feedback' | 'portal')}
             className={`px-6 py-4 text-sm font-bold transition-all relative rounded-t-xl flex items-center gap-2 whitespace-nowrap ${
               activeTab === tab.id ? 'text-nexus-primary bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-400 hover:text-gray-600'
             }`}

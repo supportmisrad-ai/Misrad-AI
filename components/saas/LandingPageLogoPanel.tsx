@@ -86,8 +86,8 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
             }
             updateSettings('landingPageLogo', nextLogo);
             updateSettings('landingPageLogoText', nextText);
-        } catch (e: any) {
-            addToast(e?.message || 'שגיאה בשמירה', 'error');
+        } catch (e: unknown) {
+            addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירה', 'error');
         }
     };
 

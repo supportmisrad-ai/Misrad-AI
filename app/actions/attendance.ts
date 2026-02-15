@@ -19,9 +19,9 @@ export type AttendanceGeoLocationInput = {
 
 function parseGeoLocationRequired(input: unknown): { lat: number; lng: number; accuracy: number | null } {
   const obj = asObject(input) ?? {};
-  const lat = Number(getStringProp(obj, 'lat') || (obj as any).lat);
-  const lng = Number(getStringProp(obj, 'lng') || (obj as any).lng);
-  const accuracyRaw = (obj as any).accuracy;
+  const lat = Number(getStringProp(obj, 'lat') || (obj as Record<string, unknown>).lat);
+  const lng = Number(getStringProp(obj, 'lng') || (obj as Record<string, unknown>).lng);
+  const accuracyRaw = (obj as Record<string, unknown>).accuracy;
   const accuracy = accuracyRaw == null || accuracyRaw === '' ? null : Number(accuracyRaw);
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {

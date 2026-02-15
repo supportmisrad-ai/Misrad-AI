@@ -3,6 +3,7 @@ import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { buildRateLimitHeaders, getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { asObject } from '@/lib/server/workspace-access/utils';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -155,55 +156,60 @@ export async function POST(req: NextRequest) {
       ? body.source
       : 'landing-page';
 
-    const lead = await prisma.systemLead.create({
-      data: {
-        organizationId: org.id,
-        name: body.name.trim(),
-        email: body.email.trim().toLowerCase(),
-        phone: body.phone?.trim() || '',
-        company: body.company?.trim() || null,
-        source,
-        status: 'new',
-        score: 50,
-        lastContact: new Date(),
-        isHot: false,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        status: true,
-        createdAt: true,
-      },
-    });
+    return await withTenantIsolationContext(
+      { source: 'api_public_leads', organizationId: org.id, reason: 'create_public_lead' },
+      async () => {
+        const lead = await prisma.systemLead.create({
+          data: {
+            organizationId: org.id,
+            name: body.name.trim(),
+            email: body.email.trim().toLowerCase(),
+            phone: body.phone?.trim() || '',
+            company: body.company?.trim() || null,
+            source,
+            status: 'new',
+            score: 50,
+            lastContact: new Date(),
+            isHot: false,
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        });
 
-    if (body.message?.trim()) {
-      await prisma.systemLeadActivity.create({
-        data: {
-          organizationId: org.id,
-          leadId: lead.id,
-          type: 'note',
-          content: `Message from landing page: ${body.message.trim()}`,
-          timestamp: new Date(),
-        },
-      });
-    }
+        if (body.message?.trim()) {
+          await prisma.systemLeadActivity.create({
+            data: {
+              organizationId: org.id,
+              leadId: lead.id,
+              type: 'note',
+              content: `Message from landing page: ${body.message.trim()}`,
+              timestamp: new Date(),
+            },
+          });
+        }
 
-    return apiSuccess({
-      id: lead.id,
-      name: lead.name,
-      email: lead.email,
-      status: lead.status,
-      createdAt: lead.createdAt,
-      message: 'Lead created successfully',
-    }, {
-      status: 201,
-      headers: buildRateLimitHeaders({
-        limit: keyData.rate_limit_per_minute,
-        remaining: Math.max(0, keyData.rate_limit_per_minute - 1),
-        resetAt: Date.now() + 60 * 1000,
-      }),
-    });
+        return apiSuccess({
+          id: lead.id,
+          name: lead.name,
+          email: lead.email,
+          status: lead.status,
+          createdAt: lead.createdAt,
+          message: 'Lead created successfully',
+        }, {
+          status: 201,
+          headers: buildRateLimitHeaders({
+            limit: keyData.rate_limit_per_minute,
+            remaining: Math.max(0, keyData.rate_limit_per_minute - 1),
+            resetAt: Date.now() + 60 * 1000,
+          }),
+        });
+      }
+    );
 
   } catch (error: unknown) {
     if (IS_PROD) console.error('[Public Leads API] Error');

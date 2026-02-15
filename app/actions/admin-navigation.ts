@@ -3,7 +3,8 @@
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
 
 import { asObject } from '@/lib/shared/unknown';
 function isNavSection(value: unknown): value is NavigationItem['section'] {
@@ -31,7 +32,7 @@ export interface NavigationItem {
   order: number;
   isVisible: boolean;
   requiresClient?: boolean; // Only show when client is selected
-  requiresRole?: string[]; // Only show for specific roles
+  requiresRole?: string[] | null; // Only show for specific roles
 }
 
 /**

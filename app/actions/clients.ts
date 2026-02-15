@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -345,7 +347,7 @@ export async function getClients(
     const resolved = await resolveClientsAvatarsMaybe(acc.slice(0, maxTotal), organizationId);
     return { success: true, data: resolved };
   } catch (error: unknown) {
-    console.error('Error in getClients:', error);
+    logger.error('clients', 'Error in getClients:', error);
     const message = error instanceof Error && error.message ? error.message : 'שגיאה בטעינת לקוחות';
     return { success: false, error: message };
   }
@@ -459,7 +461,7 @@ export async function getClientsPage(params: {
 
     return { success: true, data: { clients: resolvedClients, nextCursor, hasMore } };
   } catch (error: unknown) {
-    console.error('Error in getClientsPage:', error);
+    logger.error('clients', 'Error in getClientsPage:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוחות') };
   }
 }
@@ -495,7 +497,7 @@ export async function getClientByIdForWorkspace(params: {
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
     return { success: true, data: resolved };
   } catch (error: unknown) {
-    console.error('Error in getClientByIdForWorkspace:', error);
+    logger.error('clients', 'Error in getClientByIdForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };
   }
 }
@@ -557,7 +559,7 @@ export async function createClientInvitationLinkForWorkspace(params: {
 
     return { success: true, token };
   } catch (error: unknown) {
-    console.error('Error in createClientInvitationLinkForWorkspace:', error);
+    logger.error('clients', 'Error in createClientInvitationLinkForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לינק הזמנה') };
   }
 }
@@ -705,7 +707,7 @@ export async function createClientForWorkspace(
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
     return { success: true, data: resolved };
   } catch (error: unknown) {
-    console.error('Error in createClientForWorkspace:', error);
+    logger.error('clients', 'Error in createClientForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
   }
 }
@@ -790,7 +792,7 @@ export async function createClient(
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
     return { success: true, data: resolved };
   } catch (error: unknown) {
-    console.error('Error in createClient:', error);
+    logger.error('clients', 'Error in createClient:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
   }
 }
@@ -861,7 +863,7 @@ export async function updateClient(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in updateClient:', error);
+    logger.error('clients', 'Error in updateClient:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בעדכון לקוח') };
   }
 }
@@ -949,7 +951,7 @@ export async function updateClientForWorkspace(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in updateClientForWorkspace:', error);
+    logger.error('clients', 'Error in updateClientForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בעדכון לקוח') };
   }
 }
@@ -975,7 +977,7 @@ export async function deleteClient(clientId: string): Promise<{ success: boolean
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in deleteClient:', error);
+    logger.error('clients', 'Error in deleteClient:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה במחיקת לקוח') };
   }
 }
@@ -1011,7 +1013,7 @@ export async function deleteClientForWorkspace(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in deleteClientForWorkspace:', error);
+    logger.error('clients', 'Error in deleteClientForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה במחיקת לקוח') };
   }
 }
@@ -1076,7 +1078,7 @@ export async function inviteClient(
       success: true,
     };
   } catch (error: unknown) {
-    console.error('Error in inviteClient:', error);
+    logger.error('clients', 'Error in inviteClient:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בהזמנת לקוח') };
   }
 }
@@ -1146,7 +1148,7 @@ export async function inviteClientForWorkspace(
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error in inviteClientForWorkspace:', error);
+    logger.error('clients', 'Error in inviteClientForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בהזמנת לקוח') };
   }
 }
@@ -1224,7 +1226,7 @@ export async function getClientByInvitationToken(
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
     return { success: true, data: resolved };
   } catch (error: unknown) {
-    console.error('Error in getClientByInvitationToken:', error);
+    logger.error('clients', 'Error in getClientByInvitationToken:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };
   }
 }

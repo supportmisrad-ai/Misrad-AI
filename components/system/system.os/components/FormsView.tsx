@@ -217,7 +217,7 @@ const FormsView: React.FC = () => {
                                 ].map((field) => (
                                     <button
                                         key={field.type}
-                                        onClick={() => addField(field.type as any)}
+                                        onClick={() => addField(field.type as FormField['type'])}
                                         className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-all gap-2"
                                     >
                                         <field.icon size={20} />

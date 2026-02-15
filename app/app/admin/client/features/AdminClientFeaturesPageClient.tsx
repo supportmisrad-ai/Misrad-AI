@@ -6,5 +6,5 @@ import { FeatureRequestsPanel } from '@/components/saas/FeatureRequestsPanel';
 
 export default function AdminClientFeaturesPageClient() {
   const { addToast } = useData();
-  return <FeatureRequestsPanel addToast={addToast as any} />;
+  return <FeatureRequestsPanel addToast={addToast} />;
 }

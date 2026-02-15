@@ -63,8 +63,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                       }),
                   });
 
-                  const data = (await res.json().catch(() => ({}))) as any;
-                  const text = data?.result?.summary || 'מצטער, לא הצלחתי לעבד את הבקשה כרגע.';
+                  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+                  const result = data?.result && typeof data.result === 'object' ? (data.result as Record<string, unknown>) : null;
+                  const text = String(result?.summary || 'מצטער, לא הצלחתי לעבד את הבקשה כרגע.');
                   setAiResponse({ type: res.ok ? 'success' : 'error', text });
               } catch (error) {
                   console.error("AI Error:", error);

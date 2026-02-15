@@ -70,7 +70,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
         const now = new Date();
         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-        const active = activeSubscriptions as any[];
+        const active = activeSubscriptions as unknown[];
         if (!active.length) return { stable: 0, medium: 0, high: 0 };
 
         let stable = 0;
@@ -78,7 +78,8 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
         let high = 0;
 
         for (const sub of active) {
-            const end = sub?.subscriptionEndDate ? new Date(sub.subscriptionEndDate) : null;
+            const subRec = sub as Record<string, unknown>;
+            const end = subRec.subscriptionEndDate ? new Date(subRec.subscriptionEndDate as string) : null;
             if (!end || Number.isNaN(end.getTime())) {
                 stable += 1;
                 continue;
@@ -121,7 +122,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
             return;
         }
 
-        const invoiceLabel = (invoice as any)?.number ?? invoice.id;
+        const invoiceLabel = (invoice as unknown as Record<string, unknown>).number ?? invoice.id;
         
         if (window.confirm(`האם אתה בטוח שברצונך לזכות חשבונית ${invoiceLabel} על סך ₪${invoice.amount.toLocaleString()}?`)) {
             if (onUpdateInvoice) {
@@ -221,7 +222,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
                                             <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 11}} />
                                             <Tooltip 
                                                 contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.1)', padding: '16px' }}
-                                                formatter={(value: any) => [`₪${Number(value || 0).toLocaleString()}`, 'MRR']}
+                                                formatter={(value: unknown) => [`₪${Number(value || 0).toLocaleString()}`, 'MRR']}
                                             />
                                             <Area type="monotone" dataKey="mrr" stroke="#4338CA" strokeWidth={4} fillOpacity={1} fill="url(#colorMrr)" />
                                         </AreaChart>
@@ -299,7 +300,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
                                                     <span className="text-slate-600 font-medium">—</span>
                                                 </td>
                                                 <td className="px-6 py-4 font-mono font-bold text-indigo-600">₪0</td>
-                                                <td className="px-6 py-4 text-slate-500 font-medium">{(client as any)?.subscriptionEndDate ? new Date((client as any).subscriptionEndDate).toLocaleDateString('he-IL') : '—'}</td>
+                                                <td className="px-6 py-4 text-slate-500 font-medium">{(client as unknown as { subscriptionEndDate?: string })?.subscriptionEndDate ? new Date((client as unknown as { subscriptionEndDate?: string }).subscriptionEndDate!).toLocaleDateString('he-IL') : '—'}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
                                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>

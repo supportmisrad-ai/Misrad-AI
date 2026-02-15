@@ -252,7 +252,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           }
 
           const isActive = activeView === item.id || (item.id === 'MENU' && isMobileMenuOpen);
-          const Icon = item.icon as any;
+          const Icon = item.icon as React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
           return (
             <button

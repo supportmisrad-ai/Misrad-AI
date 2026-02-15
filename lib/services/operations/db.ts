@@ -1,8 +1,8 @@
 import 'server-only';
 
-import prisma, { executeRawOrgScoped, queryRawAllowlisted, queryRawOrgScoped } from '@/lib/prisma';
+import prisma, { executeRawOrgScoped, prismaForInteractiveTransaction, queryRawAllowlisted, queryRawOrgScoped } from '@/lib/prisma';
 
-export { prisma };
+export { prisma, prismaForInteractiveTransaction };
 
 const OPERATIONS_RAW_REASON = 'operations_raw_sql';
 

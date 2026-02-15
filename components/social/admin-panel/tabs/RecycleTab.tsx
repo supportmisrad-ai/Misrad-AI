@@ -7,7 +7,7 @@ import { restoreDeletedItem, hardDeleteItem } from '@/app/actions/admin-cockpit'
 import { Button } from '@/components/ui/button';
 
 interface RecycleTabProps {
-  deletedItems: any[];
+  deletedItems: Record<string, unknown>[];
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -36,7 +36,7 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
             </thead>
             <tbody>
               {deletedItems.map(item => (
-                <tr key={item.id} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors group">
+                <tr key={String(item.id)} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors group">
                   <td className="p-8">
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase ${
                       item.type === 'post' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
@@ -45,22 +45,22 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
                     </span>
                   </td>
                   <td className="p-8">
-                    <p className="font-black text-slate-900">{item.name}</p>
+                    <p className="font-black text-slate-900">{String(item.name ?? '')}</p>
                   </td>
                   <td className="p-8">
-                    <p className="text-sm text-slate-600">{item.clientName}</p>
+                    <p className="text-sm text-slate-600">{String(item.clientName ?? '')}</p>
                   </td>
                   <td className="p-8">
-                    <p className="text-sm text-slate-600">{item.deletedBy}</p>
+                    <p className="text-sm text-slate-600">{String(item.deletedBy ?? '')}</p>
                   </td>
                   <td className="p-8">
-                    <p className="text-sm text-slate-600">{new Date(item.deletedAt).toLocaleString('he-IL')}</p>
+                    <p className="text-sm text-slate-600">{new Date(String(item.deletedAt)).toLocaleString('he-IL')}</p>
                   </td>
                   <td className="p-8">
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                       <Button
                         onClick={async () => {
-                          const result = await restoreDeletedItem(item.id, item.type);
+                          const result = await restoreDeletedItem(String(item.id), String(item.type) as 'client' | 'post');
                           if (result.success) {
                             addToast('פריט הוחזר בהצלחה', 'success');
                             onRefresh();
@@ -76,8 +76,8 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
                       </Button>
                       <Button
                         onClick={async () => {
-                          if (confirm(`האם אתה בטוח שברצונך למחוק את ${item.name} לנצח? פעולה זו בלתי הפיכה!`)) {
-                            const result = await hardDeleteItem(item.id, item.type);
+                          if (confirm(`האם אתה בטוח שברצונך למחוק את ${String(item.name ?? '')} לנצח? פעולה זו בלתי הפיכה!`)) {
+                            const result = await hardDeleteItem(String(item.id), String(item.type) as 'client' | 'post');
                             if (result.success) {
                               addToast('פריט נמחק לנצח', 'success');
                               onRefresh();

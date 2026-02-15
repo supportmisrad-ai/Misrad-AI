@@ -114,7 +114,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             fetchBusinesses({ silent: true });
         };
 
-        const w = window as any;
+        const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
         if (typeof w.requestIdleCallback === 'function') {
             const id = w.requestIdleCallback(run, { timeout: 1200 });
             return () => {

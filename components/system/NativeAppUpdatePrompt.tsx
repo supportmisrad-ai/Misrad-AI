@@ -7,7 +7,7 @@ import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
 function getCapacitorIsNativePlatform(): boolean {
   if (typeof window === 'undefined') return false;
   const w = window as unknown as Record<string, unknown>;
-  const cap = (w && typeof w === 'object' ? (w as any).Capacitor : null) as any;
+  const cap = (w && typeof w === 'object' ? (w as Record<string, unknown>).Capacitor : null) as Record<string, unknown> | null;
   const fn = cap?.isNativePlatform;
   return typeof fn === 'function' ? Boolean(fn()) : false;
 }
@@ -20,14 +20,15 @@ function resolvePlatformDownloadUrl(manifest: unknown, platform: 'android' | 'wi
   const m = manifest && typeof manifest === 'object' && !Array.isArray(manifest) ? (manifest as Record<string, unknown>) : null;
   if (!m) return null;
 
-  const downloads = m.downloads && typeof m.downloads === 'object' && !Array.isArray(m.downloads) ? (m.downloads as any) : null;
+  const downloads = m.downloads && typeof m.downloads === 'object' && !Array.isArray(m.downloads) ? (m.downloads as Record<string, unknown>) : null;
   if (downloads) {
-    const p = downloads[platform] && typeof downloads[platform] === 'object' && !Array.isArray(downloads[platform]) ? downloads[platform] : null;
+    const pRaw = downloads[platform];
+    const p = pRaw && typeof pRaw === 'object' && !Array.isArray(pRaw) ? (pRaw as Record<string, unknown>) : null;
     const u = normalizeUrl(p?.url) || normalizeUrl(p?.downloadUrl);
     if (u) return u;
   }
 
-  const direct = m[platform] && typeof m[platform] === 'object' && !Array.isArray(m[platform]) ? (m[platform] as any) : null;
+  const direct = m[platform] && typeof m[platform] === 'object' && !Array.isArray(m[platform]) ? (m[platform] as Record<string, unknown>) : null;
   const u2 = normalizeUrl(direct?.url);
   if (u2) return u2;
 
@@ -39,14 +40,15 @@ function resolvePlatformVersion(manifest: unknown, platform: 'android' | 'window
   const m = manifest && typeof manifest === 'object' && !Array.isArray(manifest) ? (manifest as Record<string, unknown>) : null;
   if (!m) return null;
 
-  const downloads = m.downloads && typeof m.downloads === 'object' && !Array.isArray(m.downloads) ? (m.downloads as any) : null;
+  const downloads = m.downloads && typeof m.downloads === 'object' && !Array.isArray(m.downloads) ? (m.downloads as Record<string, unknown>) : null;
   if (downloads) {
-    const p = downloads[platform] && typeof downloads[platform] === 'object' && !Array.isArray(downloads[platform]) ? downloads[platform] : null;
+    const pRaw = downloads[platform];
+    const p = pRaw && typeof pRaw === 'object' && !Array.isArray(pRaw) ? (pRaw as Record<string, unknown>) : null;
     const v = normalizeUrl(p?.version);
     if (v) return v;
   }
 
-  const direct = m[platform] && typeof m[platform] === 'object' && !Array.isArray(m[platform]) ? (m[platform] as any) : null;
+  const direct = m[platform] && typeof m[platform] === 'object' && !Array.isArray(m[platform]) ? (m[platform] as Record<string, unknown>) : null;
   const v2 = normalizeUrl(direct?.version);
   if (v2) return v2;
 
@@ -81,9 +83,9 @@ async function getNativeAppVersionMaybe(): Promise<string | null> {
   try {
     if (typeof window === 'undefined') return null;
     const w = window as unknown as Record<string, unknown>;
-    const cap = (w && typeof w === 'object' ? (w as any).Capacitor : null) as any;
-    const plugins = cap?.Plugins;
-    const appPlugin = plugins?.App;
+    const cap = (w && typeof w === 'object' ? (w as Record<string, unknown>).Capacitor : null) as Record<string, unknown> | null;
+    const plugins = cap?.Plugins as Record<string, unknown> | undefined;
+    const appPlugin = plugins?.App as Record<string, unknown> | undefined;
     const getInfo = appPlugin?.getInfo;
     if (typeof getInfo !== 'function') return null;
     const info = await getInfo();
@@ -103,9 +105,9 @@ async function openExternalMaybe(url: string): Promise<boolean> {
     target = url;
   }
   const w = window as unknown as Record<string, unknown>;
-  const cap = (w && typeof w === 'object' ? (w as any).Capacitor : null) as any;
-  const plugins = cap?.Plugins;
-  const browserPlugin = plugins?.Browser;
+  const cap = (w && typeof w === 'object' ? (w as Record<string, unknown>).Capacitor : null) as Record<string, unknown> | null;
+  const plugins = cap?.Plugins as Record<string, unknown> | undefined;
+  const browserPlugin = plugins?.Browser as Record<string, unknown> | undefined;
   const open = browserPlugin?.open;
   if (typeof open !== 'function') return false;
 
@@ -132,11 +134,11 @@ export function NativeAppUpdatePrompt() {
       try {
         const res = await fetch('/api/version', { cache: 'no-store' });
         const json: unknown = await res.json().catch(() => null);
-        const obj = json && typeof json === 'object' && !Array.isArray(json) ? (json as any) : null;
+        const obj = json && typeof json === 'object' && !Array.isArray(json) ? (json as Record<string, unknown>) : null;
         const ok = Boolean(obj?.success);
         if (!ok) return;
 
-        const manifest = obj?.manifest as unknown;
+        const manifest = obj?.manifest;
         const v = resolvePlatformVersion(manifest, 'android');
         const u = resolvePlatformDownloadUrl(manifest, 'android') || '/api/download/android';
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { accelerateCache } from '@/lib/prisma';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
@@ -15,6 +15,7 @@ async function GETHandler() {
       where: { tenant_id: null },
       orderBy: { updated_at: 'desc' },
       select: { maintenance_mode: true },
+      ...accelerateCache({ ttl: 10, swr: 30 }),
     });
 
     if (sysRow && typeof sysRow.maintenance_mode === 'boolean') {
@@ -25,6 +26,7 @@ async function GETHandler() {
     const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'feature_flags' },
       select: { value: true, maintenance_mode: true },
+      ...accelerateCache({ ttl: 10, swr: 30 }),
     });
 
     const rawValue = row?.value;

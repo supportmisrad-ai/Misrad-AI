@@ -280,10 +280,10 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
         const set = () => setIsCoarsePointer(Boolean(mq.matches));
         set();
         if (typeof mq.addEventListener === 'function') mq.addEventListener('change', set);
-        else (mq as any).addListener?.(set);
+        else (mq as unknown as { addListener?: (cb: () => void) => void }).addListener?.(set);
         return () => {
             if (typeof mq.removeEventListener === 'function') mq.removeEventListener('change', set);
-            else (mq as any).removeListener?.(set);
+            else (mq as unknown as { removeListener?: (cb: () => void) => void }).removeListener?.(set);
         };
     }, []);
 

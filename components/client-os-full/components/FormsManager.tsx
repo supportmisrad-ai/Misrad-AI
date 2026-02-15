@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FormTemplate, FormField, FormStep } from '../types';
+import { FormTemplate, FormField, FormStep, FieldType } from '../types';
 import { generateFormTemplate } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
 import { Eye, Plus, Trash2, GripVertical, CheckCircle2, Link, FileText, ChevronLeft, Upload, LayoutList, Layers, ChevronRight, X, Copy, Edit2, PlayCircle, Calendar, Settings2, MoreHorizontal, Sparkles, ArrowRight } from 'lucide-react';
@@ -556,7 +556,7 @@ export const FormsManager: React.FC = () => {
                                             <div className="flex flex-col lg:flex-row lg:items-center gap-3 bg-gray-50/80 p-3 rounded-xl border border-gray-100">
                                                 <select 
                                                     value={field.type}
-                                                    onChange={(e) => handleUpdateField(editingStepId!, field.id, { type: e.target.value as any })}
+                                                    onChange={(e) => handleUpdateField(editingStepId!, field.id, { type: e.target.value as FieldType })}
                                                     className="w-full lg:w-auto text-xs font-medium bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-nexus-primary focus:ring-2 focus:ring-nexus-primary/5 cursor-pointer hover:bg-gray-50"
                                                 >
                                                     <option value="TEXT">טקסט קצר (Input)</option>

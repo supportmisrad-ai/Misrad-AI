@@ -26,7 +26,7 @@ const OperationsHub: React.FC<OperationsHubProps> = ({ students, leads, onUpdate
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'delivery' | 'field')}
                         className={`flex items-center gap-2 py-3 px-1 border-b-2 transition-all whitespace-nowrap text-base font-bold ${
                             activeTab === tab.id 
                             ? 'border-primary text-primary' 

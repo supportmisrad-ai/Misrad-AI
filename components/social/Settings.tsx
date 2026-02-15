@@ -101,7 +101,7 @@ export default function Settings() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setSettingsSubView(item.id as any)}
+                    onClick={() => setSettingsSubView(item.id as 'updates' | 'pricing' | 'team_management' | 'integrations' | 'automation' | 'security' | 'social')}
                     className={`w-full flex items-center gap-4 p-6 text-right transition-all border-b border-slate-100 last:border-0 group border-r-4 ${
                       isActive
                         ? 'bg-blue-50 text-blue-600 border-r-blue-600'

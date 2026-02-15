@@ -18,6 +18,13 @@ interface ClientPortalProps {
 
 type PortalScreen = 'dashboard' | 'vault' | 'journey' | 'metrics' | 'concierge' | 'finance';
 
+type MoodOption = {
+  label: string;
+  icon: React.ComponentType<{ size?: number }>;
+  color: string;
+  hover?: string;
+};
+
 export default function ClientPortal({ clientId }: ClientPortalProps) {
   const { clients, meetings, completeClientAction, updateFormStatus } = useNexus();
   const client = clientId ? clients.find((c) => c.id === clientId) : clients[0];
@@ -29,7 +36,7 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [showTestimonialCard, setShowTestimonialCard] = useState(true);
 
-  const [selectedMood, setSelectedMood] = useState<{ label: string; icon: any; color: string } | null>(null);
+  const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [moodComment, setMoodComment] = useState('');
   const [isSubmittingMood, setIsSubmittingMood] = useState(false);
   const [moodSubmitted, setMoodSubmitted] = useState(false);
@@ -161,7 +168,7 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
     if (!client) return;
     const form =
       client.assignedForms.find((f) => f.title === formTask.title) ||
-      ({ id: formTask.id, title: formTask.title, status: 'SENT', progress: 0, dateSent: 'היום' } as any);
+      ({ id: formTask.id, title: formTask.title, status: 'SENT', progress: 0, dateSent: 'היום' } as unknown);
     setActiveFormToFill(form as AssignedForm);
   };
 
@@ -228,12 +235,12 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
             client={client}
             pendingTasks={pendingTasks}
             approvals={approvals}
-            northStarGoal={northStarGoal}
+            northStarGoal={northStarGoal || null}
             nextActionCard={nextActionCard}
             showTestimonialCard={showTestimonialCard}
             onCloseTestimonial={() => setShowTestimonialCard(false)}
             onActionComplete={handleActionComplete}
-            onNavigate={setActiveScreen}
+            onNavigate={(screen: unknown) => setActiveScreen(screen as PortalScreen)}
             selectedMood={selectedMood}
             setSelectedMood={setSelectedMood}
             moodComment={moodComment}
@@ -259,7 +266,7 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
       case 'metrics':
         return (
           <PortalMetrics
-            performanceHistory={performanceHistory}
+            performanceHistory={performanceHistory as unknown as { date: string; value: number }[]}
             client={client}
             aiProgressSummary={aiProgressSummary}
             isAnalyzingMetrics={isAnalyzingMetrics}
@@ -297,7 +304,7 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
 
       <PortalSidebar
         activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
+        setActiveScreen={(screen: unknown) => setActiveScreen(screen as PortalScreen)}
         onShowFriction={() => setShowFrictionModal(true)}
         client={client}
       />

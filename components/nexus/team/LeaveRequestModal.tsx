@@ -44,7 +44,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
         endDate: request?.endDate || '',
         daysRequested: request?.daysRequested || 0,
         reason: request?.reason || '',
-        isUrgent: Boolean((request as any)?.metadata?.isUrgent)
+        isUrgent: Boolean(((request as unknown as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined)?.isUrgent)
     });
 
     // Calculate days automatically when dates change
@@ -122,7 +122,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 : null;
 
             // Prepare request body - only include employeeId if canCreateForOthers is true
-            const requestBody: any = {
+            const requestBody: Record<string, unknown> = {
                 leaveType: formData.leaveType,
                 startDate: formData.startDate,
                 endDate: formData.endDate,
@@ -329,15 +329,9 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                                     type="checkbox"
                                     checked={Boolean(formData.isUrgent)}
                                     onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
-                                    className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
+                                    className="w-4 h-4 text-amber-600 rounded focus:ring-2 focus:ring-amber-500"
                                 />
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle size={18} className="text-amber-600" />
-                                    <div>
-                                        <span className="text-sm font-bold text-amber-900">בקשה דחופה</span>
-                                        <p className="text-xs text-amber-700 mt-0.5">בקשה לתאריך קרוב (מחר עד 3 ימים) - חובה להזין סיבה מפורטת</p>
-                                    </div>
-                                </div>
+                                <span className="text-sm font-bold text-amber-900">בקשה דחופה (תוך 7 ימים)</span>
                             </label>
                         </div>
                     )}

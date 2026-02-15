@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
+import { JourneyStage } from '../../types';
 
 interface PortalJourneyProps {
-  journey: any[];
+  journey: JourneyStage[];
 }
 
 export const PortalJourney: React.FC<PortalJourneyProps> = ({ journey }) => {
@@ -37,7 +38,7 @@ export const PortalJourney: React.FC<PortalJourneyProps> = ({ journey }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {stage.milestones?.map((m: any) => (
+                  {stage.milestones?.map((m: { id: string; label: string; isCompleted: boolean }) => (
                     <div key={m.id} className="flex items-center gap-3 p-4 bg-slate-50/50 rounded-2xl text-sm border border-slate-100/50 transition-colors">
                       <div className={`w-6 h-6 rounded-lg border flex items-center justify-center ${m.isCompleted ? 'bg-nexus-accent border-nexus-accent text-white' : 'bg-white border-slate-200'}`}>
                         {m.isCompleted && <Check size={14} strokeWidth={4} />}

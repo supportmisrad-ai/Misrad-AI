@@ -39,8 +39,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
   const aiResponse = lastAssistant
     ? {
         type: error ? 'error' : 'success',
-        text: String((lastAssistant as any)?.content || ''),
-        sources: Array.isArray((lastAssistant as any)?.sources) ? (lastAssistant as any).sources : [],
+        text: String(lastAssistant.content || ''),
+        sources: Array.isArray(lastAssistant.sources) ? lastAssistant.sources : [],
       }
     : null;
 
@@ -175,8 +175,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                             <div>
                                 <div className="text-[10px] font-bold text-rose-300 uppercase tracking-wider mb-1">Misrad AI</div>
                                 <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
-                                {Array.isArray((aiResponse as any).sources) && (aiResponse as any).sources.length ? (
-                                  <ChatSources sources={(aiResponse as any).sources} />
+                                {Array.isArray(aiResponse.sources) && aiResponse.sources.length ? (
+                                  <ChatSources sources={aiResponse.sources} />
                                 ) : null}
                             </div>
                         </div>
@@ -241,7 +241,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg group-hover:bg-rose-50 group-hover:border-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
-                                            <Icon size={16} />
+                                            {Icon && <Icon size={16} />}
                                         </div>
                                         <span className="font-bold text-slate-700 group-hover:text-slate-900">{item.label}</span>
                                     </div>

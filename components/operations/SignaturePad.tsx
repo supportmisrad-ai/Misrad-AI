@@ -84,7 +84,7 @@ export default function SignaturePad({
       lastX = p.x;
       lastY = p.y;
       try {
-        (e.target as any)?.setPointerCapture?.(e.pointerId);
+        (canvas as HTMLCanvasElement & { setPointerCapture: (id: number) => void }).setPointerCapture(e.pointerId);
       } catch {
         // ignore
       }

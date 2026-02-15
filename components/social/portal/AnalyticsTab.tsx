@@ -20,18 +20,20 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ client, posts }) => {
   const [isExporting, setIsExporting] = useState(false);
 
   // Get baseline data from client onboarding or use defaults
-  const baseline = (client.businessMetrics as any)?.baselineMetrics || {
-    followers: (client.businessMetrics as any)?.followers || 0,
-    avgReach: 0,
-    engagement: 0
+  const bm = (client.businessMetrics ?? {}) as unknown as Record<string, unknown>;
+  const bmBaseline = (bm.baselineMetrics && typeof bm.baselineMetrics === 'object' ? bm.baselineMetrics : {}) as Record<string, unknown>;
+  const baseline = {
+    followers: Number(bmBaseline.followers ?? bm.followers ?? 0),
+    avgReach: Number(bmBaseline.avgReach ?? 0),
+    engagement: Number(bmBaseline.engagement ?? 0),
   };
 
   // Calculate current metrics from posts
   const publishedPosts = posts.filter(p => p.status === 'published');
   const current = {
-    followers: (client.businessMetrics as any)?.followers || baseline.followers,
-    avgReach: (client.businessMetrics as any)?.avgReach || baseline.avgReach,
-    engagement: (client.businessMetrics as any)?.engagement || baseline.engagement
+    followers: Number(bm.followers || baseline.followers),
+    avgReach: Number(bm.avgReach || baseline.avgReach),
+    engagement: Number(bm.engagement || baseline.engagement),
   };
 
   // If no baseline data, show message

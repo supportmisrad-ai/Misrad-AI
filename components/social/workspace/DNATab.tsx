@@ -85,7 +85,7 @@ const DNATab: React.FC<DNATabProps> = ({ client, onUpdateDNA }) => {
                   type="range" 
                   min="0" max="100" 
                   value={dnaState[d.k as keyof typeof dnaState]} 
-                  onChange={e => handleDnaChange(d.k as any, parseInt(e.target.value))} 
+                  onChange={(e) => handleDnaChange(d.k as 'formal' | 'funny' | 'length', Number(e.target.value))} 
                   className="w-full"
                 />
               </div>

@@ -231,7 +231,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                              <div className="relative w-full">
                                  <CustomSelect 
                                     value={editedClient.status}
-                                    onChange={(val) => setEditedClient({...editedClient, status: val as any})}
+                                    onChange={(val) => setEditedClient({...editedClient, status: val as 'Active' | 'Onboarding' | 'Paused'})}
                                     options={[
                                         { value: 'Active', label: 'פעיל', icon: <div className="w-2 h-2 rounded-full bg-green-500" /> },
                                         { value: 'Onboarding', label: 'בתהליך קליטה', icon: <div className="w-2 h-2 rounded-full bg-yellow-500" /> },
@@ -262,7 +262,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                             <Mail size={18} />
                         </a>
                         <a 
-                            href={`https://wa.me/${String((client as any)?.phone ?? '').replace(/-/g, '').replace(/^0/, '972')}`} 
+                            href={`https://wa.me/${String(client.phone ?? '').replace(/-/g, '').replace(/^0/, '972')}`} 
                             target="_blank" 
                             rel="noreferrer"
                             className="flex items-center justify-center p-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-colors"
@@ -364,7 +364,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                     ].map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id as 'overview' | 'tasks' | 'invoices' | 'assets')}
                             className={`
                                     flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0
                                 ${activeTab === tab.id 

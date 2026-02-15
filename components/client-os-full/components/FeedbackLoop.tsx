@@ -12,7 +12,7 @@ const FeedbackLoop: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const orgId = (typeof window !== 'undefined'
-    ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
+    ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
     : null) ?? null;
 
   useEffect(() => {
@@ -26,9 +26,9 @@ const FeedbackLoop: React.FC = () => {
         setIsLoading(true);
         const feedbacks = await getClientOSFeedbacks(orgId);
         setFeedback(feedbacks as FeedbackItem[]);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('[FeedbackLoop] error loading feedbacks', {
-          error: error?.message || String(error),
+          error: (error instanceof Error ? error.message : String(error)),
         });
       } finally {
         setIsLoading(false);

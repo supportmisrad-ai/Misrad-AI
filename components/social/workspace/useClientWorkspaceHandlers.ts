@@ -9,7 +9,7 @@ import { approveClientRequest, createManagerRequest, rejectClientRequest } from 
 interface UseClientWorkspaceHandlersProps {
   activeClient: Client;
   orgSlug: string | null;
-  setActiveDraft: (draft: any) => void;
+  setActiveDraft: (draft: unknown) => void;
   setPosts: React.Dispatch<React.SetStateAction<SocialPost[]>>;
   setIdeas: React.Dispatch<React.SetStateAction<any[]>>;
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
@@ -84,7 +84,7 @@ export function useClientWorkspaceHandlers({
         return;
       }
 
-      setIdeas((prev) => prev.filter((i: any) => i.id !== ideaId));
+      setIdeas((prev) => prev.filter((i: unknown) => (i as Record<string, unknown>).id !== ideaId));
       addToast('רעיון נמחק');
     })();
   };
@@ -111,7 +111,7 @@ export function useClientWorkspaceHandlers({
       }
 
       if (res.data) {
-        setIdeas((prev) => [res.data as any, ...prev]);
+        setIdeas((prev) => [res.data as unknown, ...prev]);
       }
       addToast('רעיון נוסף לבנק! 💡');
     })();
@@ -155,7 +155,7 @@ export function useClientWorkspaceHandlers({
   };
 
   const handleNewPostFromContext = (context?: Partial<AIOpportunity>) => {
-    setActiveDraft(context as any);
+    setActiveDraft(context as unknown);
     const basePath = getSocialBasePath(pathname);
     router.push(joinPath(basePath, '/machine'));
   };
@@ -184,7 +184,7 @@ export function useClientWorkspaceHandlers({
       }
 
       if (res.data) {
-        setManagerRequests((prev) => [res.data as any, ...(Array.isArray(prev) ? prev : [])]);
+        setManagerRequests((prev) => [res.data, ...(Array.isArray(prev) ? prev : [])] as ManagerRequest[]);
       }
       addToast('הבקשה נשלחה ללקוח');
     })();

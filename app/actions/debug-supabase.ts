@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
@@ -49,7 +51,7 @@ export async function debugSupabaseConnection(): Promise<{
       };
     }
 
-    console.log('[debugSupabaseConnection] Starting...');
+    logger.debug('debugSupabaseConnection', 'Starting...');
     
     // Check environment variables
     const envCheck = {
@@ -58,7 +60,7 @@ export async function debugSupabaseConnection(): Promise<{
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     };
     
-    console.log('[debugSupabaseConnection] Environment check:', envCheck);
+    logger.debug('debugSupabaseConnection', 'Environment check:', envCheck);
     
     // Prisma-first: use Prisma to test DB connectivity.
     try {
@@ -89,7 +91,7 @@ export async function debugSupabaseConnection(): Promise<{
   } catch (error: unknown) {
     const eObj = asObject(error);
     const stack = error instanceof Error ? error.stack : typeof eObj?.stack === 'string' ? eObj.stack : null;
-    console.error('[debugSupabaseConnection] Unexpected error:', error);
+    logger.error('debugSupabaseConnection', 'Unexpected error:', error);
     return {
       success: false,
       details: {

@@ -46,15 +46,16 @@ export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean 
           setConfigs((prev) => {
             const next = { ...prev };
             for (const row of res.data || []) {
-              const key = String((row as any).package_type) as PackageKey;
+              const r = row as Record<string, unknown>;
+              const key = String(r.package_type) as PackageKey;
               if (!(key in next)) continue;
               next[key] = {
-                title: String((row as any).title || ''),
-                qrImageUrl: String((row as any).qr_image_url || ''),
-                instructionsText: String((row as any).instructions_text || ''),
+                title: String(r.title || ''),
+                qrImageUrl: String(r.qr_image_url || ''),
+                instructionsText: String(r.instructions_text || ''),
                 paymentMethod:
-                  String((row as any).payment_method || 'manual') === 'automatic' ? 'automatic' : 'manual',
-                externalPaymentUrl: String((row as any).external_payment_url || ''),
+                  String(r.payment_method || 'manual') === 'automatic' ? 'automatic' : 'manual',
+                externalPaymentUrl: String(r.external_payment_url || ''),
               };
             }
             return next;
@@ -87,7 +88,7 @@ export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean 
       for (const pkg of packages) {
         const cfg = configs[pkg];
         const result = await upsertSubscriptionPaymentConfig({
-          packageType: pkg as any,
+          packageType: pkg,
           title: cfg.title,
           qrImageUrl: cfg.qrImageUrl,
           instructionsText: cfg.instructionsText,
@@ -99,8 +100,9 @@ export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean 
         }
       }
       addToast('הגדרות תשלום נשמרו', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בשמירת הגדרות תשלום', 'error');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'שגיאה בשמירת הגדרות תשלום';
+      addToast(msg, 'error');
     } finally {
       setIsSaving(false);
     }

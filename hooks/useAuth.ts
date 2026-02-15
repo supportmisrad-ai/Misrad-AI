@@ -589,8 +589,8 @@ export const useAuth = (
                 const res = await punchIn(orgSlug, undefined, location);
                 await refreshTimeEntries();
                 addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!', 'success');
-            } catch (e: any) {
-                const msg = String(e?.message || e);
+            } catch (e: unknown) {
+                const msg = String(e instanceof Error ? e.message : e);
                 if (msg.toLowerCase().includes('denied')) {
                     addToast('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת', 'error');
                 } else {
@@ -615,8 +615,8 @@ export const useAuth = (
                 const res = await punchOut(orgSlug, undefined, location);
                 await refreshTimeEntries();
                 addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!', 'info');
-            } catch (e: any) {
-                const msg = String(e?.message || e);
+            } catch (e: unknown) {
+                const msg = String(e instanceof Error ? e.message : e);
                 if (msg.toLowerCase().includes('denied')) {
                     addToast('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת', 'error');
                 } else {

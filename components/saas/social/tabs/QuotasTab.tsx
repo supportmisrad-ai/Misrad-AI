@@ -40,9 +40,9 @@ export function QuotasTab({
           maxConnectedAccounts: Number(res.data.maxConnectedAccounts || 0),
           maxTeamMembers: Number(res.data.maxTeamMembers || 0),
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('[QuotasTab] Failed to load quotas:', e);
-        addToast(e?.message || 'שגיאה בטעינת מכסות', 'error');
+        addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת מכסות', 'error');
         setForm(initial);
       } finally {
         setIsLoading(false);
@@ -70,9 +70,9 @@ export function QuotasTab({
         throw new Error(res.error || 'שגיאה בשמירת מכסות');
       }
       addToast('מכסות נשמרו', 'success');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[QuotasTab] Failed to save quotas:', e);
-      addToast(e?.message || 'שגיאה בשמירת מכסות', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בשמירת מכסות', 'error');
     } finally {
       setIsSaving(false);
     }

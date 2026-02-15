@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -36,12 +38,11 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 }
 
 function debugLog(...args: unknown[]) {
-  if (DEBUG_ADMIN_USERS) console.log(...args);
+  if (DEBUG_ADMIN_USERS) logger.debug('admin-users', args.map(String).join(' '));
 }
 
 function safeErrorLog(message: string, error?: unknown) {
-  if (DEBUG_ADMIN_USERS && error !== undefined) console.error(message, error);
-  else console.error(message);
+  logger.error('admin-users', message, error);
 }
 
 async function requireSuperAdminOrFail(): Promise<{ success: true; userId: string } | { success: false; error: string }> {
@@ -493,13 +494,13 @@ export async function createUser(
       }
     } catch (invitationError: unknown) {
       if (DEBUG_ADMIN_USERS) {
-        console.error('[createUser] ❌ Invitation creation failed:', invitationError);
-        console.error('[createUser] Invitation error type:', typeof invitationError);
+        logger.error('createUser', '❌ Invitation creation failed:', invitationError);
+        logger.error('createUser', 'Invitation error type:', typeof invitationError);
         const obj = asObject(invitationError) ?? {};
-        console.error('[createUser] Invitation error keys:', Object.keys(obj));
-        console.error('[createUser] Invitation error details:', JSON.stringify(obj, Object.getOwnPropertyNames(obj), 2));
+        logger.error('createUser', 'Invitation error keys:', Object.keys(obj));
+        logger.error('createUser', 'Invitation error details:', JSON.stringify(obj, Object.getOwnPropertyNames(obj), 2));
       } else {
-        console.error('[createUser] Invitation creation failed');
+        logger.error('createUser', 'Invitation creation failed');
       }
       
       // Extract error message - prioritize detailed error messages
@@ -511,7 +512,7 @@ export async function createUser(
       const errorsVal = invitationErrObj.errors;
       if (Array.isArray(errorsVal) && errorsVal.length > 0) {
         const firstErrorObj = asObject(errorsVal[0]) ?? {};
-        if (DEBUG_ADMIN_USERS) console.error('[createUser] First error from array:', JSON.stringify(firstErrorObj, null, 2));
+        if (DEBUG_ADMIN_USERS) logger.error('createUser', 'First error from array:', JSON.stringify(firstErrorObj, null, 2));
 
         const longMessage = firstErrorObj.longMessage;
         const message = firstErrorObj.message;
@@ -539,7 +540,7 @@ export async function createUser(
         errorMessage = `HTTP ${String(invitationErrObj.status)}: ${errorMessage}`;
       }
       
-      if (DEBUG_ADMIN_USERS) console.error('[createUser] Extracted error message:', errorMessage);
+      if (DEBUG_ADMIN_USERS) logger.error('createUser', 'Extracted error message:', errorMessage);
       
       // Translate common errors to Hebrew
       const errorLower = errorMessage.toLowerCase();

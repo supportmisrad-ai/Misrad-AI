@@ -38,8 +38,9 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
         body: JSON.stringify({ query: prompt, rawData: { leadId: lead.id } }),
       });
 
-      const data = (await res.json().catch(() => ({}))) as any;
-      setVerdict(String(data?.result?.summary || 'לא ניתן לייצר פסק דין כרגע.'));
+      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const result = (data?.result && typeof data.result === 'object' ? data.result : null) as Record<string, unknown> | null;
+      setVerdict(String(result?.summary || 'לא ניתן לייצר פסק דין כרגע.'));
     } catch (error) {
       console.error("Scoring analysis failed:", error);
       setVerdict("שגיאה בניתוח הנתונים.");

@@ -26,11 +26,12 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
 
   const shouldOpenInNewTab = (): boolean => {
     if (typeof window === 'undefined') return false;
-    const isStandalone =
-      window.matchMedia?.('(display-mode: standalone)')?.matches ||
-      (window.navigator as any)?.standalone ||
-      Boolean((window as any)?.Capacitor?.isNativePlatform?.());
-    return !isStandalone;
+    const isPWA = typeof window !== 'undefined' && (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean })?.standalone ||
+      Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } })?.Capacitor?.isNativePlatform?.())
+    );
+    return !isPWA;
   };
 
   const resolveVillaRoute = (route: string): string => {

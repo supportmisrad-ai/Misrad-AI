@@ -30,15 +30,15 @@ export interface LandingPagePlan {
 export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
 
-    const isNewPricingPlanSet = (candidate: any): candidate is LandingPagePlan[] => {
+    const isNewPricingPlanSet = (candidate: unknown): candidate is LandingPagePlan[] => {
         if (!Array.isArray(candidate)) return false;
         const allowedMonthly = new Set([149, 249, 349]);
         const allowedYearly = new Set([119, 199, 279]);
         for (const p of candidate) {
             if (!p || typeof p !== 'object') return false;
-            if (!['nexus', 'system', 'client', 'social', 'bundle'].includes(String((p as any).system))) return false;
-            const pm = Number((p as any).priceMonthly);
-            const py = Number((p as any).priceYearly);
+            if (!['nexus', 'system', 'client', 'social', 'bundle'].includes(String((p as Record<string, unknown>).system))) return false;
+            const pm = Number((p as Record<string, unknown>).priceMonthly);
+            const py = Number((p as Record<string, unknown>).priceYearly);
             if (!allowedMonthly.has(pm)) return false;
             if (!allowedYearly.has(py)) return false;
         }
@@ -113,7 +113,7 @@ export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ 
         addToast('חבילות עודכנו בהצלחה!', 'success');
     };
 
-    const systemConfig: Record<SystemType, { label: string; icon: any; color: string }> = {
+    const systemConfig: Record<SystemType, { label: string; icon: React.ComponentType<{ size?: number; className?: string }>; color: string }> = {
         nexus: { label: getModuleLabelHe('nexus'), icon: LayoutDashboard, color: 'indigo' },
         system: { label: getModuleLabelHe('system'), icon: Zap, color: 'emerald' },
         client: { label: getModuleLabelHe('client'), icon: HeartPulse, color: 'purple' },

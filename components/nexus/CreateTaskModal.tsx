@@ -154,8 +154,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
 
     const usersWithCurrent = (() => {
         const list = Array.isArray(users) ? [...users] : [];
-        if (currentUser?.id && !list.some((u: any) => String(u?.id) === String(currentUser.id))) {
-            list.unshift(currentUser as any);
+        if (currentUser?.id && !list.some((u: unknown) => {
+            const user = u as Record<string, unknown>;
+            return String(user.id) === String(currentUser.id);
+        })) {
+            list.unshift(currentUser as User);
         }
         return list;
     })();
@@ -325,7 +328,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                handleSubmit(e as any);
+                handleSubmit(e as unknown as React.FormEvent<Element>);
             }
             if (e.key === 'Escape') {
                 if (activePopover !== 'none') setActivePopover('none');
@@ -977,7 +980,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                     <input 
                                                         type="number" 
                                                         value={manualHours}
-                                                        onChange={(e) => setManualHours(e.target.value)}
+                                                        onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e as unknown as React.FormEvent<HTMLElement>)}
                                                         className="w-full p-3 text-center bg-gray-50 border border-gray-200 rounded-xl outline-none text-2xl font-bold text-gray-900 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
                                                         min="0"
                                                         placeholder="0"

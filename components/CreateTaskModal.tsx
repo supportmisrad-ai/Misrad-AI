@@ -53,8 +53,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     });
 
     // Get unique existing tags from all tasks
-    const existingTags = Array.from(new Set(tasks.flatMap((t: any) => t.tags))) as string[];
-    const filteredTags = existingTags.filter((t: any) => t.toLowerCase().includes(tag.toLowerCase()) && t !== tag);
+    const existingTags = Array.from(new Set(tasks.flatMap((t: unknown) => {
+        const task = t as Record<string, unknown>;
+        return Array.isArray(task.tags) ? task.tags : [];
+    }))) as string[];
+    const filteredTags = existingTags.filter((t: unknown) => String(t).toLowerCase().includes(tag.toLowerCase()) && String(t) !== tag);
 
     // Logic for Approval Requirement (e.g., tasks > 4 hours)
     const estimateHoursNum = Number(manualHours) || 0;
@@ -144,7 +147,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                handleSubmit(e as any);
+                handleSubmit(e as unknown as React.FormEvent<Element>);
             }
             if (e.key === 'Escape') {
                 if (activePopover !== 'none') setActivePopover('none');
@@ -559,7 +562,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                     <input 
                                                         type="number" 
                                                         value={manualHours}
-                                                        onChange={(e) => setManualHours(e.target.value)}
+                                                        onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e as unknown as React.FormEvent<Element>)} 
                                                         className="w-full p-3 text-center bg-gray-50 border border-gray-200 rounded-xl outline-none text-2xl font-bold text-gray-900 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
                                                         min="0"
                                                         placeholder="0"

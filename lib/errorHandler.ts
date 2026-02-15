@@ -5,14 +5,12 @@ import { asObject } from '@/lib/shared/unknown';
  */
 
 import { translateError } from './errorTranslations';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
-export interface ActionResult<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  errors?: unknown;
-}
+
+export type ActionResult<T = unknown> =
+  | { success: true; data: T; error?: undefined; errors?: undefined }
+  | { success: false; error: string; data?: undefined; errors?: unknown };
 
 /**
  * Standard error response format
@@ -57,7 +55,8 @@ export async function handleServerAction<T>(
     const data = await action();
     return createSuccessResponse(data);
   } catch (error) {
-    console.error('Server Action Error:', error);
+    const { logger } = await import('@/lib/server/logger');
+    logger.error('handleServerAction', errorMessage, error);
     return createErrorResponse<T>(error, errorMessage);
   }
 }

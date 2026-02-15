@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { requireAuth } from '@/lib/errorHandler';
@@ -149,7 +151,7 @@ export async function updateOrganizationBilling(
     if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
       return { ok: false, error: 'אין הרשאה' };
     }
-    console.error('[updateOrganizationBilling] Error:', error);
+    logger.error('updateOrganizationBilling', 'Error:', error);
     return { ok: false, error: 'שגיאה בעדכון פרטי חיוב' };
   }
 }
@@ -233,7 +235,7 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
     if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
       return { ok: false, error: 'אין הרשאה' };
     }
-    console.error('[validateCoupon] Error:', error);
+    logger.error('validateCoupon', 'Error:', error);
     return { ok: false, error: 'שגיאה בבדיקת קופון' };
   }
 }
@@ -328,7 +330,7 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
     if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
       return { ok: false, error: 'אין הרשאה' };
     }
-    console.error('[applyCouponToOrganization] Error:', error);
+    logger.error('applyCouponToOrganization', 'Error:', error);
     return { ok: false, error: 'שגיאה בהחלת קופון' };
   }
 }
@@ -353,7 +355,7 @@ export async function removeCouponFromOrganization(orgId: string) {
     if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
       return { ok: false, error: 'אין הרשאה' };
     }
-    console.error('[removeCouponFromOrganization] Error:', error);
+    logger.error('removeCouponFromOrganization', 'Error:', error);
     return { ok: false, error: 'שגיאה בהסרת קופון' };
   }
 }
@@ -415,7 +417,7 @@ export async function extendOrganizationTrial(
       : null;
 
     // Log the extension (optional - you can add a trial_extensions table)
-    console.log(`[extendOrganizationTrial] Extended trial for ${org.name} by ${additionalDays} days. Reason: ${reason || 'N/A'}`);
+    logger.info('extendOrganizationTrial', `Extended trial for ${org.name} by ${additionalDays} days`, { additionalDays, reason: reason || 'N/A' });
 
     return {
       ok: true,
@@ -426,7 +428,7 @@ export async function extendOrganizationTrial(
       },
     };
   } catch (error) {
-    console.error('[extendOrganizationTrial] Error:', error);
+    logger.error('extendOrganizationTrial', 'Error:', error);
     return { ok: false, error: 'שגיאה בהארכת תקופת ניסיון' };
   }
 }
@@ -436,7 +438,7 @@ export async function convertTrialToActive(orgId: string, paymentMethodId?: stri
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    const updates: any = {
+    const updates: Record<string, unknown> = {
       subscription_status: 'active',
       subscription_start_date: new Date(),
       trial_extended_days: 0,
@@ -462,7 +464,7 @@ export async function convertTrialToActive(orgId: string, paymentMethodId?: stri
 
     return { ok: true, organization: org };
   } catch (error) {
-    console.error('[convertTrialToActive] Error:', error);
+    logger.error('convertTrialToActive', 'Error:', error);
     return { ok: false, error: 'שגיאה בהמרת ניסיון למנוי פעיל' };
   }
 }
@@ -488,7 +490,7 @@ export async function cancelSubscription(orgId: string, reason: string) {
 
     return { ok: true };
   } catch (error) {
-    console.error('[cancelSubscription] Error:', error);
+    logger.error('cancelSubscription', 'Error:', error);
     return { ok: false, error: 'שגיאה בביטול מנוי' };
   }
 }
@@ -545,7 +547,7 @@ export async function calculateOrganizationRevenue(orgId: string) {
       arr: Math.round(arr * 100) / 100,
     };
   } catch (error) {
-    console.error('[calculateOrganizationRevenue] Error:', error);
+    logger.error('calculateOrganizationRevenue', 'Error:', error);
     return { ok: false, error: 'שגיאה בחישוב הכנסות' };
   }
 }
@@ -586,7 +588,7 @@ export async function calculateClientTotalRevenue(clientId: string) {
       organizations_count: orgs.length,
     };
   } catch (error) {
-    console.error('[calculateClientTotalRevenue] Error:', error);
+    logger.error('calculateClientTotalRevenue', 'Error:', error);
     return { ok: false, error: 'שגיאה בחישוב הכנסות לקוח' };
   }
 }
@@ -655,7 +657,7 @@ export async function autoUpgradeSeats(organizationId: string, newSeats: number)
     });
 
     // Log the upgrade (console only for now - billing_events table TBD)
-    console.log('[autoUpgradeSeats] Upgrade completed:', {
+    logger.debug('autoUpgradeSeats', 'Upgrade completed:', {
       organizationId,
       previous_seats: currentSeats,
       new_seats: newSeats,
@@ -669,7 +671,7 @@ export async function autoUpgradeSeats(organizationId: string, newSeats: number)
       message: `השדרוג ל-${newSeats} מקומות הצליח`,
     };
   } catch (error) {
-    console.error('[autoUpgradeSeats] Error:', error);
+    logger.error('autoUpgradeSeats', 'Error:', error);
     return { ok: false, error: 'שגיאה בשדרוג מקומות' };
   }
 }
@@ -728,7 +730,7 @@ export async function getOrganizationBillingInfo(orgId: string) {
 
     return { ok: true, billing: org };
   } catch (error) {
-    console.error('[getOrganizationBillingInfo] Error:', error);
+    logger.error('getOrganizationBillingInfo', 'Error:', error);
     return { ok: false, error: 'שגיאה בטעינת מידע חיוב' };
   }
 }

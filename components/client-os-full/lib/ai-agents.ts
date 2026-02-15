@@ -6,7 +6,7 @@ import { MeetingAnalysisResult } from "../types";
 const getOrgIdFromClientOsContext = (): string | null => {
   try {
     if (typeof window === 'undefined') return null;
-    const raw = (window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
+    const raw = ((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
     const orgId = raw?.organizationId ? String(raw.organizationId) : null;
     return orgId || null;
   } catch {
@@ -29,8 +29,9 @@ export const analyzeMeetingTranscript = async (transcript: string): Promise<Meet
     });
 
     if (!res.ok) throw new Error('AI request failed');
-    const data = (await res.json().catch(() => null)) as any;
-    return (data?.analysis || data?.data?.analysis || data) as MeetingAnalysisResult;
+    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    const dataObj = data?.data as Record<string, unknown> | undefined;
+    return (data?.analysis || dataObj?.analysis || data) as MeetingAnalysisResult;
   } catch {
     await new Promise(resolve => setTimeout(resolve, 2000)); 
     return {

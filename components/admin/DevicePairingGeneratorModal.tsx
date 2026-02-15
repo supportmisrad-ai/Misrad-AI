@@ -30,8 +30,8 @@ export default function DevicePairingGeneratorModal(props: {
       }
       setToken(String(res.token));
       setExpiresAt(String(res.expiresAt || ''));
-    } catch (e: any) {
-      props.addToastAction(e?.message || 'שגיאה ביצירת טוקן', 'error');
+    } catch (e: unknown) {
+      props.addToastAction((e instanceof Error ? e.message : String(e)) || 'שגיאה ביצירת טוקן', 'error');
     } finally {
       setIsLoading(false);
     }

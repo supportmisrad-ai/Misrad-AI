@@ -7,9 +7,13 @@ import { QUICK_ASSETS, STAGES } from '../constants';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { CallButton } from '../../../shared/CallButton';
 import CommunicationViewBase, {
-  CommunicationActivity,
-  CommunicationLead,
-  CommunicationTask,
+  type CommunicationActivity,
+  type CommunicationLead,
+  type CommunicationTask,
+  type UseOnClickOutsideHook,
+  type CallButtonComponent,
+  type QuickAsset,
+  type Stage,
 } from '../../../communication/CommunicationViewBase';
 
 interface CommunicationViewProps {
@@ -17,7 +21,7 @@ interface CommunicationViewProps {
   onAddActivity: (leadId: string, activity: LeadActivity) => void;
   onUpdateLead?: (leadId: string, updates: Partial<Lead>) => void;
   onAddTask?: (task: Task) => void;
-  user?: { id: string; phone?: string; [key: string]: any };
+  user?: { id: string; phone?: string; [key: string]: unknown };
 }
 
 const CommunicationView: React.FC<CommunicationViewProps> = ({
@@ -31,15 +35,15 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
     <CommunicationViewBase
       leads={leads as unknown as CommunicationLead[]}
       onAddActivity={onAddActivity as unknown as (leadId: string, activity: CommunicationActivity) => void}
-      onUpdateLead={onUpdateLead as any}
+      onUpdateLead={onUpdateLead as unknown as ((leadId: string, updates: Partial<CommunicationLead>) => void) | undefined}
       onAddTask={onAddTask as unknown as (task: CommunicationTask) => void}
       initialTab="inbox"
       user={user}
       useToast={useToast}
-      useOnClickOutside={useOnClickOutside as any}
-      CallButton={CallButton as any}
-      QUICK_ASSETS={QUICK_ASSETS as any}
-      STAGES={STAGES as any}
+      useOnClickOutside={useOnClickOutside as unknown as UseOnClickOutsideHook}
+      CallButton={CallButton as unknown as CallButtonComponent}
+      QUICK_ASSETS={QUICK_ASSETS as unknown as QuickAsset[]}
+      STAGES={STAGES as unknown as Stage[]}
       aiDraft={async ({ activeLead, selectedSendChannel }) => {
         const lastMessages = activeLead.activities
           .filter((a) => ['whatsapp', 'sms', 'email'].includes(String(a.type)))
@@ -49,7 +53,7 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
 
         const prompt = `אתה עוזר מכירות מקצועי עבור System.OS.
           שם ליד: ${activeLead.name}
-          הקשר: סטטוס ${activeLead.status}, שווי משוער ₪${(activeLead as any).value}.
+          הקשר: סטטוס ${activeLead.status}, שווי משוער ₪${(activeLead as Record<string, unknown>).value}.
           היסטוריה אחרונה:
           ${lastMessages}
 
@@ -66,8 +70,9 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
           }),
         });
 
-        const data = (await res.json().catch(() => ({}))) as any;
-        const text = data?.result?.summary || '';
+        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        const result = (data?.result && typeof data.result === 'object' ? data.result : null) as Record<string, unknown> | null;
+        const text = result?.summary || '';
         return text ? String(text).trim() : null;
       }}
     />

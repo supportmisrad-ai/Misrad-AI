@@ -135,7 +135,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload,
                       ].map(t => (
                         <button 
                           key={t.id}
-                          onClick={() => setContentType(t.id as any)}
+                          onClick={() => setContentType(t.id as '' | 'post' | 'story' | 'reel')}
                           className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${contentType === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                         >
                           {t.label}
@@ -159,7 +159,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload,
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">הנחיות או פירוט נוסף</label>
                 <textarea 
                    value={uploadText}
-                   onChange={e => setUploadText(e.target.value)}
+                   onChange={(e) => setUploadText(e.target.value)}
                    placeholder="מה הייתם רוצים שנכתוב או נדגיש בתוכן הזה?"
                    className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 rounded-[24px] p-6 font-bold text-sm outline-none h-32 resize-none transition-all shadow-inner"
                 />

@@ -42,7 +42,7 @@ export const SettingsView: React.FC = () => {
       id: string; 
       label: string; 
       short: string; 
-      icon: any; 
+      icon: React.ComponentType<{ size?: number; className?: string }>; 
       color: string; 
       desc: string; 
       requiredPermissions: PermissionId[] | null;

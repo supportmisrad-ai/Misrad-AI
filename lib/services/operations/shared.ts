@@ -4,24 +4,7 @@ import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 export { asObject, getUnknownErrorMessage };
 
-export const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-
-export function isSchemaMismatchError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = String(obj.code ?? '').toUpperCase();
-  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
-  return (
-    code === 'P2021' ||
-    code === 'P2022' ||
-    code === '42P01' ||
-    code === '42703' ||
-    message.includes('does not exist') ||
-    message.includes('relation') ||
-    message.includes('column') ||
-    message.includes('could not find the table') ||
-    message.includes('schema cache')
-  );
-}
+export { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError } from '@/lib/server/schema-fallbacks';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 

@@ -79,7 +79,7 @@ export const SaaSAdminView: React.FC = () => {
     const socialTenantOptions = useMemo(() => {
         const list = Array.isArray(tenants) ? tenants : [];
         const seen = new Set<string>();
-        return list.filter((t: any) => {
+        return list.filter((t: Tenant) => {
             const id = String(t?.id || '');
             if (!id) return false;
             if (seen.has(id)) return false;
@@ -102,7 +102,7 @@ export const SaaSAdminView: React.FC = () => {
     }, [selectedSocialTenantId, socialTenantOptions]);
 
     const selectedSocialTenant = useMemo(() => {
-        return socialTenantOptions.find((t: any) => String(t.id) === String(selectedSocialTenantId)) || null;
+        return socialTenantOptions.find((t: Tenant) => String(t.id) === String(selectedSocialTenantId)) || null;
     }, [selectedSocialTenantId, socialTenantOptions]);
 
     useEffect(() => {
@@ -206,9 +206,9 @@ export const SaaSAdminView: React.FC = () => {
                         addTenant(tenant);
                     }
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('[SaaSAdmin] Error loading tenants:', error);
-                addToast(error.message || 'שגיאה בטעינת tenants', 'error');
+                addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בטעינת tenants', 'error');
             } finally {
                 setIsLoadingTenants(false);
             }
@@ -308,9 +308,9 @@ export const SaaSAdminView: React.FC = () => {
                 }
             }, 1500);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[SaaSAdmin] Error creating tenant:', error);
-            addToast(error.message || 'שגיאה ביצירת הארגון', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה ביצירת הארגון', 'error');
             setIsAddTenantOpen(true); // Reopen modal on error
         }
     };
@@ -343,9 +343,9 @@ export const SaaSAdminView: React.FC = () => {
             // Update local state only if API call succeeded
             updateTenant(id, updatedTenant);
             addToast('הארגון עודכן בהצלחה!', 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[SaaSAdmin] Error updating tenant:', error);
-            addToast(error.message || 'שגיאה בעדכון הארגון', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בעדכון הארגון', 'error');
             throw error; // Re-throw to allow caller to handle
         }
     };
@@ -389,9 +389,9 @@ export const SaaSAdminView: React.FC = () => {
             // Remove from local state only if API call succeeded
             deleteTenant(id);
             addToast(`הארגון ${tenantName} נמחק בהצלחה!`, 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[SaaSAdmin] Error deleting tenant:', error);
-            addToast(error.message || 'שגיאה במחיקת הארגון', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה במחיקת הארגון', 'error');
         }
     };
 
@@ -1019,7 +1019,7 @@ export const SaaSAdminView: React.FC = () => {
                                                         {socialTenantOptions.length === 0 ? (
                                                             <option value="">אין טננטים</option>
                                                         ) : (
-                                                            socialTenantOptions.map((t: any) => (
+                                                            socialTenantOptions.map((t: Tenant) => (
                                                                 <option key={t.id} value={String(t.id)}>
                                                                     {t.name || t.subdomain || t.id}
                                                                 </option>

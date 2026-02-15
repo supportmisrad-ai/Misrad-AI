@@ -10,7 +10,7 @@ interface TeamMemberModalProps {
     onClose: () => void;
     mode: 'add' | 'edit';
     initialData?: User;
-    onSave: (data: any) => void;
+    onSave: (data: unknown) => void;
     roleDefinitions: RoleDefinition[];
     departments: string[];
     isGlobalAdmin: boolean;
@@ -156,7 +156,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                                 
                                 <CustomSelect 
                                     value={form.paymentType}
-                                    onChange={(val) => setForm({...form, paymentType: val as any})}
+                                    onChange={(val) => setForm({...form, paymentType: val as 'hourly' | 'monthly'})}
                                     options={[
                                         { value: 'hourly', label: 'תעריף שעתי' },
                                         { value: 'monthly', label: 'שכר חודשי (גלובלי)' }

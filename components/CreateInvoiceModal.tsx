@@ -4,13 +4,14 @@
  * Modal for creating invoices via מורנינג with custom design, colors, and styling
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Palette, Image, Type, FileText, Check } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeletons';
+import { X, FileText, Plus, Trash2, Download, Send, Palette, Image as ImageIcon, Check, Image, Type } from 'lucide-react';
+import type { PackageType } from '@/lib/billing/pricing';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import PaywallModal from '@/components/shared/PaywallModal';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CreateInvoiceModalProps {
     isOpen: boolean;
@@ -57,7 +58,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     const [isPaywallOpen, setIsPaywallOpen] = useState(false);
     const [paywallTitle, setPaywallTitle] = useState('');
     const [paywallMessage, setPaywallMessage] = useState('');
-    const [recommendedPackageType, setRecommendedPackageType] = useState<any>(undefined);
+    const [recommendedPackageType, setRecommendedPackageType] = useState<PackageType | undefined>(undefined);
 
     const handleCreate = async () => {
         if (!amount || !description) {
@@ -102,16 +103,17 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({} as any));
-                if (response.status === 402 && (errorData as any)?.code === 'UPGRADE_REQUIRED') {
-                    const pw = (errorData as any)?.paywall;
+                const errorData = await response.json().catch(() => ({})) as Record<string, unknown>;
+                if (response.status === 402 && errorData?.code === 'UPGRADE_REQUIRED') {
+                    const pw = errorData?.paywall as Record<string, unknown> | undefined;
                     setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
                     setPaywallMessage(String(pw?.message || errorData.error || 'פעולה זו זמינה למנויים משלמים'));
-                    setRecommendedPackageType(pw?.recommendedPackageType);
+                    const pkgType = pw?.recommendedPackageType;
+                    setRecommendedPackageType(typeof pkgType === 'string' ? (pkgType as PackageType) : undefined);
                     setIsPaywallOpen(true);
                     return;
                 }
-                throw new Error((errorData as any)?.error || 'Failed to create invoice');
+                throw new Error(String(errorData?.error) || 'Failed to create invoice');
             }
 
             const result = await response.json();
@@ -124,8 +126,8 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             setQuantity('1');
             setVatRate('17');
             setNotes('');
-        } catch (err: any) {
-            setError(err.message || 'שגיאה ביצירת החשבונית');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setIsCreating(false);
         }
@@ -271,7 +273,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <Palette size={20} className="text-gray-600" />
+                                <ImageIcon size={16} className="text-gray-400" />
                                 <span className="font-bold text-sm text-gray-900">עיצוב מותאם אישית</span>
                             </div>
                             <div className={`w-5 h-5 rounded border-2 transition-colors ${showDesignOptions ? 'bg-green-600 border-green-600' : 'border-gray-300'}`}>

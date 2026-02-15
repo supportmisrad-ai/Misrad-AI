@@ -4,8 +4,7 @@ import { Prisma } from '@prisma/client';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export type NexusOnboardingTemplateKey = 'retainer_fixed' | 'deliverables_package';
 

@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Shield, Users, Trash2, X, Edit2, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { TeamMember } from '@/types/social';
+import { TeamMember, TeamMemberRole } from '@/types/social';
 import { useApp } from '@/contexts/AppContext';
 import { translateError } from '@/lib/errorTranslations';
 import { getTeamRoleDisplayName } from '@/lib/roleTranslations';
@@ -60,6 +60,7 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
     try {
       const { inviteTeamMember } = await import('@/app/actions/auth');
       const result = await inviteTeamMember(inviteEmail, inviteRole, orgSlug || undefined);
+      const resultRec = result as unknown as Record<string, unknown>;
       
       if (result.success) {
         onNotify(`הזמנה נשלחה לכתובת ${inviteEmail}`, 'success');
@@ -67,20 +68,20 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
         setInviteRole('account_manager');
         setIsInviteOpen(false);
       } else {
-        if ((result as any)?.code === 'UPGRADE_REQUIRED') {
-          const pw = (result as any)?.paywall;
-          setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
-          setPaywallMessage(String(pw?.message || result.error || 'פעולה זו זמינה למנויים משלמים'));
-          setRecommendedPackageType(pw?.recommendedPackageType);
+        if (String(resultRec.code || '') === 'UPGRADE_REQUIRED') {
+          const pw = (resultRec.paywall as unknown as Record<string, unknown>) || {};
+          setPaywallTitle(String(pw.title || 'שדרוג נדרש'));
+          setPaywallMessage(String(pw.message || result.error || 'פעולה זו זמינה למנויים משלמים'));
+          setRecommendedPackageType(pw.recommendedPackageType);
           setIsPaywallOpen(true);
           return;
         }
         const errorMsg = result.error ? translateError(result.error) : 'שגיאה בשליחת הזמנה';
         onNotify(errorMsg, 'error');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error inviting team member:', error);
-      const errorMsg = error.message ? translateError(error.message) : 'שגיאה בשליחת הזמנה';
+      const errorMsg = error instanceof Error && error.message ? translateError(error.message) : 'שגיאה בשליחת הזמנה';
       onNotify('שגיאה בשליחת הזמנה: ' + errorMsg, 'error');
     } finally {
       setIsInviting(false);
@@ -244,7 +245,7 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                                 />
                                 <select
                                   value={memberData.role}
-                                  onChange={e => setEditingMember({ ...editingMember!, role: e.target.value as any })}
+                                  onChange={e => setEditingMember({ ...editingMember!, role: e.target.value as TeamMemberRole })}
                                   className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none focus:ring-2 ring-blue-200"
                                 >
                                   <option value="account_manager">מנהל לקוח</option>

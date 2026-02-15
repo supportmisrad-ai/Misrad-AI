@@ -20,7 +20,11 @@ const ClientOSAdminApp: React.FC = () => {
   };
 
   useEffect(() => {
-    const handlePortalOpen = (e: any) => openPortal(e.detail);
+    const handlePortalOpen = (e: Event) => {
+      if (e instanceof CustomEvent && typeof e.detail === 'string') {
+        openPortal(e.detail);
+      }
+    };
     window.addEventListener('open-client-portal', handlePortalOpen);
     return () => window.removeEventListener('open-client-portal', handlePortalOpen);
   }, []);

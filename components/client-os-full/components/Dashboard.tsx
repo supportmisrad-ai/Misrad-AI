@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
       const newEventObj: GroupEvent = {
           id: `evt-${Date.now()}`,
           title: newEventData.title,
-          type: newEventData.type as any,
+          type: newEventData.type as 'WEBINAR' | 'WORKSHOP' | 'MASTERCLASS',
           date: new Date(newEventData.date).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }),
           targetSegment: audienceMode === 'TAG' ? (selectedTag || 'General') : 'Custom',
           attendeesCount: getSelectedCount(),
@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
 
     const load = async () => {
       try {
-        const userData = (window as any)?.__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
+        const userData = (window as { __CLIENT_OS_USER__?: { organizationId?: string | null } }).__CLIENT_OS_USER__;
         const orgId = userData?.organizationId;
         if (!orgId) return;
 
@@ -301,7 +301,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex-1 sm:flex-none sm:w-44">
                       <select
                         value={mapStatus}
-                        onChange={(e) => setMapStatus(e.target.value as any)}
+                        onChange={(e) => setMapStatus(e.target.value as 'ALL' | 'ACTIVE' | 'LEAD')}
                         className="w-full py-2.5 px-3 bg-white/50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:border-nexus-primary/30"
                       >
                         <option value="ALL">כל הסטטוסים</option>
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-12 h-12 rounded-2xl bg-white/50 border border-gray-200 flex items-center justify-center font-black text-gray-800">
-                              {(client as any).logoInitials || client.name?.slice(0, 2) || 'CL'}
+                              {(client as unknown as { logoInitials?: string }).logoInitials || client.name?.slice(0, 2) || 'CL'}
                             </div>
                             <div className="min-w-0">
                               <div className="font-bold text-gray-900 truncate">{client.name}</div>

@@ -11,6 +11,8 @@ const billingActionsPath = path.join(repoRoot, 'app', 'actions', 'billing-action
 const authPath = path.join(repoRoot, 'lib', 'auth.ts');
 const errorHandlerPath = path.join(repoRoot, 'lib', 'errorHandler.ts');
 const prismaPath = path.join(repoRoot, 'lib', 'prisma.ts');
+const loggerPath = path.join(repoRoot, 'lib', 'server', 'logger.ts');
+const serverOnlyPath = require.resolve('server-only');
 
 function clearModule(specifier: string) {
   try {
@@ -39,6 +41,15 @@ test.describe('billing-actions authz', () => {
     clearModule(authPath);
     clearModule(errorHandlerPath);
     clearModule(prismaPath);
+    clearModule(loggerPath);
+    clearModule(serverOnlyPath);
+
+    // Stub server-only so it doesn't throw in unit tests
+    mockModule(serverOnlyPath, {});
+    // Stub logger so it doesn't pull server-only transitively
+    mockModule(loggerPath, {
+      logger: { info() {}, warn() {}, error() {}, debug() {} },
+    });
 
     try {
       let prismaTouched = false;
@@ -117,6 +128,8 @@ test.describe('billing-actions authz', () => {
       clearModule(errorHandlerPath);
       clearModule(prismaPath);
       clearModule(billingActionsPath);
+      clearModule(loggerPath);
+      clearModule(serverOnlyPath);
     }
   });
 });

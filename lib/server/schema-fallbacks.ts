@@ -8,6 +8,25 @@ function isE2eTestingEnv(): boolean {
   return String(process.env.IS_E2E_TESTING || '').trim().toLowerCase() === 'true';
 }
 
+export const ALLOW_SCHEMA_FALLBACKS = isE2eTestingEnv();
+
+export function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toUpperCase();
+  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
+
 export function reportSchemaFallback(params: {
   source: string;
   reason: string;

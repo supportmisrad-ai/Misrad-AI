@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { Client } from '@/types';
 
 import { requireAuth } from '@/lib/errorHandler';
@@ -13,13 +15,10 @@ export async function createSocialClient(
     return { success: false, error: authCheck.error || 'נדרשת התחברות' };
   }
 
-  console.error(
-    '[DEPRECATED][createSocialClient] Attempted to write to legacy social_clients. Use createClientForWorkspace (canonical clients) instead.',
-    {
+  logger.error('DEPRECATED', '[createSocialClient] Attempted to write to legacy social_clients. Use createClientForWorkspace (canonical clients) instead.', {
       clerkUserId,
       email: clientData?.email,
-    }
-  );
+    });
 
   return {
     success: false,

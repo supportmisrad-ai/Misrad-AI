@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { createStorageClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
@@ -94,7 +96,7 @@ export async function uploadFile(
       });
 
     if (error) {
-      console.error('Storage upload error:', error);
+      logger.error('files', 'Storage upload error:', error);
       const raw = String(error.message || '').toLowerCase();
       if (raw.includes('bucket') && raw.includes('not') && raw.includes('found')) {
         return {
@@ -131,7 +133,7 @@ export async function uploadFile(
       bucket: 'media',
     };
   } catch (error: unknown) {
-    console.error('Error uploading file:', error);
+    logger.error('files', 'Error uploading file:', error);
     return { 
       success: false, 
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה בהעלאת הקובץ') 
@@ -186,7 +188,7 @@ export async function uploadCallRecordingFile(
     });
 
     if (error) {
-      console.error('Storage upload error:', error);
+      logger.error('files', 'Storage upload error:', error);
       const raw = String(error.message || '').toLowerCase();
       if (raw.includes('bucket') && raw.includes('not') && raw.includes('found')) {
         return {
@@ -219,7 +221,7 @@ export async function uploadCallRecordingFile(
       bucket: CALL_RECORDINGS_BUCKET,
     };
   } catch (error: unknown) {
-    console.error('Error uploading call recording:', error);
+    logger.error('files', 'Error uploading call recording:', error);
     return { success: false, error: translateError(getUnknownErrorMessage(error) || 'שגיאה בהעלאת הקובץ') };
   }
 }
@@ -242,7 +244,7 @@ export async function deleteFile(filePath: string): Promise<{ success: boolean; 
       .remove([filePath]);
 
     if (error) {
-      console.error('Storage delete error:', error);
+      logger.error('files', 'Storage delete error:', error);
       return { 
         success: false, 
         error: translateError(error.message || 'שגיאה במחיקת הקובץ') 
@@ -251,7 +253,7 @@ export async function deleteFile(filePath: string): Promise<{ success: boolean; 
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error deleting file:', error);
+    logger.error('files', 'Error deleting file:', error);
     return { 
       success: false, 
       error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת הקובץ') 

@@ -5,10 +5,11 @@ import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { updateNavigationMenu } from '@/app/actions/admin-navigation';
 import { Button } from '@/components/ui/button';
+import type { SocialNavigationItem } from '@/lib/services/social-service';
 
 interface NavigationTabProps {
-  navigationItems: any[];
-  setNavigationItems: (items: any[]) => void;
+  navigationItems: SocialNavigationItem[];
+  setNavigationItems: (items: SocialNavigationItem[]) => void;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -39,8 +40,8 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
         </div>
         <div className="p-10">
           <div className="flex flex-col gap-6">
-            {['global', 'client', 'management', 'settings', 'admin'].map((section) => {
-              const sectionItems = navigationItems.filter((item: any) => item.section === section).sort((a: any, b: any) => a.order - b.order);
+            {(['global', 'client', 'management', 'settings', 'admin'] as const).map((section) => {
+              const sectionItems = navigationItems.filter((item) => item.section === section).sort((a, b) => a.order - b.order);
               const sectionLabels: Record<string, string> = {
                 global: 'כללי',
                 client: 'לקוח',
@@ -54,7 +55,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                   <h4 className="text-xl font-black text-slate-900 mb-6">{sectionLabels[section]}</h4>
                   <div className="flex flex-col gap-4">
                     {sectionItems.length > 0 ? (
-                      sectionItems.map((item: any, idx: number) => (
+                      sectionItems.map((item) => (
                         <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4">
                           <div className="flex-1 grid grid-cols-12 gap-4 items-center">
                             <div className="col-span-3">
@@ -63,7 +64,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                 value={item.label}
                                 onChange={(e) => {
                                   setNavigationItems(
-                                    navigationItems.map((i: any) => i.id === item.id ? { ...i, label: e.target.value } : i)
+                                    navigationItems.map((i) => i.id === item.id ? { ...i, label: e.target.value } : i)
                                   );
                                 }}
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black outline-none focus:border-indigo-400"
@@ -75,7 +76,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                 value={item.icon}
                                 onChange={(e) => {
                                   setNavigationItems(
-                                    navigationItems.map((i: any) => i.id === item.id ? { ...i, icon: e.target.value } : i)
+                                    navigationItems.map((i) => i.id === item.id ? { ...i, icon: e.target.value } : i)
                                   );
                                 }}
                                 placeholder="Icon name"
@@ -88,7 +89,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                 value={item.view}
                                 onChange={(e) => {
                                   setNavigationItems(
-                                    navigationItems.map((i: any) => i.id === item.id ? { ...i, view: e.target.value } : i)
+                                    navigationItems.map((i) => i.id === item.id ? { ...i, view: e.target.value } : i)
                                   );
                                 }}
                                 placeholder="View type"
@@ -101,7 +102,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                 value={item.order}
                                 onChange={(e) => {
                                   setNavigationItems(
-                                    navigationItems.map((i: any) => i.id === item.id ? { ...i, order: Number(e.target.value) } : i)
+                                    navigationItems.map((i) => i.id === item.id ? { ...i, order: Number(e.target.value) } : i)
                                   );
                                 }}
                                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-black text-center outline-none focus:border-indigo-400"
@@ -114,7 +115,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                   checked={item.isVisible}
                                   onChange={(e) => {
                                     setNavigationItems(
-                                      navigationItems.map((i: any) => i.id === item.id ? { ...i, isVisible: e.target.checked } : i)
+                                      navigationItems.map((i) => i.id === item.id ? { ...i, isVisible: e.target.checked } : i)
                                     );
                                   }}
                                   className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
@@ -128,7 +129,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                                     checked={item.requiresClient || false}
                                     onChange={(e) => {
                                       setNavigationItems(
-                                        navigationItems.map((i: any) => i.id === item.id ? { ...i, requiresClient: e.target.checked } : i)
+                                        navigationItems.map((i) => i.id === item.id ? { ...i, requiresClient: e.target.checked } : i)
                                       );
                                     }}
                                     className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
@@ -141,7 +142,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                               <Button
                                 onClick={() => {
                                   if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
-                                    setNavigationItems(navigationItems.filter((i: any) => i.id !== item.id));
+                                    setNavigationItems(navigationItems.filter((i) => i.id !== item.id));
                                   }
                                 }}
                                 variant="outline"
@@ -168,11 +169,11 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                             label: 'פריט חדש',
                             icon: 'Home',
                             view: 'dashboard',
-                            section,
+                            section: section as 'client' | 'admin' | 'settings' | 'global' | 'management',
                             order: sectionItems.length + 1,
                             isVisible: true,
                             requiresClient: section === 'client',
-                          },
+                          } as SocialNavigationItem,
                         ]);
                       }}
                       variant="outline"

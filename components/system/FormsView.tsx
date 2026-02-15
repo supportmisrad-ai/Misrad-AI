@@ -219,7 +219,7 @@ const FormsView: React.FC = () => {
                                 ].map((field) => (
                                     <button
                                         key={field.type}
-                                        onClick={() => addField(field.type as any)}
+                                        onClick={() => addField(field.type as 'text' | 'select' | 'textarea' | 'email' | 'phone')}
                                         className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 transition-all gap-2"
                                     >
                                         <field.icon size={20} />
@@ -281,18 +281,6 @@ const FormsView: React.FC = () => {
                             >
                                 {/* Form Content */}
                                 <div className={`flex-1 p-8 flex flex-col ${previewMode === 'mobile' ? 'overflow-y-auto custom-scrollbar' : ''}`}>
-                                    
-                                    {/* Editable Title */}
-                                    <input 
-                                        type="text" 
-                                        value={builderTitle}
-                                        onChange={(e) => setBuilderTitle(e.target.value)}
-                                        className="text-3xl font-extrabold text-slate-900 bg-transparent border-none focus:ring-0 text-center mb-2 placeholder-slate-300 w-full"
-                                        placeholder="כותרת הטופס"
-                                    />
-                                    <p className="text-center text-slate-500 text-sm mb-8">השאירו פרטים ונחזור אליכם בהקדם</p>
-
-                                    {/* Fields */}
                                     <div className="space-y-4 flex-1">
                                         {builderFields.map((field, index) => (
                                             <div key={field.id} className="group relative bg-white border border-transparent hover:border-indigo-100 hover:shadow-sm rounded-xl p-3 transition-all">

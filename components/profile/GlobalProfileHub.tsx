@@ -18,10 +18,10 @@ type Entitlements = {
   client?: boolean;
 };
 
-function normalizeJson(value: any) {
+function normalizeJson(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object') return {};
   if (Array.isArray(value)) return {};
-  return value;
+  return value as Record<string, unknown>;
 }
 
 function BackButton({ label, onClick }: { label: string; onClick: () => void }) {
@@ -197,7 +197,7 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
     try {
       const res = await getMyProfile({ orgSlug });
       if (!res.success || !res.data?.profile) return;
-      const p: any = res.data.profile;
+      const p = res.data.profile;
       setProfileId(p.id);
       setEmail(String(p.email || ''));
       setFullName(String(p.full_name || ''));
@@ -257,15 +257,20 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
 function NotificationsSection({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startTransition] = useTransition();
-  const [prefs, setPrefs] = useState<any>({});
+  const [prefs, setPrefs] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setIsLoading(true);
     try {
       const res = await getMyProfile({ orgSlug });
       if (!res.success || !res.data?.profile) return;
-      const p: any = res.data.profile;
-      setPrefs(normalizeJson(p.notification_preferences));
+      const p = res.data.profile;
+      const raw = normalizeJson(p.notification_preferences);
+      const typed: Record<string, boolean> = {};
+      for (const [k, v] of Object.entries(raw)) {
+        typed[k] = Boolean(v);
+      }
+      setPrefs(typed);
     } finally {
       setIsLoading(false);
     }
@@ -276,7 +281,7 @@ function NotificationsSection({ orgSlug }: { orgSlug: string }) {
   }, [orgSlug]);
 
   const toggle = (key: string) => {
-    setPrefs((prev: any) => ({ ...prev, [key]: !prev?.[key] }));
+    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const save = () => {
@@ -334,7 +339,7 @@ function SecuritySection({ orgSlug }: { orgSlug: string }) {
     try {
       const res = await getMyProfile({ orgSlug });
       if (!res.success || !res.data?.profile) return;
-      const p: any = res.data.profile;
+      const p = res.data.profile;
       setTwoFactorEnabled(Boolean(p.two_factor_enabled));
     } finally {
       setIsLoading(false);
@@ -384,7 +389,15 @@ function SecuritySection({ orgSlug }: { orgSlug: string }) {
 function AiDnaSection({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [dna, setDna] = useState<any>({});
+  interface AiDna {
+    vision?: string;
+    tone?: string;
+    advantages?: string;
+    targetAudience?: string;
+    vocabulary?: string;
+    [key: string]: string | undefined;
+  }
+  const [dna, setDna] = useState<AiDna>({});
 
   const endpoint = useMemo(() => `/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/ai-dna`, [orgSlug]);
 
@@ -397,7 +410,7 @@ function AiDnaSection({ orgSlug }: { orgSlug: string }) {
         return;
       }
       const data = await res.json().catch(() => ({}));
-      setDna(normalizeJson(data?.aiDna));
+      setDna(normalizeJson(data?.aiDna) as AiDna);
     } finally {
       setIsLoading(false);
     }
@@ -426,11 +439,11 @@ function AiDnaSection({ orgSlug }: { orgSlug: string }) {
   return (
     <SectionCard title="DNA עסקי ל-AI">
       <div className="grid grid-cols-1 gap-4">
-        <TextArea label="חזון" value={String(dna.vision || '')} onChange={(v) => setDna((p: any) => ({ ...p, vision: v }))} rows={3} />
-        <TextArea label="טון דיבור" value={String(dna.tone || '')} onChange={(v) => setDna((p: any) => ({ ...p, tone: v }))} rows={2} />
-        <TextArea label="יתרונות" value={String(dna.advantages || '')} onChange={(v) => setDna((p: any) => ({ ...p, advantages: v }))} rows={3} />
-        <TextArea label="קהל יעד" value={String(dna.targetAudience || '')} onChange={(v) => setDna((p: any) => ({ ...p, targetAudience: v }))} rows={2} />
-        <TextArea label="מילים/סגנון" value={String(dna.vocabulary || '')} onChange={(v) => setDna((p: any) => ({ ...p, vocabulary: v }))} rows={2} />
+        <TextArea label="חזון" value={String(dna.vision || '')} onChange={(v) => setDna((p) => ({ ...p, vision: v }))} rows={3} />
+        <TextArea label="טון דיבור" value={String(dna.tone || '')} onChange={(v) => setDna((p) => ({ ...p, tone: v }))} rows={2} />
+        <TextArea label="יתרונות" value={String(dna.advantages || '')} onChange={(v) => setDna((p) => ({ ...p, advantages: v }))} rows={3} />
+        <TextArea label="קהל יעד" value={String(dna.targetAudience || '')} onChange={(v) => setDna((p) => ({ ...p, targetAudience: v }))} rows={2} />
+        <TextArea label="מילים/סגנון" value={String(dna.vocabulary || '')} onChange={(v) => setDna((p) => ({ ...p, vocabulary: v }))} rows={2} />
       </div>
       <div className="mt-4 flex gap-2">
         <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
@@ -486,7 +499,15 @@ export default function GlobalProfileHub({
   }, [currentModule, moduleBasePath]);
 
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
-  const [meInsights, setMeInsights] = useState<any>(null);
+  interface MeInsightsData {
+    hottestLead?: { id?: string; name?: string; status?: string };
+    lastCommitment?: { meetingId?: string; who?: string; what?: string; due?: string; createdAt?: string };
+    expectedMonthlyRevenue?: number;
+    breakdown?: { weightedPipeline?: number };
+    hotLeads?: { indexedLeadsCount?: number };
+    relationship?: { avgWarmth?: number };
+  }
+  const [meInsights, setMeInsights] = useState<MeInsightsData | null>(null);
   const [meInsightsLoading, setMeInsightsLoading] = useState(false);
   const [headerUser, setHeaderUser] = useState<{
     name: string;
@@ -560,7 +581,7 @@ export default function GlobalProfileHub({
       try {
         const res = await getMyProfile({ orgSlug });
         if (!res.success || !res.data?.profile) return;
-        const p: any = res.data.profile;
+        const p = res.data.profile;
         setHeaderUser({
           name: String(p.full_name || 'החשבון שלי'),
           email: p.email ? String(p.email) : null,
@@ -582,7 +603,7 @@ export default function GlobalProfileHub({
     id: string;
     label: string;
     groupLabel?: string | null;
-    icon?: any;
+    icon?: React.ComponentType<{ size?: number }>;
     content: React.ReactNode;
   }> = [
     {

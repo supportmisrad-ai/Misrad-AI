@@ -47,8 +47,8 @@ export default function OfferInterestedClient({
 
       setSuccess(true);
       setIsOpen(false);
-    } catch (e: any) {
-      setError(e?.message || 'שגיאה בשליחת הפנייה');
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || 'שגיאה בשליחת הבקשה');
     } finally {
       setIsSubmitting(false);
     }

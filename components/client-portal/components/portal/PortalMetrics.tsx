@@ -2,13 +2,14 @@ import React from 'react';
 import { TrendingUp, Download, Sparkles, Target, BarChart, ChevronLeft } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeletons';
+import { Client, MetricHistory, SuccessGoal } from '../../types';
 
 interface PortalMetricsProps {
-  performanceHistory: any[];
-  client: any;
-  aiProgressSummary: Record<string, any>;
+  performanceHistory: MetricHistory[];
+  client: Client;
+  aiProgressSummary: Record<string, unknown>;
   isAnalyzingMetrics: boolean;
-  onAnalyzeGoal: (goal: any) => void;
+  onAnalyzeGoal: (goal: SuccessGoal) => void;
 }
 
 export const PortalMetrics: React.FC<PortalMetricsProps> = ({
@@ -117,7 +118,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {client.successGoals.map((goal: any) => {
+          {client.successGoals.map((goal: SuccessGoal) => {
             const summary = aiProgressSummary[goal.id];
             return (
               <div
@@ -166,9 +167,9 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
                       <Sparkles size={14} className="text-nexus-accent" />
                       <span className="text-[10px] font-black uppercase text-slate-400">AI Analysis</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed mb-4">"{summary.summary}"</p>
+                    <p className="text-sm text-slate-600 leading-relaxed mb-4">"{String((summary as Record<string, unknown>).summary || '')}"</p>
                     <div className="text-[10px] font-bold text-nexus-primary bg-nexus-accent/10 p-2 rounded-lg inline-block">
-                      תחזית: {summary.forecast}
+                      תחזית: {String((summary as Record<string, unknown>).forecast || '')}
                     </div>
                   </div>
                 ) : (

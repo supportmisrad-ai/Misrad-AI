@@ -45,9 +45,10 @@ export default function WorkListingsAdminClient() {
         setError(res.message || 'שגיאה בטעינת הצעות עבודה');
         return;
       }
-      setRows((res as any).listings || []);
-    } catch (e: any) {
-      setError(e?.message || 'שגיאה בטעינת הצעות עבודה');
+      const listings = (res as Record<string, unknown>).listings;
+      setRows(Array.isArray(listings) ? listings as Row[] : []);
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת הצעות עבודה');
     } finally {
       setIsLoading(false);
     }

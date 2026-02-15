@@ -47,7 +47,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
                 version: formUpdate.version,
                 title: formUpdate.title,
                 features: featuresArray,
-                type: formUpdate.type as any
+                type: formUpdate.type as 'minor' | 'major' | 'patch'
             });
         } else {
             const update: SystemUpdate = {
@@ -57,7 +57,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
                 date: new Date().toISOString(),
                 features: featuresArray,
                 authorId: currentUser.id,
-                type: formUpdate.type as any
+                type: formUpdate.type as 'minor' | 'major' | 'patch'
             };
             publishSystemUpdate(update);
         }
@@ -166,7 +166,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <input value={formUpdate.version} onChange={e => setFormUpdate({...formUpdate, version: e.target.value})} placeholder="גרסה (למשל v2.5.0)" className="w-full p-3 border rounded-xl" />
-                                    <select value={formUpdate.type} onChange={e => setFormUpdate({...formUpdate, type: e.target.value})} className="w-full p-3 border rounded-xl bg-white">
+                                    <select value={formUpdate.type} onChange={e => setFormUpdate({...formUpdate, type: e.target.value as 'minor' | 'major' | 'patch' })} className="w-full p-3 border rounded-xl bg-white">
                                         <option value="major">Major (פיצ׳ר גדול)</option>
                                         <option value="minor">Minor (שיפורים)</option>
                                         <option value="patch">Patch (תיקונים)</option>

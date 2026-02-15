@@ -51,8 +51,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
 
   const displayEvents = events
     .map((e) => {
-      const start = toDate((e as any).start);
-      const end = toDate((e as any).end);
+      const start = toDate((e as unknown as { start?: unknown }).start);
+      const end = toDate((e as unknown as { end?: unknown }).end);
       return {
         id: e.id,
         title: e.title,

@@ -35,8 +35,8 @@ export default function OrgImpersonateButton(props: {
 
       addToast('נכנסת למצב התחזות - מעביר למרחב העבודה...', 'success');
       router.push(`/w/${encodeURIComponent(String(orgSlug))}/nexus`);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בהתחזות', 'error');
+    } catch (e: unknown) {
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בהתחזות', 'error');
     } finally {
       setIsLoading(false);
     }

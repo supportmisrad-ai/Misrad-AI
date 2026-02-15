@@ -6,7 +6,7 @@ import { DollarSign } from 'lucide-react';
 interface BonusConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    recommendation: any;
+    recommendation: { amount: number; userName: string } | null;
     onConfirm: () => void;
 }
 

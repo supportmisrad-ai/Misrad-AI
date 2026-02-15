@@ -28,8 +28,8 @@ export default function PartnerPortalPageClient() {
         return;
       }
       setData(res.data);
-    } catch (e: any) {
-      setError(e?.message || 'שגיאה בטעינה');
+    } catch (e: unknown) {
+      setError((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינה');
       setData(null);
     } finally {
       setIsLoading(false);

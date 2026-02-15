@@ -1,0 +1,1131 @@
+npm warn Unknown project config "onload-script". This will stop working in the next major version of npm.
+app/actions/billing-actions.ts(450,7): error TS18046: 'updates' is of type 'unknown'.
+app/actions/billing-actions.ts(455,7): error TS2322: Type 'unknown' is not assignable to type '(Without<social_organizationsUpdateInput, social_organizationsUncheckedUpdateInput> & social_organizationsUncheckedUpdateInput) | (Without<...> & social_organizationsUpdateInput)'.
+app/actions/business-clients.ts(190,7): error TS18046: 'where' is of type 'unknown'.
+app/actions/business-clients.ts(194,7): error TS18046: 'where' is of type 'unknown'.
+app/actions/business-clients.ts(198,7): error TS18046: 'where' is of type 'unknown'.
+app/actions/business-clients.ts(203,7): error TS18046: 'where' is of type 'unknown'.
+app/actions/business-clients.ts(221,11): error TS2322: Type 'unknown' is not assignable to type 'BusinessClientWhereInput | undefined'.
+app/actions/integrations.ts(177,29): error TS2322: Type '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+app/actions/integrations.ts(743,5): error TS2322: Type '{} | null' is not assignable to type 'string | null'.
+  Type '{}' is not assignable to type 'string'.
+app/api/admin/tenants/route.ts(283,17): error TS2322: Type 'unknown' is not assignable to type '(Without<NexusTenantCreateInput, NexusTenantUncheckedCreateInput> & NexusTenantUncheckedCreateInput) | (Without<...> & NexusTenantCreateInput)'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(67,20): error TS2345: Argument of type '{ id: string; status: string; primary_email: string; phone: string | null; tags: string[]; industry: string | null; created_at: Date; updated_at: Date; mrr: Decimal; notes: string | null; ... 27 more ...; custom_fields: JsonValue; }[]' is not assignable to parameter of type 'SetStateAction<BusinessClient[]>'.
+  Type '{ id: string; status: string; primary_email: string; phone: string | null; tags: string[]; industry: string | null; created_at: Date; updated_at: Date; mrr: Decimal; notes: string | null; ... 27 more ...; custom_fields: JsonValue; }[]' is not assignable to type 'BusinessClient[]'.
+    Type '{ id: string; status: string; primary_email: string; phone: string | null; tags: string[]; industry: string | null; created_at: Date; updated_at: Date; mrr: Decimal; notes: string | null; ... 27 more ...; custom_fields: JsonValue; }' is missing the following properties from type 'BusinessClient': contacts, organizations
+app/app/admin/business-clients/BusinessClientsClient.tsx(377,41): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(380,79): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(381,75): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(382,38): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(384,42): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(384,82): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(390,39): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(392,43): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(397,38): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(397,86): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/business-clients/BusinessClientsClient.tsx(436,36): error TS18046: 'org' is of type 'unknown'.
+app/app/admin/client/announcements/AdminClientAnnouncementsPageClient.tsx(9,56): error TS2322: Type 'unknown' is not assignable to type '(message: string, type: "error" | "warning" | "info" | "success") => void'.
+app/app/admin/client/features/AdminClientFeaturesPageClient.tsx(9,32): error TS2322: Type 'unknown' is not assignable to type '(message: string, type?: "error" | "info" | "success" | undefined) => void'.
+app/app/admin/global/announcements/AdminGlobalAnnouncementsPageClient.tsx(15,53): error TS2322: Type 'unknown' is not assignable to type '(message: string, type: "error" | "warning" | "info" | "success") => void'.
+app/app/admin/global/approvals/AdminGlobalApprovalsPageClient.tsx(30,9): error TS2322: Type 'unknown' is not assignable to type 'UserApprovalRequest[]'.
+app/app/admin/global/approvals/AdminGlobalApprovalsPageClient.tsx(31,9): error TS2322: Type 'unknown' is not assignable to type 'Tenant[]'.
+app/app/admin/global/control/AdminGlobalControlPageClient.tsx(17,27): error TS2322: Type 'unknown' is not assignable to type 'OrganizationProfile'.
+app/app/admin/global/control/AdminGlobalControlPageClient.tsx(17,66): error TS2322: Type 'unknown' is not assignable to type '(screenId: string, status: SystemScreenStatus) => void'.
+app/app/admin/global/downloads/AdminGlobalDownloadsPageClient.tsx(31,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/global/downloads/AdminGlobalDownloadsPageClient.tsx(57,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/global/GlobalAdminPageClient.tsx(64,9): error TS2322: Type 'unknown' is not assignable to type 'Tenant[]'.
+app/app/admin/global/GlobalAdminPageClient.tsx(71,9): error TS2322: Type 'unknown' is not assignable to type 'UserApprovalRequest[]'.
+app/app/admin/global/GlobalAdminPageClient.tsx(72,9): error TS2322: Type 'unknown' is not assignable to type 'Tenant[]'.
+app/app/admin/global/GlobalAdminPageClient.tsx(82,25): error TS2322: Type 'unknown' is not assignable to type 'Tenant[]'.
+app/app/admin/global/versions/AdminGlobalVersionsPageClient.tsx(25,9): error TS2322: Type 'unknown' is not assignable to type 'Tenant[]'.
+app/app/admin/global/work-listings/WorkListingsAdminClient.tsx(48,15): error TS2345: Argument of type '{}' is not assignable to parameter of type 'SetStateAction<Row[]>'.
+app/app/admin/global/work-listings/WorkListingsAdminClient.tsx(50,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/landing/announcements/AdminLandingAnnouncementsPageClient.tsx(14,53): error TS2322: Type 'unknown' is not assignable to type '(message: string, type: "error" | "warning" | "info" | "success") => void'.
+app/app/admin/nexus/announcements/AdminNexusAnnouncementsPageClient.tsx(14,53): error TS2322: Type 'unknown' is not assignable to type '(message: string, type: "error" | "warning" | "info" | "success") => void'.
+app/app/admin/nexus/control/AdminNexusControlPageClient.tsx(15,26): error TS2322: Type 'unknown' is not assignable to type 'OrganizationProfile'.
+app/app/admin/nexus/control/AdminNexusControlPageClient.tsx(15,65): error TS2322: Type 'unknown' is not assignable to type '(screenId: string, status: SystemScreenStatus) => void'.
+app/app/admin/nexus/intelligence/AdminNexusIntelligencePageClient.tsx(47,11): error TS2322: Type 'unknown' is not assignable to type 'GeneratedReport[]'.
+app/app/admin/nexus/intelligence/AdminNexusIntelligencePageClient.tsx(48,11): error TS2322: Type 'unknown' is not assignable to type 'Feedback[]'.
+app/app/admin/nexus/intelligence/AdminNexusIntelligencePageClient.tsx(56,28): error TS2322: Type 'unknown' is not assignable to type 'GeneratedReport'.
+app/app/admin/nexus/invitations/AdminNexusInvitationsPageClient.tsx(18,33): error TS2322: Type 'unknown' is not assignable to type '(message: string, type?: "error" | "info" | "success" | undefined) => void'.
+app/app/admin/OrgImpersonateButton.tsx(39,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/social/components/HeavySocialAdminPanel.tsx(187,58): error TS2322: Type 'Record<string, unknown> | null' is not assignable to type 'LiveKPIs'.
+  Type 'null' is not assignable to type 'LiveKPIs'.
+app/app/admin/social/components/HeavySocialAdminPanel.tsx(282,15): error TS2322: Type 'Dispatch<SetStateAction<NavigationItem[]>>' is not assignable to type '(items: SocialNavigationItem[]) => void'.
+  Types of parameters 'value' and 'items' are incompatible.
+    Type 'SocialNavigationItem[]' is not assignable to type 'SetStateAction<NavigationItem[]>'.
+      Type 'SocialNavigationItem[]' is not assignable to type 'NavigationItem[]'.
+        Type 'SocialNavigationItem' is not assignable to type 'NavigationItem'.
+          Types of property 'requiresRole' are incompatible.
+            Type 'string[] | null | undefined' is not assignable to type 'string[] | undefined'.
+              Type 'null' is not assignable to type 'string[] | undefined'.
+app/app/admin/support/page.tsx(58,46): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/system/announcements/AdminSystemAnnouncementsPageClient.tsx(14,53): error TS2322: Type 'unknown' is not assignable to type '(message: string, type: "error" | "warning" | "info" | "success") => void'.
+app/app/admin/system/control/AdminSystemControlPageClient.tsx(15,29): error TS2322: Type 'unknown' is not assignable to type 'OrganizationProfile'.
+app/app/admin/system/control/AdminSystemControlPageClient.tsx(15,68): error TS2322: Type 'unknown' is not assignable to type '(screenId: string, status: SystemScreenStatus) => void'.
+app/app/admin/tenants/page.tsx(73,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/tenants/page.tsx(150,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/tenants/page.tsx(176,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/tenants/page.tsx(196,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/tenants/page.tsx(214,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/app/admin/users/page.tsx(74,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/ClientOnlyWidgets.tsx(133,16): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(134,18): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(138,11): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(161,16): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(162,18): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(166,11): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(202,16): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(203,18): error TS18046: 'w' is of type 'unknown'.
+app/ClientOnlyWidgets.tsx(207,11): error TS18046: 'w' is of type 'unknown'.
+app/connect/offer/[token]/OfferInterestedClient.tsx(51,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/employee-invite/[token]/page.tsx(107,26): error TS18046: 'err' is of type 'unknown'.
+app/employee-invite/[token]/page.tsx(181,22): error TS18046: 'err' is of type 'unknown'.
+app/invite/[token]/page.tsx(149,26): error TS18046: 'err' is of type 'unknown'.
+app/invite/[token]/page.tsx(270,22): error TS18046: 'err' is of type 'unknown'.
+app/kiosk-home/page.tsx(268,45): error TS2339: Property 'message' does not exist on type '{}'.
+app/kiosk-home/page.tsx(297,45): error TS2339: Property 'message' does not exist on type '{}'.
+app/kiosk-scan/page.tsx(136,31): error TS2339: Property 'getText' does not exist on type '{}'.
+app/marketplace/offer/[id]/OfferInterestedClient.tsx(51,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/partner-portal/PartnerPortalPageClient.tsx(32,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/subscribe/checkout/SubscribeCheckoutPageClient.tsx(155,59): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PackageType'.
+app/subscribe/checkout/SubscribeCheckoutPageClient.tsx(233,22): error TS2345: Argument of type '{} | null' is not assignable to parameter of type 'SetStateAction<string | null>'.
+  Type '{}' is not assignable to type 'SetStateAction<string | null>'.
+app/subscribe/checkout/SubscribeCheckoutPageClient.tsx(236,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/subscribe/checkout/SubscribeCheckoutPageClient.tsx(259,19): error TS2339: Property 'message' does not exist on type '{}'.
+app/support/page.tsx(152,21): error TS2339: Property 'message' does not exist on type '{}'.
+app/w/[orgSlug]/(modules)/system/sales_leads/SystemSalesLeadsClient.tsx(99,7): error TS2322: Type 'Record<string, unknown> | null' is not assignable to type 'InputJsonValue | null | undefined'.
+  Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue | null | undefined'.
+    Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 26 more.
+app/w/[orgSlug]/(modules)/system/SystemShellGateClient.tsx(264,19): error TS2322: Type '{ label: string; path: string; icon: unknown; }[]' is not assignable to type 'SharedNavItem[]'.
+  Type '{ label: string; path: string; icon: unknown; }' is not assignable to type 'SharedNavItem'.
+    Types of property 'icon' are incompatible.
+      Type 'unknown' is not assignable to type 'ComponentType<{ size?: number | undefined; strokeWidth?: number | undefined; className?: string | undefined; }>'.
+app/w/[orgSlug]/(modules)/system/SystemShellGateClient.tsx(349,23): error TS2322: Type '{ label: string; path: string; icon: unknown; }[]' is not assignable to type 'SharedNavItem[]'.
+  Type '{ label: string; path: string; icon: unknown; }' is not assignable to type 'SharedNavItem'.
+    Types of property 'icon' are incompatible.
+      Type 'unknown' is not assignable to type 'ComponentType<{ size?: number | undefined; strokeWidth?: number | undefined; className?: string | undefined; }>'.
+app/w/[orgSlug]/(modules)/system/SystemWorkspaceClient.tsx(228,7): error TS2322: Type 'Record<string, unknown> | null' is not assignable to type 'InputJsonValue | null | undefined'.
+  Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue | null | undefined'.
+    Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 26 more.
+app/workspaces/onboarding/WorkspaceOnboardingClient.tsx(66,21): error TS2339: Property 'message' does not exist on type '{}'.
+components/admin/DevicePairingGeneratorModal.tsx(34,31): error TS2339: Property 'message' does not exist on type '{}'.
+components/admin/DevicePairingModal.tsx(39,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/ai/AiAssistantWidget.tsx(262,26): error TS2339: Property 'message' does not exist on type '{}'.
+components/ai/AiAssistantWidget.tsx(270,72): error TS2339: Property 'role' does not exist on type '{}'.
+components/ai/AiAssistantWidget.tsx(274,25): error TS18046: 'm' is of type 'unknown'.
+components/ai/AiAssistantWidget.tsx(275,32): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ChatMessage'.
+components/ai/AiAssistantWidget.tsx(282,31): error TS2339: Property 'id' does not exist on type '{}'.
+components/ai/AiAssistantWidget.tsx(283,30): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ChatMessage'.
+  Type '{}' is missing the following properties from type 'ChatMessage': id, role
+components/ai/AiAssistantWidgetV2.tsx(262,26): error TS2339: Property 'message' does not exist on type '{}'.
+components/ai/AiAssistantWidgetV2.tsx(269,72): error TS2339: Property 'role' does not exist on type '{}'.
+components/ai/AiAssistantWidgetV2.tsx(273,25): error TS18046: 'm' is of type 'unknown'.
+components/ai/AiAssistantWidgetV2.tsx(274,32): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ChatMessage'.
+components/ai/AiAssistantWidgetV2.tsx(281,31): error TS2339: Property 'id' does not exist on type '{}'.
+components/ai/AiAssistantWidgetV2.tsx(282,30): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ChatMessage'.
+  Type '{}' is missing the following properties from type 'ChatMessage': id, role
+components/ai/AiWidget.tsx(167,40): error TS2339: Property 'error' does not exist on type '{}'.
+components/ai/AiWidget.tsx(173,33): error TS2339: Property 'text' does not exist on type '{}'.
+components/ai/AiWidget.tsx(178,28): error TS2339: Property 'message' does not exist on type '{}'.
+components/BusinessSwitcher.tsx(118,20): error TS18046: 'w' is of type 'unknown'.
+components/BusinessSwitcher.tsx(119,24): error TS18046: 'w' is of type 'unknown'.
+components/BusinessSwitcher.tsx(123,21): error TS18046: 'w' is of type 'unknown'.
+components/ChatInterface.tsx(135,53): error TS2339: Property 'error' does not exist on type '{}'.
+components/ChatInterface.tsx(152,30): error TS2339: Property 'message' does not exist on type '{}'.
+components/ChatInterface.tsx(162,20): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'FormEvent<Element>'.
+components/ChatInterfaceV2.tsx(135,53): error TS2339: Property 'error' does not exist on type '{}'.
+components/ChatInterfaceV2.tsx(152,30): error TS2339: Property 'message' does not exist on type '{}'.
+components/ChatInterfaceV2.tsx(162,20): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'FormEvent<Element>'.
+components/client-os-admin/client-tabs/PortalManagementTab.tsx(227,63): error TS2322: Type 'string' is not assignable to type '"APPROVAL"'.
+components/client-os-admin/ClientOSAdminApp.tsx(23,57): error TS18046: 'e' is of type 'unknown'.
+components/client-os-admin/ClientsMap.tsx(50,44): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"PENDING" | "ACTIVE" | "ALL">'.
+components/client-os-admin/ClientsMap.tsx(83,23): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+components/client-os-admin/ClientsMap.tsx(83,25): error TS2352: Conversion of type 'Client' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'Client'.
+components/client-os-admin/ClientView.tsx(94,25): error TS18046: 'e' is of type 'unknown'.
+components/client-os-admin/ClientView.tsx(163,5): error TS2571: Object is of type 'unknown'.
+components/client-os-admin/ClientView.tsx(163,6): error TS2352: Conversion of type 'FeedbackItem[]' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'FeedbackItem[]'.
+components/client-os-admin/ClientView.tsx(484,41): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"transform" | "tasks" | "feedback" | "meetings" | "stakeholders" | "portal" | "strategy" | "pulse" | "work" | "journey">'.
+components/client-os-admin/Dashboard.tsx(67,7): error TS2322: Type 'unknown' is not assignable to type '"WEBINAR" | "WORKSHOP" | "MASTERCLASS"'.
+components/client-os-admin/Dashboard.tsx(289,23): error TS2322: Type 'unknown' is not assignable to type 'Client[]'.
+components/client-os-admin/ui/AudioPlayer.tsx(47,32): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'number | undefined'.
+components/client-os-admin/ui/Layout.tsx(267,18): error TS2604: JSX element type 'Icon' does not have any construct or call signatures.
+components/client-os-admin/ui/Layout.tsx(267,18): error TS2786: 'Icon' cannot be used as a JSX component.
+  Its type 'unknown' is not a valid JSX element type.
+components/client-os-full/components/client-tabs/ClientWorkTab.tsx(77,68): error TS2345: Argument of type '(p: { title: string; description: string; type: "STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"; thumbnailUrl: string; tags: string; }) => { type: string; title: string; description: string; thumbnailUrl: string; tags: string; }' is not assignable to parameter of type 'SetStateAction<{ title: string; description: string; type: "STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"; thumbnailUrl: string; tags: string; }>'.
+  Type '(p: { title: string; description: string; type: "STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"; thumbnailUrl: string; tags: string; }) => { type: string; title: string; description: string; thumbnailUrl: string; tags: string; }' is not assignable to type '(prevState: { title: string; description: string; type: "STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"; thumbnailUrl: string; tags: string; }) => { title: string; description: string; type: "STRATEGY" | ... 3 more ... | "DEV"; thumbnailUrl: string; tags: string; }'.
+    Call signature return types '{ type: string; title: string; description: string; thumbnailUrl: string; tags: string; }' and '{ title: string; description: string; type: "STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"; thumbnailUrl: string; tags: string; }' are incompatible.
+      The types of 'type' are incompatible between these types.
+        Type 'string' is not assignable to type '"STRATEGY" | "CAMPAIGN" | "REPORT" | "DESIGN" | "DEV"'.
+components/client-os-full/components/client-tabs/PortalManagementTab.tsx(221,76): error TS2322: Type 'string' is not assignable to type '"APPROVAL"'.
+components/client-os-full/components/ClientPortal.tsx(189,13): error TS2322: Type 'Dispatch<SetStateAction<PortalScreen>>' is not assignable to type '(screen: unknown) => void'.
+  Types of parameters 'value' and 'screen' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<PortalScreen>'.
+components/client-os-full/components/ClientPortal.tsx(190,13): error TS2322: Type '{ label: string; icon: unknown; color: string; } | null' is not assignable to type '{ label: string; icon: ReactNode; color: string; } | null'.
+  Type '{ label: string; icon: unknown; color: string; }' is not assignable to type '{ label: string; icon: ReactNode; color: string; }'.
+    Types of property 'icon' are incompatible.
+      Type 'unknown' is not assignable to type 'ReactNode'.
+components/client-os-full/components/ClientPortal.tsx(191,13): error TS2322: Type 'Dispatch<SetStateAction<{ label: string; icon: unknown; color: string; } | null>>' is not assignable to type '(mood: unknown) => void'.
+  Types of parameters 'value' and 'mood' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<{ label: string; icon: unknown; color: string; } | null>'.
+components/client-os-full/components/ClientPortal.tsx(206,13): error TS2322: Type '(formTask: ClientAction) => void' is not assignable to type '(task: unknown) => void'.
+  Types of parameters 'formTask' and 'task' are incompatible.
+    Type 'unknown' is not assignable to type 'ClientAction'.
+components/client-os-full/components/ClientPortal.tsx(215,13): error TS2322: Type '{ name: string; value: number; baseline?: number | undefined; }[]' is not assignable to type 'MetricHistory[]'.
+  Property 'date' is missing in type '{ name: string; value: number; baseline?: number | undefined; }' but required in type 'MetricHistory'.
+components/client-os-full/components/ClientPortal.tsx(219,13): error TS2322: Type '(goal: SuccessGoal) => Promise<void>' is not assignable to type '(goal: unknown) => void'.
+  Types of parameters 'goal' and 'goal' are incompatible.
+    Type 'unknown' is not assignable to type 'SuccessGoal'.
+components/client-os-full/components/ClientPortal.tsx(242,9): error TS2322: Type 'Dispatch<SetStateAction<JourneyStage | null>>' is not assignable to type '(val: unknown) => void'.
+  Types of parameters 'value' and 'val' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<JourneyStage | null>'.
+components/client-os-full/components/ClientPortal.tsx(245,9): error TS2322: Type '{ quote: string; linkedinPost: string; } | null' is not assignable to type '{ text: string; } | null'.
+  Property 'text' is missing in type '{ quote: string; linkedinPost: string; }' but required in type '{ text: string; }'.
+components/client-os-full/components/ClientPortal.tsx(260,9): error TS2322: Type 'Dispatch<SetStateAction<PortalScreen>>' is not assignable to type '(screen: unknown) => void'.
+  Types of parameters 'value' and 'screen' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<PortalScreen>'.
+components/client-os-full/components/ClientView.tsx(183,31): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/components/ClientView.tsx(502,45): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"transform" | "tasks" | "feedback" | "meetings" | "stakeholders" | "portal" | "strategy" | "pulse" | "work" | "journey">'.
+components/client-os-full/components/Dashboard.tsx(89,11): error TS2322: Type 'unknown' is not assignable to type '"WEBINAR" | "WORKSHOP" | "MASTERCLASS"'.
+components/client-os-full/components/Dashboard.tsx(107,47): error TS2339: Property '__CLIENT_OS_USER__' does not exist on type '{}'.
+components/client-os-full/components/Dashboard.tsx(304,55): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"ACTIVE" | "LEAD" | "ALL">'.
+components/client-os-full/components/Dashboard.tsx(334,31): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+components/client-os-full/components/Dashboard.tsx(334,33): error TS2352: Conversion of type 'Client' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'Client'.
+components/client-os-full/components/EmailCenter.tsx(46,45): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/components/EmailCenter.tsx(149,93): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/components/EmailCenter.tsx(200,93): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/components/FeedbackLoop.tsx(31,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/components/FormsManager.tsx(559,116): error TS2322: Type 'string' is not assignable to type 'FieldType | undefined'.
+components/client-os-full/components/MeetingAnalyzer.tsx(121,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"ZOOM" | "FRONTAL" | "PHONE">'.
+components/client-os-full/components/NexusCommand.tsx(47,73): error TS2339: Property 'content' does not exist on type '{}'.
+components/client-os-full/components/NexusCommand.tsx(48,80): error TS2339: Property 'sources' does not exist on type '{}'.
+components/client-os-full/components/NexusComposer.tsx(34,54): error TS2339: Property 'healthScore' does not exist on type '{}'.
+components/client-os-full/components/NexusComposer.tsx(35,55): error TS2339: Property 'healthStatus' does not exist on type '{}'.
+components/client-os-full/components/NexusComposer.tsx(36,51): error TS2339: Property 'handoffData' does not exist on type '{}'.
+components/client-os-full/components/portal/PortalDashboard.tsx(159,22): error TS2604: JSX element type 'selectedMood.icon' does not have any construct or call signatures.
+components/client-os-full/components/portal/PortalDashboard.tsx(159,22): error TS2786: 'selectedMood.icon' cannot be used as a JSX component.
+  Its type 'ReactNode' is not a valid JSX element type.
+    Type 'undefined' is not assignable to type 'ElementType'.
+components/client-os-full/components/portal/PortalFinance.tsx(91,28): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(92,76): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(93,71): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(94,59): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(96,93): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(97,26): error TS18046: 'inv' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(115,27): error TS18046: 'ag' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(119,73): error TS18046: 'ag' is of type 'unknown'.
+components/client-os-full/components/portal/PortalFinance.tsx(120,96): error TS18046: 'ag' is of type 'unknown'.
+components/client-os-full/components/portal/PortalJourney.tsx(42,31): error TS18046: 'm' is of type 'unknown'.
+components/client-os-full/components/portal/PortalJourney.tsx(43,101): error TS18046: 'm' is of type 'unknown'.
+components/client-os-full/components/portal/PortalJourney.tsx(44,26): error TS18046: 'm' is of type 'unknown'.
+components/client-os-full/components/portal/PortalJourney.tsx(46,40): error TS18046: 'm' is of type 'unknown'.
+components/client-os-full/components/portal/PortalJourney.tsx(46,117): error TS18046: 'm' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(112,47): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(114,25): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(120,21): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(121,21): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(124,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(124,60): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(127,72): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(129,73): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(129,93): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(130,73): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(130,92): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(134,121): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(134,140): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalMetrics.tsx(143,90): error TS2339: Property 'summary' does not exist on type '{}'.
+components/client-os-full/components/portal/PortalMetrics.tsx(145,39): error TS2339: Property 'forecast' does not exist on type '{}'.
+components/client-os-full/components/portal/PortalMetrics.tsx(159,34): error TS18046: 'goal' is of type 'unknown'.
+components/client-os-full/components/portal/PortalModals.tsx(98,88): error TS2339: Property 'quote' does not exist on type '{ text: string; }'.
+components/client-os-full/components/portal/PortalModals.tsx(102,79): error TS2339: Property 'linkedinPost' does not exist on type '{ text: string; }'.
+components/client-os-full/components/ui/Layout.tsx(78,41): error TS2339: Property 'name' does not exist on type '{}'.
+components/client-os-full/components/ui/Layout.tsx(79,41): error TS2339: Property 'role' does not exist on type '{}'.
+components/client-os-full/components/ui/Layout.tsx(131,48): error TS2322: Type '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+components/client-os-full/components/WorkflowBuilder.tsx(94,74): error TS18046: 'client' is of type 'unknown'.
+components/client-os-full/context/ClientContext.tsx(75,35): error TS2339: Property 'organizationId' does not exist on type '{}'.
+components/client-os-full/context/ClientContext.tsx(79,56): error TS2339: Property 'detail' does not exist on type '{}'.
+components/client-os-full/context/ClientContext.tsx(123,23): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/context/ClientContext.tsx(189,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/context/ClientContext.tsx(190,25): error TS2339: Property 'stack' does not exist on type '{}'.
+components/client-os-full/context/ClientContext.tsx(339,23): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-os-full/lib/ai-agents.ts(33,19): error TS2339: Property 'analysis' does not exist on type '{}'.
+components/client-os-full/lib/ai-agents.ts(33,37): error TS2339: Property 'data' does not exist on type '{}'.
+components/client-os/ui/AudioPlayer.tsx(53,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'number | undefined'.
+components/client-portal/components/ClientPortal.tsx(231,13): error TS2322: Type 'SuccessGoal | undefined' is not assignable to type 'SuccessGoal | null'.
+  Type 'undefined' is not assignable to type 'SuccessGoal | null'.
+components/client-portal/components/ClientPortal.tsx(236,13): error TS2322: Type 'Dispatch<SetStateAction<PortalScreen>>' is not assignable to type '(screen: unknown) => void'.
+  Types of parameters 'value' and 'screen' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<PortalScreen>'.
+components/client-portal/components/ClientPortal.tsx(238,13): error TS2322: Type 'Dispatch<SetStateAction<{ label: string; icon: ReactNode; color: string; } | null>>' is not assignable to type '(mood: unknown) => void'.
+  Types of parameters 'value' and 'mood' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<{ label: string; icon: ReactNode; color: string; } | null>'.
+components/client-portal/components/ClientPortal.tsx(253,13): error TS2322: Type '(formTask: ClientAction) => void' is not assignable to type '(task: unknown) => void'.
+  Types of parameters 'formTask' and 'task' are incompatible.
+    Type 'unknown' is not assignable to type 'ClientAction'.
+components/client-portal/components/ClientPortal.tsx(262,13): error TS2322: Type '{ name: string; value: number; baseline?: number | undefined; }[]' is not assignable to type 'MetricHistory[]'.
+  Property 'date' is missing in type '{ name: string; value: number; baseline?: number | undefined; }' but required in type 'MetricHistory'.
+components/client-portal/components/ClientPortal.tsx(266,13): error TS2322: Type '(goal: SuccessGoal) => Promise<void>' is not assignable to type '(goal: unknown) => void'.
+  Types of parameters 'goal' and 'goal' are incompatible.
+    Type 'unknown' is not assignable to type 'SuccessGoal'.
+components/client-portal/components/ClientPortal.tsx(288,9): error TS2322: Type 'Dispatch<SetStateAction<JourneyStage | null>>' is not assignable to type '(val: unknown) => void'.
+  Types of parameters 'value' and 'val' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<JourneyStage | null>'.
+components/client-portal/components/ClientPortal.tsx(291,9): error TS2322: Type '{ quote: string; linkedinPost: string; } | null' is not assignable to type '{ text: string; } | null'.
+  Property 'text' is missing in type '{ quote: string; linkedinPost: string; }' but required in type '{ text: string; }'.
+components/client-portal/components/ClientPortal.tsx(300,9): error TS2322: Type 'Dispatch<SetStateAction<PortalScreen>>' is not assignable to type '(screen: unknown) => void'.
+  Types of parameters 'value' and 'screen' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<PortalScreen>'.
+components/client-portal/components/portal/PortalDashboard.tsx(253,22): error TS2604: JSX element type 'selectedMood.icon' does not have any construct or call signatures.
+components/client-portal/components/portal/PortalDashboard.tsx(253,22): error TS2786: 'selectedMood.icon' cannot be used as a JSX component.
+  Its type 'ReactNode' is not a valid JSX element type.
+    Type 'undefined' is not assignable to type 'ElementType'.
+components/client-portal/components/portal/PortalFinance.tsx(99,28): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(100,76): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(101,71): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(102,59): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(106,27): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(111,26): error TS18046: 'inv' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(133,24): error TS18046: 'ag' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(141,73): error TS18046: 'ag' is of type 'unknown'.
+components/client-portal/components/portal/PortalFinance.tsx(142,96): error TS18046: 'ag' is of type 'unknown'.
+components/client-portal/components/portal/PortalJourney.tsx(54,28): error TS18046: 'm' is of type 'unknown'.
+components/client-portal/components/portal/PortalJourney.tsx(59,27): error TS18046: 'm' is of type 'unknown'.
+components/client-portal/components/portal/PortalJourney.tsx(62,26): error TS18046: 'm' is of type 'unknown'.
+components/client-portal/components/portal/PortalJourney.tsx(64,40): error TS18046: 'm' is of type 'unknown'.
+components/client-portal/components/portal/PortalJourney.tsx(64,117): error TS18046: 'm' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(122,47): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(125,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(134,23): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(136,27): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(141,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(141,60): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(145,72): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(148,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(149,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(152,27): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(153,22): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(160,41): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(160,62): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalMetrics.tsx(170,90): error TS2339: Property 'summary' does not exist on type '{}'.
+components/client-portal/components/portal/PortalMetrics.tsx(172,39): error TS2339: Property 'forecast' does not exist on type '{}'.
+components/client-portal/components/portal/PortalMetrics.tsx(192,34): error TS18046: 'goal' is of type 'unknown'.
+components/client-portal/components/portal/PortalModals.tsx(123,88): error TS2339: Property 'quote' does not exist on type '{ text: string; }'.
+components/client-portal/components/portal/PortalModals.tsx(128,78): error TS2339: Property 'linkedinPost' does not exist on type '{ text: string; }'.
+components/client-portal/components/ui/ToastManager.tsx(17,18): error TS2571: Object is of type 'unknown'.
+components/client-portal/components/ui/ToastManager.tsx(17,19): error TS2352: Conversion of type 'CustomEvent<any>' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'CustomEvent<any>'.
+components/client-portal/components/ui/ToastManager.tsx(18,15): error TS2571: Object is of type 'unknown'.
+components/client-portal/components/ui/ToastManager.tsx(18,16): error TS2352: Conversion of type 'CustomEvent<any>' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'CustomEvent<any>'.
+components/client-portal/context/ClientContext.tsx(95,61): error TS18046: 'c' is of type 'unknown'.
+components/client-portal/context/ClientContext.tsx(99,38): error TS2339: Property 'id' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(100,40): error TS2339: Property 'name' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(100,62): error TS2339: Property 'fullName' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(107,34): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(115,37): error TS2339: Property 'id' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(116,39): error TS2339: Property 'name' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(116,61): error TS2339: Property 'fullName' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(128,34): error TS2339: Property 'id' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(132,48): error TS2339: Property 'id' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(133,51): error TS2339: Property 'id' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(149,37): error TS2339: Property 'id' does not exist on type '{ pendingActions: ClientAction[]; }'.
+components/client-portal/context/ClientContext.tsx(150,39): error TS2339: Property 'name' does not exist on type '{ pendingActions: ClientAction[]; }'.
+components/client-portal/context/ClientContext.tsx(150,63): error TS2339: Property 'fullName' does not exist on type '{ pendingActions: ClientAction[]; }'.
+components/client-portal/context/ClientContext.tsx(155,23): error TS2322: Type 'unknown' is not assignable to type 'Client'.
+components/client-portal/context/ClientContext.tsx(160,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(161,25): error TS2339: Property 'stack' does not exist on type '{}'.
+components/client-portal/context/ClientContext.tsx(236,23): error TS2339: Property 'message' does not exist on type '{}'.
+components/ClientDetailModal.tsx(234,90): error TS2322: Type 'unknown' is not assignable to type '"Active" | "Onboarding" | "Paused"'.
+components/ClientDetailModal.tsx(265,80): error TS2339: Property 'phone' does not exist on type '{}'.
+components/ClientDetailModal.tsx(367,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "tasks" | "invoices" | "overview">'.
+components/ClientPortalView.tsx(134,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "dashboard" | "support" | "billing">'.
+components/ContactsView.tsx(23,52): error TS2339: Property 'name' does not exist on type '{}'.
+components/ContactsView.tsx(24,53): error TS2339: Property 'phone' does not exist on type '{}'.
+components/ContactsView.tsx(166,135): error TS2339: Property 'phone' does not exist on type '{}'.
+components/ContactsView.tsx(241,125): error TS2339: Property 'phone' does not exist on type '{}'.
+components/CreateInvoiceModal.tsx(106,72): error TS2339: Property 'code' does not exist on type '{}'.
+components/CreateInvoiceModal.tsx(107,56): error TS2339: Property 'paywall' does not exist on type '{}'.
+components/CreateInvoiceModal.tsx(114,57): error TS2339: Property 'error' does not exist on type '{}'.
+components/CreateInvoiceModal.tsx(128,22): error TS18046: 'err' is of type 'unknown'.
+components/CreateInvoiceModal.tsx(156,21): error TS2322: Type 'unknown' is not assignable to type 'PackageType | undefined'.
+components/CreateTaskModal.tsx(56,75): error TS18046: 't' is of type 'unknown'.
+components/CreateTaskModal.tsx(57,62): error TS18046: 't' is of type 'unknown'.
+components/CreateTaskModal.tsx(147,30): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'FormEvent<Element>'.
+components/finance/CommandPalette.tsx(40,50): error TS2339: Property 'content' does not exist on type '{}'.
+components/finance/CommandPalette.tsx(41,60): error TS2339: Property 'sources' does not exist on type '{}'.
+components/finance/CommandPalette.tsx(131,88): error TS2571: Object is of type 'unknown'.
+components/finance/CommandPalette.tsx(132,36): error TS2322: Type 'unknown' is not assignable to type 'ChatSource[]'.
+components/finance/FinanceApp.tsx(304,30): error TS2322: Type 'unknown' is not assignable to type 'Record<string, unknown> | null | undefined'.
+components/finance/FinanceApp.tsx(309,25): error TS2322: Type 'Record<string, unknown> | undefined' is not assignable to type 'User | undefined'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'User': id, name, role, avatar, and 2 more.
+components/finance/integrations/IntegrationsView.tsx(108,39): error TS2339: Property 'connected' does not exist on type '{}'.
+components/finance/integrations/IntegrationsView.tsx(109,39): error TS2339: Property 'lastSynced' does not exist on type '{}'.
+components/finance/integrations/IntegrationsView.tsx(109,70): error TS2339: Property 'lastSynced' does not exist on type '{}'.
+components/finance/integrations/IntegrationsView.tsx(122,30): error TS2339: Property 'message' does not exist on type '{}'.
+components/finance/Sidebar.tsx(36,21): error TS2339: Property 'email' does not exist on type '{ name?: string | undefined; role?: string | undefined; avatar?: string | undefined; id?: string | undefined; }'.
+components/finance/Sidebar.tsx(120,57): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { size?: number | undefined; className?: string | undefined; }, context?: any): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.
+    Type '{ size: number; strokeWidth: number; className: string; }' is not assignable to type 'IntrinsicAttributes & { size?: number | undefined; className?: string | undefined; }'.
+      Property 'strokeWidth' does not exist on type 'IntrinsicAttributes & { size?: number | undefined; className?: string | undefined; }'.
+  Overload 2 of 2, '(props: { size?: number | undefined; className?: string | undefined; }): string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | ... 4 more ... | undefined', gave the following error.
+    Type '{ size: number; strokeWidth: number; className: string; }' is not assignable to type 'IntrinsicAttributes & { size?: number | undefined; className?: string | undefined; }'.
+      Property 'strokeWidth' does not exist on type 'IntrinsicAttributes & { size?: number | undefined; className?: string | undefined; }'.
+components/FinanceView.tsx(81,30): error TS2339: Property 'subscriptionEndDate' does not exist on type '{}'.
+components/FinanceView.tsx(81,65): error TS2339: Property 'subscriptionEndDate' does not exist on type '{}'.
+components/FinanceView.tsx(124,52): error TS2339: Property 'number' does not exist on type '{}'.
+components/FormsView.tsx(220,65): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '"select" | "email" | "text" | "phone" | "textarea"'.
+components/GreenInvoiceConnectModal.tsx(54,22): error TS18046: 'err' is of type 'unknown'.
+components/HandoverDialog.tsx(185,113): error TS2339: Property 'package_type' does not exist on type '{}'.
+components/HandoverDialog.tsx(194,92): error TS18046: 'payload.deal_details' is of type 'unknown'.
+components/HeadquartersView.tsx(8,8): error TS2613: Module '"C:/Projects/Misrad-AI/views/AssetsView"' has no default export. Did you mean to use 'import { AssetsView } from "C:/Projects/Misrad-AI/views/AssetsView"' instead?
+components/HeadquartersView.tsx(36,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "training" | "hr" | "knowledge">'.
+components/help-videos/ModuleHelpVideos.tsx(81,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof WindowEventMap, listener: (this: Window, ev: Event | ErrorEvent | MessageEvent<any> | StorageEvent | UIEvent | ... 26 more ... | PromiseRejectionEvent) => any, options?: boolean | ... 1 more ... | undefined): void', gave the following error.
+    Argument of type '"os:open-help-videos"' is not assignable to parameter of type 'keyof WindowEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+components/help-videos/ModuleHelpVideos.tsx(82,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof WindowEventMap, listener: (this: Window, ev: Event | ErrorEvent | MessageEvent<any> | StorageEvent | UIEvent | ... 26 more ... | PromiseRejectionEvent) => any, options?: boolean | ... 1 more ... | undefined): void', gave the following error.
+    Argument of type '"os:open-help-videos"' is not assignable to parameter of type 'keyof WindowEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+components/help-videos/ModuleHelpVideos.tsx(98,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: "keydown", listener: (this: Document, ev: KeyboardEvent) => any, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'boolean | EventListenerOptions | undefined'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type '(e: KeyboardEvent) => void' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+      Type '(e: KeyboardEvent) => void' is not assignable to type 'EventListener'.
+        Types of parameters 'e' and 'evt' are incompatible.
+          Type 'Event' is missing the following properties from type 'KeyboardEvent': altKey, charCode, code, ctrlKey, and 17 more.
+components/landing/PricingSection.tsx(155,9): error TS2322: Type 'unknown' is not assignable to type 'PackageType'.
+components/Layout.tsx(219,36): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'number | undefined'.
+components/Layout.tsx(228,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+  Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'number | undefined'.
+components/Layout.tsx(283,7): error TS2698: Spread types may only be created from object types.
+components/Layout.tsx(284,46): error TS18046: 'base' is of type 'unknown'.
+components/Layout.tsx(285,46): error TS18046: 'base' is of type 'unknown'.
+components/Layout.tsx(286,53): error TS18046: 'base' is of type 'unknown'.
+components/LeadModal.tsx(124,76): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"call" | "email" | "note" | "task">'.
+components/LeadScoringTool.tsx(43,31): error TS2339: Property 'result' does not exist on type '{}'.
+components/MarketingView.tsx(179,56): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"content" | "campaigns" | "forms" | "partners">'.
+components/me/PersonalSettings.tsx(71,105): error TS2339: Property 'profile' does not exist on type '{}'.
+components/me/PersonalSettings.tsx(72,45): error TS2339: Property 'ui_preferences' does not exist on type '{}'.
+components/me/PersonalSettings.tsx(96,31): error TS2339: Property 'message' does not exist on type '{}'.
+components/me/PersonalSettings.tsx(146,97): error TS2339: Property 'profile' does not exist on type '{}'.
+components/me/PersonalSettings.tsx(147,37): error TS2339: Property 'ui_preferences' does not exist on type '{}'.
+components/MorningBriefing.tsx(138,19): error TS2322: Type 'unknown' is not assignable to type '"task" | "event" | "gap" | "break"'.
+components/MorningBriefing.tsx(617,77): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/MorningBriefing.tsx(618,75): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/MorningBriefing.tsx(619,67): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/NewMeetingModal.tsx(254,93): error TS2322: Type 'unknown' is not assignable to type '"immediate" | "1h_before" | "24h_before"'.
+components/NewMeetingModal.tsx(300,92): error TS2322: Type 'unknown' is not assignable to type '"summary" | "thank_you" | "proposal_link"'.
+components/NewMeetingModal.tsx(313,94): error TS2322: Type 'string' is not assignable to type '"1h_after" | "morning_after"'.
+components/nexus/CreateTaskModal.tsx(157,69): error TS2339: Property 'id' does not exist on type '{}'.
+components/nexus/CreateTaskModal.tsx(158,26): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'User'.
+components/nexus/CreateTaskModal.tsx(328,30): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'FormEvent<Element>'.
+components/nexus/EmployeeInvitationsPanel.tsx(85,22): error TS18046: 'error' is of type 'unknown'.
+components/nexus/EmployeeInvitationsPanel.tsx(156,22): error TS18046: 'error' is of type 'unknown'.
+components/nexus/HeadquartersView.tsx(9,8): error TS2613: Module '"C:/Projects/Misrad-AI/views/AssetsView"' has no default export. Did you mean to use 'import { AssetsView } from "C:/Projects/Misrad-AI/views/AssetsView"' instead?
+components/nexus/HeadquartersView.tsx(37,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "training" | "hr" | "knowledge">'.
+components/nexus/MorningBriefing.tsx(62,17): error TS2322: Type 'unknown' is not assignable to type '"task" | "event" | "gap" | "break"'.
+components/nexus/MorningBriefing.tsx(624,77): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/nexus/MorningBriefing.tsx(625,75): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/nexus/MorningBriefing.tsx(626,67): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+components/nexus/TaskDetailChat.tsx(93,43): error TS2339: Property 'id' does not exist on type '{}'.
+components/nexus/TaskDetailChat.tsx(126,46): error TS18046: 'error' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(39,38): error TS18046: 'c' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(40,78): error TS18046: 'c' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(96,11): error TS18046: 'coords' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(97,11): error TS18046: 'coords' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(99,11): error TS18046: 'coords' is of type 'unknown'.
+components/nexus/TaskDetailModal.tsx(102,24): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<{ top: number; left?: number | undefined; right?: number | undefined; width?: number | undefined; } | null>'.
+components/nexus/team/LeaveRequestModal.tsx(47,49): error TS2339: Property 'metadata' does not exist on type '{}'.
+components/nexus/team/LeaveRequestModal.tsx(138,17): error TS18046: 'requestBody' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(456,50): error TS18046: 'a' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(456,83): error TS18046: 'a' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,74): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,117): error TS18046: 'u' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,126): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,140): error TS18046: 'u' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,149): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,181): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(516,195): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(518,71): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(521,69): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(522,69): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(523,69): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(524,69): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(527,70): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(528,70): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(529,70): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamEventsPanel.tsx(530,70): error TS18046: 'att' is of type 'unknown'.
+components/nexus/team/TeamMemberModal.tsx(219,74): error TS2322: Type 'unknown' is not assignable to type '"hourly" | "monthly"'.
+components/NotificationsPanel.tsx(38,28): error TS18046: 'notification' is of type 'unknown'.
+components/NotificationsPanel.tsx(39,11): error TS18046: 'notification' is of type 'unknown'.
+components/NotificationsPanel.tsx(40,20): error TS18046: 'notification' is of type 'unknown'.
+components/operations/GeoCheckInButton.tsx(51,29): error TS2339: Property 'message' does not exist on type '{}'.
+components/operations/SignaturePad.tsx(87,32): error TS2339: Property 'setPointerCapture' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(57,29): error TS2339: Property 'data' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(57,49): error TS2339: Property 'data' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(57,74): error TS2339: Property 'data' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(60,28): error TS2339: Property 'paywall' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(65,23): error TS2339: Property 'error' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(74,38): error TS2339: Property 'error' does not exist on type '{}'.
+components/operations/VisionIdentifyFillSearch.tsx(107,9): error TS2322: Type 'unknown' is not assignable to type 'PackageType | undefined'.
+components/operations/VisionIdentifyFillSearch.tsx(121,33): error TS2339: Property 'message' does not exist on type '{}'.
+components/operations/WorkOrdersSmartSortClient.tsx(111,22): error TS2339: Property 'message' does not exist on type '{}'.
+components/operations/WorkOrdersSmartSortClient.tsx(111,41): error TS2339: Property 'message' does not exist on type '{}'.
+components/OperationsHub.tsx(29,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"field" | "delivery">'.
+components/PasskeyOnboardingPrompt.tsx(75,56): error TS2339: Property 'passkeys' does not exist on type '{}'.
+components/PasskeyOnboardingPrompt.tsx(119,22): error TS2339: Property 'errors' does not exist on type '{}'.
+components/PasskeyOnboardingPrompt.tsx(119,49): error TS2339: Property 'message' does not exist on type '{}'.
+components/PersonalAreaView.tsx(133,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"settings" | "activity" | "overview">'.
+components/ProposalModal.tsx(323,99): error TS2339: Property 'phone' does not exist on type '{}'.
+components/ProposalModal.tsx(323,190): error TS2339: Property 'name' does not exist on type '{}'.
+components/PWAInstaller.tsx(106,22): error TS2339: Property 'prompt' does not exist on type '{}'.
+components/PWAInstaller.tsx(107,48): error TS2339: Property 'userChoice' does not exist on type '{}'.
+components/saas/AiBrainPanel.tsx(191,23): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/AiBrainPanel.tsx(282,33): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/AiBrainPanel.tsx(297,33): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/FeatureRequestsPanel.tsx(49,22): error TS18046: 'err' is of type 'unknown'.
+components/saas/FeatureRequestsPanel.tsx(59,29): error TS18046: 'body' is of type 'unknown'.
+components/saas/FeatureRequestsPanel.tsx(60,34): error TS18046: 'body' is of type 'unknown'.
+components/saas/FeatureRequestsPanel.tsx(89,22): error TS18046: 'err' is of type 'unknown'.
+components/saas/FeatureRequestsPanel.tsx(122,22): error TS18046: 'err' is of type 'unknown'.
+components/saas/FounderImagePanel.tsx(93,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/GlobalBrandingPanel.tsx(111,18): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/GlobalBrandingPanel.tsx(123,16): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/HelpVideosPanel.tsx(53,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/HelpVideosPanel.tsx(104,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/HelpVideosPanel.tsx(118,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/HelpVideosPanel.tsx(135,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/HelpVideosPanel.tsx(159,46): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<OSModuleKey | "all">'.
+components/saas/LandingPackageVideosPanel.tsx(125,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/LandingPageLogoPanel.tsx(90,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/LandingPageVideosPanel.tsx(118,31): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<LandingPageVideo[]>'.
+components/saas/LandingPageVideosPanel.tsx(163,29): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/LandingPageVideosPanel.tsx(358,96): error TS2322: Type 'string' is not assignable to type '"blue" | "indigo" | "pink" | "purple" | "emerald" | "amber"'.
+components/saas/LandingPageVideosPanel.tsx(544,81): error TS2322: Type 'string' is not assignable to type '"blue" | "indigo" | "pink" | "purple" | "emerald" | "amber" | undefined'.
+components/saas/social/SocialManagementPanel.tsx(21,28): error TS2339: Property 'id' does not exist on type '{}'.
+components/saas/social/SocialManagementPanel.tsx(43,54): error TS18046: 't' is of type 'unknown'.
+components/saas/social/SocialManagementPanel.tsx(79,32): error TS18046: 't' is of type 'unknown'.
+components/saas/social/SocialManagementPanel.tsx(79,52): error TS18046: 't' is of type 'unknown'.
+components/saas/social/SocialManagementPanel.tsx(80,22): error TS18046: 't' is of type 'unknown'.
+components/saas/social/SocialManagementPanel.tsx(80,32): error TS18046: 't' is of type 'unknown'.
+components/saas/social/SocialManagementPanel.tsx(80,42): error TS18046: 't' is of type 'unknown'.
+components/saas/social/tabs/AutomationTab.tsx(45,21): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/AutomationTab.tsx(76,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/IntegrationsTab.tsx(49,15): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<IntegrationStatus[]>'.
+components/saas/social/tabs/IntegrationsTab.tsx(52,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/IntegrationsTab.tsx(84,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/QuotasTab.tsx(45,21): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/QuotasTab.tsx(75,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/TeamTab.tsx(47,15): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<TeamUser[]>'.
+components/saas/social/tabs/TeamTab.tsx(50,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/TeamTab.tsx(77,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/social/tabs/TeamTab.tsx(98,19): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/SystemControlPanel.tsx(66,29): error TS2339: Property 'message' does not exist on type '{}'.
+components/saas/SystemControlPanel.tsx(103,134): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '{ id: string; category?: string | undefined; }'.
+components/settings/IntegrationsTab.tsx(497,61): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/settings/RequestsTab.tsx(46,22): error TS18046: 'err' is of type 'unknown'.
+components/settings/RequestsTab.tsx(93,22): error TS18046: 'err' is of type 'unknown'.
+components/settings/RequestsTab.tsx(320,84): error TS2339: Property 'color' does not exist on type '{}'.
+components/settings/RolesTab.tsx(69,30): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+components/settings/StudioTab.tsx(52,53): error TS2339: Property 'label' does not exist on type '{}'.
+components/settings/SystemTabs.tsx(267,72): error TS18046: 'u' is of type 'unknown'.
+components/settings/SystemTabs.tsx(269,72): error TS18046: 'u' is of type 'unknown'.
+components/settings/SystemTabs.tsx(321,70): error TS18046: 'err' is of type 'unknown'.
+components/settings/SystemTabs.tsx(331,74): error TS18046: 'err' is of type 'unknown'.
+components/settings/SystemTabs.tsx(641,58): error TS2339: Property 'text' does not exist on type '{}'.
+components/settings/TelephonyConfigForm.tsx(89,21): error TS18046: 'error' is of type 'unknown'.
+components/settings/TelephonyConfigForm.tsx(153,22): error TS18046: 'error' is of type 'unknown'.
+components/settings/UpdatesTab.tsx(50,17): error TS2322: Type 'unknown' is not assignable to type '"major" | "minor" | "patch" | undefined'.
+components/settings/UpdatesTab.tsx(60,17): error TS2322: Type 'unknown' is not assignable to type '"major" | "minor" | "patch"'.
+components/shared/AttendanceMiniStatus.tsx(125,37): error TS2339: Property 'endTime' does not exist on type '{}'.
+components/shared/AttendanceMiniStatus.tsx(126,55): error TS2339: Property 'startTime' does not exist on type '{}'.
+components/shared/AttendanceMiniStatus.tsx(126,95): error TS2339: Property 'startTime' does not exist on type '{}'.
+components/shared/AttendanceMiniStatus.tsx(211,29): error TS2339: Property 'message' does not exist on type '{}'.
+components/shared/CallButton.tsx(117,17): error TS18046: 'error' is of type 'unknown'.
+components/shared/DynamicIcon.tsx(19,24): error TS2571: Object is of type 'unknown'.
+components/shared/DynamicIcon.tsx(21,11): error TS2604: JSX element type 'Icon' does not have any construct or call signatures.
+components/shared/DynamicIcon.tsx(21,11): error TS2786: 'Icon' cannot be used as a JSX component.
+  Its type '{}' is not a valid JSX element type.
+components/shared/OSAppSwitcher.tsx(19,36): error TS2339: Property 'standalone' does not exist on type '{}'.
+components/shared/OSAppSwitcher.tsx(20,34): error TS2339: Property 'Capacitor' does not exist on type '{}'.
+components/shared/OSAppSwitcher.tsx(159,16): error TS18046: 'w' is of type 'unknown'.
+components/shared/OSAppSwitcher.tsx(160,18): error TS18046: 'w' is of type 'unknown'.
+components/shared/OSAppSwitcher.tsx(164,11): error TS18046: 'w' is of type 'unknown'.
+components/shared/OSNavigationButtons.tsx(31,38): error TS2339: Property 'standalone' does not exist on type '{}'.
+components/shared/OSNavigationButtons.tsx(32,36): error TS2339: Property 'Capacitor' does not exist on type '{}'.
+components/shared/RoomSwitcher.tsx(44,44): error TS2339: Property 'data' does not exist on type '{}'.
+components/shared/RoomSwitcher.tsx(45,35): error TS2339: Property 'rooms' does not exist on type '{}'.
+components/shared/RoomSwitcher.tsx(46,42): error TS2698: Spread types may only be created from object types.
+components/Sidebar.tsx(94,42): error TS2604: JSX element type 'Icon' does not have any construct or call signatures.
+components/Sidebar.tsx(94,42): error TS2786: 'Icon' cannot be used as a JSX component.
+  Its type 'unknown' is not a valid JSX element type.
+components/social/admin-panel/tabs/FlagsTab.tsx(42,26): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<Partial<Record<OSModuleKey, string>>>'.
+components/social/admin-panel/tabs/FlagsTab.tsx(110,40): error TS2339: Property 'enable_payment_manual' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(132,40): error TS2339: Property 'enable_payment_credit_card' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(154,40): error TS2339: Property 'fullOfficeRequiresFinance' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(176,40): error TS2339: Property 'maintenanceMode' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(198,40): error TS2339: Property 'aiEnabled' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(216,36): error TS2339: Property 'bannerMessage' does not exist on type '{}'.
+components/social/admin-panel/tabs/FlagsTab.tsx(218,55): error TS2698: Spread types may only be created from object types.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(28,29): error TS2339: Property 'buttonClicks' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(42,29): error TS2339: Property 'aiSatisfaction' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(45,81): error TS2339: Property 'aiSatisfaction' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(46,81): error TS2339: Property 'aiSatisfaction' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(57,26): error TS2339: Property 'feedback' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(58,15): error TS18046: 'analytics' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(60,69): error TS18046: 'fb' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(60,83): error TS18046: 'fb' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(62,31): error TS18046: 'fb' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(82,29): error TS2339: Property 'churnedUsers' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(87,46): error TS2339: Property 'churnedUsers' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(87,80): error TS18046: 'u' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(101,28): error TS2339: Property 'churnedUsers' does not exist on type '{}'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(103,69): error TS18046: 'user' is of type 'unknown'.
+components/social/admin-panel/tabs/IntelligenceTab.tsx(104,62): error TS18046: 'user' is of type 'unknown'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(31,86): error TS2339: Property 'systemVersion' does not exist on type '{}'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(35,86): error TS2339: Property 'databaseSize' does not exist on type '{}'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(40,37): error TS2339: Property 'lastBackup' does not exist on type '{}'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(41,48): error TS2339: Property 'lastBackup' does not exist on type '{}'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(48,37): error TS2339: Property 'uptime' does not exist on type '{}'.
+components/social/admin-panel/tabs/MaintenanceTab.tsx(49,53): error TS2339: Property 'uptime' does not exist on type '{}'.
+components/social/admin-panel/tabs/NavigationTab.tsx(28,57): error TS2345: Argument of type 'SocialNavigationItem[]' is not assignable to parameter of type 'NavigationItem[]'.
+  Type 'SocialNavigationItem' is not assignable to type 'NavigationItem'.
+    Types of property 'requiresRole' are incompatible.
+      Type 'string[] | null | undefined' is not assignable to type 'string[] | undefined'.
+        Type 'null' is not assignable to type 'string[] | undefined'.
+components/social/admin-panel/tabs/NavigationTab.tsx(166,27): error TS2322: Type 'SocialNavigationItem | { id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: true; requiresClient: boolean; }' is not assignable to type 'SocialNavigationItem'.
+  Type '{ id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: true; requiresClient: boolean; }' is not assignable to type 'SocialNavigationItem'.
+    Types of property 'section' are incompatible.
+      Type 'string' is not assignable to type '"client" | "settings" | "global" | "admin" | "management"'.
+components/social/admin-panel/tabs/NavigationTab.tsx(172,29): error TS2322: Type 'string' is not assignable to type '"client" | "settings" | "global" | "admin" | "management"'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(69,72): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(69,87): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(70,69): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(70,86): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(72,37): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(76,25): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(77,25): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(78,25): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/NotificationsTab.tsx(81,26): error TS18046: 'notif' is of type 'unknown'.
+components/social/admin-panel/tabs/OverviewTab.tsx(20,46): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+components/social/admin-panel/tabs/OverviewTab.tsx(27,56): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+components/social/admin-panel/tabs/OverviewTab.tsx(34,50): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+components/social/admin-panel/tabs/OverviewTab.tsx(48,163): error TS2339: Property 'color' does not exist on type '{}'.
+components/social/admin-panel/tabs/PulseTab.tsx(50,46): error TS2365: Operator '>' cannot be applied to types '{}' and 'number'.
+components/social/admin-panel/tabs/PulseTab.tsx(64,163): error TS2339: Property 'color' does not exist on type '{}'.
+components/social/admin-panel/tabs/RecycleTab.tsx(39,21): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+components/social/admin-panel/tabs/RecycleTab.tsx(48,62): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/RecycleTab.tsx(51,59): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/RecycleTab.tsx(54,59): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/RecycleTab.tsx(57,69): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+components/social/admin-panel/tabs/RecycleTab.tsx(63,67): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/social/admin-panel/tabs/RecycleTab.tsx(80,65): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/social/admin-panel/tabs/SystemTab.tsx(42,61): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/SystemTab.tsx(45,80): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/SystemTab.tsx(46,66): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/SystemTab.tsx(76,21): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(77,19): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(78,19): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(79,19): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(79,57): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(80,20): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(80,69): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(81,22): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/SystemTab.tsx(81,68): error TS18046: 'log' is of type 'unknown'.
+components/social/admin-panel/tabs/UsersTab.tsx(44,46): error TS2345: Argument of type 'string' is not assignable to parameter of type '"active" | "all" | "churned" | "banned"'.
+components/social/admin-panel/tabs/UsersTab.tsx(83,29): error TS2339: Property 'toLowerCase' does not exist on type '{}'.
+components/social/admin-panel/tabs/UsersTab.tsx(84,30): error TS2339: Property 'toLowerCase' does not exist on type '{}'.
+components/social/admin-panel/tabs/UsersTab.tsx(88,77): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number'.
+components/social/admin-panel/tabs/UsersTab.tsx(92,21): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+components/social/admin-panel/tabs/UsersTab.tsx(94,62): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/UsersTab.tsx(97,69): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+components/social/admin-panel/tabs/UsersTab.tsx(100,69): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+components/social/admin-panel/tabs/UsersTab.tsx(111,53): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number'.
+components/social/admin-panel/tabs/UsersTab.tsx(131,58): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/social/admin-panel/tabs/UsersTab.tsx(149,65): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/social/admin-panel/tabs/UsersTab.tsx(165,51): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/social/admin-panel/useAdminPanelController.ts(202,30): error TS2339: Property 'subscriptionOrders' does not exist on type '{}'.
+components/social/admin-panel/useAdminPanelController.ts(203,45): error TS2339: Property 'status' does not exist on type '{}'.
+components/social/admin-panel/useAdminPanelController.ts(352,56): error TS2339: Property 'id' does not exist on type '{}'.
+components/social/admin-panel/useAdminPanelController.ts(352,60): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '{ name?: string | undefined; email?: string | undefined; role?: UserRole | undefined; plan?: "free" | "pro" | undefined; avatar?: string | undefined; }'.
+components/social/admin-panel/useAdminPanelController.ts(364,12): error TS18046: 'c' is of type 'unknown'.
+components/social/admin-panel/useAdminPanelController.ts(367,12): error TS18046: 'c' is of type 'unknown'.
+components/social/Campaigns.tsx(74,13): error TS2739: Type 'Campaign' is missing the following properties from type 'Campaign': platform, startDate, content
+components/social/Campaigns.tsx(75,13): error TS2322: Type 'unknown' is not assignable to type 'Client[]'.
+components/social/Campaigns.tsx(76,13): error TS2322: Type '(updatedCampaign: Campaign) => Promise<void>' is not assignable to type '(updatedCampaign: unknown) => void'.
+  Types of parameters 'updatedCampaign' and 'updatedCampaign' are incompatible.
+    Type 'unknown' is not assignable to type 'Campaign'.
+components/social/Campaigns.tsx(102,74): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'MouseEvent<Element, MouseEvent>'.
+components/social/ClientOnboardingPortal.tsx(103,23): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/ClientOnboardingPortal.tsx(153,79): error TS2345: Argument of type '{ companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { formal: number; funny: number; length: number; }; vocabulary: { ...; }; colors: { primary: string; secondary: string; }; strategy?: StrategicCharacterization; }; onboardingS...' is not assignable to parameter of type 'Partial<Client>'.
+  Types of property 'status' are incompatible.
+    Type 'unknown' is not assignable to type 'ClientStatus | undefined'.
+components/social/ClientOnboardingPortal.tsx(162,18): error TS2345: Argument of type '(prev: Client[]) => (Client | { companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { ...; }; vocabulary: { ...; }; colors: { ...; }; strategy?: StrategicCharacterization | undefined; }; ... 22 more ...; organizationId: string; }...' is not assignable to parameter of type 'SetStateAction<Client[]>'.
+  Type '(prev: Client[]) => (Client | { companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { ...; }; vocabulary: { ...; }; colors: { ...; }; strategy?: StrategicCharacterization | undefined; }; ... 22 more ...; organizationId: string; }...' is not assignable to type '(prevState: Client[]) => Client[]'.
+    Type '(Client | { companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { formal: number; funny: number; length: number; }; vocabulary: { ...; }; colors: { ...; }; strategy?: StrategicCharacterization | undefined; }; ... 22 more ...; org...' is not assignable to type 'Client[]'.
+      Type 'Client | { companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { formal: number; funny: number; length: number; }; vocabulary: { ...; }; colors: { ...; }; strategy?: StrategicCharacterization | undefined; }; ... 22 more ...; orga...' is not assignable to type 'Client'.
+        Type '{ companyName: string; avatar: string; businessId: string | undefined; activePlatforms: SocialPlatform[]; dna: { brandSummary: string; voice: { formal: number; funny: number; length: number; }; vocabulary: { ...; }; colors: { primary: string; secondary: string; }; strategy?: StrategicCharacterization; }; ... 22 more...' is not assignable to type 'Client'.
+          Types of property 'status' are incompatible.
+            Type 'unknown' is not assignable to type 'ClientStatus'.
+components/social/ClientOnboardingPortal.tsx(176,44): error TS18046: 'error' is of type 'unknown'.
+components/social/ClientPortal.tsx(76,21): error TS2339: Property 'input' does not exist on type 'UseChatHelpers<UIMessage<unknown, UIDataTypes, UITools>>'.
+components/social/ClientPortal.tsx(76,28): error TS2339: Property 'handleInputChange' does not exist on type 'UseChatHelpers<UIMessage<unknown, UIDataTypes, UITools>>'.
+components/social/ClientPortal.tsx(76,47): error TS2339: Property 'handleSubmit' does not exist on type 'UseChatHelpers<UIMessage<unknown, UIDataTypes, UITools>>'.
+components/social/ClientPortal.tsx(76,61): error TS2339: Property 'isLoading' does not exist on type 'UseChatHelpers<UIMessage<unknown, UIDataTypes, UITools>>'.
+components/social/ClientPortal.tsx(76,83): error TS2345: Argument of type '{ api: string; headers: { 'x-org-id': string; } | undefined; body: { clientContext: { companyName: string; name: string; brandVoice: string; dna: ClientDNA; } | undefined; }; initialMessages: { ...; }[]; }' is not assignable to parameter of type 'UseChatOptions<UIMessage<unknown, UIDataTypes, UITools>> | undefined'.
+components/social/ClientPortal.tsx(302,50): error TS2552: Cannot find name 'ClientRequest'. Did you mean 'ClientRect'?
+components/social/ClientPortal.tsx(365,143): error TS2322: Type 'Dispatch<SetStateAction<"tasks" | "calendar" | "approvals" | "upload" | "billing" | "analytics" | "store">>' is not assignable to type '(tab: unknown) => void'.
+  Types of parameters 'value' and 'tab' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<"tasks" | "calendar" | "approvals" | "upload" | "billing" | "analytics" | "store">'.
+components/social/ClientWorkspace.tsx(80,5): error TS2322: Type 'Dispatch<SetStateAction<AIOpportunity | null>>' is not assignable to type '(draft: unknown) => void'.
+  Types of parameters 'value' and 'draft' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<AIOpportunity | null>'.
+components/social/ClientWorkspace.tsx(92,182): error TS2322: Type 'Dispatch<SetStateAction<"content" | "messages" | "dna" | "requests" | "overview" | "bank" | "vault">>' is not assignable to type '(tab: unknown) => void'.
+  Types of parameters 'value' and 'tab' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<"content" | "messages" | "dna" | "requests" | "overview" | "bank" | "vault">'.
+components/social/ClientWorkspace.tsx(106,182): error TS2322: Type 'Dispatch<SetStateAction<"content" | "messages" | "dna" | "requests" | "overview" | "bank" | "vault">>' is not assignable to type '(tab: unknown) => void'.
+  Types of parameters 'value' and 'tab' are incompatible.
+    Type 'unknown' is not assignable to type 'SetStateAction<"content" | "messages" | "dna" | "requests" | "overview" | "bank" | "vault">'.
+components/social/Dashboard.tsx(58,75): error TS18046: 'p' is of type 'unknown'.
+components/social/Dashboard.tsx(68,13): error TS2339: Property 'scheduledAt' does not exist on type '{}'.
+components/social/Dashboard.tsx(69,26): error TS2339: Property 'scheduledAt' does not exist on type '{}'.
+components/social/Header.tsx(129,18): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/Header.tsx(129,36): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/Header.tsx(129,82): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/landing/useLandingContent.ts(41,13): error TS2698: Spread types may only be created from object types.
+components/social/landing/useLandingContent.ts(42,28): error TS18046: 'f' is of type 'unknown'.
+components/social/modals/AddClientModal.tsx(143,62): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Partial<Client>'.
+components/social/modals/AddClientModal.tsx(227,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/modals/AddClientModal.tsx(228,23): error TS2339: Property 'stack' does not exist on type '{}'.
+components/social/modals/AddClientModal.tsx(229,22): error TS2339: Property 'name' does not exist on type '{}'.
+components/social/modals/AddClientModal.tsx(239,31): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/modals/AddClientModal.tsx(239,62): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/modals/AddUserModal.tsx(109,11): error TS18046: 'result' is of type 'unknown'.
+components/social/modals/AddUserModal.tsx(117,24): error TS18046: 'result' is of type 'unknown'.
+components/social/modals/AddUserModal.tsx(145,22): error TS18046: 'err' is of type 'unknown'.
+components/social/modals/EditCampaignModal.tsx(32,29): error TS2339: Property 'objective' does not exist on type 'Campaign'.
+components/social/modals/EditCampaignModal.tsx(33,17): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'SetStateAction<number>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<number>'.
+components/social/modals/InviteClientModal.tsx(157,24): error TS18046: 'error' is of type 'unknown'.
+components/social/modals/InviteClientModal.tsx(157,55): error TS18046: 'error' is of type 'unknown'.
+components/social/Navigation.tsx(74,9): error TS2322: Type '({ id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: boolean; requiresClient?: undefined; } | { id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: boolean; requiresClient: boolean; })[]' is not assignable to type 'SocialNavigationItem[]'.
+  Type '{ id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: boolean; requiresClient?: undefined; } | { id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: boolean; requiresClient: boolean; }' is not assignable to type 'SocialNavigationItem'.
+    Type '{ id: string; label: string; icon: string; view: string; section: string; order: number; isVisible: boolean; requiresClient?: undefined; }' is not assignable to type 'SocialNavigationItem'.
+      Types of property 'section' are incompatible.
+        Type 'string' is not assignable to type '"client" | "settings" | "global" | "admin" | "management"'.
+components/social/NotificationCenter.tsx(58,18): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/NotificationCenter.tsx(58,36): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/NotificationCenter.tsx(58,82): error TS2339: Property 'message' does not exist on type '{}'.
+components/social/portal/AnalyticsTab.tsx(23,57): error TS2339: Property 'baselineMetrics' does not exist on type '{}'.
+components/social/portal/AnalyticsTab.tsx(24,53): error TS2339: Property 'followers' does not exist on type '{}'.
+components/social/portal/AnalyticsTab.tsx(32,53): error TS2339: Property 'followers' does not exist on type '{}'.
+components/social/portal/AnalyticsTab.tsx(33,52): error TS2339: Property 'avgReach' does not exist on type '{}'.
+components/social/portal/AnalyticsTab.tsx(34,54): error TS2339: Property 'engagement' does not exist on type '{}'.
+components/social/portal/UploadTab.tsx(138,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"" | "post" | "reel" | "story">'.
+components/social/Settings.tsx(104,55): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SettingsSubView'.
+components/social/settings/IntegrationsTab.tsx(93,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(153,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(161,9): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(162,9): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(174,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(186,72): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(197,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(216,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(241,16): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(362,26): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(363,51): error TS2698: Spread types may only be created from object types.
+components/social/settings/IntegrationsTab.tsx(375,34): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(377,42): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(379,44): error TS2698: Spread types may only be created from object types.
+components/social/settings/IntegrationsTab.tsx(381,44): error TS2698: Spread types may only be created from object types.
+components/social/settings/IntegrationsTab.tsx(417,26): error TS18046: 'modalData' is of type 'unknown'.
+components/social/settings/IntegrationsTab.tsx(418,51): error TS2698: Spread types may only be created from object types.
+components/social/settings/SocialConnectionsTab.tsx(28,45): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SettingsSubView'.
+components/social/settings/SocialConnectionsTab.tsx(48,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SettingsSubView'.
+components/social/settings/TeamSettingsTab.tsx(70,34): error TS2339: Property 'code' does not exist on type '{}'.
+components/social/settings/TeamSettingsTab.tsx(71,43): error TS2339: Property 'paywall' does not exist on type '{}'.
+components/social/settings/TeamSettingsTab.tsx(83,24): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/TeamSettingsTab.tsx(83,55): error TS18046: 'error' is of type 'unknown'.
+components/social/settings/TeamSettingsTab.tsx(247,88): error TS2322: Type 'string' is not assignable to type 'TeamMemberRole | undefined'.
+components/social/SocialShellClient.tsx(53,29): error TS2322: Type 'unknown' is not assignable to type 'User | undefined'.
+components/social/SocialShellClient.tsx(53,69): error TS2322: Type 'unknown' is not assignable to type 'Partial<OrganizationProfile> | undefined'.
+components/social/SocialShellClient.tsx(61,25): error TS2322: Type 'unknown' is not assignable to type 'Partial<OrganizationProfile> | null | undefined'.
+components/social/SocialShellClient.tsx(62,25): error TS2322: Type 'unknown' is not assignable to type '{ name?: string | null | undefined; role?: string | null | undefined; avatarUrl?: string | null | undefined; } | null | undefined'.
+components/social/TheMachine.tsx(64,58): error TS2339: Property 'id' does not exist on type '{}'.
+components/social/TheMachine.tsx(85,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof WindowEventMap, listener: (this: Window, ev: Event | ErrorEvent | MessageEvent<any> | StorageEvent | UIEvent | ... 26 more ... | PromiseRejectionEvent) => any, options?: boolean | ... 1 more ... | undefined): void', gave the following error.
+    Argument of type '"social:machine:new"' is not assignable to parameter of type 'keyof WindowEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+components/social/TheMachine.tsx(87,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(type: keyof WindowEventMap, listener: (this: Window, ev: Event | ErrorEvent | MessageEvent<any> | StorageEvent | UIEvent | ... 26 more ... | PromiseRejectionEvent) => any, options?: boolean | ... 1 more ... | undefined): void', gave the following error.
+    Argument of type '"social:machine:new"' is not assignable to parameter of type 'keyof WindowEventMap'.
+  Overload 2 of 2, '(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions | undefined): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'EventListenerOrEventListenerObject'.
+components/social/TheMachine.tsx(197,16): error TS2345: Argument of type '(prev: SocialPost[]) => (SocialPost | { content: string; platforms: SocialPlatform[]; mediaUrl: string | undefined; status: unknown; publishedAt: string | undefined; ... 6 more ...; internalComments?: TeamComment[] | undefined; })[]' is not assignable to parameter of type 'SetStateAction<SocialPost[]>'.
+  Type '(prev: SocialPost[]) => (SocialPost | { content: string; platforms: SocialPlatform[]; mediaUrl: string | undefined; status: unknown; publishedAt: string | undefined; ... 6 more ...; internalComments?: TeamComment[] | undefined; })[]' is not assignable to type '(prevState: SocialPost[]) => SocialPost[]'.
+    Type '(SocialPost | { content: string; platforms: SocialPlatform[]; mediaUrl: string | undefined; status: unknown; publishedAt: string | undefined; id: string; clientId: string; ... 4 more ...; internalComments?: TeamComment[] | undefined; })[]' is not assignable to type 'SocialPost[]'.
+      Type 'SocialPost | { content: string; platforms: SocialPlatform[]; mediaUrl: string | undefined; status: unknown; publishedAt: string | undefined; id: string; clientId: string; ... 4 more ...; internalComments?: TeamComment[] | undefined; }' is not assignable to type 'SocialPost'.
+        Type '{ content: string; platforms: SocialPlatform[]; mediaUrl: string | undefined; status: unknown; publishedAt: string | undefined; id: string; clientId: string; mediaRef?: string; scheduledAt: string; isLate?: boolean; createdBy?: string; internalComments?: TeamComment[]; }' is not assignable to type 'SocialPost'.
+          Types of property 'status' are incompatible.
+            Type 'unknown' is not assignable to type 'PostStatus'.
+components/social/Vault.tsx(33,20): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<AIOpportunity | null>'.
+components/social/Vault.tsx(77,43): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "dna" | "ideas" | "connections">'.
+components/social/workspace/DNATab.tsx(88,50): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '"length" | "formal" | "funny"'.
+components/social/workspace/useClientWorkspaceHandlers.ts(87,54): error TS18046: 'i' is of type 'unknown'.
+components/social/workspace/useClientWorkspaceHandlers.ts(187,28): error TS2345: Argument of type '(prev: ManagerRequest[]) => unknown[]' is not assignable to parameter of type 'SetStateAction<ManagerRequest[]>'.
+  Type '(prev: ManagerRequest[]) => unknown[]' is not assignable to type '(prevState: ManagerRequest[]) => ManagerRequest[]'.
+    Type 'unknown[]' is not assignable to type 'ManagerRequest[]'.
+      Type 'unknown' is not assignable to type 'ManagerRequest'.
+components/SupportModal.tsx(19,83): error TS2698: Spread types may only be created from object types.
+components/SupportModal.tsx(20,83): error TS2698: Spread types may only be created from object types.
+components/SupportModal.tsx(75,73): error TS2339: Property 'ticket' does not exist on type '{}'.
+components/SupportModal.tsx(170,76): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+components/system/AIAnalyticsView.tsx(28,13): error TS2339: Property 'cx' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,17): error TS2339: Property 'cy' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,21): error TS2339: Property 'innerRadius' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,34): error TS2339: Property 'outerRadius' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,47): error TS2339: Property 'startAngle' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,59): error TS2339: Property 'endAngle' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,69): error TS2339: Property 'fill' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,75): error TS2339: Property 'payload' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(28,84): error TS2339: Property 'percent' does not exist on type 'unknown'.
+components/system/AIAnalyticsView.tsx(355,42): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"month" | "year" | "week" | "quarter">'.
+components/system/AIAnalyticsView.tsx(478,23): error TS2698: Spread types may only be created from object types.
+components/system/AutomationsView.tsx(529,98): error TS2339: Property 'accent' does not exist on type '{}'.
+components/system/AutomationsView.tsx(660,71): error TS2322: Type 'unknown' is not assignable to type '"high" | "low" | "medium" | "critical" | undefined'.
+components/system/CallAnalyzerView.tsx(76,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/system/CallAnalyzerView.tsx(106,63): error TS2339: Property 'title' does not exist on type 'object'.
+components/system/CallAnalyzerView.tsx(120,17): error TS2322: Type 'unknown[]' is not assignable to type '(string | CallAnalysisTask)[]'.
+  Type 'unknown' is not assignable to type 'string | CallAnalysisTask'.
+components/system/CallAnalyzerView.tsx(176,25): error TS2339: Property 'message' does not exist on type '{}'.
+components/system/ClientPortalView.tsx(134,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "dashboard" | "support" | "billing">'.
+components/system/CommandPalette.tsx(42,50): error TS2339: Property 'content' does not exist on type '{}'.
+components/system/CommandPalette.tsx(43,60): error TS2339: Property 'sources' does not exist on type '{}'.
+components/system/CommandPalette.tsx(178,100): error TS2571: Object is of type 'unknown'.
+components/system/CommandPalette.tsx(179,48): error TS2322: Type 'unknown' is not assignable to type 'ChatSource[]'.
+components/system/CommandPalette.tsx(244,46): error TS2604: JSX element type 'Icon' does not have any construct or call signatures.
+components/system/CommandPalette.tsx(244,46): error TS2786: 'Icon' cannot be used as a JSX component.
+  Its type 'unknown' is not a valid JSX element type.
+components/system/contexts/AuthContext.tsx(35,34): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '(msg: string, type?: ToastKind | undefined) => void'.
+components/system/contexts/AuthContext.tsx(46,42): error TS2339: Property 'profileId' does not exist on type '{}'.
+components/system/contexts/AuthContext.tsx(46,99): error TS2339: Property 'profileId' does not exist on type '{}'.
+components/system/contexts/AuthContext.tsx(47,53): error TS2339: Property 'profileId' does not exist on type '{}'.
+components/system/FinanceView.tsx(74,30): error TS2339: Property 'subscriptionEndDate' does not exist on type '{}'.
+components/system/FinanceView.tsx(74,65): error TS2339: Property 'subscriptionEndDate' does not exist on type '{}'.
+components/system/FormsView.tsx(222,65): error TS2345: Argument of type 'unknown' is not assignable to parameter of type '"select" | "email" | "text" | "phone" | "textarea"'.
+components/system/HandoverDialog.tsx(186,113): error TS2339: Property 'package_type' does not exist on type '{}'.
+components/system/HandoverDialog.tsx(195,115): error TS2339: Property 'value' does not exist on type '{}'.
+components/system/LeadBusinessSide.tsx(19,83): error TS2698: Spread types may only be created from object types.
+components/system/LeadBusinessSide.tsx(20,91): error TS2698: Spread types may only be created from object types.
+components/system/LeadBusinessSide.tsx(171,50): error TS2322: Type '{ lead: Lead; onClose: () => void; onSend: (p: unknown) => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'lead' does not exist on type 'IntrinsicAttributes'.
+components/system/LeadBusinessSide.tsx(172,49): error TS2322: Type '{ lead: Lead; onClose: () => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'lead' does not exist on type 'IntrinsicAttributes'.
+components/system/LeadModal.tsx(196,13): error TS2322: Type '{ id: string; type: "system" | "call" | "email" | "meeting" | "note" | "support" | "feedback" | "financial" | "whatsapp" | "sms"; content: string; timestamp: Date; direction: "inbound" | "outbound" | undefined; metadata: {} | null; }[]' is not assignable to type 'Activity[]'.
+  Type '{ id: string; type: "system" | "call" | "email" | "meeting" | "note" | "support" | "feedback" | "financial" | "whatsapp" | "sms"; content: string; timestamp: Date; direction: "inbound" | "outbound" | undefined; metadata: {} | null; }' is not assignable to type 'Activity'.
+    Types of property 'metadata' are incompatible.
+      Type '{} | null' is not assignable to type 'Record<string, unknown> | undefined'.
+        Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.
+components/system/LeadModal.tsx(1177,46): error TS2345: Argument of type '(s: { id: string; label: string; }) => JSX.Element' is not assignable to parameter of type '(value: { id: unknown; label: string; color: string; accent: string; }, index: number, array: { id: unknown; label: string; color: string; accent: string; }[]) => Element'.
+  Types of parameters 's' and 'value' are incompatible.
+    Type '{ id: unknown; label: string; color: string; accent: string; }' is not assignable to type '{ id: string; label: string; }'.
+      Types of property 'id' are incompatible.
+        Type 'unknown' is not assignable to type 'string'.
+components/system/MarketingView.tsx(201,56): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"content" | "campaigns" | "forms" | "partners">'.
+components/system/NativeAppUpdatePrompt.tsx(25,15): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(25,45): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(25,96): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(25,119): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(44,15): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(44,45): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(44,96): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(44,119): error TS7053: Element implicitly has an 'any' type because expression of type '"android" | "windows"' can't be used to index type '{}'.
+  Property 'android' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(86,32): error TS2339: Property 'App' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(108,34): error TS2339: Property 'Browser' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(136,33): error TS2339: Property 'success' does not exist on type '{}'.
+components/system/NativeAppUpdatePrompt.tsx(139,31): error TS2339: Property 'manifest' does not exist on type '{}'.
+components/system/NewMeetingModal.tsx(379,93): error TS2322: Type 'unknown' is not assignable to type '"immediate" | "1h_before" | "24h_before"'.
+components/system/NewMeetingModal.tsx(425,92): error TS2322: Type 'unknown' is not assignable to type '"summary" | "thank_you" | "proposal_link"'.
+components/system/NewMeetingModal.tsx(438,94): error TS2322: Type 'string' is not assignable to type '"1h_after" | "morning_after"'.
+components/system/OperationsHub.tsx(29,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"field" | "delivery">'.
+components/system/PersonalAreaView.tsx(135,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"settings" | "activity" | "overview">'.
+components/system/ProposalModal.tsx(325,99): error TS2339: Property 'phone' does not exist on type '{}'.
+components/system/ProposalModal.tsx(325,190): error TS2339: Property 'name' does not exist on type '{}'.
+components/system/ReportsView.tsx(96,58): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"month" | "year" | "quarter">'.
+components/system/Sidebar.tsx(100,9): error TS2322: Type '{ path: string; label: string; icon: unknown; }[]' is not assignable to type 'SharedNavItem[]'.
+  Type '{ path: string; label: string; icon: unknown; }' is not assignable to type 'SharedNavItem'.
+    Types of property 'icon' are incompatible.
+      Type 'unknown' is not assignable to type 'ComponentType<{ size?: number | undefined; strokeWidth?: number | undefined; className?: string | undefined; }>'.
+components/system/system.os/components/CallAnalyzerView.tsx(165,21): error TS2820: Type '"medium"' is not assignable to type 'Priority'. Did you mean 'Priority.MEDIUM'?
+components/system/system.os/components/ClientPortalView.tsx(133,57): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"assets" | "dashboard" | "support" | "billing">'.
+components/system/system.os/components/CommandPalette.tsx(67,38): error TS2339: Property 'result' does not exist on type '{}'.
+components/system/system.os/components/CommunicationView.tsx(34,7): error TS2322: Type 'unknown' is not assignable to type '((leadId: string, updates: Partial<CommunicationLead>) => void) | undefined'.
+components/system/system.os/components/CommunicationView.tsx(39,7): error TS2322: Type 'unknown' is not assignable to type 'UseOnClickOutsideHook'.
+components/system/system.os/components/CommunicationView.tsx(40,7): error TS2322: Type 'unknown' is not assignable to type 'CallButtonComponent'.
+components/system/system.os/components/CommunicationView.tsx(41,7): error TS2322: Type 'unknown' is not assignable to type 'QuickAsset[]'.
+components/system/system.os/components/CommunicationView.tsx(42,7): error TS2322: Type 'unknown' is not assignable to type 'Stage[]'.
+components/system/utils/mapDtoToLead.ts(44,9): error TS2322: Type '{ id: string; type: "system" | "call" | "email" | "meeting" | "note" | "support" | "feedback" | "financial" | "whatsapp" | "sms"; content: string; timestamp: Date; direction: "inbound" | "outbound" | undefined; metadata: {} | null; }[]' is not assignable to type 'Activity[]'.
+  Type '{ id: string; type: "system" | "call" | "email" | "meeting" | "note" | "support" | "feedback" | "financial" | "whatsapp" | "sms"; content: string; timestamp: Date; direction: "inbound" | "outbound" | undefined; metadata: {} | null; }' is not assignable to type 'Activity'.
+    Types of property 'metadata' are incompatible.
+      Type '{} | null' is not assignable to type 'Record<string, unknown> | undefined'.
+        Type 'null' is not assignable to type 'Record<string, unknown> | undefined'.
+components/TaskCard.tsx(54,36): error TS18046: 'c' is of type 'unknown'.
+components/TaskCard.tsx(55,80): error TS18046: 'c' is of type 'unknown'.
+components/TaskDetailChat.tsx(163,63): error TS2339: Property 'transcriptText' does not exist on type '{}'.
+components/VoiceRecorder.tsx(182,49): error TS2345: Argument of type 'Uint8Array<ArrayBufferLike>' is not assignable to parameter of type 'Uint8Array<ArrayBuffer>'.
+  Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+    Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+contexts/SocialUIContext.tsx(94,7): error TS2322: Type 'unknown' is not assignable to type 'Toast[]'.
+contexts/SocialUIContext.tsx(95,7): error TS2322: Type 'unknown' is not assignable to type 'Dispatch<SetStateAction<Toast[]>>'.
+hooks/useAuth.ts(593,39): error TS2339: Property 'message' does not exist on type '{}'.
+hooks/useAuth.ts(619,39): error TS2339: Property 'message' does not exist on type '{}'.
+hooks/useCRM.ts(97,25): error TS2339: Property 'message' does not exist on type '{}'.
+lib/services/finance-service.ts(87,11): error TS2304: Cannot find name 'isMissingColumnError'.
+tests/unit/api-routes-guards.spec.ts(99,7): error TS2322: Type 'Dirent<string>[]' is not assignable to type 'Dirent<NonSharedBuffer>[]'.
+  Type 'Dirent<string>' is not assignable to type 'Dirent<NonSharedBuffer>'.
+    Type 'string' is not assignable to type 'NonSharedBuffer'.
+tests/unit/api-routes-guards.spec.ts(107,43): error TS2345: Argument of type 'NonSharedBuffer' is not assignable to parameter of type 'string'.
+tests/unit/server-actions-guards.spec.ts(77,7): error TS2322: Type 'Dirent<string>[]' is not assignable to type 'Dirent<NonSharedBuffer>[]'.
+  Type 'Dirent<string>' is not assignable to type 'Dirent<NonSharedBuffer>'.
+    Type 'string' is not assignable to type 'NonSharedBuffer'.
+tests/unit/server-actions-guards.spec.ts(82,43): error TS2339: Property 'endsWith' does not exist on type 'NonSharedBuffer'.
+tests/unit/server-actions-guards.spec.ts(83,30): error TS2339: Property 'endsWith' does not exist on type 'NonSharedBuffer'.
+tests/unit/server-actions-guards.spec.ts(83,54): error TS2367: This comparison appears to be unintentional because the types 'NonSharedBuffer' and 'string' have no overlap.
+tests/unit/server-actions-guards.spec.ts(83,79): error TS2367: This comparison appears to be unintentional because the types 'NonSharedBuffer' and 'string' have no overlap.
+tests/unit/server-actions-guards.spec.ts(84,42): error TS2345: Argument of type 'NonSharedBuffer' is not assignable to parameter of type 'string'.
+views/AssetsView.tsx(80,19): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"link" | "file" | "credential">'.
+views/AssetsView.tsx(83,76): error TS18046: 'c' is of type 'unknown'.
+views/AssetsView.tsx(118,55): error TS18046: 'c' is of type 'unknown'.
+views/AssetsView.tsx(194,64): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"link" | "file" | "credential">'.
+views/AssetsView.tsx(276,87): error TS18046: 'client' is of type 'unknown'.
+views/AssetsView.tsx(276,105): error TS18046: 'client' is of type 'unknown'.
+views/AssetsView.tsx(347,49): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"all" | "credentials" | "files">'.
+views/CalendarView.tsx(90,16): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(91,15): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(91,43): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(94,18): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(95,18): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(96,18): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(97,18): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(98,38): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(103,18): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(104,18): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(105,18): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(111,58): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(111,71): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(111,99): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(165,50): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(405,48): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(407,69): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(407,82): error TS18046: 'e' is of type 'unknown'.
+views/CalendarView.tsx(413,48): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(415,47): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(416,47): error TS18046: 't' is of type 'unknown'.
+views/CalendarView.tsx(429,46): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(433,62): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(433,79): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(436,51): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(436,77): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(436,135): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(439,94): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(440,71): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(447,51): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(448,46): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(449,89): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(451,45): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(452,45): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(456,97): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(457,44): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(546,30): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(548,64): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Task'.
+views/CalendarView.tsx(549,49): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(553,116): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(554,36): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(558,95): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(561,38): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(561,66): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(596,42): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(598,76): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'Task'.
+views/CalendarView.tsx(599,63): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(603,128): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(604,48): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(608,107): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(611,50): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(611,78): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(712,63): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(714,104): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(717,114): error TS18046: 'event' is of type 'unknown'.
+views/CalendarView.tsx(733,62): error TS18046: 'task' is of type 'unknown'.
+views/CalendarView.tsx(734,57): error TS2322: Type 'unknown' is not assignable to type 'Task'.
+views/CalendarView.tsx(736,83): error TS18046: 'task' is of type 'unknown'.
+views/ClientsView.tsx(74,66): error TS18046: 't' is of type 'unknown'.
+views/ClientsView.tsx(123,49): error TS2339: Property 'clients' does not exist on type '{}'.
+views/ClientsView.tsx(123,65): error TS2339: Property 'clients' does not exist on type '{}'.
+views/ClientsView.tsx(126,43): error TS2339: Property 'nextCursor' does not exist on type '{}'.
+views/ClientsView.tsx(126,73): error TS2339: Property 'nextCursor' does not exist on type '{}'.
+views/ClientsView.tsx(127,41): error TS2339: Property 'hasMore' does not exist on type '{}'.
+views/ClientsView.tsx(174,45): error TS2339: Property 'clients' does not exist on type '{}'.
+views/ClientsView.tsx(174,61): error TS2339: Property 'clients' does not exist on type '{}'.
+views/ClientsView.tsx(177,39): error TS2339: Property 'nextCursor' does not exist on type '{}'.
+views/ClientsView.tsx(177,69): error TS2339: Property 'nextCursor' does not exist on type '{}'.
+views/ClientsView.tsx(178,37): error TS2339: Property 'hasMore' does not exist on type '{}'.
+views/ClientsView.tsx(327,93): error TS18046: 'p' is of type 'unknown'.
+views/ClientsView.tsx(327,108): error TS18046: 'p' is of type 'unknown'.
+views/ClientsView.tsx(350,54): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(352,80): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(360,89): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(361,95): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(365,103): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(366,93): error TS18046: 'template' is of type 'unknown'.
+views/ClientsView.tsx(366,125): error TS18046: 'template' is of type 'unknown'.
+views/ContentMachineView.tsx(186,47): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<"ideas" | "pipeline" | "bank">'.
+views/ContentMachineView.tsx(213,108): error TS2339: Property 'color' does not exist on type '{}'.
+views/GuestView.tsx(12,39): error TS2339: Property 'taskId' does not exist on type '{}'.
+views/GuestView.tsx(14,43): error TS18046: 't' is of type 'unknown'.
+views/GuestView.tsx(88,72): error TS18046: 's' is of type 'unknown'.
+views/GuestView.tsx(158,43): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(158,85): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(160,43): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(162,42): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(164,63): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(165,109): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(166,46): error TS18046: 'msg' is of type 'unknown'.
+views/GuestView.tsx(168,102): error TS18046: 'msg' is of type 'unknown'.
+views/IntelligenceView.tsx(64,25): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(65,28): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(66,29): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(67,31): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(68,34): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(69,30): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(70,27): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(73,25): error TS18046: 'c' is of type 'unknown'.
+views/IntelligenceView.tsx(74,34): error TS18046: 'c' is of type 'unknown'.
+views/IntelligenceView.tsx(75,29): error TS18046: 'c' is of type 'unknown'.
+views/IntelligenceView.tsx(78,25): error TS18046: 'a' is of type 'unknown'.
+views/IntelligenceView.tsx(79,28): error TS18046: 'a' is of type 'unknown'.
+views/IntelligenceView.tsx(80,27): error TS18046: 'a' is of type 'unknown'.
+views/IntelligenceView.tsx(81,27): error TS18046: 'a' is of type 'unknown'.
+views/IntelligenceView.tsx(85,59): error TS18046: 'l' is of type 'unknown'.
+views/IntelligenceView.tsx(85,121): error TS18046: 'l' is of type 'unknown'.
+views/IntelligenceView.tsx(88,65): error TS18046: 't' is of type 'unknown'.
+views/IntelligenceView.tsx(218,71): error TS18046: 'item' is of type 'unknown'.
+views/IntelligenceView.tsx(315,49): error TS18046: 'r' is of type 'unknown'.
+views/IntelligenceView.tsx(318,34): error TS18046: 'item' is of type 'unknown'.
+views/IntelligenceView.tsx(319,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<AnalysisReport | null>'.
+views/IntelligenceView.tsx(320,152): error TS18046: 'item' is of type 'unknown'.
+views/IntelligenceView.tsx(322,80): error TS18046: 'item' is of type 'unknown'.
+views/IntelligenceView.tsx(323,80): error TS18046: 'item' is of type 'unknown'.
+views/IntelligenceView.tsx(326,76): error TS18046: 'item' is of type 'unknown'.
+views/LeadsView.tsx(156,85): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+views/LeadsView.tsx(173,174): error TS2339: Property 'color' does not exist on type '{}'.
+views/LoginView.tsx(166,45): error TS2339: Property 'status' does not exist on type '{}'.
+views/LoginView.tsx(195,48): error TS2339: Property 'supportedFirstFactors' does not exist on type '{}'.
+views/LoginView.tsx(197,56): error TS2339: Property 'strategy' does not exist on type '{}'.
+views/LoginView.tsx(222,47): error TS2339: Property 'status' does not exist on type '{}'.
+views/LoginView.tsx(233,43): error TS2339: Property 'status' does not exist on type '{}'.
+views/LoginView.tsx(245,31): error TS2339: Property 'errors' does not exist on type '{}'.
+views/LoginView.tsx(254,44): error TS2339: Property 'errors' does not exist on type '{}'.
+views/LoginView.tsx(275,72): error TS2339: Property 'message' does not exist on type '{}'.
+views/LoginView.tsx(278,14): error TS2339: Property 'message' does not exist on type '{}'.
+views/LoginView.tsx(322,43): error TS2339: Property 'status' does not exist on type '{}'.
+views/LoginView.tsx(325,31): error TS2339: Property 'errors' does not exist on type '{}'.
+views/LoginView.tsx(326,72): error TS2339: Property 'message' does not exist on type '{}'.
+views/LoginView.tsx(368,21): error TS2339: Property 'createdSessionId' does not exist on type '{}'.
+views/LoginView.tsx(369,45): error TS2339: Property 'createdSessionId' does not exist on type '{}'.
+views/LoginView.tsx(383,21): error TS2339: Property 'errors' does not exist on type '{}'.
+views/LoginView.tsx(384,26): error TS2339: Property 'errors' does not exist on type '{}'.
+views/RecycleBinView.tsx(87,27): error TS2339: Property 'title' does not exist on type '{}'.
+views/RecycleBinView.tsx(87,41): error TS2339: Property 'name' does not exist on type '{}'.
+views/RecycleBinView.tsx(87,54): error TS2339: Property 'companyName' does not exist on type '{}'.
+views/RecycleBinView.tsx(87,75): error TS2339: Property 'date' does not exist on type '{}'.
+views/RecycleBinView.tsx(87,102): error TS2339: Property 'date' does not exist on type '{}'.
+views/RecycleBinView.tsx(88,25): error TS2339: Property 'id' does not exist on type '{}'.
+views/RecycleBinView.tsx(211,50): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(211,64): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(211,77): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(211,98): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(211,125): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(214,46): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(236,100): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(243,79): error TS18046: 'item' is of type 'unknown'.
+views/RecycleBinView.tsx(249,83): error TS18046: 'item' is of type 'unknown'.
+views/ResetPasswordView.tsx(106,28): error TS18046: 'err' is of type 'unknown'.
+views/ResetPasswordView.tsx(106,56): error TS18046: 'err' is of type 'unknown'.
+views/ResetPasswordView.tsx(210,16): error TS18046: 'err' is of type 'unknown'.
+views/ResetPasswordView.tsx(261,16): error TS18046: 'err' is of type 'unknown'.
+views/SaaSAdminView.tsx(83,34): error TS2339: Property 'id' does not exist on type '{}'.
+views/SaaSAdminView.tsx(105,64): error TS18046: 't' is of type 'unknown'.
+views/SaaSAdminView.tsx(211,26): error TS18046: 'error' is of type 'unknown'.
+views/SaaSAdminView.tsx(313,22): error TS18046: 'error' is of type 'unknown'.
+views/SaaSAdminView.tsx(348,22): error TS18046: 'error' is of type 'unknown'.
+views/SaaSAdminView.tsx(394,22): error TS18046: 'error' is of type 'unknown'.
+views/SaaSAdminView.tsx(1023,78): error TS18046: 't' is of type 'unknown'.
+views/SaaSAdminView.tsx(1023,98): error TS18046: 't' is of type 'unknown'.
+views/SaaSAdminView.tsx(1024,70): error TS18046: 't' is of type 'unknown'.
+views/SaaSAdminView.tsx(1024,80): error TS18046: 't' is of type 'unknown'.
+views/SaaSAdminView.tsx(1024,95): error TS18046: 't' is of type 'unknown'.
+views/SalesLayout.tsx(104,62): error TS18046: 'n' is of type 'unknown'.
+views/SalesPipeline.tsx(73,81): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'DragEvent<Element>'.
+views/TasksView.tsx(662,28): error TS2339: Property 'order' does not exist on type '{}'.
+views/TasksView.tsx(662,51): error TS2339: Property 'order' does not exist on type '{}'.
+views/TasksView.tsx(663,28): error TS2339: Property 'order' does not exist on type '{}'.
+views/TasksView.tsx(663,51): error TS2339: Property 'order' does not exist on type '{}'.
+views/TeamView.tsx(546,9): error TS2322: Type '{ userId: string; userName: string; avatar?: string | undefined; reason?: string | undefined; amount?: number | undefined; type?: string | undefined; } | null' is not assignable to type '{ amount: number; userName: string; } | null'.
+  Type '{ userId: string; userName: string; avatar?: string | undefined; reason?: string | undefined; amount?: number | undefined; type?: string | undefined; }' is not assignable to type '{ amount: number; userName: string; }'.
+    Types of property 'amount' are incompatible.
+      Type 'number | undefined' is not assignable to type 'number'.
+        Type 'undefined' is not assignable to type 'number'.
+views/TeamView.tsx(564,9): error TS2322: Type '(formData: Partial<User> & { name: string; }) => Promise<void>' is not assignable to type '(data: unknown) => void'.
+  Types of parameters 'formData' and 'data' are incompatible.
+    Type 'unknown' is not assignable to type 'Partial<User> & { name: string; }'.
+      Type 'unknown' is not assignable to type 'Partial<User>'.

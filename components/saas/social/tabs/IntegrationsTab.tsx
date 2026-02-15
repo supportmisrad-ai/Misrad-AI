@@ -46,10 +46,10 @@ export function IntegrationsTab({
       if (!res.success) {
         throw new Error(res.error || 'שגיאה בטעינת אינטגרציות');
       }
-      setRows((res.data || []) as any);
-    } catch (e: any) {
+      setRows((res.data || []) as IntegrationStatus[]);
+    } catch (e: unknown) {
       console.error('[IntegrationsTab] Failed to load integrations:', e);
-      addToast(e?.message || 'שגיאה בטעינת אינטגרציות', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בטעינת אינטגרציות', 'error');
       setRows([]);
     } finally {
       setIsLoading(false);
@@ -79,9 +79,9 @@ export function IntegrationsTab({
       }
       addToast('האינטגרציה נותקה', 'success');
       await load(tenantId);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[IntegrationsTab] Failed to disconnect integration:', e);
-      addToast(e?.message || 'שגיאה בניתוק אינטגרציה', 'error');
+      addToast((e instanceof Error ? e.message : String(e)) || 'שגיאה בניתוק אינטגרציה', 'error');
     } finally {
       setIsDisconnecting(null);
     }

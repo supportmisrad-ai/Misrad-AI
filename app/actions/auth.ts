@@ -1,5 +1,7 @@
 'use server';
 
+
+import { logger } from '@/lib/server/logger';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendInvitationEmail } from './email';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
@@ -132,7 +134,7 @@ export async function inviteTeamMember(
       invitationId: invitation.id,
     };
   } catch (error: unknown) {
-    console.error('Error inviting team member:', error);
+    logger.error('auth', 'Error inviting team member:', error);
     return {
       success: false,
       error: getUnknownErrorMessage(error) || 'שגיאה בשליחת הזמנה',
@@ -236,14 +238,14 @@ async function sendTeamInvitationEmail(params: {
     });
 
     if (error) {
-      console.error('Resend error:', error);
+      logger.error('auth', 'Resend error:', error);
       // Don't fail the invitation if email fails - Clerk will send default email
       return { success: true };
     }
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error sending team invitation email:', error);
+    logger.error('auth', 'Error sending team invitation email:', error);
     // Don't fail the invitation if email fails
     return { success: true };
   }

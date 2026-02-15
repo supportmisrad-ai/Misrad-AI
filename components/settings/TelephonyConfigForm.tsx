@@ -83,10 +83,10 @@ export const TelephonyConfigForm: React.FC = () => {
                     setExistingIntegration(voicenterIntegration);
                     setValue('isActive', voicenterIntegration.isActive);
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Error fetching telephony config:', error);
                 // Don't show error toast on initial load if no config exists
-                if (error.message !== 'שגיאה בטעינת התצורה') {
+                if (!(error instanceof Error) || error.message !== 'שגיאה בטעינת התצורה') {
                     addToast('שגיאה בטעינת תצורת הטלפוניה', 'error');
                 }
             } finally {
@@ -148,9 +148,9 @@ export const TelephonyConfigForm: React.FC = () => {
                     updatedAt: new Date().toISOString()
                 });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving telephony config:', error);
-            addToast(error.message || 'שגיאה בשמירת תצורת הטלפוניה', 'error');
+            addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בשמירת תצורת הטלפוניה', 'error');
         } finally {
             setIsSaving(false);
         }

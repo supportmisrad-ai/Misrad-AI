@@ -6,7 +6,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { AIService } from '@/lib/services/ai/AIService';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
-import { Redis } from '@upstash/redis';
+import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
@@ -70,15 +70,8 @@ function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
-function getRedisClient(): Redis | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  try {
-    return new Redis({ url, token });
-  } catch {
-    return null;
-  }
+function getRedisClient() {
+  return getUpstashRedisClient();
 }
 
 function cacheGet(key: string): CachedChatResponse | null {

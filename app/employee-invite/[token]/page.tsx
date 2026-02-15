@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, Briefcase, Building2, Calendar, DollarSign, Check, X, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 interface InvitationData {
     token: string;
@@ -102,9 +103,9 @@ export default function EmployeeInvitePage() {
                         phone: payload.invitation.employeePhone || ''
                     }));
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('[EmployeeInvite] Error loading invitation:', err);
-                setError(err.message || 'שגיאה בטעינת הקישור');
+                setError(getErrorMessage(err) || 'שגיאה בטעינת הקישור');
             } finally {
                 setIsLoading(false);
             }
@@ -176,9 +177,9 @@ export default function EmployeeInvitePage() {
                 }
             }, 2000);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[EmployeeInvite] Error submitting form:', err);
-            setError(err.message || 'שגיאה בהשלמת ההרשמה');
+            setError(getErrorMessage(err) || 'שגיאה בהשלמת ההרשמה');
         } finally {
             setIsSubmitting(false);
         }
