@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, ArrowRight, LifeBuoy, Mail, MessageSquare } from 'lucide-react';
 
@@ -68,6 +68,12 @@ export function SupportHomeClient(props: {
   modules: ModuleCard[];
   articles: SearchArticle[];
 }) {
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  if (renderCountRef.current > 5) {
+    console.warn('[SupportHomeClient] Excessive re-renders detected:', renderCountRef.current);
+  }
+
   const [query, setQuery] = useState('');
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
@@ -126,7 +132,7 @@ export function SupportHomeClient(props: {
     };
   }, [props.orgSlug]);
 
-  const statusConfig = (status: string) => {
+  const statusConfig = useCallback((status: string) => {
     switch (status) {
       case 'open':
         return { label: 'פתוח', className: 'bg-blue-50 text-blue-700 border-blue-200' };
@@ -141,9 +147,9 @@ export function SupportHomeClient(props: {
       default:
         return { label: status, className: 'bg-slate-100 text-slate-600 border-slate-200' };
     }
-  };
+  }, []);
 
-  const handleSubmitTicket = async (e: React.FormEvent) => {
+  const handleSubmitTicket = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
@@ -197,7 +203,7 @@ export function SupportHomeClient(props: {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [props.orgSlug, formCategory, formSubject, formMessage, formScreenshotUrl]);
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-900" dir="rtl">

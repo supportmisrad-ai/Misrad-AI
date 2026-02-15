@@ -1,6 +1,6 @@
 {
   "name": "misrad-ai",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "engines": {
     "node": "22.x"
@@ -91,7 +91,6 @@
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.20",
     "@types/canvas-confetti": "^1.9.0",
-    "@types/react-router-dom": "^5.3.3",
     "@types/recharts": "^1.8.29",
     "@upstash/redis": "^1.35.0",
     "@zxing/browser": "^0.1.5",
@@ -123,7 +122,7 @@
     "@capacitor/cli": "^7.0.0",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.19.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
@@ -133,6 +132,7 @@
     "dotenv-cli": "^11.0.0",
     "electron": "^30.0.0",
     "electron-builder": "^24.13.3",
+    "esbuild": "^0.25.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.10",
     "html-docx-js": "^0.3.1",

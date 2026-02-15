@@ -21,6 +21,8 @@ export const runtime = 'nodejs';
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
     const v = obj[key];
     return typeof v === 'string' ? v : v == null ? fallback : String(v);
@@ -225,7 +227,8 @@ async function GETHandler(request: NextRequest) {
                 return apiSuccess({ clients: outClients, nextCursor, hasMore });
             }
         } catch (dbError: unknown) {
-            console.error('[API] Error fetching clients from database:', dbError);
+            if (IS_PROD) console.error('[API] Error fetching clients from database');
+            else console.error('[API] Error fetching clients from database:', dbError);
             return apiError('Failed to fetch clients', { status: 500 });
         }
         
@@ -260,7 +263,20 @@ async function GETHandler(request: NextRequest) {
         });
 
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         
         if (msg.includes('Unauthorized')) {
@@ -432,7 +448,8 @@ async function POSTHandler(request: NextRequest) {
                             if (String(msg || '').includes('[SchemaMismatch]')) {
                                 throw e instanceof Error ? e : new Error(msg);
                             }
-                            console.warn('[API] Could not create client notification (ignored):', msg);
+                            if (IS_PROD) console.warn('[API] Could not create client notification (ignored)');
+                            else console.warn('[API] Could not create client notification (ignored):', msg);
                         }
                     }
                 }
@@ -441,14 +458,28 @@ async function POSTHandler(request: NextRequest) {
             if (getErrorMessage(notifError).includes('[SchemaMismatch]')) {
                 throw notifError;
             }
-            console.warn('[API] Error sending client notifications:', notifError);
+            if (IS_PROD) console.warn('[API] Error sending client notifications');
+            else console.warn('[API] Error sending client notifications:', notifError);
         }
         
         return apiSuccess({ client: newClient });
         
     } catch (error: unknown) {
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const msg = getErrorMessage(error);
         return apiError(error, { status: msg.includes('Forbidden') ? 403 : 500 });

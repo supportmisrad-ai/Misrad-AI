@@ -9,7 +9,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScopedSql, queryRawOrgScopedSql } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -130,17 +130,19 @@ async function GETHandler(request: NextRequest) {
 
         let announcements: unknown[] = [];
         try {
-            announcements = await prisma.$queryRaw<unknown[]>(
-                Prisma.sql`
+            announcements = await queryRawOrgScopedSql<unknown[]>(prisma, {
+                organizationId: String(workspace.id),
+                reason: 'announcements_list',
+                sql: Prisma.sql`
                     SELECT *
                     FROM announcements
-                    WHERE organization_id = ${String(workspace.id)}
+                    WHERE organization_id = $organizationId$
                       AND is_active = true
                       AND recipient_type IN (${Prisma.join(recipientTypes)})
                     ORDER BY created_at DESC
                     LIMIT 50
-                `
-            );
+                `,
+            });
         } catch (error: unknown) {
             if (isMissingTableOrSchemaError(error)) {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
@@ -165,7 +167,20 @@ async function GETHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in GET /api/announcements');
         else console.error('[API] Error in GET /api/announcements:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const safeMsg = 'שגיאה בטעינת הודעות';
         const msg = getErrorMessage(error) || safeMsg;
@@ -211,13 +226,15 @@ async function POSTHandler(request: NextRequest) {
 
         let announcement: UnknownRecord | null;
         try {
-            const inserted = await prisma.$queryRaw<unknown[]>(
-                Prisma.sql`
+            const inserted = await queryRawOrgScopedSql<unknown[]>(prisma, {
+                organizationId: String(workspace.id),
+                reason: 'announcements_insert',
+                sql: Prisma.sql`
                     INSERT INTO announcements (organization_id, title, message, recipient_type, created_by, is_active)
-                    VALUES (${String(workspace.id)}, ${String(title)}, ${String(message)}, ${String(recipientType)}, ${String(dbUser.id)}, true)
+                    VALUES ($organizationId$, ${String(title)}, ${String(message)}, ${String(recipientType)}, ${String(dbUser.id)}, true)
                     RETURNING *
-                `
-            );
+                `,
+            });
             const first = Array.isArray(inserted) ? inserted[0] : null;
             announcement = first ? expectObject(first, 'Announcement insert failed') : null;
         } catch (error: unknown) {
@@ -272,12 +289,14 @@ async function POSTHandler(request: NextRequest) {
                 const values = notifications.map((n) =>
                     Prisma.sql`(${n.organization_id}, ${n.recipient_id}, ${n.type}, ${n.text}, ${n.actor_name}, ${n.related_id}, ${n.is_read}, ${JSON.stringify(n.metadata)})`
                 );
-                await prisma.$executeRaw(
-                    Prisma.sql`
+                await executeRawOrgScopedSql(prisma, {
+                    organizationId: String(workspace.id),
+                    reason: 'misrad_notifications_insert_announcement',
+                    sql: Prisma.sql`
                         INSERT INTO misrad_notifications (organization_id, recipient_id, type, text, actor_name, related_id, is_read, metadata)
                         VALUES ${Prisma.join(values)}
-                    `
-                );
+                    `,
+                });
             } catch (notifError: unknown) {
                 if (isMissingTableOrSchemaError(notifError)) {
                     if (!ALLOW_SCHEMA_FALLBACKS) {
@@ -304,7 +323,20 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in POST /api/announcements');
         else console.error('[API] Error in POST /api/announcements:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const safeMsg = 'שגיאה ביצירת הודעה';
         const msg = getErrorMessage(error) || safeMsg;

@@ -120,7 +120,9 @@ async function POSTHandler(request: NextRequest) {
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
         const safeMsg = 'Failed to sync calendar';

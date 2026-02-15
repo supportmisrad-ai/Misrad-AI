@@ -11,6 +11,8 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/shared/unknown';
 const AI_DNA_KEY_AUTOMATIONS = '__automations_v1';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 
 function readAiDnaObject(input: unknown): Record<string, unknown> {
   return asObject(input) ?? {};
@@ -38,10 +40,21 @@ async function GETHandler(request: NextRequest) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
     if (e instanceof APIError) {
-      return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(IS_PROD ? safeMsg : e, { status: e.status });
     }
-    const status = msg.includes('Forbidden') ? 403 : 500;
-    return apiError(e, { status });
+    const status: 401 | 403 | 500 = msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500;
+    const safeMsg = status === 403 ? 'Forbidden' : status === 401 ? 'Unauthorized' : 'Internal server error';
+    return apiError(IS_PROD ? safeMsg : e, { status });
   }
 }
 
@@ -88,10 +101,21 @@ async function PATCHHandler(request: NextRequest) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
     if (e instanceof APIError) {
-      return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(IS_PROD ? safeMsg : e, { status: e.status });
     }
-    const status = msg.includes('Forbidden') ? 403 : 500;
-    return apiError(e, { status });
+    const status: 401 | 403 | 500 = msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500;
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return apiError(IS_PROD ? safeMsg : e, { status });
   }
 }
 

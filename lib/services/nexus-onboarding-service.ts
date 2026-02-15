@@ -1,10 +1,11 @@
 import 'server-only';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 export type NexusOnboardingTemplateKey = 'retainer_fixed' | 'deliverables_package';
 
@@ -78,10 +79,18 @@ export async function getNexusOnboardingTemplate(workspaceId: string): Promise<N
   const legacyKey = getNexusOnboardingSettingsKey(workspaceId);
   let legacy: { value: unknown } | null = null;
   try {
-    legacy = await prisma.coreSystemSettings.findUnique({
-      where: { key: legacyKey },
-      select: { value: true },
-    });
+    legacy = await withTenantIsolationContext(
+      {
+        source: 'lib/services/nexus-onboarding-service.getNexusOnboardingTemplate',
+        reason: 'legacy_core_system_settings_read',
+        organizationId: String(workspaceId),
+      },
+      async () =>
+        await prisma.coreSystemSettings.findUnique({
+          where: { key: legacyKey },
+          select: { value: true },
+        })
+    );
   } catch (error: unknown) {
     if ((isMissingPrismaRelationError(error) || isMissingRelationError(error)) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
@@ -135,23 +144,31 @@ export async function setNexusOnboardingTemplate(params: {
 
   // Fallback: legacy storage
   const legacyKey = getNexusOnboardingSettingsKey(params.workspaceId);
-  await prisma.coreSystemSettings.upsert({
-    where: { key: legacyKey },
-    update: {
-      value: {
-        key: params.templateKey,
-        selectedAt,
-      } as Prisma.InputJsonValue,
-      updated_at: new Date(),
+  await withTenantIsolationContext(
+    {
+      source: 'lib/services/nexus-onboarding-service.setNexusOnboardingTemplate',
+      reason: 'legacy_core_system_settings_upsert',
+      organizationId: String(params.workspaceId),
     },
-    create: {
-      key: legacyKey,
-      value: {
-        key: params.templateKey,
-        selectedAt,
-      } as Prisma.InputJsonValue,
-      updated_at: new Date(),
-      created_at: new Date(),
-    },
-  });
+    async () =>
+      await prisma.coreSystemSettings.upsert({
+        where: { key: legacyKey },
+        update: {
+          value: {
+            key: params.templateKey,
+            selectedAt,
+          } as Prisma.InputJsonValue,
+          updated_at: new Date(),
+        },
+        create: {
+          key: legacyKey,
+          value: {
+            key: params.templateKey,
+            selectedAt,
+          } as Prisma.InputJsonValue,
+          updated_at: new Date(),
+          created_at: new Date(),
+        },
+      })
+  );
 }

@@ -8,7 +8,6 @@
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
@@ -34,16 +33,20 @@ async function selectDbUserId(params: { workspaceId: string; email: string }): P
 
 async function deactivateInvitation(params: { workspaceId: string; invitationId: string }) {
     try {
-        const res = await prisma.$executeRaw(
-            Prisma.sql`
-                UPDATE system_invitation_links
-                SET is_active = false,
-                    updated_at = now()
-                WHERE id = ${String(params.invitationId)}
-                  AND organization_id = ${String(params.workspaceId)}
-            `
-        );
-        return Number(res || 0);
+        const res = await prisma.system_invitation_links.updateMany({
+            where: {
+                id: String(params.invitationId),
+                OR: [
+                    { metadata: { path: ['organizationId'], equals: String(params.workspaceId) } },
+                    { metadata: { path: ['organization_id'], equals: String(params.workspaceId) } },
+                ],
+            },
+            data: {
+                is_active: false,
+                updated_at: new Date(),
+            },
+        });
+        return Number(res?.count || 0);
     } catch (error: unknown) {
         const errObj = asObject(error) ?? {};
         const metaObj = asObject(errObj.meta) ?? {};
@@ -53,26 +56,6 @@ async function deactivateInvitation(params: { workspaceId: string; invitationId:
                 throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
             }
             throw error;
-        }
-        if (code === '42703') {
-            if (!ALLOW_SCHEMA_FALLBACKS) {
-                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
-            }
-            reportSchemaFallback({
-                source: 'api/invitations/[id]/deactivate',
-                reason: 'system_invitation_links.organization_id missing column (fallback update without org scope)',
-                error,
-                extras: { workspaceId: params.workspaceId, invitationId: params.invitationId },
-            });
-            const res = await prisma.$executeRaw(
-                Prisma.sql`
-                    UPDATE system_invitation_links
-                    SET is_active = false,
-                        updated_at = now()
-                    WHERE id = ${String(params.invitationId)}
-                `
-            );
-            return Number(res || 0);
         }
         throw error;
     }
@@ -142,7 +125,9 @@ async function POSTHandler(
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
         const safeMsg = 'Failed to deactivate invitation';

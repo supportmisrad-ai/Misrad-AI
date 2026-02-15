@@ -1,19 +1,35 @@
 import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+async function getClerkServerAuth(): Promise<{ userId: string | null; error: string | null }> {
+  try {
+    const { auth } = await import('@clerk/nextjs/server');
+    const { userId } = await auth();
+    return { userId: userId || null, error: null };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error || '');
+    return { userId: null, error: msg || 'Unknown error' };
+  }
+}
+
+async function getClerkCurrentUser(): Promise<Awaited<ReturnType<(typeof import('@clerk/nextjs/server'))['currentUser']>>> {
+  const { currentUser } = await import('@clerk/nextjs/server');
+  return currentUser();
+}
 
 export async function GET() {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ ok: false, error: 'NotFound' }, { status: 404 });
   }
 
-  const { userId } = await auth();
+  const { userId, error: serverAuthError } = await getClerkServerAuth();
   if (!userId) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized', serverAuthError }, { status: 401 });
   }
 
-  const user = await currentUser();
+  const user = await getClerkCurrentUser();
 
   return NextResponse.json({
     ok: true,

@@ -196,7 +196,20 @@ async function GETHandler(
         if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance GET');
         else console.error('[API] Error in /api/team-events/[id]/attendance GET:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const msg = getErrorMessage(error);
         const safeMsg = 'שגיאה בטעינת נוכחות';
@@ -352,7 +365,20 @@ async function POSTHandler(
         if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance POST');
         else console.error('[API] Error in /api/team-events/[id]/attendance POST:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const msg = getErrorMessage(error);
         const safeMsg = 'שגיאה בשמירת הגעה';

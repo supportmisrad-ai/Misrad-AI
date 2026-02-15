@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -11,8 +10,8 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { translateClerkError } from '@/lib/errorTranslations';
 import { getSystemIconUrl } from '@/lib/metadata';
 
-export const LoginView: React.FC = () => {
-  const { organization } = useData();
+export const LoginView: React.FC<{ organizationName?: string }> = ({ organizationName }) => {
+  const orgName = organizationName || 'MISRAD AI';
   const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
 
@@ -411,7 +410,7 @@ export const LoginView: React.FC = () => {
                         <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-1.5" />
                       )}
                   </div>
-                  <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>{organization.name}</span>
+                  <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>{orgName}</span>
               </div>
               <h2 className="text-5xl font-bold leading-tight max-w-md">
                   ניהול העסק שלך,<br/> 
@@ -457,7 +456,7 @@ export const LoginView: React.FC = () => {
                     </div>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">ברוכים השבים</h3>
-                <p className="text-gray-500">נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black" suppressHydrationWarning>{organization.name}</span>.</p>
+                <p className="text-gray-500">נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black" suppressHydrationWarning>{orgName}</span>.</p>
             </div>
 
             <div className="bg-white p-2 rounded-3xl shadow-xl shadow-gray-200/50 border border-white">

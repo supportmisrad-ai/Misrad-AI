@@ -2,6 +2,7 @@ import 'server-only';
 import { getNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
@@ -214,10 +215,18 @@ export async function getNexusBillingItems(workspaceId: string): Promise<NexusBi
   const key = getNexusBillingItemsSettingsKey(workspaceId);
   let legacy: { value: unknown } | null = null;
   try {
-    legacy = await prisma.coreSystemSettings.findUnique({
-      where: { key },
-      select: { value: true },
-    });
+    legacy = await withTenantIsolationContext(
+      {
+        source: 'lib/services/nexus-billing-service.getNexusBillingItems',
+        reason: 'legacy_core_system_settings_read',
+        organizationId: String(workspaceId),
+      },
+      async () =>
+        await prisma.coreSystemSettings.findUnique({
+          where: { key },
+          select: { value: true },
+        })
+    );
   } catch (error: unknown) {
     if ((isMissingPrismaRelationError(error) || isMissingRelationError(error)) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
@@ -289,25 +298,33 @@ export async function setNexusBillingItems(params: {
 
   // Fallback: legacy storage
   const key = getNexusBillingItemsSettingsKey(params.workspaceId);
-  await prisma.coreSystemSettings.upsert({
-    where: { key },
-    update: {
-      value: {
-        templateKey: params.templateKey,
-        items: params.items,
-        updatedAt: now,
-      } as Prisma.InputJsonValue,
-      updated_at: new Date(now),
+  await withTenantIsolationContext(
+    {
+      source: 'lib/services/nexus-billing-service.setNexusBillingItems',
+      reason: 'legacy_core_system_settings_upsert',
+      organizationId: String(params.workspaceId),
     },
-    create: {
-      key,
-      value: {
-        templateKey: params.templateKey,
-        items: params.items,
-        updatedAt: now,
-      } as Prisma.InputJsonValue,
-      updated_at: new Date(now),
-      created_at: new Date(now),
-    },
-  });
+    async () =>
+      await prisma.coreSystemSettings.upsert({
+        where: { key },
+        update: {
+          value: {
+            templateKey: params.templateKey,
+            items: params.items,
+            updatedAt: now,
+          } as Prisma.InputJsonValue,
+          updated_at: new Date(now),
+        },
+        create: {
+          key,
+          value: {
+            templateKey: params.templateKey,
+            items: params.items,
+            updatedAt: now,
+          } as Prisma.InputJsonValue,
+          updated_at: new Date(now),
+          created_at: new Date(now),
+        },
+      })
+  );
 }

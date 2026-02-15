@@ -136,7 +136,9 @@ async function GETHandler(
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return NextResponse.json(
                 { error: IS_PROD ? safeMsg : error.message || safeMsg },
                 { status: error.status }
@@ -271,7 +273,9 @@ async function POSTHandler(
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return NextResponse.json(
                 { error: IS_PROD ? safeMsg : error.message || safeMsg },
                 { status: error.status }

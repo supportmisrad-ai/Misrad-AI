@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(_request: NextRequest) {
   let url: string | null = null;
   try {
@@ -40,11 +42,13 @@ async function GETHandler(_request: NextRequest) {
 
   url = String(url ?? '').trim() || null;
   if (!url) {
+    const safeMsg = 'Not configured';
     return NextResponse.json(
       {
         error: 'Not configured',
-        message:
-          'Android download is not configured (DB global_settings, MISRAD_ANDROID_DOWNLOAD_URL, and version manifest are empty)',
+        message: IS_PROD
+          ? safeMsg
+          : 'Android download is not configured (DB global_settings, MISRAD_ANDROID_DOWNLOAD_URL, and version manifest are empty)',
       },
       { status: 404 }
     );

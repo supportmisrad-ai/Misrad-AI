@@ -16,6 +16,7 @@ import { asObject } from './utils';
 
 export async function updateNexusPresenceHeartbeat(params: {
   orgId: string;
+  _prevalidated?: { workspaceId: string; clerkUserId: string; email: string };
 }): Promise<{
   ok: true;
   serverTime: string;
@@ -23,16 +24,26 @@ export async function updateNexusPresenceHeartbeat(params: {
 }> {
   // Fast path: try to get workspace and user info with minimal DB calls
   try {
-    const { id: workspaceId } = await requireWorkspaceIdByOrgSlugApi(params.orgId);
+    let workspaceId: string;
+    let clerkUserId: string;
+    let email: string;
 
-    const clerk = await currentUser();
-    const clerkUserId = clerk?.id || null;
-    if (!clerkUserId) {
-      throw new Error('Unauthorized');
+    if (params._prevalidated) {
+      // Auth already validated by caller — skip redundant auth calls
+      workspaceId = params._prevalidated.workspaceId;
+      clerkUserId = params._prevalidated.clerkUserId;
+      email = params._prevalidated.email;
+    } else {
+      const ws = await requireWorkspaceIdByOrgSlugApi(params.orgId);
+      workspaceId = ws.id;
+      const clerk = await currentUser();
+      clerkUserId = clerk?.id || '';
+      if (!clerkUserId) {
+        throw new Error('Unauthorized');
+      }
+      const emailRaw = clerk?.primaryEmailAddress?.emailAddress ?? null;
+      email = emailRaw ? String(emailRaw).trim().toLowerCase() : '';
     }
-
-    const emailRaw = clerk?.primaryEmailAddress?.emailAddress ?? null;
-    const email = emailRaw ? String(emailRaw).trim().toLowerCase() : '';
 
     const now = new Date();
     const isDev = process.env.NODE_ENV !== 'production';

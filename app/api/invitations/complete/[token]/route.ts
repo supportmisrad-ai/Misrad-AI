@@ -12,6 +12,8 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { MisradNotificationType, Prisma } from '@prisma/client';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { isUuidLike } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -171,27 +173,57 @@ async function POSTHandler(
         const nextMetadata = companyId ? { ...existingMetadata, companyId: String(companyId) } : existingMetadata;
         updateData.metadata = toJsonObject(nextMetadata);
 
-        const updatedInvitation = await prisma.system_invitation_links.update({
-            where: { id: String(invitation.id) },
-            data: updateData,
-        });
+        const orgIdFromMetadata = asObject(invitation.metadata)?.organizationId ?? null;
+        let organizationId: string | null =
+            typeof orgIdFromMetadata === 'string' && isUuidLike(orgIdFromMetadata) ? String(orgIdFromMetadata) : null;
+
+        if (!organizationId && invitation.client_id) {
+            const clientOrgRow = await prisma.nexusClient.findUnique({
+                where: { id: String(invitation.client_id) },
+                select: { organizationId: true },
+            });
+            if (clientOrgRow?.organizationId && isUuidLike(String(clientOrgRow.organizationId))) {
+                organizationId = String(clientOrgRow.organizationId);
+            }
+        }
+
+        if (!organizationId) {
+            return apiError('Missing organization context', { status: 400 });
+        }
+
+        enterTenantIsolationContext({ source: 'api/invitations/complete/[token]', organizationId });
+
+        let updatedInvitation: Record<string, unknown> = {};
+        try {
+            const updated = await prisma.system_invitation_links.update({
+                where: { id: String(invitation.id) },
+                data: updateData,
+                select: { id: true, token: true, used_at: true },
+            });
+            updatedInvitation = {
+                id: String(updated.id),
+                token: String(updated.token),
+                used_at: updated.used_at,
+            };
+        } catch (error: unknown) {
+            if (!ALLOW_SCHEMA_FALLBACKS && isSchemaMismatchError(error)) {
+                throw new Error(`[SchemaMismatch] system_invitation_links update failed (${getUnknownErrorMessage(error) || 'schema mismatch'})`);
+            }
+
+            if (ALLOW_SCHEMA_FALLBACKS && isSchemaMismatchError(error)) {
+                reportSchemaFallback({
+                    source: 'api/invitations/complete/[token]',
+                    reason: 'system_invitation_links update schema mismatch (fallback to error)',
+                    error,
+                    extras: { invitationId: String(invitation.id) },
+                });
+            }
+            throw error;
+        }
 
         // If there's a client_id, update the client with the new information
         if (invitation.client_id) {
             try {
-                const organizationIdFromMetadata = asObject(invitation.metadata)?.organizationId ?? null;
-
-                let organizationId: string | null =
-                    typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0 ? organizationIdFromMetadata : null;
-
-                if (!organizationId) {
-                    const clientOrgRow = await prisma.nexusClient.findUnique({
-                        where: { id: String(invitation.client_id) },
-                        select: { organizationId: true },
-                    });
-                    if (clientOrgRow?.organizationId) organizationId = String(clientOrgRow.organizationId);
-                }
-
                 const clientUpdateData: NexusClientUpdateManyData = {
                     name: ceoName,
                     email: ceoEmail,
@@ -239,10 +271,7 @@ async function POSTHandler(
         // Try to create a system task or notification for admins
         let notificationOrganizationId: string | null = null;
         try {
-            const organizationIdFromMetadata = asObject(invitation?.metadata)?.organizationId ?? null;
-
-            notificationOrganizationId =
-                typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0 ? organizationIdFromMetadata : null;
+            notificationOrganizationId = organizationId;
 
             if (!notificationOrganizationId && invitation.client_id) {
                 const clientOrg = await prisma.nexusClient.findUnique({
@@ -373,9 +402,11 @@ async function POSTHandler(
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error completing invitation');
         else console.error('[API] Error completing invitation:', error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה בשליחת הטופס. אנא נסה שוב מאוחר יותר.';
+        const msg = getUnknownErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, {
             status: 500,
-            message: getUnknownErrorMessage(error) || 'שגיאה בשליחת הטופס. אנא נסה שוב מאוחר יותר.',
+            message: IS_PROD ? safeMsg : msg,
         });
     }
 }

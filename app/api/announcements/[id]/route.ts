@@ -7,7 +7,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import prisma, { queryRawOrgScopedSql } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -38,15 +38,17 @@ async function updateAnnouncementInWorkspace(params: { announcementId: string; w
     if (patchObj.is_active !== undefined) setParts.push(Prisma.sql`is_active = ${Boolean(patchObj.is_active)}`);
     if (setParts.length === 0) return null;
 
-    const rows = await prisma.$queryRaw<unknown[]>(
-        Prisma.sql`
+    const rows = await queryRawOrgScopedSql<unknown[]>(prisma, {
+        organizationId: String(params.workspaceId),
+        reason: 'announcements_update',
+        sql: Prisma.sql`
             UPDATE announcements
             SET ${Prisma.join(setParts, ', ')}
             WHERE id = ${String(params.announcementId)}
-              AND organization_id = ${String(params.workspaceId)}
+              AND organization_id = $organizationId$
             RETURNING *
-        `
-    );
+        `,
+    });
 
     const row = Array.isArray(rows) ? rows[0] : null;
     return row ? (asObject(row) ?? row) : null;
@@ -104,7 +106,20 @@ async function DELETEHandler(
         if (IS_PROD) console.error('[API] Error in DELETE /api/announcements/[id]');
         else console.error('[API] Error in DELETE /api/announcements/[id]:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const safeMsg = 'שגיאה במחיקת הודעה';
         const msg = getErrorMessage(error) || safeMsg;
@@ -170,7 +185,20 @@ async function PATCHHandler(
         if (IS_PROD) console.error('[API] Error in PATCH /api/announcements/[id]');
         else console.error('[API] Error in PATCH /api/announcements/[id]:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const safeMsg = 'שגיאה בעדכון הודעה';
         const msg = getErrorMessage(error) || safeMsg;

@@ -47,10 +47,4 @@ export async function saveGoogleTokensForOrganizationUser(params: {
       },
     });
   }
-
-  await prisma.integrationStatus.upsert({
-    where: { name: integrationName },
-    create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
-    update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
-  });
 }

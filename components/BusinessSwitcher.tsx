@@ -7,6 +7,7 @@ import { Tenant } from '../types';
 import { extractData } from '@/lib/shared/api-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useAuth } from '@clerk/nextjs';
 
 interface BusinessSwitcherProps {
     currentTenantId?: string;
@@ -28,6 +29,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     currentTenantId,
     currentTenantName
 }) => {
+    const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
     const lastFetchAtRef = useRef<number>(0);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -45,6 +47,10 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     }, []);
 
     const fetchBusinesses = async ({ silent = false }: { silent?: boolean } = {}) => {
+        if (!isClerkLoaded || !isSignedIn) {
+            return;
+        }
+
         const now = Date.now();
         if (now - lastFetchAtRef.current < 1500) return;
         lastFetchAtRef.current = now;
@@ -99,6 +105,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        if (!isClerkLoaded || !isSignedIn) return;
         if (businesses.length > 0) return;
 
         let cancelled = false;
@@ -124,7 +131,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             cancelled = true;
             window.clearTimeout(t);
         };
-    }, [businesses.length]);
+    }, [businesses.length, isClerkLoaded, isSignedIn]);
 
     // Close dropdown when clicking outside
     useEffect(() => {

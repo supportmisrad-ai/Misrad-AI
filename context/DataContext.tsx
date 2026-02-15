@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState, useCallback } from 'react';
 import { useToasts } from '../hooks/useToasts';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -84,25 +84,25 @@ export const DataProvider = ({
 
     // 7. Tutorial State
     const [isTutorialActive, setIsTutorialActive] = useState(false);
-    const startTutorial = () => setIsTutorialActive(true);
-    const endTutorial = () => setIsTutorialActive(false);
+    const startTutorial = useCallback(() => setIsTutorialActive(true), []);
+    const endTutorial = useCallback(() => setIsTutorialActive(false), []);
 
     const activeCelebration = false;
 
     // 8. Support Draft State
     const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
     const [supportDraft, setSupportDraft] = useState({ category: 'Tech', subject: '', message: '' });
-    const openSupport = (defaults?: Partial<SupportDraft>) => {
+    const openSupport = useCallback((defaults?: Partial<SupportDraft>) => {
         if (defaults) setSupportDraft(prev => ({ ...prev, ...defaults }));
         setIsSupportModalOpen(true);
-    };
-    const closeSupport = () => setIsSupportModalOpen(false);
+    }, []);
+    const closeSupport = useCallback(() => setIsSupportModalOpen(false), []);
 
     // 9. SaaS Admin Extras (Feedbacks & Reports) - Loaded from database
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [systemReports, setSystemReports] = useState<GeneratedReport[]>([]);
 
-    const addFeedback = (fb: Omit<Feedback, 'id' | 'date' | 'status'>) => {
+    const addFeedback = useCallback((fb: Omit<Feedback, 'id' | 'date' | 'status'>) => {
         const newFeedback: Feedback = {
             id: `fb-${Date.now()}`,
             date: new Date().toISOString(),
@@ -110,11 +110,11 @@ export const DataProvider = ({
             ...fb
         };
         setFeedbacks(prev => [newFeedback, ...prev]);
-    };
+    }, []);
 
-    const markReportRead = (id: string) => {
+    const markReportRead = useCallback((id: string) => {
         setSystemReports(prev => prev.map(r => r.id === id ? { ...r, isRead: true } : r));
-    };
+    }, []);
 
     // Combine all hooks and state
     const value = useMemo<DataContextValue>(() => {
@@ -146,10 +146,16 @@ export const DataProvider = ({
         initialAdminKPIs,
         activeCelebration,
         isTutorialActive,
+        startTutorial,
+        endTutorial,
         isSupportModalOpen,
+        openSupport,
+        closeSupport,
         supportDraft,
         feedbacks,
+        addFeedback,
         systemReports,
+        markReportRead,
     ]);
 
     return (

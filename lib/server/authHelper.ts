@@ -1,13 +1,11 @@
 /**
  * Server-only auth helper functions
- * This file must only be imported in Server Components or Server Actions
+ * This file can be imported in Server Components, Server Actions, and API Routes
  */
-
-'use server';
 
 /**
  * Get the current user's Clerk ID
- * This function can only be used in Server Components or Server Actions
+ * Works in Server Components, Server Actions, and API Routes
  */
 export async function getCurrentUserId(): Promise<string | null> {
   try {
@@ -20,6 +18,23 @@ export async function getCurrentUserId(): Promise<string | null> {
     } else {
       const msg = error instanceof Error ? error.message : '';
       console.error('Error getting current user ID from Clerk:', msg || 'Unknown error');
+    }
+    return null;
+  }
+}
+
+/**
+ * Get the current user's Clerk ID specifically for API routes
+ * Alternative approach for API routes if the main one doesn't work
+ */
+export async function getCurrentUserIdFromRequest(request?: Request): Promise<string | null> {
+  try {
+    const { auth } = await import('@clerk/nextjs/server');
+    const { userId } = await auth();
+    return userId || null;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error getting current user ID from request:', error);
     }
     return null;
   }

@@ -131,7 +131,20 @@ async function POSTHandler(
         if (IS_PROD) console.error('[API] Error deactivating invitation');
         else console.error('[API] Error deactivating invitation:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const msg = getUnknownErrorMessage(error) || 'Failed to deactivate invitation';
         const safeMsg = 'Failed to deactivate invitation';

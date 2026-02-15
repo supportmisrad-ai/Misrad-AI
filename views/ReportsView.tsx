@@ -22,6 +22,63 @@ function asObject(value: unknown): Record<string, unknown> | null {
     return value as Record<string, unknown>;
 }
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type FinanceUser = {
+    id: string;
+    name: string;
+    avatar: string;
+    paymentType?: 'hourly' | 'monthly';
+};
+
+type FinanceRow = {
+    user: FinanceUser;
+    totalHours: number;
+    totalMinutes: number;
+    estimatedCost: number;
+    entriesCount: number;
+};
+
+function coerceNumber(value: unknown): number {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+    }
+    return 0;
+}
+
+function coerceFinanceRow(value: unknown): FinanceRow {
+    const obj = asObject(value) ?? {};
+    const userRaw = obj.user ?? value;
+    const userObj = asObject(userRaw) ?? {};
+
+    const id = typeof userObj.id === 'string' ? userObj.id : String(userObj.id ?? '');
+    const name = typeof userObj.name === 'string' ? userObj.name : '';
+    const avatar = typeof userObj.avatar === 'string' ? userObj.avatar : '';
+    const paymentTypeRaw = userObj.paymentType;
+    const paymentType = paymentTypeRaw === 'hourly' || paymentTypeRaw === 'monthly' ? paymentTypeRaw : undefined;
+
+    return {
+        user: {
+            id,
+            name,
+            avatar,
+            ...(paymentType ? { paymentType } : {}),
+        },
+        totalHours: coerceNumber(obj.totalHours),
+        totalMinutes: coerceNumber(obj.totalMinutes),
+        estimatedCost: coerceNumber(obj.estimatedCost),
+        entriesCount: coerceNumber(obj.entriesCount),
+    };
+}
+
 export const ReportsView: React.FC = () => {
     const { tasks, currentUser, hasPermission, addToast, departments, users: contextUsers, timeEntries: contextTimeEntries } = useData();
     const { fetchFinancials, isLoading: isLoadingData } = useSecureAPI();
@@ -32,7 +89,7 @@ export const ReportsView: React.FC = () => {
     const searchParams = useSearchParams();
     const [users, setUsers] = useState<User[]>(contextUsers || []);
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(contextTimeEntries || []);
-    const [financeData, setFinanceData] = useState<any[]>([]);
+    const [financeData, setFinanceData] = useState<FinanceRow[]>([]);
     
     // Cache state - remember last loaded data (with localStorage persistence)
     const [cachedUsers, setCachedUsers] = useState<User[]>(() => {
@@ -41,7 +98,7 @@ export const ReportsView: React.FC = () => {
     const [cachedTimeEntries, setCachedTimeEntries] = useState<TimeEntry[]>(() => {
         return [];
     });
-    const [cachedFinanceData, setCachedFinanceData] = useState<any[]>(() => {
+    const [cachedFinanceData, setCachedFinanceData] = useState<FinanceRow[]>(() => {
         return [];
     });
     
@@ -121,14 +178,14 @@ export const ReportsView: React.FC = () => {
     const createEntryMutation = useMutation({
         mutationFn: async (input: Partial<TimeEntry>) => {
             if (!orgSlug) throw new Error('Missing orgSlug');
-            return createNexusTimeEntry({ orgId: orgSlug, input: input as any });
+            return createNexusTimeEntry({ orgId: orgSlug, input });
         },
     });
 
     const updateEntryMutation = useMutation({
         mutationFn: async (params: { entryId: string; updates: Partial<TimeEntry> }) => {
             if (!orgSlug) throw new Error('Missing orgSlug');
-            return updateNexusTimeEntry({ orgId: orgSlug, entryId: params.entryId, updates: params.updates as any });
+            return updateNexusTimeEntry({ orgId: orgSlug, entryId: params.entryId, updates: params.updates });
         },
     });
 
@@ -151,7 +208,7 @@ export const ReportsView: React.FC = () => {
 
     useEffect(() => {
         setIsRefreshingUsers(Boolean(usersQuery.isFetching));
-        const next = (usersQuery.data as any)?.users;
+        const next = usersQuery.data?.users;
         if (Array.isArray(next)) {
             setUsers(next);
             setCachedUsers(next);
@@ -175,7 +232,7 @@ export const ReportsView: React.FC = () => {
 
     useEffect(() => {
         setIsRefreshingTimeEntries(Boolean(timeEntriesQuery.isFetching));
-        const next = (timeEntriesQuery.data as any)?.timeEntries;
+        const next = timeEntriesQuery.data?.timeEntries;
         if (Array.isArray(next)) {
             setTimeEntries(next);
             setCachedTimeEntries(next);
@@ -207,17 +264,11 @@ export const ReportsView: React.FC = () => {
                 const users = fetchedObj?.users;
                 
                 // Transform API response to match expected format
-                let newFinanceData: any[] = [];
+                let newFinanceData: FinanceRow[] = [];
                 if (Array.isArray(users)) {
-                    newFinanceData = users.map((item: any) => ({
-                        user: item.user || item,
-                        totalHours: item.totalHours || 0,
-                        totalMinutes: item.totalMinutes || 0,
-                        estimatedCost: item.estimatedCost || 0,
-                        entriesCount: item.entriesCount || 0
-                    }));
+                    newFinanceData = users.map((item) => coerceFinanceRow(item));
                 } else if (Array.isArray(fetchedFinancials)) {
-                    newFinanceData = fetchedFinancials;
+                    newFinanceData = fetchedFinancials.map((item) => coerceFinanceRow(item));
                 }
                 
                 setFinanceData(newFinanceData);
@@ -258,13 +309,13 @@ export const ReportsView: React.FC = () => {
     // --- DATA PREPARATION ---
 
     // 1. Filtered Tasks (Completed within Range)
-    const getFilteredTasks = (user: any) => {
+    const getFilteredTasks = (user: User) => {
         const startDate = new Date(dateRange.start);
         startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(dateRange.end);
         endDate.setHours(23, 59, 59, 999);
 
-        return tasks.filter((t: any) => {
+        return tasks.filter((t) => {
             const isAssigned = t.assigneeIds?.includes(user.id) || t.assigneeId === user.id;
             const isDone = t.status === Status.DONE;
             if (!isAssigned || !isDone || !t.completionDetails?.completedAt) return false;
@@ -300,9 +351,9 @@ export const ReportsView: React.FC = () => {
         
         // Calculate Total Time on Tasks
         let totalSeconds = 0;
-        userTasks.forEach((t: any) => {
+        userTasks.forEach((t) => {
             if (t.completionDetails?.contributors) {
-                const contribution = t.completionDetails.contributors.find((c: any) => c.userId === user.id);
+                const contribution = t.completionDetails.contributors.find((c) => c.userId === user.id);
                 if (contribution) totalSeconds += contribution.timeSpent;
             } else {
                 const assigneesCount = t.assigneeIds?.length || 1;
@@ -313,7 +364,7 @@ export const ReportsView: React.FC = () => {
         const totalHours = Math.round(totalSeconds / 3600);
         const tasksCount = userTasks.length;
         const avgTimePerTask = tasksCount > 0 ? Math.round(totalSeconds / 60 / tasksCount) : 0;
-        const totalSnoozes = userTasks.reduce((acc: number, t: any) => acc + (t.snoozeCount || 0), 0);
+        const totalSnoozes = userTasks.reduce((acc: number, t) => acc + (t.snoozeCount || 0), 0);
         const efficiencyScore = tasksCount === 0 ? 0 : Math.max(0, Math.min(100, 80 + (tasksCount * 1.5) - (totalSnoozes * 2)));
 
         return { user, totalHours, tasksCount, avgTimePerTask, efficiencyScore };
@@ -342,8 +393,8 @@ export const ReportsView: React.FC = () => {
             if (orgSlug) {
                 queryClient.invalidateQueries({ queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end] });
             }
-        } catch (error: any) {
-            addToast(error?.message || 'שגיאה בביטול דיווח שעות', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בביטול דיווח שעות', 'error');
         } finally {
             setEntryToDelete(null);
         }
@@ -384,8 +435,8 @@ export const ReportsView: React.FC = () => {
             if (orgSlug) {
                 queryClient.invalidateQueries({ queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end] });
             }
-        } catch (error: any) {
-            addToast(error?.message || 'שגיאה בשמירת הדיווח', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בשמירת הדיווח', 'error');
         }
     };
 
@@ -401,12 +452,12 @@ export const ReportsView: React.FC = () => {
             const rows = filteredTimeEntries.map(e => {
                 const u = users.find(usr => usr.id === e.userId);
                 const startLoc =
-                    typeof (e as any).startLat === 'number' && typeof (e as any).startLng === 'number'
-                        ? `${(e as any).startLat},${(e as any).startLng}${typeof (e as any).startAccuracy === 'number' ? ` (${Math.round((e as any).startAccuracy)}m)` : ''}`
+                    typeof e.startLat === 'number' && typeof e.startLng === 'number'
+                        ? `${e.startLat},${e.startLng}${typeof e.startAccuracy === 'number' ? ` (${Math.round(e.startAccuracy)}m)` : ''}`
                         : '-';
                 const endLoc =
-                    typeof (e as any).endLat === 'number' && typeof (e as any).endLng === 'number'
-                        ? `${(e as any).endLat},${(e as any).endLng}${typeof (e as any).endAccuracy === 'number' ? ` (${Math.round((e as any).endAccuracy)}m)` : ''}`
+                    typeof e.endLat === 'number' && typeof e.endLng === 'number'
+                        ? `${e.endLat},${e.endLng}${typeof e.endAccuracy === 'number' ? ` (${Math.round(e.endAccuracy)}m)` : ''}`
                         : '-';
                 return [
                     u?.name || 'Unknown',
@@ -572,16 +623,16 @@ export const ReportsView: React.FC = () => {
             {/* TABS NAVIGATION */}
             <div className="pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-200 shrink-0">
                 <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
-                {[
-                    { id: 'overview', label: 'ביצועים ומשימות', icon: LayoutDashboard },
-                    { id: 'attendance', label: 'נוכחות ושעות', icon: Clock },
+                {([
+                    { id: 'overview', label: 'סקירה וביצועים', icon: LayoutDashboard, restricted: false },
+                    { id: 'attendance', label: 'נוכחות ושעות', icon: Clock, restricted: false },
                     { id: 'finance', label: 'שכר ועלויות', icon: DollarSign, restricted: !canViewFinancials },
-                ].map((tab) => {
+                ] as const).map((tab) => {
                     if (tab.restricted) return null;
                     return (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => setActiveTab(tab.id)}
                                 className={`px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm font-bold transition-all border-b-2 whitespace-nowrap shrink-0 ${
                                     activeTab === tab.id
                                         ? 'text-gray-900 border-gray-900'
@@ -855,8 +906,8 @@ export const ReportsView: React.FC = () => {
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredTimeEntries.length > 0 ? filteredTimeEntries.map((entry) => {
                                             const user = users.find(u => u.id === entry.userId);
-                                            const startMapUrl = getMapUrl((entry as any).startLat, (entry as any).startLng);
-                                            const endMapUrl = getMapUrl((entry as any).endLat, (entry as any).endLng);
+                                            const startMapUrl = getMapUrl(entry.startLat, entry.startLng);
+                                            const endMapUrl = getMapUrl(entry.endLat, entry.endLng);
                                             return (
                                                 <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                                     <td className="px-3 md:px-6 py-3 md:py-4">
@@ -938,8 +989,8 @@ export const ReportsView: React.FC = () => {
                             <div className="md:hidden p-4 space-y-3">
                                 {filteredTimeEntries.length > 0 ? filteredTimeEntries.map((entry) => {
                                     const user = users.find(u => u.id === entry.userId);
-                                    const startMapUrl = getMapUrl((entry as any).startLat, (entry as any).startLng);
-                                    const endMapUrl = getMapUrl((entry as any).endLat, (entry as any).endLng);
+                                    const startMapUrl = getMapUrl(entry.startLat, entry.startLng);
+                                    const endMapUrl = getMapUrl(entry.endLat, entry.endLng);
                                     return (
                                         <div key={entry.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
                                             <div className="flex items-center gap-3">

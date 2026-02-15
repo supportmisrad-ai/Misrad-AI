@@ -1,7 +1,7 @@
 'use server';
 
 import { NextRequest } from 'next/server';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -58,7 +58,8 @@ export async function getClientOsClients(request: NextRequest) {
 
     let workspace;
     try {
-      workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+      const ctx = await getWorkspaceByOrgKeyOrThrow(String(orgIdFromHeader));
+      workspace = ctx.workspace;
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
       return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });

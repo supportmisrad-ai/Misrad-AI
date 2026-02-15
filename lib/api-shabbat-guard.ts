@@ -63,16 +63,12 @@ export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) 
         }
 
         try {
-          const rows = await prisma.$queryRaw<unknown[]>`
-            select is_shabbat_protected
-            from social_organizations
-            where id = ${String(workspaceId)}::uuid
-            limit 1
-          `;
-          const row = Array.isArray(rows) ? rows[0] : null;
-          const rowObj = asObject(row);
+          const org = await prisma.organization.findUnique({
+            where: { id: String(workspaceId) },
+            select: { is_shabbat_protected: true },
+          });
 
-          if (rowObj?.is_shabbat_protected === false) {
+          if (org?.is_shabbat_protected === false) {
             enterTenantIsolationContext({ source: 'api_shabbat_guard', organizationId: workspaceId });
             return await handler(...args);
           }

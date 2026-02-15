@@ -82,19 +82,6 @@ async function POSTHandler(request: NextRequest, { params }: { params: { id: str
                     }
                 }
 
-                try {
-                    const metadata: Prisma.InputJsonValue = {
-                        invitationSent: true,
-                        invitationSentAt: new Date().toISOString(),
-                        invitationSentBy: user.id,
-                    };
-
-                    await prisma.$executeRaw`update nexus_tenants set metadata = coalesce(metadata, '{}'::jsonb) || ${metadata} where id = ${tenantId}::uuid`;
-                } catch (updateError: unknown) {
-                    if (IS_PROD) console.error('[API] Error updating tenant metadata');
-                    else console.error('[API] Error updating tenant metadata:', { message: getErrorMessage(updateError) });
-                }
-
                 return apiSuccessCompat({
                     message: 'הזמנה נשלחה בהצלחה',
                     signupUrl,

@@ -87,11 +87,18 @@ export async function getOrganizationPackageEntitlements(
 }
 
 export async function requireClerkUserId(): Promise<string> {
-  const clerkUserId = String((await getCurrentUserId()) || '').trim();
-  if (!clerkUserId) {
-    redirect('/login');
+  try {
+    const clerkUserId = String((await getCurrentUserId()) || '').trim();
+    
+    if (!clerkUserId) {
+      redirect('/login');
+    }
+    
+    return clerkUserId;
+  } catch (error) {
+    console.error('[requireClerkUserId] Error in getCurrentUserId:', error);
+    throw error;
   }
-  return clerkUserId;
 }
 
 export async function loadCurrentUserLastLocation(): Promise<LastLocation> {
@@ -298,13 +305,14 @@ export function getFirstAllowedModule(entitlements: WorkspaceEntitlements): OSMo
 }
 
 export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<WorkspaceInfo> {
-  const clerkUserId = await requireClerkUserId();
   try {
+    const clerkUserId = await requireClerkUserId();
     const workspace = await requireWorkspaceAccessByOrgSlugCached(clerkUserId, String(orgSlug || ''));
     enterTenantIsolationContext({ source: 'workspace_access_ui', organizationId: workspace.id });
     return workspace;
   } catch (e: unknown) {
     const status = getErrorStatus(e);
+    
     if (status === 401) {
       redirect('/login');
     }

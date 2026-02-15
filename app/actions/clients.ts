@@ -549,6 +549,7 @@ export async function createClientInvitationLinkForWorkspace(params: {
           ...(params.metadata || {}),
           orgSlug: resolvedOrgSlug,
           organizationId,
+          organization_id: organizationId,
         },
       },
       select: { id: true },

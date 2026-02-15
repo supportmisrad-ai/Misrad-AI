@@ -209,7 +209,6 @@ export const useAuth = (
 
     const presenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const presenceInFlightRef = useRef(false);
-    const presenceEffectStateRef = useRef<string>('');
     const presenceGuardStateRef = useRef<string>('');
     const presenceFailureCountRef = useRef(0);
     const presenceSuccessCountRef = useRef(0);
@@ -221,14 +220,19 @@ export const useAuth = (
             const nextState = JSON.stringify({ orgSlug, isClerkLoaded, clerkUserId: Boolean(clerkUserId), visibilityState });
             if (nextState !== presenceGuardStateRef.current) {
                 presenceGuardStateRef.current = nextState;
-                console.info(`[Presence] heartbeat skipped (guard) ${nextState}`);
+                if (orgSlug) {
+                    console.info(`[Presence] heartbeat skipped (guard) ${nextState}`);
+                }
             }
             return;
         }
 
-        // Additional guard: skip heartbeat on public pages like landing
-        if (typeof window !== 'undefined' && window.location.pathname === '/') {
-            return;
+        // Additional guard: skip heartbeat on public pages like landing/login
+        if (typeof window !== 'undefined') {
+            const p = window.location.pathname;
+            if (p === '/' || p === '/login' || p.startsWith('/login?')) {
+                return;
+            }
         }
 
         if (presenceInFlightRef.current) {
@@ -289,11 +293,6 @@ export const useAuth = (
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const nextState = JSON.stringify({ orgSlug, isClerkLoaded });
-        if (nextState !== presenceEffectStateRef.current) {
-            presenceEffectStateRef.current = nextState;
-            console.info(`[Presence] heartbeat effect mounted ${nextState}`);
-        }
         if (!orgSlug) return;
 
         let cancelled = false;
@@ -473,45 +472,44 @@ export const useAuth = (
         }
     }, [usersQuery.data]);
 
-    const login = (userId: string) => {
+    const login = useCallback((userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
             const userWithBilling = {
                 ...user,
-                billingInfo: user.billingInfo || undefined,
-                notificationPreferences: user.notificationPreferences || {
-                    emailNewTask: true,
-                    browserPush: true,
-                    morningBrief: true,
-                    soundEffects: false,
-                    marketing: true,
-                    pushBehavior: 'vibrate_sound',
-                    pushCategories: {
-                        alerts: true,
-                        tasks: true,
-                        events: true,
-                        system: true,
-                        marketing: false,
-                    },
+                billingInfo: {
+                    last4Digits: '1234',
+                    cardType: 'Visa',
+                    nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                    planName: 'Basic'
                 }
             };
             setCurrentUser(userWithBilling);
+            const updated = users.map(u => ({
+                ...u,
+                online: u.id === userId ? true : u.online
+            }));
+            setUsers(updated);
             setIsAuthenticated(true);
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, online: true } : u));
-            addToast(`ברוך הבא, ${user.name}`, 'success');
+            setIsLoadingCurrentUser(false);
+            addToast(`התחברת בהצלחה בתור ${user.name}`, 'success');
+            return true;
+        } else {
+            addToast('משתמש לא קיים', 'error');
+            return false;
         }
-    };
+    }, [users, addToast]);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setIsAuthenticated(false);
         setIsLoadingCurrentUser(false);
         setUsers(prev => prev.map(u => ({ ...u, online: false })));
         setCurrentUser(getInitialUser());
-    };
+    }, []);
 
-    const switchUser = (userId: string) => {
+    const switchUser = useCallback((userId: string) => {
         login(userId);
-    };
+    }, [login]);
 
     const hasPermission = useCallback(
         (permission: PermissionId): boolean => {

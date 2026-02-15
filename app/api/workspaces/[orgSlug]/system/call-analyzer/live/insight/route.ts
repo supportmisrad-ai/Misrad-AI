@@ -108,7 +108,9 @@ ${truncated}`;
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     return apiError(e, { message: 'Failed to generate live insight' });

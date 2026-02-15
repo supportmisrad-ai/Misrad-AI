@@ -1,7 +1,9 @@
 'use server';
 
+import { Prisma } from '@prisma/client';
+
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScopedSql, queryRawOrgScopedSql } from '@/lib/prisma';
 
 import { asObject } from '@/lib/shared/unknown';
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
@@ -80,37 +82,41 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   const geo = parseGeoLocationRequired(location);
   const noteValue = typeof note === 'string' && note.trim().length > 0 ? note.trim() : null;
 
-  const rows = await prisma.$queryRaw<{ id: string; start_time: Date }[]>`
-    INSERT INTO nexus_time_entries (
-      organization_id,
-      user_id,
-      start_time,
-      end_time,
-      start_lat,
-      start_lng,
-      start_accuracy,
-      date,
-      duration_minutes,
-      void_reason,
-      voided_by,
-      voided_at
-    )
-    VALUES (
-      ${String(workspace.id)}::uuid,
-      ${String(dbUser.id)}::uuid,
-      ${now.toISOString()}::timestamptz,
-      NULL,
-      ${geo.lat}::double precision,
-      ${geo.lng}::double precision,
-      ${geo.accuracy}::double precision,
-      ${dateOnly}::date,
-      NULL,
-      ${noteValue},
-      NULL,
-      NULL
-    )
-    RETURNING id, start_time
-  `;
+  const rows = await queryRawOrgScopedSql<{ id: string; start_time: Date }[]>(prisma, {
+    organizationId: String(workspace.id),
+    reason: 'attendance_punch_in',
+    sql: Prisma.sql`
+      INSERT INTO nexus_time_entries (
+        organization_id,
+        user_id,
+        start_time,
+        end_time,
+        start_lat,
+        start_lng,
+        start_accuracy,
+        date,
+        duration_minutes,
+        void_reason,
+        voided_by,
+        voided_at
+      )
+      VALUES (
+        $organizationId$::uuid,
+        ${String(dbUser.id)}::uuid,
+        ${now.toISOString()}::timestamptz,
+        NULL,
+        ${geo.lat}::double precision,
+        ${geo.lng}::double precision,
+        ${geo.accuracy}::double precision,
+        ${dateOnly}::date,
+        NULL,
+        ${noteValue},
+        NULL,
+        NULL
+      )
+      RETURNING id, start_time
+    `,
+  });
 
   const created = Array.isArray(rows) ? rows[0] : null;
   if (!created?.id) throw new Error('Failed to punch in');
@@ -145,20 +151,25 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
   const durationMinutes = endTimeMs > startTimeMs ? Math.round((endTimeMs - startTimeMs) / 60000) : 0;
 
   const noteValue = typeof note === 'string' && note.trim().length > 0 ? note.trim() : null;
-  const updatedCount = await prisma.$executeRaw`
-    UPDATE nexus_time_entries
-    SET
-      end_time = ${endTime}::timestamptz,
-      end_lat = ${geo.lat}::double precision,
-      end_lng = ${geo.lng}::double precision,
-      end_accuracy = ${geo.accuracy}::double precision,
-      duration_minutes = ${durationMinutes}::int,
-      void_reason = ${noteValue}
-    WHERE
-      id = ${String(existing.activeShift.id)}::uuid
-      AND organization_id = ${String(workspace.id)}::uuid
-      AND user_id = ${String(resolved.user.id)}::uuid
-  `;
+
+  const updatedCount = await executeRawOrgScopedSql(prisma, {
+    organizationId: String(workspace.id),
+    reason: 'attendance_punch_out',
+    sql: Prisma.sql`
+      UPDATE nexus_time_entries
+      SET
+        end_time = ${endTime}::timestamptz,
+        end_lat = ${geo.lat}::double precision,
+        end_lng = ${geo.lng}::double precision,
+        end_accuracy = ${geo.accuracy}::double precision,
+        duration_minutes = ${durationMinutes}::int,
+        void_reason = ${noteValue}
+      WHERE
+        id = ${String(existing.activeShift.id)}::uuid
+        AND organization_id = ${String(workspace.id)}::uuid
+        AND user_id = ${String(resolved.user.id)}::uuid
+    `,
+  });
 
   if (!updatedCount) throw new Error('Failed to punch out');
 

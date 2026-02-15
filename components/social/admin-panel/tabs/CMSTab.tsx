@@ -1,19 +1,61 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, CreditCard, MessageSquare } from 'lucide-react';
 import { bulkUpdateSiteContent, seedDefaultLegalDocuments } from '@/app/actions/admin-site-content';
 
+type SiteContentPage = 'landing' | 'pricing' | 'legal';
+
+type SiteContentRow = {
+  key: string;
+  content: unknown;
+};
+
+type SiteContentByPage = Record<SiteContentPage, SiteContentRow[]>;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function coerceRows(value: unknown): SiteContentRow[] {
+  if (!Array.isArray(value)) return [];
+  const out: SiteContentRow[] = [];
+  for (const item of value) {
+    const obj = asObject(item);
+    const key = obj?.key;
+    if (typeof key !== 'string' || !key) continue;
+    out.push({ key, content: obj?.content });
+  }
+  return out;
+}
+
+function coerceSiteContent(value: unknown): SiteContentByPage {
+  const obj = asObject(value) ?? {};
+  return {
+    landing: coerceRows(obj.landing),
+    pricing: coerceRows(obj.pricing),
+    legal: coerceRows(obj.legal),
+  };
+}
+
+function getText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
+}
+
 interface CMSTabProps {
-  siteContent: any;
+  siteContent: unknown;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps) {
+  const contentByPage = useMemo(() => coerceSiteContent(siteContent), [siteContent]);
+
   const getContentValue = (page: 'landing' | 'pricing' | 'legal', key: string) => {
-    return siteContent?.[page]?.find((c: any) => c.key === key)?.content;
+    return contentByPage[page]?.find((c) => c.key === key)?.content;
   };
 
   return (
@@ -38,7 +80,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                   <label className="block text-sm font-black text-slate-700 mb-2">כותרת ראשית (Hero Title)</label>
                   <input
                     type="text"
-                    defaultValue={siteContent?.landing?.find((c: any) => c.key === 'hero_title')?.content || 'נהלו את הסושיאל באפס מאמץ.'}
+                    defaultValue={getText(getContentValue('landing', 'hero_title'), 'נהלו את הסושיאל באפס מאמץ.')}
                     onBlur={async (e) => {
                       const result = await bulkUpdateSiteContent([{
                         page: 'landing',
@@ -57,7 +99,10 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 <div>
                   <label className="block text-sm font-black text-slate-700 mb-2">תת-כותרת (Hero Subtitle)</label>
                   <textarea
-                    defaultValue={siteContent?.landing?.find((c: any) => c.key === 'hero_subtitle')?.content || 'שחררו את המחסומים. פוסטים ב-DNA של המותג בלחיצת כפתור.'}
+                    defaultValue={getText(
+                      getContentValue('landing', 'hero_subtitle'),
+                      'שחררו את המחסומים. פוסטים ב-DNA של המותג בלחיצת כפתור.'
+                    )}
                     onBlur={async (e) => {
                       const result = await bulkUpdateSiteContent([{
                         page: 'landing',
@@ -77,7 +122,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 <div className="md:col-span-2">
                   <label className="block text-sm font-black text-slate-700 mb-2">תכונות (Features) - JSON</label>
                   <textarea
-                    defaultValue={JSON.stringify(siteContent?.landing?.find((c: any) => c.key === 'features')?.content || [
+                    defaultValue={JSON.stringify(getContentValue('landing', 'features') || [
                       { title: 'הקמת לקוח ב-60 שניות', desc: 'שלחו לינק וואטסאפ ללקוח, והוא כבר יזין הכל.', icon: 'Rocket' },
                       { title: 'The Machine ✨', desc: 'Gemini 3 בונה עבורכם פוסטים בטון המדויק של המותג.', icon: 'Zap' },
                       { title: 'גבייה ללא מגע אדם', desc: 'תזכורות אוטומטיות, חסימת גישה בפיגור.', icon: 'ShieldCheck' },
@@ -119,7 +164,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                   <label className="block text-sm font-black text-slate-700 mb-2">כותרת ראשית</label>
                   <input
                     type="text"
-                    defaultValue={siteContent?.pricing?.find((c: any) => c.key === 'hero_title')?.content || 'בחרו את החבילה המתאימה'}
+                    defaultValue={getText(getContentValue('pricing', 'hero_title'), 'בחרו את החבילה המתאימה')}
                     onBlur={async (e) => {
                       const result = await bulkUpdateSiteContent([{
                         page: 'pricing',
@@ -138,7 +183,10 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 <div>
                   <label className="block text-sm font-black text-slate-700 mb-2">תת-כותרת</label>
                   <textarea
-                    defaultValue={siteContent?.pricing?.find((c: any) => c.key === 'hero_subtitle')?.content || 'ללא התחייבות. ביטול בכל עת. התחילו עם ניסיון חינם.'}
+                    defaultValue={getText(
+                      getContentValue('pricing', 'hero_subtitle'),
+                      'ללא התחייבות. ביטול בכל עת. התחילו עם ניסיון חינם.'
+                    )}
                     onBlur={async (e) => {
                       const result = await bulkUpdateSiteContent([{
                         page: 'pricing',
@@ -160,15 +208,27 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
               {/* Plans */}
               <div className="space-y-6">
                 {['starter', 'pro', 'agency'].map((plan) => {
-                  const planName = siteContent?.pricing?.find((c: any) => c.key === `${plan}_name`)?.content || 
-                    (plan === 'starter' ? 'Starter' : plan === 'pro' ? 'Professional' : 'Agency');
-                  const planDesc = siteContent?.pricing?.find((c: any) => c.key === `${plan}_desc`)?.content || 
-                    (plan === 'starter' ? '2 פוסטים בשבוע' : plan === 'pro' ? '3 פוסטים + AI' : 'ניהול מלא');
-                  const planFeatures = siteContent?.pricing?.find((c: any) => c.key === `${plan}_features`)?.content || 
-                    (plan === 'starter' ? ['2 פוסטים בשבוע', 'גישה לפורטל', 'תמיכה במייל'] :
-                     plan === 'pro' ? ['3 פוסטים בשבוע', 'The Machine ✨', 'גבייה אוטומטית', 'תמיכה עדיפות'] :
-                     ['פוסטים ללא הגבלה', 'The Machine ✨', 'גבייה אוטומטית', 'ניהול קמפיינים', 'תמיכה 24/7']);
-                  const popularPlan = siteContent?.pricing?.find((c: any) => c.key === 'popular_plan')?.content || 'pro';
+                  const defaultPlanName = plan === 'starter' ? 'Starter' : plan === 'pro' ? 'Professional' : 'Agency';
+                  const defaultPlanDesc = plan === 'starter' ? '2 פוסטים בשבוע' : plan === 'pro' ? '3 פוסטים + AI' : 'ניהול מלא';
+                  const defaultPlanFeatures =
+                    plan === 'starter'
+                      ? ['2 פוסטים בשבוע', 'גישה לפורטל', 'תמיכה במייל']
+                      : plan === 'pro'
+                        ? ['3 פוסטים בשבוע', 'The Machine ✨', 'גבייה אוטומטית', 'תמיכה עדיפות']
+                        : ['פוסטים ללא הגבלה', 'The Machine ✨', 'גבייה אוטומטית', 'ניהול קמפיינים', 'תמיכה 24/7'];
+
+                  const planName = getText(getContentValue('pricing', `${plan}_name`), defaultPlanName);
+                  const planDesc = getText(getContentValue('pricing', `${plan}_desc`), defaultPlanDesc);
+
+                  const planFeaturesRaw = getContentValue('pricing', `${plan}_features`);
+                  const planFeatures: string[] | string =
+                    Array.isArray(planFeaturesRaw) && planFeaturesRaw.every((f) => typeof f === 'string')
+                      ? planFeaturesRaw
+                      : typeof planFeaturesRaw === 'string'
+                        ? planFeaturesRaw
+                        : defaultPlanFeatures;
+
+                  const popularPlan = getText(getContentValue('pricing', 'popular_plan'), 'pro');
                   
                   return (
                     <div key={plan} className="bg-white p-6 rounded-2xl border-2 border-purple-200">
@@ -245,7 +305,11 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                         <label className="block text-xs font-black text-slate-600 mb-1">מחיר (₪)</label>
                         <input
                           type="number"
-                          defaultValue={siteContent?.pricing?.find((c: any) => c.key === `${plan}_price`)?.content || (plan === 'starter' ? 1490 : plan === 'pro' ? 2990 : 5490)}
+                          defaultValue={(() => {
+                            const fallbackPrice = plan === 'starter' ? 1490 : plan === 'pro' ? 2990 : 5490;
+                            const v = getContentValue('pricing', `${plan}_price`);
+                            return typeof v === 'number' || typeof v === 'string' ? v || fallbackPrice : fallbackPrice;
+                          })()}
                           onBlur={async (e) => {
                             const result = await bulkUpdateSiteContent([{
                               page: 'pricing',
@@ -304,7 +368,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
               <div className="mt-8">
                 <label className="block text-sm font-black text-slate-700 mb-2">שאלות נפוצות (FAQ) - JSON</label>
                 <textarea
-                  defaultValue={JSON.stringify(siteContent?.pricing?.find((c: any) => c.key === 'faq')?.content || [
+                  defaultValue={JSON.stringify(getContentValue('pricing', 'faq') || [
                     { q: 'האם יש התחייבות?', a: 'לא. תוכלו לבטל בכל עת ללא עמלות.' },
                     { q: 'מה כולל הניסיון החינם?', a: 'גישה מלאה לכל התכונות למשך 7 ימים.' },
                     { q: 'איך מתבצע התשלום?', a: 'תשלום אוטומטי בכרטיס אשראי בתחילת כל חודש.' },
@@ -339,7 +403,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 המלצות (Testimonials)
               </h4>
               <textarea
-                defaultValue={JSON.stringify(siteContent?.landing?.find((c: any) => c.key === 'testimonials')?.content || [
+                defaultValue={JSON.stringify(getContentValue('landing', 'testimonials') || [
                   { name: 'לירון אביב', role: 'בעלים, AVIV Digital', quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע.', avatar: 'https://i.pravatar.cc/150?u=liron' },
                 ], null, 2)}
                 onBlur={async (e) => {
@@ -379,7 +443,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                       return;
                     }
 
-                    const seededKeys = Array.isArray((result as any).data?.seededKeys) ? (result as any).data.seededKeys : [];
+                    const seededKeys = result.data?.seededKeys ?? [];
                     if (seededKeys.length === 0) {
                       addToast('המסמכים כבר קיימים', 'info');
                     } else {

@@ -5,7 +5,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireAuth } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import { headers } from 'next/headers';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 type ChatSessionData = {
   sessionId: string;
@@ -50,11 +50,11 @@ async function resolveOrganizationIdForWrite(params: {
 
   try {
     const h = await headers();
-    const orgSlug = String(h.get('x-org-id') || '').trim();
-    if (orgSlug) {
-      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-      const workspaceId = String(workspace?.id || '').trim();
-      if (workspaceId) return workspaceId;
+    const orgKey = String(h.get('x-org-id') || h.get('x-orgid') || '').trim();
+    if (orgKey) {
+      const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+      const resolved = String(workspaceId || '').trim();
+      if (resolved) return resolved;
     }
   } catch {
   }
