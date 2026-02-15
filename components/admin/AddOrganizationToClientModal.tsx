@@ -220,15 +220,31 @@ export default function AddOrganizationToClientModal({
                 <select
                   id="subscriptionPlan"
                   value={subscriptionPlan}
-                  onChange={(e) => setSubscriptionPlan(e.target.value)}
+                  onChange={(e) => {
+                    const plan = e.target.value;
+                    setSubscriptionPlan(plan);
+                    if (plan === 'solo') {
+                      setHasNexus(false); setHasSocial(false); setHasFinance(false); setHasClient(false); setHasOperations(false);
+                    } else if (plan === 'the_closer') {
+                      setHasNexus(true); setHasSocial(false); setHasFinance(false); setHasClient(false); setHasOperations(false);
+                    } else if (plan === 'the_authority') {
+                      setHasNexus(true); setHasSocial(true); setHasFinance(false); setHasClient(true); setHasOperations(false);
+                    } else if (plan === 'the_operator') {
+                      setHasNexus(true); setHasSocial(false); setHasFinance(true); setHasClient(false); setHasOperations(true);
+                    } else if (plan === 'the_empire') {
+                      setHasNexus(true); setHasSocial(true); setHasFinance(true); setHasClient(true); setHasOperations(true);
+                      setSeatsAllowed(5);
+                    }
+                  }}
                   disabled={isPending || !primaryContactUserId}
                   className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
                   <option value="">ללא חבילה (ניסיון)</option>
-                  <option value="starter">Starter - בסיסי</option>
-                  <option value="pro">Pro - מקצועי</option>
-                  <option value="agency">Agency - סוכנות</option>
-                  <option value="custom">Custom - מותאם אישית</option>
+                  <option value="solo">🎯 מודול בודד — ₪149</option>
+                  <option value="the_closer">💼 מכירות — ₪249</option>
+                  <option value="the_authority">🎨 שיווק ומיתוג — ₪349</option>
+                  <option value="the_operator">🔧 תפעול ושטח — ₪349</option>
+                  <option value="the_empire">👑 הכל כלול — ₪499</option>
                 </select>
               </div>
 

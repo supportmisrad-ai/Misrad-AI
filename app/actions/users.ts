@@ -155,6 +155,8 @@ async function upsertProfileForClerkUser(params: {
   imageUrl?: string;
   preferredOrganizationKey?: string;
   pendingPlan?: PackageType;
+  pendingSoloModule?: string;
+  pendingSeats?: number;
   sendWelcomeEmail?: boolean;
 }): Promise<{ profileId: string; organizationId: string; organizationSlug?: string | null; role?: string | null }> {
   const clerkUserId = String(params.clerkUserId || '').trim();
@@ -360,9 +362,12 @@ async function upsertProfileForClerkUser(params: {
 
   const pendingPlanRaw = params.pendingPlan ? String(params.pendingPlan).trim() : '';
   const pendingPlan = pendingPlanRaw && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, pendingPlanRaw) ? (pendingPlanRaw as PackageType) : null;
+  const soloModuleRaw = params.pendingSoloModule ? String(params.pendingSoloModule).trim() : '';
+  const validSoloModules: OSModuleKey[] = ['system', 'social', 'client', 'operations', 'nexus'];
+  const soloModule: OSModuleKey = validSoloModules.includes(soloModuleRaw as OSModuleKey) ? (soloModuleRaw as OSModuleKey) : 'system';
   const planModules: OSModuleKey[] | null = pendingPlan
     ? pendingPlan === 'solo'
-      ? (['system'] as OSModuleKey[])
+      ? ([soloModule] as OSModuleKey[])
       : [...(BILLING_PACKAGES[pendingPlan].modules || [])]
     : null;
   const hasModule = (k: OSModuleKey): boolean => Boolean(planModules && planModules.includes(k));
@@ -734,12 +739,25 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
       { source: 'app/actions/users.provisionCurrentUserWorkspaceAction', reason: 'workspace_provision', suppressReporting: true },
       async () => {
         let pendingPlan: PackageType | undefined = undefined;
+        let pendingSoloModule: string | undefined = undefined;
+        let pendingSeats: number | undefined = undefined;
         try {
           const jar = await cookies();
           const cookieVal = jar.get('pending_plan')?.value;
           const candidate = String(cookieVal || '').trim();
           if (candidate && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, candidate)) {
             pendingPlan = candidate as PackageType;
+          }
+          const moduleCookie = jar.get('pending_module')?.value;
+          if (moduleCookie) {
+            pendingSoloModule = String(moduleCookie).trim() || undefined;
+          }
+          const seatsCookie = jar.get('pending_seats')?.value;
+          if (seatsCookie) {
+            const n = Number(seatsCookie);
+            if (Number.isFinite(n) && n > 0) {
+              pendingSeats = Math.floor(n);
+            }
           }
         } catch {
           pendingPlan = undefined;
@@ -759,6 +777,8 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
           imageUrl,
           preferredOrganizationKey: undefined,
           pendingPlan,
+          pendingSoloModule,
+          pendingSeats,
           sendWelcomeEmail: false,
         });
 
@@ -766,6 +786,8 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
           try {
             const jar = await cookies();
             jar.delete('pending_plan');
+            jar.delete('pending_seats');
+            jar.delete('pending_module');
           } catch {
             // ignore
           }

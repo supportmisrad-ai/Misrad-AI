@@ -54,12 +54,23 @@ export default function PricingSection({
   })();
 
   const goToTrial = () => {
-    const destination = '/workspaces/onboarding';
+    const planParams = new URLSearchParams();
+    planParams.set('plan', selectedPkg);
+    planParams.set('seats', String(users));
+    if (isSolo) planParams.set('module', selectedSoloModule);
+
+    const destination = `/workspaces/onboarding?${planParams.toString()}`;
     if (isAuthenticated) {
       router.push(destination);
       return;
     }
-    router.push(`/login?mode=sign-up&redirect=${encodeURIComponent(destination)}`);
+    const loginParams = new URLSearchParams();
+    loginParams.set('mode', 'sign-up');
+    loginParams.set('plan', selectedPkg);
+    loginParams.set('seats', String(users));
+    if (isSolo) loginParams.set('module', selectedSoloModule);
+    loginParams.set('redirect', destination);
+    router.push(`/login?${loginParams.toString()}`);
   };
 
   const incrementUsers = () => setUsers((u) => Math.min(50, u + 1));

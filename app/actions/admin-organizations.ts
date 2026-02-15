@@ -494,6 +494,8 @@ export async function createOrganizationOrInviteOwner(input: {
   name: string;
   slug: string;
   ownerEmail: string;
+  packageType?: string | null;
+  modules?: string[] | null;
 }): Promise<
   | { success: true; data: { kind: 'organization'; organizationId: string } }
   | { success: true; data: { kind: 'invitation'; token: string; signupUrl: string } }
@@ -540,19 +542,21 @@ export async function createOrganizationOrInviteOwner(input: {
           isSuperAdmin: true,
         },
         async () => {
+          const mods = Array.isArray(input.modules) ? input.modules : [];
+          const hasMod = (k: string) => mods.includes(k);
           const createdOrg = await prisma.organization.create({
             data: {
               name,
               slug: desiredSlug,
               owner_id: String(existingOwner.id),
-              has_nexus: true,
-              has_social: false,
-              has_system: false,
-              has_finance: false,
-              has_client: false,
-              has_operations: false,
+              has_nexus: mods.length > 0 ? hasMod('nexus') : true,
+              has_social: hasMod('social'),
+              has_system: hasMod('system'),
+              has_finance: mods.length > 0 ? hasMod('finance') || hasMod('operations') : false,
+              has_client: hasMod('client'),
+              has_operations: hasMod('operations'),
               subscription_status: 'trial',
-              subscription_plan: null,
+              subscription_plan: input.packageType ? String(input.packageType) : null,
               trial_start_date: now,
               trial_days: DEFAULT_TRIAL_DAYS,
               created_at: now,

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Copy, Plus, X } from 'lucide-react';
+import { Building2, Copy, Plus, X, Check } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
@@ -11,6 +11,16 @@ import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { generateOrgSlug } from '@/lib/shared/orgSlug';
+import { BILLING_PACKAGES } from '@/lib/billing/pricing';
+import type { PackageType } from '@/lib/billing/pricing';
+
+const PACKAGE_OPTIONS: { key: PackageType; label: string; emoji: string }[] = [
+  { key: 'solo', label: 'מודול בודד', emoji: '🎯' },
+  { key: 'the_closer', label: 'מכירות', emoji: '💼' },
+  { key: 'the_authority', label: 'שיווק ומיתוג', emoji: '🎨' },
+  { key: 'the_operator', label: 'תפעול ושטח', emoji: '🔧' },
+  { key: 'the_empire', label: 'הכל כלול', emoji: '👑' },
+];
 
 type CreateOrganizationOrInviteOwnerResult = Awaited<ReturnType<typeof createOrganizationOrInviteOwner>>;
 
@@ -41,12 +51,21 @@ export default function AdminOrganizationsClient(props: {
   const [slugTouched, setSlugTouched] = useState(false);
 
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<PackageType | ''>('');
+
+  const selectedModules = useMemo(() => {
+    if (!selectedPackage) return [];
+    const def = BILLING_PACKAGES[selectedPackage];
+    if (!def) return [];
+    return [...def.modules];
+  }, [selectedPackage]);
 
   const resetForm = () => {
     setName('');
     setSlug('');
     setOwnerEmail('');
     setSlugTouched(false);
+    setSelectedPackage('');
   };
 
   const onNameChange = (nextName: string) => {
@@ -69,6 +88,8 @@ export default function AdminOrganizationsClient(props: {
           name: name.trim(),
           slug: slug.trim(),
           ownerEmail: ownerEmail.trim(),
+          packageType: selectedPackage || null,
+          modules: selectedModules.length > 0 ? selectedModules : null,
         });
 
         if (!res?.success) {
@@ -282,6 +303,36 @@ export default function AdminOrganizationsClient(props: {
                   required
                 />
                 <p className="text-xs text-slate-500 mt-1">חובה! ישמש ליצירת חשבון הלקוח</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-600 mb-2">חבילה</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {PACKAGE_OPTIONS.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setSelectedPackage(selectedPackage === p.key ? '' : p.key)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all ${
+                        selectedPackage === p.key
+                          ? 'bg-indigo-600 text-white border-indigo-500'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'
+                      }`}
+                    >
+                      {p.emoji} {p.label}
+                    </button>
+                  ))}
+                </div>
+                {selectedPackage && selectedModules.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {selectedModules.map((m) => (
+                      <span key={m} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-700">
+                        <Check size={10} strokeWidth={3} />
+                        {MODULE_LABELS[m] || m}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
 

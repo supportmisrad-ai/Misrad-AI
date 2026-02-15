@@ -25,6 +25,18 @@ export default async function LoginPage({
       sameSite: 'lax',
       maxAge: 60 * 60,
     });
+
+    const seatsRaw = resolvedSearchParams ? resolvedSearchParams['seats'] : undefined;
+    const seats = String(Array.isArray(seatsRaw) ? seatsRaw[0] : seatsRaw || '').trim();
+    if (seats && Number.isFinite(Number(seats)) && Number(seats) > 0) {
+      jar.set('pending_seats', seats, { path: '/', sameSite: 'lax', maxAge: 60 * 60 });
+    }
+
+    const moduleRaw = resolvedSearchParams ? resolvedSearchParams['module'] : undefined;
+    const moduleKey = String(Array.isArray(moduleRaw) ? moduleRaw[0] : moduleRaw || '').trim();
+    if (moduleKey) {
+      jar.set('pending_module', moduleKey, { path: '/', sameSite: 'lax', maxAge: 60 * 60 });
+    }
   }
   
   return (

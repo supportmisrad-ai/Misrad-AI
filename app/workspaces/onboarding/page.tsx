@@ -4,11 +4,12 @@ import prisma from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { provisionCurrentUserWorkspaceAction } from '@/app/actions/users';
 import { getCustomerAccountForCurrentOrganization } from '@/app/actions/customer-accounts';
+import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import WorkspaceOnboardingClient from '@/app/workspaces/onboarding/WorkspaceOnboardingClient';
 
 export const dynamic = 'force-dynamic';
 
-async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string }> {
+async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string; subscriptionPlan: string | null }> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     redirect('/login?redirect=/workspaces/onboarding');
@@ -57,15 +58,19 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
 
   const org = await prisma.organization.findUnique({
     where: { id: String(organizationId) },
-    select: { id: true, slug: true },
+    select: { id: true, slug: true, subscription_plan: true },
   });
 
   const organizationKey = String(org?.slug || org?.id || organizationId);
-  return { organizationId: String(organizationId), organizationKey };
+  return { organizationId: String(organizationId), organizationKey, subscriptionPlan: org?.subscription_plan ?? null };
 }
 
-export default async function WorkspaceOnboardingPage() {
-  const { organizationKey } = await getCurrentOrganizationKey();
+export default async function WorkspaceOnboardingPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { organizationKey, subscriptionPlan } = await getCurrentOrganizationKey();
   const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
 
   const existing = accountRes.success ? accountRes.data : null;
@@ -76,12 +81,29 @@ export default async function WorkspaceOnboardingPage() {
     redirect(`/w/${encodeURIComponent(organizationKey)}`);
   }
 
+  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
+  const planRaw = resolvedSearchParams?.plan;
+  const planFromUrl = String(Array.isArray(planRaw) ? planRaw[0] : planRaw || '').trim();
+  const planKey = (planFromUrl && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, planFromUrl))
+    ? planFromUrl
+    : (subscriptionPlan && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, subscriptionPlan) ? subscriptionPlan : null);
+
+  const seatsRaw = resolvedSearchParams?.seats;
+  const seatsStr = String(Array.isArray(seatsRaw) ? seatsRaw[0] : seatsRaw || '').trim();
+  const seats = seatsStr && Number.isFinite(Number(seatsStr)) && Number(seatsStr) > 0 ? Math.floor(Number(seatsStr)) : null;
+
+  const moduleRaw = resolvedSearchParams?.module;
+  const moduleKey = String(Array.isArray(moduleRaw) ? moduleRaw[0] : moduleRaw || '').trim() || null;
+
   return (
     <WorkspaceOnboardingClient
       organizationKey={organizationKey}
       initialCompanyName={existing?.companyName || ''}
       initialPhone={existing?.phone || ''}
       initialEmail={existing?.email || ''}
+      planKey={planKey}
+      seats={seats}
+      soloModuleKey={moduleKey}
     />
   );
 }
