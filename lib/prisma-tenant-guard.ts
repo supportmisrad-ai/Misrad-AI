@@ -975,6 +975,11 @@ export function installPrismaTenantGuard(
     const expected = getExpectedScope(override);
     const isGlobalAdmin = isGlobalAdminContextAllowed(override);
 
+    // Check excludedModels FIRST to bypass all tenant checks for whitelisted global tables
+    if (excludedModels.has(model)) {
+      return next(params);
+    }
+
     const modelLower = String(model).toLowerCase();
     if (modelLower === 'social_system_settings') {
       enforceSocialSystemSettingsAccess({
@@ -1008,10 +1013,6 @@ export function installPrismaTenantGuard(
         isGlobalAdmin,
         override,
       });
-      return next(params);
-    }
-
-    if (excludedModels.has(model)) {
       return next(params);
     }
 
