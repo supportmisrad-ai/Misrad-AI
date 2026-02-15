@@ -5,13 +5,13 @@
  * Note: For production, consider using Supabase Vault or a dedicated key management service
  */
 
-const ENCRYPTION_KEY = (() => {
+function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY || '';
   if (!key && process.env.NODE_ENV === 'production') {
     throw new Error('[FATAL] ENCRYPTION_KEY env var is required in production');
   }
   return key || 'default-key-change-in-production-32chars!!';
-})();
+}
 const ALGORITHM = 'AES-GCM';
 const IV_LENGTH = 12; // 96 bits for GCM
 const SALT_LENGTH = 16;
@@ -55,7 +55,7 @@ export async function encrypt(value: string): Promise<string> {
   try {
     if (!value) return '';
 
-    const key = await deriveKey(ENCRYPTION_KEY);
+    const key = await deriveKey(getEncryptionKey());
     const encoder = new TextEncoder();
     const data = encoder.encode(value);
     
@@ -92,7 +92,7 @@ export async function decrypt(encryptedValue: string): Promise<string> {
   try {
     if (!encryptedValue) return '';
 
-    const key = await deriveKey(ENCRYPTION_KEY);
+    const key = await deriveKey(getEncryptionKey());
     
     // Decode from base64
     const combined = Buffer.from(encryptedValue, 'base64');
