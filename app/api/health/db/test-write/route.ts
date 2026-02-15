@@ -36,7 +36,9 @@ async function POSTHandler(request: NextRequest) {
                         ? 'Unauthorized'
                         : e.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : e.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return NextResponse.json(
                 { success: false, error: IS_PROD ? safeMsg : e.message || safeMsg },
                 { status: e.status }

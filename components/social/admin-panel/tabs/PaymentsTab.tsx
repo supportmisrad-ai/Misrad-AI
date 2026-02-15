@@ -8,30 +8,169 @@ import { adminMarkSubscriptionOrderPaid } from '@/app/actions/subscription-order
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { Button } from '@/components/ui/button';
 import { getPackageLabelHe } from '@/lib/billing/plan-labels';
+import type { PackageType } from '@/lib/server/workspace';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+type PaymentMethod = 'manual' | 'automatic';
+
+const PACKAGE_KEYS = ['solo', 'the_closer', 'the_authority', 'the_operator', 'the_empire', 'the_mentor'] as const satisfies readonly PackageType[];
+type PackageKey = (typeof PACKAGE_KEYS)[number];
+
+function isPackageKey(value: unknown): value is PackageKey {
+  return typeof value === 'string' && (PACKAGE_KEYS as readonly string[]).includes(value);
+}
+
+type SubscriptionOrderStatus = 'paid' | 'pending' | 'cancelled' | 'pending_verification';
+
+type SubscriptionOrder = {
+  id: string;
+  customer_email: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  package_type: string | null;
+  amount: number;
+  status: SubscriptionOrderStatus | string;
+  created_at: string;
+  proof_image_url: string | null;
+};
+
+type ClientLite = { company_name: string | null };
+
+type PaymentOrderStatus = 'pending' | 'paid' | 'cancelled';
+type PaymentOrder = {
+  id: string;
+  amount: number;
+  description: string | null;
+  status: PaymentOrderStatus;
+  created_at: string;
+  clients: ClientLite | null;
+};
+
+type InvoiceStatus = 'pending' | 'paid' | 'overdue';
+type Invoice = {
+  id: string;
+  invoice_number: string | null;
+  amount: number;
+  status: InvoiceStatus;
+  date: string | null;
+  created_at: string;
+  clients: ClientLite | null;
+};
+
+type PaymentsData = {
+  subscriptionOrders: SubscriptionOrder[];
+  paymentOrders: PaymentOrder[];
+  invoices: Invoice[];
+};
+
+function toNumber(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toPaymentOrderStatus(value: unknown): PaymentOrderStatus {
+  return value === 'paid' || value === 'pending' || value === 'cancelled' ? value : 'pending';
+}
+
+function toInvoiceStatus(value: unknown): InvoiceStatus {
+  return value === 'paid' || value === 'pending' || value === 'overdue' ? value : 'pending';
+}
+
+function coerceClientLite(value: unknown): ClientLite | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+  const companyName = obj.company_name;
+  return { company_name: companyName == null ? null : String(companyName) };
+}
+
+function coerceSubscriptionOrder(value: unknown): SubscriptionOrder {
+  const obj = asObject(value) ?? {};
+  return {
+    id: String(obj.id ?? ''),
+    customer_email: obj.customer_email == null ? null : String(obj.customer_email),
+    customer_name: obj.customer_name == null ? null : String(obj.customer_name),
+    customer_phone: obj.customer_phone == null ? null : String(obj.customer_phone),
+    package_type: obj.package_type == null ? null : String(obj.package_type),
+    amount: toNumber(obj.amount),
+    status: String(obj.status ?? 'pending'),
+    created_at: String(obj.created_at ?? ''),
+    proof_image_url: obj.proof_image_url == null ? null : String(obj.proof_image_url),
+  };
+}
+
+function coercePaymentOrder(value: unknown): PaymentOrder {
+  const obj = asObject(value) ?? {};
+  return {
+    id: String(obj.id ?? ''),
+    amount: toNumber(obj.amount),
+    description: obj.description == null ? null : String(obj.description),
+    status: toPaymentOrderStatus(obj.status),
+    created_at: String(obj.created_at ?? ''),
+    clients: coerceClientLite(obj.clients),
+  };
+}
+
+function coerceInvoice(value: unknown): Invoice {
+  const obj = asObject(value) ?? {};
+  return {
+    id: String(obj.id ?? ''),
+    invoice_number: obj.invoice_number == null ? null : String(obj.invoice_number),
+    amount: toNumber(obj.amount),
+    status: toInvoiceStatus(obj.status),
+    date: obj.date == null ? null : String(obj.date),
+    created_at: String(obj.created_at ?? ''),
+    clients: coerceClientLite(obj.clients),
+  };
+}
+
+function coercePaymentsData(value: unknown): PaymentsData {
+  const root = asObject(value);
+  const payload = asObject(root?.data ?? value) ?? {};
+  const subscriptionOrdersRaw = payload.subscriptionOrders;
+  const paymentOrdersRaw = payload.paymentOrders;
+  const invoicesRaw = payload.invoices;
+
+  return {
+    subscriptionOrders: Array.isArray(subscriptionOrdersRaw) ? subscriptionOrdersRaw.map(coerceSubscriptionOrder) : [],
+    paymentOrders: Array.isArray(paymentOrdersRaw) ? paymentOrdersRaw.map(coercePaymentOrder) : [],
+    invoices: Array.isArray(invoicesRaw) ? invoicesRaw.map(coerceInvoice) : [],
+  };
+}
 
 interface PaymentsTabProps {
-  payments: any;
+  payments: unknown;
   onRefresh: () => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsTabProps) {
-  const subscriptionOrders = payments?.subscriptionOrders || [];
+  const paymentsData = useMemo(() => coercePaymentsData(payments), [payments]);
+  const subscriptionOrders = paymentsData.subscriptionOrders;
 
-  const packageKeys = useMemo(
-    () => ['solo', 'the_closer', 'the_authority', 'the_operator', 'the_empire', 'the_mentor'] as const,
-    []
-  );
+  const packageKeys = useMemo(() => PACKAGE_KEYS, []);
 
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configs, setConfigs] = useState<
     Record<
-      string,
+      PackageKey,
       {
         title: string;
         qrImageUrl: string;
         instructionsText: string;
-        paymentMethod: 'manual' | 'automatic';
+        paymentMethod: PaymentMethod;
         externalPaymentUrl: string;
       }
     >
@@ -41,10 +180,11 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
     the_authority: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_operator: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_empire: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
+    the_mentor: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
   });
 
   const pendingVerificationCount = useMemo(() => {
-    return (subscriptionOrders || []).filter((o: any) => o.status === 'pending_verification').length;
+    return (subscriptionOrders || []).filter((o) => o.status === 'pending_verification').length;
   }, [subscriptionOrders]);
 
   useEffect(() => {
@@ -55,13 +195,14 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
         setConfigs((prev) => {
           const next = { ...prev };
           for (const row of res.data || []) {
-            const key = String((row as any).package_type);
+            const key: PackageType = row.package_type;
+            if (!isPackageKey(key)) continue;
             next[key] = {
-              title: String((row as any).title || ''),
-              qrImageUrl: String((row as any).qr_image_url || ''),
-              instructionsText: String((row as any).instructions_text || ''),
-              paymentMethod: (String((row as any).payment_method || 'manual') === 'automatic' ? 'automatic' : 'manual') as any,
-              externalPaymentUrl: String((row as any).external_payment_url || ''),
+              title: row.title || '',
+              qrImageUrl: row.qr_image_url || '',
+              instructionsText: row.instructions_text || '',
+              paymentMethod: row.payment_method === 'automatic' ? 'automatic' : 'manual',
+              externalPaymentUrl: row.external_payment_url || '',
             };
           }
           return next;
@@ -110,7 +251,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     </tr>
                   </thead>
                   <tbody>
-                    {(subscriptionOrders || []).map((order: any) => {
+                    {(subscriptionOrders || []).map((order) => {
                       const isPendingVerification = order.status === 'pending_verification';
                       return (
                         <tr
@@ -240,7 +381,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                         onChange={(e) =>
                           setConfigs((prev) => ({
                             ...prev,
-                            [pkg]: { ...prev[pkg], paymentMethod: (e.target.value === 'automatic' ? 'automatic' : 'manual') as any },
+                            [pkg]: { ...prev[pkg], paymentMethod: e.target.value === 'automatic' ? 'automatic' : 'manual' },
                           }))
                         }
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
@@ -271,7 +412,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                         for (const pkg of packageKeys) {
                           const cfg = configs[pkg];
                           const result = await upsertSubscriptionPaymentConfig({
-                            packageType: pkg as any,
+                            packageType: pkg,
                             title: cfg?.title || '',
                             qrImageUrl: cfg?.qrImageUrl || '',
                             instructionsText: cfg?.instructionsText || '',
@@ -283,8 +424,8 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                           }
                         }
                         addToast('הגדרות תשלום נשמרו', 'success');
-                      } catch (e: any) {
-                        addToast(e?.message || 'שגיאה בשמירה', 'error');
+                      } catch (e: unknown) {
+                        addToast(getErrorMessage(e) || 'שגיאה בשמירה', 'error');
                       } finally {
                         setIsSavingConfig(false);
                       }
@@ -316,7 +457,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     </tr>
                   </thead>
                   <tbody>
-                    {(payments?.paymentOrders || []).map((order: any) => (
+                    {paymentsData.paymentOrders.map((order) => (
                       <tr key={order.id} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors">
                         <td className="p-4">
                           <p className="font-black text-slate-900">{order.clients?.company_name || 'לא ידוע'}</p>
@@ -343,7 +484,9 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                           <select
                             value={order.status}
                             onChange={async (e) => {
-                              const result = await updatePaymentOrderStatus(order.id, e.target.value as any);
+                              const next = e.target.value;
+                              if (next !== 'pending' && next !== 'paid' && next !== 'cancelled') return;
+                              const result = await updatePaymentOrderStatus(order.id, next);
                               if (result.success) {
                                 addToast('סטטוס עודכן', 'success');
                                 onRefresh();
@@ -360,7 +503,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     ))}
                   </tbody>
                 </table>
-                {(!payments?.paymentOrders || payments.paymentOrders.length === 0) && (
+                {paymentsData.paymentOrders.length === 0 && (
                   <div className="text-center py-12">
                     <CreditCard className="w-12 h-12 text-indigo-300 mx-auto mb-2" />
                     <p className="text-slate-600 font-bold">אין הזמנות תשלום</p>
@@ -388,7 +531,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     </tr>
                   </thead>
                   <tbody>
-                    {(payments?.invoices || []).map((invoice: any) => (
+                    {paymentsData.invoices.map((invoice) => (
                       <tr key={invoice.id} className="border-b border-purple-50 hover:bg-purple-50/50 transition-colors">
                         <td className="p-4">
                           <p className="font-black text-slate-900">{invoice.clients?.company_name || 'לא ידוע'}</p>
@@ -415,7 +558,9 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                           <select
                             value={invoice.status}
                             onChange={async (e) => {
-                              const result = await updateInvoiceStatus(invoice.id, e.target.value as any);
+                              const next = e.target.value;
+                              if (next !== 'pending' && next !== 'paid' && next !== 'overdue') return;
+                              const result = await updateInvoiceStatus(invoice.id, next);
                               if (result.success) {
                                 addToast('סטטוס עודכן', 'success');
                                 onRefresh();
@@ -432,7 +577,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     ))}
                   </tbody>
                 </table>
-                {(!payments?.invoices || payments.invoices.length === 0) && (
+                {paymentsData.invoices.length === 0 && (
                   <div className="text-center py-12">
                     <FileText className="w-12 h-12 text-purple-300 mx-auto mb-2" />
                     <p className="text-slate-600 font-bold">אין חשבוניות</p>

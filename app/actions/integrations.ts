@@ -396,11 +396,6 @@ export async function syncGoogleCalendar() {
       },
     });
 
-    await prisma.integrationStatus.updateMany({
-      where: { name: 'google_calendar' },
-      data: { last_sync: new Date(), updated_at: new Date() },
-    });
-
     return { success: true, events: events.items || [] };
   } catch (error: unknown) {
     console.error('Error syncing Google Calendar:', error);
@@ -467,11 +462,6 @@ export async function syncGoogleDrive(clientId?: string) {
       },
     });
 
-    await prisma.integrationStatus.updateMany({
-      where: { name: 'google_drive' },
-      data: { last_sync: new Date(), updated_at: new Date() },
-    });
-
     return { success: true, files: files.files || [] };
   } catch (error: unknown) {
     console.error('Error syncing Google Drive:', error);
@@ -482,7 +472,7 @@ export async function syncGoogleDrive(clientId?: string) {
 /**
  * Disconnect integration
  */
-export async function disconnectIntegration(integrationName: string) {
+export async function disconnectIntegration(integrationName: string, orgSlug?: string) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -495,21 +485,35 @@ export async function disconnectIntegration(integrationName: string) {
     }
     const supabaseUserId = userResult.userId;
 
+    const resolvedIntegrationName = String(integrationName || '').trim();
+    if (!resolvedIntegrationName) {
+      throw new Error('integrationName חסר');
+    }
+
+    if (resolvedIntegrationName === 'morning') {
+      const resolvedOrgSlug = String(orgSlug || '').trim();
+      if (!resolvedOrgSlug) {
+        throw new Error('orgSlug חסר');
+      }
+
+      const { organizationId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
+      await prisma.integrationCredential.deleteMany({
+        where: { user_id: organizationId, integration_name: 'morning' },
+      });
+
+      return { success: true };
+    }
+
     await prisma.oAuthToken.deleteMany({
-      where: { user_id: supabaseUserId, integration_name: integrationName },
+      where: { user_id: supabaseUserId, integration_name: resolvedIntegrationName },
     });
 
     await prisma.integrationCredential.deleteMany({
-      where: { user_id: supabaseUserId, integration_name: integrationName },
+      where: { user_id: supabaseUserId, integration_name: resolvedIntegrationName },
     });
 
     await prisma.webhookConfig.deleteMany({
-      where: { user_id: supabaseUserId, integration_name: integrationName },
-    });
-
-    await prisma.integrationStatus.updateMany({
-      where: { name: integrationName },
-      data: { is_connected: false, last_sync: null, updated_at: new Date() },
+      where: { user_id: supabaseUserId, integration_name: resolvedIntegrationName },
     });
 
     return { success: true };
@@ -656,12 +660,6 @@ export async function saveWebhookConfig(
       });
     }
 
-    await prisma.integrationStatus.upsert({
-      where: { name: integrationName },
-      create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
-      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
-    });
-
     return { success: true, secretKey };
   } catch (error: unknown) {
     console.error('Error saving webhook config:', error);
@@ -717,12 +715,6 @@ export async function saveMorningCredentials(apiKey: string) {
         },
       });
     }
-
-    await prisma.integrationStatus.upsert({
-      where: { name: 'morning' },
-      create: { name: 'morning', is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
-      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
-    });
 
     return { success: true };
   } catch (error: unknown) {

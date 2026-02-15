@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
+  const [defaultLogoRef, setDefaultLogoRef] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -21,9 +22,11 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
         const data = await res.json().catch(() => null);
         if (cancelled) return;
         setDefaultLogoUrl(data?.defaultLogoUrl ?? null);
+        setDefaultLogoRef(data?.defaultLogoRef ?? null);
       } catch {
         if (cancelled) return;
         setDefaultLogoUrl(null);
+        setDefaultLogoRef(null);
       } finally {
         if (cancelled) return;
         setIsLoading(false);
@@ -52,9 +55,12 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
       }
 
       const data = await res.json().catch(() => null);
-      setDefaultLogoUrl(data?.defaultLogoUrl ?? url);
+      setDefaultLogoUrl(data?.defaultLogoUrl ?? null);
+      setDefaultLogoRef(data?.defaultLogoRef ?? null);
       try {
-        sessionStorage.setItem('global_default_logo_url', String(data?.defaultLogoUrl ?? url ?? ''));
+        const ref = data?.defaultLogoRef ? String(data.defaultLogoRef) : '';
+        if (ref) sessionStorage.setItem('global_default_logo_ref', ref);
+        else sessionStorage.removeItem('global_default_logo_ref');
       } catch {
         // ignore
       }

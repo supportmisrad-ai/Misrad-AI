@@ -116,11 +116,24 @@ async function POSTHandler(request: NextRequest) {
 
     return apiSuccess({});
   } catch (e: unknown) {
+    const isProd = process.env.NODE_ENV === 'production';
     if (e instanceof APIError) {
-      return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(e, {
+        status: e.status,
+        message: isProd ? safeMsg : e.message || safeMsg,
+      });
     }
     const safeMsg = 'Internal server error';
-    const isProd = process.env.NODE_ENV === 'production';
     return apiError(e, { status: 500, message: isProd ? safeMsg : getErrorMessage(e) || safeMsg });
   }
 }

@@ -18,72 +18,85 @@ type WorkspacesApiPayload = {
   workspaces?: WorkspacesApiItem[];
 };
 
-export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
-  const { isSignedIn, isLoaded, userId } = useAuth();
-  const router = useRouter();
+const MAX_WORKSPACE_RETRIES = 5;
+const WORKSPACE_RETRY_DELAY = 1000;
 
-  console.log('[LoginPageClient] Rendered - isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'userId:', userId);
+async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean> }> {
+  for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
+    try {
+      // Fetch workspaces and last location in parallel
+      const [workspacesRes, lastLocationRes] = await Promise.all([
+        fetch('/api/workspaces', { cache: 'no-store' }),
+        fetch('/api/user/last-location', { cache: 'no-store' }).catch(() => null),
+      ]);
 
-  const resolveFirstWorkspace = async (): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean> }> => {
-    const maxRetries = 5;
-    const retryDelay = 1000;
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const res = await fetch('/api/workspaces', { cache: 'no-store' });
-        if (!res.ok) {
-          if (attempt < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            continue;
-          }
-          return { orgSlug: null, entitlements: {} };
-        }
-        
-        const data: unknown = await res.json();
-        const payload = extractData<WorkspacesApiPayload>(data);
-
-        const workspaces = Array.isArray(payload?.workspaces) ? payload.workspaces : [];
-        
-        if (workspaces.length === 0 && attempt < maxRetries - 1) {
-          console.log(`[LoginPageClient] No workspaces found, retrying (${attempt + 1}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          continue;
-        }
-        
-        const first = workspaces[0] ?? null;
-        const orgSlug = first?.slug ?? first?.id ?? null;
-
-        const entitlements: Record<string, boolean> = first?.entitlements && typeof first.entitlements === 'object'
-          ? first.entitlements
-          : {};
-
-        return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements };
-      } catch (err) {
-        console.error(`[LoginPageClient] Error fetching workspaces (attempt ${attempt + 1}/${maxRetries}):`, err);
-        if (attempt < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+      if (!workspacesRes.ok) {
+        if (attempt < MAX_WORKSPACE_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
           continue;
         }
         return { orgSlug: null, entitlements: {} };
       }
-    }
 
-    return { orgSlug: null, entitlements: {} };
-  };
+      const data: unknown = await workspacesRes.json();
+      const payload = extractData<WorkspacesApiPayload>(data);
+      const workspaces = Array.isArray(payload?.workspaces) ? payload.workspaces : [];
+
+      if (workspaces.length === 0 && attempt < MAX_WORKSPACE_RETRIES - 1) {
+        await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
+        continue;
+      }
+
+      if (workspaces.length === 0) {
+        return { orgSlug: null, entitlements: {} };
+      }
+
+      // Workspace selection priority:
+      // 1. Last visited workspace (if user still has access)
+      // 2. Primary workspace (from /api/workspaces - already sorted)
+      // 3. First available workspace (fallback)
+      let selectedWorkspace = workspaces[0];
+
+      if (lastLocationRes?.ok) {
+        const lastLocationData = extractData<{ orgSlug?: string | null }>(await lastLocationRes.json());
+        const lastOrgSlug = lastLocationData?.orgSlug ? String(lastLocationData.orgSlug) : null;
+        if (lastOrgSlug) {
+          const lastWorkspace = workspaces.find(
+            (w) => String(w.slug) === lastOrgSlug || String(w.id) === lastOrgSlug
+          );
+          if (lastWorkspace) {
+            selectedWorkspace = lastWorkspace;
+          }
+        }
+      }
+
+      const orgSlug = selectedWorkspace.slug ?? selectedWorkspace.id ?? null;
+      const entitlements: Record<string, boolean> =
+        selectedWorkspace.entitlements && typeof selectedWorkspace.entitlements === 'object'
+          ? selectedWorkspace.entitlements
+          : {};
+
+      return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements };
+    } catch (err) {
+      if (attempt < MAX_WORKSPACE_RETRIES - 1) {
+        await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
+        continue;
+      }
+      return { orgSlug: null, entitlements: {} };
+    }
+  }
+  return { orgSlug: null, entitlements: {} };
+}
+
+export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
+  const { isSignedIn, isLoaded, userId } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    console.log('[LoginPageClient] useEffect triggered - isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'userId:', userId);
-    
-    // Wait for Clerk to load
-    if (!isLoaded) {
-      console.log('[LoginPageClient] Clerk not loaded yet, waiting...');
-      return;
-    }
+    if (!isLoaded) return;
 
     // If user is signed in, redirect to their first available OS
     if (isSignedIn && userId) {
-      console.log('[LoginPageClient] User is authenticated, starting redirect logic');
-      // Check if there's a redirect parameter in the URL (for direct OS access)
       const searchParams = new URLSearchParams(window.location.search);
       const redirectPath =
         searchParams.get('redirect') ||
@@ -116,10 +129,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         (async () => {
           try {
             const { orgSlug, entitlements } = await resolveFirstWorkspace();
-            console.log('[Login] Resolved orgSlug:', orgSlug);
             
             if (!orgSlug) {
-              console.log('[Login] No workspace found, provisioning a new workspace');
               router.push('/workspaces/new');
               return;
             }
@@ -135,7 +146,6 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
 
             const first = priority.find(p => Boolean(entitlements[p.key]));
             const targetRoute = first?.route || '/workspaces';
-            console.log('[Login] Redirecting to:', targetRoute);
             router.push(targetRoute);
           } catch (error) {
             console.error('[Login] Error during redirect:', error);

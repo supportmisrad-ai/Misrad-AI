@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from 'next/headers';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
-import { DataProvider } from "../../context/DataContext";
 import LoginPageClient from './LoginPageClient';
 
 // Force dynamic rendering to prevent build-time Clerk errors and handle auth server-side
@@ -29,8 +28,6 @@ export default async function LoginPage({
   }
   
   return (
-    <DataProvider>
-      <LoginPageClient initialUserId={userId} />
-    </DataProvider>
+    <LoginPageClient initialUserId={userId} />
   );
 }

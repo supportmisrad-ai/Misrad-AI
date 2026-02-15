@@ -77,9 +77,11 @@ async function GETHandler(request: NextRequest) {
         const msg = getErrorMessage(error);
         
         if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {
+            const status = msg.includes('Forbidden') ? 403 : 401;
+            const safeMsg = status === 401 ? 'Unauthorized' : 'Forbidden';
             return NextResponse.json(
-                { error: msg },
-                { status: msg.includes('Forbidden') ? 403 : 401 }
+                { error: IS_PROD ? safeMsg : msg || safeMsg },
+                { status }
             );
         }
         
@@ -163,14 +165,17 @@ async function POSTHandler(request: NextRequest) {
         const msg = getErrorMessage(error);
         
         if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {
+            const status = msg.includes('Forbidden') ? 403 : 401;
+            const safeMsg = status === 401 ? 'Unauthorized' : 'Forbidden';
             return NextResponse.json(
-                { error: msg },
-                { status: msg.includes('Forbidden') ? 403 : 401 }
+                { error: IS_PROD ? safeMsg : msg || safeMsg },
+                { status }
             );
         }
-        
+
+        const safeMsg = 'Internal server error';
         return NextResponse.json(
-            { error: msg || 'Failed to create role' },
+            { error: IS_PROD ? safeMsg : msg || 'Failed to create role' },
             { status: 500 }
         );
     }

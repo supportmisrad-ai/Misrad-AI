@@ -148,6 +148,16 @@ export default clerkMiddleware(async (auth, req) => {
   const allowDevMaintenance =
     String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === 'true' ||
     String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === '1';
+
+  const clerkSecretKey = String(process.env.CLERK_SECRET_KEY || '').trim();
+  const clerkPublishableKey = String(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '').trim();
+  const isClerkConfigured = Boolean(clerkSecretKey && clerkPublishableKey);
+  if (!isClerkConfigured) {
+    if (!isDev) {
+      return NextResponse.json({ error: 'Auth not configured' }, { status: 503 });
+    }
+    return NextResponse.next();
+  }
   const configuredSignInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/login";
   const configuredSignInUrl = configuredSignInUrlRaw.startsWith("/sign-in") ? "/login" : configuredSignInUrlRaw;
   const unauthenticatedUrl = configuredSignInUrl.startsWith("http")
@@ -169,10 +179,97 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(url, 308);
   }
 
+  if (pathname.startsWith("/api") || pathname.startsWith("/trpc")) {
+    if (pathname === "/api/system/maintenance") {
+      return NextResponse.next();
+    }
+    if (isDev && pathname === '/api/debug/middleware') {
+      const authState = await auth();
+      const authStateObj = authState as unknown as { userId?: unknown; sessionClaims?: unknown };
+      const userId = authStateObj?.userId != null ? String(authStateObj.userId) : null;
+      const claims = authStateObj?.sessionClaims;
+      const cookieHeader = req.headers.get('cookie') || '';
+      const cookieNames = cookieHeader
+        .split(/;\s*/)
+        .map((part) => String(part || '').split('=')[0] || '')
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .slice(0, 100);
+
+      const clerkSecretKey = String(process.env.CLERK_SECRET_KEY || '').trim();
+      const publishableKey = String(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '').trim();
+
+      return NextResponse.json({
+        ok: true,
+        nodeEnv: process.env.NODE_ENV || null,
+        pathname,
+        origin: req.nextUrl.origin,
+        host: req.headers.get('host') || null,
+        hasCookies: cookieHeader.length > 0,
+        cookieCount: cookieNames.length,
+        cookieNames,
+        hasSessionCookie: cookieHeader.includes('__session='),
+        hasClerkDbJwt: cookieHeader.includes('__clerk_db_jwt='),
+        hasClerkActiveContext: cookieHeader.includes('clerk_active_context='),
+        middlewareUserIdPresent: Boolean(userId),
+        middlewareHasClaims: claims != null,
+        env: {
+          publishableKeyPrefix: publishableKey ? publishableKey.slice(0, 8) : null,
+          secretKeyPrefix: clerkSecretKey ? clerkSecretKey.slice(0, 8) : null,
+          secretKeyLooksValid:
+            clerkSecretKey.startsWith('sk_test_') || clerkSecretKey.startsWith('sk_live_'),
+        },
+      });
+    }
+
+     try {
+       await auth();
+     } catch {
+       // Intentionally ignore auth resolution errors for API routes.
+     }
+
+    return NextResponse.next();
+  }
+
   const authState = await auth();
   const authStateObj = authState as unknown as { userId?: unknown; sessionClaims?: unknown };
   const userId = authStateObj?.userId != null ? String(authStateObj.userId) : null;
   const claims = authStateObj?.sessionClaims;
+
+  if (isDev && pathname === '/api/debug/middleware') {
+    const cookieHeader = req.headers.get('cookie') || '';
+    const cookieNames = cookieHeader
+      .split(/;\s*/)
+      .map((part) => String(part || '').split('=')[0] || '')
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .slice(0, 100);
+
+    const clerkSecretKey = String(process.env.CLERK_SECRET_KEY || '').trim();
+    const publishableKey = String(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '').trim();
+
+    return NextResponse.json({
+      ok: true,
+      nodeEnv: process.env.NODE_ENV || null,
+      pathname,
+      origin: req.nextUrl.origin,
+      host: req.headers.get('host') || null,
+      hasCookies: cookieHeader.length > 0,
+      cookieCount: cookieNames.length,
+      cookieNames,
+      hasSessionCookie: cookieHeader.includes('__session='),
+      hasClerkDbJwt: cookieHeader.includes('__clerk_db_jwt='),
+      hasClerkActiveContext: cookieHeader.includes('clerk_active_context='),
+      middlewareUserIdPresent: Boolean(userId),
+      middlewareHasClaims: claims != null,
+      env: {
+        publishableKeyPrefix: publishableKey ? publishableKey.slice(0, 8) : null,
+        secretKeyPrefix: clerkSecretKey ? clerkSecretKey.slice(0, 8) : null,
+        secretKeyLooksValid:
+          clerkSecretKey.startsWith('sk_test_') || clerkSecretKey.startsWith('sk_live_'),
+      },
+    });
+  }
 
   // Legacy entrypoints -> canonical flow via /login redirect param.
   // LoginPageClient will convert these into workspace paths using orgSlug.
@@ -194,14 +291,6 @@ export default clerkMiddleware(async (auth, req) => {
       url.searchParams.set("redirect", normalized);
       return NextResponse.redirect(url, 308);
     }
-  }
-
-  // Never redirect API routes
-  if (pathname.startsWith("/api") || pathname.startsWith("/trpc")) {
-    if (pathname === "/api/system/maintenance") {
-      return NextResponse.next();
-    }
-    return NextResponse.next();
   }
 
   const maintenanceMode = (isE2E || (isDev && !allowDevMaintenance))

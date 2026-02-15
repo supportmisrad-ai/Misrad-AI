@@ -400,7 +400,9 @@ async function GETHandler(
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     const msg = getErrorMessage(e);

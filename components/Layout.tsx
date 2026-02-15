@@ -112,8 +112,15 @@ export const Layout = ({ children }: LayoutProps) => {
   }, []);
 
   // Lightweight client navigation timing for internal Nexus route changes
+  const isFirstNavRef = useRef(true);
   useEffect(() => {
     if (typeof window === 'undefined' || typeof performance === 'undefined') return;
+
+    // Skip the initial page load — it includes full bootstrap time and is not a navigation
+    if (isFirstNavRef.current) {
+      isFirstNavRef.current = false;
+      return;
+    }
 
     const startMark = 'nexus_nav_start';
     const endMark = 'nexus_nav_end';

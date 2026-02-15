@@ -6,7 +6,7 @@ import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClerk } from '@clerk/nextjs';
 import { HoldButton } from '../components/HoldButton';
-import { LeadStatus, Status } from '../types';
+import { LeadStatus, Status, type Lead, type Task, type TimeEntry } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
@@ -28,6 +28,87 @@ type MeModuleCard = {
   href: string;
   iconId?: 'settings' | 'target' | 'trending_up' | 'user';
 };
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function getObjectProp(obj: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  return asObject(obj?.[key]);
+}
+
+function getNumberProp(obj: Record<string, unknown> | null, key: string): number | null {
+  const v = obj?.[key];
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+function coerceStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v)).filter(Boolean);
+}
+
+type LeaveRequestStatus = 'approved' | 'rejected' | 'pending' | string;
+type LeaveRequest = {
+  id: string;
+  start_date: string;
+  end_date: string | null;
+  status: LeaveRequestStatus;
+  reason: string | null;
+  metadata: { isUrgent?: boolean } | null;
+};
+
+function coerceLeaveRequest(value: unknown): LeaveRequest {
+  const obj = asObject(value) ?? {};
+  const meta = asObject(obj.metadata);
+  return {
+    id: String(obj.id ?? ''),
+    start_date: String(obj.start_date ?? ''),
+    end_date: obj.end_date == null ? null : String(obj.end_date),
+    status: String(obj.status ?? 'pending'),
+    reason: obj.reason == null ? null : String(obj.reason),
+    metadata: meta ? { ...(typeof meta.isUrgent === 'boolean' ? { isUrgent: meta.isUrgent } : {}) } : null,
+  };
+}
+
+type AttendanceStatus = 'attending' | 'not_attending';
+type AttendanceRow = { userId: string; status: AttendanceStatus | null };
+
+function coerceAttendanceRow(value: unknown): AttendanceRow {
+  const obj = asObject(value) ?? {};
+  const userId = String(obj.user_id ?? obj.userId ?? '');
+  const statusRaw = obj.status;
+  const status = statusRaw === 'attending' || statusRaw === 'not_attending' ? statusRaw : null;
+  return { userId, status };
+}
+
+type TeamEvent = {
+  id: string;
+  title: string;
+  start_date: string;
+  required_attendees: string[];
+  optional_attendees: string[];
+};
+
+function coerceTeamEvent(value: unknown): TeamEvent {
+  const obj = asObject(value) ?? {};
+  return {
+    id: String(obj.id ?? ''),
+    title: String(obj.title ?? ''),
+    start_date: String(obj.start_date ?? ''),
+    required_attendees: coerceStringArray(obj.required_attendees),
+    optional_attendees: coerceStringArray(obj.optional_attendees),
+  };
+}
 
 export const MeView: React.FC<{
   children?: React.ReactNode;
@@ -81,10 +162,10 @@ export const MeView: React.FC<{
   const [showHistory, setShowHistory] = useState(true); // Start with history tab open
   const [showLeaveRequestModal, setShowLeaveRequestModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [myLeaveRequests, setMyLeaveRequests] = useState<any[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
-  const [cachedLeaveRequests, setCachedLeaveRequests] = useState<any[]>([]);
-  const [cachedEvents, setCachedEvents] = useState<any[]>([]);
+  const [myLeaveRequests, setMyLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<TeamEvent[]>([]);
+  const [cachedLeaveRequests, setCachedLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [cachedEvents, setCachedEvents] = useState<TeamEvent[]>([]);
   const [isLoadingLeaveRequests, setIsLoadingLeaveRequests] = useState(false);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -101,7 +182,18 @@ export const MeView: React.FC<{
   }, [workspaceInfo.module]);
 
   const [meInsightsLoading, setMeInsightsLoading] = useState(false);
-  const [meInsightsData, setMeInsightsData] = useState<any>(null);
+  const [meInsightsData, setMeInsightsData] = useState<unknown>(null);
+
+  const meInsightsObj = useMemo(() => asObject(meInsightsData), [meInsightsData]);
+  const hotLeadsTotal = useMemo(() => {
+    const hotLeadsObj = getObjectProp(meInsightsObj, 'hotLeads');
+    return getNumberProp(hotLeadsObj, 'totalLeads');
+  }, [meInsightsObj]);
+  const commitmentsCount = useMemo(() => {
+    const commitmentsObj = getObjectProp(meInsightsObj, 'commitments');
+    return getNumberProp(commitmentsObj, 'count');
+  }, [meInsightsObj]);
+  const expectedMonthlyRevenue = useMemo(() => getNumberProp(meInsightsObj, 'expectedMonthlyRevenue'), [meInsightsObj]);
 
   useEffect(() => {
       if (!orgSlug || !currentInsightsModule) {
@@ -193,10 +285,13 @@ export const MeView: React.FC<{
                       const data = await response.json().catch(() => ({}));
                       const payload = extractData<{ events?: unknown[] }>(data);
                       const now = new Date();
-                      const upcoming = (payload?.events || []).filter((e: any) => {
-                          const eventDate = new Date(e.start_date);
-                          return eventDate >= now;
-                      }).slice(0, 3);
+                      const upcoming = (payload?.events || [])
+                          .map((e) => coerceTeamEvent(e))
+                          .filter((e) => {
+                              const eventDate = new Date(e.start_date);
+                              return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
+                          })
+                          .slice(0, 3);
                       setUpcomingEvents(upcoming);
                   }
               } catch (error) {
@@ -204,8 +299,8 @@ export const MeView: React.FC<{
               }
           };
           loadEvents();
-      } catch (error: any) {
-          addToast(error.message || 'שגיאה בשמירת אישור הגעה', 'error');
+      } catch (error: unknown) {
+          addToast(getErrorMessage(error) || 'שגיאה בשמירת אישור הגעה', 'error');
       }
   };
   
@@ -214,22 +309,22 @@ export const MeView: React.FC<{
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Stats Calculation
-  const myTasks = tasks.filter((t: any) => t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id);
-  const completedTasks = myTasks.filter((t: any) => t.status === 'Done').length;
-  const activeTasksCount = myTasks.filter((t: any) => t.status !== 'Done' && t.status !== 'Canceled').length;
+  const myTasks = (tasks as Task[]).filter((t) => t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id);
+  const completedTasks = myTasks.filter((t) => t.status === Status.DONE).length;
+  const activeTasksCount = myTasks.filter((t) => t.status !== Status.DONE && t.status !== Status.CANCELED).length;
   const monthlyEfficiency = myTasks.length ? Math.round((completedTasks / myTasks.length) * 100) : null;
 
   // Personal Time Entries
   const myHistory = timeEntries
-      .filter((entry: any) => entry.userId === currentUser.id)
-      .sort((a: any, b: any) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      .filter((entry: TimeEntry) => entry.userId === currentUser.id)
+      .sort((a: TimeEntry, b: TimeEntry) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
 
   // --- Daily Stats Calculation ---
   const todayStr = new Date().toISOString().split('T')[0];
-  const todaysEntries = timeEntries.filter((e: any) => e.userId === currentUser.id && e.date === todayStr);
+  const todaysEntries = timeEntries.filter((e: TimeEntry) => e.userId === currentUser.id && e.date === todayStr);
   
   // Sum finished shifts
-  const finishedMinutes = todaysEntries.reduce((acc: number, curr: any) => acc + (curr.durationMinutes || 0), 0);
+  const finishedMinutes = todaysEntries.reduce((acc: number, curr: TimeEntry) => acc + (curr.durationMinutes || 0), 0);
   
   // Add active shift duration
   const activeShiftDuration = activeShift ? (currentTime.getTime() - new Date(activeShift.startTime).getTime()) / 60000 : 0;
@@ -255,7 +350,9 @@ export const MeView: React.FC<{
 
   // 2. Sales Commission
   const commissionPct = currentUser.commissionPct || 0;
-  const salesRevenue = leads.filter((l: any) => l.status === LeadStatus.WON).reduce((sum: number, l: any) => sum + l.value, 0);
+  const salesRevenue = (leads as Lead[])
+      .filter((l) => l.status === LeadStatus.WON)
+      .reduce((sum: number, l) => sum + (typeof l.value === 'number' ? l.value : 0), 0);
   const commissionTotal = currentUser.role.includes('מכירות') ? (salesRevenue * (commissionPct / 100)) : 0;
 
   // 3. Accumulated Rewards (Manager Approved)
@@ -310,7 +407,7 @@ export const MeView: React.FC<{
               if (response.ok) {
                   const data = await response.json().catch(() => ({}));
                   const payload = extractData<{ requests?: unknown[] }>(data);
-                  const newRequests = payload?.requests || [];
+                  const newRequests = (payload?.requests || []).map((r) => coerceLeaveRequest(r));
                   setMyLeaveRequests(newRequests);
                   setCachedLeaveRequests(newRequests);
               }
@@ -335,18 +432,21 @@ export const MeView: React.FC<{
                   const data = await response.json().catch(() => ({}));
                   const payload = extractData<{ events?: unknown[] }>(data);
                   const now = new Date();
-                  const upcoming = (payload?.events || []).filter((e: any) => {
-                      const eventDate = new Date(e.start_date);
-                      return eventDate >= now;
-                  }).slice(0, 3); // Show only next 3
+                  const upcoming = (payload?.events || [])
+                      .map((e) => coerceTeamEvent(e))
+                      .filter((e) => {
+                          const eventDate = new Date(e.start_date);
+                          return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
+                      })
+                      .slice(0, 3); // Show only next 3
                   setUpcomingEvents(upcoming);
                   setCachedEvents(upcoming);
                   
                   // Load RSVP status for events where user is invited
-                  upcoming.forEach(async (event: any) => {
+                  upcoming.forEach(async (event) => {
                       const isInvited = 
-                          (event.required_attendees && event.required_attendees.includes(currentUser.id)) ||
-                          (event.optional_attendees && event.optional_attendees.includes(currentUser.id));
+                          event.required_attendees.includes(currentUser.id) ||
+                          event.optional_attendees.includes(currentUser.id);
                       if (isInvited) {
                           try {
                                   const orgId = getOrgHeaderValue();
@@ -355,12 +455,11 @@ export const MeView: React.FC<{
                                   });
                               if (rsvpResponse.ok) {
                                   const rsvpData = await rsvpResponse.json().catch(() => ({}));
-                                  const rsvpPayload = extractData<{ attendance?: any[] }>(rsvpData);
-                                  const myAttendance = rsvpPayload?.attendance?.find((a: any) => 
-                                      (a.user_id === currentUser.id) || (a.userId === currentUser.id)
-                                  );
-                                  if (myAttendance && (myAttendance.status === 'attending' || myAttendance.status === 'not_attending')) {
-                                      setEventRSVPStatus(prev => ({ ...prev, [event.id]: myAttendance.status }));
+                                  const rsvpPayload = extractData<{ attendance?: unknown[] }>(rsvpData);
+                                  const attendanceRows = (rsvpPayload?.attendance || []).map((a) => coerceAttendanceRow(a));
+                                  const myAttendance = attendanceRows.find((a) => a.userId === currentUser.id);
+                                  if (myAttendance?.status) {
+                                      setEventRSVPStatus(prev => ({ ...prev, [event.id]: myAttendance.status as string }));
                                   }
                               }
                           } catch (error) {
@@ -612,7 +711,7 @@ export const MeView: React.FC<{
                                       title="לידים חמים"
                                       subtitle={null}
                                       icon={Target}
-                                      metric={meInsightsData?.hotLeads?.totalLeads ?? null}
+                                      metric={hotLeadsTotal}
                                       metricLabel="לידים"
                                       onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/system`)}
                                       className="min-h-[132px]"
@@ -622,7 +721,7 @@ export const MeView: React.FC<{
                                       title="התחייבויות"
                                       subtitle={null}
                                       icon={CheckCircle}
-                                      metric={meInsightsData?.commitments?.count ?? null}
+                                      metric={commitmentsCount}
                                       metricLabel={null}
                                       onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/client`)}
                                       className="min-h-[132px]"
@@ -633,8 +732,8 @@ export const MeView: React.FC<{
                                       subtitle={null}
                                       icon={Wallet}
                                       metric={
-                                          typeof meInsightsData?.expectedMonthlyRevenue === 'number'
-                                              ? `₪${Number(meInsightsData.expectedMonthlyRevenue).toLocaleString()}`
+                                          typeof expectedMonthlyRevenue === 'number'
+                                              ? `₪${Number(expectedMonthlyRevenue).toLocaleString()}`
                                               : null
                                       }
                                       metricLabel={null}
@@ -759,7 +858,7 @@ export const MeView: React.FC<{
                                           </tr>
                                       </thead>
                                       <tbody className="divide-y divide-gray-100">
-                                          {myHistory.slice(0, 5).map((entry: any) => (
+                                          {myHistory.slice(0, 5).map((entry: TimeEntry) => (
                                               (() => {
                                                   const startMapUrl = getMapUrl(entry?.startLat, entry?.startLng);
                                                   const endMapUrl = getMapUrl(entry?.endLat, entry?.endLng);
@@ -822,7 +921,7 @@ export const MeView: React.FC<{
                       </div>
                       ) : (
                                       <div className="space-y-3">
-                              {myLeaveRequests.slice(0, 3).map((req: any) => (
+                              {myLeaveRequests.slice(0, 3).map((req) => (
                                               <div key={req.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
                                                   <div className="flex items-center justify-between mb-2">
                                                       <div className="flex items-center gap-2 flex-wrap">
@@ -881,10 +980,10 @@ export const MeView: React.FC<{
                           <div className="text-center py-4 text-gray-600 text-sm">אין אירועים קרובים</div>
                       ) : (
                           <div className="space-y-2">
-                              {upcomingEvents.map((event: any) => {
+                              {upcomingEvents.map((event) => {
                                   const isInvited = 
-                                      (event.required_attendees && event.required_attendees.includes(currentUser.id)) ||
-                                      (event.optional_attendees && event.optional_attendees.includes(currentUser.id));
+                                      event.required_attendees.includes(currentUser.id) ||
+                                      event.optional_attendees.includes(currentUser.id);
                                   const rsvpStatus = eventRSVPStatus[event.id];
                                   
                                   return (
@@ -1063,7 +1162,7 @@ export const MeView: React.FC<{
                           if (response.ok) {
                               const data = await response.json().catch(() => ({}));
                               const payload = extractData<{ requests?: unknown[] }>(data);
-                              setMyLeaveRequests(payload?.requests || []);
+                              setMyLeaveRequests((payload?.requests || []).map((r) => coerceLeaveRequest(r)));
                           }
                       };
                       loadData();
@@ -1094,10 +1193,13 @@ export const MeView: React.FC<{
                               const data = await response.json().catch(() => ({}));
                               const payload = extractData<{ events?: unknown[] }>(data);
                               const now = new Date();
-                              const upcoming = (payload?.events || []).filter((e: any) => {
-                                  const eventDate = new Date(e.start_date);
-                                  return eventDate >= now;
-                              }).slice(0, 3);
+                              const upcoming = (payload?.events || [])
+                                  .map((e) => coerceTeamEvent(e))
+                                  .filter((e) => {
+                                      const eventDate = new Date(e.start_date);
+                                      return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
+                                  })
+                                  .slice(0, 3);
                               setUpcomingEvents(upcoming);
                           }
                       };

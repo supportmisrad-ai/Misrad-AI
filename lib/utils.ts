@@ -84,13 +84,10 @@ export async function generateInvitationToken(): Promise<string> {
 
         try {
             const { default: prisma } = await import('@/lib/prisma');
-            const rows = await prisma.$queryRaw<Array<{ token: string }>>`
-                select token
-                from system_invitation_links
-                where token = ${token}
-                limit 1
-            `;
-            const existing = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+            const existing = await prisma.system_invitation_links.findUnique({
+                where: { token },
+                select: { token: true },
+            });
 
             if (!existing) {
                 return token;

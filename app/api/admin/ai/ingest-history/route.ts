@@ -10,6 +10,8 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type IngestHistoryRequest = {
   organizationId: string;
   include?: {
@@ -135,7 +137,11 @@ async function POSTHandler(req: Request) {
                   results.systemLeads.succeeded++;
                 } catch (e: unknown) {
                   results.systemLeads.failed++;
-                  results.errors.push({ source_type: 'system_leads', source_id: sourceId, message: getErrorMessage(e) });
+                  results.errors.push({
+                    source_type: 'system_leads',
+                    source_id: sourceId,
+                    message: IS_PROD ? 'Internal server error' : getErrorMessage(e),
+                  });
                 }
               }
 
@@ -199,7 +205,11 @@ async function POSTHandler(req: Request) {
                   results.nexusClients.succeeded++;
                 } catch (e: unknown) {
                   results.nexusClients.failed++;
-                  results.errors.push({ source_type: 'nexus_clients', source_id: sourceId, message: getErrorMessage(e) });
+                  results.errors.push({
+                    source_type: 'nexus_clients',
+                    source_id: sourceId,
+                    message: IS_PROD ? 'Internal server error' : getErrorMessage(e),
+                  });
                 }
               }
 
@@ -213,7 +223,11 @@ async function POSTHandler(req: Request) {
       } catch (e: unknown) {
         const msg = getErrorMessage(e);
         const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-        return apiError(e, { status });
+        const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+        return apiError(IS_PROD ? safeMsg : e, {
+          status,
+          message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
       }
     }
   );

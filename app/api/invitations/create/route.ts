@@ -10,7 +10,6 @@ import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { generateInvitationToken, getBaseUrl } from '@/lib/utils';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
@@ -50,34 +49,24 @@ async function selectDbUserId(params: { workspaceId: string; email: string }): P
 async function insertInvitation(params: { workspaceId: string; invitation: InvitationInsert }): Promise<InvitationRow | null> {
     const inv = params.invitation;
     try {
-        const rows = await prisma.$queryRaw<unknown[]>(
-            Prisma.sql`
-                INSERT INTO system_invitation_links (
-                    organization_id,
-                    token,
-                    client_id,
-                    created_by,
-                    expires_at,
-                    is_used,
-                    is_active,
-                    source,
-                    metadata
-                ) VALUES (
-                    ${String(params.workspaceId)},
-                    ${String(inv.token)},
-                    ${inv.client_id ? String(inv.client_id) : null},
-                    ${inv.created_by ? String(inv.created_by) : null},
-                    ${String(inv.expires_at)},
-                    ${Boolean(inv.is_used)},
-                    ${Boolean(inv.is_active)},
-                    ${String(inv.source || 'manual')},
-                    ${JSON.stringify(inv.metadata || {})}
-                )
-                RETURNING *
-            `
-        );
-        const first = Array.isArray(rows) ? rows[0] : null;
-        return first ? (asObject(first) ?? {}) : null;
+        const created = await prisma.system_invitation_links.create({
+            data: {
+                token: String(inv.token),
+                client_id: inv.client_id ? String(inv.client_id) : null,
+                created_by: inv.created_by ? String(inv.created_by) : null,
+                expires_at: inv.expires_at ? new Date(String(inv.expires_at)) : null,
+                is_used: Boolean(inv.is_used),
+                is_active: Boolean(inv.is_active),
+                source: String(inv.source || 'manual'),
+                metadata: {
+                    ...(inv.metadata || {}),
+                    organizationId: String(params.workspaceId),
+                    organization_id: String(params.workspaceId),
+                },
+                updated_at: new Date(),
+            },
+        });
+        return asObject(created) ?? null;
     } catch (error: unknown) {
         const obj = asObject(error);
         const meta = asObject(obj?.meta);
@@ -86,43 +75,6 @@ async function insertInvitation(params: { workspaceId: string; invitation: Invit
             if (!ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
             }
-        }
-        if (code === '42703') {
-            if (!ALLOW_SCHEMA_FALLBACKS) {
-                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
-            }
-            reportSchemaFallback({
-                source: 'api/invitations/create',
-                reason: 'system_invitation_links.organization_id missing column (fallback insert without organization_id)',
-                error,
-                extras: { workspaceId: params.workspaceId },
-            });
-            const rows = await prisma.$queryRaw<unknown[]>(
-                Prisma.sql`
-                    INSERT INTO system_invitation_links (
-                        token,
-                        client_id,
-                        created_by,
-                        expires_at,
-                        is_used,
-                        is_active,
-                        source,
-                        metadata
-                    ) VALUES (
-                        ${String(inv.token)},
-                        ${inv.client_id ? String(inv.client_id) : null},
-                        ${inv.created_by ? String(inv.created_by) : null},
-                        ${String(inv.expires_at)},
-                        ${Boolean(inv.is_used)},
-                        ${Boolean(inv.is_active)},
-                        ${String(inv.source || 'manual')},
-                        ${JSON.stringify(inv.metadata || {})}
-                    )
-                    RETURNING *
-                `
-            );
-            const first = Array.isArray(rows) ? rows[0] : null;
-            return first ? (asObject(first) ?? {}) : null;
         }
         throw error;
     }
@@ -182,7 +134,7 @@ async function POSTHandler(request: NextRequest) {
             is_used: false,
             is_active: true,
             source,
-            metadata: {}
+            metadata: { organizationId: String(workspace.id), organization_id: String(workspace.id) }
         };
 
         let invitation: InvitationRow | null = null;
@@ -226,7 +178,9 @@ async function POSTHandler(request: NextRequest) {
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
         const safeMsg = 'Failed to create invitation link';

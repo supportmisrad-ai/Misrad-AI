@@ -65,7 +65,9 @@ async function GETHandler(request: NextRequest) {
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return NextResponse.json({ error: IS_PROD ? safeMsg : e.message || safeMsg }, { status: e.status });
     }
     const safeMsg = 'Internal server error';
@@ -134,7 +136,9 @@ async function PATCHHandler(request: NextRequest) {
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return NextResponse.json({ error: IS_PROD ? safeMsg : e.message || safeMsg }, { status: e.status });
     }
 

@@ -1,0 +1,345 @@
+{
+  "timestamp": "2026-02-15T00:48:25.088Z",
+  "schemaTableCount": 326,
+  "filesWithRawSql": 34,
+  "matched": {
+    "client_clients": [
+      "app/actions/admin-cockpit.ts",
+      "app/actions/admin.ts"
+    ],
+    "nexus_time_entries": [
+      "app/actions/attendance.ts",
+      "app/actions/nexus/_internal/time-entries.ts"
+    ],
+    "clients": [
+      "app/actions/payments.ts"
+    ],
+    "system_tasks": [
+      "app/actions/system-reports.ts",
+      "app/actions/system-tasks.ts"
+    ],
+    "profiles": [
+      "app/actions/system-reports.ts",
+      "app/actions/system-tasks.ts"
+    ],
+    "system_leads": [
+      "app/api/ai/chat/route.ts",
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "system_invoices": [
+      "app/api/ai/chat/route.ts",
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "misrad_notifications": [
+      "app/api/announcements/route.ts",
+      "app/api/clients/route.ts",
+      "app/api/employees/invite/[token]/complete/route.ts",
+      "app/api/employees/invite/route.ts",
+      "app/api/leave-requests/[id]/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/notifications/route.ts",
+      "app/api/team-events/route.ts",
+      "lib/services/system/notifications.ts"
+    ],
+    "nexus_users": [
+      "app/api/employees/invite/[token]/complete/route.ts",
+      "app/api/employees/invite/route.ts",
+      "app/api/leave-requests/[id]/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/notifications/route.ts"
+    ],
+    "organizations": [
+      "app/api/employees/invite/route.ts"
+    ],
+    "notifications": [
+      "app/api/leave-requests/[id]/route.ts"
+    ],
+    "system_settings": [
+      "app/api/settings/telephony/route.ts",
+      "lib/services/telephony.ts"
+    ],
+    "support_ticket_events": [
+      "app/api/support/[id]/events/route.ts",
+      "app/api/support/[id]/route.ts",
+      "app/api/support/route.ts"
+    ],
+    "misrad_invoices": [
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "ai_embeddings": [
+      "lib/services/ai/AIService.ts"
+    ]
+  },
+  "missing": {
+    "clerk": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "memory": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "feature": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "database": [
+      "app/actions/admin.ts",
+      "app/api/announcements/route.ts",
+      "app/api/clients/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/team-events/route.ts"
+    ],
+    "client": [
+      "app/actions/admin.ts",
+      "app/actions/payments.ts",
+      "app/api/clients/route.ts"
+    ],
+    "system": [
+      "app/actions/admin.ts"
+    ],
+    "ai_chat_sessions": [
+      "app/actions/ai-chat-sessions.ts",
+      "app/api/ai/feedback/route.ts"
+    ],
+    "ai_chat_messages": [
+      "app/actions/ai-chat-sessions.ts"
+    ],
+    "module_chat_history": [
+      "app/actions/chat-history.ts"
+    ],
+    "invoices": [
+      "app/actions/payments.ts"
+    ],
+    "payments": [
+      "app/actions/payments.ts"
+    ],
+    "payment": [
+      "app/actions/payments.ts"
+    ],
+    "db": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "secure": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "the": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "announcements": [
+      "app/api/announcements/[id]/route.ts",
+      "app/api/announcements/route.ts"
+    ],
+    "public": [
+      "app/api/e2e/rls-check/route.ts"
+    ],
+    "api_keys": [
+      "app/api/public/leads/route.ts"
+    ],
+    "landing": [
+      "app/api/public/leads/route.ts"
+    ],
+    "request": [
+      "app/api/settings/telephony/route.ts"
+    ],
+    "telephony": [
+      "app/api/settings/telephony/route.ts"
+    ],
+    "instanceof": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "support": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "if": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "data": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "their": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "ticket": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "direct": [
+      "lib/prisma.ts"
+    ],
+    "last": [
+      "lib/prisma.ts"
+    ],
+    "unnest": [
+      "lib/services/system/notifications.ts"
+    ],
+    "voicenter": [
+      "lib/services/telephony.ts"
+    ]
+  },
+  "allTables": {
+    "client_clients": [
+      "app/actions/admin-cockpit.ts",
+      "app/actions/admin.ts"
+    ],
+    "clerk": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "memory": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "feature": [
+      "app/actions/admin-cockpit.ts"
+    ],
+    "database": [
+      "app/actions/admin.ts",
+      "app/api/announcements/route.ts",
+      "app/api/clients/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/team-events/route.ts"
+    ],
+    "client": [
+      "app/actions/admin.ts",
+      "app/actions/payments.ts",
+      "app/api/clients/route.ts"
+    ],
+    "system": [
+      "app/actions/admin.ts"
+    ],
+    "ai_chat_sessions": [
+      "app/actions/ai-chat-sessions.ts",
+      "app/api/ai/feedback/route.ts"
+    ],
+    "ai_chat_messages": [
+      "app/actions/ai-chat-sessions.ts"
+    ],
+    "nexus_time_entries": [
+      "app/actions/attendance.ts",
+      "app/actions/nexus/_internal/time-entries.ts"
+    ],
+    "module_chat_history": [
+      "app/actions/chat-history.ts"
+    ],
+    "clients": [
+      "app/actions/payments.ts"
+    ],
+    "invoices": [
+      "app/actions/payments.ts"
+    ],
+    "payments": [
+      "app/actions/payments.ts"
+    ],
+    "payment": [
+      "app/actions/payments.ts"
+    ],
+    "system_tasks": [
+      "app/actions/system-reports.ts",
+      "app/actions/system-tasks.ts"
+    ],
+    "profiles": [
+      "app/actions/system-reports.ts",
+      "app/actions/system-tasks.ts"
+    ],
+    "db": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "secure": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "the": [
+      "app/api/ai/analyze/route.ts"
+    ],
+    "system_leads": [
+      "app/api/ai/chat/route.ts",
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "system_invoices": [
+      "app/api/ai/chat/route.ts",
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "announcements": [
+      "app/api/announcements/[id]/route.ts",
+      "app/api/announcements/route.ts"
+    ],
+    "misrad_notifications": [
+      "app/api/announcements/route.ts",
+      "app/api/clients/route.ts",
+      "app/api/employees/invite/[token]/complete/route.ts",
+      "app/api/employees/invite/route.ts",
+      "app/api/leave-requests/[id]/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/notifications/route.ts",
+      "app/api/team-events/route.ts",
+      "lib/services/system/notifications.ts"
+    ],
+    "public": [
+      "app/api/e2e/rls-check/route.ts"
+    ],
+    "nexus_users": [
+      "app/api/employees/invite/[token]/complete/route.ts",
+      "app/api/employees/invite/route.ts",
+      "app/api/leave-requests/[id]/route.ts",
+      "app/api/leave-requests/route.ts",
+      "app/api/notifications/route.ts"
+    ],
+    "organizations": [
+      "app/api/employees/invite/route.ts"
+    ],
+    "notifications": [
+      "app/api/leave-requests/[id]/route.ts"
+    ],
+    "api_keys": [
+      "app/api/public/leads/route.ts"
+    ],
+    "landing": [
+      "app/api/public/leads/route.ts"
+    ],
+    "request": [
+      "app/api/settings/telephony/route.ts"
+    ],
+    "system_settings": [
+      "app/api/settings/telephony/route.ts",
+      "lib/services/telephony.ts"
+    ],
+    "telephony": [
+      "app/api/settings/telephony/route.ts"
+    ],
+    "support_ticket_events": [
+      "app/api/support/[id]/events/route.ts",
+      "app/api/support/[id]/route.ts",
+      "app/api/support/route.ts"
+    ],
+    "instanceof": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "support": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "if": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "data": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "their": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "ticket": [
+      "app/api/support/[id]/route.ts"
+    ],
+    "misrad_invoices": [
+      "app/api/workspaces/[orgSlug]/me-insights/route.ts"
+    ],
+    "direct": [
+      "lib/prisma.ts"
+    ],
+    "last": [
+      "lib/prisma.ts"
+    ],
+    "ai_embeddings": [
+      "lib/services/ai/AIService.ts"
+    ],
+    "unnest": [
+      "lib/services/system/notifications.ts"
+    ],
+    "voicenter": [
+      "lib/services/telephony.ts"
+    ]
+  }
+}

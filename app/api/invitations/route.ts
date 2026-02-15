@@ -10,7 +10,6 @@ import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
@@ -50,27 +49,30 @@ async function selectDbUserId(params: { workspaceId: string; email: string }): P
 
 async function loadInvitationsForWorkspace(workspaceId: string) {
     try {
-        const rows = await prisma.$queryRaw<unknown[]>(
-            Prisma.sql`
-                SELECT
-                    id,
-                    token,
-                    client_id,
-                    created_at,
-                    expires_at,
-                    is_used,
-                    is_active,
-                    used_at,
-                    ceo_name,
-                    ceo_email,
-                    company_name,
-                    source,
-                    metadata
-                FROM system_invitation_links
-                WHERE organization_id = ${String(workspaceId)}
-                ORDER BY created_at DESC
-            `
-        );
+        const rows = await prisma.system_invitation_links.findMany({
+            where: {
+                OR: [
+                    { metadata: { path: ['organizationId'], equals: String(workspaceId) } },
+                    { metadata: { path: ['organization_id'], equals: String(workspaceId) } },
+                ],
+            },
+            orderBy: { created_at: 'desc' },
+            select: {
+                id: true,
+                token: true,
+                client_id: true,
+                created_at: true,
+                expires_at: true,
+                is_used: true,
+                is_active: true,
+                used_at: true,
+                ceo_name: true,
+                ceo_email: true,
+                company_name: true,
+                source: true,
+                metadata: true,
+            },
+        });
         return (Array.isArray(rows) ? rows : []).map((r) => asObject(r) ?? {});
     } catch (error: unknown) {
         const obj = asObject(error);
@@ -87,38 +89,6 @@ async function loadInvitationsForWorkspace(workspaceId: string) {
                 extras: { workspaceId },
             });
             return { missingTable: true as const, rows: [] as InvitationRow[] };
-        }
-        if (code === '42703') {
-            if (!ALLOW_SCHEMA_FALLBACKS) {
-                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
-            }
-            reportSchemaFallback({
-                source: 'api/invitations',
-                reason: 'system_invitation_links.organization_id missing column (fallback to unscoped select)',
-                error,
-                extras: { workspaceId },
-            });
-            const rows = await prisma.$queryRaw<unknown[]>(
-                Prisma.sql`
-                    SELECT
-                        id,
-                        token,
-                        client_id,
-                        created_at,
-                        expires_at,
-                        is_used,
-                        is_active,
-                        used_at,
-                        ceo_name,
-                        ceo_email,
-                        company_name,
-                        source,
-                        metadata
-                    FROM system_invitation_links
-                    ORDER BY created_at DESC
-                `
-            );
-            return { missingTable: false as const, rows: (Array.isArray(rows) ? rows : []).map((r) => asObject(r) ?? {}) };
         }
         throw error;
     }
@@ -195,7 +165,9 @@ async function GETHandler(request: NextRequest) {
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return apiError(error, {
                 status: error.status,
                 message: IS_PROD ? safeMsg : error.message || safeMsg,

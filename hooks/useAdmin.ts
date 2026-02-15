@@ -77,6 +77,7 @@ export const useAdmin = (
         const loadEnabledModules = async () => {
             try {
                 if (typeof window === 'undefined') return;
+                if (!currentUser?.id) return;
                 const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
                 if (!orgSlug) return;
 

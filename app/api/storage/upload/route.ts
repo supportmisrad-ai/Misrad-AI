@@ -224,7 +224,9 @@ async function POSTHandler(request: NextRequest) {
                             ? 'Unauthorized'
                             : status === 404
                                 ? 'Not found'
-                                : 'Forbidden';
+                                : status === 500
+                                    ? 'Internal server error'
+                                    : 'Forbidden';
                 return NextResponse.json({ error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg }, { status });
             }
 

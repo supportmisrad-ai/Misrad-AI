@@ -229,7 +229,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       };
       const integrationName = nameMap[id] || id;
 
-      const result = await disconnectIntegration(integrationName);
+      const result = await disconnectIntegration(integrationName, routeInfo.orgSlug || undefined);
 
       if (result.success) {
         onNotify('התנתקות בוצעה בהצלחה');

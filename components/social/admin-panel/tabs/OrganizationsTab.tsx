@@ -41,8 +41,28 @@ type EditFormState = {
   has_operations: boolean;
 };
 
-function bool(v: any): boolean {
+type ModuleFlagKey = keyof Pick<
+  CreateFormState,
+  'has_nexus' | 'has_social' | 'has_system' | 'has_finance' | 'has_client' | 'has_operations'
+>;
+
+const MODULE_FLAGS: ReadonlyArray<readonly [ModuleFlagKey, string]> = [
+  ['has_nexus', 'Nexus'],
+  ['has_social', 'Social'],
+  ['has_system', 'System'],
+  ['has_finance', 'Finance'],
+  ['has_client', 'Client'],
+  ['has_operations', 'Operations'],
+];
+
+function bool(v: unknown): boolean {
   return v === true;
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return '';
 }
 
 export default function OrganizationsTab() {
@@ -140,13 +160,13 @@ export default function OrganizationsTab() {
       organizationId: org.id,
       name: org.name || '',
       slug: org.slug || '',
-      is_shabbat_protected: (org as any)?.is_shabbat_protected === false ? false : true,
+      is_shabbat_protected: org.is_shabbat_protected === false ? false : true,
       has_nexus: bool(org.has_nexus),
       has_social: bool(org.has_social),
       has_system: bool(org.has_system),
       has_finance: bool(org.has_finance),
       has_client: bool(org.has_client),
-      has_operations: bool((org as any).has_operations),
+      has_operations: bool(org.has_operations),
     });
   };
 
@@ -214,8 +234,8 @@ export default function OrganizationsTab() {
       addToast('כספים כובה (חירום) + דוחות הוסתרו', 'success');
       cancelEdit();
       await load();
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בכיבוי חירום', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בכיבוי חירום', 'error');
     }
   };
 
@@ -325,8 +345,8 @@ export default function OrganizationsTab() {
 
       addToast('לוגו הארגון עודכן בהצלחה', 'success');
       await load();
-    } catch (err: any) {
-      addToast(err?.message || 'שגיאה בהעלאת לוגו', 'error');
+    } catch (err: unknown) {
+      addToast(getErrorMessage(err) || 'שגיאה בהעלאת לוגו', 'error');
     } finally {
       setIsUploadingLogo(false);
       setLogoOrgId(null);
@@ -412,19 +432,15 @@ export default function OrganizationsTab() {
             </div>
 
             <div className="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
-              {([
-                ['has_nexus', 'Nexus'],
-                ['has_social', 'Social'],
-                ['has_system', 'System'],
-                ['has_finance', 'Finance'],
-                ['has_client', 'Client'],
-                ['has_operations', 'Operations'],
-              ] as const).map(([key, label]) => (
+              {MODULE_FLAGS.map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700">
                   <input
                     type="checkbox"
-                    checked={(createForm as any)[key]}
-                    onChange={(e) => setCreateForm((s) => ({ ...s, [key]: e.target.checked } as any))}
+                    checked={createForm[key]}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setCreateForm((s): CreateFormState => ({ ...s, [key]: checked }));
+                    }}
                   />
                   {label}
                 </label>
@@ -537,19 +553,15 @@ export default function OrganizationsTab() {
                     <td className="p-6 align-top">
                       {isEditing ? (
                         <div className="grid grid-cols-2 gap-2">
-                          {([
-                            ['has_nexus', 'Nexus'],
-                            ['has_social', 'Social'],
-                            ['has_system', 'System'],
-                            ['has_finance', 'Finance'],
-                            ['has_client', 'Client'],
-                            ['has_operations', 'Operations'],
-                          ] as const).map(([key, label]) => (
+                          {MODULE_FLAGS.map(([key, label]) => (
                             <label key={key} className="flex items-center gap-2 text-xs font-bold text-slate-700">
                               <input
                                 type="checkbox"
-                                checked={(editForm as any)?.[key] || false}
-                                onChange={(e) => setEditForm((s) => (s ? ({ ...s, [key]: e.target.checked } as any) : s))}
+                                checked={editForm ? editForm[key] : false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setEditForm((s): EditFormState | null => (s ? { ...s, [key]: checked } : s));
+                                }}
                               />
                               {label}
                             </label>
@@ -559,24 +571,24 @@ export default function OrganizationsTab() {
                             <div className="min-w-0">
                               <div className="text-[10px] font-black text-slate-600 uppercase">שבת</div>
                               <div className="text-xs font-bold text-slate-800 truncate">
-                                {(editForm as any)?.is_shabbat_protected ? 'חסום בשבת' : 'פתוח בשבת'}
+                                {editForm?.is_shabbat_protected ? 'חסום בשבת' : 'פתוח בשבת'}
                               </div>
                             </div>
                             <button
                               type="button"
                               onClick={() =>
                                 setEditForm((s) =>
-                                  s ? { ...s, is_shabbat_protected: !Boolean((s as any).is_shabbat_protected) } : s
+                                  s ? { ...s, is_shabbat_protected: !s.is_shabbat_protected } : s
                                 )
                               }
                               className={`shrink-0 px-3 py-2 rounded-xl text-[10px] font-black border transition-all active:scale-95 ${
-                                (editForm as any)?.is_shabbat_protected
+                                editForm?.is_shabbat_protected
                                   ? 'bg-slate-900 text-white border-slate-900'
                                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                               }`}
-                              aria-pressed={Boolean((editForm as any)?.is_shabbat_protected)}
+                              aria-pressed={Boolean(editForm?.is_shabbat_protected)}
                             >
-                              {(editForm as any)?.is_shabbat_protected ? 'מוגן' : 'פתוח'}
+                              {editForm?.is_shabbat_protected ? 'מוגן' : 'פתוח'}
                             </button>
                           </div>
                         </div>
@@ -587,10 +599,10 @@ export default function OrganizationsTab() {
                           {bool(org.has_system) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-blue-100 text-blue-700">SYSTEM</span>}
                           {bool(org.has_finance) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-emerald-100 text-emerald-700">FINANCE</span>}
                           {bool(org.has_client) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-amber-100 text-amber-700">CLIENT</span>}
-                          {bool((org as any).has_operations) && (
+                          {bool(org.has_operations) && (
                             <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-sky-100 text-sky-700">OPERATIONS</span>
                           )}
-                          {(org as any)?.is_shabbat_protected === false ? (
+                          {org.is_shabbat_protected === false ? (
                             <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-emerald-100 text-emerald-700">SHABBAT: OPEN</span>
                           ) : (
                             <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-slate-100 text-slate-700">SHABBAT: LOCK</span>
@@ -629,7 +641,7 @@ export default function OrganizationsTab() {
                             >
                               <Upload size={16} className={isUploadingLogo && logoOrgId === org.id ? 'opacity-60' : ''} />
                             </Button>
-                            {(editForm as any)?.has_finance && (
+                            {Boolean(editForm?.has_finance) && (
                               <Button
                                 onClick={emergencyDisableFinance}
                                 variant="outline"

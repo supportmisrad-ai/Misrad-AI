@@ -87,7 +87,20 @@ async function POSTHandler(request: NextRequest) {
     return apiError('שגיאה ביצירת טוקן', { status: 500 });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(e, {
+        status: e.status,
+        message: IS_PROD ? safeMsg : e.message || safeMsg,
+      });
     }
     const safeMsg = 'Internal server error';
     return apiError(e, { status: 500, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });

@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 
 import { hasPermission } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import prisma from '@/lib/prisma';
+import prisma, { queryRawOrgScopedSql } from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import { isUuidLike as isUUID } from '@/lib/server/workspace-access/utils';
 
@@ -121,7 +121,10 @@ export async function listNexusTimeEntries(params: {
 
   const whereSql = Prisma.join(conditions, ' AND ');
 
-  const rows = await prisma.$queryRaw<unknown[]>(Prisma.sql`
+  const rows = await queryRawOrgScopedSql<unknown[]>(prisma, {
+    organizationId: String(workspace.id),
+    reason: 'nexus_time_entries_list',
+    sql: Prisma.sql`
     SELECT
       id,
       organization_id,
@@ -144,7 +147,8 @@ export async function listNexusTimeEntries(params: {
     ORDER BY date DESC, start_time DESC
     OFFSET ${offset}
     LIMIT ${take}
-  `);
+  `,
+  });
 
   const hasMore = rows.length > pageSize;
   const trimmed = hasMore ? rows.slice(0, pageSize) : rows;

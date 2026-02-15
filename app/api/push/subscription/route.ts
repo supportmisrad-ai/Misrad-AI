@@ -3,9 +3,12 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-import { deleteWebPushSubscriptions, upsertWebPushSubscription } from '@/lib/server/web-push';
+import { deleteWebPushSubscriptions, upsertWebPushSubscription } from '@/lib/server/web-push';
 
 import { asObject } from '@/lib/shared/unknown';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function getString(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
   return typeof v === 'string' ? v : String(v ?? '');
@@ -55,7 +58,20 @@ async function POSTHandler(request: NextRequest) {
     return apiSuccess({ ok: true }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof APIError) {
-      return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+      const safeMsg =
+        error.status === 400
+          ? 'Bad request'
+          : error.status === 401
+            ? 'Unauthorized'
+            : error.status === 404
+              ? 'Not found'
+              : error.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(error, {
+        status: error.status,
+        message: IS_PROD ? safeMsg : error.message || safeMsg,
+      });
     }
     return apiError(error, { status: 500, message: 'שגיאה בשמירת הרשמה להתראות' });
   }
@@ -79,7 +95,20 @@ async function DELETEHandler(request: NextRequest) {
     return apiSuccess({ ok: true, deleted: count }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof APIError) {
-      return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+      const safeMsg =
+        error.status === 400
+          ? 'Bad request'
+          : error.status === 401
+            ? 'Unauthorized'
+            : error.status === 404
+              ? 'Not found'
+              : error.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
+      return apiError(error, {
+        status: error.status,
+        message: IS_PROD ? safeMsg : error.message || safeMsg,
+      });
     }
     return apiError(error, { status: 500, message: 'שגיאה בביטול הרשמה להתראות' });
   }

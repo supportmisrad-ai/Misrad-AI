@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { LayoutGrid, Lock, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath, modulesRegistry } from '@/lib/os/modules/registry';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
@@ -108,6 +109,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   compact = true,
   hideLockedModules = false,
 }) => {
+  const { isLoaded: isClerkLoaded, isSignedIn } = useAuth();
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -227,6 +229,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
 
   useEffect(() => {
     const load = async () => {
+      if (!isClerkLoaded || !isSignedIn) return;
       if (!orgSlug) return;
       if (entitlementsProp !== undefined) return;
       if (entitlements !== null) return;

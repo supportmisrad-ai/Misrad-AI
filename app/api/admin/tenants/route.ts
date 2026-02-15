@@ -352,12 +352,6 @@ async function POSTHandler(request: NextRequest) {
                         invitationSentBy: user.id,
                         invitationError: emailResult.error || null,
                     };
-
-                    try {
-                        await prisma.$executeRaw`update nexus_tenants set metadata = ${metadata} where id = ${newTenant.id}::uuid`;
-                    } catch {
-                        // ignore
-                    }
                 } catch {
                     // ignore
                 }

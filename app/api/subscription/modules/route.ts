@@ -47,7 +47,9 @@ async function GETHandler(request: NextRequest) {
                         ? 'Unauthorized'
                         : error.status === 404
                             ? 'Not found'
-                            : 'Forbidden';
+                            : error.status === 500
+                                ? 'Internal server error'
+                                : 'Forbidden';
             return NextResponse.json({ error: IS_PROD ? safeMsg : error.message || safeMsg }, { status: error.status });
         }
         const message = getErrorMessage(error);

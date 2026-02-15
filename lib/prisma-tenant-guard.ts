@@ -427,6 +427,78 @@ function enforceSocialSystemSettingsAccess(params: {
   }
 }
 
+function enforceCoreSystemSettingsAccess(params: {
+  action: string;
+  args: Record<string, unknown>;
+  expectedOrganizationId: string | null;
+  isGlobalAdmin: boolean;
+  override?: TenantIsolationContext;
+}): void {
+  const action = params.action;
+  const keyRaw = extractKeyValueFromArgs(action, params.args, 'key');
+  const key = typeof keyRaw === 'string' ? keyRaw.trim() : '';
+
+  if (!key) {
+    const message = `[TenantIsolation] core_system_settings blocked: missing key. (CoreSystemSettings.${action})`;
+    reportTenantIsolationBlocked({ message, model: 'CoreSystemSettings', action, reason: 'missing_key', override: params.override });
+    throw new Error(message);
+  }
+
+  const isOrgKey = SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES.some((p) => key.startsWith(p));
+  const isGlobalKey = SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS.has(key);
+
+  if (isOrgKey) {
+    const expected = params.expectedOrganizationId;
+    if (!expected) {
+      const message = `[TenantIsolation] core_system_settings blocked: missing organization context. (CoreSystemSettings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'CoreSystemSettings',
+        action,
+        reason: 'missing_organization_context',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+
+    if (!key.endsWith(`:${expected}`)) {
+      const message = `[TenantIsolation] core_system_settings blocked: key scope mismatch. (CoreSystemSettings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'CoreSystemSettings',
+        action,
+        reason: 'key_scope_mismatch',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+  } else if (!isGlobalKey && !params.isGlobalAdmin) {
+    const message = `[TenantIsolation] core_system_settings blocked: key not allowlisted. (CoreSystemSettings.${action})`;
+    reportTenantIsolationBlocked({
+      message,
+      model: 'CoreSystemSettings',
+      action,
+      reason: 'key_not_allowlisted',
+      override: params.override,
+    });
+    throw new Error(message);
+  }
+
+  if (isWriteAction(action)) {
+    if (!isOrgKey && !params.isGlobalAdmin) {
+      const message = `[TenantIsolation] core_system_settings blocked: global write requires global_admin. (CoreSystemSettings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'CoreSystemSettings',
+        action,
+        reason: 'global_write_requires_global_admin',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+  }
+}
+
 function enforceGlobalSettingsAccess(params: {
   action: string;
   args: Record<string, unknown>;
@@ -473,10 +545,16 @@ function enforceSystemSettingsAccess(params: {
   const tenantRaw = extractKeyValueFromArgs(action, params.args, 'tenant_id');
 
   if (tenantRaw === undefined) {
+    // Allow read-only operations without tenant_id (system_settings is a global-readable table)
+    const readOnlyActions = new Set(['findFirst', 'findFirstOrThrow', 'findMany', 'findUnique', 'findUniqueOrThrow', 'count', 'aggregate', 'groupBy']);
+    if (readOnlyActions.has(action)) {
+      return;
+    }
+
     if (params.isGlobalAdmin) {
       const idRaw = extractKeyValueFromArgs(action, params.args, 'id');
       const id = typeof idRaw === 'string' ? idRaw.trim() : '';
-      const idOnlyAllowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'update', 'delete']);
+      const idOnlyAllowedActions = new Set(['update', 'delete']);
       if (id && idOnlyAllowedActions.has(action)) {
         return;
       }
@@ -880,6 +958,7 @@ export function installPrismaTenantGuard(
 ): void {
   const excludedModels = new Set<string>([
     'system_settings',
+    'core_system_settings',
     'social_system_settings',
     'global_settings',
     ...(options?.excludedModels ?? []),
@@ -896,9 +975,24 @@ export function installPrismaTenantGuard(
     const expected = getExpectedScope(override);
     const isGlobalAdmin = isGlobalAdminContextAllowed(override);
 
+    // Check excludedModels FIRST to bypass all tenant checks for whitelisted global tables
+    if (excludedModels.has(model)) {
+      return next(params);
+    }
+
     const modelLower = String(model).toLowerCase();
     if (modelLower === 'social_system_settings') {
       enforceSocialSystemSettingsAccess({
+        action: params.action,
+        args,
+        expectedOrganizationId: expected.organizationId,
+        isGlobalAdmin,
+        override,
+      });
+      return next(params);
+    }
+    if (modelLower === 'coresystemsettings') {
+      enforceCoreSystemSettingsAccess({
         action: params.action,
         args,
         expectedOrganizationId: expected.organizationId,
@@ -919,10 +1013,6 @@ export function installPrismaTenantGuard(
         isGlobalAdmin,
         override,
       });
-      return next(params);
-    }
-
-    if (excludedModels.has(model)) {
       return next(params);
     }
 

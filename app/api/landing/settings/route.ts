@@ -9,12 +9,15 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
 
 const LANDING_SETTINGS_KEY = 'landing_settings';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type LandingSettings = {
   logo?: string | null;
   logoText?: string | null;
   founderImage?: string | null;
   videos?: unknown[] | null;
-};
+};
+
 
 function toJsonObject(value: unknown): Prisma.InputJsonObject {
   const normalized: unknown = JSON.parse(JSON.stringify(value ?? {}));
@@ -108,7 +111,9 @@ async function PATCHHandler(request: NextRequest) {
           })
       );
     } catch (e: unknown) {
-      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
+      const safeMsg = 'Internal server error';
+      const msg = getUnknownErrorMessage(e) || safeMsg;
+      return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -122,7 +127,9 @@ async function PATCHHandler(request: NextRequest) {
       { status: 200 }
     );
   } catch (e: unknown) {
-    return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Forbidden' }, { status: 403 });
+    const safeMsg = 'Forbidden';
+    const msg = getUnknownErrorMessage(e) || safeMsg;
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 403 });
   }
 }
 

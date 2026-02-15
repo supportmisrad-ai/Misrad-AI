@@ -8,6 +8,8 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 
 async function GETHandler(req: Request) {
   try {
@@ -70,7 +72,8 @@ async function GETHandler(req: Request) {
   } catch (e: unknown) {
     const msg = getErrorMessage(e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return apiError(e, { status });
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return apiError(IS_PROD ? safeMsg : msg || safeMsg, { status });
   }
 }
 
@@ -141,7 +144,8 @@ async function POSTHandler(req: Request) {
   } catch (e: unknown) {
     const msg = getErrorMessage(e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return apiError(e, { status });
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return apiError(IS_PROD ? safeMsg : msg || safeMsg, { status });
   }
 }
 

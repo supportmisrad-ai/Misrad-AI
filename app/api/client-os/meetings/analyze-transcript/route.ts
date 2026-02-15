@@ -219,7 +219,9 @@ async function POSTHandler(req: Request) {
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     return apiError(e, { status: 500, message: 'Failed to analyze transcript' });

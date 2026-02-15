@@ -126,14 +126,16 @@ async function PATCHHandler(
         const authStatus = getUnknownErrorStatus(error);
         if (authStatus) {
             const msg = getUnknownErrorMessage(error);
+            const safeMsg = authStatus === 401 ? 'Unauthorized' : 'Forbidden';
             return NextResponse.json(
-                { error: msg },
+                { error: IS_PROD ? safeMsg : msg || safeMsg },
                 { status: authStatus }
             );
         }
         
+        const safeMsg = 'Internal server error';
         return NextResponse.json(
-            { error: getUnknownErrorMessage(error) || 'Failed to update role' },
+            { error: IS_PROD ? safeMsg : getUnknownErrorMessage(error) || 'Failed to update role' },
             { status: 500 }
         );
     }
@@ -184,8 +186,9 @@ async function DELETEHandler(
         const authStatus = getUnknownErrorStatus(error);
         if (authStatus) {
             const msg = getUnknownErrorMessage(error);
+            const safeMsg = authStatus === 401 ? 'Unauthorized' : 'Forbidden';
             return NextResponse.json(
-                { error: msg },
+                { error: IS_PROD ? safeMsg : msg || safeMsg },
                 { status: authStatus }
             );
         }
@@ -197,9 +200,10 @@ async function DELETEHandler(
                 { status: 400 }
             );
         }
-        
+
+        const safeMsg = 'Internal server error';
         return NextResponse.json(
-            { error: msg || 'Failed to delete role' },
+            { error: IS_PROD ? safeMsg : msg || 'Failed to delete role' },
             { status: 500 }
         );
     }

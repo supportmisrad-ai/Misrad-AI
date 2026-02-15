@@ -223,7 +223,20 @@ async function PATCHHandler(
         if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH');
         else console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                      ? 'Unauthorized'
+                      : error.status === 404
+                        ? 'Not found'
+                        : error.status === 500
+                          ? 'Internal server error'
+                          : 'Forbidden';
+            return apiError(error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : error.message || safeMsg,
+            });
         }
         const msg = getErrorMessage(error);
         const safeMsg = 'שגיאה בעדכון נוכחות';

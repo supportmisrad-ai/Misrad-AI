@@ -34,7 +34,7 @@ type WorkspaceApiItem = {
 async function GETHandler() {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    return apiError('Unauthorized', { status: 401 });
+    return apiError('אין הרשאה', { status: 401 });
   }
 
   const cached = workspacesCache.get(clerkUserId);
@@ -109,11 +109,21 @@ async function GETHandler() {
           has_client: true,
           has_operations: true,
           seats_allowed: true,
+          created_at: true,
         },
+        orderBy: { created_at: 'desc' },
       }),
     ]);
 
-    const workspaces: WorkspaceApiItem[] = orgs.map((o) => {
+    // Sort: primary workspace first, then by creation date (newest first)
+    const primaryOrgId = socialUser.organization_id;
+    const sortedOrgs = [...orgs].sort((a, b) => {
+      if (a.id === primaryOrgId) return -1;
+      if (b.id === primaryOrgId) return 1;
+      return 0;
+    });
+
+    const workspaces: WorkspaceApiItem[] = sortedOrgs.map((o) => {
       const entitlements = {
         nexus: o.has_nexus ?? false,
         system: o.has_system ?? false,

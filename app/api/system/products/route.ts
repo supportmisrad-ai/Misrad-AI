@@ -11,6 +11,8 @@ import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import type { ModuleId, Product } from '@/types';
 import { DEFAULT_PRODUCTS } from '@/constants';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 const PRODUCTS_SETTINGS_KEY = 'products_catalog_v1';
 
 function isModuleId(value: unknown): value is ModuleId {
@@ -129,12 +131,20 @@ async function PATCHHandler(request: NextRequest) {
           })
       );
     } catch (e: unknown) {
-      return NextResponse.json({ error: getErrorMessage(e) || 'Failed' }, { status: 500 });
+      const safeMsg = 'Internal server error';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, products: nextList }, { status: 200 });
   } catch (e: unknown) {
-    return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status: 403 });
+    const safeMsg = 'Forbidden';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 403 }
+    );
   }
 }
 

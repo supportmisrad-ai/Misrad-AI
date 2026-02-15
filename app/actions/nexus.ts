@@ -1,6 +1,7 @@
 'use server';
 
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { currentUser } from '@clerk/nextjs/server';
 import type { Task, User, TimeEntry } from '@/types';
 
 import {
@@ -42,7 +43,7 @@ type ClerkUserContext = {
 async function requireWorkspaceAccessForOrgId(orgId: string) {
   const normalized = String(orgId || '').trim();
   if (!normalized) throw new Error('Missing orgId');
-  await requireWorkspaceAccessByOrgSlugApi(normalized);
+  return requireWorkspaceAccessByOrgSlugApi(normalized);
 }
 
 export async function listNexusTasksByOrgSlug(params: {
@@ -132,8 +133,16 @@ export async function updateNexusPresenceHeartbeat(params: {
   serverTime: string;
   debug?: { workspaceId: string; userId: string; usedFallback: boolean; updatedCount: number };
 }> {
-  await requireWorkspaceAccessForOrgId(params.orgId);
-  return updateNexusPresenceHeartbeatImpl(params);
+  const workspace = await requireWorkspaceAccessForOrgId(params.orgId);
+  const clerk = await currentUser();
+  const clerkUserId = clerk?.id || null;
+  if (!clerkUserId) throw new Error('Unauthorized');
+  const emailRaw = clerk?.primaryEmailAddress?.emailAddress ?? null;
+  const email = emailRaw ? String(emailRaw).trim().toLowerCase() : '';
+  return updateNexusPresenceHeartbeatImpl({
+    orgId: params.orgId,
+    _prevalidated: { workspaceId: workspace.id, clerkUserId, email },
+  });
 }
 
 export async function sendNexusUserInvitation(params: {

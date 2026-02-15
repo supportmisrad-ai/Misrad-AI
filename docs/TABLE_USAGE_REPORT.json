@@ -1,0 +1,220 @@
+{
+  "timestamp": "2026-02-15T00:24:56.519Z",
+  "summary": {
+    "heavily_used": 0,
+    "lightly_used": 0,
+    "not_used": 50
+  },
+  "details": {
+    "heavily_used": [],
+    "lightly_used": [],
+    "not_used": [
+      {
+        "table": "activity_logs",
+        "count": 0
+      },
+      {
+        "table": "app_updates",
+        "count": 0
+      },
+      {
+        "table": "core_system_settings",
+        "count": 0
+      },
+      {
+        "table": "global_system_metrics",
+        "count": 0
+      },
+      {
+        "table": "impersonation_sessions",
+        "count": 0
+      },
+      {
+        "table": "integration_credentials",
+        "count": 0
+      },
+      {
+        "table": "integration_status",
+        "count": 0
+      },
+      {
+        "table": "misrad_calendar_sync_log",
+        "count": 0
+      },
+      {
+        "table": "misrad_feature_requests",
+        "count": 0
+      },
+      {
+        "table": "misrad_integrations",
+        "count": 0
+      },
+      {
+        "table": "misrad_permissions",
+        "count": 0
+      },
+      {
+        "table": "misrad_roles",
+        "count": 0
+      },
+      {
+        "table": "misrad_support_tickets",
+        "count": 0
+      },
+      {
+        "table": "navigation_menu",
+        "count": 0
+      },
+      {
+        "table": "notifications",
+        "count": 0
+      },
+      {
+        "table": "oauth_tokens",
+        "count": 0
+      },
+      {
+        "table": "partners",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_agency_configs",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_ai_opportunities",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_automation_rules",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_business_metrics",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_calendar_events",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_campaigns",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_client_dna",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_client_platforms",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_drive_files",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_feedback",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_invoices",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_payment_orders",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_platform_credentials",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_platform_quotas",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_sheets_sync_configs",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_site_content",
+        "count": 0
+      },
+      {
+        "table": "socialmedia_sync_logs",
+        "count": 0
+      },
+      {
+        "table": "system_assets",
+        "count": 0
+      },
+      {
+        "table": "system_automations",
+        "count": 0
+      },
+      {
+        "table": "system_campaigns",
+        "count": 0
+      },
+      {
+        "table": "system_content_items",
+        "count": 0
+      },
+      {
+        "table": "system_field_agents",
+        "count": 0
+      },
+      {
+        "table": "system_forms",
+        "count": 0
+      },
+      {
+        "table": "system_partners",
+        "count": 0
+      },
+      {
+        "table": "system_students",
+        "count": 0
+      },
+      {
+        "table": "system_tasks",
+        "count": 0
+      },
+      {
+        "table": "system_webhook_logs",
+        "count": 0
+      },
+      {
+        "table": "team_comments",
+        "count": 0
+      },
+      {
+        "table": "team_member_clients",
+        "count": 0
+      },
+      {
+        "table": "user_update_views",
+        "count": 0
+      },
+      {
+        "table": "webhook_configs",
+        "count": 0
+      },
+      {
+        "table": {
+          "model": "misrad_form_templates",
+          "reason": "backup/temp/test table"
+        },
+        "count": 0
+      },
+      {
+        "table": {
+          "model": "system_backups",
+          "reason": "backup/temp/test table"
+        },
+        "count": 0
+      }
+    ]
+  }
+}

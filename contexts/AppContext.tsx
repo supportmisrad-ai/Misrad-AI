@@ -19,16 +19,21 @@ import type { SocialInitialData } from '@/lib/services/social-service';
 
 const userRoleCache = new Map<string, { role: UserRole; timestamp: number }>();
 
-export type View = 'landing-page' | 'pricing' | 'auth' | 'legal' | 'dashboard' | 'machine' | 'calendar' | 'workspace' | 'campaigns' | 'analytics' | 'inbox' | 'settings' | 'all-clients' | 'profile' | 'client-portal' | 'onboarding-portal' | 'checkout' | 'agency-insights' | 'collection' | 'team' | 'admin-panel';
-export type SettingsSubView = 'main' | 'security' | 'social' | 'notifications' | 'automation' | 'pricing' | 'integrations' | 'infrastructure' | 'team_management' | 'updates';
+type ClientsPageResult = Awaited<ReturnType<typeof getClientsPage>>;
 
-interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info';
-}
+export type SettingsSubView =
+  | 'main'
+  | 'security'
+  | 'social'
+  | 'notifications'
+  | 'automation'
+  | 'pricing'
+  | 'integrations'
+  | 'infrastructure'
+  | 'team_management'
+  | 'updates';
 
-interface AppContextType {
+type AppContextType = {
   // Auth - Now using Clerk
   isAuthenticated: boolean;
   user: ReturnType<typeof useUser>['user'] | null;
@@ -120,6 +125,12 @@ interface AppContextType {
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   handleToggleTask: (id: string) => void;
   handleDeleteTask: (id: string) => void;
+};
+
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -424,10 +435,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       // Optimized: Fetch only critical data first, then secondary data
       
       // 1. Critical data for initial render (Clients, Team)
+      const emptyClientsPageResult: ClientsPageResult = {
+        success: true,
+        data: { clients: [], nextCursor: null, hasMore: false },
+      };
+
       const [clientsResult, teamResult] = await Promise.all([
         (() => {
           const orgSlug = effectiveOrgSlug || workspaceOrgId;
-          return orgSlug ? getClientsPage({ orgSlug, pageSize: 200 }) : Promise.resolve({ success: true, data: { clients: [], nextCursor: null, hasMore: false } } as any);
+          return orgSlug ? getClientsPage({ orgSlug, pageSize: 200 }) : Promise.resolve(emptyClientsPageResult);
         })(),
         effectiveOrgSlug ? getTeamMembers(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
       ]);
@@ -435,9 +451,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       if (!isMountedRef.current) return;
 
       // Handle clients result
-      if (clientsResult.success && (clientsResult as any).data) {
-        const raw = (clientsResult as any).data;
-        const clients = Array.isArray(raw?.clients) ? raw.clients : (Array.isArray(raw) ? raw : []);
+      if (clientsResult.success) {
+        const clients = clientsResult.data.clients;
         if (isMountedRef.current) {
           setClients(clients);
           if (clients.length > 0) {
@@ -446,7 +461,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         }
       } else {
         if (isMountedRef.current) setClients([]);
-        console.error('[AppContext] Failed to fetch clients:', (clientsResult as any).error);
+        console.error('[AppContext] Failed to fetch clients:', clientsResult.error);
       }
 
       // Handle team result
@@ -593,7 +608,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       try {
         if (!activeClientId) return;
         if (!effectiveOrgSlug) return;
-        const exists = Array.isArray(clients) && clients.some((c: any) => String(c?.id) === String(activeClientId));
+        const exists = Array.isArray(clients) && clients.some((c) => String(c.id) === String(activeClientId));
         if (exists) return;
 
         const res = await getClientByIdForWorkspace({ orgSlug: effectiveOrgSlug, clientId: activeClientId });
@@ -602,7 +617,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         if (!isMountedRef.current) return;
         setClients((prev) => {
           const list = Array.isArray(prev) ? prev : [];
-          const already = list.some((c: any) => String(c?.id) === String(res.data.id));
+          const already = list.some((c) => String(c.id) === String(res.data.id));
           if (already) return list;
           return [res.data, ...list];
         });

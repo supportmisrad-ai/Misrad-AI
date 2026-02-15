@@ -423,9 +423,13 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
             memoryBlock = `\n\nMemory snippets (from organizational knowledge base):\n${JSON.stringify(compact).slice(0, 12000)}`;
           }
         } catch (e: unknown) {
-          console.warn('[chat] semantic memory skipped/failed (non-fatal)', {
-            message: getErrorMessage(e) || String(e ?? ''),
-          });
+          if (IS_PROD) {
+            console.warn('[chat] semantic memory skipped/failed (non-fatal)');
+          } else {
+            console.warn('[chat] semantic memory skipped/failed (non-fatal)', {
+              message: getErrorMessage(e) || String(e ?? ''),
+            });
+          }
         }
 
         const prompt = `מודול: ${moduleName}\n\nContext (JSON):\n${ctx ? JSON.stringify(ctx).slice(0, 12000) : '{}'}\n\nHistory:\n${history || '(empty)'}${memoryBlock}\n\nUser message:\n${lastUser}`;
@@ -462,7 +466,9 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
             ? 'Unauthorized'
             : e.status === 404
               ? 'Not found'
-              : 'Forbidden';
+              : e.status === 500
+                ? 'Internal server error'
+                : 'Forbidden';
       return NextResponse.json(
         { error: IS_PROD ? safeMsg : e.message || safeMsg },
         { status: e.status }

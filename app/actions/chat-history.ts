@@ -5,7 +5,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { headers } from 'next/headers';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
@@ -104,14 +104,14 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
 
     // קבלת orgSlug מה-header (נשלח מהקליינט)
     const headersList = await headers();
-    const orgSlug = headersList.get('x-org-id') || '';
+    const orgKey = String(headersList.get('x-org-id') || headersList.get('x-orgid') || '').trim();
     
-    if (!orgSlug) {
+    if (!orgKey) {
       return { success: false, error: 'No organization context - missing x-org-id header' };
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-    const organizationId = String(workspace.id);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
 
     // שמירה/עדכון עם tenant isolation
     await executeRawOrgScoped(prisma, {
@@ -186,14 +186,14 @@ export async function getChatHistory(params: GetChatHistoryParams) {
 
     // קבלת orgSlug מה-header (נשלח מהקליינט)
     const headersList = await headers();
-    const orgSlug = headersList.get('x-org-id') || '';
+    const orgKey = String(headersList.get('x-org-id') || headersList.get('x-orgid') || '').trim();
     
-    if (!orgSlug) {
+    if (!orgKey) {
       return { success: false, error: 'No organization context - missing x-org-id header', data: [] };
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-    const organizationId = String(workspace.id);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
     const limit = params.limit || 20;
 
     // שאילתה עם tenant isolation מלא: organization + user + module
@@ -263,14 +263,14 @@ export async function deleteChatHistory(params: { moduleKey: string; chatSession
 
     // קבלת orgSlug מה-header (נשלח מהקליינט)
     const headersList = await headers();
-    const orgSlug = headersList.get('x-org-id') || '';
+    const orgKey = String(headersList.get('x-org-id') || headersList.get('x-orgid') || '').trim();
     
-    if (!orgSlug) {
+    if (!orgKey) {
       return { success: false, error: 'No organization context - missing x-org-id header' };
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-    const organizationId = String(workspace.id);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
 
     // מחיקה רק אם זה של המשתמש + הארגון + המודול
     await executeRawOrgScoped(prisma, {
