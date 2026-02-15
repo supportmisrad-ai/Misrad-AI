@@ -758,12 +758,14 @@ export const DashboardView: React.FC<{
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="relative overflow-hidden rounded-[2.5rem] shadow-2xl mb-8"
+                        className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl mb-8"
                 >
-                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-slate-200 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-20"></div>
+
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.3rem] p-8 md:p-10 border border-white/50 overflow-hidden">
                             {/* Decorative Background Elements */}
-                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-slate-50 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
+                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
 
                             <button
                                 type="button"
@@ -784,7 +786,7 @@ export const DashboardView: React.FC<{
                                     
                                     <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight tracking-tight mb-4">
                                         ברוכים הבאים ל-<br/>
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Nexus</span>
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">MISRAD AI</span>
                                     </h2>
                                     
                                     <p className="text-slate-500 text-sm leading-relaxed mb-6 max-w-sm">
@@ -821,7 +823,7 @@ export const DashboardView: React.FC<{
                                                 className={`relative group flex flex-col p-5 rounded-3xl border text-right transition-all duration-300 overflow-hidden ${
                                                     isDone 
                                                     ? 'bg-slate-50 border-slate-200 opacity-60' 
-                                                    : 'bg-white border-white shadow-lg shadow-slate-200/50 hover:border-indigo-100 hover:shadow-xl hover:-translate-y-1'
+                                                    : 'bg-white border-slate-200/70 shadow-lg shadow-slate-200/50 hover:border-indigo-200 hover:bg-indigo-50/30 hover:shadow-xl hover:-translate-y-1'
                                                 }`}
                                             >
                                                 <div className="flex justify-between items-start mb-4">
