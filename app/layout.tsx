@@ -40,7 +40,7 @@ export default function RootLayout({
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   const isProd = process.env.NODE_ENV === 'production';
-  const clerkDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'misrad-ai.com';
+  const clerkDomain = (process.env.NEXT_PUBLIC_CLERK_DOMAIN || '').trim();
 
   const signInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/login';
   const signInUrl = signInUrlRaw.startsWith('/sign-in') ? '/login' : signInUrlRaw;
@@ -63,7 +63,7 @@ export default function RootLayout({
           {clerkPublishableKey ? (
             <ClerkProviderWithRouter
               publishableKey={clerkPublishableKey}
-              {...(isProd ? { domain: clerkDomain, isSatellite: false } : {})}
+              {...(isProd && clerkDomain ? { domain: clerkDomain, isSatellite: false } : {})}
               signInUrl={signInUrl}
               signUpUrl={signUpUrl}
               signInFallbackRedirectUrl={signInFallbackRedirectUrl}

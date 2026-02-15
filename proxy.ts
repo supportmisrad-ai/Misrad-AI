@@ -379,7 +379,10 @@ export default clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next();
 }, {
-  domain: process.env.NODE_ENV === 'production' ? (process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'misrad-ai.com') : undefined,
+  domain:
+    process.env.NODE_ENV === 'production'
+      ? (String(process.env.NEXT_PUBLIC_CLERK_DOMAIN || '').trim() || undefined)
+      : undefined,
   isSatellite: false,
 });
 
