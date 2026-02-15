@@ -362,7 +362,7 @@ export default function SocialFrame({
             notificationsSlot={notificationsSlot}
             user={{ name: resolvedUser.name, role: resolvedUser.role }}
             onProfileClickAction={undefined}
-            profileHref={joinPath(basePath, `/me${resolvedUser.needsProfileCompletion ? '?edit=profile' : ''}`)}
+            profileHref={joinPath(basePath, `/me`)}
             userAvatarSlot={avatarSlot}
             profileSlot={undefined}
             className="bg-transparent"

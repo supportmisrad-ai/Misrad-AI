@@ -463,7 +463,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             role: systemIdentity?.role || userLabel.roleLabel || null,
           }}
           onProfileClickAction={undefined}
-          profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}
+          profileHref={`${basePath}/me`}
           userAvatarSlot={userAvatarSlot}
           className="bg-transparent"
         />

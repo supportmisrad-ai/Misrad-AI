@@ -246,7 +246,7 @@ export default function Header() {
       ) : isSignedIn && user ? (
         <button
           onClick={() => {
-            router.push(joinPath(basePath, `/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`));
+            router.push(joinPath(basePath, `/me`));
           }}
           className={`md:hidden w-9 h-9 rounded-full bg-gradient-to-br ${
             gradient || 'from-indigo-600 via-purple-600 to-pink-600'
@@ -276,9 +276,7 @@ export default function Header() {
   ) : isSignedIn && user ? (
     <div className="hidden md:block">
       <button
-        onClick={() =>
-          router.push(joinPath(basePath, `/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`))
-        }
+        onClick={() => router.push(joinPath(basePath, `/me`))}
         className="flex items-center gap-3 pl-0.5 pr-0.5 md:pr-4 rounded-full transition-all hover:bg-white/50"
         type="button"
         aria-label="פרופיל"

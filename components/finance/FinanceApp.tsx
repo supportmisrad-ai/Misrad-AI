@@ -340,12 +340,12 @@ const FinanceOSApp: React.FC<{
   };
 
   const goToMe = () => {
-    router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
+    router.push(`${basePath}/me`);
   };
 
   const navigateToTab = (tabId: string) => {
     if (tabId === 'me') {
-      router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
+      router.push(`${basePath}/me`);
       return;
     }
     if (tabId === 'hub') {
@@ -448,7 +448,7 @@ const FinanceOSApp: React.FC<{
           notificationsSlot={notificationsSlot}
           user={{ name: headerName, role: headerRole }}
           onProfileClickAction={undefined}
-          profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}
+          profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
           profileSlot={undefined}
           className="bg-transparent"

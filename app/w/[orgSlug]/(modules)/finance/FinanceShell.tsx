@@ -81,7 +81,7 @@ export default function FinanceShell(props: {
   }, [activeNavItem?.label, pathname]);
 
   const goToMe = useCallback(() => {
-    router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
+    router.push(`${basePath}/me`);
   }, [basePath, router, systemIdentity?.needsProfileCompletion]);
 
   const headerName = systemIdentity?.name || String(user?.name || user?.email || 'משתמש');
@@ -195,7 +195,7 @@ export default function FinanceShell(props: {
           notificationsSlot={<GlobalNotificationsBell />}
           user={{ name: headerName, role: headerRole }}
           onProfileClickAction={goToMe}
-          profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}
+          profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
           profileSlot={undefined}
           className="bg-transparent"

@@ -372,11 +372,11 @@ async function ensureUserByEmailInWorkspace(params: { organizationId: string; em
     return null;
 }
 
-function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate {
+function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate | null {
     const prismaObj = asObject(prisma as unknown);
     const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
     if (!isNexusLeaveRequestsDelegate(delegate)) {
-        throw new Error('Prisma Client is missing nexus_leave_requests. Run prisma:generate and restart TS server.');
+        return null;
     }
     return delegate;
 }
@@ -463,6 +463,9 @@ async function GETHandler(request: NextRequest) {
         const pageSizeParam = searchParams.get('page_size');
 
         const leaveRequests = getLeaveRequestsDelegate();
+        if (!leaveRequests) {
+            return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
+        }
 
         const where: Record<string, unknown> = { organizationId };
 
@@ -626,6 +629,9 @@ async function POSTHandler(request: NextRequest) {
 
         // Create leave request
         const leaveRequests = getLeaveRequestsDelegate();
+        if (!leaveRequests) {
+            return apiError('Leave requests schema is not available yet', { status: 503 });
+        }
 
         const start = new Date(String(startDate));
         const end = new Date(String(endDate));

@@ -242,7 +242,7 @@ export default function OperationsShell({
           notificationsSlot={<GlobalNotificationsBell />}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           onProfileClickAction={undefined}
-          profileHref={`${basePath}/me${resolvedUser.needsProfileCompletion ? '?edit=profile' : ''}`}
+          profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
           profileSlot={undefined}
           className="bg-transparent"
