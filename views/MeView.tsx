@@ -701,31 +701,13 @@ export const MeView: React.FC<{
               </div>
               
               {/* Content Wrapper */}
-              <div className="px-8 pb-8">
-                  {needsProfileCompletion ? (
-                      <div className="pt-6">
-                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
-                                  <AlertCircle size={18} className="text-amber-700" />
-                                  השלם פרופיל כדי להמשיך בצורה חלקה
-                              </div>
-                              <button
-                                  type="button"
-                                  onClick={openProfileEditor}
-                                  className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 transition-colors"
-                              >
-                                  השלם פרופיל
-                              </button>
-                          </div>
-                      </div>
-                  ) : null}
-
+              <div className="px-4 md:px-8 pb-8">
                   {/* Top Row: Avatar & Actions */}
-                  <div className="flex flex-col md:flex-row items-start justify-between relative">
+                  <div className="flex flex-col md:flex-row items-center md:items-start justify-between relative gap-4 md:gap-0">
                       
                       {/* Avatar - Negative Margin to Overlap */}
-                      <div className="-mt-20 relative z-10">
-                          <div className="w-40 h-40 rounded-[2rem] border-[6px] border-white shadow-2xl bg-white p-1 overflow-hidden relative group">
+                      <div className="-mt-16 md:-mt-20 relative z-10">
+                          <div className="w-32 h-32 md:w-40 md:h-40 rounded-[2rem] border-[6px] border-white shadow-2xl bg-white p-1 overflow-hidden relative group">
                               <Avatar 
                                   src={currentUser.avatar} 
                                   alt={currentUser.name} 
@@ -753,42 +735,60 @@ export const MeView: React.FC<{
                       </div>
 
                       {/* Actions Toolbar - Aligned to bottom of banner visually, then wraps */}
-                      <div className="flex gap-3 mt-4 md:mt-4 md:mb-0 w-full md:w-auto justify-end relative z-50">
+                      <div className="flex gap-2 md:gap-3 mt-0 md:mt-4 md:mb-0 w-full md:w-auto justify-center md:justify-end relative z-50">
                           <button 
                             onClick={openProfileEditor} 
-                            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                            className="flex-1 md:flex-none px-4 md:px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-xs md:text-sm hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                             aria-label="ערוך פרופיל"
                           >
                               ערוך פרופיל
                           </button>
                           <button 
                             onClick={handleLogout} 
-                            className="px-5 py-2.5 rounded-xl bg-red-50 text-red-700 font-bold text-sm hover:bg-red-100 transition-colors border border-red-100 shadow-sm flex items-center gap-2 cursor-pointer"
+                            className="flex-1 md:flex-none px-4 md:px-5 py-2.5 rounded-xl bg-red-50 text-red-700 font-bold text-xs md:text-sm hover:bg-red-100 transition-colors border border-red-100 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                           >
                               <LogOut size={16} /> התנתק
                           </button>
                       </div>
                   </div>
 
+                  {needsProfileCompletion ? (
+                      <div className="mt-4">
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 md:px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs md:text-sm">
+                                  <AlertCircle size={18} className="text-amber-700 flex-shrink-0" />
+                                  <span>השלם פרופיל כדי להמשיך בצורה חלקה</span>
+                              </div>
+                              <button
+                                  type="button"
+                                  onClick={openProfileEditor}
+                                  className="w-full md:w-auto px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-xs md:text-sm hover:bg-amber-700 transition-colors flex-shrink-0"
+                              >
+                                  השלם פרופיל
+                              </button>
+                          </div>
+                      </div>
+                  ) : null}
+
                   {/* Text Block - Explicitly Below Avatar */}
-                  <div className="mt-4 text-right">
-                       <div className="flex items-center gap-3 mb-1">
-                           <h1 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight">{currentUser.name}</h1>
-                           {currentUser.role.includes('מנכ') && <Crown size={24} className="text-yellow-500 fill-yellow-500" />}
+                  <div className="mt-4 text-center md:text-right">
+                       <div className="flex items-center justify-center md:justify-start gap-2 md:gap-3 mb-1">
+                           <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 leading-tight tracking-tight">{currentUser.name}</h1>
+                           {currentUser.role.includes('מנכ') && <Crown size={20} className="md:w-6 md:h-6 text-yellow-500 fill-yellow-500" />}
                        </div>
                        
-                       <div className="flex items-center gap-4 text-gray-500 font-medium text-base mb-6 flex-wrap">
+                       <div className="flex items-center justify-center md:justify-start gap-3 md:gap-4 text-gray-500 font-medium text-sm md:text-base mb-4 md:mb-6 flex-wrap">
                             <span>{currentUser.role}</span>
                             {currentUser.phone && (
                                 <>
                                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                    <span className="flex items-center gap-1 text-gray-500 text-sm dir-ltr">{currentUser.phone}</span>
+                                    <span className="flex items-center gap-1 text-gray-500 text-xs md:text-sm dir-ltr">{currentUser.phone}</span>
                                 </>
                             )}
                        </div>
 
                        {currentUser.bio && (
-                           <p className="text-gray-600 text-sm max-w-2xl mb-6 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100 inline-block text-right">
+                           <p className="text-gray-600 text-xs md:text-sm max-w-2xl mb-4 md:mb-6 leading-relaxed bg-gray-50 p-3 md:p-4 rounded-xl border border-gray-100 text-center md:text-right mx-auto md:mx-0 md:inline-block">
                                {currentUser.bio}
                            </p>
                        )}

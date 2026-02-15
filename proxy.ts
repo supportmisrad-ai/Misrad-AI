@@ -141,6 +141,20 @@ function extractEmailFromClaims(claims: unknown): string | null {
 
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req?.nextUrl?.pathname ?? "";
+
+  // Bypass Clerk entirely for static assets that must always be public
+  if (
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/manifests/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.endsWith(".svg") ||
+    pathname.endsWith(".png")
+  ) {
+    return NextResponse.next();
+  }
+
   const isE2E =
     String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' ||
     String(process.env.IS_E2E_TESTING || '').toLowerCase() === '1';

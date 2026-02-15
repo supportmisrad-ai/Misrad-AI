@@ -9,20 +9,20 @@
 
   <rect width="512" height="512" rx="120" fill="#0F172A"/>
 
-  <!-- VIP badge (subtle crown) -->
-  <path
-    d="M372 116l20 20 20-20 16 16-36 36-36-36 16-16Z"
-    fill="url(#clientGold)"
-    opacity="0.9"
-  />
-  <circle cx="392" cy="168" r="30" fill="url(#clientGold)" opacity="0.92" />
-  <circle cx="392" cy="168" r="18" fill="#0F172A" opacity="0.35" />
+  <!-- Ribbon V shape -->
+  <path d="M200 80 L200 190 L256 220 L312 190 L312 80"
+        stroke="url(#clientGold)" 
+        stroke-width="28"
+        fill="none"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
 
-  <!-- Notebook outline -->
-  <rect x="96" y="88" width="320" height="336" rx="56" stroke="url(#clientGold)" stroke-width="20"/>
-  <path d="M168 112V400" stroke="url(#clientGold)" stroke-width="16" stroke-linecap="round" opacity="0.9"/>
-
-  <!-- Client silhouette -->
-  <circle cx="272" cy="236" r="52" stroke="url(#clientGold)" stroke-width="18"/>
-  <path d="M176 396c22-62 82-92 124-92s102 30 124 92" stroke="url(#clientGold)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Medal body -->
+  <circle cx="256" cy="300" r="120" fill="url(#clientGold)"/>
+  <circle cx="256" cy="300" r="96" fill="#0F172A"/>
+  <circle cx="256" cy="300" r="78" stroke="url(#clientGold)" stroke-width="6" fill="none"/>
+  
+  <!-- Star inside medal -->
+  <path d="M256 240 L269 275 L307 280 L279 306 L286 343 L256 326 L226 343 L233 306 L205 280 L243 275 Z"
+        fill="url(#clientGold)"/>
 </svg>

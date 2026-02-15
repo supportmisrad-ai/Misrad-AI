@@ -224,7 +224,7 @@ const modelScopeRequirements = new Map<string, ScopeRequirements>(
     .map((m) => {
       const fieldNames = new Set(m.fields.map((f) => f.name));
       const requiresOrg = Array.from(ORG_KEYS).some((k) => fieldNames.has(k));
-      const requiresTenant = Array.from(TENANT_KEYS).some((k) => fieldNames.has(k));
+      const requiresTenant = m.fields.some((f) => TENANT_KEYS.has(f.name) && f.isRequired);
       const orgField = requiresOrg ? Array.from(ORG_KEYS).find((k) => fieldNames.has(k)) : undefined;
       const tenantField = requiresTenant ? Array.from(TENANT_KEYS).find((k) => fieldNames.has(k)) : undefined;
       return [m.name, { requiresOrg, requiresTenant, orgField, tenantField }] as const;

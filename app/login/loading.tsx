@@ -1,9 +1,27 @@
 export default function LoginLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center" dir="rtl">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-[3px] border-slate-200 border-t-slate-700 rounded-full animate-spin" />
-        <p className="text-sm text-slate-500 font-medium">מתחבר...</p>
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
+      <style>{`@keyframes shimmer { 100% { transform: translateX(100%); } }`}</style>
+      <div className="w-full max-w-md mx-auto px-6">
+        <div className="flex flex-col items-center mb-8">
+          <div className="relative overflow-hidden w-16 h-16 rounded-2xl bg-slate-200 mb-4">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          </div>
+          <div className="relative overflow-hidden w-32 h-5 rounded-lg bg-slate-200">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+          <div className="relative overflow-hidden w-full h-11 rounded-xl bg-slate-100">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          </div>
+          <div className="relative overflow-hidden w-full h-11 rounded-xl bg-slate-100">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          </div>
+          <div className="relative overflow-hidden w-full h-11 rounded-xl bg-indigo-100">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }} />
+          </div>
+        </div>
       </div>
     </div>
   );
