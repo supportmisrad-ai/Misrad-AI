@@ -18,7 +18,7 @@ export async function GET() {
 
   // Test 1: Basic connection via raw query
   try {
-    const raw = await (prisma as any).$queryRawUnsafe?.('SELECT 1 as ok') ?? 'skipped_raw';
+    const raw = await (prisma.$queryRawUnsafe as any)?.('SELECT 1 as ok') ?? 'skipped_raw';
     results.rawQueryTest = raw === 'skipped_raw' ? 'skipped (raw blocked)' : 'ok';
   } catch (e: any) {
     results.rawQueryTest = `error: ${e?.message?.substring(0, 200)}`;
