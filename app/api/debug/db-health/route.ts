@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma, { PRISMA_ACCELERATE_ENABLED } from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { requireSuperAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  try { await requireSuperAdmin(); } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     accelerateEnabled: PRISMA_ACCELERATE_ENABLED,
