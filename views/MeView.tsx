@@ -1263,7 +1263,16 @@ export const MeView: React.FC<{
             </div>
           ) : null}
 
-          {children ? <div className="mt-6">{children}</div> : null}
+          {children ? (
+            <div className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">הגדרות אישיות למודול</span>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+              </div>
+              {children}
+            </div>
+          ) : null}
 
           <div className="text-center text-xs text-gray-600 mt-4">
               Misrad v2.5.0 • <span className="underline cursor-pointer hover:text-gray-800">תנאי שימוש</span> • <span className="underline cursor-pointer hover:text-gray-800">מדיניות פרטיות</span>

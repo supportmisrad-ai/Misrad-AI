@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getConnectedPlatforms } from '@/lib/services/meeting-service';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
-import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +24,18 @@ export async function GET() {
     }
 
     // Get user's organization
-    const profile = await prisma.profile.findFirst({
-      where: { clerkUserId: userId },
-      select: { organizationId: true },
-    });
+    const profile = await prisma.profile.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerkUserId: userId },
+          select: { organizationId: true },
+        },
+        {
+          reason: 'integrations_status_lookup_org',
+          source: 'app/api/integrations/status/route.ts',
+        }
+      )
+    );
 
     if (!profile?.organizationId) {
       return NextResponse.json(

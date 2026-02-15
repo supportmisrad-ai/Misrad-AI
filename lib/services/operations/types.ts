@@ -20,6 +20,27 @@ export type OperationsDashboardData = {
     critical: number;
     total: number;
   };
+  workOrderStats: {
+    open: number;
+    inProgress: number;
+    doneToday: number;
+    total: number;
+    slaBreach: number;
+    unassigned: number;
+    priorityHigh: number;
+    priorityUrgent: number;
+    priorityCritical: number;
+  };
+  recentWorkOrders: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    categoryName: string | null;
+    technicianLabel: string | null;
+    slaDeadline: string | null;
+    createdAt: string;
+  }>;
 };
 
 export type OperationsProjectsData = {
@@ -47,17 +68,73 @@ export type OperationsProjectOption = {
   title: string;
 };
 
-export type OperationsWorkOrderStatus = 'NEW' | 'IN_PROGRESS' | 'DONE';
+export type OperationsWorkOrderStatus = 'NEW' | 'OPEN' | 'IN_PROGRESS' | 'DONE';
+
+export type OperationsWorkOrderPriority = 'NORMAL' | 'HIGH' | 'URGENT' | 'CRITICAL';
 
 export type OperationsWorkOrderRow = {
   id: string;
   title: string;
-  projectId: string;
-  projectTitle: string;
+  projectId: string | null;
+  projectTitle: string | null;
   status: OperationsWorkOrderStatus;
+  priority: OperationsWorkOrderPriority;
   technicianLabel: string | null;
   installationLat: number | null;
   installationLng: number | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  departmentId: string | null;
+  buildingId: string | null;
+  buildingName: string | null;
+  floor: string | null;
+  unit: string | null;
+  reporterName: string | null;
+  reporterPhone: string | null;
+  slaDeadline: string | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export type OperationsBuildingRow = {
+  id: string;
+  name: string;
+  address: string | null;
+  floors: number | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type OperationsCallCategoryRow = {
+  id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  maxResponseMinutes: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type OperationsDepartmentRow = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  color: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type OperationsCallMessageRow = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  attachmentUrl: string | null;
+  attachmentType: string | null;
+  mentions: string[];
+  createdAt: string;
 };
 
 export type OperationsTechnicianOption = {
@@ -120,5 +197,15 @@ export type OperationsLocationRow = {
 export type OperationsWorkOrderTypeRow = {
   id: string;
   name: string;
+  createdAt: string;
+};
+
+export type OperationsSupplierRow = {
+  id: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
   createdAt: string;
 };

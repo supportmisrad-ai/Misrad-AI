@@ -517,7 +517,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          {isSignIn ? 'התחבר עם Google' : 'הירשם עם Google'}
+          {isSignIn ? 'כניסה עם Google' : 'הרשמה עם Google'}
         </button>
 
         {isSignIn && isPasskeySupported && (
@@ -528,7 +528,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             className="w-full bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-[24px] font-black text-lg shadow-sm hover:shadow-md hover:border-blue-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Fingerprint size={24} />
-            התחבר עם טביעת אצבע
+            כניסה עם טביעת אצבע
           </button>
         )}
 
@@ -547,7 +547,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             <>{isSignIn ? 'מתחבר...' : step === 'verify' ? 'מאמת...' : 'נרשם...'}</>
           ) : (
             <>
-              {isSignIn ? 'התחבר' : step === 'verify' ? 'אמת קוד' : 'הירשם'}
+              {isSignIn ? 'כניסה למערכת' : step === 'verify' ? 'אמת קוד' : 'הרשמה למערכת'}
               <ArrowRight size={20} />
             </>
           )}

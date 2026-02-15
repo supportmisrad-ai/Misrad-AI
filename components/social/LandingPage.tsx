@@ -101,7 +101,7 @@ export default function LandingPage() {
   }, []);
 
   const handleGetStarted = () => {
-    router.push('/pricing');
+    router.push('/login?mode=sign-up&redirect=/workspaces/onboarding');
   };
 
   const handleGoToLegal = () => {
@@ -137,7 +137,7 @@ export default function LandingPage() {
           
           <div className="flex items-center gap-4">
             <button onClick={() => router.push('/pricing')} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">מחירון (החל מ-₪149)</button>
-            <button onClick={handleGetStarted} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">התחברות</button>
+            <button onClick={() => router.push('/login')} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">התחברות</button>
             <button 
               onClick={handleGetStarted}
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_20px_40px_-12px_rgba(59,130,246,0.3)] hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"

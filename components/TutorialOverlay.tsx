@@ -100,74 +100,68 @@ export const TutorialOverlay: React.FC = () => {
     useEffect(() => {
         if (isTutorialActive) {
             navigate('/');
-            // On mobile, skip sidebar step if it's the first step after welcome
-            if (isMobile && STEPS[1]?.targetId === 'main-sidebar') {
-                setCurrentStep(0); // Start at welcome, will skip sidebar on next
-            } else {
             setCurrentStep(0);
-            }
         }
-    }, [isTutorialActive, isMobile, navigate]);
+    }, [isTutorialActive, navigate]);
 
     useLayoutEffect(() => {
         if (!isTutorialActive || typeof window === 'undefined' || typeof document === 'undefined') return;
 
-        const updatePosition = () => {
-            // Double-check window/document are available
-            if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        const step = STEPS[currentStep];
+        const timers: ReturnType<typeof setTimeout>[] = [];
+
+        const findAndHighlight = () => {
+            if (typeof window === 'undefined' || typeof document === 'undefined') return false;
             
-            const step = STEPS[currentStep];
-            
-            // On mobile, some elements might not exist (e.g., sidebar is hidden)
-            // Check if element exists and is visible
-            if (step.targetId) {
-                const element = document.getElementById(step.targetId);
-                if (element) {
-                    const rect = element.getBoundingClientRect();
-                    // Check if element is actually visible (not hidden by CSS)
-                    const isVisible = rect.width > 0 && rect.height > 0 && 
-                                     window.getComputedStyle(element).display !== 'none' &&
-                                     window.getComputedStyle(element).visibility !== 'hidden';
-                    
-                    if (isVisible) {
-                    setTargetRect(rect);
-                        // On mobile, prefer center or bottom positioning
-                        const position = isMobile && (step.position === 'left' || step.position === 'right') 
-                            ? 'bottom' 
-                            : step.position;
-                        setTooltipStyle(calculateTooltipPosition(rect, position, isMobile));
-                    } else {
-                        // Element exists but is hidden (e.g., sidebar on mobile)
-                        setTargetRect(null);
-                        setTooltipStyle(calculateTooltipPosition(null, 'center', isMobile));
-                    }
-                } else {
-                    // Element not found - use center mode (especially on mobile)
-                    setTargetRect(null); 
-                    setTooltipStyle(calculateTooltipPosition(null, 'center', isMobile));
-                }
-            } else {
-                setTargetRect(null); // Center mode
+            if (!step.targetId) {
+                setTargetRect(null);
                 setTooltipStyle(calculateTooltipPosition(null, 'center', isMobile));
+                return true;
             }
+
+            const element = document.getElementById(step.targetId);
+            if (!element) return false;
+
+            const rect = element.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0 && 
+                             window.getComputedStyle(element).display !== 'none' &&
+                             window.getComputedStyle(element).visibility !== 'hidden';
+            
+            if (!isVisible) {
+                setTargetRect(null);
+                setTooltipStyle(calculateTooltipPosition(null, 'center', isMobile));
+                return true;
+            }
+
+            setTargetRect(rect);
+            const position = isMobile && (step.position === 'left' || step.position === 'right') 
+                ? 'bottom' 
+                : step.position;
+            setTooltipStyle(calculateTooltipPosition(rect, position, isMobile));
+            return true;
         };
 
-        // Initial calculation
-        updatePosition();
-        
-        // Recalculate on resize/scroll
-        window.addEventListener('resize', updatePosition);
-        window.addEventListener('scroll', updatePosition, true);
+        // Try immediately
+        if (!findAndHighlight()) {
+            // Retry with increasing delays
+            [100, 200, 400, 600, 800, 1000, 1500, 2000].forEach((delay, i) => {
+                timers.push(setTimeout(() => {
+                    findAndHighlight();
+                }, delay));
+            });
+        }
 
-        // Small timeout to allow UI to settle if navigating
-        const timer = setTimeout(updatePosition, 300);
+        // Update on resize/scroll
+        const handleUpdate = () => findAndHighlight();
+        window.addEventListener('resize', handleUpdate);
+        window.addEventListener('scroll', handleUpdate, true);
 
         return () => {
+            timers.forEach(t => clearTimeout(t));
             if (typeof window !== 'undefined') {
-            window.removeEventListener('resize', updatePosition);
-            window.removeEventListener('scroll', updatePosition, true);
+                window.removeEventListener('resize', handleUpdate);
+                window.removeEventListener('scroll', handleUpdate, true);
             }
-            clearTimeout(timer);
         };
     }, [currentStep, isTutorialActive, isMobile]);
 

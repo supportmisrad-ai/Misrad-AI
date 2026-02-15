@@ -23,7 +23,7 @@ export function LandingModulesSection() {
             {
               name: 'Operations - מודול אופרציה',
               title: 'שטח, מלאי וספקים',
-              desc: 'קריאות שירות, טכנאים, מעקב GPS, ניהול קריאות, מלאי, ספקים, מסופון, דיווחים מהשטח',
+              desc: 'שיבוץ טכנאי חכם ב-AI, סיכום קריאות אוטומטי, צ׳אט שטח עם הקלטות קוליות, גלריית תמונות, ניהול מלאי ורכבים, מעקב SLA',
               icon: ClipboardCheck,
               gradient: 'from-emerald-500 to-teal-600',
               href: '/operations'

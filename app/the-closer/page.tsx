@@ -28,7 +28,7 @@ export default async function TheCloserLandingPage() {
           desc: 'דשבורד שמראה כמה כסף יש בצנרת ומה צריך לעשות היום כדי לסגור.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&plan=the_closer"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=the_closer"
       ctaPrimaryLabel="נסה את ה-CRM בחינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

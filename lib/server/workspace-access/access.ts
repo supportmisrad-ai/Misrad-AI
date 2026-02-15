@@ -75,12 +75,16 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     });
   }
 
-  const entitlements = await getOrganizationEntitlements(
+  let entitlements = await getOrganizationEntitlements(
     String(org.id),
     isSuperAdmin ? undefined : socialUser?.id ?? undefined,
     decodedOrgSlug,
     org
   );
+
+  if (isSuperAdmin) {
+    entitlements = { nexus: true, system: true, social: true, finance: true, client: true, operations: true };
+  }
 
   return {
     id: String(org.id),
@@ -126,7 +130,11 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     });
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org);
+  let entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org);
+
+  if (isSuperAdmin) {
+    entitlements = { nexus: true, system: true, social: true, finance: true, client: true, operations: true };
+  }
 
   return {
     id: org.id,

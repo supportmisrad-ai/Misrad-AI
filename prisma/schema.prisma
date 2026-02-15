@@ -2488,29 +2488,124 @@ model OperationsSupplier {
 }
 
 model OperationsWorkOrder {
-  id                   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId       String               @map("organization_id") @db.Uuid
-  projectId            String               @map("project_id") @db.Uuid
-  title                String
-  description          String?
-  status               String               @default("NEW")
-  createdByType        String               @default("INTERNAL") @map("created_by_type")
-  createdByRef         String?              @map("created_by_ref")
-  installationAddress  String?              @map("installation_address")
-  addressNormalized    String?              @map("address_normalized")
-  scheduledStart       DateTime?            @map("scheduled_start") @db.Timestamptz(6)
-  scheduledEnd         DateTime?            @map("scheduled_end") @db.Timestamptz(6)
-  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  assignedTechnicianId String?              @map("assigned_technician_id") @db.Uuid
-  organization         social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  project              OperationsProject    @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                      String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId          String                    @map("organization_id") @db.Uuid
+  projectId               String?                   @map("project_id") @db.Uuid
+  title                   String
+  description             String?
+  status                  String                    @default("NEW")
+  priority                String?                   @default("NORMAL")
+  createdByType           String                    @default("INTERNAL") @map("created_by_type")
+  createdByRef            String?                   @map("created_by_ref")
+  installationAddress     String?                   @map("installation_address")
+  addressNormalized       String?                   @map("address_normalized")
+  scheduledStart          DateTime?                 @map("scheduled_start") @db.Timestamptz(6)
+  scheduledEnd            DateTime?                 @map("scheduled_end") @db.Timestamptz(6)
+  createdAt               DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assignedTechnicianId    String?                   @map("assigned_technician_id") @db.Uuid
+  installationLat         Float?                    @map("installation_lat")
+  installationLng         Float?                    @map("installation_lng")
+  stockSourceHolderId     String?                   @map("stock_source_holder_id") @db.Uuid
+  completionSignatureUrl  String?                   @map("completion_signature_url")
+  categoryId              String?                   @map("category_id") @db.Uuid
+  departmentId            String?                   @map("department_id") @db.Uuid
+  buildingId              String?                   @map("building_id") @db.Uuid
+  floor                   String?
+  unit                    String?
+  reporterName            String?                   @map("reporter_name")
+  reporterPhone           String?                   @map("reporter_phone")
+  slaDeadline             DateTime?                 @map("sla_deadline") @db.Timestamptz(6)
+  completedAt             DateTime?                 @map("completed_at") @db.Timestamptz(6)
+  transferredFromId       String?                   @map("transferred_from_id") @db.Uuid
+  transferApprovedById    String?                   @map("transfer_approved_by_id") @db.Uuid
+  aiSummary               String?                   @map("ai_summary")
+  organization            social_organizations      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project                 OperationsProject?        @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  category                OperationsCallCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  department              OperationsDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  building                OperationsBuilding?       @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  callMessages            OperationsCallMessage[]
 
   @@index([assignedTechnicianId], map: "idx_operations_work_orders_assigned_technician_id")
   @@index([organizationId], map: "idx_operations_work_orders_org")
   @@index([organizationId, status], map: "idx_operations_work_orders_org_status")
   @@index([projectId], map: "idx_operations_work_orders_project")
+  @@index([organizationId, categoryId], map: "idx_ops_wo_category")
+  @@index([organizationId, buildingId], map: "idx_ops_wo_building")
+  @@index([organizationId, departmentId], map: "idx_ops_wo_department")
+  @@index([organizationId, priority], map: "idx_ops_wo_priority")
+  @@index([organizationId, slaDeadline], map: "idx_ops_wo_sla_deadline")
   @@map("operations_work_orders")
+}
+
+model OperationsBuilding {
+  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  name           String
+  address        String?
+  floors         Int?
+  notes          String?
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrders     OperationsWorkOrder[]
+
+  @@index([organizationId], map: "idx_operations_buildings_org")
+  @@map("operations_buildings")
+}
+
+model OperationsCallCategory {
+  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String               @map("organization_id") @db.Uuid
+  name               String
+  color              String?
+  icon               String?
+  maxResponseMinutes Int?                 @map("max_response_minutes")
+  sortOrder          Int                  @default(0) @map("sort_order")
+  isActive           Boolean              @default(true) @map("is_active")
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization       social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrders         OperationsWorkOrder[]
+
+  @@index([organizationId], map: "idx_operations_call_categories_org")
+  @@map("operations_call_categories")
+}
+
+model OperationsDepartment {
+  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  name           String
+  slug           String
+  icon           String?
+  color          String?
+  isActive       Boolean              @default(true) @map("is_active")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrders     OperationsWorkOrder[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId], map: "idx_operations_departments_org")
+  @@map("operations_departments")
+}
+
+model OperationsCallMessage {
+  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  workOrderId    String               @map("work_order_id") @db.Uuid
+  authorId       String               @map("author_id") @db.Uuid
+  authorName     String               @map("author_name")
+  content        String
+  attachmentUrl  String?              @map("attachment_url")
+  attachmentType String?              @map("attachment_type")
+  mentions       String[]             @default([])
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrder      OperationsWorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@index([workOrderId], map: "idx_operations_call_messages_wo")
+  @@index([organizationId], map: "idx_operations_call_messages_org")
+  @@map("operations_call_messages")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2849,6 +2944,10 @@ model social_organizations {
   operationsProjects               OperationsProject[]
   operationsSuppliers              OperationsSupplier[]
   operationsWorkOrders             OperationsWorkOrder[]
+  operationsBuildings              OperationsBuilding[]
+  operationsCallCategories         OperationsCallCategory[]
+  operationsDepartments            OperationsDepartment[]
+  operationsCallMessages           OperationsCallMessage[]
   organization_settings            organization_settings?
   profiles                         Profile[]
   socialMediaClients               SocialMediaClient[]

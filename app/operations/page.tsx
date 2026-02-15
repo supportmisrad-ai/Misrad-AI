@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users, Play } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users, Play, Sparkles, Camera, Brain } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
@@ -18,14 +18,29 @@ export default function OperationsMarketingPage() {
   
   const features = [
     {
+      title: 'שיבוץ חכם — AI בוחר את הטכנאי',
+      description: 'המערכת מנתחת עומס, ניסיון בקטגוריה וזמינות — ומציעה את הטכנאי הכי מתאים לכל קריאה. פשוט לוחצים "קבל".',
+      icon: Brain,
+    },
+    {
+      title: 'סיכום קריאה אוטומטי ב-AI',
+      description: 'כשקריאה נסגרת — ה-AI מסכם: מה בוצע, אילו חומרים נצרכו, ותוצאה. בלחיצה אחת. בלי לכתוב דו"ח.',
+      icon: Sparkles,
+    },
+    {
       title: 'תפסיקו להקליד. פשוט תדברו.',
-      description: 'הידיים מלוכלכות? לחצו על המיקרופון ופתחו קריאה או חשבונית בקול.',
+      description: 'הידיים מלוכלכות? לחצו על המיקרופון — ההודעה מתומללת אוטומטית ונכנסת לצ\'אט הקריאה.',
       icon: Mic,
+    },
+    {
+      title: 'תיעוד צילומי מקצועי',
+      description: 'גלריית תמונות עם Lightbox, ניווט מקלדת, וצפייה מהירה — כל התמונות של הקריאה במקום אחד.',
+      icon: Camera,
     },
     {
       title: 'מסוף שטח חכם (Kiosk)',
       description:
-        'הפכו כל טאבלט פשוט לעמדת עבודה מנוהלת. שעון נוכחות, משימות וגישה למלאי – בחיבור מהיר ללא צורך בסיסמאות לעובדים.',
+        'הפכו כל טאבלט פשוט לעמדת עבודה מנוהלת. שעון נוכחות, משימות וגישה למלאי – בחיבור מהיר ללא צורך בסיסמאות.',
       icon: Tablet,
     },
   ];
@@ -59,7 +74,7 @@ export default function OperationsMarketingPage() {
 
                 <div className="mt-10 flex flex-col sm:flex-row gap-3">
                   <Link
-                    href="/pricing"
+                    href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                     className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-onyx-900 text-white font-bold shadow-xl shadow-onyx-900/10 hover:bg-black"
                   >
                     התחל ניסיון חינם
@@ -95,9 +110,9 @@ export default function OperationsMarketingPage() {
                     </div>
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
-                        { title: 'סידור עבודה', desc: 'מי הולך לאן ומתי' },
-                        { title: 'קריאת שירות', desc: 'פתיחה וסיום' },
-                        { title: 'דיווח', desc: 'צילום/חתימה/תיעוד' },
+                        { title: 'שיבוץ AI', desc: 'הטכנאי הנכון אוטומטית' },
+                        { title: 'צ\'אט שטח', desc: 'קול + תמונות + קבצים' },
+                        { title: 'סיכום AI', desc: 'דו"ח אוטומטי לכל קריאה' },
                       ].map((x) => (
                         <div key={x.title} className="rounded-2xl border border-slate-200 bg-white p-4">
                           <div className="font-black text-slate-900">{x.title}</div>
@@ -208,10 +223,10 @@ export default function OperationsMarketingPage() {
                 <div className="p-6">
                   <div className="space-y-3">
                     {[
-                      { title: 'נפתחה קריאה', note: 'כתובת + תיאור + תיעדוף', tone: 'bg-amber-50 border-amber-200 text-amber-900' },
-                      { title: 'שויך טכנאי', note: 'סידור עבודה מסודר', tone: 'bg-indigo-50 border-indigo-200 text-indigo-900' },
-                      { title: 'בדרך', note: 'סטטוס אמיתי בשטח', tone: 'bg-slate-50 border-slate-200 text-slate-900' },
-                      { title: 'בוצע וסוכם', note: 'תיעוד + הוכחה', tone: 'bg-emerald-50 border-emerald-200 text-emerald-900' },
+                      { title: 'נפתחה קריאה', note: 'כתובת + תיאור + דחיפות + SLA', tone: 'bg-amber-50 border-amber-200 text-amber-900' },
+                      { title: 'AI שיבץ טכנאי', note: 'לפי עומס, ניסיון וזמינות', tone: 'bg-indigo-50 border-indigo-200 text-indigo-900' },
+                      { title: 'טכנאי בשטח', note: 'צ\'אט + תמונות + הקלטות קוליות', tone: 'bg-slate-50 border-slate-200 text-slate-900' },
+                      { title: 'AI סיכם את הקריאה', note: 'דו"ח אוטומטי ללא מאמץ', tone: 'bg-emerald-50 border-emerald-200 text-emerald-900' },
                     ].map((s) => (
                       <div key={s.title} className={`rounded-2xl border p-4 ${s.tone}`}>
                         <div className="font-black">{s.title}</div>
@@ -251,7 +266,7 @@ export default function OperationsMarketingPage() {
                   ראה חבילות <ArrowRight size={16} className="rotate-180" />
                 </Link>
                 <Link
-                  href="/pricing"
+                  href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                   className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
                 >
                   התחל ניסיון חינם

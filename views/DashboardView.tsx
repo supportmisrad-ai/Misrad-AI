@@ -212,7 +212,7 @@ export const DashboardView: React.FC<{
     const isHomeDashboard = useRef(false);
     isHomeDashboard.current = typeof pathname === 'string' ? /\/nexus\/?$/.test(pathname) : false;
     const [ownerDashboard, setOwnerDashboard] = useState<OwnerDashboardData | null>(() => coerceOwnerDashboardData(initialOwnerDashboard));
-    const [showOwnerDashboard, setShowOwnerDashboard] = useState(true);
+    const [showOwnerDashboard, setShowOwnerDashboard] = useState(false);
     const [isPilotLoading, setIsPilotLoading] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [pilotErrorCount, setPilotErrorCount] = useState(0);
@@ -325,18 +325,6 @@ export const DashboardView: React.FC<{
         return Array.isArray(initialBillingItems) ? initialBillingItems : null;
     });
     const [isLoadingBillingItems, setIsLoadingBillingItems] = useState(false);
-    
-    // Logo Reminder State
-    const [showLogoReminder, setShowLogoReminder] = useState(false);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            setShowLogoReminder(!localStorage.getItem('logo_reminder_dismissed'));
-        } catch {
-            setShowLogoReminder(true);
-        }
-    }, []);
 
     useEffect(() => {
         if (initialOnboardingTemplateKey !== undefined) return;
@@ -504,6 +492,15 @@ export const DashboardView: React.FC<{
         },
         {
             id: 2,
+            label: 'לוגו לעסק',
+            subLabel: 'העלה לוגו לסביבת העבודה',
+            done: Boolean(organization.logo && organization.logo.length > 0),
+            icon: ImageIcon,
+            action: () => navigate('/settings?tab=branding'),
+            color: 'text-pink-600 bg-pink-50',
+        },
+        {
+            id: 3,
             label: 'משימה ראשונה',
             subLabel: 'צור משימה במערכת',
             done: tasks.some((t) => t.creatorId === currentUser.id),
@@ -512,7 +509,7 @@ export const DashboardView: React.FC<{
             color: 'text-purple-600 bg-purple-50',
         },
         {
-            id: 3,
+            id: 4,
             label: 'כניסה למשמרת',
             subLabel: 'הפעל שעון נוכחות',
             done: !!activeShift || tasks.some((t) => t.timeSpent > 0),
@@ -525,7 +522,17 @@ export const DashboardView: React.FC<{
             color: 'text-emerald-600 bg-emerald-50',
         },
         {
-            id: 4,
+            id: 5,
+            label: 'הזמנת עובד',
+            subLabel: 'הוסף חבר צוות ראשון',
+            done: users.length > 1,
+            icon: Users,
+            action: () => navigate('/team?newEmployee=1'),
+            color: 'text-indigo-600 bg-indigo-50',
+            moduleId: 'team' as ModuleId,
+        },
+        {
+            id: 6,
             label: 'הכרת ה-AI',
             subLabel: 'בצע ניתוח ראשון',
             done: analysisHistory.length > 0,
@@ -751,17 +758,15 @@ export const DashboardView: React.FC<{
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl mb-8"
-                    >
-                        {/* Gradient Border Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-20"></div>
-                        
-                        <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.3rem] p-8 md:p-10 border border-white/50 overflow-hidden">
+                        className="relative overflow-hidden rounded-[2.5rem] shadow-2xl mb-8"
+                >
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-slate-200 overflow-hidden">
                             {/* Decorative Background Elements */}
-                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
+                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-slate-50 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
 
-                            <button 
+                            <button
+                                type="button"
                                 onClick={dismissOnboarding} 
                                 className="absolute top-6 left-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors z-20"
                                 aria-label="סגור תדריך התחלה"
@@ -786,28 +791,6 @@ export const DashboardView: React.FC<{
                                         המערכת שתעשה לך סדר בראש ובעסק. השלם את הצעדים כדי להתחיל ברגל ימין.
                                     </p>
 
-                                    {/* Tour button integrated into onboarding */}
-                                    {showTourPrompt && (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                try {
-                                                    if (typeof window !== 'undefined') {
-                                                        window.localStorage.setItem(TOUR_PROMPT_STORAGE_KEY, 'true');
-                                                    }
-                                                } catch {
-                                                    // ignore
-                                                }
-                                                setShowTourPrompt(false);
-                                                setTimeout(() => startTutorial(), 100);
-                                            }}
-                                            className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 transition-colors"
-                                        >
-                                            <Compass size={16} />
-                                            סיור מהיר במערכת (30 שניות)
-                                        </button>
-                                    )}
-
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
                                             <span>התקדמות</span>
@@ -827,7 +810,7 @@ export const DashboardView: React.FC<{
                                 </div>
 
                                 {/* Right: Steps Grid */}
-                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {onboardingSteps.map((step) => {
                                         const isDone = step.done;
                                         return (
@@ -874,60 +857,7 @@ export const DashboardView: React.FC<{
                 )}
             </AnimatePresence>
 
-            {/* TEMPLATE SELECTION - For owners who haven't selected yet (only if not showing onboarding) */}
-            <AnimatePresence>
-                {!isNewUser && needsTemplate && isOwnerOrCeo && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 12 }}
-                        className="mb-6"
-                    >
-                        <div className="relative bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm overflow-hidden">
-                            <div className="absolute -top-24 -left-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-[60px]" />
-                            <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-500/10 rounded-full blur-[60px]" />
-
-                            <div className="relative flex flex-col lg:flex-row lg:items-center gap-4">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 text-indigo-600 font-black">
-                                        <Rocket size={18} />
-                                        <span>הגדרה מהירה</span>
-                                    </div>
-                                    <h3 className="mt-2 text-xl font-black text-gray-900">בחר תבנית עבודה לנקסוס</h3>
-                                    <p className="mt-1 text-sm text-gray-500">בחר פעם אחת, ואנחנו ניצור סט משימות התחלה שמותאם לשיטת עבודה שלך.</p>
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button
-                                        onClick={() => applyNexusOnboardingTemplate('retainer_fixed')}
-                                        disabled={isApplyingOnboardingTemplate}
-                                        className={`px-5 py-3 rounded-2xl font-bold text-sm border transition-all ${
-                                            isApplyingOnboardingTemplate
-                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                : 'bg-black text-white border-black hover:bg-gray-800'
-                                        }`}
-                                        type="button"
-                                    >
-                                        ריטיינר קבוע
-                                    </button>
-                                    <button
-                                        onClick={() => applyNexusOnboardingTemplate('deliverables_package')}
-                                        disabled={isApplyingOnboardingTemplate}
-                                        className={`px-5 py-3 rounded-2xl font-bold text-sm border transition-all ${
-                                            isApplyingOnboardingTemplate
-                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                                                : 'bg-white text-gray-900 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
-                                        }`}
-                                        type="button"
-                                    >
-                                        חבילת דליברבלס
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* TEMPLATE SELECTION removed — not relevant for end users */}
 
             <div className="flex items-end justify-between">
                 <div>
@@ -946,57 +876,12 @@ export const DashboardView: React.FC<{
                     </div>
                 </div>
 
-                {ownerDashboard && !showOwnerDashboard && (
-                    <button
-                        onClick={() => {
-                            setShowOwnerDashboard(true);
-                            setIsFocusMode(false);
-                            if (typeof document !== 'undefined') {
-                                setTimeout(() => {
-                                    const el = document.querySelector('[data-owner-dashboard]');
-                                    if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }, 0);
-                            }
-                        }}
-                        type="button"
-                        className="h-11 px-5 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
-                        aria-label="הצג תמונת מצב לבעלים"
-                    >
-                        הצג תמונת מצב
-                    </button>
-                )}
             </div>
-
-            {/* Tour prompt for non-new users who haven't seen it */}
-            {!isNewUser && isHomeDashboard.current && showTourPrompt && (
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            try {
-                                if (typeof window !== 'undefined') {
-                                    window.localStorage.setItem(TOUR_PROMPT_STORAGE_KEY, 'true');
-                                }
-                            } catch {
-                                // ignore
-                            }
-                            setShowTourPrompt(false);
-                            setTimeout(() => startTutorial(), 100);
-                        }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-sm font-bold text-slate-700 transition-colors"
-                    >
-                        <Compass size={16} />
-                        סיור מהיר במערכת
-                    </button>
-                </div>
-            )}
 
             {/* ===== SECTION 2: OWNER DASHBOARD (Only for CEO/Owners) ===== */}
             {ownerDashboard && showOwnerDashboard && isOwnerOrCeo && (
-                <div className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl" data-owner-dashboard>
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-20"></div>
-
-                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.3rem] p-6 sm:p-8 md:p-10 border border-white/50 overflow-hidden">
+                <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl" data-owner-dashboard>
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-slate-200 overflow-hidden">
                         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
                         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
 
@@ -1180,64 +1065,33 @@ export const DashboardView: React.FC<{
                 return null;
             })()}
 
-            {/* CEO Logo Reminder - Only for CEO/Manager */}
-            <AnimatePresence>
-                {showLogoReminder && (!organization.logo || organization.logo === '') && (isCeoRole(currentUser.role) || currentUser.isSuperAdmin) && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-lg mb-8"
-                    >
-                        <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <ImageIcon className="text-blue-600" size={24} />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-bold text-lg text-gray-900 mb-1">הוסף לוגו לעסק</h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    הלוגו יוצג במסכי הכניסה, במיילים שנשלחים ללקוחות, ובקישורים החד פעמיים. זה חשוב לזהות העסקית שלך.
-                                </p>
-                                <button
-                                    onClick={() => navigate('/settings?tab=organization')}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-md"
-                                >
-                                    <Upload size={16} />
-                                    הוסף לוגו עכשיו
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    // Store dismissal in localStorage
-                                    localStorage.setItem('logo_reminder_dismissed', 'true');
-                                    setShowLogoReminder(false);
-                                }}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                                aria-label="סגור תזכורת"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* ===== SECTION 3: QUICK ACTIONS ===== */}
             <div className="mt-4">
                 <div className="w-full max-w-none mx-auto px-2">
-                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 border border-white/50 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
-                        <div className="flex items-center justify-between gap-4 mb-4">
-                            <div className="text-right">
-                                <div className="text-base md:text-lg font-black text-slate-900 tracking-tight">פעולות מהירות</div>
-                            </div>
-                        </div>
+                    <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
+                        <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 border border-slate-200 overflow-hidden">
+                            {/* Decorative Background Elements */}
+                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+                            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
+
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between gap-4 mb-6">
+                                    <div className="text-right">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold w-fit mb-3 shadow-lg shadow-slate-900/20">
+                                            <Zap size={12} className="text-yellow-400" />
+                                            <span>פעולות מהירות</span>
+                                        </div>
+                                        <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">מה תרצה לעשות?</div>
+                                        <p className="text-slate-500 text-sm mt-1">גישה מהירה לפעולות הנפוצות ביותר</p>
+                                    </div>
+                                </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
                             <button
                                 id="create-task-btn"
                                 onClick={() => openCreateTask()}
                                 type="button"
-                                className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                 aria-label="משימה חדשה"
                             >
                                 <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative mr-auto">
@@ -1272,7 +1126,7 @@ export const DashboardView: React.FC<{
                             <button
                                 onClick={() => navigate('/team?newEmployee=1')}
                                 type="button"
-                                className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                 aria-label="עובד חדש"
                             >
                                 <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
@@ -1287,7 +1141,7 @@ export const DashboardView: React.FC<{
                                 <button
                                     onClick={() => setShowMorningBrief(true)}
                                     type="button"
-                                    className="group relative rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                    className="group relative rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                     aria-label="תדריך בוקר"
                                 >
                                     <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
@@ -1309,7 +1163,7 @@ export const DashboardView: React.FC<{
                                     <button
                                         onClick={() => navigate('/tasks')}
                                         type="button"
-                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                         aria-label="משימות"
                                     >
                                         <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-700 flex items-center justify-center border border-yellow-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
@@ -1322,7 +1176,7 @@ export const DashboardView: React.FC<{
                                     <button
                                         onClick={() => setIsEditingGoals(true)}
                                         type="button"
-                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                         aria-label="יעדים חודשיים"
                                     >
                                         <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
@@ -1339,7 +1193,7 @@ export const DashboardView: React.FC<{
                                             if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
                                         }}
                                         type="button"
-                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
                                         aria-label="המיקוד להיום"
                                     >
                                         <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center border border-slate-200 mb-3 group-hover:scale-105 transition-transform mr-auto">
@@ -1351,18 +1205,8 @@ export const DashboardView: React.FC<{
                                 </>
                             )}
                         </div>
-
-                        {isHomeDashboard.current && workspaceOrgSlug ? (
-                            <div className="mt-5 pt-5 border-t border-white/50">
-                                <OSAppSwitcher
-                                    mode="inlineGrid"
-                                    compact={true}
-                                    hideLockedModules={true}
-                                    orgSlug={workspaceOrgSlug}
-                                    className="w-full"
-                                />
                             </div>
-                        ) : null}
+                        </div>
                     </div>
                 </div>
             </div>

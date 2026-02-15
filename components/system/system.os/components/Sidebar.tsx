@@ -54,7 +54,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout: _logout, mo
       <div className="px-6 mb-2 flex-shrink-0">
          <div className="h-[80px] md:h-[100px] flex items-center justify-between mb-3">
             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-rose-500/20 ring-1 ring-white/20 overflow-hidden text-center shrink-0">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-sm ring-1 ring-white/10 overflow-hidden text-center shrink-0">
                     {brandLogo ? (
                         <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
                     ) : (

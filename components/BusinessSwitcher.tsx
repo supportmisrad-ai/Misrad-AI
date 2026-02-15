@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, ChevronDown, Check, Search, Plus } from 'lucide-react';
+import { Building2, ChevronDown, Check, Search, Plus, Star, Pin } from 'lucide-react';
 import { Tenant } from '../types';
 import { extractData } from '@/lib/shared/api-types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,6 +37,73 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     const [businesses, setBusinesses] = useState<Tenant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+    const [pinnedOrgId, setPinnedOrgId] = useState<string | null>(null);
+    const [pinToast, setPinToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+
+    // Load favorites and pinned org from localStorage on client mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const raw = localStorage.getItem('misrad_favorite_orgs');
+            if (raw) {
+                const parsed = JSON.parse(raw) as string[];
+                if (Array.isArray(parsed)) {
+                    setFavoriteIds(new Set(parsed));
+                }
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            const pinned = localStorage.getItem('misrad_pinned_org');
+            if (pinned) {
+                setPinnedOrgId(pinned);
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    const toggleFavorite = useCallback((id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setFavoriteIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            try { localStorage.setItem('misrad_favorite_orgs', JSON.stringify([...next])); } catch {}
+            return next;
+        });
+    }, []);
+
+    const togglePin = useCallback((id: string, orgName: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPinnedOrgId((prev) => {
+            if (prev === id) {
+                // Unpin
+                try { localStorage.removeItem('misrad_pinned_org'); } catch {}
+                // Also remove cookie
+                try { document.cookie = 'misrad_pinned_org=; path=/; max-age=0'; } catch {}
+                setPinToast({ message: `הוסרה הצמדה מ-${orgName}`, visible: true });
+                return null;
+            } else {
+                // Pin this one (replaces any previous)
+                try { localStorage.setItem('misrad_pinned_org', id); } catch {}
+                // Also set cookie for server-side reading (1 year expiry)
+                try { document.cookie = `misrad_pinned_org=${encodeURIComponent(id)}; path=/; max-age=31536000; SameSite=Lax`; } catch {}
+                setPinToast({ message: `${orgName} ייפתח אוטומטית בכניסה הבאה. לחץ שוב להסרה.`, visible: true });
+                return id;
+            }
+        });
+    }, []);
+
+    // Auto-hide pin toast after 5 seconds
+    useEffect(() => {
+        if (!pinToast.visible) return;
+        const timer = setTimeout(() => {
+            setPinToast((prev) => ({ ...prev, visible: false }));
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [pinToast.visible]);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -198,9 +265,13 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         }
     };
 
-    const filteredBusinesses = businesses.filter(business =>
-        business.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredBusinesses = businesses
+        .filter(business => business.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => {
+            const aFav = favoriteIds.has(a.id) ? 1 : 0;
+            const bFav = favoriteIds.has(b.id) ? 1 : 0;
+            return bFav - aFav;
+        });
 
     const currentSubdomain = getCurrentSubdomain();
     const currentBusiness = businesses.find(b => b.subdomain === currentSubdomain || b.id === currentTenantId);
@@ -305,13 +376,13 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                     
                                     {/* Search */}
                                     <div className="relative">
-                                        <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                         <input
                                             type="text"
                                             placeholder="חפש עסק..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full pr-9 pl-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-nexus-primary/30"
+                                            className="w-full pr-3 pl-9 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-nexus-primary/30"
                                         />
                                     </div>
                                 </div>
@@ -331,58 +402,97 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                             {filteredBusinesses.map((business) => {
                                                 const isActive = business.subdomain === currentSubdomain || business.id === currentTenantId;
                                                 return (
-                                                    <button
+                                                    <div
                                                         key={business.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            handleSwitchBusiness(business);
-                                                            setIsOpen(false);
-                                                        }}
-                                                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-right transition-colors ${
+                                                        className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-right transition-colors ${
                                                             isActive
                                                                 ? 'bg-blue-50 text-blue-700'
                                                                 : 'hover:bg-gray-50 text-gray-700'
                                                         }`}
                                                     >
-                                                        {/* Logo or Icon */}
-                                                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                                            {business.logo ? (
-                                                                <img 
-                                                                    src={business.logo} 
-                                                                    alt={business.name}
-                                                                    className="w-full h-full object-cover rounded-lg"
-                                                                />
-                                                            ) : (
-                                                                <Building2 size={18} className="text-white" />
-                                                            )}
-                                                        </div>
+                                                        {/* Pin Button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => togglePin(business.id, business.name, e)}
+                                                            className="flex-shrink-0 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                                            aria-label={pinnedOrgId === business.id ? 'הסר הצמדה' : 'הצמד לכניסה אוטומטית'}
+                                                            title={pinnedOrgId === business.id ? 'לחץ להסרת הצמדה' : 'הצמד - ייפתח אוטומטית בכניסה הבאה'}
+                                                        >
+                                                            <Pin
+                                                                size={14}
+                                                                className={pinnedOrgId === business.id ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}
+                                                            />
+                                                        </button>
 
-                                                        {/* Business Info */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-semibold text-sm truncate">
-                                                                    {business.name}
-                                                                </span>
-                                                                {isActive && (
-                                                                    <Check size={14} className="text-blue-600 flex-shrink-0" />
+                                                        {/* Favorite Star */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => toggleFavorite(business.id, e)}
+                                                            className="flex-shrink-0 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                                            aria-label={favoriteIds.has(business.id) ? 'הסר מהמועדפים' : 'הוסף למועדפים'}
+                                                        >
+                                                            <Star
+                                                                size={14}
+                                                                className={favoriteIds.has(business.id) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}
+                                                            />
+                                                        </button>
+
+                                                        {/* Clickable row for switching */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                handleSwitchBusiness(business);
+                                                                setIsOpen(false);
+                                                            }}
+                                                            className="flex items-center gap-3 flex-1 min-w-0"
+                                                        >
+                                                            {/* Logo or Icon */}
+                                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                                                {business.logo ? (
+                                                                    <img 
+                                                                        src={business.logo} 
+                                                                        alt={business.name}
+                                                                        className="w-full h-full object-cover rounded-lg"
+                                                                    />
+                                                                ) : (
+                                                                    <Building2 size={18} className="text-white" />
                                                                 )}
                                                             </div>
-                                                            <span className="text-xs text-gray-500 truncate">
-                                                                /w/{business.subdomain}
-                                                            </span>
-                                                        </div>
 
-                                                        {isActive && (
-                                                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                                <Check size={14} className="text-blue-600" />
+                                                            {/* Business Info */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-sm truncate">
+                                                                        {business.name}
+                                                                    </span>
+                                                                    {isActive && (
+                                                                        <Check size={14} className="text-blue-600 flex-shrink-0" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-xs text-gray-500 truncate block">
+                                                                    /w/{business.subdomain}
+                                                                </span>
                                                             </div>
-                                                        )}
-                                                    </button>
+
+                                                            {isActive && (
+                                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                                    <Check size={14} className="text-blue-600" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 );
                                             })}
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Pin Toast */}
+                                {pinToast.visible && (
+                                    <div className="mx-3 mb-2 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold animate-in fade-in slide-in-from-top-2 duration-300">
+                                        {pinToast.message}
+                                    </div>
+                                )}
 
                                 {/* Footer */}
                                 <div className="p-3 border-t border-gray-100 bg-white">

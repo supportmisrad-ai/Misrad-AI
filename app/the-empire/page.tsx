@@ -28,7 +28,7 @@ export default async function TheEmpireLandingPage() {
           desc: 'מחיר אחד, מערכת אחת, בלי אינטגרציות מסובכות.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&plan=the_empire"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=the_empire"
       ctaPrimaryLabel="קבל גישה מלאה בחינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

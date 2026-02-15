@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Video, X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getHelpVideosByModule, type HelpVideo } from '@/app/actions/help-videos';
 
@@ -42,7 +42,11 @@ function normalizeVideoUrl(url: string): string {
   return raw;
 }
 
-export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
+export function ModuleHelpVideos(props: {
+  moduleKey: OSModuleKey;
+  externalOpen?: boolean;
+  onExternalCloseAction?: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<HelpVideo[]>([]);
@@ -84,6 +88,12 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
   }, []);
 
   useEffect(() => {
+    if (props.externalOpen) {
+      setIsOpen(true);
+    }
+  }, [props.externalOpen]);
+
+  useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -93,6 +103,7 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
       if (e.key === 'Escape') {
         e.preventDefault();
         setIsOpen(false);
+        props.onExternalCloseAction?.();
       }
     };
     const options: AddEventListenerOptions = { capture: true };
@@ -107,7 +118,7 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
       {isOpen ? (
         <div
           className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
-          onClick={() => setIsOpen(false)}
+          onClick={() => { setIsOpen(false); props.onExternalCloseAction?.(); }}
           dir="rtl"
         >
           <motion.div
@@ -119,7 +130,7 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
           >
             <button
               type="button"
-              onClick={() => setIsOpen(false)}
+              onClick={() => { setIsOpen(false); props.onExternalCloseAction?.(); }}
               className="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-900 transition-colors"
               aria-label="סגירה"
             >
@@ -212,16 +223,6 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-        title="הדרכה"
-        aria-label="הדרכה"
-      >
-        <Video size={18} />
-      </button>
-
       {mounted && typeof document !== 'undefined' ? createPortal(modal, document.body) : null}
     </>
   );

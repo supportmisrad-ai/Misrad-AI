@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,10 +23,18 @@ export async function POST() {
     }
 
     // Get user's organization
-    const profile = await prisma.profile.findFirst({
-      where: { clerkUserId: userId },
-      select: { organizationId: true },
-    });
+    const profile = await prisma.profile.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerkUserId: userId },
+          select: { organizationId: true },
+        },
+        {
+          reason: 'zoom_disconnect_lookup_org',
+          source: 'app/api/integrations/zoom/disconnect/route.ts',
+        }
+      )
+    );
 
     if (!profile?.organizationId) {
       return NextResponse.json(

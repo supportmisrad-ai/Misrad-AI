@@ -32,6 +32,17 @@ const NativeAppUpdatePrompt = dynamic(
   { ssr: false, loading: () => null }
 );
 
+const GlobalSupportModal = dynamic(
+  () => import('@/components/shared/GlobalSupportModal').then((m) => m.GlobalSupportModal),
+  { ssr: false, loading: () => null }
+);
+
+const GlobalSearchModal = dynamic(
+  () => import('@/components/shared/GlobalSearchModal').then((m) => m.GlobalSearchModal),
+  { ssr: false, loading: () => null }
+);
+
+
 function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -118,7 +129,8 @@ export function ClientOnlyClerkWidgets() {
   const mounted = useMounted();
   const [enableAiAssistant, setEnableAiAssistant] = useState(false);
   const [enablePasskeyPrompt, setEnablePasskeyPrompt] = useState(false);
-  const isAuthenticated = !isSalesPathname(pathname || '/');
+  const p = String(pathname || '/');
+  const isAuthenticated = p.startsWith('/w/');
 
   useEffect(() => {
     if (!mounted) return;
@@ -222,6 +234,8 @@ export function ClientOnlyGlobalWidgets() {
       {mounted && enableGlobalWidgets && <VoiceCommandFab />}
       {mounted && enableGlobalWidgets && <ComingSoonPortal />}
       {mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}
+      {mounted && enableGlobalWidgets && <GlobalSupportModal />}
+      {mounted && enableGlobalWidgets && <GlobalSearchModal />}
     </>
   );
 }

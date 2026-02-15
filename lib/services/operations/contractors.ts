@@ -416,7 +416,7 @@ export async function getOperationsContractorPortalDataByToken(params: {
           id: w.id,
           title: w.title,
           status: String(w.status) as OperationsWorkOrderStatus,
-          projectTitle: w.project.title,
+          projectTitle: w.project?.title ?? '',
           installationAddress: w.installationAddress ? String(w.installationAddress) : null,
           scheduledStart: w.scheduledStart ? w.scheduledStart.toISOString() : null,
         })),

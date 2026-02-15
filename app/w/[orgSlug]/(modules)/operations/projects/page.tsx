@@ -13,6 +13,16 @@ function formatDate(dateIso: string): string {
   }
 }
 
+function formatProjectStatus(status: string): { label: string; cls: string } {
+  switch (status) {
+    case 'ACTIVE': return { label: 'פעיל', cls: 'bg-sky-50 text-sky-700 border border-sky-100' };
+    case 'COMPLETED': return { label: 'הושלם', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
+    case 'ON_HOLD': return { label: 'מוקפא', cls: 'bg-amber-50 text-amber-700 border border-amber-100' };
+    case 'CANCELLED': return { label: 'בוטל', cls: 'bg-slate-50 text-slate-500 border border-slate-200' };
+    default: return { label: status, cls: 'bg-slate-50 text-slate-700 border border-slate-200' };
+  }
+}
+
 export default async function OperationsProjectsPage({
   params,
 }: {
@@ -26,17 +36,17 @@ export default async function OperationsProjectsPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <section className="bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-100">
+      <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-black text-slate-900">כל הפרויקטים</div>
-                <div className="text-xs text-slate-500 mt-1">סך הכל {projects.length} פרויקטים</div>
+                <div className="text-sm font-bold text-slate-800">כל הפרויקטים</div>
+                <div className="text-xs text-slate-400 mt-0.5">סך הכל {projects.length} פרויקטים</div>
               </div>
 
               <Link
                 href={`${base}/projects/new`}
-                className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
               >
                 פרויקט חדש
               </Link>
@@ -56,20 +66,27 @@ export default async function OperationsProjectsPage({
                 </thead>
                 <tbody>
                   {projects.length ? (
-                    projects.map((p) => (
-                      <tr key={p.id} className="border-t border-slate-100">
-                        <td className="py-3 font-bold text-slate-900">{p.title}</td>
-                        <td className="py-3 text-slate-600">
-                          {p.clientName ? p.clientName : <span className="text-slate-400">—</span>}
-                        </td>
-                        <td className="py-3">
-                          <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black bg-sky-50 text-sky-700 border border-sky-100">
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="py-3 text-slate-600">{formatDate(p.createdAt)}</td>
-                      </tr>
-                    ))
+                    projects.map((p) => {
+                      const ps = formatProjectStatus(p.status);
+                      return (
+                        <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3">
+                            <Link href={`${base}/work-orders?projectId=${encodeURIComponent(p.id)}`} className="font-bold text-slate-900 hover:text-sky-700 transition-colors">
+                              {p.title}
+                            </Link>
+                          </td>
+                          <td className="py-3 text-slate-600">
+                            {p.clientName ? p.clientName : <span className="text-slate-400">—</span>}
+                          </td>
+                          <td className="py-3">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${ps.cls}`}>
+                              {ps.label}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-600">{formatDate(p.createdAt)}</td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr className="border-t border-slate-100">
                       <td className="py-6 text-sm text-slate-500" colSpan={4}>

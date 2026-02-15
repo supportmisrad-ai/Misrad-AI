@@ -264,7 +264,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                     <LogIn size={16} />
                                     כניסה
                                 </button>
-                                <button onClick={() => router.push('/login')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
+                                <button onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
                                     התחילו חינם
                                 </button>
                             </>
@@ -319,7 +319,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                 {!isSignedIn && (
                                     <>
                                         <div className="h-px bg-slate-200 my-2"></div>
-                                        <button onClick={() => router.push('/login')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-full font-bold shadow-xl shadow-slate-900/10">התחילו חינם</button>
+                                        <button onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-full font-bold shadow-xl shadow-slate-900/10">התחילו חינם</button>
                                     </>
                                 )}
                             </div>

@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       {/* Brand Header */}
       <div className="h-[100px] flex items-center px-8 flex-shrink-0">
          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/20 overflow-hidden logo-box">
+            <div className="w-12 h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-sm ring-1 ring-white/10 overflow-hidden logo-box">
                 <Target size={24} strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">

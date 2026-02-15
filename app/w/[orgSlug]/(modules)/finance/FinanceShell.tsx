@@ -18,6 +18,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 
@@ -191,7 +192,7 @@ export default function FinanceShell(props: {
           onOpenSupportAction={undefined}
           actionsSlot={<ModuleHelpVideos moduleKey="finance" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={null}
+          notificationsSlot={<GlobalNotificationsBell />}
           user={{ name: headerName, role: headerRole }}
           onProfileClickAction={goToMe}
           profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}

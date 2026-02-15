@@ -13,7 +13,7 @@ import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHe
 import { punchIn, punchOut } from '@/app/actions/attendance';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-const PRESENCE_REQUEST_TIMEOUT_MS = 8_000;
+const PRESENCE_REQUEST_TIMEOUT_MS = process.env.NODE_ENV === 'production' ? 8_000 : 15_000;
 
 type ToastKind = 'success' | 'error' | 'info' | 'warning';
 

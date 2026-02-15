@@ -15,8 +15,9 @@ function asObj(v: unknown): Record<string, unknown> | undefined {
   return undefined;
 }
 
-export const LoginView: React.FC<{ organizationName?: string }> = ({ organizationName }) => {
+export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' | 'sign-up' }> = ({ organizationName, mode = 'sign-in' }) => {
   const orgName = organizationName || 'MISRAD AI';
+  const isSignUpMode = mode === 'sign-up';
   const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
 
@@ -467,8 +468,15 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
                         )}
                     </div>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">ברוכים השבים</h3>
-                <p className="text-gray-500">נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black" suppressHydrationWarning>{orgName}</span>.</p>
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                  {isSignUpMode ? 'הצטרפות למערכת' : 'ברוכים השבים'}
+                </h3>
+                <p className="text-gray-500">
+                  {isSignUpMode 
+                    ? <>צור חשבון חדש ב-<span className="font-bold text-black" suppressHydrationWarning>{orgName}</span> והתחל לנהל את העסק שלך בצורה חכמה</>
+                    : <>נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black" suppressHydrationWarning>{orgName}</span></>
+                  }
+                </p>
             </div>
 
             <div className="bg-white p-2 rounded-3xl shadow-xl shadow-gray-200/50 border border-white">
@@ -507,7 +515,7 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
                                       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.951L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
                                     </g>
                                   </svg>
-                                  <span className="text-gray-700 font-medium">המשך עם Google</span>
+                                  <span className="text-gray-700 font-medium">{isSignUpMode ? 'הרשמה עם Google' : 'כניסה עם Google'}</span>
                                 </button>
 
                                 {isPasskeySupported && (
@@ -518,7 +526,7 @@ export const LoginView: React.FC<{ organizationName?: string }> = ({ organizatio
                                     className="w-full bg-white text-gray-700 font-medium py-3.5 rounded-xl border border-gray-300 hover:border-gray-400 hover:shadow-md transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                                   >
                                     <Fingerprint size={18} className="text-gray-700" />
-                                    <span className="text-gray-700 font-medium">התחבר עם Face ID / Touch ID</span>
+                                    <span className="text-gray-700 font-medium">כניסה עם Face ID / Touch ID</span>
                                   </button>
                                 )}
 

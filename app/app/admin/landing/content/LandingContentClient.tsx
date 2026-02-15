@@ -272,18 +272,18 @@ export default function LandingContentClient() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6" dir="rtl">
+    <div className="min-h-screen bg-slate-50 p-3 sm:p-6" dir="rtl">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-          <h1 className="text-2xl font-black text-slate-900">ניהול תוכן דף נחיתה</h1>
-          <p className="text-slate-600 mt-2">עריכת המלצות ושאלות נפוצות - גרירה לשינוי סדר</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">ניהול תוכן דף נחיתה</h1>
+          <p className="text-sm sm:text-base text-slate-600 mt-1 sm:mt-2">עריכת המלצות ושאלות נפוצות - גרירה לשינוי סדר</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="flex border-b border-slate-200">
             <button
               onClick={() => setActiveTab('testimonials')}
-              className={`flex-1 px-6 py-4 font-bold transition-colors ${
+              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-colors ${
                 activeTab === 'testimonials'
                   ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600'
                   : 'text-slate-600 hover:bg-slate-50'
@@ -293,7 +293,7 @@ export default function LandingContentClient() {
             </button>
             <button
               onClick={() => setActiveTab('faq')}
-              className={`flex-1 px-6 py-4 font-bold transition-colors ${
+              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-colors ${
                 activeTab === 'faq'
                   ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600'
                   : 'text-slate-600 hover:bg-slate-50'
@@ -303,10 +303,10 @@ export default function LandingContentClient() {
             </button>
           </div>
 
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             {activeTab === 'testimonials' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h2 className="text-lg font-bold text-slate-900">
                     {testimonials.length} המלצות
                   </h2>
@@ -332,7 +332,7 @@ export default function LandingContentClient() {
                       <GripVertical size={20} className="text-slate-400 mt-2 flex-shrink-0" />
                       
                       <div className="flex-1">
-                        <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                           <input
                             type="text"
                             value={testimonial.name}

@@ -4,10 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Lead, ContentItem, Student, Campaign, Task, CalendarEvent } from './types';
 import { 
     Flame, CircleCheck, Video, Target, Phone, ChevronRight, TriangleAlert, 
-    Mic, Users, Coins, BarChart2, Plus, Calendar, Wifi, Check, X, 
-    Voicemail, Mail, ArrowRight, Play, Megaphone, Activity, Layers, Zap,
-    Sun, Timer, MousePointer2, ArrowUpRight, Radio, CalendarClock, Gauge,
-    Cpu, ShieldCheck, HeartPulse, Sparkles, MessageSquare, ExternalLink, Clock, User, PhoneCall
+    Users, Coins, Plus, Calendar, Check,
+    ArrowRight, Activity, Zap,
+    Sun, Timer, ArrowUpRight, Radio,
+    HeartPulse, MessageSquare, PhoneCall
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
@@ -172,359 +172,384 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
           />
       </div>
 
-      <div className="hidden md:block space-y-6 animate-fade-in pb-20 font-sans">
+      <div className="hidden md:flex flex-col gap-5 animate-fade-in pb-20 font-sans">
 
-      <div className="rounded-[48px] bg-white/60 border border-slate-200/60 backdrop-blur-xl p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-black text-slate-500">התחלה מהירה · מכירות</div>
-            <div className="text-xl font-black text-slate-900 mt-1">העלה שיחה → קבל משימות → קבע (יוצר משימה אמיתית)</div>
-            <div className="text-sm text-slate-600 mt-2">הכפתור "קבע" יוצר משימה ב-Nexus ומקשר אותה לליד.</div>
+        {/* ── 1. Greeting Bar ── */}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-nexus-gradient text-white flex items-center justify-center font-black text-lg shadow-lg shadow-primary/20">
+              {user?.name?.charAt(0) || '?'}
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                {greeting}, {user?.name?.split(' ')[0]}.
+              </h1>
+              <p className="text-sm text-slate-500 font-medium mt-0.5">
+                {velocityList.length > 0 ? `${velocityList.length} פריטים ממתינים לטיפול` : 'אין משימות דחופות כרגע'}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 flex-wrap">
             <button
-              type="button"
               onClick={() => onQuickAction('lead')}
-              className="h-11 px-5 inline-flex items-center justify-center rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-black transition-colors"
+              className="h-10 px-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black active:scale-95 transition-all shadow-sm"
             >
-              צור ליד
+              <Plus size={16} strokeWidth={2.5} />
+              ליד חדש
             </button>
             <button
-              type="button"
-              onClick={() => onNavigate('sales_pipeline')}
-              className="h-11 px-5 inline-flex items-center justify-center rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 transition-all"
+              onClick={() => onNavigate('comms')}
+              className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all"
             >
-              ללידים
+              <PhoneCall size={16} />
+              מרכזיה
+            </button>
+            <button
+              onClick={() => onNavigate('focus_mode')}
+              className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all"
+            >
+              <Timer size={16} />
+              מיקוד
+            </button>
+            <button
+              onClick={() => onNavigate('briefing')}
+              className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 text-sm font-bold text-amber-700 hover:bg-amber-100 active:scale-95 transition-all"
+            >
+              <Sun size={16} />
+              תדריך בוקר
             </button>
           </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-         
-         {/* FRONT WING PILOT INTERFACE */}
-         <section 
-            className="xl:col-span-8 relative overflow-hidden group bg-white/60 text-slate-900 shadow-sm rounded-[48px] min-h-[360px] flex flex-col justify-between p-12 border border-slate-200/60 backdrop-blur-xl"
-         >
-            <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/70 to-white/30"></div>
-            
-            <div className="flex justify-between items-start relative z-10">
-                <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 bg-white/70 border border-slate-200/70 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 mb-6">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" /> תצוגה חדשה
-                    </div>
-                    <div className="max-w-2xl">
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3 leading-tight font-display">
-                            {greeting},
-                            <span className="block">{user?.name.split(' ')[0]}.</span>
-                        </h2>
-                    </div>
-                </div>
-                
-                <div className="hidden md:flex flex-col items-center justify-center relative w-48 h-48 group/gauge">
-                    <div className="absolute inset-0 bg-white/5 rounded-full blur-2xl group-hover/gauge:bg-primary/20 transition-all duration-700"></div>
-                    <svg className="w-full h-full transform -rotate-90 relative z-10 drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                        <circle cx="50%" cy="50%" r="40%" stroke="rgba(255,255,255,0.05)" strokeWidth="14" fill="transparent" />
-                        <circle 
-                            cx="50%" cy="50%" r="40%" 
-                            stroke={velocityScore > 80 ? '#10b981' : velocityScore > 50 ? '#fbbf24' : '#f43f5e'} 
-                            strokeWidth="14" 
-                            fill="transparent" 
-                            strokeDasharray="251.3" 
-                            strokeDashoffset={251.3 - (251.3 * velocityScore) / 100}
-                            strokeLinecap="round"
-                            className="transition-all duration-[1.5s] ease-out shadow-neon"
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-                        <span className="text-5xl font-black font-mono leading-none tracking-tighter">{velocityScore}</span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">דופק ביצועים</span>
-                    </div>
-                </div>
+
+        {/* ── 2. KPI Strip ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Velocity Gauge */}
+          <div className="col-span-2 lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 hover:shadow-md hover:border-slate-300 transition-all group">
+            <div className="relative w-14 h-14 shrink-0">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="22" stroke="#E2E8F0" strokeWidth="6" fill="transparent" />
+                <circle
+                  cx="28" cy="28" r="22"
+                  stroke={velocityScore > 80 ? '#10b981' : velocityScore > 50 ? '#f59e0b' : '#f43f5e'}
+                  strokeWidth="6"
+                  fill="transparent"
+                  strokeDasharray={`${2 * Math.PI * 22}`}
+                  strokeDashoffset={2 * Math.PI * 22 - (2 * Math.PI * 22 * velocityScore) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-[1.2s] ease-out"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-base font-black font-mono text-slate-800">
+                {velocityScore}
+              </span>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mt-8 pt-10 border-t border-white/10 relative z-10">
-                <div className="md:col-span-8 flex gap-3">
-                    <button 
-                        onClick={() => onQuickAction('lead')}
-                        className="flex-1 bg-white text-onyx-900 hover:bg-rose-50 px-4 py-5 rounded-[28px] font-black text-lg shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.05] active:scale-95 group"
-                    >
-                        <Plus size={22} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
-                        ליד חדש
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('comms')}
-                        className="flex-1 bg-white/10 text-white hover:bg-white/20 px-4 py-5 rounded-[28px] font-bold text-lg border border-white/10 flex items-center justify-center gap-3 transition-all backdrop-blur-2xl group"
-                    >
-                        <PhoneCall size={24} className="text-rose-400 group-hover:scale-110 transition-transform" />
-                        מרכזיה
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('focus_mode')}
-                        className="flex-1 bg-white/10 text-white hover:bg-white/20 px-4 py-5 rounded-[28px] font-bold text-lg border border-white/10 flex items-center justify-center gap-3 transition-all backdrop-blur-2xl group"
-                    >
-                        <Timer size={24} className="text-indigo-300 group-hover:scale-110 transition-transform" />
-                        מיקוד
-                    </button>
-                </div>
-                
-                <div className="md:col-span-4 flex items-center justify-end gap-8 text-right">
-                    <div className="group/stat cursor-default">
-                        <div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 group-hover/stat:text-emerald-400 transition-colors">
-                            {isAgent ? 'עמלה' : 'הכנסה'}
-                        </div>
-                        <div className="text-3xl font-mono font-black text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.4)] group-hover/stat:scale-105 transition-transform">
-                            {isAgent ? `₪${myCommission.toLocaleString()}` : `₪${totalRevenue.toLocaleString()}`}
-                        </div>
-                    </div>
-                    <div className="w-px h-10 bg-white/10"></div>
-                    <div className="group/stat cursor-default">
-                        <div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 group-hover/stat:text-white transition-colors">
-                            {isAgent ? 'סגירות' : 'קמפיינים'}
-                        </div>
-                        <div className="text-3xl font-mono font-black text-white group-hover/stat:scale-105 transition-transform">
-                            {isAgent ? myWonDeals : activeCampaigns}
-                        </div>
-                    </div>
-                </div>
+            <div>
+              <div className="text-xs font-bold text-slate-400">דופק ביצועים</div>
+              <div className="text-sm font-black text-slate-700 mt-0.5">
+                {velocityScore > 80 ? 'מצוין' : velocityScore > 50 ? 'סביר' : 'דורש תשומת לב'}
+              </div>
             </div>
-         </section>
+          </div>
 
-         <aside className="xl:col-span-4 flex flex-col gap-6">
-             <div 
-                onClick={() => onNavigate('briefing')}
-                className="flex-1 bg-white rounded-[48px] p-8 shadow-sm border border-slate-200 hover:border-primary/30 hover:shadow-float transition-all cursor-pointer group relative overflow-hidden"
-             >
-                 <div className="absolute top-0 right-0 w-36 h-36 bg-amber-50 rounded-bl-[100px] -mr-4 -mt-4 transition-transform group-hover:scale-125 duration-700"></div>
-                 <div className="relative z-10 h-full flex flex-col">
-                     <div className="flex justify-between items-start mb-8">
-                         <div className="p-5 bg-amber-50 text-amber-600 rounded-[24px] border border-amber-100 group-hover:bg-amber-500 group-hover:text-white transition-all shadow-sm">
-                             <Sun size={32} fill="currentColor" />
-                         </div>
-                         <div className="bg-slate-50 p-2 rounded-full text-slate-300 group-hover:text-amber-500 group-hover:bg-amber-50 transition-all">
-                             <ArrowUpRight size={28} className="transition-all group-hover:translate-x-1 group-hover:-translate-y-1" />
-                         </div>
-                     </div>
-                     <div className="mt-auto">
-                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">הכנה ליום העבודה</div>
-                         <h3 className="font-black text-slate-800 text-3xl group-hover:text-amber-700 transition-colors">תדריך בוקר</h3>
-                     </div>
-                 </div>
-             </div>
-
-             <div className="grid grid-cols-2 gap-4 h-44">
-                 <div className="bg-indigo-50/40 rounded-[40px] p-6 border border-indigo-100/50 flex flex-col justify-center items-center text-center hover:bg-white hover:shadow-lg transition-all group cursor-default">
-                     <div className="text-5xl font-mono font-black text-indigo-700 mb-2 group-hover:scale-110 transition-transform">{myWonDeals}</div>
-                     <div className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em]">סגירות</div>
-                 </div>
-                 <div className="bg-rose-50/40 rounded-[40px] p-6 border border-rose-100/50 flex flex-col justify-center items-center text-center hover:bg-white hover:shadow-lg transition-all group cursor-default">
-                     <div className="text-5xl font-mono font-black text-rose-700 mb-2 group-hover:scale-110 transition-transform">{hitListLeads.length}</div>
-                     <div className="text-[11px] font-black text-rose-400 uppercase tracking-[0.2em]">לטיפול מיידי</div>
-                 </div>
-             </div>
-         </aside>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
-        
-        {/* REDESIGNED NEXT ACTIONS PANEL */}
-        <div className="lg:col-span-2 ui-card flex flex-col h-[650px] overflow-hidden border-slate-200 bg-white/40 backdrop-blur-xl relative">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-20">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-nexus-gradient text-white rounded-2xl shadow-lg shadow-rose-500/20">
-                        <Zap size={22} fill="currentColor" className="animate-pulse" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight">הפעולות הבאות</h3>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">סדר עדיפויות מבוסס AI</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase mr-2">הספק היום</span>
-                    <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                        <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(completedTaskIds.length / (velocityList.length + completedTaskIds.length || 1)) * 100}%` }}
-                            className="h-full bg-nexus-gradient"
-                        />
-                    </div>
-                </div>
+          {/* Revenue / Commission */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+                <Coins size={16} />
+              </div>
+              <span className="text-xs font-bold text-slate-400">{isAgent ? 'עמלה' : 'הכנסה'}</span>
             </div>
-            
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
-                <AnimatePresence mode="popLayout">
-                    {velocityList.length === 0 ? (
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="h-full flex flex-col items-center justify-center text-center py-20"
-                        >
-                            <div className="w-24 h-24 bg-emerald-50 rounded-[32px] flex items-center justify-center mb-6 text-emerald-500 shadow-inner ring-1 ring-emerald-100">
-                                <Check size={48} strokeWidth={3} />
-                            </div>
-                            <h4 className="text-2xl font-black text-slate-800">השולחן נקי!</h4>
-                            <p className="text-slate-500 font-bold max-w-xs mt-2">כל המשימות הדחופות טופלו. זה זמן מצוין ליזום שיחות מעקב ללידים "קרים".</p>
-                        </motion.div>
-                    ) : (
-                        velocityList.map((item, index) => {
-                            const isTask = item.type === 'task';
-                            const data = item.data;
-                            const isHighPriority = item.score >= 90;
-                            const isFirst = index === 0;
-                            
-                            return (
-                                <motion.div 
-                                    key={item.id} 
-                                    layout
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, x: -50 }}
-                                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                                    onClick={() => !isTask ? onLeadClick(data as Lead) : null}
-                                    className={`
-                                        group relative p-6 rounded-[32px] border transition-all cursor-pointer flex items-center gap-6
-                                        ${isFirst ? 'bg-white shadow-xl border-indigo-100 ring-1 ring-indigo-50/50' : 'bg-white/60 border-slate-200/60 hover:bg-white hover:shadow-float hover:border-primary/20'}
-                                    `}
-                                >
-                                    {/* Left Accent Glow */}
-                                    <div className={`absolute left-0 top-6 bottom-6 w-1.5 rounded-r-full transition-all ${
-                                        isTask ? 'bg-indigo-500' : isHighPriority ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-slate-300'
-                                    }`}></div>
-
-                                    {/* Status / Complete Toggle */}
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleComplete(item.id); }}
-                                        className={`
-                                            w-12 h-12 rounded-[20px] flex items-center justify-center shrink-0 border transition-all duration-300
-                                            ${isFirst ? 'bg-slate-900 border-slate-800 text-white shadow-lg' : 'bg-slate-50 border-slate-200 text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'}
-                                        `}
-                                    >
-                                        <Check size={24} strokeWidth={isFirst ? 3 : 2} />
-                                    </button>
-
-                                    {/* Main Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            {isTask ? (
-                                                <div className="bg-indigo-50 text-indigo-600 p-1 rounded-md"><CalendarClock size={12} /></div>
-                                            ) : (
-                                                <div className="bg-rose-50 text-rose-600 p-1 rounded-md"><User size={12} /></div>
-                                            )}
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                {isTask ? 'משימה דחופה' : (data as Lead).company || 'לקוח פרטי'}
-                                            </span>
-                                        </div>
-                                        
-                                        <h4 className={`font-black text-slate-900 leading-tight truncate group-hover:text-primary transition-colors ${isFirst ? 'text-xl' : 'text-lg'}`}>
-                                            {isTask ? (data as Task).title : (data as Lead).name}
-                                        </h4>
-
-                                        <div className="flex items-center gap-3 mt-2">
-                                            {!isTask && (
-                                                <div className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-xl border border-slate-200/50">
-                                                    {getPlaybookIcon((data as Lead).playbookStep)}
-                                                    <span className="text-[11px] font-bold text-slate-600">{(data as Lead).playbookStep || 'שיחה ראשונית'}</span>
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                                                <Clock size={10} />
-                                                {isTask ? formatDate((data as Task).dueDate) : formatRelativeTime((data as Lead).createdAt)}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Stats & Actions */}
-                                    <div className="hidden md:flex items-center gap-8">
-                                        <div className="text-right">
-                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">ציון עוצמה</div>
-                                            <div className={`text-2xl font-black font-mono leading-none ${item.score >= 90 ? 'text-rose-500' : 'text-slate-700'}`}>
-                                                {item.score}
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                            {!isTask && (
-                                                <>
-                                                    <button className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-colors border border-emerald-100">
-                                                        <Phone size={18} />
-                                                    </button>
-                                                    <button className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-colors border border-indigo-100">
-                                                        <MessageSquare size={18} />
-                                                    </button>
-                                                </>
-                                            )}
-                                            <button className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-black transition-colors shadow-lg shadow-slate-200">
-                                                <ArrowRight size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })
-                    )}
-                </AnimatePresence>
+            <div className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              ₪{(isAgent ? myCommission : totalRevenue).toLocaleString()}
             </div>
-            
-            <button 
-                onClick={() => onNavigate('tasks')}
-                className="p-6 text-center text-xs font-black text-slate-400 hover:text-primary transition-all border-t border-slate-100/50 bg-slate-50/30 uppercase tracking-[0.3em] group"
-            >
-                ניהול משימות מלא <ChevronRight size={14} className="inline ml-1 transition-transform group-hover:translate-x-1" />
-            </button>
+          </div>
+
+          {/* Total Leads */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                <Users size={16} />
+              </div>
+              <span className="text-xs font-bold text-slate-400">{isAgent ? 'סגירות' : 'קמפיינים'}</span>
+            </div>
+            <div className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              {isAgent ? myWonDeals : activeCampaigns}
+            </div>
+          </div>
+
+          {/* Won Deals */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+                <Target size={16} />
+              </div>
+              <span className="text-xs font-bold text-slate-400">סגירות</span>
+            </div>
+            <div className="text-2xl font-black font-mono text-slate-900 tracking-tight">
+              {myWonDeals}
+            </div>
+          </div>
+
+          {/* Needs Attention */}
+          <div className={`rounded-2xl border p-5 hover:shadow-md transition-all group ${
+            hitListLeads.length > 0 ? 'bg-rose-50/60 border-rose-200 hover:border-rose-300' : 'bg-white border-slate-200 hover:border-slate-300'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                hitListLeads.length > 0 ? 'bg-rose-100 text-rose-600' : 'bg-slate-50 text-slate-400'
+              }`}>
+                <Flame size={16} />
+              </div>
+              <span className="text-xs font-bold text-slate-400">לטיפול מיידי</span>
+            </div>
+            <div className={`text-2xl font-black font-mono tracking-tight ${
+              hitListLeads.length > 0 ? 'text-rose-700' : 'text-slate-900'
+            }`}>
+              {hitListLeads.length}
+            </div>
+          </div>
         </div>
 
-        {/* Pulsing System Hub */}
-        <section 
-          className="ui-card flex flex-col h-[650px] overflow-hidden bg-white/60 border-white/60 backdrop-blur-2xl shadow-xl"
-        >
-            <div className="p-8 border-b border-slate-100 bg-white/50 flex justify-between items-center">
-               <h3 className="font-black text-slate-800 text-xl flex items-center gap-3">
-                   <Activity size={24} className="text-indigo-600" />
-                   דופק המערכת
-               </h3>
-               <div className="flex items-center gap-2 px-2 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               </div>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-                {pulseItems.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-sm">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                            <Activity size={32} />
-                        </div>
-                        <h3 className="text-xl font-black text-slate-800">הכל מעודכן!</h3>
-                        <p className="text-slate-500 mt-2 font-bold">אין עדכונים חדשים כרגע.</p>
-                    </div>
-                ) : (
-                pulseItems.map((item, idx) => (
-                    <div key={String(item.id)} className="flex gap-5 group">
-                        <div className="flex flex-col items-center">
-                            <div className={`w-12 h-12 rounded-[20px] ${item.bg} ${item.color} flex items-center justify-center shrink-0 shadow-lg border border-white/5 backdrop-blur-sm z-10 transition-all group-hover:scale-110 group-hover:rotate-3`}>
-                                <item.icon size={22} />
-                            </div>
-                            {idx !== pulseItems.length - 1 && <div className="w-0.5 flex-1 bg-slate-200/50 mt-3 rounded-full group-hover:bg-indigo-400 transition-colors"></div>}
-                        </div>
-                        <div className="pb-4 flex-1">
-                            <div className="flex justify-between items-start w-full">
-                                <h4 className="font-black text-slate-800 text-base group-hover:text-indigo-600 transition-colors">{item.title}</h4>
-                                <span className="text-[11px] font-mono font-bold text-slate-400">{item.time}</span>
-                            </div>
-                            <p className="text-sm text-slate-500 font-bold mt-1 leading-relaxed opacity-80">{item.description}</p>
-                        </div>
-                    </div>
-                ))) }
-            </div>
-            
-            <button 
-                onClick={() => onNavigate('notifications')}
-                className="p-6 text-center text-sm font-black text-indigo-600 hover:bg-white transition-all border-t border-slate-100 active:bg-slate-50 uppercase tracking-[0.2em]"
-            >
-                צפה בכל העדכונים <ArrowRight size={14} className="inline ml-2" />
-            </button>
-        </section>
+        {/* ── 3. Main Content Area ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-      </div>
+          {/* ── Left Column: Next Actions ── */}
+          <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 flex flex-col overflow-hidden hover:shadow-sm transition-shadow">
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-nexus-gradient text-white flex items-center justify-center shadow-sm">
+                  <Zap size={18} fill="currentColor" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">הפעולות הבאות</h3>
+                  <p className="text-[11px] text-slate-400 font-bold mt-0.5">סדר עדיפויות מבוסס AI</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-bold text-slate-400">{completedTaskIds.length}/{velocityList.length + completedTaskIds.length}</span>
+                <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(completedTaskIds.length / (velocityList.length + completedTaskIds.length || 1)) * 100}%` }}
+                    className="h-full bg-nexus-gradient rounded-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[520px]">
+              <AnimatePresence mode="popLayout">
+                {velocityList.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center text-center py-16 px-6"
+                  >
+                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 text-emerald-500 ring-1 ring-emerald-100">
+                      <Check size={32} strokeWidth={3} />
+                    </div>
+                    <h4 className="text-lg font-black text-slate-800">השולחן נקי!</h4>
+                    <p className="text-slate-500 font-medium text-sm max-w-xs mt-1">כל המשימות הדחופות טופלו. זמן מצוין ליזום שיחות מעקב.</p>
+                  </motion.div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {velocityList.map((item, index) => {
+                      const isTask = item.type === 'task';
+                      const data = item.data;
+                      const isFirst = index === 0;
+
+                      return (
+                        <motion.div
+                          key={item.id}
+                          layout
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -40, height: 0 }}
+                          transition={{ duration: 0.25, delay: index * 0.03 }}
+                          onClick={() => !isTask ? onLeadClick(data as Lead) : null}
+                          className={`group flex items-center gap-4 px-6 py-4 cursor-pointer transition-colors ${
+                            isFirst ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          {/* Complete button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleComplete(item.id); }}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-200 ${
+                              isFirst
+                                ? 'bg-slate-900 border-slate-800 text-white shadow-sm'
+                                : 'bg-white border-slate-200 text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500'
+                            }`}
+                          >
+                            <Check size={16} strokeWidth={2.5} />
+                          </button>
+
+                          {/* Left accent */}
+                          <div className={`w-1 self-stretch rounded-full shrink-0 ${
+                            isTask ? 'bg-indigo-400' : item.score >= 90 ? 'bg-rose-400' : 'bg-slate-200'
+                          }`} />
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              {isTask ? (
+                                <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">משימה</span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">ליד</span>
+                              )}
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {isTask ? formatDate((data as Task).dueDate) : (data as Lead).company || formatRelativeTime((data as Lead).createdAt)}
+                              </span>
+                            </div>
+                            <h4 className={`font-bold text-slate-900 truncate group-hover:text-primary transition-colors ${isFirst ? 'text-base' : 'text-sm'}`}>
+                              {isTask ? (data as Task).title : (data as Lead).name}
+                            </h4>
+                            {!isTask && (data as Lead).playbookStep && (
+                              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                {getPlaybookIcon((data as Lead).playbookStep)}
+                                {(data as Lead).playbookStep}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Score + Actions */}
+                          <div className="hidden lg:flex items-center gap-3 shrink-0">
+                            <div className={`text-lg font-black font-mono ${item.score >= 90 ? 'text-rose-500' : 'text-slate-400'}`}>
+                              {item.score}
+                            </div>
+                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!isTask && (
+                                <>
+                                  <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors">
+                                    <Phone size={14} />
+                                  </button>
+                                  <button className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">
+                                    <MessageSquare size={14} />
+                                  </button>
+                                </>
+                              )}
+                              <button className="p-2 bg-slate-900 text-white rounded-lg hover:bg-black transition-colors">
+                                <ArrowRight size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button
+              onClick={() => onNavigate('tasks')}
+              className="px-6 py-3.5 text-center text-xs font-bold text-slate-400 hover:text-primary hover:bg-slate-50 transition-all border-t border-slate-100 group"
+            >
+              ניהול משימות מלא <ChevronRight size={12} className="inline mr-1 transition-transform group-hover:-translate-x-1" />
+            </button>
+          </div>
+
+          {/* ── Right Column: Sidebar ── */}
+          <div className="lg:col-span-2 flex flex-col gap-5">
+
+            {/* Next Meeting */}
+            {nextMeeting && (
+              <div
+                onClick={() => onNavigate('calendar')}
+                className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                    <Calendar size={18} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-slate-400">הפגישה הבאה</div>
+                    <div className="text-sm font-black text-slate-900">{nextMeeting.time} · {nextMeeting.dayName}</div>
+                  </div>
+                  <ArrowUpRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+                  <div className="font-bold text-slate-800 text-sm">{nextMeeting.leadName}</div>
+                  {nextMeeting.location && (
+                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <Radio size={10} /> {nextMeeting.type === 'zoom' ? 'זום' : nextMeeting.location}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* System Pulse */}
+            <div className="bg-white rounded-2xl border border-slate-200 flex flex-col overflow-hidden flex-1 hover:shadow-sm transition-shadow">
+              <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  <HeartPulse size={16} className="text-indigo-500" />
+                  דופק המערכת
+                </h3>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-600">פעיל</span>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[400px]">
+                {pulseItems.length === 0 ? (
+                  <div className="text-center py-12 px-6">
+                    <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-slate-300">
+                      <Activity size={24} />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-700">הכל מעודכן</h4>
+                    <p className="text-xs text-slate-400 mt-1">אין עדכונים חדשים כרגע</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-50">
+                    {pulseItems.map((item) => (
+                      <div key={String(item.id)} className="flex gap-3 px-5 py-3.5 hover:bg-slate-50/50 transition-colors group">
+                        <div className={`w-8 h-8 rounded-lg ${item.bg} ${item.color} flex items-center justify-center shrink-0 transition-transform group-hover:scale-105`}>
+                          <item.icon size={16} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-indigo-600 transition-colors">{item.title}</h4>
+                            <span className="text-[10px] font-mono text-slate-400 shrink-0">{item.time}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => onNavigate('notifications')}
+                className="px-5 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50/50 transition-all border-t border-slate-100 group"
+              >
+                כל העדכונים <ArrowRight size={12} className="inline mr-1" />
+              </button>
+            </div>
+
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div
+                onClick={() => onNavigate('sales_pipeline')}
+                className="bg-white rounded-2xl border border-slate-200 p-4 text-center hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
+              >
+                <div className="text-2xl font-black font-mono text-indigo-700 group-hover:scale-110 transition-transform">{myWonDeals}</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1">עסקאות שנסגרו</div>
+              </div>
+              <div
+                onClick={() => onNavigate('marketing')}
+                className="bg-white rounded-2xl border border-slate-200 p-4 text-center hover:shadow-md hover:border-rose-200 transition-all cursor-pointer group"
+              >
+                <div className="text-2xl font-black font-mono text-rose-700 group-hover:scale-110 transition-transform">{activeCampaigns}</div>
+                <div className="text-[11px] font-bold text-slate-400 mt-1">קמפיינים פעילים</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </>
   );

@@ -56,7 +56,7 @@ export default function RootLayout({
     '/app';
 
   return (
-    <html lang="he" dir="rtl" suppressHydrationWarning>
+    <html lang="he" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${heebo.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
         <ToastProvider>
           <ReactQueryProvider>

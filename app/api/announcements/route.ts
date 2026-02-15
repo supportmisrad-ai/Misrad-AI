@@ -258,7 +258,6 @@ async function POSTHandler(request: NextRequest) {
         const announcementObj = expectObject(announcement, 'Announcement insert failed');
 
         // Create notifications for all eligible users
-        const actorName = dbUser.name || 'מערכת';
         const pageSize = 1000;
         let page = 0;
         while (true) {
@@ -271,29 +270,27 @@ async function POSTHandler(request: NextRequest) {
 
             if (recipientIds.length === 0) break;
 
+            const nowIso = new Date().toISOString();
             const notifications = recipientIds.map((recipientId: string) => ({
                 organization_id: workspace.id,
                 recipient_id: recipientId,
-                type: 'system',
-                text: title,
-                actor_name: actorName,
-                related_id: String(announcementObj.id),
+                type: 'SYSTEM',
+                title: title,
+                message: message || title,
+                timestamp: nowIso,
                 is_read: false,
-                metadata: {
-                    announcementId: announcementObj.id,
-                    message: message
-                }
+                link: null as string | null,
             }));
 
             try {
                 const values = notifications.map((n) =>
-                    Prisma.sql`(${n.organization_id}, ${n.recipient_id}, ${n.type}, ${n.text}, ${n.actor_name}, ${n.related_id}, ${n.is_read}, ${JSON.stringify(n.metadata)})`
+                    Prisma.sql`(uuid_generate_v4(), ${n.organization_id}::uuid, ${n.recipient_id}::uuid, ${n.type}, ${n.title}, ${n.message}, ${n.timestamp}, ${n.is_read}, now(), now())`
                 );
                 await executeRawOrgScopedSql(prisma, {
                     organizationId: String(workspace.id),
                     reason: 'misrad_notifications_insert_announcement',
                     sql: Prisma.sql`
-                        INSERT INTO misrad_notifications (organization_id, recipient_id, type, text, actor_name, related_id, is_read, metadata)
+                        INSERT INTO misrad_notifications (id, organization_id, recipient_id, type, title, message, "timestamp", is_read, created_at, updated_at)
                         VALUES ${Prisma.join(values)}
                     `,
                 });

@@ -62,7 +62,7 @@ export default function NexusSidebar({
                 aria-label="מעבר בין עסקים"
                 title="מעבר בין עסקים"
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-white overflow-hidden border border-gray-100">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-white overflow-hidden border border-gray-100">
                   {organization.logo ? (
                     <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
                   ) : (

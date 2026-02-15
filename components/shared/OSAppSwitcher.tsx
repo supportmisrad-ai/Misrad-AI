@@ -132,46 +132,24 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     if (!hasMounted) return;
     if (iconsPrefetchedRef.current) return;
     if (typeof window === 'undefined') return;
+    iconsPrefetchedRef.current = true;
 
-    let cancelled = false;
+    try {
+      const keys = getOrderedModuleKeys();
+      for (const key of keys) {
+        const iconName = String(modulesRegistry[key]?.iconName || '');
+        if (!iconName) continue;
+        if (!(iconName.startsWith('/') || iconName.startsWith('http://') || iconName.startsWith('https://'))) continue;
 
-    const run = () => {
-      if (cancelled) return;
-      iconsPrefetchedRef.current = true;
-
-      try {
-        const keys = getOrderedModuleKeys();
-        for (const key of keys) {
-          const iconName = String(modulesRegistry[key]?.iconName || '');
-          if (!iconName) continue;
-          if (!(iconName.startsWith('/') || iconName.startsWith('http://') || iconName.startsWith('https://'))) continue;
-
-          const img = new Image();
-          img.decoding = 'async';
-          img.src = iconName;
-        }
-      } catch {
-        // ignore
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = iconName;
+        document.head.appendChild(link);
       }
-    };
-
-    const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
-    if (typeof w.requestIdleCallback === 'function') {
-      const id = w.requestIdleCallback(run, { timeout: 1200 });
-      return () => {
-        cancelled = true;
-        try {
-          w.cancelIdleCallback?.(id);
-        } catch {
-        }
-      };
+    } catch {
+      // ignore
     }
-
-    const t = window.setTimeout(run, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
   }, [hasMounted]);
 
   const routeInfo = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
@@ -262,25 +240,18 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     };
 
     load();
-    const handleFocus = () => load();
     const handleVisibility = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         load();
       }
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', handleFocus);
-    }
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', handleVisibility);
     }
 
     return () => {
       entitlementsAbortRef.current?.abort();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleFocus);
-      }
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibility);
       }

@@ -190,8 +190,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6" dir="rtl">
         <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-6 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
-          <div className="text-2xl font-black text-slate-900">הרשמה</div>
-          <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון כדי להמשיך</div>
+          <div className="text-2xl font-black text-slate-900">הצטרפות למערכת</div>
+          <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון חדש והתחל לנהל את העסק שלך</div>
 
           <div className="mt-6">
             <CustomAuth mode="sign-up" onSuccess={() => router.refresh()} />
@@ -202,7 +202,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             onClick={() => router.push('/login')}
             className="mt-6 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
           >
-            כבר יש לך חשבון? כניסה
+            כבר יש לך חשבון? התחבר כאן
           </button>
         </div>
       </div>
@@ -210,5 +210,5 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   }
 
   // Show login view
-  return <LoginView />;
+  return <LoginView mode="sign-in" />;
 }

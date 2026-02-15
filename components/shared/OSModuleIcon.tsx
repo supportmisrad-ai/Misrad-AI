@@ -35,6 +35,9 @@ export function OSModuleIcon({
         className={className}
         style={{ width: safeSize, height: safeSize, ...style }}
         draggable={false}
+        loading="eager"
+        fetchPriority="high"
+        decoding="sync"
       />
     );
   }

@@ -89,7 +89,7 @@ export default function NexusMarketingPage() {
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
-                href="/pricing"
+                href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10"
               >
                 התחל חינם

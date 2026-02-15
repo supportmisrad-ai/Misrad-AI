@@ -79,7 +79,9 @@ export async function getSystemNotificationsForOrganizationId(params: {
       select
         id::text as id,
         type,
-        text,
+        title,
+        message,
+        link,
         created_at,
         updated_at,
         is_read as "isRead"
@@ -101,8 +103,8 @@ export async function getSystemNotificationsForOrganizationId(params: {
 
     return {
       id: String(obj.id ?? ''),
-      title: String(obj.type ?? ''),
-      description: String(obj.text ?? ''),
+      title: String(obj.title || obj.type || ''),
+      description: String(obj.message ?? ''),
       time: formatRelativeTime(createdAt),
       type,
       category,
@@ -213,8 +215,8 @@ export async function insertMisradNotificationsForOrganizationId(params: {
       organizationId,
       reason,
       query: `
-        insert into misrad_notifications (organization_id, recipient_id, type, text, is_read, created_at, updated_at)
-        select $1::uuid, rid::uuid, $3::text, $4::text, false, now(), now()
+        insert into misrad_notifications (organization_id, recipient_id, type, title, message, "timestamp", is_read, created_at, updated_at)
+        select $1::uuid, rid::uuid, $3::text, $4::text, $4::text, to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), false, now(), now()
         from unnest($2::uuid[]) as rid
       `,
       values: [organizationId, recipientIds, type, text],

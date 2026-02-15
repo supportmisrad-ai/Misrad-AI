@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import prisma from '@/lib/prisma';
 
@@ -78,6 +79,17 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
 
 export default async function WorkspacesPage() {
   const workspaces = await loadWorkspacesForCurrentUser();
+
+  // Check for pinned org in cookie
+  const cookieStore = await cookies();
+  const pinnedOrgId = cookieStore.get('misrad_pinned_org')?.value;
+  
+  if (pinnedOrgId) {
+    const pinnedWorkspace = workspaces.find((ws) => ws.id === pinnedOrgId);
+    if (pinnedWorkspace) {
+      redirect(`/w/${encodeURIComponent(pinnedWorkspace.slug)}`);
+    }
+  }
 
   if (workspaces.length === 1) {
     redirect(`/w/${encodeURIComponent(workspaces[0].slug)}`);

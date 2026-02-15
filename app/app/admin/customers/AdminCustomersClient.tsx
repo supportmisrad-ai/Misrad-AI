@@ -205,31 +205,35 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
         onSearchChange={setQuery}
         searchPlaceholder="חפש לפי שם/מייל לקוח או שם ארגון..."
         actions={
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button size="sm" onClick={() => router.push('/app/admin/organizations?new=1')}>
-              הוסף לקוח חדש
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => router.refresh()}>
-              <RefreshCw size={16} />
-              רענון
-            </Button>
-            <Button variant="outline" size="sm" onClick={expandAllOwners} disabled={filtered.length === 0}>
-              הרחב לקוחות
-            </Button>
-            <Button variant="outline" size="sm" onClick={expandAllWorkspaces} disabled={filteredOrgIds.length === 0}>
-              הרחב ארגונים
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAllWorkspaces} disabled={filteredOrgIds.length === 0}>
-              קפל ארגונים
-            </Button>
-            <Button variant="outline" size="sm" onClick={collapseAllOwners} disabled={filtered.length === 0}>
-              קפל הכל
-            </Button>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => router.push('/app/admin/organizations?new=1')}>
+                הוסף לקוח חדש
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => router.refresh()}>
+                <RefreshCw size={16} />
+                רענון
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={expandAllOwners} disabled={filtered.length === 0}>
+                הרחב לקוחות
+              </Button>
+              <Button variant="outline" size="sm" onClick={expandAllWorkspaces} disabled={filteredOrgIds.length === 0}>
+                הרחב ארגונים
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAllWorkspaces} disabled={filteredOrgIds.length === 0}>
+                קפל ארגונים
+              </Button>
+              <Button variant="outline" size="sm" onClick={collapseAllOwners} disabled={filtered.length === 0}>
+                קפל הכל
+              </Button>
+            </div>
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <div className="text-xs font-black text-slate-500">לקוחות</div>
           <div className="text-2xl font-black text-slate-900 mt-1">{filteredStats.ownersCount.toLocaleString('he-IL')}</div>

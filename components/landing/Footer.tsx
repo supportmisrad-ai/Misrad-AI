@@ -86,7 +86,7 @@ export const Footer = () => {
                     {/* CTA */}
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                         <button
-                            onClick={() => router.push('/pricing')}
+                            onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
                             className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
                         >
                             <Sparkles size={18} />

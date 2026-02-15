@@ -235,8 +235,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     }
     const base =
       adminArea === 'platform'
-        ? [find('/app/admin'), find('/app/admin/modules'), find('/app/admin/system-flags'), find('/app/admin/logs')]
-        : [find('/app/admin'), find('/app/admin/customers'), find('/app/admin/organizations'), find('/app/admin/client/support')];
+        ? [find('/app/admin'), find('/app/admin/system-flags'), find('/app/admin/ai'), find('/app/admin/logs')]
+        : [find('/app/admin'), find('/app/admin/business-clients'), find('/app/admin/organizations'), find('/app/admin/client/support')];
     return base.filter((item): item is AdminNavItem => Boolean(item));
   }, [adminArea, effectiveNavItems, isAuditServiceRole]);
 
@@ -781,7 +781,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 relative z-10 mr-72">
+        <main className="flex-1 flex flex-col min-w-0 relative z-10 md:mr-72">
           <SharedHeader
             title="ענן משרד"
             subtitle={`Super Admin · ${getAdminAreaLabel(adminArea)}`}
@@ -849,6 +849,19 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </Button>
               </div>
             ) : null}
+            actionsSlot={!isAuditServiceRole ? (
+              <Button
+                type="button"
+                onClick={() => router.push(getReturnToPath())}
+                variant="ghost"
+                size="icon"
+                className="md:hidden h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+                title="חזרה לאפליקציה"
+                aria-label="חזרה לאפליקציה"
+              >
+                <ArrowRight size={18} />
+              </Button>
+            ) : null}
             className="bg-white/80 backdrop-blur-3xl border-b border-slate-200/70"
           />
 
@@ -857,8 +870,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </div>
         </main>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/70 bg-white/85 backdrop-blur-3xl">
-          <div className="grid grid-cols-5 items-stretch px-2 py-2">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/70 bg-white/85 backdrop-blur-3xl safe-area-bottom">
+          <div className="grid items-stretch px-2 py-2" style={{ gridTemplateColumns: `repeat(${mobileNavItems.length + 1}, minmax(0, 1fr))` }}>
             {mobileNavItems.map((item) => {
               const active = isActivePath(pathname, item.href, currentSearch);
               const Icon = item.icon;
@@ -1126,7 +1139,27 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
 
-              <div className="p-3 border-t border-slate-200">
+              <div className="p-3 border-t border-slate-200 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => { setIsMobileNavOpen(false); router.push(getReturnToPath()); }}
+                    variant="outline"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-black text-sm"
+                  >
+                    <ArrowRight size={16} />
+                    חזרה לאפליקציה
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => { setIsMobileNavOpen(false); router.refresh(); }}
+                    variant="outline"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-black text-sm"
+                  >
+                    <RefreshCw size={16} />
+                    רענון
+                  </Button>
+                </div>
                 <Button
                   type="button"
                   onClick={() => setIsMobileNavOpen(false)}

@@ -20,9 +20,18 @@ import {
   setOperationsWorkOrderStockSourceToMyActiveVehicle,
   setOperationsWorkOrderStockSource,
   setOperationsWorkOrderStatus,
+  getOperationsCallMessages,
+  createOperationsCallMessage,
+  updateOperationsCallMessage,
+  deleteOperationsCallMessage,
 } from '@/app/actions/operations';
+import { Select } from '@/components/ui/select';
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
+import WorkOrderChat from '@/components/operations/WorkOrderChat';
+import WorkOrderAiSummary from '@/components/operations/WorkOrderAiSummary';
+import WorkOrderGallery from '@/components/operations/WorkOrderGallery';
+import { auth } from '@clerk/nextjs/server';
 import {
   uploadOpsWorkOrderAttachmentInternal,
   uploadOpsWorkOrderSignatureInternal,
@@ -74,7 +83,8 @@ export default async function OperationsWorkOrderDetailsPage({
 
   const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const tabRaw = sp.tab;
-  const tab = (Array.isArray(tabRaw) ? tabRaw[0] : tabRaw) === 'materials' ? 'materials' : 'details';
+  const tabVal = Array.isArray(tabRaw) ? tabRaw[0] : tabRaw;
+  const tab = tabVal === 'materials' ? 'materials' : tabVal === 'chat' ? 'chat' : 'details';
   const errorRaw = sp.error;
   const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 
@@ -116,7 +126,7 @@ export default async function OperationsWorkOrderDetailsPage({
 
   const w = res.data;
 
-  const [technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, inventoryOptionsRes] = await Promise.all([
+  const [technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, inventoryOptionsRes, messagesRes] = await Promise.all([
     tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve(emptyTechnicianOptionsRes),
     tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyMaterialsRes),
     tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyAttachmentsRes),
@@ -127,7 +137,11 @@ export default async function OperationsWorkOrderDetailsPage({
         ? getOperationsInventoryOptionsForHolder({ orgSlug, holderId: w.stockSourceHolderId })
         : getOperationsInventoryOptions({ orgSlug })
       : Promise.resolve(emptyInventoryOptionsRes),
+    tab === 'chat' ? getOperationsCallMessages({ orgSlug, workOrderId: id }) : Promise.resolve({ success: true, data: [] as Awaited<ReturnType<typeof getOperationsCallMessages>>['data'] }),
   ]);
+
+  const { userId: clerkUserId } = await auth();
+  const chatMessages = messagesRes.success ? (messagesRes.data ?? []) : [];
 
   const statusBadge = formatStatus(w.status);
   const inventoryOptions: OperationsInventoryOption[] = inventoryOptionsRes.success ? (inventoryOptionsRes.data ?? []) : [];
@@ -300,18 +314,18 @@ export default async function OperationsWorkOrderDetailsPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <section className="bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100">
+      <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-sm font-black text-slate-900 truncate">{w.title}</div>
-              <div className="text-xs text-slate-500 mt-1">
-                <span className="font-bold">פרויקט:</span> {w.project.title}
+              <div className="text-sm font-bold text-slate-800 truncate">{w.title}</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                <span className="font-medium">פרויקט:</span> {w.project?.title ?? 'ללא פרויקט'}
               </div>
             </div>
             <Link
               href={`${base}/work-orders`}
-              className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-bold bg-white/80 border border-slate-200 hover:bg-white transition-colors"
+              className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-medium text-slate-600 bg-white border border-slate-200/80 shadow-sm hover:shadow hover:border-slate-300 transition-all duration-150"
             >
               חזרה
             </Link>
@@ -324,11 +338,32 @@ export default async function OperationsWorkOrderDetailsPage({
 
         <div className="p-5 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className="text-xs font-black text-slate-700">סטטוס</div>
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${statusBadge.className}`}>
                 {statusBadge.label}
               </span>
+              {w.priority && w.priority !== 'NORMAL' ? (
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${
+                  w.priority === 'CRITICAL' ? 'bg-red-100 text-red-800 border border-red-200' :
+                  w.priority === 'URGENT' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                  'bg-orange-50 text-orange-700 border border-orange-100'
+                }`}>
+                  {w.priority === 'CRITICAL' ? 'קריטי' : w.priority === 'URGENT' ? 'דחוף' : 'גבוה'}
+                </span>
+              ) : null}
+              {w.categoryName ? (
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black bg-violet-50 text-violet-700 border border-violet-100">
+                  {w.categoryName}
+                </span>
+              ) : null}
+              {w.slaDeadline ? (() => {
+                const diff = new Date(w.slaDeadline).getTime() - Date.now();
+                if (diff <= 0) return <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black bg-red-100 text-red-800 border border-red-200">חריגה מ-SLA</span>;
+                const mins = Math.floor(diff / 60000);
+                if (mins < 60) return <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black bg-orange-50 text-orange-700 border border-orange-100">{mins} דק׳ ל-SLA</span>;
+                const hrs = Math.floor(mins / 60);
+                return <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold bg-slate-50 text-slate-600 border border-slate-200">{hrs} שעות ל-SLA</span>;
+              })() : null}
             </div>
 
             <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
@@ -336,7 +371,7 @@ export default async function OperationsWorkOrderDetailsPage({
                 <button
                   type="submit"
                   disabled={w.status === 'IN_PROGRESS' || w.status === 'DONE'}
-                  className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-10 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   התחל עבודה
                 </button>
@@ -345,8 +380,8 @@ export default async function OperationsWorkOrderDetailsPage({
                 href="#completion-signature"
                 className={
                   w.status === 'DONE'
-                    ? 'w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-emerald-600 text-white opacity-50 cursor-not-allowed'
-                    : 'w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-emerald-600 text-white hover:bg-emerald-700 transition-colors'
+                    ? 'w-full h-10 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-emerald-500 text-white shadow-sm opacity-40 cursor-not-allowed'
+                    : 'w-full h-10 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm transition-all duration-150'
                 }
                 aria-disabled={w.status === 'DONE'}
               >
@@ -355,23 +390,33 @@ export default async function OperationsWorkOrderDetailsPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-100/60 p-1">
             <Link
               href={`${base}/work-orders/${encodeURIComponent(w.id)}`}
               className={
                 tab === 'details'
-                  ? 'inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white'
-                  : 'inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white/80 border border-slate-200 text-slate-800 hover:bg-white'
+                  ? 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-bold bg-white text-slate-900 shadow-sm'
+                  : 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors'
               }
             >
               פרטים
             </Link>
             <Link
+              href={`${base}/work-orders/${encodeURIComponent(w.id)}?tab=chat`}
+              className={
+                tab === 'chat'
+                  ? 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-bold bg-white text-slate-900 shadow-sm'
+                  : 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors'
+              }
+            >
+              שיחה
+            </Link>
+            <Link
               href={`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials`}
               className={
                 tab === 'materials'
-                  ? 'inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white'
-                  : 'inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white/80 border border-slate-200 text-slate-800 hover:bg-white'
+                  ? 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-bold bg-white text-slate-900 shadow-sm'
+                  : 'inline-flex items-center justify-center rounded-lg h-9 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors'
               }
             >
               חומרים
@@ -380,22 +425,67 @@ export default async function OperationsWorkOrderDetailsPage({
 
           {tab === 'details' ? (
             <>
-              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                <div className="text-xs font-black text-slate-700">תיאור</div>
+              <div className="rounded-xl border border-slate-200/60 bg-white p-4">
+                <div className="text-xs font-semibold text-slate-500">תיאור</div>
                 <div className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">
                   {w.description ? w.description : <span className="text-slate-400">—</span>}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                <div className="text-xs font-black text-slate-700">שיוך טכנאי</div>
+              {/* ──── פרטים נוספים ──── */}
+              <div className="rounded-xl border border-slate-200/60 bg-white p-4">
+                <div className="text-xs font-semibold text-slate-500 mb-3">פרטים נוספים</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                  {w.buildingName || w.floor || w.unit ? (
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500">מיקום</div>
+                      <div className="mt-0.5 font-bold text-slate-900">
+                        {[w.buildingName, w.floor ? `קומה ${w.floor}` : null, w.unit ? `חדר ${w.unit}` : null].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                  ) : null}
+                  {w.departmentName ? (
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500">מחלקה</div>
+                      <div className="mt-0.5 font-bold text-slate-900">{w.departmentName}</div>
+                    </div>
+                  ) : null}
+                  {w.reporterName ? (
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500">מדווח</div>
+                      <div className="mt-0.5 font-bold text-slate-900">{w.reporterName}</div>
+                      {w.reporterPhone ? (
+                        <a href={`tel:${w.reporterPhone}`} className="text-xs text-sky-600 hover:underline" dir="ltr">{w.reporterPhone}</a>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {w.scheduledStart ? (
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500">תאריך יעד</div>
+                      <div className="mt-0.5 font-bold text-slate-900">{new Date(w.scheduledStart).toLocaleString('he-IL')}</div>
+                    </div>
+                  ) : null}
+                  {w.completedAt ? (
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500">הושלם</div>
+                      <div className="mt-0.5 font-bold text-emerald-700">{new Date(w.completedAt).toLocaleString('he-IL')}</div>
+                    </div>
+                  ) : null}
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-500">נוצר</div>
+                    <div className="mt-0.5 text-slate-700">{new Date(w.createdAt).toLocaleString('he-IL')}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200/60 bg-white p-4">
+                <div className="text-xs font-semibold text-slate-500">שיוך טכנאי</div>
 
                 <form action={assignTechnicianAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2">
-                    <select
+                    <Select
                       name="technicianId"
                       defaultValue={w.assignedTechnicianId ? String(w.assignedTechnicianId) : ''}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
                     >
                       <option value="">לא משויך</option>
                       {technicianOptions.map((t) => (
@@ -403,7 +493,7 @@ export default async function OperationsWorkOrderDetailsPage({
                           {String(t.label)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {!technicianOptionsRes.success ? (
                       <div className="mt-2 text-xs font-bold text-rose-700">{technicianOptionsRes.error}</div>
                     ) : null}
@@ -412,7 +502,7 @@ export default async function OperationsWorkOrderDetailsPage({
                   <div>
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                      className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
                     >
                       שמור שיוך
                     </button>
@@ -445,42 +535,7 @@ export default async function OperationsWorkOrderDetailsPage({
                 </form>
 
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                    <div className="text-xs font-black text-slate-700">קבצים</div>
-                    <div className="mt-2 space-y-2">
-                      {attachments.length ? (
-                        attachments.slice(0, 10).map((a) => (
-                          <a
-                            key={a.id}
-                            href={a.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
-                          >
-                            <div className="flex items-center gap-3">
-                              {String(a.mimeType || '').startsWith('image/') ? (
-                                <img
-                                  src={a.url}
-                                  alt=""
-                                  className="h-12 w-12 rounded-xl object-cover border border-slate-200 bg-white"
-                                />
-                              ) : (
-                                <div className="h-12 w-12 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-[11px] font-black text-slate-500">
-                                  PDF
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="text-xs font-black text-slate-900 truncate">{new Date(a.createdAt).toLocaleString('he-IL')}</div>
-                                <div className="text-[11px] text-slate-500 truncate">{a.mimeType ? String(a.mimeType) : 'קובץ'}</div>
-                              </div>
-                            </div>
-                          </a>
-                        ))
-                      ) : (
-                        <div className="text-sm text-slate-500">אין עדיין קבצים</div>
-                      )}
-                    </div>
-                  </div>
+                  <WorkOrderGallery attachments={attachments.map(a => ({ id: a.id, url: a.url, mimeType: a.mimeType ?? null, createdAt: a.createdAt }))} />
 
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="text-xs font-black text-slate-700">דיווחי הגעה</div>
@@ -561,22 +616,42 @@ export default async function OperationsWorkOrderDetailsPage({
                   </div>
                 </div>
               </div>
+
+              <WorkOrderAiSummary orgSlug={orgSlug} workOrderId={w.id} initialSummary={w.aiSummary} />
             </>
+          ) : tab === 'chat' ? (
+            <WorkOrderChat
+              orgSlug={orgSlug}
+              workOrderId={w.id}
+              currentUserId={clerkUserId || ''}
+              currentUserName={w.technicianLabel || 'משתמש'}
+              initialMessages={chatMessages.map((m) => ({
+                id: m.id,
+                authorId: m.authorId,
+                authorName: m.authorName,
+                content: m.content,
+                attachmentUrl: m.attachmentUrl ?? null,
+                attachmentType: m.attachmentType ?? null,
+                createdAt: m.createdAt,
+              }))}
+              sendMessageAction={createOperationsCallMessage}
+              updateMessageAction={updateOperationsCallMessage}
+              deleteMessageAction={deleteOperationsCallMessage}
+            />
           ) : (
             <>
               <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                <div className="text-xs font-black text-slate-700">מקור מלאי לקריאה</div>
+                <div className="text-xs font-semibold text-slate-500">מקור מלאי לקריאה</div>
                 <div className="mt-2 text-sm text-slate-700">
                   {w.stockSourceLabel ? w.stockSourceLabel : <span className="text-slate-400">—</span>}
                 </div>
 
                 <form action={setStockSourceAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2">
-                    <select
+                    <Select
                       name="holderId"
                       required
                       defaultValue={w.stockSourceHolderId ? String(w.stockSourceHolderId) : ''}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
                     >
                       <option value="" disabled>
                         {stockSourceOptions.length ? 'בחר מקור מלאי…' : 'אין מקורות מלאי זמינים'}
@@ -608,7 +683,7 @@ export default async function OperationsWorkOrderDetailsPage({
                             </option>
                           ))}
                       </optgroup>
-                    </select>
+                    </Select>
                     {!stockSourcesRes.success ? (
                       <div className="mt-2 text-xs font-bold text-rose-700">{stockSourcesRes.error}</div>
                     ) : null}
@@ -617,7 +692,7 @@ export default async function OperationsWorkOrderDetailsPage({
                   <div>
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors"
+                      className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-medium text-slate-700 bg-white border border-slate-200/80 shadow-sm hover:shadow hover:border-slate-300 transition-all duration-150"
                     >
                       שמור מקור
                     </button>
@@ -635,7 +710,7 @@ export default async function OperationsWorkOrderDetailsPage({
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                <div className="text-xs font-black text-slate-700">הוספת חומר לקריאה</div>
+                <div className="text-xs font-semibold text-slate-500">הוספת חומר לקריאה</div>
 
                 <div className="mt-2 text-xs text-slate-600">
                   מקור מלאי: {w.stockSourceLabel ? w.stockSourceLabel : '—'}
@@ -655,15 +730,14 @@ export default async function OperationsWorkOrderDetailsPage({
 
                 <form action={addMaterialAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2">
-                    <label htmlFor="inventoryId" className="block text-xs font-black text-slate-700">
+                    <label htmlFor="inventoryId" className="block text-xs font-semibold text-slate-500 mb-1.5">
                       פריט
                     </label>
-                    <select
+                    <Select
                       id="inventoryId"
                       name="inventoryId"
                       required
                       defaultValue=""
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
                     >
                       <option value="" disabled>
                         {inventoryOptions.length ? 'בחר פריט…' : 'אין פריטים זמינים'}
@@ -673,14 +747,14 @@ export default async function OperationsWorkOrderDetailsPage({
                           {opt.label} — {opt.onHand}{opt.unit ? ` ${opt.unit}` : ''}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     {!inventoryOptionsRes.success ? (
                       <div className="mt-2 text-xs font-bold text-rose-700">{inventoryOptionsRes.error}</div>
                     ) : null}
                   </div>
 
                   <div>
-                    <label htmlFor="qty" className="block text-xs font-black text-slate-700">
+                    <label htmlFor="qty" className="block text-xs font-semibold text-slate-500 mb-1.5">
                       כמות
                     </label>
                     <input
@@ -690,7 +764,7 @@ export default async function OperationsWorkOrderDetailsPage({
                       step="0.001"
                       min="0"
                       required
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                      className="h-11 w-full rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
                       placeholder="1"
                     />
                   </div>

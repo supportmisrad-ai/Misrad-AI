@@ -32,7 +32,7 @@ export default async function TheOperatorLandingPage() {
           desc: 'חתימה דיגיטלית של הלקוח בשטח שסוגרת את הפינה לחשבונית.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&plan=the_operator"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=the_operator"
       ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

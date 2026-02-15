@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Check, X } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
@@ -10,12 +11,14 @@ import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 
 export default function PricingPageClient() {
+  const { isSignedIn } = useAuth();
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans overflow-x-hidden" dir="rtl">
-      <Navbar />
+      <Navbar isSignedIn={!!isSignedIn} />
       <div className="pt-20">
         <PricingSection
-          isAuthenticated={false}
+          isAuthenticated={!!isSignedIn}
           billingCycle="monthly"
           onBillingCycleChange={() => void 0}
           onSelectPlan={() => void 0}

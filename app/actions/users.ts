@@ -167,10 +167,18 @@ async function upsertProfileForClerkUser(params: {
   const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
 
   // If profile already exists - best effort update
-  const existing = await prisma.profile.findFirst({
-    where: { clerkUserId },
-    select: { id: true, organizationId: true, role: true },
-  });
+  const existing = await prisma.profile.findFirst(
+    withPrismaTenantIsolationOverride(
+      {
+        where: { clerkUserId },
+        select: { id: true, organizationId: true, role: true },
+      },
+      {
+        reason: 'onboard_or_provision_lookup_existing_profile',
+        source: 'app/actions/users.ts',
+      }
+    )
+  );
 
   if (existing?.id) {
     // Best-effort update user fields (no changes to org here)
@@ -821,10 +829,18 @@ export async function getCurrentUserInfo(): Promise<{
         }
 
         // Resolve org+role by clerkUserId (allowed by tenant-guard exception)
-        const profile = await prisma.profile.findFirst({
-          where: { clerkUserId: String(clerkUserId) },
-          select: { id: true, organizationId: true, role: true },
-        });
+        const profile = await prisma.profile.findFirst(
+          withPrismaTenantIsolationOverride(
+            {
+              where: { clerkUserId: String(clerkUserId) },
+              select: { id: true, organizationId: true, role: true },
+            },
+            {
+              reason: 'clerk_webhook_sync_lookup_profile',
+              source: 'app/actions/users.ts',
+            }
+          )
+        );
 
         // Soft mode: if webhook provisioning hasn't completed yet, return success without org.
         if (!profile?.id || !profile.organizationId) {
@@ -878,10 +894,18 @@ export async function getUserRoleFromSupabaseAction(
     return await withTenantIsolationContext(
       { source: 'app/actions/users.getUserRoleFromSupabaseAction', reason: 'get_user_role', suppressReporting: true },
       async () => {
-        const profile = await prisma.profile.findFirst({
-          where: { clerkUserId: String(clerkUserId) },
-          select: { role: true, organizationId: true },
-        });
+        const profile = await prisma.profile.findFirst(
+          withPrismaTenantIsolationOverride(
+            {
+              where: { clerkUserId: String(clerkUserId) },
+              select: { role: true, organizationId: true },
+            },
+            {
+              reason: 'get_user_role_lookup_by_clerk_id',
+              source: 'app/actions/users.ts',
+            }
+          )
+        );
 
         return {
           success: true,

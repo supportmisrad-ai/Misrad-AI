@@ -60,7 +60,7 @@ export default function FinanceMarketingPage() {
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link
-                href="/pricing"
+                href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
               >
                 התחל ניסיון חינם
@@ -153,7 +153,7 @@ export default function FinanceMarketingPage() {
                     </div>
                     <div className="mt-6">
                       <Link
-                        href="/pricing"
+                        href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                         className="group w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
                       >
                         התחל עכשיו

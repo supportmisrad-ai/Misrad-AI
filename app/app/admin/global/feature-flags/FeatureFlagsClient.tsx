@@ -141,17 +141,22 @@ export default function FeatureFlagsClient() {
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6">
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-black text-slate-900">מודולים זמינים במערכת</h3>
-              <p className="text-sm text-slate-600 mt-1">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between sm:justify-start gap-3">
+                <h3 className="text-base sm:text-lg font-black text-slate-900">מודולים זמינים במערכת</h3>
+                <div className="text-left sm:hidden shrink-0">
+                  <div className="text-xl font-black text-slate-900">{enabledCount}/6</div>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">
                 קבע אילו מודולים זמינים לכל הארגונים. מודולים שמכובים כאן לא יופיעו בכלל במערכת.
               </p>
               <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                 ⚠️ <strong>חשוב:</strong> זה משפיע על כל המערכת גלובלית. ארגונים יראו רק מודולים שמופעלים כאן וגם כלולים בחבילה שלהם.
               </p>
             </div>
-            <div className="text-left">
+            <div className="text-left hidden sm:block shrink-0">
               <div className="text-2xl font-black text-slate-900">{enabledCount}/6</div>
               <div className="text-xs text-slate-500">מופעלים</div>
             </div>

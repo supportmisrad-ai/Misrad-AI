@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 
 import { getOperationsProjectOptions, getOperationsWorkOrdersData } from '@/app/actions/operations';
+import { Select } from '@/components/ui/select';
 import WorkOrdersSmartSortClient from '@/components/operations/WorkOrdersSmartSortClient';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
@@ -83,17 +84,17 @@ export default async function OperationsWorkOrdersPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <section className="bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100">
+      <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-sm font-black text-slate-900">קריאות שירות</div>
-              <div className="text-xs text-slate-500 mt-1">סך הכל {workOrders.length} קריאות</div>
+              <div className="text-sm font-bold text-slate-800">קריאות שירות</div>
+              <div className="text-xs text-slate-400 mt-0.5">סך הכל {workOrders.length} קריאות</div>
             </div>
 
             <Link
               href={`${base}/work-orders/new`}
-              className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
             >
               קריאה חדשה
             </Link>
@@ -101,34 +102,32 @@ export default async function OperationsWorkOrdersPage({
         </div>
 
         <div className="p-5 space-y-4">
-          <form method="get" className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <form method="get" className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
             <div>
-              <label htmlFor="status" className="block text-xs font-black text-slate-700">
+              <label htmlFor="status" className="block text-xs font-semibold text-slate-500 mb-1.5">
                 סטטוס
               </label>
-              <select
+              <Select
                 id="status"
                 name="status"
                 defaultValue={statusParam ? String(statusParam) : 'OPEN'}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
               >
                 <option value="OPEN">פתוחות</option>
                 <option value="ALL">הכל</option>
                 <option value="NEW">חדש</option>
                 <option value="IN_PROGRESS">בטיפול</option>
                 <option value="DONE">הושלם</option>
-              </select>
+              </Select>
             </div>
 
             <div>
-              <label htmlFor="projectId" className="block text-xs font-black text-slate-700">
+              <label htmlFor="projectId" className="block text-xs font-semibold text-slate-500 mb-1.5">
                 פרויקט
               </label>
-              <select
+              <Select
                 id="projectId"
                 name="projectId"
                 defaultValue={projectId ? String(projectId) : ''}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
               >
                 <option value="">כל הפרויקטים</option>
                 {projectOptions.map((p) => (
@@ -136,28 +135,27 @@ export default async function OperationsWorkOrdersPage({
                     {p.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
-              <label htmlFor="onlyMine" className="block text-xs font-black text-slate-700">
+              <label htmlFor="onlyMine" className="block text-xs font-semibold text-slate-500 mb-1.5">
                 הקצאה
               </label>
-              <select
+              <Select
                 id="onlyMine"
                 name="onlyMine"
                 defaultValue={onlyMine ? '1' : '0'}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
               >
                 <option value="0">הכל</option>
                 <option value="1">רק שלי</option>
-              </select>
+              </Select>
             </div>
 
-            <div className="flex items-end">
+            <div>
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
               >
                 סנן
               </button>

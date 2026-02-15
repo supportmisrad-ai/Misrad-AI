@@ -1,4 +1,3 @@
-import PremiumFrame from '@/components/profile/PremiumFrame';
 import { DataProvider } from '@/context/DataContext';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
@@ -109,15 +108,14 @@ export default async function OperationsMePage({
   }
 
   return (
-    <PremiumFrame moduleLabel="Operations" title="אזור אישי" subtitle="תפעול, מלאי ושטח">
-      <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-        <MeView
+    <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+      <MeView
           basePathOverride={`/w/${encodeURIComponent(orgSlug)}/operations`}
           moduleCards={[
             {
-              title: 'המשימות שלי',
-              subtitle: 'מה נשאר לי לסגור היום',
-              href: `/w/${encodeURIComponent(orgSlug)}/nexus/tasks`,
+              title: 'הקריאות שלי',
+              subtitle: 'קריאות שירות שמשויכות אליי',
+              href: `/w/${encodeURIComponent(orgSlug)}/operations/work-orders?onlyMine=1`,
               iconId: 'target',
             },
             {
@@ -230,8 +228,7 @@ export default async function OperationsMePage({
               </div>
             </Link>
           </div>
-        </MeView>
-      </DataProvider>
-    </PremiumFrame>
+      </MeView>
+    </DataProvider>
   );
 }

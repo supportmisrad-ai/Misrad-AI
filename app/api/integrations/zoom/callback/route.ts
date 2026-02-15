@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exchangeZoomCode } from '@/lib/integrations/zoom';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
-import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,10 +42,18 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeZoomCode(code);
 
     // Get user's organization
-    const profile = await prisma.profile.findFirst({
-      where: { clerkUserId: userId },
-      select: { organizationId: true },
-    });
+    const profile = await prisma.profile.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerkUserId: userId },
+          select: { organizationId: true },
+        },
+        {
+          reason: 'zoom_callback_lookup_org',
+          source: 'app/api/integrations/zoom/callback/route.ts',
+        }
+      )
+    );
 
     if (!profile?.organizationId) {
       return NextResponse.redirect(

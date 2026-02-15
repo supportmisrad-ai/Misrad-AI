@@ -101,22 +101,22 @@ export default function BusinessClientsClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">לקוחות עסקיים</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">לקוחות עסקיים</h1>
           <p className="text-sm text-gray-500 mt-1">
             ניהול חברות וארגונים עסקיים (B2B)
           </p>
         </div>
-        <Button onClick={() => setIsAddClientModalOpen(true)}>
+        <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           הוסף לקוח עסקי
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex gap-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -149,51 +149,51 @@ export default function BusinessClientsClient() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">סה״כ לקוחות</p>
-              <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">סה״כ לקוחות</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{clients.length}</p>
             </div>
-            <Building2 className="w-8 h-8 text-blue-600" />
+            <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 shrink-0" />
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">אנשי קשר</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">אנשי קשר</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                 {clients.reduce((sum, c) => sum + c.contacts.length, 0)}
               </p>
             </div>
-            <Users className="w-8 h-8 text-green-600" />
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 shrink-0" />
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">ארגונים</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">ארגונים</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                 {clients.reduce((sum, c) => sum + c.organizations.length, 0)}
               </p>
             </div>
-            <Building2 className="w-8 h-8 text-purple-600" />
+            <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 shrink-0" />
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">פעילים</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-gray-600 truncate">פעילים</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                 {clients.filter((c) => c.status === 'active').length}
               </p>
             </div>
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <div className="w-3 h-3 bg-green-600 rounded-full" />
+            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-600 rounded-full" />
             </div>
           </div>
         </div>
@@ -220,10 +220,10 @@ export default function BusinessClientsClient() {
               <div key={client.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 {/* Client Header */}
                 <div
-                  className="p-6 cursor-pointer hover:bg-gray-50"
+                  className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50"
                   onClick={() => toggleExpand(client.id)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <Building2 className="w-6 h-6 text-blue-600" />
@@ -242,7 +242,7 @@ export default function BusinessClientsClient() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
                         {client.business_number && (
                           <div className="flex items-center gap-2 text-gray-600">
                             <span className="font-medium">ח.פ/עוסק:</span>
@@ -263,7 +263,7 @@ export default function BusinessClientsClient() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-6 mt-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
                           <span>{client.contacts.length} אנשי קשר</span>
@@ -275,7 +275,7 @@ export default function BusinessClientsClient() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 mt-3 sm:mt-0 shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
@@ -283,6 +283,7 @@ export default function BusinessClientsClient() {
                           e.stopPropagation();
                           setSelectedClientForEdit(client);
                         }}
+                        className="text-xs h-8"
                       >
                         ✏️ ערוך
                       </Button>
@@ -293,9 +294,10 @@ export default function BusinessClientsClient() {
                           e.stopPropagation();
                           setSelectedClientForContact(client);
                         }}
+                        className="text-xs h-8"
                       >
-                        <Users className="w-4 h-4 mr-1" />
-                        הוסף איש קשר
+                        <Users className="w-3.5 h-3.5 mr-1" />
+                        <span className="hidden sm:inline">הוסף </span>איש קשר
                       </Button>
                       <Button
                         size="sm"
@@ -305,9 +307,10 @@ export default function BusinessClientsClient() {
                           setSelectedClientForOrg(client);
                         }}
                         disabled={client.contacts.length === 0}
+                        className="text-xs h-8"
                       >
-                        <Building2 className="w-4 h-4 mr-1" />
-                        הוסף ארגון
+                        <Building2 className="w-3.5 h-3.5 mr-1" />
+                        <span className="hidden sm:inline">הוסף </span>ארגון
                       </Button>
                     </div>
                   </div>
@@ -315,8 +318,8 @@ export default function BusinessClientsClient() {
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 p-6 bg-gray-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       {/* Contact Info */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-3">פרטי התקשרות</h4>

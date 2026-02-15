@@ -48,26 +48,44 @@ async function geocodeAddressNominatim(address: string): Promise<{ lat: number; 
 
 export async function createOperationsWorkOrderForOrganizationId(params: {
   organizationId: string;
-  projectId: string;
+  projectId?: string | null;
   title: string;
   description?: string;
   scheduledStart?: string;
+  priority?: string;
+  categoryId?: string | null;
+  departmentId?: string | null;
+  buildingId?: string | null;
+  floor?: string | null;
+  unit?: string | null;
+  reporterName?: string | null;
+  reporterPhone?: string | null;
+  assignedTechnicianId?: string | null;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const projectId = String(params.projectId || '').trim();
+    const projectId = String(params.projectId || '').trim() || null;
     const title = String(params.title || '').trim();
     const description = String(params.description || '').trim();
     const scheduledStartRaw = String(params.scheduledStart || '').trim();
+    const priority = (['NORMAL', 'HIGH', 'URGENT', 'CRITICAL'].includes(String(params.priority || '').toUpperCase()))
+      ? String(params.priority).toUpperCase()
+      : 'NORMAL';
 
     if (!title) return { success: false, error: 'חובה להזין כותרת' };
-    if (!projectId) return { success: false, error: 'חובה לשייך פרויקט' };
 
-    const project = await prisma.operationsProject.findFirst({
-      where: { id: projectId, organizationId: params.organizationId },
-      select: { id: true, installationAddress: true, addressNormalized: true },
-    });
+    let projectAddress: string | null = null;
+    let projectAddressNormalized: string | null = null;
 
-    if (!project?.id) return { success: false, error: 'פרויקט לא נמצא או שאין הרשאה' };
+    if (projectId) {
+      const project = await prisma.operationsProject.findFirst({
+        where: { id: projectId, organizationId: params.organizationId },
+        select: { id: true, installationAddress: true, addressNormalized: true },
+      });
+
+      if (!project?.id) return { success: false, error: 'פרויקט לא נמצא או שאין הרשאה' };
+      projectAddress = project.installationAddress;
+      projectAddressNormalized = project.addressNormalized;
+    }
 
     let scheduledStart: Date | null = null;
     if (scheduledStartRaw) {
@@ -77,21 +95,46 @@ export async function createOperationsWorkOrderForOrganizationId(params: {
       }
     }
 
+    let slaDeadline: Date | null = null;
+    const categoryId = String(params.categoryId || '').trim() || null;
+    if (categoryId) {
+      const category = await prisma.operationsCallCategory.findFirst({
+        where: { id: categoryId, organizationId: params.organizationId },
+        select: { maxResponseMinutes: true },
+      });
+      if (category?.maxResponseMinutes && category.maxResponseMinutes > 0) {
+        slaDeadline = new Date(Date.now() + category.maxResponseMinutes * 60 * 1000);
+      }
+    }
+
+    const departmentId = String(params.departmentId || '').trim() || null;
+    const buildingId = String(params.buildingId || '').trim() || null;
+
     const created = await prisma.operationsWorkOrder.create({
       data: {
         organizationId: params.organizationId,
-        projectId: project.id,
+        projectId,
         title,
-        description: description ? description : null,
+        description: description || null,
         status: 'NEW',
+        priority,
+        categoryId,
+        departmentId,
+        buildingId,
+        floor: params.floor ? String(params.floor).trim() : null,
+        unit: params.unit ? String(params.unit).trim() : null,
+        reporterName: params.reporterName ? String(params.reporterName).trim() : null,
+        reporterPhone: params.reporterPhone ? String(params.reporterPhone).trim() : null,
+        assignedTechnicianId: params.assignedTechnicianId ? String(params.assignedTechnicianId).trim() : null,
+        slaDeadline,
         scheduledStart,
-        installationAddress: project.installationAddress,
-        addressNormalized: project.addressNormalized,
+        installationAddress: projectAddress,
+        addressNormalized: projectAddressNormalized,
       },
       select: { id: true },
     });
 
-    const address = project.installationAddress ? String(project.installationAddress) : '';
+    const address = projectAddress ? String(projectAddress) : '';
     if (address) {
       const coords = await geocodeAddressNominatim(address);
       if (coords) {

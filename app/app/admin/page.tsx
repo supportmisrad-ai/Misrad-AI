@@ -36,13 +36,13 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 pb-24 bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100" dir="rtl">
+    <div className="space-y-6 md:space-y-8 pb-24 bg-white rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-sm border border-slate-100" dir="rtl">
       <div className="text-center max-w-3xl mx-auto">
         <div className="mb-6">
           <Shield size={48} className="mx-auto text-indigo-600/50 mb-4 md:hidden" />
           <Shield size={64} className="mx-auto text-indigo-600/50 mb-4 hidden md:block" />
         </div>
-        <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-3 md:mb-4 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
           דשבורד ניהול-על
         </h1>
         <p className="text-slate-600 text-base md:text-xl">נתונים חיים מהמערכת</p>
@@ -83,22 +83,22 @@ export default async function AdminDashboardPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-6 shadow-xl hover:border-slate-300/80 transition-all">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
               <div className="text-xs font-bold text-slate-500">סה"כ ארגונים</div>
-              <div className="text-3xl font-black text-slate-900 mt-2">{Number(kpis?.totalOrganizations ?? 0).toLocaleString('he-IL')}</div>
+              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Number(kpis?.totalOrganizations ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-6 shadow-xl hover:border-slate-300/80 transition-all">
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
               <div className="text-xs font-bold text-slate-500">סה"כ משתמשים</div>
-              <div className="text-3xl font-black text-slate-900 mt-2">{Number(kpis?.totalProfiles ?? 0).toLocaleString('he-IL')}</div>
+              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Number(kpis?.totalProfiles ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-6 shadow-xl hover:border-slate-300/80 transition-all">
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
               <div className="text-xs font-bold text-slate-500">הכנסה חודשית</div>
-              <div className="text-3xl font-black text-slate-900 mt-2">₪{Number(kpis?.revenuePaidThisMonth ?? 0).toLocaleString('he-IL')}</div>
+              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">₪{Number(kpis?.revenuePaidThisMonth ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-6 shadow-xl hover:border-slate-300/80 transition-all">
-              <div className="text-xs font-bold text-slate-500">שימוש בינה מלאכותית היום</div>
-              <div className="text-3xl font-black text-slate-900 mt-2">{Math.round(Number(kpis?.aiCreditsUsedTodayCents ?? 0) / 100).toLocaleString('he-IL')}</div>
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
+              <div className="text-xs font-bold text-slate-500 truncate">שימוש AI היום</div>
+              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Math.round(Number(kpis?.aiCreditsUsedTodayCents ?? 0) / 100).toLocaleString('he-IL')}</div>
               <div className="text-xs font-bold text-slate-400 mt-1">בקרדיטים</div>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default async function AdminDashboardPage() {
               <div className="text-xs font-bold text-slate-500 mt-1">חריגות ותשלומים</div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               {alerts.length === 0 ? (
                 <div className="text-sm font-bold text-slate-600">אין התראות כרגע</div>
               ) : (

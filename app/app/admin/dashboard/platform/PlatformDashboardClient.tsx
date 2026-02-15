@@ -85,30 +85,30 @@ export default function PlatformDashboardClient() {
             <p className="text-sm text-gray-600">כל המערכות פועלות תקין</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-500">Uptime</p>
-            <p className="text-2xl font-bold text-green-600">{stats.uptime}</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-gray-500">Uptime</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">{stats.uptime}</p>
           </div>
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-500">שרתים פעילים</p>
-            <p className="text-2xl font-bold text-green-600">3/3</p>
+          <div className="bg-white rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-gray-500">שרתים פעילים</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">3/3</p>
           </div>
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-500">DB Status</p>
-            <p className="text-2xl font-bold text-green-600">Healthy</p>
+          <div className="bg-white rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-gray-500">DB Status</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">Healthy</p>
           </div>
-          <div className="bg-white rounded-lg p-4">
-            <p className="text-sm text-gray-500">Cache Status</p>
-            <p className="text-2xl font-bold text-green-600">Active</p>
+          <div className="bg-white rounded-lg p-3 md:p-4">
+            <p className="text-xs md:text-sm text-gray-500">Cache Status</p>
+            <p className="text-xl md:text-2xl font-bold text-green-600">Active</p>
           </div>
         </div>
       </div>
 
       {/* Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {/* Total Requests */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">סה"כ בקשות (24h)</p>
@@ -126,7 +126,7 @@ export default function PlatformDashboardClient() {
         </div>
 
         {/* Response Time */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">זמן תגובה ממוצע</p>
@@ -143,7 +143,7 @@ export default function PlatformDashboardClient() {
         </div>
 
         {/* Error Rate */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">שיעור שגיאות</p>
@@ -159,7 +159,7 @@ export default function PlatformDashboardClient() {
         </div>
 
         {/* Active Connections */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">חיבורים פעילים</p>
@@ -174,9 +174,9 @@ export default function PlatformDashboardClient() {
       </div>
 
       {/* Infrastructure Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Database Size */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-blue-50 rounded">
               <Database className="w-5 h-5 text-blue-600" />
@@ -193,7 +193,7 @@ export default function PlatformDashboardClient() {
         </div>
 
         {/* Cache Hit Rate */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-purple-50 rounded">
               <HardDrive className="w-5 h-5 text-purple-600" />
@@ -210,7 +210,7 @@ export default function PlatformDashboardClient() {
         </div>
 
         {/* Last Deployment */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-50 rounded">
               <Clock className="w-5 h-5 text-green-600" />
@@ -282,7 +282,7 @@ export default function PlatformDashboardClient() {
       {/* Quick Links */}
       <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">ניהול מערכת</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           <a 
             href="/app/admin/logs"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"

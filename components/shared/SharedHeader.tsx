@@ -61,7 +61,7 @@ export function SharedHeader({
       return;
     }
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('os:open-help-videos'));
+      window.dispatchEvent(new CustomEvent('os:open-support'));
     }
   };
 
@@ -113,7 +113,13 @@ export function SharedHeader({
 
         <button
           id="command-search-btn"
-          onClick={() => onOpenCommandPaletteAction?.()}
+          onClick={() => {
+            if (onOpenCommandPaletteAction) {
+              onOpenCommandPaletteAction();
+            } else if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('os:open-search'));
+            }
+          }}
           className="w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
           title="חיפוש (Cmd+K)"
           type="button"

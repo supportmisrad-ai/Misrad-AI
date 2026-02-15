@@ -91,7 +91,7 @@ export default function ClientOSPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
               <button
-                onClick={() => router.push('/pricing')}
+                onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#C5A572]/30 hover:scale-105 text-sm sm:text-base"
               >
                 התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
@@ -664,7 +664,7 @@ export default function ClientOSPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-2">
             <button
-              onClick={() => router.push('/pricing')}
+              onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-slate-900 border border-[#C5A572]/30 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
             >
               התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />

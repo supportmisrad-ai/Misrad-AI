@@ -7,6 +7,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { asObject } from '@/lib/shared/unknown';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { resolveWorkspaceActorApi } from '@/lib/server/workspace-access/actor';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -53,44 +54,62 @@ async function GETHandler() {
     { source: 'api_workspaces_list', reason: 'list_user_workspaces', suppressReporting: true },
     async () => {
     let socialUser: { id: string; organization_id: string | null } | null = null;
+    let isSuperAdmin = false;
     try {
-      socialUser = await prisma.organizationUser.findUnique({
-        where: { clerk_user_id: clerkUserId },
-        select: { id: true, organization_id: true },
-      });
+      const actor = await resolveWorkspaceActorApi(clerkUserId);
+      socialUser = actor.socialUser as { id: string; organization_id: string | null } | null;
+      isSuperAdmin = actor.isSuperAdmin;
     } catch (err) {
-      if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
-      else console.error('GET /api/workspaces failed to query social_users', err);
-      throw err;
+      if (IS_PROD) console.error('GET /api/workspaces failed to resolve actor');
+      else console.error('GET /api/workspaces failed to resolve actor', err);
+      // Fallback to direct query
+      try {
+        socialUser = await prisma.organizationUser.findUnique({
+          where: { clerk_user_id: clerkUserId },
+          select: { id: true, organization_id: true },
+        });
+      } catch (err2) {
+        if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
+        else console.error('GET /api/workspaces failed to query social_users', err2);
+        throw err2;
+      }
     }
 
-    if (!socialUser?.id) {
+    if (!socialUser?.id && !isSuperAdmin) {
       return [] as WorkspaceApiItem[];
     }
 
-    const [ownedOrgs, membershipRows] = await Promise.all([
-      prisma.organization.findMany({
-        where: { owner_id: socialUser.id },
-        select: { id: true },
-      }),
-      prisma.teamMember.findMany({
-        where: { user_id: socialUser.id },
-        select: { organization_id: true },
-      }),
-    ]);
+    let ids: string[];
 
-    const orgIds = new Set<string>();
-    if (socialUser.organization_id) {
-      orgIds.add(String(socialUser.organization_id));
-    }
-    for (const org of ownedOrgs) {
-      if (org?.id) orgIds.add(String(org.id));
-    }
-    for (const row of membershipRows) {
-      if (row.organization_id) orgIds.add(String(row.organization_id));
+    if (isSuperAdmin) {
+      // Super admins see ALL organizations
+      const allOrgs = await prisma.organization.findMany({ select: { id: true } });
+      ids = allOrgs.map((o) => String(o.id)).filter(Boolean);
+    } else {
+      const [ownedOrgs, membershipRows] = await Promise.all([
+        prisma.organization.findMany({
+          where: { owner_id: socialUser!.id },
+          select: { id: true },
+        }),
+        prisma.teamMember.findMany({
+          where: { user_id: socialUser!.id },
+          select: { organization_id: true },
+        }),
+      ]);
+
+      const orgIds = new Set<string>();
+      if (socialUser!.organization_id) {
+        orgIds.add(String(socialUser!.organization_id));
+      }
+      for (const org of ownedOrgs) {
+        if (org?.id) orgIds.add(String(org.id));
+      }
+      for (const row of membershipRows) {
+        if (row.organization_id) orgIds.add(String(row.organization_id));
+      }
+      ids = Array.from(orgIds).filter(Boolean);
     }
 
-    const ids = Array.from(orgIds).filter(Boolean);
     if (ids.length === 0) {
       return [] as WorkspaceApiItem[];
     }
@@ -119,7 +138,7 @@ async function GETHandler() {
     ]);
 
     // Sort: primary workspace first, then by creation date (newest first)
-    const primaryOrgId = socialUser.organization_id;
+    const primaryOrgId = socialUser?.organization_id ?? null;
     const sortedOrgs = [...orgs].sort((a, b) => {
       if (a.id === primaryOrgId) return -1;
       if (b.id === primaryOrgId) return 1;

@@ -76,7 +76,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
               className={`
                 w-9 h-9 rounded-lg flex items-center justify-center transition-all
                 ${isCurrent 
-                  ? `bg-gradient-to-br ${module.gradient} text-white shadow-lg shadow-${module.color.split('-')[1]}-500/30` 
+                  ? `bg-gradient-to-br ${module.gradient} text-white shadow-sm` 
                   : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                 }
               `}
@@ -111,7 +111,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
             className={`
               w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group relative
               ${isCurrent 
-                ? `bg-gradient-to-r ${module.gradient} text-white shadow-lg` 
+                ? `bg-gradient-to-r ${module.gradient} text-white shadow-sm` 
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 hover:border-slate-300'
               }
             `}
@@ -131,7 +131,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
               w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all
               ${isCurrent 
                 ? 'bg-white/20' 
-                : `bg-gradient-to-br ${module.gradient} text-white shadow-sm`
+                : `bg-gradient-to-br ${module.gradient} text-white`
               }
             `}>
               <OSModuleIcon moduleKey={module.id} size={20} strokeWidth={isCurrent ? 2.5 : 2} className={isCurrent ? 'text-white' : 'text-white'} />

@@ -183,7 +183,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <div className="text-xs font-bold text-slate-500">סטטוס מנוי</div>
           <div className="mt-2">
@@ -231,7 +231,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="flex border-b border-slate-200">
+        <div className="flex border-b border-slate-200 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -240,20 +240,20 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-5 py-3 text-sm font-black transition-colors border-b-2 ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-3 text-xs sm:text-sm font-black transition-colors border-b-2 whitespace-nowrap ${
                   isActive
                     ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={14} className="sm:w-4 sm:h-4" />
                 {tab.label}
               </button>
             );
           })}
         </div>
 
-        <div className="p-5">
+        <div className="p-3 sm:p-5">
           {activeTab === 'members' ? (
             <MembersTab members={members} owner={owner} orgId={org.id} />
           ) : null}
@@ -325,36 +325,53 @@ function MembersTab({
           {query ? 'לא נמצאו תוצאות' : 'אין משתמשים בארגון זה'}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-right">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">תפקיד</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">הצטרף</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-bold text-slate-900">
-                    {m.full_name || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{m.email || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{m.role || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{formatDate(m.created_at)}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {owner && m.id === owner.id ? (
-                      <Shield size={14} className="text-indigo-600" />
-                    ) : null}
-                  </td>
+        <>
+          <div className="md:hidden space-y-3">
+            {filtered.map((m) => (
+              <div key={m.id} className="bg-slate-50 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-black text-slate-900 truncate">{m.full_name || '—'}</div>
+                  {owner && m.id === owner.id ? <Shield size={14} className="text-indigo-600 shrink-0" /> : null}
+                </div>
+                <div className="text-xs font-bold text-slate-600 truncate mt-1">{m.email || '—'}</div>
+                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                  <span>{m.role || '—'}</span>
+                  <span>{formatDate(m.created_at)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full text-right">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">תפקיד</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">הצטרף</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((m) => (
+                  <tr key={m.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900">
+                      {m.full_name || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{m.email || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{m.role || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(m.created_at)}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {owner && m.id === owner.id ? (
+                        <Shield size={14} className="text-indigo-600" />
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

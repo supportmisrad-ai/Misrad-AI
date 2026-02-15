@@ -14,6 +14,7 @@ import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
 import CommandPalette from './CommandPalette';
 import { SharedHeader } from '@/components/shared/SharedHeader';
+import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
@@ -382,7 +383,7 @@ const FinanceOSApp: React.FC<{
     />
   );
 
-  const notificationsSlot = null;
+  const notificationsSlot = <GlobalNotificationsBell />;
 
   return (
     <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">

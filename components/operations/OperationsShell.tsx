@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AppWindow, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, User, Users } from 'lucide-react';
+import { AppWindow, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -11,13 +11,15 @@ import { Avatar } from '@/components/Avatar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
+import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
-import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+
 import { getOSModule } from '@/types/os-modules';
 
 function buildTitle(pathname: string, basePath: string): string {
@@ -30,10 +32,10 @@ function buildTitle(pathname: string, basePath: string): string {
   if (relative === '/work-orders') return 'קריאות שירות';
   if (relative === '/work-orders/new') return 'קריאה חדשה';
   if (relative.startsWith('/work-orders/')) return 'קריאות שירות';
-  if (relative === '/contractors') return 'קבלנים';
+  if (relative === '/contractors') return 'ספקים וקבלנים';
   if (relative === '/inventory') return 'מלאי';
   if (relative.startsWith('/inventory/')) return 'מלאי';
-  if (relative === '/me') return 'אזור אישי';
+  if (relative === '/me') return 'הפרופיל שלי';
   if (relative === '/settings') return 'הגדרות';
 
   return 'Operations';
@@ -78,15 +80,20 @@ export default function OperationsShell({
   const navItems = React.useMemo(
     () => [
       { label: 'דשבורד', path: '/', icon: LayoutDashboard },
-      { label: 'פרויקטים', path: '/projects', icon: Briefcase },
       { label: 'קריאות', path: '/work-orders', icon: ClipboardList },
+      { label: 'פרויקטים', path: '/projects', icon: Briefcase, separatorBefore: true },
       { label: 'מלאי', path: '/inventory', icon: Package },
-      { label: 'קבלנים', path: '/contractors', icon: Users },
-      { label: 'אזור אישי', path: '/me', icon: User },
-      { label: 'הגדרות', path: '/settings', icon: Settings },
+      { label: 'ספקים וקבלנים', path: '/contractors', icon: Users },
+      { label: 'הגדרות', path: '/settings', icon: Settings, separatorBefore: true },
     ],
     []
   );
+
+  const primaryNavPaths = React.useMemo(
+    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors'],
+    []
+  );
+
 
   const isActiveAction = React.useCallback(
     (path: string) => {
@@ -201,7 +208,7 @@ export default function OperationsShell({
           </div>
         }
         navItems={navItems}
-        primaryNavPaths={['/', '/projects', '/work-orders', '/inventory', '/contractors', '/me', '/settings']}
+        primaryNavPaths={primaryNavPaths}
         isActiveAction={isActiveAction}
         onNavigateAction={onNavigateAction}
         bottomSlot={
@@ -232,7 +239,7 @@ export default function OperationsShell({
           onOpenSupportAction={undefined}
           actionsSlot={<ModuleHelpVideos moduleKey="operations" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={null}
+          notificationsSlot={<GlobalNotificationsBell />}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           onProfileClickAction={undefined}
           profileHref={`${basePath}/me${resolvedUser.needsProfileCompletion ? '?edit=profile' : ''}`}
@@ -241,9 +248,9 @@ export default function OperationsShell({
           className="bg-transparent"
         />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
           <div className="flex flex-col min-h-0 pb-24 md:pb-0">{children}</div>
-        </main>
+        </div>
       </main>
 
       <MobileBottomNav
@@ -256,20 +263,20 @@ export default function OperationsShell({
             onClick: () => onNavigateAction('/'),
           },
           {
-            id: 'projects',
-            label: 'פרויקטים',
-            icon: Briefcase,
-            active: isActiveAction('/projects'),
-            onClick: () => onNavigateAction('/projects'),
-          },
-        ]}
-        leftItems={[
-          {
             id: 'work-orders',
             label: 'קריאות',
             icon: ClipboardList,
             active: isActiveAction('/work-orders'),
             onClick: () => onNavigateAction('/work-orders'),
+          },
+        ]}
+        leftItems={[
+          {
+            id: 'inventory',
+            label: 'מלאי',
+            icon: Package,
+            active: isActiveAction('/inventory'),
+            onClick: () => onNavigateAction('/inventory'),
           },
           {
             id: 'menu',
@@ -295,41 +302,32 @@ export default function OperationsShell({
               className="fixed inset-0 bg-black/50 z-[45] backdrop-blur-sm md:hidden"
               onClick={() => setIsPlusMenuOpen(false)}
             />
-            <div className="fixed bottom-28 left-0 right-0 z-[50] flex justify-center gap-4 sm:gap-6 md:hidden pointer-events-none px-4">
-              <motion.div
-                initial={{ y: 30, opacity: 0, scale: 0.9 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 30, opacity: 0, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.05 }}
-                className="flex flex-col items-center gap-2.5 pointer-events-auto"
-              >
-                <button
-                  onClick={handleVoiceClick}
-                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg shadow-red-500/30 flex items-center justify-center hover:from-red-600 hover:to-red-700 active:scale-95 transition-all duration-200 border border-red-400/20"
+            <div className="fixed bottom-28 left-0 right-0 z-[50] flex justify-center gap-3 sm:gap-5 md:hidden pointer-events-none px-4">
+              {[
+                { icon: Mic, label: 'פקודה קולית', onClick: handleVoiceClick, bg: 'bg-gradient-to-br from-red-500 to-red-600', shadow: 'shadow-red-500/30', border: 'border-red-400/20', delay: 0.1 },
+                { icon: ClipboardList, label: 'קריאה חדשה', onClick: () => onNavigateAction('/work-orders/new'), bg: 'bg-gradient-to-br from-amber-500 to-orange-600', shadow: 'shadow-amber-500/30', border: 'border-amber-400/20', delay: 0.05 },
+                { icon: Briefcase, label: 'פרויקט חדש', onClick: () => onNavigateAction('/projects/new'), bg: 'bg-white', shadow: 'shadow-black/10', border: 'border-gray-200/60', delay: 0, textColor: 'text-slate-900' },
+                { icon: Package, label: 'מלאי', onClick: () => onNavigateAction('/inventory'), bg: 'bg-white', shadow: 'shadow-black/10', border: 'border-gray-200/60', delay: 0.05, textColor: 'text-slate-900' },
+              ].map((item) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 30, opacity: 0, scale: 0.9 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30, delay: item.delay }}
+                  className="flex flex-col items-center gap-2.5 pointer-events-auto"
                 >
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <Mic size={24} className="sm:w-7 sm:h-7 relative z-10" strokeWidth={2.5} />
-                </button>
-                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">פקודה קולית</span>
-              </motion.div>
-
-              <motion.div
-                initial={{ y: 30, opacity: 0, scale: 0.9 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: 30, opacity: 0, scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className="flex flex-col items-center gap-2.5 pointer-events-auto"
-              >
-                <button
-                  onClick={() => onNavigateAction(plusConfig.targetPath)}
-                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white text-slate-900 rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-gray-200/60"
-                  aria-label={plusConfig.ariaLabel}
-                >
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <Plus size={24} className="sm:w-7 sm:h-7 relative z-10" strokeWidth={2.5} />
-                </button>
-                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">{plusConfig.ariaLabel}</span>
-              </motion.div>
+                  <button
+                    onClick={item.onClick}
+                    className={`group relative w-14 h-14 sm:w-16 sm:h-16 ${item.bg} ${item.textColor || 'text-white'} rounded-2xl shadow-lg ${item.shadow} flex items-center justify-center active:scale-95 transition-all duration-200 border ${item.border}`}
+                    aria-label={item.label}
+                  >
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <item.icon size={22} className="sm:w-6 sm:h-6 relative z-10" strokeWidth={2.5} />
+                  </button>
+                  <span className="text-[10px] font-bold text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full shadow-lg border border-white/20">{item.label}</span>
+                </motion.div>
+              ))}
             </div>
           </>
         ) : null}

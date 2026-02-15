@@ -29,7 +29,7 @@ export default function AdminTabs(props: {
             onClick={() => props.onValueChange(t.id)}
             variant="outline"
             className={cn(
-              'gap-2 px-4 py-2 rounded-xl text-sm font-black transition-colors whitespace-nowrap',
+              'gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-colors whitespace-nowrap',
               active ? 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100' : undefined
             )}
           >

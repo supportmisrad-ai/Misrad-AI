@@ -16,7 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 // Define primary navigation paths to determine where to place the separator
-export const PRIMARY_NAV_PATHS = ['/', '/tasks', '/calendar', '/clients'];
+export const PRIMARY_NAV_PATHS = ['/', '/tasks', '/calendar', '/clients', '/team'];
 
 export const getMobileGridStyles = (path: string, isActive: boolean) => {
     if (isActive) return 'bg-slate-800 text-white shadow-xl scale-105 ring-2 ring-slate-700/30';

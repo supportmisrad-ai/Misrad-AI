@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useCallback, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
@@ -10,6 +10,7 @@ export type SharedNavItem = {
   label: string;
   path: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  separatorBefore?: boolean;
 };
 
 export function SharedSidebar({
@@ -26,6 +27,7 @@ export function SharedSidebar({
   bottomSlot,
   containerClassName,
   showCollapseControls = true,
+  secondaryDefaultOpen = false,
 }: {
   isOpen: boolean;
   onSetOpenAction: (open: boolean) => void;
@@ -46,7 +48,37 @@ export function SharedSidebar({
   bottomSlot?: React.ReactNode;
   containerClassName?: string;
   showCollapseControls?: boolean;
+  secondaryDefaultOpen?: boolean;
 }) {
+  const STORAGE_KEY = 'sidebar-secondary-open';
+  const userToggledRef = useRef(false);
+
+  const [isSecondaryOpen, setIsSecondaryOpen] = useState(() => {
+    if (typeof window === 'undefined') return secondaryDefaultOpen;
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored === 'true') return true;
+      if (stored === 'false') return false;
+    } catch { /* ignore */ }
+    return secondaryDefaultOpen;
+  });
+
+  const toggleSecondary = useCallback(() => {
+    userToggledRef.current = true;
+    setIsSecondaryOpen((v) => {
+      const next = !v;
+      try { window.localStorage.setItem(STORAGE_KEY, String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  const primaryItems = primaryNavPaths
+    ? navItems.filter((item) => primaryNavPaths.includes(item.path))
+    : navItems;
+  const secondaryItems = primaryNavPaths
+    ? navItems.filter((item) => !primaryNavPaths.includes(item.path))
+    : [];
+  const hasSecondary = secondaryItems.length > 0;
   return (
     <aside
       className={
@@ -69,7 +101,7 @@ export function SharedSidebar({
                 aria-label="מעבר בין עסקים"
                 title="מעבר בין עסקים"
               >
-                <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
+                <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-[color:var(--os-sidebar-logo-surface,#ffffff)] border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
                   <div className="absolute inset-0 overflow-hidden rounded-xl">
                     {brand.logoUrl ? (
                       <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
@@ -152,64 +184,50 @@ export function SharedSidebar({
         </div>
 
         <nav className="flex-1 space-y-1.5 mt-2 overflow-y-auto no-scrollbar">
-          {navItems.map((item, index) => {
-            const prevItem = index > 0 ? navItems[index - 1] : null;
-            const isCurrentSecondary = primaryNavPaths ? !primaryNavPaths.includes(item.path) : false;
-            const isPrevPrimary = primaryNavPaths ? Boolean(prevItem && primaryNavPaths.includes(prevItem.path)) : false;
-            const showSeparator = Boolean(primaryNavPaths && isCurrentSecondary && isPrevPrimary);
-            const showTrashSettingsSeparator = item.path === '/settings' && prevItem?.path === '/trash';
+          {primaryItems.map((item) => (
+            <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} />
+          ))}
 
-            return (
-              <React.Fragment key={item.path}>
-                {showSeparator ? (
-                  <div
-                    className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}
-                  ></div>
-                ) : null}
-                {showTrashSettingsSeparator ? (
-                  <div
-                    className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}
-                  ></div>
-                ) : null}
-
+          {hasSecondary ? (
+            <>
+              <div className={`shrink-0 ${isOpen ? 'mx-2 my-2' : 'mx-2 my-3'}`}>
                 <button
-                  onClick={() => onNavigateAction(item.path)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative
-                    ${
-                      isActiveAction(item.path)
-                        ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-[0_18px_40px_var(--os-sidebar-active-shadow,rgba(17,24,39,0.30))] font-bold'
-                        : 'text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)]'
-                    }
-                    ${!isOpen ? 'justify-center px-0 aspect-square' : ''}`}
-                  aria-label={item.label}
                   type="button"
+                  onClick={toggleSecondary}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all
+                    text-[color:var(--os-sidebar-text-muted,#9ca3af)] hover:text-[color:var(--os-sidebar-text,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.30))]
+                    ${!isOpen ? 'justify-center px-0' : ''}`}
+                  aria-label={isSecondaryOpen ? 'הסתר עוד' : 'הצג עוד'}
                 >
-                  {isActiveAction(item.path) ? (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 rounded-2xl z-0 ring-2 ring-[color:var(--os-sidebar-active-ring,rgba(0,0,0,0.20))]"
-                      style={{
-                        backgroundColor: 'var(--os-sidebar-active-bg,#000000)',
-                        backgroundImage: 'var(--os-sidebar-active-bg-image, none)',
-                        backgroundSize: 'cover',
-                      }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                    />
-                  ) : null}
-
-                  <span className="relative z-10 flex items-center justify-center w-5 h-5">
-                    <item.icon
-                      size={20}
-                      strokeWidth={isActiveAction(item.path) ? 2.5 : 2}
-                      className={isActiveAction(item.path) ? 'text-[color:var(--os-sidebar-active-text,#ffffff)]' : 'text-current'}
-                    />
-                  </span>
-
-                  {isOpen ? <span className="relative z-10">{item.label}</span> : null}
+                  {isOpen ? (
+                    <>
+                      <MoreHorizontal size={14} />
+                      <span>{isSecondaryOpen ? 'פחות' : 'עוד'}</span>
+                      <ChevronDown size={12} className={`mr-auto transition-transform duration-200 ${isSecondaryOpen ? 'rotate-180' : ''}`} />
+                    </>
+                  ) : (
+                    <MoreHorizontal size={16} />
+                  )}
                 </button>
-              </React.Fragment>
-            );
-          })}
+              </div>
+
+              <AnimatePresence initial={false}>
+                {isSecondaryOpen ? (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden space-y-1.5"
+                  >
+                    {secondaryItems.map((item) => (
+                      <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} />
+                    ))}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </>
+          ) : null}
         </nav>
 
         {bottomSlot ? (
@@ -221,5 +239,56 @@ export function SharedSidebar({
         ) : null}
       </div>
     </aside>
+  );
+}
+
+function NavButton({
+  item,
+  isOpen,
+  isActiveAction,
+  onNavigateAction,
+}: {
+  item: SharedNavItem;
+  isOpen: boolean;
+  isActiveAction: (path: string) => boolean;
+  onNavigateAction: (path: string) => void;
+}) {
+  const active = isActiveAction(item.path);
+  return (
+    <button
+      onClick={() => onNavigateAction(item.path)}
+      className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative
+        ${
+          active
+            ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-[0_2px_8px_var(--os-sidebar-active-shadow,rgba(17,24,39,0.12))] font-bold'
+            : 'text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)]'
+        }
+        ${!isOpen ? 'justify-center px-0 aspect-square' : ''}`}
+      aria-label={item.label}
+      type="button"
+    >
+      {active ? (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute inset-0 rounded-2xl z-0 ring-1 ring-[color:var(--os-sidebar-active-ring,rgba(0,0,0,0.08))]"
+          style={{
+            backgroundColor: 'var(--os-sidebar-active-bg,#000000)',
+            backgroundImage: 'var(--os-sidebar-active-bg-image, none)',
+            backgroundSize: 'cover',
+          }}
+          transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+        />
+      ) : null}
+
+      <span className="relative z-10 flex items-center justify-center w-5 h-5">
+        <item.icon
+          size={20}
+          strokeWidth={active ? 2.5 : 2}
+          className={active ? 'text-[color:var(--os-sidebar-active-text,#ffffff)]' : 'text-current'}
+        />
+      </span>
+
+      {isOpen ? <span className="relative z-10">{item.label}</span> : null}
+    </button>
   );
 }

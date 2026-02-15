@@ -174,13 +174,13 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 <div className="grid grid-cols-4 gap-4">
                   {filteredNavItems
                     .filter(item => {
-                      const isInBottomNav = item.path === '/' || 
-                                            item.path === '/tasks' || 
-                                            item.path === '/settings' ||
-                                            item.path === '/brain' ||
-                                            item.path === '/calendar' ||
-                                            (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden');
-                      return !isInBottomNav;
+                      // Exclude items already in bottom nav bar
+                      if (item.path === '/' || item.path === '/tasks') return false;
+                      if (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden') return false;
+                      // Exclude items shown elsewhere in this menu
+                      if (item.path === '/calendar') return false; // shown in top grid
+                      if (item.path === '/settings') return false; // shown as full-width button below
+                      return true;
                     })
                     .map((item) => {
                     const isActiveItem = isActive(item.path);

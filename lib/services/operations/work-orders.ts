@@ -396,15 +396,31 @@ async function getOperationsWorkOrdersDataForOrganizationId(params: {
           wo.id::text as id,
           wo.title as title,
           wo.status as status,
+          COALESCE(wo.priority, 'NORMAL') as priority,
           wo.project_id::text as project_id,
           p.title as project_title,
           wo.assigned_technician_id::text as assigned_technician_id,
           wo.installation_lat as installation_lat,
           wo.installation_lng as installation_lng,
+          wo.category_id::text as category_id,
+          cat.name as category_name,
+          wo.department_id::text as department_id,
+          wo.building_id::text as building_id,
+          bld.name as building_name,
+          wo.floor as floor,
+          wo.unit as unit,
+          wo.reporter_name as reporter_name,
+          wo.reporter_phone as reporter_phone,
+          wo.sla_deadline as sla_deadline,
+          wo.completed_at as completed_at,
           wo.created_at as created_at
         FROM operations_work_orders wo
-        JOIN operations_projects p
+        LEFT JOIN operations_projects p
           ON p.id = wo.project_id
+        LEFT JOIN operations_call_categories cat
+          ON cat.id = wo.category_id
+        LEFT JOIN operations_buildings bld
+          ON bld.id = wo.building_id
         WHERE ${whereSql}
         ORDER BY wo.created_at DESC
       `,
@@ -434,6 +450,12 @@ async function getOperationsWorkOrdersDataForOrganizationId(params: {
       techById.set(String(t.id), String(t.fullName || t.email || t.id));
     }
 
+    const toIso = (v: unknown): string | null => {
+      if (!v) return null;
+      const d = v instanceof Date ? v : new Date(String(v));
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    };
+
     const data: OperationsWorkOrdersData = {
       workOrders: (rows || []).map((r) => {
         const obj = asObject(r) ?? {};
@@ -443,12 +465,25 @@ async function getOperationsWorkOrdersDataForOrganizationId(params: {
         return {
           id: String(obj.id ?? ''),
           title: String(obj.title ?? ''),
-          projectId: String(obj.project_id ?? ''),
-          projectTitle: String(obj.project_title ?? ''),
+          projectId: obj.project_id ? String(obj.project_id) : null,
+          projectTitle: obj.project_title ? String(obj.project_title) : null,
           status: String(obj.status ?? 'NEW') as OperationsWorkOrderStatus,
+          priority: (String(obj.priority ?? 'NORMAL') as 'NORMAL' | 'HIGH' | 'URGENT' | 'CRITICAL'),
           technicianLabel: assignedId ? techById.get(assignedId) ?? null : null,
           installationLat: latRaw === null || latRaw === undefined ? null : Number(latRaw),
           installationLng: lngRaw === null || lngRaw === undefined ? null : Number(lngRaw),
+          categoryId: obj.category_id ? String(obj.category_id) : null,
+          categoryName: obj.category_name ? String(obj.category_name) : null,
+          departmentId: obj.department_id ? String(obj.department_id) : null,
+          buildingId: obj.building_id ? String(obj.building_id) : null,
+          buildingName: obj.building_name ? String(obj.building_name) : null,
+          floor: obj.floor ? String(obj.floor) : null,
+          unit: obj.unit ? String(obj.unit) : null,
+          reporterName: obj.reporter_name ? String(obj.reporter_name) : null,
+          reporterPhone: obj.reporter_phone ? String(obj.reporter_phone) : null,
+          slaDeadline: toIso(obj.sla_deadline),
+          completedAt: toIso(obj.completed_at),
+          createdAt: toIso(obj.created_at) ?? new Date().toISOString(),
         };
       }),
     };

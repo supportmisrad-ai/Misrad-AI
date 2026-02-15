@@ -28,7 +28,7 @@ export default async function SoloLandingPage() {
           desc: 'כשתרצה — מוסיפים עוד מודולים בלחיצת כפתור.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&plan=solo"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=solo"
       ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

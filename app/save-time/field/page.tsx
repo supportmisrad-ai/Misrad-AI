@@ -33,7 +33,7 @@ export default async function SaveTimeFieldLandingPage() {
           desc: 'אפשר להוריד ממיקום אחר (רכב/מחסן/אצל טכנאי אחר) בלי להפוך את העבודה למסובכת.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&plan=the_operator"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=the_operator"
       ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה מחירים"

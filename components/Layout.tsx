@@ -373,22 +373,25 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [openedTaskId]); // Only depend on openedTaskId to prevent loops
 
   // IMPORTANT: Filter Nav Items based on Permissions AND Enabled Modules AND System Flags
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
   const filteredNavItems = useMemo(() => {
     return NAV_ITEMS.filter(item => {
-        if (isSoloMode && item.path === '/team') return false;
+        // Super admins bypass solo mode and see /team always
+        if (isSoloMode && item.path === '/team' && !isSuperAdmin) return false;
 
         // 0. Check System Flags (Global Override)
         if (item.screenId) {
             const flag = organization.systemFlags?.[item.screenId];
-            if (flag === 'hidden') return false; // Hide completely
+            if (flag === 'hidden' && !isSuperAdmin) return false;
         }
 
-        // 1. Check Module Availability (Tenant Feature Flag)
-        if (item.moduleId && !organization.enabledModules.includes(item.moduleId)) {
+        // 1. Check Module Availability (Tenant Feature Flag) — super admins see all
+        if (item.moduleId && !organization.enabledModules.includes(item.moduleId) && !isSuperAdmin) {
             return false;
         }
 
-        // 2. Check User Role Permissions
+        // 2. Check User Role Permissions — super admins bypass
+        if (isSuperAdmin) return true;
         switch (item.path) {
             case '/team': return hasPermission('manage_team');
             case '/reports': return true;
@@ -399,7 +402,7 @@ export const Layout = ({ children }: LayoutProps) => {
             default: return true; 
         }
     });
-  }, [hasPermission, organization.enabledModules, organization.systemFlags, isSoloMode]);
+  }, [hasPermission, organization.enabledModules, organization.systemFlags, isSoloMode, isSuperAdmin]);
 
   // Allow opening Voice Recorder from any main-content component without prop drilling.
   // Trigger: window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'))
@@ -528,19 +531,15 @@ export const Layout = ({ children }: LayoutProps) => {
         />
       )}
 
-      {isMounted ? (
-        <MemoSidebar
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          organization={organization}
-          hasPermission={hasPermission}
-          filteredNavItems={filteredNavItems}
-          isActive={isActive}
-          navigate={navigate}
-        />
-      ) : (
-        <div className="hidden md:flex w-80 p-4 z-30 h-screen relative" aria-hidden />
-      )}
+      <MemoSidebar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        organization={organization}
+        hasPermission={hasPermission}
+        filteredNavItems={filteredNavItems}
+        isActive={isActive}
+        navigate={navigate}
+      />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         <MemoHeader
