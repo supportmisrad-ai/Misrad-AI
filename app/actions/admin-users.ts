@@ -341,14 +341,15 @@ export async function createUser(
 
     // ✅ SECURITY FIX: Store admin context explicitly to prevent session confusion
     const adminUserId = adminCheck.userId;
-    const adminEmail = adminCheck.email;
+    const adminUser = await currentUser();
+    const adminEmail = adminUser?.emailAddresses?.[0]?.emailAddress;
 
     const trimmedEmail = userData.email?.trim();
     const trimmedFirstName = userData.firstName?.trim();
     const trimmedLastName = userData.lastName?.trim();
 
     // ✅ SECURITY CHECK: Prevent creating user with admin's own email
-    if (trimmedEmail?.toLowerCase() === adminEmail?.toLowerCase()) {
+    if (trimmedEmail && adminEmail && trimmedEmail.toLowerCase() === adminEmail.toLowerCase()) {
       debugLog('[createUser] Validation failed - cannot create user with admin email');
       return createErrorResponse(null, 'לא ניתן ליצור משתמש עם כתובת האימייל של האדמין');
     }
