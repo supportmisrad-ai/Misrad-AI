@@ -324,7 +324,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
+          redirectUrlComplete: '/login',
         });
       } else {
         if (!signInLoaded || !signIn) {
@@ -335,7 +335,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         await signIn.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/',
+          redirectUrlComplete: '/login',
         });
       }
     } catch (err: unknown) {

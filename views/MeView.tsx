@@ -480,23 +480,22 @@ export const MeView: React.FC<{
                       const isInvited = 
                           event.required_attendees.includes(currentUser.id) ||
                           event.optional_attendees.includes(currentUser.id);
+                      
                       if (isInvited) {
                           try {
-                                  const orgId = getOrgHeaderValue();
-                                  const rsvpResponse = await fetch(`/api/team-events/${event.id}/attendance`, {
-                                      headers: orgId ? { 'x-org-id': orgId } : undefined
-                                  });
-                              if (rsvpResponse.ok) {
-                                  const rsvpData = await rsvpResponse.json().catch(() => ({}));
-                                  const rsvpPayload = extractData<{ attendance?: unknown[] }>(rsvpData);
-                                  const attendanceRows = (rsvpPayload?.attendance || []).map((a) => coerceAttendanceRow(a));
-                                  const myAttendance = attendanceRows.find((a) => a.userId === currentUser.id);
-                                  if (myAttendance?.status) {
-                                      setEventRSVPStatus(prev => ({ ...prev, [event.id]: myAttendance.status as string }));
+                              const orgId = getOrgHeaderValue();
+                              const rsvpRes = await fetch(`/api/team-events/${event.id}/attendance/${currentUser.id}`, {
+                                  headers: orgId ? { 'x-org-id': orgId } : undefined
+                              });
+                              if (rsvpRes.ok) {
+                                  const rsvpData = await rsvpRes.json().catch(() => ({}));
+                                  const rsvpPayload = extractData<{ status?: string }>(rsvpData);
+                                  if (rsvpPayload?.status) {
+                                      setEventRSVPStatus(prev => ({ ...prev, [event.id]: rsvpPayload.status! }));
                                   }
                               }
-                          } catch (error) {
-                              console.error('Error loading RSVP status:', error);
+                          } catch (err) {
+                              console.error('Error loading RSVP status:', err);
                           }
                       }
                   });
@@ -509,11 +508,11 @@ export const MeView: React.FC<{
               }
           } finally {
               setIsLoadingEvents(false);
-              setIsRefreshing(false);
           }
       };
+
       loadMyData();
-  }, [currentUser.id]);
+  }, [currentUser.id]); // Removed isRefreshing to prevent infinite loop
 
   // Update active shift elapsed time
   useEffect(() => {
