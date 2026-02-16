@@ -20,10 +20,16 @@ export default async function NexusCatchAllPage({
   params: Promise<{ orgSlug: string; path: string[] }> | { orgSlug: string; path: string[] };
 }) {
   const { orgSlug } = await params;
-  const bootstrap = await getNexusDashboardBootstrapCached({ orgSlug });
-  const workspace = bootstrap.workspace;
 
-  const clerk = await currentUser();
+  // Parallelize initial data fetching
+  const [bootstrap, clerk] = await Promise.all([
+    getNexusDashboardBootstrapCached({ orgSlug }),
+    currentUser(),
+  ]);
+
+  const workspace = bootstrap.workspace;
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);
   const privateMd = asObject(clerkObj.privateMetadata);

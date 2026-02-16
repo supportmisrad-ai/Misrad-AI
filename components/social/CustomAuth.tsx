@@ -38,7 +38,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
   const [step, setStep] = useState<'form' | 'verify'>('form');
   const [legalAccepted, setLegalAccepted] = useState(false);
 
-  // Check if Passkeys/WebAuthn is supported
+  // Check if Passkeys/WebAuthn is supported and we're on a mobile device
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
@@ -47,7 +47,10 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         setEmail(String(urlEmail));
       }
 
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       setIsPasskeySupported(
+        isMobile &&
         typeof window.PublicKeyCredential !== 'undefined' &&
         typeof navigator.credentials !== 'undefined' &&
         typeof navigator.credentials.create !== 'undefined'
@@ -284,7 +287,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push('/');
+          router.push('/login'); // Redirect to login to handle workspace routing
         }
       } else {
         setError('ההתחברות עם טביעת אצבע לא הושלמה');
@@ -292,6 +295,18 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     } catch (err: unknown) {
       console.error('Passkey sign in error:', err);
       const clerkErr = err as ClerkAPIError;
+      
+      // Handle cancellation gracefully without showing a red error message
+      const isCancellation = 
+        clerkErr?.errors?.[0]?.code === 'passkey_retrieval_cancelled' || 
+        clerkErr?.message?.includes('cancelled') ||
+        clerkErr?.errors?.[0]?.message?.includes('cancelled');
+
+      if (isCancellation) {
+        setIsLoading(false);
+        return;
+      }
+
       // Check if user doesn't have passkeys set up
       if (clerkErr?.errors?.[0]?.code === 'passkey_not_found' || clerkErr?.errors?.[0]?.message?.includes('passkey')) {
         setError('לא נמצאה טביעת אצבע. נא ליצור טביעת אצבע בפרופיל החשבון תחילה.');

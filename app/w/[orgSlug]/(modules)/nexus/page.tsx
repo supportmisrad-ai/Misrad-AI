@@ -21,10 +21,20 @@ export default async function NexusModuleHome({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  const bootstrap = await getNexusDashboardBootstrapCached({ orgSlug });
+
+  // Parallelize all server-side data fetching to reduce TTFB (Time to First Byte)
+  const [bootstrap, clerk, signedLogoMaybe] = await Promise.all([
+    getNexusDashboardBootstrapCached({ orgSlug }),
+    currentUser(),
+    // We'll resolve the logo after we have the workspace ID from bootstrap
+    null, 
+  ]);
+
   const workspace = bootstrap.workspace;
 
-  const clerk = await currentUser();
+  // Now resolve the logo using the workspace ID we just got
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);
   const privateMd = asObject(clerkObj.privateMetadata);

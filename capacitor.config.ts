@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const PRODUCTION_URL = process.env.CAP_SERVER_URL || 'https://misrad-ai.com';
+const PRODUCTION_URL = process.env.CAP_SERVER_URL || 'https://www.misrad-ai.com';
 
 const config: CapacitorConfig = {
   appId: 'com.misrad.ai',
