@@ -368,13 +368,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       }
 
       try {
+        // ✅ SECURITY FIX: Use local state cache instead of global cache
         // Only show loading if we don't have cache
-        const cached = userRoleCache.get(String(user.id));
-        const hasValidCache = Boolean(cached && (() => {
-          const CACHE_DURATION = 5 * 60 * 1000;
-          return Date.now() - cached.timestamp < CACHE_DURATION;
-        })());
-        
+        const CACHE_DURATION = 5 * 60 * 1000;
+        const hasValidCache = Boolean(roleCache &&
+          roleCache.userId === user.id &&
+          Date.now() - roleCache.timestamp < CACHE_DURATION);
+
         if (hasValidCache) {
           // Cache is the source of truth for this session.
           // Avoid background refresh to prevent repeated role calls/rerenders.

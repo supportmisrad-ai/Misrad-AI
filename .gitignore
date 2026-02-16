@@ -68,3 +68,5 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+deploy.ps1
