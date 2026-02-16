@@ -339,9 +339,28 @@ export async function createUser(
     const adminCheck = await requireSuperAdminOrFail();
     if (!adminCheck.success) return adminCheck;
 
+    // ✅ SECURITY FIX: Store admin context explicitly to prevent session confusion
+    const adminUserId = adminCheck.userId;
+    const adminEmail = adminCheck.email;
+
     const trimmedEmail = userData.email?.trim();
     const trimmedFirstName = userData.firstName?.trim();
     const trimmedLastName = userData.lastName?.trim();
+
+    // ✅ SECURITY CHECK: Prevent creating user with admin's own email
+    if (trimmedEmail?.toLowerCase() === adminEmail?.toLowerCase()) {
+      debugLog('[createUser] Validation failed - cannot create user with admin email');
+      return createErrorResponse(null, 'לא ניתן ליצור משתמש עם כתובת האימייל של האדמין');
+    }
+
+    // ✅ AUDIT LOG: Track admin user creation
+    debugLog('[createUser] Admin context:', {
+      adminUserId,
+      adminEmail,
+      targetEmail: trimmedEmail,
+      targetName: trimmedFirstName,
+      timestamp: new Date().toISOString(),
+    });
 
     debugLog('[createUser] Input validation - Raw email:', JSON.stringify(userData.email));
     debugLog('[createUser] Input validation - Trimmed email:', JSON.stringify(trimmedEmail));

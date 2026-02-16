@@ -166,6 +166,33 @@ async function upsertProfileForClerkUser(params: {
   const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
   const isEmployeeInviteMode = preferredKeyRaw.toLowerCase().startsWith('employee-invite:');
 
+  // ✅ CRITICAL SECURITY FIX: Validate this is for the correct user (unless webhook call)
+  const isWebhookCall = isOrgInviteMode || isEmployeeInviteMode;
+  if (!isWebhookCall) {
+    try {
+      const currentUserData = await currentUser();
+      if (currentUserData?.id !== clerkUserId) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[upsertProfileForClerkUser] User ID mismatch - potential session confusion:', {
+            expected: clerkUserId,
+            actual: currentUserData?.id,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        throw new Error('User validation failed - session mismatch');
+      }
+    } catch (error) {
+      // If currentUser() fails or validation fails, throw to prevent data corruption
+      if (error instanceof Error && error.message === 'User validation failed - session mismatch') {
+        throw error;
+      }
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[upsertProfileForClerkUser] Validation error:', error);
+      }
+      throw new Error('Failed to validate user context');
+    }
+  }
+
   const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
 
   // If profile already exists - best effort update

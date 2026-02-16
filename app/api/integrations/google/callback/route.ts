@@ -10,8 +10,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function GETHandler(request: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Get current authenticated user for validation
+    let currentUser;
     try {
-      await getAuthenticatedUser();
+      currentUser = await getAuthenticatedUser();
     } catch (e: unknown) {
       const errParam = IS_PROD ? 'unauthorized' : (getErrorMessage(e) || 'unauthorized');
       return NextResponse.redirect(
@@ -21,11 +23,62 @@ async function GETHandler(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
-    const state = searchParams.get('state'); // Contains integration name
+    const state = searchParams.get('state');
 
     if (!code || !state) {
       return NextResponse.redirect(
         new URL('/settings?tab=integrations&error=missing_params', request.url)
+      );
+    }
+
+    // ✅ CRITICAL SECURITY FIX: Parse and validate state parameter
+    let stateData: { service: string; userId: string; timestamp: number; nonce: string };
+    try {
+      stateData = JSON.parse(state);
+    } catch {
+      if (!IS_PROD) {
+        console.error('[OAuth Callback] Failed to parse state parameter');
+      }
+      return NextResponse.redirect(
+        new URL('/settings?tab=integrations&error=invalid_state', request.url)
+      );
+    }
+
+    // Validate state structure
+    if (!stateData.service || !stateData.userId || !stateData.timestamp || !stateData.nonce) {
+      if (!IS_PROD) {
+        console.error('[OAuth Callback] State parameter missing required fields');
+      }
+      return NextResponse.redirect(
+        new URL('/settings?tab=integrations&error=invalid_state', request.url)
+      );
+    }
+
+    // ✅ CRITICAL: Validate timestamp (max 10 minutes old)
+    const maxAge = 10 * 60 * 1000; // 10 minutes
+    if (Date.now() - stateData.timestamp > maxAge) {
+      if (!IS_PROD) {
+        console.error('[OAuth Callback] State expired:', {
+          timestamp: stateData.timestamp,
+          age: Date.now() - stateData.timestamp,
+        });
+      }
+      return NextResponse.redirect(
+        new URL('/settings?tab=integrations&error=state_expired', request.url)
+      );
+    }
+
+    // ✅ CRITICAL: Validate user matches - prevents user mismatch attacks
+    if (currentUser.id !== stateData.userId) {
+      if (!IS_PROD) {
+        console.error('[OAuth Callback] User ID mismatch - potential security issue:', {
+          expected: stateData.userId,
+          actual: currentUser.id,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return NextResponse.redirect(
+        new URL('/settings?tab=integrations&error=user_mismatch', request.url)
       );
     }
 
@@ -40,7 +93,7 @@ async function GETHandler(request: NextRequest) {
 
     // Determine integration name from state
     const allowedIntegrationNames = new Set(['google_calendar', 'google_drive', 'google_sheets']);
-    const integrationNameRaw = String(state || '').trim();
+    const integrationNameRaw = String(stateData.service || '').trim();
     if (!allowedIntegrationNames.has(integrationNameRaw)) {
       return NextResponse.redirect(
         new URL('/settings?tab=integrations&error=invalid_state', request.url)
@@ -53,13 +106,14 @@ async function GETHandler(request: NextRequest) {
       ? new Date(tokens.expiry_date)
       : new Date(Date.now() + 3600 * 1000); // Default 1 hour
 
-    // Save tokens
+    // ✅ SECURITY FIX: Save tokens with explicit user validation
     const result = await saveGoogleTokensApi(
       integrationName,
       tokens.access_token,
       tokens.refresh_token || '',
       expiresAt,
-      tokens.scope || undefined
+      tokens.scope || undefined,
+      stateData.userId // Pass expected userId for validation
     );
 
     if (!result.success) {

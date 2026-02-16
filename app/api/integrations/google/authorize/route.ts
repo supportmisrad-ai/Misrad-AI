@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getGoogleOAuthClient, GOOGLE_SCOPES } from '@/lib/googleAuth';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import crypto from 'crypto';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -58,11 +59,20 @@ async function GETHandler(request: NextRequest) {
         if (!IS_PROD) console.log('[Google OAuth] Generating auth URL...');
         const oauth2Client = getGoogleOAuthClient();
         const scopes = service === 'calendar' ? GOOGLE_SCOPES.calendar : GOOGLE_SCOPES.drive;
+
+        // ✅ SECURITY FIX: Include userId, timestamp, and nonce in state to prevent user mismatch
+        const stateData = {
+            service: serviceType,
+            userId: user.id,
+            timestamp: Date.now(),
+            nonce: crypto.randomBytes(16).toString('hex'),
+        };
+
         const authUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             prompt: 'consent',
             scope: scopes,
-            state: serviceType,
+            state: JSON.stringify(stateData),
             include_granted_scopes: true,
         });
         if (!IS_PROD) console.log('[Google OAuth] Auth URL generated successfully');

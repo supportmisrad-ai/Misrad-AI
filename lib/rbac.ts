@@ -10,8 +10,9 @@ export interface Permission {
   action: 'read' | 'write' | 'delete' | 'admin';
 }
 
- const roleCache = new Map<string, { role: UserRole; timestamp: number }>();
- const ROLE_CACHE_DURATION_MS = 5 * 60 * 1000;
+// ✅ SECURITY FIX: Removed global roleCache
+// Global cache caused user data leakage between different users/sessions
+// Caching should be handled by the caller (AppContext) with local state
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
@@ -83,7 +84,8 @@ export function canManageTeamMembers(userRole: UserRole): boolean {
 
 /**
  * Get user role from Clerk metadata or database
- * Uses localStorage cache to improve performance
+ * ✅ SECURITY FIX: Always fetches fresh data - no global cache
+ * Caching is handled by caller (AppContext) with local state
  */
 export async function getUserRole(
   clerkUserId: string,
@@ -91,13 +93,8 @@ export async function getUserRole(
   fullName?: string,
   imageUrl?: string
 ): Promise<UserRole> {
-  const cacheKey = String(clerkUserId || '').trim();
-  if (cacheKey) {
-    const cached = roleCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < ROLE_CACHE_DURATION_MS) {
-      return cached.role;
-    }
-  }
+  // ✅ REMOVED: Global cache lookup - always fetch fresh data
+  // This ensures correct role data and prevents user data leakage
 
   try {
     // Check if we're in a social context (window pathname contains /social)
@@ -135,12 +132,10 @@ export async function getUserRole(
         });
         return 'team_member';
       }
-      
+
       const role = roleResult.role as UserRole;
-      if (cacheKey) {
-        roleCache.set(cacheKey, { role, timestamp: Date.now() });
-      }
-      
+      // ✅ REMOVED: Global cache write - no longer caching at this level
+
       return role;
     } else {
       // Use main system functions
@@ -172,12 +167,10 @@ export async function getUserRole(
         });
         return 'team_member';
       }
-      
+
       const role = roleResult.role as UserRole;
-      if (cacheKey) {
-        roleCache.set(cacheKey, { role, timestamp: Date.now() });
-      }
-      
+      // ✅ REMOVED: Global cache write - no longer caching at this level
+
       return role;
     }
   } catch (error: unknown) {

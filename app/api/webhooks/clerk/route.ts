@@ -188,6 +188,18 @@ async function POSTHandler(req: Request) {
         internalCallToken,
       });
 
+      // ✅ AUDIT LOG: Track user sync for debugging user data issues
+      if (!IS_PROD) {
+        console.log('[Clerk Webhook] User sync result:', {
+          clerkUserId: id,
+          email: primaryEmail,
+          providedName: first_name && last_name ? `${first_name} ${last_name}` : first_name,
+          success: result.success,
+          userId: result.userId,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       if (!result.success) {
         if (!IS_PROD) console.error('Error syncing user profile:', result.error);
         else console.error('Error syncing user profile');

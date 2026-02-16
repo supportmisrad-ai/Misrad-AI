@@ -112,10 +112,18 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
 
     const now = new Date();
 
+    // ✅ CRITICAL FIX: Read existing full_name to preserve it
     const existing = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: clerkUserId },
-      select: { id: true },
+      select: { id: true, full_name: true, email: true },
     });
+
+    // ✅ CRITICAL: Prefer existing name over webhook name
+    // This prevents overwriting names set by Admin with names from Google OAuth
+    const shouldUpdateName = !existing?.full_name || existing.full_name.trim() === '';
+    const finalFullName = shouldUpdateName
+      ? (params.fullName ? String(params.fullName) : null)
+      : existing.full_name;
 
     const updateData: {
       email: string | null;
@@ -124,7 +132,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
       updated_at: Date;
     } = {
       email: email ? String(email).trim().toLowerCase() : null,
-      full_name: params.fullName ? String(params.fullName) : null,
+      full_name: finalFullName,
       avatar_url: params.imageUrl ? String(params.imageUrl) : null,
       updated_at: now,
     };

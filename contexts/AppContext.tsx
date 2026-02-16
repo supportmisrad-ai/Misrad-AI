@@ -17,7 +17,9 @@ import { getUserRole } from '@/lib/rbac';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import type { SocialInitialData } from '@/lib/services/social-service';
 
-const userRoleCache = new Map<string, { role: UserRole; timestamp: number }>();
+// ✅ SECURITY FIX: Removed global userRoleCache
+// Global cache is dangerous in SSR and multi-tab scenarios - causes user data leakage
+// Each AppContext instance now uses its own local state cache
 
 type ClientsPageResult = Awaited<ReturnType<typeof getClientsPage>>;
 
@@ -184,37 +186,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   
   // User role state - shared across all components
-  // IMPORTANT: Initialize from cache immediately (synchronous) for instant UI
-  // Rule: Load from cache on mount for instant display, then refresh in background
-  const [userRole, setUserRole] = useState<UserRole>('team_member'); // Default to team_member (not 'client')
+  // ✅ SECURITY FIX: Use local state cache instead of global cache
+  const [userRole, setUserRole] = useState<UserRole>('team_member');
   const [isCheckingRole, setIsCheckingRole] = useState(true);
-  
-  // IMPORTANT: Load role from cache IMMEDIATELY when user loads (synchronous check)
-  // This ensures instant UI - no delays, no waiting
+  const [roleCache, setRoleCache] = useState<{
+    userId: string;
+    role: UserRole;
+    timestamp: number;
+  } | null>(null);
+
+  // Load role from local cache or fetch fresh
   useEffect(() => {
     if (!isLoaded || !user?.id) {
       setIsCheckingRole(false);
-      setUserRole('team_member'); // Default to team_member
+      setUserRole('team_member');
       return;
     }
-    
-    // CRITICAL: Check cache synchronously for instant UI
-    // This must happen immediately, not async
-    const cached = userRoleCache.get(String(user.id));
-    if (cached) {
-      const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-      if (Date.now() - cached.timestamp < CACHE_DURATION) {
-        // Set role immediately from cache - instant UI!
-        setUserRole(cached.role);
-        setIsCheckingRole(false); // Not checking - we have cache
-        // Continue to refresh in background (see checkRole below) but UI is already updated
-        return; // Exit early - we have cache, UI is updated
-      }
+
+    // ✅ Check local state cache (per-instance, not global)
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    if (roleCache &&
+        roleCache.userId === user.id &&
+        Date.now() - roleCache.timestamp < CACHE_DURATION) {
+      // Use cached role
+      setUserRole(roleCache.role);
+      setIsCheckingRole(false);
+      return;
     }
-    
-    // If no cache, we need to check (but UI will show admin items optimistically)
-    // isCheckingRole stays true, which means admin items will show
-  }, [isLoaded, user?.id]);
+
+    // No valid cache - need to fetch (continues in checkRole below)
+  }, [isLoaded, user?.id, roleCache]);
   
   const [isClientMode, setIsClientMode] = useState(false);
   const [isOnboardingMode, setIsOnboardingMode] = useState(false);
@@ -394,7 +395,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         if (isMountedRef.current) {
           setUserRole((prev) => (prev === role ? prev : role));
           setIsCheckingRole((prev) => (prev === false ? prev : false));
-          userRoleCache.set(String(user.id), { role, timestamp: Date.now() });
+          // ✅ SECURITY FIX: Use local state cache instead of global cache
+          setRoleCache({ userId: user.id, role, timestamp: Date.now() });
         }
       } catch (error) {
         console.error('[AppContext] Error checking user role:', error);

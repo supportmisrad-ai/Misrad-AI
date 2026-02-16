@@ -9,12 +9,25 @@ export async function saveGoogleTokensApi(
   accessToken: string,
   refreshToken: string,
   expiresAt: Date,
-  scope?: string
+  scope?: string,
+  expectedUserId?: string // ✅ SECURITY FIX: Add expectedUserId for validation
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: 'לא מחובר' };
+    }
+
+    // ✅ CRITICAL SECURITY FIX: Validate user ID matches expected
+    if (expectedUserId && userId !== expectedUserId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[saveGoogleTokensApi] User ID mismatch - potential security issue:', {
+          expected: expectedUserId,
+          actual: userId,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return { success: false, error: 'User validation failed' };
     }
 
     const userResult = await getOrCreateOrganizationUserByClerkUserId(userId);
