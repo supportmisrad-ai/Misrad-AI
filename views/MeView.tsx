@@ -187,6 +187,7 @@ export const MeView: React.FC<{
   const [cachedLeaveRequests, setCachedLeaveRequests] = useState<LeaveRequest[]>([]);
   const [cachedEvents, setCachedEvents] = useState<TeamEvent[]>([]);
   const [isLoadingLeaveRequests, setIsLoadingLeaveRequests] = useState(false);
+  const [leaveRequestsErrorCount, setLeaveRequestsErrorCount] = useState(0);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [eventRSVPStatus, setEventRSVPStatus] = useState<Record<string, string>>({});
@@ -422,6 +423,10 @@ export const MeView: React.FC<{
           setIsRefreshing(true);
           
           // Load my leave requests
+          if (leaveRequestsErrorCount > 3) {
+              setIsLoadingLeaveRequests(false);
+              return;
+          }
           setIsLoadingLeaveRequests(true);
           try {
               const orgId = getOrgHeaderValue();
@@ -434,9 +439,13 @@ export const MeView: React.FC<{
                   const newRequests = (payload?.requests || []).map((r) => coerceLeaveRequest(r));
                   setMyLeaveRequests(newRequests);
                   setCachedLeaveRequests(newRequests);
+                  setLeaveRequestsErrorCount(0); // Reset on success
+              } else if (response.status >= 500) {
+                  setLeaveRequestsErrorCount(prev => prev + 1);
               }
           } catch (error) {
               console.error('Error loading leave requests:', error);
+              setLeaveRequestsErrorCount(prev => prev + 1);
               // Keep cached data on error
               if (cachedLeaveRequests.length === 0) {
                   setMyLeaveRequests([]);
