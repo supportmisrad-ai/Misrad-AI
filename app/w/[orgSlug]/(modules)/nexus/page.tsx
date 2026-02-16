@@ -36,39 +36,6 @@ export default async function NexusModuleHome({
   const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
 
   const clerkObj = asObject(clerk) ?? {};
-  const publicMd = asObject(clerkObj.publicMetadata);
-  const privateMd = asObject(clerkObj.privateMetadata);
-  const unsafeMd = asObject(clerkObj.unsafeMetadata);
-  const roleFromClerk =
-    getStringFromMetadata(publicMd?.role) ??
-    getStringFromMetadata(privateMd?.role) ??
-    getStringFromMetadata(unsafeMd?.role) ??
-    null;
-  const normalizedRole = roleFromClerk || 'עובד';
-  const isSuperAdmin = Boolean(publicMd?.isSuperAdmin);
-
-  const initialCurrentUser = {
-    id: clerk?.id || '',
-    name: clerk?.fullName ?? clerk?.username ?? '',
-    role: normalizedRole || 'עובד',
-    avatar: clerk?.imageUrl || '',
-    online: true,
-    capacity: 0,
-    email: clerk?.primaryEmailAddress?.emailAddress || '',
-    isSuperAdmin,
-    tenantId: workspace.id,
-  };
-
-  const optionalModule = (enabled: boolean | undefined, id: ModuleId): ModuleId[] => (enabled ? [id] : []);
-  const enabledModules: ModuleId[] = [
-    'crm',
-    'ai',
-    'team',
-    ...(workspace.entitlements?.finance ? (['finance'] as ModuleId[]) : []),
-    ...(workspace.entitlements?.operations ? (['operations'] as ModuleId[]) : []),
-  ];
-
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
 
   const initialOrganization: Partial<OrganizationProfile> = {
     name: workspace.name,
