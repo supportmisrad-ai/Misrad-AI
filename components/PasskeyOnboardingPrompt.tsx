@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Fingerprint, X } from 'lucide-react';
+import { ScanFace, X } from 'lucide-react';
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -132,7 +132,7 @@ export function PasskeyOnboardingPrompt() {
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-xl shadow-2xl p-4">
         <div className="flex items-start gap-3">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white flex-shrink-0">
-            <Scan size={20} />
+            <ScanFace size={20} />
           </div>
 
           <div className="flex-1 min-w-0">
