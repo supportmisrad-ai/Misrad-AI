@@ -136,11 +136,11 @@ jobs:
           $$;
           SQL
 
-      - name: Pnshtddeabade schemaencies
-        run: npx  db push --skp-ene
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Run migrations
-        run: npm run prisma:migrate:deploy:ci
+      - name: Push database schema
+        run: npx prisma db push --skip-generate
 
       - name: Seed api_keys for public leads test
         run: |
