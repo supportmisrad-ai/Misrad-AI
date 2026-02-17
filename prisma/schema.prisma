@@ -2330,9 +2330,11 @@ model NexusTimeEntry {
   startLat        Float?               @map("start_lat")
   startLng        Float?               @map("start_lng")
   startAccuracy   Float?               @map("start_accuracy")
+  startCity       String?              @map("start_city")
   endLat          Float?               @map("end_lat")
   endLng          Float?               @map("end_lng")
   endAccuracy     Float?               @map("end_accuracy")
+  endCity         String?              @map("end_city")
   date            DateTime             @db.Date
   durationMinutes Int?                 @map("duration_minutes")
   voidReason      String?              @map("void_reason")
