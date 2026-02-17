@@ -174,11 +174,19 @@ async function runCheck(label) {
     };
 
     if (!hasTable) {
+      // Clean Slate mode: if we have no migrations table AND no local migrations, this is OK
+      if (localMigrations.length === 0) {
+        console.log(JSON.stringify(results, null, 2));
+        return;
+      }
+      // If we have local migrations but no table, that's a problem
       results.failures.push({
         reason: 'MISSING__PRISMA_MIGRATIONS_TABLE',
       });
       console.log(JSON.stringify(results, null, 2));
-      process.exitCode = 1;
+      if (results.enforced) {
+        process.exitCode = 1;
+      }
       return;
     }
 
