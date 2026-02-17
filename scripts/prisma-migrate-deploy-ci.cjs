@@ -34,6 +34,9 @@ function envBool(name, defaultValue) {
 }
 
 function main() {
+  const fs = require('fs');
+  const repoRoot = path.resolve(__dirname, '..');
+  
   if (envBool('PRISMA_MIGRATE_DEPLOY_DISABLE', false)) {
     console.log(JSON.stringify({ ok: true, skipped: true, reason: 'PRISMA_MIGRATE_DEPLOY_DISABLE' }, null, 2));
     return;
@@ -44,6 +47,24 @@ function main() {
   const allowOnVercel = envBool('PRISMA_MIGRATE_DEPLOY_ON_VERCEL', false);
   if (!isCi && !(isVercel && allowOnVercel)) {
     console.log(JSON.stringify({ ok: true, skipped: true, reason: 'NOT_CI_OR_VERCEL_ENABLED' }, null, 2));
+    return;
+  }
+
+  // Check if we're in Clean Slate mode (no migrations directory or empty)
+  const migrationsDir = path.join(repoRoot, 'prisma', 'migrations');
+  
+  if (!fs.existsSync(migrationsDir)) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'CLEAN_SLATE_NO_MIGRATIONS_DIR' }, null, 2));
+    return;
+  }
+
+  const migrationFiles = fs.readdirSync(migrationsDir).filter(f => {
+    const fullPath = path.join(migrationsDir, f);
+    return fs.statSync(fullPath).isDirectory() && f !== '.gitkeep';
+  });
+
+  if (migrationFiles.length === 0) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'CLEAN_SLATE_NO_MIGRATIONS' }, null, 2));
     return;
   }
 
@@ -58,7 +79,6 @@ function main() {
     console.log('[CI] Detected pooler DATABASE_URL; using DIRECT_URL for migrate deploy.');
   }
 
-  const repoRoot = path.resolve(__dirname, '..');
   const schemaPath = path.join(repoRoot, 'prisma', 'schema.prisma');
 
   const prismaBin =
