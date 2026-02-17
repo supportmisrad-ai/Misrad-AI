@@ -67,10 +67,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Enable UUID extension
+      - name: Enable PostgreSQL extensions
         run: |
           psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
           CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          CREATE EXTENSION IF NOT EXISTS "vector";
           SQL
 
       - name: Push database schema
@@ -145,10 +146,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Enable UUID extension
+      - name: Enable PostgreSQL extensions
         run: |
           psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
           CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          CREATE EXTENSION IF NOT EXISTS "vector";
           SQL
 
       - name: Push database schema
