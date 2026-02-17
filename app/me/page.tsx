@@ -132,7 +132,11 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
   );
 }
 
-export default async function MePage() {
+export default async function MePage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
+}) {
   // Smart routing: authenticated users go to their workspace
   // Non-authenticated users go to login
   const clerkUserId = await getCurrentUserId();
@@ -150,7 +154,18 @@ export default async function MePage() {
   }
 
   if (orgSlug) {
-    redirect(`/w/${encodeURIComponent(orgSlug)}`);
+    // Preserve query parameters when redirecting
+    const sp = searchParams ? await Promise.resolve(searchParams) : {};
+    const queryString = new URLSearchParams();
+    for (const [key, value] of Object.entries(sp)) {
+      if (value) {
+        const val = Array.isArray(value) ? value[0] : value;
+        if (val) queryString.set(key, String(val));
+      }
+    }
+    const qs = queryString.toString();
+    const targetUrl = qs ? `/w/${encodeURIComponent(orgSlug)}?${qs}` : `/w/${encodeURIComponent(orgSlug)}`;
+    redirect(targetUrl);
   }
 
   // No workspace found -> go to workspaces page
