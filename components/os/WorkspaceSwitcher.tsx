@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath } from '@/lib/os/modules/registry';
 import { OS_MODULES } from '@/types/os-modules';
@@ -41,12 +42,18 @@ function getFirstAllowedModule(entitlements: Record<OSModuleKey, boolean>): OSMo
 export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const routeInfo = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
 
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoaded || !isSignedIn) {
+      setIsLoading(false);
+      return;
+    }
+
     const load = async () => {
       try {
         const res = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
@@ -59,7 +66,7 @@ export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
     };
 
     load();
-  }, []);
+  }, [authLoaded, isSignedIn]);
 
   const current = routeInfo.orgSlug;
 
