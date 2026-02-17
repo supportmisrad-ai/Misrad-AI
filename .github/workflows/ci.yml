@@ -67,6 +67,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Enable UUID extension
+        run: |
+          psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          SQL
+
       - name: Push database schema
         run: npx prisma db push --skip-generate
 
@@ -138,6 +144,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Enable UUID extension
+        run: |
+          psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+          SQL
 
       - name: Push database schema
         run: npx prisma db push --skip-generate
