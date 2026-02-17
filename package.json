@@ -45,6 +45,11 @@
     "prisma:migrate:reset": "echo '❌ חסום! פקודה זו מוחקת את כל הנתונים! אם אתה בטוח, הרץ ידנית: npx prisma migrate reset' && exit 1",
     "prisma:db:push": "echo '⚠️  אזהרה: פקודה מסוכנת! מעדיף: npm run migrate:safe' && dotenv -e .env.local -- prisma db push --schema prisma/schema.prisma",
     "prisma:studio": "dotenv -e .env.local -- prisma studio --schema prisma/schema.prisma",
+    "db:push:dev": "dotenv -e .env.local -- prisma db push --schema prisma/schema.prisma",
+    "db:seed:dev": "dotenv -e .env.local -- prisma db seed",
+    "db:studio:dev": "dotenv -e .env.local -- prisma studio --schema prisma/schema.prisma",
+    "PROTECTED:db:push:prod": "echo '⚠️⚠️⚠️ אתה בטוח? זה מסד הנתונים של PROD! ⚠️⚠️⚠️' && dotenv -e .env.prod_backup -- prisma db push --schema prisma/schema.prisma",
+    "PROTECTED:db:seed:prod": "echo '⚠️⚠️⚠️ אתה בטוח? זה מסד הנתונים של PROD! ⚠️⚠️⚠️' && dotenv -e .env.prod_backup -- prisma db seed",
     "migrate:check": "node scripts/pre-migrate-check.js",
     "migrate:safe": "node scripts/safe-migrate.js",
     "db:backup": "node scripts/auto-backup.js",
@@ -73,7 +78,9 @@
     "electron:build:mac": "npm run build && electron-builder --mac",
     "electron:build:linux": "npm run build && electron-builder --linux",
     "build:windows": "electron-builder --win",
-    "build:android": "(npx cap add android || echo Android platform already exists) && npx cap sync android"
+    "build:android": "(npx cap add android || echo Android platform already exists) && npx cap sync android",
+    "protect:middleware": "node scripts/protect-middleware.js",
+    "check:middleware": "node scripts/monitor-middleware-protection.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
@@ -91,11 +98,13 @@
     "@sentry/nextjs": "^10.36.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.20",
+    "@types/bcryptjs": "^2.4.6",
     "@types/canvas-confetti": "^1.9.0",
     "@types/recharts": "^1.8.29",
     "@upstash/redis": "^1.35.0",
     "@zxing/browser": "^0.1.5",
     "ai": "^6.0.3",
+    "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.23.26",
     "google-auth-library": "^10.5.0",
@@ -117,6 +126,9 @@
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.2.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@capacitor/android": "^7.0.0",
@@ -141,6 +153,7 @@
     "marked": "^17.0.1",
     "sharp": "^0.33.5",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "wait-on": "^7.2.0"
   },

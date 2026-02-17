@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { 
     User, Mail, Phone, Lock, Save, Bell, Shield, 
-    Activity, Clock, Camera, Award, Star, Zap, Settings,
-    LogOut, CheckCircle2, TrendingUp, Trophy
+    SquareActivity, Clock, Camera, Award, Star, Zap, Settings,
+    LogOut, CircleCheckBig, TrendingUp, Trophy
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -17,7 +17,7 @@ interface PersonalAreaViewProps {
 const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks = [] }) => {
     const { user, logout } = useAuth();
     const { addToast } = useToast();
-    const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'activity'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'settings' | 'SquareActivity'>('overview');
     
     // Form State
     const [formData, setFormData] = useState({
@@ -80,7 +80,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                             </div>
                         </div>
                         <div className="absolute bottom-2 right-2 w-8 h-8 bg-emerald-500 rounded-full border-4 border-slate-900 flex items-center justify-center shadow-lg" title="מחובר">
-                            <CheckCircle2 size={14} fill="currentColor" className="text-white" />
+                            <CircleCheckBig size={14} fill="currentColor" className="text-white" />
                         </div>
                     </div>
                     
@@ -125,13 +125,13 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
             {/* Navigation Tabs */}
             <div className="flex gap-4 border-b border-slate-200 px-4 md:px-0 overflow-x-auto no-scrollbar">
                 {[
-                    { id: 'overview', label: 'סקירה אישית', icon: Activity },
+                    { id: 'overview', label: 'סקירה אישית', icon: SquareActivity },
                     { id: 'settings', label: 'הגדרות חשבון', icon: Settings },
-                    { id: 'activity', label: 'אירועי פעילות', icon: Clock },
+                    { id: 'SquareActivity', label: 'אירועי פעילות', icon: Clock },
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as 'overview' | 'settings' | 'activity')}
+                        onClick={() => setActiveTab(tab.id as 'overview' | 'settings' | 'SquareActivity')}
                         className={`flex items-center gap-2 px-6 py-4 border-b-2 transition-all font-bold whitespace-nowrap text-sm md:text-base ${
                             activeTab === tab.id 
                             ? 'border-slate-900 text-slate-900' 
@@ -348,8 +348,8 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                     </div>
                 )}
 
-                {/* --- TAB: ACTIVITY --- */}
-                {activeTab === 'activity' && (
+                {/* --- TAB: SquareActivity --- */}
+                {activeTab === 'SquareActivity' && (
                     <div className="max-w-4xl mx-auto">
                         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
@@ -365,7 +365,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                                     <div key={idx} className="p-4 md:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
-                                                <Activity size={18} />
+                                                <SquareActivity size={18} />
                                             </div>
                                             <div>
                                                 <div className="font-bold text-slate-800 text-sm">{log.action}</div>

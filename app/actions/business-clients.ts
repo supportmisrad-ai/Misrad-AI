@@ -539,7 +539,7 @@ export async function createOrganizationForClient(
         suppressReporting: true,
       },
       async () => {
-        return await prisma.social_organizations.create({
+        return await prisma.organization.create({
           data: {
             name: input.name.trim(),
             slug: uniqueSlug,
@@ -613,7 +613,7 @@ export async function updateOrganization(orgId: string, input: {
         suppressReporting: true,
       },
       async () => {
-        return await prisma.social_organizations.update({
+        return await prisma.organization.update({
           where: { id: orgId },
           data: {
             ...input,

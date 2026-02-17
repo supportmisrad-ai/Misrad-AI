@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, AlertTriangle, Info } from 'lucide-react';
+import { ArrowRight, TriangleAlert, Info } from 'lucide-react';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getModuleDefinition, isOSModuleKey } from '@/lib/os/modules/registry';
@@ -105,7 +105,7 @@ function renderBlock(block: unknown) {
 
   if (type === 'callout') {
     const variant = obj.variant === 'warning' ? 'warning' : 'tip';
-    const Icon = variant === 'warning' ? AlertTriangle : Info;
+    const Icon = variant === 'warning' ? TriangleAlert : Info;
 
     const styles =
       variant === 'warning'

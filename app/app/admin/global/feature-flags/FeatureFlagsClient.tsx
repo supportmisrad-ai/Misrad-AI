@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, Loader2, CircleCheckBig } from 'lucide-react';
 import { getFeatureFlags, updateFeatureFlags } from '@/app/actions/admin-cockpit';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
@@ -133,7 +133,7 @@ export default function FeatureFlagsClient() {
           }`}
         >
           <div className="flex items-center gap-2 font-bold">
-            {status.type === 'success' ? <CheckCircle2 size={18} /> : null}
+            {status.type === 'success' ? <CircleCheckBig size={18} /> : null}
             {status.message}
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function FeatureFlagsClient() {
                             : 'bg-white border-slate-300'
                         }`}
                       >
-                        {enabled ? <CheckCircle2 size={14} className="text-white" /> : null}
+                        {enabled ? <CircleCheckBig size={14} className="text-white" /> : null}
                       </div>
                     </div>
                     <div className="text-xs text-slate-600">{def.labelHe}</div>

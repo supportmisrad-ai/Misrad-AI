@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, ImageIcon, Edit3, Trash2, Download, Copy, CheckCircle2 } from 'lucide-react';
+import { Plus, Image, Edit3, Trash2, Download, Copy, CircleCheckBig } from 'lucide-react';
 import { Client, SocialPost, AIOpportunity } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
 import { useApp } from '@/contexts/AppContext';
@@ -78,7 +78,7 @@ const ContentTab: React.FC<ContentTabProps> = ({ client, posts, onNewPost, onEdi
                 <img src={post.mediaUrl} className="w-full h-full object-cover" alt={post.content.substring(0, 50)} />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <ImageIcon size={32}/>
+                  <Image size={32}/>
                 </div>
               )}
               <div className="absolute top-3 left-3 flex gap-1">
@@ -114,7 +114,7 @@ const ContentTab: React.FC<ContentTabProps> = ({ client, posts, onNewPost, onEdi
                 >
                   {copiedPostId === post.id ? (
                     <>
-                      <CheckCircle2 size={16} className="text-green-600"/>
+                      <CircleCheckBig size={16} className="text-green-600"/>
                       הועתק!
                     </>
                   ) : (

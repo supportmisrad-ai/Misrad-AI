@@ -48,7 +48,7 @@ async function logAdminPaymentAction(params: {
       data: {
         user_id: params.userId,
         integration_name: 'admin_payments',
-        sync_type: 'activity',
+        sync_type: 'SquareActivity',
         status: 'success',
         items_synced: 1,
         error_message: null,

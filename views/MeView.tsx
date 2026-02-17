@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, Activity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CheckCircle, XCircle, Lock, AlertCircle, Target } from 'lucide-react';
+import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, SquareActivity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CircleCheck, CircleX, Lock, CircleAlert, Target } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClerk } from '@clerk/nextjs';
@@ -362,7 +362,7 @@ export const MeView: React.FC<{
     ? `${minutes}דק׳`
     : '0דק׳';
 
-  // Last Activity Label
+  // Last SquareActivity Label
   const lastEntry = myHistory[0];
   const lastActivityLabel = lastEntry 
       ? (lastEntry.endTime ? `יציאה ב-${new Date(lastEntry.endTime).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}` : `כניסה ב-${new Date(lastEntry.startTime).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}`)
@@ -758,7 +758,7 @@ export const MeView: React.FC<{
                       <div className="mt-4">
                           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 md:px-4 py-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                               <div className="flex items-center gap-2 text-amber-900 font-bold text-xs md:text-sm">
-                                  <AlertCircle size={18} className="text-amber-700 flex-shrink-0" />
+                                  <CircleAlert size={18} className="text-amber-700 flex-shrink-0" />
                                   <span>השלם פרופיל כדי להמשיך בצורה חלקה</span>
                               </div>
                               <button
@@ -843,7 +843,7 @@ export const MeView: React.FC<{
                                   <NexusCard
                                       title="התחייבויות"
                                       subtitle={null}
-                                      icon={CheckCircle}
+                                      icon={CircleCheck}
                                       metric={commitmentsCount}
                                       metricLabel={null}
                                       onClickAction={() => router.push(`/w/${encodeWorkspaceOrgSlug(orgSlug)}/client`)}
@@ -913,7 +913,7 @@ export const MeView: React.FC<{
                               </div>
                           </div>
                           <div className="flex items-center gap-3">
-                              <div className="p-2 bg-gray-50 rounded-xl text-gray-500"><Activity size={18} /></div>
+                              <div className="p-2 bg-gray-50 rounded-xl text-gray-500"><SquareActivity size={18} /></div>
                               <div className="text-right">
                                   <div className="text-[10px] text-gray-600 font-bold uppercase tracking-wide">פעילות אחרונה</div>
                                   <div className="font-bold text-gray-900 text-sm">{String(lastActivityLabel ?? '').replace('כניסה ב-', '').replace('יציאה ב-', '')}</div>
@@ -1055,7 +1055,7 @@ export const MeView: React.FC<{
                                                           </span>
                                                           {req.metadata?.isUrgent && (
                                                               <span className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1">
-                                                                  <AlertCircle size={12} />
+                                                                  <CircleAlert size={12} />
                                                                   דחוף
                                                               </span>
                                                           )}
@@ -1119,12 +1119,12 @@ export const MeView: React.FC<{
                                               <div className="flex items-center gap-2 mt-2">
                                                   {rsvpStatus === 'attending' ? (
                                                       <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-bold flex items-center gap-1">
-                                                          <CheckCircle size={12} />
+                                                          <CircleCheck size={12} />
                                                           אני מגיע
                                                       </span>
                                                   ) : rsvpStatus === 'not_attending' ? (
                                                       <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold flex items-center gap-1">
-                                                          <XCircle size={12} />
+                                                          <CircleX size={12} />
                                                           אני לא מגיע
                                                       </span>
                                                   ) : (
@@ -1133,14 +1133,14 @@ export const MeView: React.FC<{
                                                               onClick={() => handleEventRSVP(event.id, 'attending')}
                                                               className="px-2 py-1 bg-green-50 text-green-600 rounded-lg text-xs font-bold hover:bg-green-100 transition-all flex items-center gap-1"
                                                           >
-                                                              <CheckCircle size={12} />
+                                                              <CircleCheck size={12} />
                                                               מגיע
                                                           </button>
                                                           <button
                                                               onClick={() => handleEventRSVP(event.id, 'not_attending')}
                                                               className="px-2 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-bold hover:bg-red-100 transition-all flex items-center gap-1"
                                                           >
-                                                              <XCircle size={12} />
+                                                              <CircleX size={12} />
                                                               לא מגיע
                                                           </button>
                                                       </>

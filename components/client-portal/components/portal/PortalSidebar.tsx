@@ -5,7 +5,7 @@ import {
   Map,
   BarChart3,
   CreditCard,
-  HelpCircle,
+  CircleHelp,
   MessageSquareWarning,
 } from 'lucide-react';
 import { getOSModule } from '@/types/os-modules';
@@ -33,7 +33,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
     { id: 'journey', label: 'איפה אנחנו עומדים?', icon: Map },
     { id: 'metrics', label: 'ביצועים ומדדים', icon: BarChart3 },
     { id: 'finance', label: 'פיננסים והסכמים', icon: CreditCard },
-    { id: 'concierge', label: 'מי מטפל בי?', icon: HelpCircle },
+    { id: 'concierge', label: 'מי מטפל בי?', icon: CircleHelp },
   ];
 
   return (

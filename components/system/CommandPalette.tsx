@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Search, Command, ArrowRight, User, LayoutGrid, Calculator, Calendar, Sparkles, TrendingUp, AlertCircle, CheckCircle2, Link, Copy, Send } from 'lucide-react';
+import { Search, Command, ArrowRight, User, LayoutGrid, Calculator, Calendar, Sparkles, TrendingUp, CircleAlert, CircleCheckBig, Link, Copy, Send } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Lead } from './types';
 import { NAV_ITEMS, QUICK_ASSETS } from './constants';

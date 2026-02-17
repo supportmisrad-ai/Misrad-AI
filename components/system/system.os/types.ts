@@ -43,7 +43,7 @@ export interface UserProfile {
   email?: string;
 }
 
-export interface Activity {
+export interface SquareActivity {
   id: string;
   type: 'call' | 'whatsapp' | 'email' | 'meeting' | 'note' | 'system' | 'financial' | 'sms' | 'feedback' | 'support';
   content: string;
@@ -70,7 +70,7 @@ export interface Lead {
   value: number;
   lastContact: Date;
   createdAt: Date;
-  activities: Activity[];
+  activities: SquareActivity[];
   isHot: boolean;
   address?: string;
   location?: { x: number; y: number };

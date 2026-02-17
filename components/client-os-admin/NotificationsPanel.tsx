@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bell, Check, AlertTriangle, MessageSquare, CheckCircle2, Info, Trash2 } from 'lucide-react';
+import { X, Bell, Check, TriangleAlert, MessageSquare, CircleCheckBig, Info, Trash2 } from 'lucide-react';
 import { Notification, NotificationType } from '@/components/client-portal/types';
 
 interface NotificationsPanelProps {
@@ -34,9 +34,9 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
   const getIcon = (type: NotificationType) => {
     switch (type) {
       case 'ALERT':
-        return <AlertTriangle size={20} className="text-white" />;
+        return <TriangleAlert size={20} className="text-white" />;
       case 'SUCCESS':
-        return <CheckCircle2 size={20} className="text-white" />;
+        return <CircleCheckBig size={20} className="text-white" />;
       case 'MESSAGE':
         return <MessageSquare size={20} className="text-white" />;
       case 'TASK':
@@ -110,7 +110,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                 className="text-[11px] text-nexus-accent font-bold hover:text-nexus-primary transition-colors flex items-center gap-1 whitespace-nowrap"
                 title="סמן הכל כנקרא"
               >
-                <CheckCircle2 size={14} /> <span className="hidden sm:inline">קרא הכל</span>
+                <CircleCheckBig size={14} /> <span className="hidden sm:inline">קרא הכל</span>
               </button>
               {notifications.length > 0 && (
                 <>

@@ -15,14 +15,17 @@ export type AttendanceGeoLocationInput = {
   lat: number;
   lng: number;
   accuracy?: number | null;
+  city?: string;
 };
 
-function parseGeoLocationRequired(input: unknown): { lat: number; lng: number; accuracy: number | null } {
+function parseGeoLocationRequired(input: unknown): { lat: number; lng: number; accuracy: number | null; city: string | null } {
   const obj = asObject(input) ?? {};
   const lat = Number(getStringProp(obj, 'lat') || (obj as Record<string, unknown>).lat);
   const lng = Number(getStringProp(obj, 'lng') || (obj as Record<string, unknown>).lng);
   const accuracyRaw = (obj as Record<string, unknown>).accuracy;
   const accuracy = accuracyRaw == null || accuracyRaw === '' ? null : Number(accuracyRaw);
+  const cityRaw = (obj as Record<string, unknown>).city;
+  const city = typeof cityRaw === 'string' && cityRaw.trim().length > 0 ? cityRaw.trim() : null;
 
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     throw new Error('נדרש מיקום פעיל כדי לבצע כניסה/יציאה (lat/lng חסרים או לא תקינים)');
@@ -32,6 +35,7 @@ function parseGeoLocationRequired(input: unknown): { lat: number; lng: number; a
     lat,
     lng,
     accuracy: Number.isFinite(accuracy) ? accuracy : null,
+    city,
   };
 }
 
@@ -94,6 +98,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
         start_lat,
         start_lng,
         start_accuracy,
+        start_city,
         date,
         duration_minutes,
         void_reason,
@@ -108,6 +113,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
         ${geo.lat}::double precision,
         ${geo.lng}::double precision,
         ${geo.accuracy}::double precision,
+        ${geo.city},
         ${dateOnly}::date,
         NULL,
         ${noteValue},
@@ -162,6 +168,7 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
         end_lat = ${geo.lat}::double precision,
         end_lng = ${geo.lng}::double precision,
         end_accuracy = ${geo.accuracy}::double precision,
+        end_city = ${geo.city},
         duration_minutes = ${durationMinutes}::int,
         void_reason = ${noteValue}
       WHERE

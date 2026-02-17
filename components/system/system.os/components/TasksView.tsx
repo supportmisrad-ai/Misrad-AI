@@ -2,8 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { Task, TaskPriority, TaskStatus } from '../types';
 import { 
-    CheckSquare, Plus, Calendar, Flag, User, MoreHorizontal, 
-    List, Kanban, Filter, Search, Clock, CheckCircle2, Circle, BookOpen, Phone, ArrowLeft, ArrowRight
+    SquareCheck, Plus, Calendar, Flag, User, MoreHorizontal, 
+    List, Kanban, Filter, Search, Clock, CircleCheckBig, Circle, BookOpen, Phone, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -210,7 +210,7 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                        <CheckSquare className="text-slate-700" strokeWidth={2} />
+                        <SquareCheck className="text-slate-700" strokeWidth={2} />
                         {isAgent ? 'המשימות שלי' : 'ניהול משימות'}
                     </h2>
                 </div>
@@ -308,7 +308,7 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
                                             task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-emerald-400'
                                         }`}
                                     >
-                                        <CheckCircle2 size={14} />
+                                        <CircleCheckBig size={14} />
                                     </button>
                                     <div className="min-w-0">
                                         <div className={`font-bold text-sm text-slate-700 flex items-center gap-2 truncate ${task.status === 'done' ? 'line-through text-slate-400' : ''}`}>

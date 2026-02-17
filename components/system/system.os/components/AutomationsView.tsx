@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { 
     Bot, Zap, Play, Settings, ChartBar, Plus, ArrowRight, 
     MousePointer, Mail, Database, MessageSquare, Clock, 
-    CheckCircle, X, MoreHorizontal, Layout, Save, Trash2, Workflow
+    CircleCheck, X, MoreHorizontal, Layout, Save, Trash2, Workflow
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { AutomationRule, VisualNode, VisualEdge } from '../types';
@@ -20,7 +20,7 @@ const AVAILABLE_TRIGGERS = [
 const AVAILABLE_ACTIONS = [
     { id: 'a_send_whatsapp', label: 'שלח הודעת וואטסאפ', icon: 'MessageSquare' },
     { id: 'a_send_email', label: 'שלח אימייל', icon: 'Mail' },
-    { id: 'a_create_task', label: 'צור משימה', icon: 'CheckSquare' },
+    { id: 'a_create_task', label: 'צור משימה', icon: 'SquareCheck' },
     { id: 'a_create_project', label: 'פתיחת תיק פרויקט', icon: 'Layout' },
     { id: 'a_notify_manager', label: 'התראה למנהל', icon: 'Bell' },
     { id: 'a_create_invoice', label: 'הפקת חשבונית', icon: 'FileText' },

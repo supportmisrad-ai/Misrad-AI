@@ -355,7 +355,7 @@ model ai_embeddings {
   metadata         Json?
   created_at       DateTime              @default(now()) @db.Timestamptz(6)
   updated_at       DateTime              @default(now()) @db.Timestamptz(6)
-  organizations    social_organizations  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations    Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organization_id, doc_key, chunk_index])
   @@index([embedding], map: "idx_ai_embeddings_embedding_cosine")
@@ -383,7 +383,7 @@ model ai_feature_settings {
   backup_provider    String?
   backup_model       String?
   base_prompt        String?
-  organizations      social_organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations      Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([feature_key], map: "ai_feature_settings_feature_idx")
   @@index([organization_id], map: "ai_feature_settings_org_idx")
@@ -399,7 +399,7 @@ model ai_model_aliases {
   display_name    String
   created_at      DateTime              @default(now()) @db.Timestamptz(6)
   updated_at      DateTime              @default(now()) @db.Timestamptz(6)
-  organizations   social_organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "ai_model_aliases_org_idx")
   @@index([provider, model])
@@ -415,7 +415,7 @@ model ai_provider_keys {
   enabled         Boolean               @default(true)
   created_at      DateTime              @default(now()) @db.Timestamptz(6)
   updated_at      DateTime              @default(now()) @db.Timestamptz(6)
-  organizations   social_organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "ai_provider_keys_org_idx")
   @@index([provider])
@@ -438,7 +438,7 @@ model ai_usage_logs {
   status             String
   error_message      String?
   meta               Json?
-  organizations      social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations      Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([feature_key], map: "ai_usage_logs_feature_idx")
   @@index([organization_id, created_at(sort: Desc)], map: "ai_usage_logs_org_created_idx")
@@ -473,7 +473,7 @@ model billing_events {
   actor_clerk_user_id String?
   payload             Json?
   created_at          DateTime?            @default(now()) @db.Timestamptz(6)
-  organizations       social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations       Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   subscriptions       subscriptions?       @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_billing_events_org_id")
@@ -513,7 +513,7 @@ model charges {
   created_at      DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at      DateTime?            @default(now()) @db.Timestamptz(6)
   metadata        Json?
-  organizations   social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   subscriptions   subscriptions?       @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_charges_org_id")
@@ -556,7 +556,7 @@ model ClientApproval {
   updatedAt              DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client                 ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   document               ClientDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  organization           social_organizations @relation(fields: [organizationId], references: [id])
+  organization           Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_approvals_organization_id")
   @@index([clientId], map: "idx_client_approvals_client_id")
@@ -576,7 +576,7 @@ model ClientClient {
   createdAt      DateTime?             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   approvals      ClientApproval[]
-  organization   social_organizations  @relation(fields: [organizationId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
   documentFiles  ClientDocumentFile[]
   documents      ClientDocument[]
   feedbacks      ClientFeedback[]
@@ -613,7 +613,7 @@ model ClientDocument {
   approvals         ClientApproval[]
   files             ClientDocumentFile[]
   client            ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization      social_organizations @relation(fields: [organizationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_documents_organization_id")
   @@index([clientId], map: "idx_client_documents_client_id")
@@ -639,7 +639,7 @@ model ClientDocumentFile {
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   document       ClientDocument       @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_document_files_organization_id")
   @@index([clientId], map: "idx_client_document_files_client_id")
@@ -657,7 +657,7 @@ model ClientFeedback {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_feedbacks_organization_id")
   @@index([clientId], map: "idx_client_feedbacks_client_id")
@@ -675,7 +675,7 @@ model ClientInternalNote {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_internal_notes_organization_id")
   @@index([clientId], map: "idx_client_internal_notes_client_id")
@@ -697,7 +697,7 @@ model ClientPortalContent {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_portal_content_organization_id")
   @@index([clientId], map: "idx_client_portal_content_client_id")
@@ -718,7 +718,7 @@ model ClientPortalInvite {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_portal_invites_organization_id")
   @@index([clientId], map: "idx_client_portal_invites_client_id")
@@ -739,7 +739,7 @@ model ClientPortalUser {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, clientId, clerkUserId], map: "uq_client_portal_users_org_client_clerk")
   @@index([organizationId], map: "idx_client_portal_users_organization_id")
@@ -758,7 +758,7 @@ model ClientProfile {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_profiles_organization_id")
   @@map("client_profiles")
@@ -815,7 +815,7 @@ model ClientServiceTier {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_service_tiers_organization_id")
   @@index([tierKey], map: "idx_client_service_tiers_tier_key")
@@ -837,7 +837,7 @@ model ClientSession {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_sessions_organization_id")
   @@index([clientId], map: "idx_client_sessions_client_id")
@@ -862,7 +862,7 @@ model ClientSharedFile {
   createdAt         DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client            ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization      social_organizations @relation(fields: [organizationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_shared_files_organization_id")
   @@index([clientId], map: "idx_client_shared_files_client_id")
@@ -885,7 +885,7 @@ model ClientTask {
   createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_tasks_organization_id")
   @@index([clientId], map: "idx_client_tasks_client_id")
@@ -913,7 +913,7 @@ model ConnectMarketplaceListing {
   createdAt         DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead              SystemLead           @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organization      social_organizations @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
+  organization      Organization @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
 
   @@index([sourceOrgId], map: "idx_connect_marketplace_listings_source_org_id")
   @@index([leadId], map: "idx_connect_marketplace_listings_lead_id")
@@ -949,7 +949,7 @@ model coupon_redemptions {
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 
   coupons       coupons              @relation(fields: [coupon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organizations social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders        subscription_orders? @relation(fields: [order_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([coupon_id, organization_id], map: "coupon_redemptions_coupon_org_unique")
@@ -991,7 +991,7 @@ model CustomerAccount {
   email          String?
   created_at     DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   misradClients  MisradClient[]
   systemLeads    SystemLead[]
 
@@ -1043,7 +1043,7 @@ model finance_whatsapp_reminder_events {
   created_at          DateTime             @default(now()) @db.Timestamptz(6)
   misrad_clients      MisradClient?        @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "finance_whatsapp_reminder_events_client_fk")
   misrad_invoices     MisradInvoice        @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_invoice_fk")
-  organizations       social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_org_fk")
+  organizations       Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_org_fk")
 
   @@index([invoice_id, created_at(sort: Desc)], map: "finance_whatsapp_reminder_events_invoice_idx")
   @@index([organization_id, created_at(sort: Desc)], map: "finance_whatsapp_reminder_events_org_idx")
@@ -2123,7 +2123,7 @@ model nexus_employee_invitation_links {
   is_active      Boolean?             @default(true)
   metadata       Json?                @default("{}")
   updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([token], map: "idx_employee_invitation_links_token")
   @@index([organizationId], map: "idx_nexus_employee_invitation_links_organization_id")
@@ -2141,7 +2141,7 @@ model nexus_event_attendance {
   notes          String?
   created_at     DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([event_id, user_id], map: "event_attendance_event_id_user_id_key")
   @@index([event_id], map: "idx_event_attendance_event")
@@ -2169,7 +2169,7 @@ model nexus_leave_requests {
   metadata          Json?                @default("{}")
   created_at        DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at        DateTime?            @default(now()) @db.Timestamptz(6)
-  organization      social_organizations @relation(fields: [organizationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([employee_id], map: "idx_leave_requests_employee")
   @@index([organizationId], map: "idx_nexus_leave_requests_organization_id")
@@ -2213,7 +2213,7 @@ model nexus_team_events {
   created_at           DateTime?            @default(now()) @db.Timestamptz(6)
   created_by           String?              @db.Uuid
   updated_at           DateTime?            @default(now()) @db.Timestamptz(6)
-  organization         social_organizations @relation(fields: [organizationId], references: [id])
+  organization         Organization @relation(fields: [organizationId], references: [id])
 
   @@index([tenant_id], map: "idx_team_events_tenant")
   @@index([organizationId], map: "idx_nexus_team_events_organization_id")
@@ -2235,7 +2235,7 @@ model NexusClient {
   source          String?
   createdAt       DateTime             @default(now()) @map("created_at")
   updatedAt       DateTime             @updatedAt @map("updated_at")
-  organization    social_organizations @relation(fields: [organizationId], references: [id])
+  organization    Organization @relation(fields: [organizationId], references: [id])
 
 
   // ──── Indexes from Production (translated) ────
@@ -2273,7 +2273,7 @@ model NexusTask {
   completionDetails Json?                @map("completion_details")
   department        String?
   updatedAt         DateTime             @updatedAt @map("updated_at")
-  organization      social_organizations @relation(fields: [organizationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([assigneeId], map: "idx_nexus_tasks_assignee_id")
   @@index([clientId], map: "idx_nexus_tasks_client_id")
@@ -2310,7 +2310,7 @@ model NexusTenant {
   updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   organizationId String?               @unique @map("organization_id") @db.Uuid
-  organization   social_organizations? @relation("NexusTenantOrganization", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  organization   Organization? @relation("NexusTenantOrganization", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
 
   // ──── Indexes from Production (translated) ────
@@ -2340,7 +2340,7 @@ model NexusTimeEntry {
   voidedAt        DateTime?            @map("voided_at") @db.Timestamptz(6)
   createdAt       DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization    social_organizations @relation(fields: [organizationId], references: [id])
+  organization    Organization @relation(fields: [organizationId], references: [id])
 
   @@index([date], map: "idx_nexus_time_entries_date")
   @@index([startTime], map: "idx_nexus_time_entries_start_time")
@@ -2419,7 +2419,7 @@ model OperationsInventory {
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   item           OperationsItem       @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organizationId, itemId], map: "operations_inventory_unique_item_per_org")
   @@index([organizationId], map: "idx_operations_inventory_org")
@@ -2440,7 +2440,7 @@ model OperationsItem {
   createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   inventory      OperationsInventory[]
-  organization   social_organizations   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   supplier       OperationsSupplier?    @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
 
   @@index([imageVector], map: "idx_operations_items_image_vector")
@@ -2461,7 +2461,7 @@ model OperationsProject {
   createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   clients             clients?              @relation(fields: [canonicalClientId], references: [id], onUpdate: NoAction)
-  organization        social_organizations  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   workOrders          OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_projects_org")
@@ -2481,7 +2481,7 @@ model OperationsSupplier {
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   items          OperationsItem[]
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organizationId], map: "idx_operations_suppliers_org")
   @@map("operations_suppliers")
@@ -2520,7 +2520,7 @@ model OperationsWorkOrder {
   transferredFromId       String?                   @map("transferred_from_id") @db.Uuid
   transferApprovedById    String?                   @map("transfer_approved_by_id") @db.Uuid
   aiSummary               String?                   @map("ai_summary")
-  organization            social_organizations      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization            Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   project                 OperationsProject?        @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   category                OperationsCallCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   department              OperationsDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
@@ -2548,7 +2548,7 @@ model OperationsBuilding {
   notes          String?
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders     OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_buildings_org")
@@ -2565,7 +2565,7 @@ model OperationsCallCategory {
   sortOrder          Int                  @default(0) @map("sort_order")
   isActive           Boolean              @default(true) @map("is_active")
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization       social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders         OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_call_categories_org")
@@ -2581,7 +2581,7 @@ model OperationsDepartment {
   color          String?
   isActive       Boolean              @default(true) @map("is_active")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders     OperationsWorkOrder[]
 
   @@unique([organizationId, slug])
@@ -2600,7 +2600,7 @@ model OperationsCallMessage {
   attachmentType String?              @map("attachment_type")
   mentions       String[]             @default([])
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrder      OperationsWorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([workOrderId], map: "idx_operations_call_messages_wo")
@@ -2615,7 +2615,7 @@ model organization_settings {
   created_at      DateTime             @default(now()) @db.Timestamptz(6)
   updated_at      DateTime             @default(now()) @db.Timestamptz(6)
   ai_quota_cents  BigInt?
-  organizations   social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([ai_dna], map: "organization_settings_ai_dna_gin_idx", type: Gin)
 }
@@ -2664,8 +2664,8 @@ model OrganizationUser {
   allowed_modules          String[]                @default(["nexus", "client"])
   last_location_org        String?                 @map("last_org_slug")
   last_module              String?
-  social_organizations     social_organizations?   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
-  owned_organizations      social_organizations[]  @relation("OrganizationOwner")
+  Organization     Organization?   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
+  owned_organizations      Organization[]  @relation("OrganizationOwner")
   business_client_contacts BusinessClientContact[]
 
   @@index([clerk_user_id], map: "idx_social_users_clerk_user_id")
@@ -2681,7 +2681,7 @@ model Partner {
   createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  organizations social_organizations[]
+  organizations Organization[]
 
   @@index([referralCode])
   @@map("partners")
@@ -2734,7 +2734,7 @@ model Profile {
   createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   role                    String?
-  organization            social_organizations @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
+  organization            Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
   @@unique([organizationId, clerkUserId])
   @@index([organizationId])
@@ -2866,7 +2866,7 @@ model scale_support_tickets {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model social_organizations {
+model Organization {
   id                               String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                             String
   slug                             String?
@@ -2902,6 +2902,8 @@ model social_organizations {
   trial_end_date                   DateTime?                          @db.Date
   last_payment_date                DateTime?                          @db.Timestamptz(6)
   last_payment_amount              Decimal?                           @db.Decimal(10, 2)
+  balance                          Decimal                            @default(0) @db.Decimal(10, 2)
+  tax_id                           String?
   cancellation_date                DateTime?                          @db.Timestamptz(6)
   cancellation_reason              String?
   owner                            OrganizationUser                   @relation("OrganizationOwner", fields: [owner_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "organizations_owner_id_fkey")
@@ -3116,7 +3118,7 @@ model SocialMediaClient {
   deleted_at             DateTime?            @db.Timestamptz(6)
   deleted_by             String?              @db.Uuid
   organization_id        String               @db.Uuid
-  social_organizations   social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
+  Organization   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
 
   @@index([invitation_token], map: "clients_invitationToken_idx")
   @@index([organization_id], map: "clients_organization_id_idx")
@@ -3565,7 +3567,7 @@ model subscription_items {
   created_at      DateTime?            @default(now()) @db.Timestamptz(6)
   updated_at      DateTime?            @default(now()) @db.Timestamptz(6)
   metadata        Json?
-  organizations   social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   subscriptions   subscriptions        @relation(fields: [subscription_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([kind], map: "idx_subscription_items_kind")
@@ -3603,7 +3605,7 @@ model subscription_orders {
   proof_image_path        String?
   seats                   Int?
   coupon_id               String?               @db.Uuid
-  organizations           social_organizations? @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
+  organizations           Organization? @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
   coupon                  coupons?              @relation(fields: [coupon_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   coupon_redemptions coupon_redemptions[]
@@ -3645,7 +3647,7 @@ model subscriptions {
   billing_events       billing_events[]
   charges              charges[]
   subscription_items   subscription_items[]
-  organizations        social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations        Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_subscriptions_org_id")
   @@index([status], map: "idx_subscriptions_status")
@@ -3778,7 +3780,7 @@ model SystemCalendarEvent {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([date], map: "idx_system_calendar_events_date")
   @@index([leadId], map: "idx_system_calendar_events_lead_id")
   @@index([organizationId], map: "idx_system_calendar_events_organization_id")
@@ -3809,7 +3811,7 @@ model SystemCallAnalysis {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([date], map: "idx_system_call_analyses_date")
   @@index([leadId], map: "idx_system_call_analyses_lead_id")
   @@index([organizationId], map: "idx_system_call_analyses_organization_id")
@@ -3903,7 +3905,7 @@ model SystemInvoice {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([date], map: "idx_system_invoices_date")
   @@index([leadId], map: "idx_system_invoices_lead_id")
   @@index([organizationId], map: "idx_system_invoices_organization_id")
@@ -3952,7 +3954,7 @@ model SystemLead {
   activities                 SystemLeadActivity[]
   handover                   SystemLeadHandover?
   customerAccount            CustomerAccount?            @relation(fields: [customerAccountId], references: [id])
-  organization               social_organizations        @relation(fields: [organizationId], references: [id])
+  organization               Organization        @relation(fields: [organizationId], references: [id])
   portalApprovals            SystemPortalApproval[]
   portalTasks                SystemPortalTask[]
   supportTickets             SystemSupportTicket[]
@@ -3985,7 +3987,7 @@ model SystemLeadActivity {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([leadId], map: "idx_system_lead_activities_lead_id")
   @@index([organizationId], map: "idx_system_lead_activities_organization_id")
   @@index([timestamp], map: "idx_system_lead_activities_timestamp")
@@ -4000,7 +4002,7 @@ model SystemLeadCustomFieldDefinition {
   kind           String               @default("string")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
+  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
   @@unique([organizationId, key], map: "system_lead_custom_field_defs_org_key_key")
   @@index([organizationId], map: "idx_system_lead_custom_field_defs_organization_id")
@@ -4021,7 +4023,7 @@ model SystemLeadHandover {
 
 
   // ──── Rescued from Production ────
-  organizations         social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([organizationId], map: "idx_system_lead_handovers_organization_id")
   @@map("system_lead_handovers")
 }
@@ -4056,7 +4058,7 @@ model SystemPipelineStage {
   isActive       Boolean              @default(true) @map("is_active")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   social_organizations @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
+  organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
   @@unique([organizationId, key], map: "system_pipeline_stages_org_key_key")
   @@index([organizationId], map: "idx_system_pipeline_stages_organization_id")
@@ -4078,7 +4080,7 @@ model SystemPortalApproval {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([leadId], map: "idx_system_portal_approvals_lead_id")
   @@index([organizationId], map: "idx_system_portal_approvals_organization_id")
   @@index([status], map: "idx_system_portal_approvals_status")
@@ -4099,7 +4101,7 @@ model SystemPortalTask {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([leadId], map: "idx_system_portal_tasks_lead_id")
   @@index([organizationId], map: "idx_system_portal_tasks_organization_id")
   @@index([status], map: "idx_system_portal_tasks_status")
@@ -4137,7 +4139,7 @@ model SystemSupportTicket {
 
 
   // ──── Rescued from Production ────
-  organizations   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([category], map: "idx_system_support_tickets_category")
   @@index([leadId], map: "idx_system_support_tickets_lead_id")
   @@index([organizationId], map: "idx_system_support_tickets_organization_id")
@@ -4212,7 +4214,7 @@ model TeamMember {
   postComments            SocialMediaPostComment[]
   teamComments            TeamComment[]
   teamMemberClients       TeamMemberClient[]
-  social_organizations    social_organizations     @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
+  Organization    Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
 
   @@index([email], map: "idx_team_members_email")
   @@index([subscription_status], map: "idx_team_members_subscription_status")
@@ -4300,7 +4302,7 @@ model WorkListing {
   createdAt       DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead            SystemLead           @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organization    social_organizations @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
+  organization    Organization @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
 
   @@index([sourceOrgId], map: "idx_work_listings_source_org_id")
   @@index([leadId], map: "idx_work_listings_lead_id")
@@ -4378,7 +4380,7 @@ model BusinessClient {
   deleted_at DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // Relations
-  organizations social_organizations[]  @relation("BusinessClientOrganizations")
+  organizations Organization[]  @relation("BusinessClientOrganizations")
   contacts      BusinessClientContact[]
 
   @@index([company_name])

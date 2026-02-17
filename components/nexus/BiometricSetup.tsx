@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { Fingerprint, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Shield, Smartphone, CircleCheckBig, CircleAlert, Loader2, X, Scan } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -167,7 +167,7 @@ export const BiometricSetup: React.FC = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Fingerprint size={24} className="text-white" />
+                    <Scan size={24} className="text-white" />
                 </div>
                 
                 <div className="flex-1">
@@ -194,7 +194,7 @@ export const BiometricSetup: React.FC = () => {
                                 exit={{ opacity: 0 }}
                                 className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2"
                             >
-                                <CheckCircle2 size={18} className="text-green-600 flex-shrink-0" />
+                                <CircleCheckBig size={18} className="text-green-600 flex-shrink-0" />
                                 <p className="text-sm font-bold text-green-700">
                                     זיהוי ביומטרי הופעל בהצלחה!
                                 </p>
@@ -208,7 +208,7 @@ export const BiometricSetup: React.FC = () => {
                                 exit={{ opacity: 0 }}
                                 className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2"
                             >
-                                <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
+                                <CircleAlert size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
                                     <p className="text-sm font-bold text-red-700 mb-1">
                                         שגיאה בהפעלת זיהוי ביומטרי
@@ -234,12 +234,12 @@ export const BiometricSetup: React.FC = () => {
                                 </>
                             ) : hasPasskeys ? (
                                 <>
-                                    <Fingerprint size={18} />
+                                    <Scan size={18} />
                                     <span>הוסף מפתח נוסף</span>
                                 </>
                             ) : (
                                 <>
-                                    <Fingerprint size={18} />
+                                    <Scan size={18} />
                                     <span>הפעל זיהוי ביומטרי (FaceID/TouchID)</span>
                                 </>
                             )}
@@ -254,7 +254,7 @@ export const BiometricSetup: React.FC = () => {
 
                     <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-start gap-2 text-xs text-gray-500">
-                            <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                            <CircleAlert size={14} className="mt-0.5 flex-shrink-0" />
                             <div>
                                 <p className="font-bold mb-1">מידע חשוב:</p>
                                 <ul className="list-disc list-inside space-y-1 text-gray-600">

@@ -154,7 +154,7 @@ export async function getOrganizations(params?: {
             if (ownerIds.length) {
               const owners = await prisma.organizationUser.findMany(
                 withPrismaTenantIsolationOverride({
-                  where: { id: { in: ownerIds } },
+                  where: { id: { in: ownerIds as string[] } },
                   select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
                 }, { suppressReporting: true, reason: 'admin_organizations_lookup_owners_by_id_list', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
               );
@@ -222,7 +222,27 @@ export async function getOrganizations(params?: {
           return Number.isNaN(d.getTime()) ? null : d.toISOString();
         }
 
-        const enriched: OrganizationWithOwner[] = (orgs || []).map((o) => ({
+        const enriched: OrganizationWithOwner[] = (orgs || []).map((o: {
+          id: string;
+          name: string;
+          slug: string | null;
+          logo: string | null;
+          owner_id: string;
+          is_shabbat_protected: boolean | null;
+          has_nexus: boolean | null;
+          has_social: boolean | null;
+          has_system: boolean | null;
+          has_finance: boolean | null;
+          has_client: boolean | null;
+          has_operations: boolean | null;
+          subscription_status: string | null;
+          subscription_plan: string | null;
+          trial_start_date: Date | null;
+          trial_days: number | null;
+          subscription_start_date: Date | null;
+          created_at: Date | null;
+          updated_at: Date | null;
+        }) => ({
           id: String(o.id),
           name: String(o.name),
           slug: o.slug == null ? null : String(o.slug),

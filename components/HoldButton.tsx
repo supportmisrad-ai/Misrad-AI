@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Fingerprint, LogOut } from 'lucide-react';
+import { Scan, LogOut } from 'lucide-react';
 
 interface HoldButtonProps {
     isActive: boolean;
@@ -151,7 +150,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
                         {isActive ? (
                             <LogOut size={size === 'small' ? 32 : 48} strokeWidth={1.5} />
                         ) : (
-                            <Fingerprint size={iconSize} strokeWidth={1} className={isHolding ? 'scale-110 transition-transform duration-100' : ''} />
+                            <Scan size={iconSize} strokeWidth={1} className={isHolding ? 'scale-110 transition-transform duration-100' : ''} />
                         )}
                     </div>
                 </motion.div>

@@ -44,4 +44,5 @@ export type OrganizationRow = {
   logo: string | null;
   seats_allowed: unknown;
   is_shabbat_protected: boolean | null;
+  subscription_status: string | null;
 } & OrganizationModuleFlags;

@@ -2,9 +2,9 @@ import React from 'react';
 import { MeetingAnalysisResult } from '@/components/client-portal/types';
 import {
   ArrowLeft,
-  UserCircle,
+  CircleUser,
   Briefcase,
-  Activity,
+  SquareActivity,
   Lightbulb,
   Zap,
   Send,
@@ -12,10 +12,10 @@ import {
   Clock,
   CalendarCheck,
   ShieldAlert,
-  AlertTriangle,
+  TriangleAlert,
   MessageSquare,
   Quote,
-  CheckSquare,
+  SquareCheck,
 } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 
@@ -71,7 +71,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                 <h2 className="text-xl md:text-2xl font-display font-bold text-gray-900 mb-1 truncate">{fileName || 'ישיבת סטטוס רבעונית + השקה'}</h2>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
-                    <UserCircle size={12} /> אלכס, אלינה, דוד
+                    <CircleUser size={12} /> אלכס, אלינה, דוד
                   </span>
                   <span className="hidden md:inline">•</span>
                   <span>שעתיים ו-15 דקות</span>
@@ -111,7 +111,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
           <div className="glass-card p-4 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-pink-50 text-pink-600 rounded-lg">
-                <Activity size={18} />
+                <SquareActivity size={18} />
               </div>
               <span className="font-bold text-gray-700">חמימות</span>
             </div>
@@ -246,7 +246,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                 </div>
                 <p className="font-serif italic font-medium mb-2 opacity-90">"{risk.quote}"</p>
                 <div className="text-xs opacity-70 border-t border-black/5 pt-2 flex items-start gap-1">
-                  <AlertTriangle size={12} className="mt-0.5" />
+                  <TriangleAlert size={12} className="mt-0.5" />
                   {risk.context}
                 </div>
               </div>
@@ -306,13 +306,13 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
         </div>
         <div className="glass-card p-6 rounded-2xl border border-nexus-accent/20">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <UserCircle size={18} className="text-nexus-accent" /> משימות שלהם (Client)
+            <CircleUser size={18} className="text-nexus-accent" /> משימות שלהם (Client)
           </h3>
           <div className="space-y-3">
             {analysisResult?.clientTasks.map((t, i) => (
               <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="p-1 bg-green-100 rounded text-green-600 mt-0.5">
-                  <CheckSquare size={12} />
+                  <SquareCheck size={12} />
                 </div>
                 <div>
                   <p className={`text-sm font-bold text-gray-800 ${t.status === 'COMPLETED' ? 'line-through text-gray-400' : ''}`}>{t.task}</p>

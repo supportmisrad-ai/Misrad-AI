@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { 
-  Activity, 
+  SquareActivity, 
   Database, 
   Server, 
   Zap,
-  AlertTriangle,
-  CheckCircle,
+  TriangleAlert,
+  CircleCheck,
   TrendingUp,
   Clock,
   HardDrive,
@@ -78,7 +78,7 @@ export default function PlatformDashboardClient() {
       <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg border border-green-200 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-green-100 rounded-lg">
-            <CheckCircle className="w-6 h-6 text-green-600" />
+            <CircleCheck className="w-6 h-6 text-green-600" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">מצב המערכת</h3>
@@ -117,7 +117,7 @@ export default function PlatformDashboardClient() {
               </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
-              <Activity className="w-6 h-6 text-blue-600" />
+              <SquareActivity className="w-6 h-6 text-blue-600" />
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">
@@ -150,7 +150,7 @@ export default function PlatformDashboardClient() {
               <p className="text-3xl font-bold text-gray-900 mt-1">{stats.errorRate}%</p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-lg">
-              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              <TriangleAlert className="w-6 h-6 text-yellow-600" />
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">
@@ -287,7 +287,7 @@ export default function PlatformDashboardClient() {
             href="/app/admin/logs"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
-            <Activity className="w-5 h-5 text-blue-600" />
+            <SquareActivity className="w-5 h-5 text-blue-600" />
             <div>
               <p className="font-medium text-gray-900">לוגים</p>
               <p className="text-sm text-gray-500">צפייה בלוגי מערכת</p>

@@ -13,6 +13,8 @@ const heebo = Heebo({
   variable: "--font-sans",
   subsets: ["hebrew", "latin"],
   display: "swap",
+  preload: true, // Preload main font for faster render
+  fallback: ['system-ui', 'arial'],
 });
 
 // Inter - Numbers and data font (font-mono)
@@ -21,7 +23,8 @@ const inter = Inter({
   variable: "--font-mono",
   subsets: ["latin"],
   display: "swap",
-  preload: false,
+  preload: false, // Don't preload secondary font
+  fallback: ['monospace'],
 });
 
 export const metadata: Metadata = getSystemMetadata();

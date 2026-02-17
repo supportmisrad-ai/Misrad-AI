@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { 
     Zap, Calendar, BarChart2, Plus, 
-    ArrowRight, ChevronRight, Activity, 
+    ArrowRight, ChevronRight, SquareActivity, 
     TrendingUp, Shield, Star, Phone, Video,
     User, Gauge
 } from 'lucide-react';
@@ -57,7 +57,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                 {/* Top Tag */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-rose-300 shadow-sm">
-                        <Activity size={12} className="animate-pulse" /> חזית
+                        <SquareActivity size={12} className="animate-pulse" /> חזית
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-slate-400">{new Date().toLocaleDateString('he-IL')}</span>
@@ -165,7 +165,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
             <div>
                 <div className="flex items-center justify-between px-2 mb-3">
                     <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                        <Activity size={16} className="text-indigo-600" />
+                        <SquareActivity size={16} className="text-indigo-600" />
                         תיקים בטיפול
                     </h3>
                     <button 

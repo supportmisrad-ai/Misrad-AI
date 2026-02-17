@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Bell, X, CheckCheck } from 'lucide-react';
+import { Bell, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Notification {
@@ -144,7 +144,7 @@ export function GlobalNotificationsBell() {
                       title="סמן הכל כנקרא"
                       type="button"
                     >
-                      <CheckCheck size={14} />
+                      <Check size={14} />
                     </button>
                   ) : null}
                   <button

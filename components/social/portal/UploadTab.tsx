@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, FileText, Send, Upload, AlertCircle, ImageIcon } from 'lucide-react';
+import { Camera, FileText, Send, Upload, CircleAlert, Image } from 'lucide-react';
 import { Client, ClientRequest, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
 
@@ -150,7 +150,7 @@ const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload,
                       onClick={() => setIsUrgent(!isUrgent)}
                       className={`w-full py-3.5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 border-2 ${isUrgent ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-slate-50 text-slate-400 border-transparent'}`}
                     >
-                      {isUrgent ? <><AlertCircle size={16}/> דחוף - לפרסום עוד היום!</> : 'מתוזמן - ללו"ז השוטף'}
+                      {isUrgent ? <><CircleAlert size={16}/> דחוף - לפרסום עוד היום!</> : 'מתוזמן - ללו"ז השוטף'}
                     </button>
                   </div>
               </div>

@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, Building, CheckCircle2, ArrowRight, Camera } from 'lucide-react';
+import { X, Building, CircleCheckBig, ArrowRight, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
@@ -304,7 +304,7 @@ export default function AddClientModal() {
                     step > item.s ? 'bg-green-500' : 
                     'bg-slate-700'
                   }`}>
-                    {step > item.s ? <CheckCircle2 size={14} /> : item.s}
+                    {step > item.s ? <CircleCheckBig size={14} /> : item.s}
                   </div>
                 </div>
               ))}
@@ -328,7 +328,7 @@ export default function AddClientModal() {
                     step > item.s ? 'bg-green-500' : 
                     'bg-slate-700'
                   }`}>
-                    {step > item.s ? <CheckCircle2 size={20} /> : item.s}
+                    {step > item.s ? <CircleCheckBig size={20} /> : item.s}
                   </div>
                   <span className="font-black">{item.l}</span>
                 </div>

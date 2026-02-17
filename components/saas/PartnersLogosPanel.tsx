@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Building2, Upload, Trash2, Eye, Plus, X, 
-    AlertCircle, CheckCircle2, ArrowUp, ArrowDown, Image as ImageIcon
+    CircleAlert, CircleCheckBig, ArrowUp, ArrowDown, Image
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
@@ -209,7 +209,7 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
                                     />
                                 ) : (
                                     <div className="text-slate-500 flex flex-col items-center gap-2">
-                                        <ImageIcon size={32} />
+                                        <Image size={32} />
                                         <span className="text-xs font-bold">אין לוגו</span>
                                     </div>
                                 )}
@@ -313,7 +313,7 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
                                                 title={logo.isActive ? 'הסתר' : 'הצג'}
                                                 aria-label={logo.isActive ? 'הסתר' : 'הצג'}
                                             >
-                                                <CheckCircle2 size={14} />
+                                                <CircleCheckBig size={14} />
                                             </Button>
                                             <Button
                                                 onClick={() => moveLogo(logo.id, 'up')}
@@ -464,7 +464,7 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
                             className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                         >
                             <div className="flex items-center gap-3 mb-4">
-                                <AlertCircle className="text-red-500" size={24} />
+                                <CircleAlert className="text-red-500" size={24} />
                                 <h3 className="text-xl font-bold text-slate-900">מחיקת לוגו</h3>
                             </div>
                             <p className="text-slate-600 mb-6">

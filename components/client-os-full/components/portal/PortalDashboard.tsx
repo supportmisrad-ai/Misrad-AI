@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sparkles, Target, ArrowLeft, PenTool, FileSignature, CheckCircle2, ThumbsUp, RefreshCw, ThumbsDown, MessageSquarePlus, Check } from 'lucide-react';
+import { Sparkles, Target, ArrowLeft, PenTool, FileSignature, CircleCheckBig, ThumbsUp, RefreshCw, ThumbsDown, MessageSquarePlus, Check } from 'lucide-react';
 import TestimonialPrompt from '../TestimonialPrompt';
 import { Client, ClientAction, SuccessGoal } from '../../types';
 
@@ -122,7 +122,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
             )) : (
               <div className="text-center py-6">
                 {selectedMood && selectedMood.icon && React.createElement(selectedMood.icon as React.ComponentType<{ size?: number; className?: string }>, { size: 32, className: "text-white" })}
-                <CheckCircle2 size={32} className="mx-auto text-green-500 mb-2 opacity-20" />
+                <CircleCheckBig size={32} className="mx-auto text-green-500 mb-2 opacity-20" />
                 <p className="text-slate-400 text-sm italic">אין מסמכים הממתינים לאישור.</p>
               </div>
             )}
@@ -196,7 +196,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4 animate-fade-in">
               <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle2 size={32} />
+                <CircleCheckBig size={32} />
               </div>
               <h4 className="font-bold text-slate-900">תודה על העדכון!</h4>
               <p className="text-xs text-slate-500 mt-1">אנחנו לוקחים את זה לתשומת ליבנו.</p>

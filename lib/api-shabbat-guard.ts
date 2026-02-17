@@ -91,7 +91,7 @@ export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) 
       return handler(...args);
     } catch (error: unknown) {
       console.error('[ShabbatGuard] Error checking Shabbat:', error);
-      // Fail closed: do not allow system activity if we cannot determine Shabbat state.
+      // Fail closed: do not allow system SquareActivity if we cannot determine Shabbat state.
       return apiError(error, {
         status: 503,
         message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Target, Check, Users, TrendingUp, Crown, Sparkles, Zap, FileText, BarChart3, HeartPulse, CheckCircle2, ArrowUp, Phone, Activity, DollarSign, Clock, PhoneCall, Cpu, ShoppingBag, Play } from 'lucide-react';
+import { ArrowRight, Target, Check, Users, TrendingUp, Crown, Sparkles, Zap, FileText, BarChart3, HeartPulse, CircleCheckBig, ArrowUp, Phone, SquareActivity, DollarSign, Clock, PhoneCall, Cpu, ShoppingBag, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { PricingCard } from '@/components/landing/PricingCard';

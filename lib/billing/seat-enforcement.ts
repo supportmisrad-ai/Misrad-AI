@@ -23,7 +23,7 @@ export type SeatStatus = {
  */
 export async function getOrganizationSeatStatus(organizationId: string): Promise<SeatStatus | null> {
   try {
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: organizationId },
       select: {
         id: true,
@@ -118,7 +118,7 @@ export async function getOrganizationsWithSeatIssues(): Promise<{
   approachingLimit: SeatStatus[];
 }> {
   try {
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       where: {
         subscription_status: {
           in: ['trial', 'active'],
@@ -127,7 +127,7 @@ export async function getOrganizationsWithSeatIssues(): Promise<{
           // Over limit
           {
             active_users_count: {
-              gt: prisma.social_organizations.fields.seats_allowed,
+              gt: prisma.organization.fields.seats_allowed,
             },
           },
           // Approaching limit (>= 90%)
@@ -203,7 +203,7 @@ export async function getClientSeatAnalytics(clientId: string): Promise<{
   organizations: SeatStatus[];
 }> {
   try {
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       where: {
         client_id: clientId,
         subscription_status: {
@@ -218,7 +218,7 @@ export async function getClientSeatAnalytics(clientId: string): Promise<{
       },
     });
 
-    const organizations: SeatStatus[] = orgs.map(org => {
+    const organizations: SeatStatus[] = orgs.map((org: { id: string; name: string; seats_allowed: number | null; active_users_count: number | null }) => {
       const seatsAllowed = org.seats_allowed || 0;
       const activeUsersCount = org.active_users_count || 0;
       const utilizationPercent = seatsAllowed > 0 

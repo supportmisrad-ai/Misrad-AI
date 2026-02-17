@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link2, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, Rocket, CheckCircle2, Phone } from 'lucide-react';
+import { Link2, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, Rocket, CircleCheckBig, Phone } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
@@ -496,7 +496,7 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                         )}
                                         {invitation.used_at && (
                                             <div className="flex items-center gap-2 text-emerald-700">
-                                                <CheckCircle2 size={14} />
+                                                <CircleCheckBig size={14} />
                                                 <span className="text-xs">הושלם: {formatDate(invitation.used_at)}</span>
                                             </div>
                                         )}

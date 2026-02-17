@@ -2,7 +2,7 @@
 import React from 'react';
 import { Task, User } from '../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../constants';
-import { CalendarDays, Play, Pause, Timer, Lock, MoreHorizontal, Clock, Briefcase, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { CalendarDays, Play, Pause, Timer, Lock, MoreHorizontal, Clock, Briefcase, TriangleAlert, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { useSecondTicker } from '../hooks/useSecondTicker';

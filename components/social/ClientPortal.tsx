@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle2, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles } from 'lucide-react';
+import { CircleCheckBig, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice, ManagerRequest, ClientRequest, SocialPlatform } from '@/types/social';
@@ -476,7 +476,7 @@ ${String(request.description || '').trim()}`.trim();
          <div className="max-w-6xl mx-auto flex gap-2 md:gap-3 overflow-x-auto no-scrollbar py-1">
             {[
               { id: 'analytics', label: 'ביצועים', icon: BarChart3 },
-              { id: 'approvals', label: `אישורים`, icon: CheckCircle2, count: clientPosts.filter(p => p.status === 'pending_approval').length },
+              { id: 'approvals', label: `אישורים`, icon: CircleCheckBig, count: clientPosts.filter(p => p.status === 'pending_approval').length },
               { id: 'tasks', label: `משימות`, icon: ShieldAlert, count: clientManagerRequests.filter(r => r.status === 'pending').length },
               { id: 'store', label: 'חנות', icon: ShoppingCart },
               { id: 'calendar', label: 'לו"ז', icon: Calendar },

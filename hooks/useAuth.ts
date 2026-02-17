@@ -13,7 +13,8 @@ import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHe
 import { punchIn, punchOut } from '@/app/actions/attendance';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-const PRESENCE_REQUEST_TIMEOUT_MS = process.env.NODE_ENV === 'production' ? 8_000 : 15_000;
+const PRESENCE_REQUEST_TIMEOUT_MS = 5_000; // Reduced from 8-15s to 5s
+const PRESENCE_HEARTBEAT_INTERVAL_MS = 90_000; // Increased from 30s to 90s (less aggressive)
 
 type ToastKind = 'success' | 'error' | 'info' | 'warning';
 
@@ -184,27 +185,56 @@ export const useAuth = (
         }
     }, [orgSlug]);
 
-    const getLocation = useCallback(async () => {
+    const getLocation = useCallback(async (): Promise<{ lat: number; lng: number; accuracy: number; city?: string }> => {
         if (typeof window === 'undefined') {
-            throw new Error('Location not available');
+            throw new Error('המיקום אינו זמין');
         }
         if (!('geolocation' in navigator)) {
-            throw new Error('אין תמיכה במיקום בדפדפן הזה');
+            throw new Error('הדפדפן אינו תומך במיקום GPS');
         }
 
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0,
+        try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0,
+                });
             });
-        });
 
-        return {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-        };
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            // Reverse geocoding to get city name in Hebrew
+            let city: string | undefined;
+            try {
+                const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
+                const geocodeRes = await fetch(geocodeUrl, {
+                    headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
+                });
+                if (geocodeRes.ok) {
+                    const geocodeData = await geocodeRes.json();
+                    city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+                }
+            } catch {
+                // Silently fail geocoding - not critical
+            }
+
+            return { lat, lng, accuracy, city };
+        } catch (error: unknown) {
+            // Map GPS errors to Hebrew
+            const err = error as { code?: number; message?: string };
+            if (err?.code === 1) { // PERMISSION_DENIED
+                throw new Error('נדרשת הרשאת מיקום. אנא אפשר גישה למיקום בהגדרות הדפדפן.');
+            } else if (err?.code === 2) { // POSITION_UNAVAILABLE
+                throw new Error('לא ניתן לקבל את המיקום. ודא שה-GPS מופעל.');
+            } else if (err?.code === 3) { // TIMEOUT
+                throw new Error('פג הזמן בקבלת המיקום. אנא נסה שוב.');
+            } else {
+                throw new Error('שגיאה בקבלת המיקום. ודא שהמיקום מופעל.');
+            }
+        }
     }, []);
 
     const presenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -212,18 +242,19 @@ export const useAuth = (
     const presenceGuardStateRef = useRef<string>('');
     const presenceFailureCountRef = useRef(0);
     const presenceSuccessCountRef = useRef(0);
+    const stopAllActivityRef = useRef(false);
 
     const sendPresenceHeartbeat = useCallback(async () => {
         if (typeof window === 'undefined') return;
+
+        // CRITICAL: Stop all SquareActivity if unauthorized (401) - silent stop
+        if (stopAllActivityRef.current) {
+            return;
+        }
+
         const visibilityState = typeof document !== 'undefined' ? document.visibilityState : null;
         if (!orgSlug || !isClerkLoaded || !clerkUserId || visibilityState === 'hidden') {
-            const nextState = JSON.stringify({ orgSlug, isClerkLoaded, clerkUserId: Boolean(clerkUserId), visibilityState });
-            if (nextState !== presenceGuardStateRef.current) {
-                presenceGuardStateRef.current = nextState;
-                if (orgSlug) {
-                    console.info(`[Presence] heartbeat skipped (guard) ${nextState}`);
-                }
-            }
+            // Silently skip if prerequisites not met - no logging spam
             return;
         }
 
@@ -236,53 +267,58 @@ export const useAuth = (
         }
 
         if (presenceInFlightRef.current) {
-            console.info('[Presence] heartbeat skipped (in-flight)');
+            // Silently skip if already in flight
             return;
         }
         presenceInFlightRef.current = true;
 
-        let pendingWarnTimeout: ReturnType<typeof setTimeout> | null = null;
         let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
         let heartbeatPromise: Promise<unknown> | null = null;
 
         try {
-            const startedAt = Date.now();
-            pendingWarnTimeout = setTimeout(() => {
-                console.warn(`[Presence] heartbeat pending >3s (possible hang) orgSlug=${orgSlug}`);
-            }, 3000);
             const timeoutPromise = new Promise<never>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
                     reject(new Error(`Presence heartbeat timeout after ${PRESENCE_REQUEST_TIMEOUT_MS}ms`));
                 }, PRESENCE_REQUEST_TIMEOUT_MS);
             });
-            console.info(`[Presence] heartbeat start orgSlug=${orgSlug}`);
             heartbeatPromise = updateNexusPresenceHeartbeat({ orgId: orgSlug });
             const result = await Promise.race([heartbeatPromise, timeoutPromise]);
-            console.info(
-                `[Presence] heartbeat completed in ${Date.now() - startedAt}ms orgSlug=${orgSlug}`
-            );
+            // Reduced logging
             presenceFailureCountRef.current = 0;
             presenceSuccessCountRef.current += 1;
             if (presenceSuccessCountRef.current === 1) {
-                console.info('Presence heartbeat ok', {
-                    orgSlug,
-                    serverTime: getUnknownProp(result, 'serverTime'),
-                    debug: getUnknownProp(result, 'debug'),
-                });
+                console.info('[Presence] heartbeat successful', { orgSlug });
             }
+            // Only update state if it changed (prevent unnecessary re-renders)
             setCurrentUser((prev) => (prev.online ? prev : { ...prev, online: true }));
         } catch (error) {
-            if (error instanceof Error && error.message.includes('Presence heartbeat timeout')) {
+            const isTimeout = error instanceof Error && error.message.includes('Presence heartbeat timeout');
+            if (isTimeout) {
                 void heartbeatPromise?.catch(() => null);
             }
-            console.warn('[Presence] heartbeat error', error);
+
+            // CRITICAL: Detect 401/Unauthorized and stop all SquareActivity permanently
+            const errorMsg = String(error instanceof Error ? error.message : error).toLowerCase();
+            const errorObj = asObject(error);
+            const status = typeof errorObj?.status === 'number' ? errorObj.status : 0;
+
+            if (status === 401 || errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+                // Silent stop on 401 - no console spam
+                if (!stopAllActivityRef.current) {
+                    console.info('[Presence] Unauthorized detected - stopping heartbeat');
+                    stopAllActivityRef.current = true;
+                }
+                setCurrentUser((prev) => (prev.online ? { ...prev, online: false } : prev)); // Only update if changed
+                return; // Stop immediately without rescheduling
+            }
+
+            // Reduced logging for non-401 errors (skip timeout errors - they're expected in dev)
             presenceFailureCountRef.current += 1;
-            if (presenceFailureCountRef.current === 1) {
-                console.warn('Presence heartbeat failed', error);
+            if (!isTimeout && presenceFailureCountRef.current <= 2) {
+                console.warn('[Presence] heartbeat error', error);
             }
         } finally {
             try {
-                if (pendingWarnTimeout) clearTimeout(pendingWarnTimeout);
                 if (timeoutHandle) clearTimeout(timeoutHandle);
             } catch {
                 // ignore
@@ -312,15 +348,19 @@ export const useAuth = (
         };
 
         const computeDelayMs = () => {
-            const base = 30_000;
+            const base = PRESENCE_HEARTBEAT_INTERVAL_MS;
             const backoff = Math.min(5 * 60_000, base * Math.pow(2, presenceFailureCountRef.current));
             return Math.max(base, backoff);
         };
 
         const tick = async () => {
             if (cancelled) return;
+            if (stopAllActivityRef.current) {
+                return; // Permanently stop the loop - silent
+            }
             await sendPresenceHeartbeat();
             if (cancelled) return;
+            if (stopAllActivityRef.current) return; // Check again after heartbeat
 
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
                 scheduleNext(60_000);
@@ -364,15 +404,40 @@ export const useAuth = (
             if (!orgSlug) {
                 throw new Error('Missing orgSlug');
             }
+            // Check if unauthorized - stop immediately
+            if (stopAllActivityRef.current) {
+                throw new Error('Queries disabled due to unauthorized state');
+            }
             return getNexusMe({ orgId: orgSlug });
         },
-        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug && !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id)))),
+        enabled: Boolean(
+            isClerkLoaded &&
+            clerkUser &&
+            clerkUserId && // Ensure Clerk user ID exists
+            orgSlug &&
+            !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) &&
+            !stopAllActivityRef.current
+        ),
         staleTime: 30_000,
         refetchInterval: () => {
+            if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
-            return 60_000;
+            return 90_000; // Increased from 60s to 90s (less aggressive)
         },
-        retry: 1,
+        retry: (failureCount, error) => {
+            // Detect 401 and stop retries
+            const errorObj = asObject(error);
+            const status = typeof errorObj?.status === 'number' ? errorObj.status : 0;
+            const errorMsg = String(error instanceof Error ? error.message : error).toLowerCase();
+            if (status === 401 || errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+                if (!stopAllActivityRef.current) {
+                    console.info('[Query:me] Unauthorized - stopping all queries');
+                    stopAllActivityRef.current = true;
+                }
+                return false; // Don't retry on 401
+            }
+            return failureCount < 1;
+        },
     });
 
     const usersQuery = useQuery({
@@ -381,15 +446,39 @@ export const useAuth = (
             if (!orgSlug) {
                 throw new Error('Missing orgSlug');
             }
+            // Check if unauthorized - stop immediately
+            if (stopAllActivityRef.current) {
+                throw new Error('Queries disabled due to unauthorized state');
+            }
             return listNexusUsers({ orgId: orgSlug });
         },
-        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug),
+        enabled: Boolean(
+            isClerkLoaded &&
+            clerkUser &&
+            clerkUserId && // Ensure Clerk user ID exists
+            orgSlug &&
+            !stopAllActivityRef.current
+        ),
         staleTime: 30_000,
         refetchInterval: () => {
+            if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
-            return 60_000;
+            return 90_000; // Increased from 60s to 90s (less aggressive)
         },
-        retry: 1,
+        retry: (failureCount, error) => {
+            // Detect 401 and stop retries
+            const errorObj = asObject(error);
+            const status = typeof errorObj?.status === 'number' ? errorObj.status : 0;
+            const errorMsg = String(error instanceof Error ? error.message : error).toLowerCase();
+            if (status === 401 || errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+                if (!stopAllActivityRef.current) {
+                    console.info('[Query:users] Unauthorized - stopping all queries');
+                    stopAllActivityRef.current = true;
+                }
+                return false; // Don't retry on 401
+            }
+            return failureCount < 1;
+        },
     });
 
     useEffect(() => {
@@ -584,18 +673,22 @@ export const useAuth = (
                 addToast('חסר ארגון פעיל', 'error');
                 return;
             }
+
             try {
+                // CRITICAL: Get GPS location FIRST before any UI changes
                 const location = await getLocation();
+
+                // Call API and wait for success
                 const res = await punchIn(orgSlug, undefined, location);
+
+                // Update UI ONLY after successful API response
                 await refreshTimeEntries();
+
+                // Show success toast ONLY after everything succeeded
                 addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!', 'success');
             } catch (e: unknown) {
                 const msg = String(e instanceof Error ? e.message : e);
-                if (msg.toLowerCase().includes('denied')) {
-                    addToast('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת', 'error');
-                } else {
-                    addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
-                }
+                addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
             }
         })();
     };
@@ -610,18 +703,22 @@ export const useAuth = (
                 addToast('אין משמרת פעילה לסגירה.', 'info');
                 return;
             }
+
             try {
+                // CRITICAL: Get GPS location FIRST before any UI changes
                 const location = await getLocation();
+
+                // Call API and wait for success
                 const res = await punchOut(orgSlug, undefined, location);
+
+                // Update UI ONLY after successful API response
                 await refreshTimeEntries();
+
+                // Show success toast ONLY after everything succeeded
                 addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!', 'info');
             } catch (e: unknown) {
                 const msg = String(e instanceof Error ? e.message : e);
-                if (msg.toLowerCase().includes('denied')) {
-                    addToast('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת', 'error');
-                } else {
-                    addToast(msg || 'שגיאה ביציאה ממשמרת', 'error');
-                }
+                addToast(msg || 'שגיאה ביציאה ממשמרת', 'error');
             }
         })();
     };

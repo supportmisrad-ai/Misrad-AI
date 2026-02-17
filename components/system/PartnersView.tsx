@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { 
     Network, Users, Link, DollarSign, Trophy, Copy, 
     ExternalLink, Share2, TrendingUp, Gift, UserPlus, 
-    ArrowRight, Wallet, Percent, CheckCircle
+    ArrowRight, Wallet, Percent, CircleCheck
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 
@@ -185,7 +185,7 @@ const PartnersView: React.FC = () => {
                                                 </span>
                                             ) : (
                                                 <span className="text-emerald-600 font-bold text-xs flex items-center gap-1">
-                                                    <CheckCircle size={12} /> שולם
+                                                    <CircleCheck size={12} /> שולם
                                                 </span>
                                             )}
                                         </td>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Lead } from './system/types';
-import { Sparkles, Target, Zap, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, Target, Zap, TrendingUp, CircleAlert, RefreshCw } from 'lucide-react';
 
 interface LeadScoringToolProps {
   lead: Lead;
@@ -41,7 +41,7 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
       });
 
       const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-      const result = data?.result as Record<string, unknown> | undefined;
+      const result = (data?.result && typeof data.result === 'object' ? data.result : {}) as Record<string, unknown>;
       setVerdict(String(result?.summary || 'לא ניתן לייצר פסק דין כרגע.'));
     } catch (error) {
       console.error("Scoring analysis failed:", error);

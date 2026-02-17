@@ -69,7 +69,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     },
   });
 
-  return orgs.map((o) => ({
+  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null }) => ({
     id: String(o.id),
     slug: String(o.slug || o.id),
     name: String(o.name || 'Workspace'),

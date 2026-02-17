@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Clock, History, MapPin, CheckCircle2, Users, ArrowRight, Star, AlertCircle, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
+import { Clock, History, MapPin, CircleCheckBig, Users, ArrowRight, Star, CircleAlert, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Priority, Status, TimeEntry, User } from '../types';
 import { PRIORITY_LABELS } from '../constants';
@@ -251,7 +251,7 @@ export const TimeClockView: React.FC = () => {
                         <p className="text-[10px] text-gray-400 mt-1">מתוך {users.length} עובדים</p>
                     </div>
                     <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl">
-                        <CheckCircle2 size={32} />
+                        <CircleCheckBig size={32} />
                     </div>
                 </div>
             </div>
@@ -366,7 +366,11 @@ export const TimeClockView: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 font-mono text-gray-600">{formatTime(entry.startTime)}</td>
                                         <td className="px-6 py-4 text-xs">
-                                            {startMapUrl ? (
+                                            {entry?.startCity ? (
+                                                <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                    <MapPin size={14} className="text-blue-500" /> {entry.startCity}
+                                                </span>
+                                            ) : startMapUrl ? (
                                                 <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
                                                     <MapPin size={14} /> הצג
                                                 </a>
@@ -376,7 +380,11 @@ export const TimeClockView: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 font-mono text-gray-600">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
                                         <td className="px-6 py-4 text-xs">
-                                            {endMapUrl ? (
+                                            {entry?.endCity ? (
+                                                <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                    <MapPin size={14} className="text-blue-500" /> {entry.endCity}
+                                                </span>
+                                            ) : endMapUrl ? (
                                                 <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
                                                     <MapPin size={14} /> הצג
                                                 </a>

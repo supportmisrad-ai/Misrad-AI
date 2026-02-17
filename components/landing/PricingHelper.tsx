@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ArrowRight, HelpCircle, X, Sparkles, MessageSquare, Send } from 'lucide-react';
+import { ArrowRight, CircleHelp, X, Sparkles, MessageSquare, Send } from 'lucide-react';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 
@@ -160,7 +160,7 @@ export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (
           onClick={() => setStep('q1')}
           className="group inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 text-violet-700 text-sm font-black hover:from-violet-100 hover:to-indigo-100 hover:border-violet-300 hover:shadow-lg transition-all"
         >
-          <HelpCircle size={16} className="group-hover:rotate-12 transition-transform" />
+          <CircleHelp size={16} className="group-hover:rotate-12 transition-transform" />
           לא בטוח מה מתאים לי?
         </button>
         <button

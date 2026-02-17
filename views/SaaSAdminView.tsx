@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Shield, LayoutGrid, Lock, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image as ImageIcon, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
+import { Shield, LayoutGrid, Lock, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
 import { Tenant, GeneratedReport, ModuleId, SystemScreenStatus, Product } from '../types';
 import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
@@ -761,7 +761,7 @@ export const SaaSAdminView: React.FC = () => {
                                 { id: 'pricing' as LandingTab, label: 'חבילות דפי הנחיתה', icon: Package },
                                 { id: 'payment_links' as LandingTab, label: 'תשלום / קישורי סליקה', icon: ExternalLink },
                                 { id: 'videos' as LandingTab, label: 'סרטוני דף הנחיתה', icon: Video },
-                                { id: 'logo' as LandingTab, label: 'לוגו דף הנחיתה', icon: ImageIcon },
+                                { id: 'logo' as LandingTab, label: 'לוגו דף הנחיתה', icon: Image },
                                 { id: 'branding' as LandingTab, label: 'מיתוג גלובלי (White Label)', icon: ShieldCheck },
                                 { id: 'partners' as LandingTab, label: 'לוגואים של שותפים', icon: Building2 },
                                 { id: 'founder' as LandingTab, label: 'תמונת המייסד', icon: UserCheck },

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-    Webhook, Lock, Activity, Database, Server, CircleCheck, CircleX, 
+    Webhook, Lock, SquareActivity, Database, Server, CircleCheck, CircleX, 
     Clock, Zap, ArrowRight, Code2, ShieldCheck, RefreshCw, Cpu, 
     Link, MessageSquare, Mail, Smartphone, Globe, Settings2, Plus, ExternalLink
 } from 'lucide-react';
@@ -61,7 +61,7 @@ const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
               <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm min-w-[140px]">
                   <div className="text-xs text-slate-400 font-bold uppercase mb-1">זמינות שרת API</div>
                   <div className="text-xl font-mono font-bold text-emerald-600 flex items-center gap-2">
-                      99.98% <Activity size={16} className="text-emerald-500" />
+                      99.98% <SquareActivity size={16} className="text-emerald-500" />
                   </div>
               </div>
           </div>
@@ -138,7 +138,7 @@ const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
                  {logs.length === 0 ? (
                      <div className="flex flex-col items-center justify-center h-[400px] text-slate-600 font-mono">
                          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/5">
-                            <Activity size={32} className="opacity-40 animate-pulse" />
+                            <SquareActivity size={32} className="opacity-40 animate-pulse" />
                          </div>
                          <p className="text-sm">Listening for incoming events...</p>
                          <p className="text-[10px] mt-2 opacity-50">Endpoint: https://api.nexus.os/v1/webhook</p>

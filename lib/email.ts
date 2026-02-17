@@ -65,7 +65,7 @@ function generateSupportTicketReceivedEmailHTML(params: {
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:16px;">${greeting}</div>
         
         <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.checkCircle}
+            ${EmailTemplateComponents.Icons.CircleCheck}
         </div>
         
         <div style="font-size:17px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
@@ -1171,6 +1171,137 @@ export async function sendTenantInvitationEmail(
             });
         } else {
             console.error('[Email] Error sending invitation email');
+        }
+        return { success: false, error: message || 'Unknown error' };
+    }
+}
+
+/**
+ * Generate HTML email template for trial expiry warning
+ */
+function generateTrialExpiryWarningEmailHTML(params: {
+    organizationName: string;
+    ownerName?: string | null;
+    daysRemaining: number;
+    portalUrl: string;
+}): string {
+    const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
+    const urgencyColor = params.daysRemaining <= 1 ? '#ef4444' : params.daysRemaining <= 3 ? '#f59e0b' : '#6366f1';
+    const urgencyText = params.daysRemaining === 1 ? 'מחר' : `בעוד ${params.daysRemaining} ימים`;
+
+    const bodyContent = `
+        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+
+        <div style="text-align:center;margin:32px 0;">
+            ${EmailTemplateComponents.Icons.support}
+        </div>
+
+        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
+            תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+            <br />
+            תסתיים <strong style="color:${urgencyColor};">${urgencyText}</strong>
+        </div>
+
+        ${EmailTemplateComponents.generateInfoBox({
+            title: 'מה קורה אחרי סיום תקופת הניסיון?',
+            content: 'הגישה למערכת תיחסם עד להשלמת התשלום.\nכל הנתונים שלך נשמרים ויחזרו מיד לאחר חידוש המנוי.',
+            backgroundColor: params.daysRemaining <= 3 ? '#fff7ed' : '#f0f9ff',
+            borderColor: params.daysRemaining <= 3 ? '#fed7aa' : '#bae6fd',
+        })}
+
+        ${EmailTemplateComponents.generateCTAButton({
+            text: 'השלמת תשלום ומעבר לתוכנית בתשלום',
+            url: params.portalUrl,
+        })}
+
+        <div style="margin:32px 0;padding:24px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border-radius:16px;border:2px solid #a7f3d0;">
+            <div style="font-size:16px;font-weight:900;color:#065f46;margin-bottom:12px;text-align:center;">
+                צריך עזרה?
+            </div>
+            <div style="font-size:14px;color:#047857;line-height:1.7;text-align:center;">
+                אנחנו כאן בשבילך! פשוט השב למייל הזה או צור קשר דרך הפורטל.
+            </div>
+        </div>
+
+        <div style="margin-top:32px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
+            <div style="font-size:12px;color:#64748b;line-height:1.6;">
+                כדי לשמור על הרצף והגישה למערכת, מומלץ להשלים את התשלום בהקדם
+            </div>
+        </div>
+    `;
+
+    return generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: `תקופת הניסיון מסתיימת ${urgencyText}`,
+        headerGradient: `linear-gradient(135deg, ${urgencyColor} 0%, ${params.daysRemaining <= 3 ? '#dc2626' : '#4f46e5'} 100%)`,
+        headerIcon: EmailTemplateComponents.Icons.support,
+        bodyContent,
+        showSocialLinks: true,
+        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+    });
+}
+
+/**
+ * Send trial expiry warning email
+ */
+export async function sendTrialExpiryWarningEmail(params: {
+    toEmail: string;
+    organizationName: string;
+    ownerName?: string | null;
+    daysRemaining: number;
+    portalUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const resend = getResendClient();
+        if (!resend) {
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping trial expiry warning');
+            return { success: false, error: 'Email service not configured' };
+        }
+
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(params.toEmail);
+        const html = generateTrialExpiryWarningEmailHTML(params);
+
+        const urgencyPrefix = params.daysRemaining === 1 ? '🚨 מחר!' : params.daysRemaining <= 3 ? '⚠️' : '';
+        const subject = `${urgencyPrefix} תקופת הניסיון שלך מסתיימת בעוד ${params.daysRemaining} ימים`;
+
+        const { data, error } = await resend.emails.send({
+            from: fromEmail,
+            to: toEmail,
+            subject,
+            html,
+        });
+
+        if (error) {
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (trial-expiry-warning):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (trial-expiry-warning)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
+        }
+
+        console.log('[Email] Trial expiry warning email sent successfully:', {
+            emailId: data?.id,
+            organizationName: params.organizationName,
+            daysRemaining: params.daysRemaining,
+        });
+
+        return { success: true };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending trial expiry warning email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending trial expiry warning email');
         }
         return { success: false, error: message || 'Unknown error' };
     }

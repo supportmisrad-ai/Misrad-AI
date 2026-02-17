@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Briefcase, X, Activity as ActivityIcon, Clock, Gauge, AlertCircle, ExternalLink, Presentation, Layers, UserX, RotateCcw } from 'lucide-react';
-import { Lead, Activity } from './types';
+import { Briefcase, X, SquareActivity as ActivityIcon, Clock, Gauge, CircleAlert, ExternalLink, Presentation, Layers, UserX, RotateCcw } from 'lucide-react';
+import { Lead, SquareActivity } from './types';
 import { useCallAnalysis } from './contexts/CallAnalysisContext';
 import { useToast } from './contexts/ToastContext';
 import { StubComponent } from './stubs/StubComponent';
@@ -10,7 +10,7 @@ import { StubComponent } from './stubs/StubComponent';
 interface LeadBusinessSideProps {
     lead: Lead;
     onClose: () => void;
-    onAddActivity: (leadId: string, activity: Activity) => void;
+    onAddActivity: (leadId: string, SquareActivity: SquareActivity) => void;
     onStatusChange?: (id: string, status: unknown) => void;
     onOpenClientPortal?: () => void;
 }
@@ -30,7 +30,7 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
     const handleChurn = () => {
         const reason = window.prompt('ציין סיבת ביטול/נטישה:');
         if (reason !== null) {
-            const churnActivity: Activity = {
+            const churnActivity: SquareActivity = {
                 id: Date.now().toString(),
                 type: 'system',
                 content: `🚨 הלקוח ביטל התקשרות. סיבה: ${reason || 'לא צוינה'}`,
@@ -45,7 +45,7 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
     const handleManualRefund = () => {
         const amount = window.prompt('הכנס סכום להחזר (₪):');
         if (amount && !isNaN(Number(amount))) {
-            const refundActivity: Activity = {
+            const refundActivity: SquareActivity = {
                 id: Date.now().toString(),
                 type: 'financial',
                 content: `💰 בוצע החזר כספי ידני על סך ₪${Number(amount).toLocaleString()}`,
@@ -133,7 +133,7 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
                             <div className="relative pt-2">
                                 <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1"><span>שעות שנשרפו</span><span>{loggedHours} / {budgetHours}</span></div>
                                 <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all duration-1000 ${burnRate > 90 ? 'bg-red-500' : burnRate > 75 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${burnRate}%` }}></div></div>
-                                {isBleeding && <div className="mt-2 text-[10px] text-red-300 flex items-center gap-1 animate-pulse"><AlertCircle size={10} /> חריגה מהתקציב!</div>}
+                                {isBleeding && <div className="mt-2 text-[10px] text-red-300 flex items-center gap-1 animate-pulse"><CircleAlert size={10} /> חריגה מהתקציב!</div>}
                             </div>
                         </div>
                     </div>

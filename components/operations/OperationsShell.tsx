@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AppWindow, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
+import { SquareMousePointer, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -281,7 +281,7 @@ export default function OperationsShell({
           {
             id: 'menu',
             label: 'תפריט',
-            icon: AppWindow,
+            icon: SquareMousePointer,
             active: isMobileMenuOpen,
             onClick: () => setIsMobileMenuOpen(true),
           },

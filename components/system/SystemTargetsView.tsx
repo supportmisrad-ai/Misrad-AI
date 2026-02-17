@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Lead } from './types';
-import { Target, TrendingUp, Calendar, Trophy, AlertCircle } from 'lucide-react';
+import { Target, TrendingUp, Calendar, Trophy, CircleAlert } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -83,7 +83,7 @@ const SystemTargetsView: React.FC<SystemTargetsViewProps> = ({ leads }) => {
                     {isOnTrack ? (
                         <Trophy className="text-emerald-500" size={24} />
                     ) : (
-                        <AlertCircle className="text-amber-500" size={24} />
+                        <CircleAlert className="text-amber-500" size={24} />
                     )}
                 </div>
                 <div className="space-y-2">

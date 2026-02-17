@@ -3,8 +3,8 @@
 import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
-  Activity,
-  AlertTriangle,
+  SquareActivity,
+  TriangleAlert,
   Bell,
   Brain,
   Building2,
@@ -112,7 +112,7 @@ function HeavySocialAdminPanelInner() {
     return (
       <div className="w-full flex items-center justify-center py-16">
         <div className="text-center p-12 bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl max-w-md border border-indigo-100">
-          <AlertTriangle className="w-16 h-16 text-rose-500 mx-auto mb-6" />
+          <TriangleAlert className="w-16 h-16 text-rose-500 mx-auto mb-6" />
           <h2 className="text-2xl font-black text-slate-900 mb-4">גישה נדחתה</h2>
           <p className="text-slate-600 mb-6">אין לך הרשאה לגשת לפאנל ניהול המערכת.</p>
           <Button
@@ -138,7 +138,7 @@ function HeavySocialAdminPanelInner() {
     { id: 'recycle', label: 'פריטים שנמחקו', icon: Trash2 },
     { id: 'intelligence', label: 'ניתוחים', icon: Brain },
     { id: 'flags', label: 'הגדרות', icon: Flag },
-    { id: 'system', label: 'מצב מערכת', icon: Activity },
+    { id: 'system', label: 'מצב מערכת', icon: SquareActivity },
     { id: 'maintenance', label: 'תחזוקה', icon: Wrench },
     { id: 'cms', label: 'תוכן האתר', icon: FileText },
     { id: 'navigation', label: 'תפריט ניווט', icon: Settings },

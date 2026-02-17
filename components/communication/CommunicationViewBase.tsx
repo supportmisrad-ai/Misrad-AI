@@ -3,10 +3,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  AlertCircle,
+  CircleAlert,
   CalendarPlus,
   Check,
-  CheckCheck,
   CloudLightning,
   FileText,
   Globe,
@@ -57,7 +56,7 @@ export type {
 
 export interface CommunicationViewBaseProps {
   leads: CommunicationLead[];
-  onAddActivity: (leadId: string, activity: CommunicationActivity) => void;
+  onAddActivity: (leadId: string, SquareActivity: CommunicationActivity) => void;
   onUpdateLead?: (leadId: string, updates: Partial<CommunicationLead>) => void;
   onAddTask?: (task: CommunicationTask) => void;
   initialTab?: 'phone' | 'inbox';
@@ -576,7 +575,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                               onClick={() => handleUpdateStatus('lost')}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-colors text-xs font-bold text-right"
                             >
-                              <AlertCircle size={16} /> סגור כ"לא רלוונטי"
+                              <CircleAlert size={16} /> סגור כ"לא רלוונטי"
                             </button>
                           </div>
                         </div>
@@ -645,7 +644,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                                     ) : sendingStatus[msg.id] === 'sent' ? (
                                       <Check size={12} />
                                     ) : (
-                                      <CheckCheck size={12} className="text-blue-400" />
+                                      <Check size={12} className="text-blue-400" />
                                     )}
                                   </div>
                                 )}

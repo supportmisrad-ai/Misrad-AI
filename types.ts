@@ -358,9 +358,11 @@ export interface TimeEntry {
     startLat?: number;
     startLng?: number;
     startAccuracy?: number | null;
+    startCity?: string;
     endLat?: number;
     endLng?: number;
     endAccuracy?: number | null;
+    endCity?: string;
     // Audit Trail Fields
     voidReason?: string; 
     voidedBy?: string;
@@ -569,6 +571,7 @@ export interface Tenant {
     name: string;
     ownerEmail: string;
     subdomain: string; // NEW: Critical for real SaaS
+    slug?: string; // Alias for subdomain
     plan: string; // Linked to Product Name
     status: 'Active' | 'Trial' | 'Churned' | 'Provisioning'; // Added Provisioning status
     joinedAt: string;

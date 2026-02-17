@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Fingerprint, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Scan, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useSignIn, useSignUp, useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { translateClerkError } from '@/lib/errorTranslations';
@@ -542,7 +542,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             disabled={isLoading}
             className="w-full bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-[24px] font-black text-lg shadow-sm hover:shadow-md hover:border-blue-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Fingerprint size={24} />
+            <Scan size={24} />
             כניסה עם טביעת אצבע
           </button>
         )}

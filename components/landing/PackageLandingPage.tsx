@@ -4,7 +4,7 @@ import { Footer } from '@/components/landing/Footer';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 import { PackageCTAButtons } from '@/components/landing/PackageCTAButtons';
-import { Users, AlertTriangle, CheckCircle2, Play, ArrowLeft, Sparkles, Gift } from 'lucide-react';
+import { Users, TriangleAlert, CircleCheckBig, Play, ArrowLeft, Sparkles, Gift } from 'lucide-react';
 
 export type PackageLandingBullet = {
   title: string;
@@ -113,7 +113,7 @@ export default function PackageLandingPage({
               <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-600 flex items-center justify-center text-white flex-shrink-0">
-                    <AlertTriangle size={18} className="sm:w-5 sm:h-5" />
+                    <TriangleAlert size={18} className="sm:w-5 sm:h-5" />
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-500">הבעיה שאנחנו פותרים</div>
@@ -149,7 +149,7 @@ export default function PackageLandingPage({
                     <div key={b.title} className="group rounded-2xl sm:rounded-3xl bg-white border border-slate-200 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${bulletGradients[i % bulletGradients.length]} flex items-center justify-center text-white shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                          <CheckCircle2 size={18} className="sm:w-5 sm:h-5" />
+                          <CircleCheckBig size={18} className="sm:w-5 sm:h-5" />
                         </div>
                         <div>
                           <div className="text-base sm:text-lg font-black text-slate-900">{b.title}</div>

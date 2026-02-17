@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LifeBuoy, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Mail, Calendar, MessageSquare, RefreshCw, Eye, Edit2, AlertTriangle } from 'lucide-react';
+import { LifeBuoy, Clock, CircleCheckBig, CircleX, CircleAlert, Search, Filter, User, Mail, Calendar, MessageSquare, RefreshCw, Eye, Edit2, TriangleAlert } from 'lucide-react';
 import { SupportTicket, SupportTicketEvent } from '@/types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
@@ -155,10 +155,10 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'open': return { color: 'bg-blue-500/10 text-blue-700 border-blue-500/20', icon: Clock, label: 'פתוח' };
-            case 'in_progress': return { color: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20', icon: AlertCircle, label: 'בטיפול' };
+            case 'in_progress': return { color: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20', icon: CircleAlert, label: 'בטיפול' };
             case 'waiting_for_customer': return { color: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20', icon: Mail, label: 'ממתין ללקוח' };
-            case 'resolved': return { color: 'bg-green-500/10 text-green-700 border-green-500/20', icon: CheckCircle2, label: 'נפתר' };
-            case 'closed': return { color: 'bg-slate-500/10 text-slate-700 border-slate-300/60', icon: XCircle, label: 'סגור' };
+            case 'resolved': return { color: 'bg-green-500/10 text-green-700 border-green-500/20', icon: CircleCheckBig, label: 'נפתר' };
+            case 'closed': return { color: 'bg-slate-500/10 text-slate-700 border-slate-300/60', icon: CircleX, label: 'סגור' };
             default: return { color: 'bg-slate-500/10 text-slate-700 border-slate-300/60', icon: Clock, label: status };
         }
     };
@@ -243,7 +243,7 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                             <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.in_progress}</h3>
                         </div>
                         <div className="p-3 bg-yellow-500/10 text-yellow-600 rounded-xl border border-yellow-500/20 backdrop-blur-sm">
-                            <AlertCircle size={20} />
+                            <CircleAlert size={20} />
                         </div>
                     </div>
                 </div>
@@ -265,7 +265,7 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                             <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.resolved}</h3>
                         </div>
                         <div className="p-3 bg-green-500/10 text-green-600 rounded-xl border border-green-500/20 backdrop-blur-sm">
-                            <CheckCircle2 size={20} />
+                            <CircleCheckBig size={20} />
                         </div>
                     </div>
                 </div>
@@ -352,7 +352,7 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                                 return {
                                     label: 'SLA איחור',
                                     className: 'bg-rose-100 text-rose-800 border-rose-300',
-                                    icon: AlertTriangle,
+                                    icon: TriangleAlert,
                                 };
                             }
 
@@ -579,7 +579,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                         size="icon"
                         className="h-10 w-10 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
                     >
-                        <XCircle size={20} />
+                        <CircleX size={20} />
                     </Button>
                 </div>
 

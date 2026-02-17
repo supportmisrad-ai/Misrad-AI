@@ -75,6 +75,12 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     });
   }
 
+  // Check if organization trial has expired and redirect to trial-expired page
+  if (!isSuperAdmin && org.subscription_status === 'expired') {
+    const { redirect } = await import('next/navigation');
+    redirect('/app/trial-expired');
+  }
+
   let entitlements = await getOrganizationEntitlements(
     String(org.id),
     isSuperAdmin ? undefined : socialUser?.id ?? undefined,
@@ -128,6 +134,11 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
       socialUserId: String(socialUser.id),
       now: new Date(),
     });
+  }
+
+  // Check if organization trial has expired (for API routes)
+  if (!isSuperAdmin && org.subscription_status === 'expired') {
+    throw setErrorStatus(new Error('Trial expired'), 402); // 402 Payment Required
   }
 
   let entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org);

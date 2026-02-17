@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CheckCircle, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, PinIcon, MessageSquare, Briefcase, DollarSign, Clock, AlertTriangle, Sparkles, Zap } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CircleCheck, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Pin, MessageSquare, Briefcase, DollarSign, Clock, TriangleAlert, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform, Client } from '@/types/social';
@@ -18,7 +18,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   whatsapp: MessageCircle,
   threads: Share2,
   youtube: Video,
-  pinterest: PinIcon,
+  pinterest: Pin,
   portal: MessageSquare
 };
 
@@ -173,7 +173,7 @@ export default function Analytics() {
                      </div>
                   </div>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isHealthy ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                    {isHealthy ? <TrendingUp size={24}/> : <AlertTriangle size={24}/>}
+                    {isHealthy ? <TrendingUp size={24}/> : <TriangleAlert size={24}/>}
                   </div>
                </div>
 
@@ -292,7 +292,7 @@ export default function Analytics() {
                         className={`w-full text-right px-6 py-4 text-sm font-bold transition-all flex items-center justify-between group ${period === p ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`}
                       >
                         {p}
-                        {period === p && <CheckCircle size={14} className="text-blue-600" />}
+                        {period === p && <CircleCheck size={14} className="text-blue-600" />}
                       </button>
                    ))}
                 </motion.div>

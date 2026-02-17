@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar, Sparkles, Shield, Star, Briefcase, Play } from 'lucide-react';
+import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, SquareActivity, DollarSign, Clock, Zap, Globe, CalendarDays, CircleUser, Video, Calendar, Sparkles, Shield, Star, Briefcase, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { ClientOSDemo } from '@/components/landing/demos/ClientOSDemo';
@@ -57,7 +57,7 @@ export default function ClientOSPage() {
                 { text: 'פורטל לקוח', icon: Globe, desc: 'לקוחות נכנסים לראות מידע, משימות וקבצים' },
                 { text: 'ניהול קבוצות', icon: Users, desc: 'ארגון לקוחות בקבוצות וצוותי עבודה' },
                 { text: 'ניהול פגישות', icon: CalendarDays, desc: 'תזמון פגישות, מעקב וניתוח אינטליגנטי של פגישות' },
-                { text: 'ניהול משימות', icon: UserCircle, desc: 'מעקב אחר משימות, תהליכים ותיעוד עבודה' },
+                { text: 'ניהול משימות', icon: CircleUser, desc: 'מעקב אחר משימות, תהליכים ותיעוד עבודה' },
               ].map((item, i) => (
                 <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 hover:border-[#C5A572]/30 hover:bg-slate-50 transition-all text-right shadow-sm">
                   <div className="flex items-start gap-2">
@@ -356,7 +356,7 @@ export default function ClientOSPage() {
               {
                 title: 'מעקב מתאמנים',
                 desc: 'מעקב אחר התקדמות, משימות אישיות ותוכניות אימון מותאמות',
-                icon: UserCircle
+                icon: CircleUser
               },
               {
                 title: 'סנכרון Google Calendar',

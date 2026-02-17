@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Plus, RefreshCw, User, Clock, X, Check, AlertCircle, Edit2, Trash2, Filter, Ban, MessageCircle } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, User, Clock, X, Check, CircleAlert, Edit2, Trash2, Filter, Ban, MessageCircle } from 'lucide-react';
 import { LeaveRequest, LeaveRequestType, LeaveRequestStatus } from '../../../types';
 import { LeaveRequestModal } from './LeaveRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
@@ -515,7 +515,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                                             </span>
                                             {Boolean(metadata['isUrgent']) && (
                                                 <span className="text-xs px-2 py-1 rounded-full font-bold bg-amber-100 text-amber-700 flex items-center gap-1">
-                                                    <AlertCircle size={12} />
+                                                    <CircleAlert size={12} />
                                                     דחוף
                                                 </span>
                                             )}

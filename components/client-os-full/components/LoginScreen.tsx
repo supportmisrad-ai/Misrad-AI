@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { ArrowLeft, Lock, ChevronLeft, Star, Shield, Zap, CheckCircle2, Menu } from 'lucide-react';
+import { ArrowLeft, Lock, ChevronLeft, Star, Shield, Zap, CircleCheckBig, Menu } from 'lucide-react';
 
 interface LoginScreenProps {
   onLogin: () => void;

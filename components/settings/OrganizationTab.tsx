@@ -1,8 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion } from 'framer-motion';
-import { Building2, Trash2, Lock, Upload, Image as ImageIcon } from 'lucide-react';
+import { Building2, Upload, Loader2, X, Image, Trash2, Lock } from 'lucide-react';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { usePathname } from 'next/navigation';
 import { getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
@@ -138,7 +137,7 @@ export const OrganizationTab: React.FC = () => {
                                     <img src={organization.logo} alt="Organization Logo" className="w-full h-full object-contain p-4" suppressHydrationWarning />
                                 ) : (
                                     <div className="text-gray-500 flex flex-col items-center gap-2">
-                                        <ImageIcon size={32} />
+                                        <Image size={32} />
                                         <span className="text-[10px] font-bold">אין לוגו</span>
                                     </div>
                                 )}

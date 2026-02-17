@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, Globe, ShoppingCart, Trash2, ImageIcon, Zap } from 'lucide-react';
+import { Plus, X, Globe, ShoppingCart, Trash2, Image, Zap } from 'lucide-react';
 import { AgencyServiceConfig, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
 
@@ -175,7 +175,7 @@ export default function PricingTab({ platformConfigs, setPlatformConfigs, market
               </button>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${addon.category === 'content' ? 'bg-orange-100 text-orange-600' : 'bg-purple-100 text-purple-600'}`}>
-                  {addon.category === 'content' ? <ImageIcon size={24}/> : <Zap size={24}/>}
+                  {addon.category === 'content' ? <Image size={24}/> : <Zap size={24}/>}
                 </div>
                 <div className="flex-1">
                   <h4 className="font-black text-slate-800">{addon.label} {addon.isRecurring && <span className="bg-purple-50 text-purple-600 text-[8px] px-2 py-0.5 rounded-md font-black">חודשי</span>}</h4>

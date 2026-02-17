@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { SocialPost, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
-import { Calendar as CalIcon, Clock, ImageIcon, ExternalLink } from 'lucide-react';
+import { Calendar as CalIcon, Clock, Image, ExternalLink } from 'lucide-react';
 
 interface CalendarTabProps {
   posts: SocialPost[];
@@ -64,7 +64,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ posts }) => {
                         <img src={post.mediaUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-200">
-                          <ImageIcon size={48} />
+                          <Image size={48} />
                         </div>
                       )}
                       <div className="absolute top-4 right-4 flex gap-2">

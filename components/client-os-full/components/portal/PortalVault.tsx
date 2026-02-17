@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Zap, ClipboardList, Upload, FileSignature, RefreshCw, Check, CheckCircle2, ImageIcon, FileText, Download } from 'lucide-react';
+import { Zap, ClipboardList, Upload, FileSignature, RefreshCw, Check, CircleCheckBig, Image, FileText, Download } from 'lucide-react';
 import { ClientAction, ClientAsset } from '../../types';
 
 interface PortalVaultProps {
@@ -78,7 +78,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
             ))}
             {pendingTasks.length === 0 && (
               <div className="p-12 text-center bg-green-50 rounded-[40px] border border-green-100">
-                <CheckCircle2 size={48} className="mx-auto text-green-500 mb-4" />
+                <CircleCheckBig size={48} className="mx-auto text-green-500 mb-4" />
                 <h4 className="text-xl font-bold text-green-800">הכל מעודכן!</h4>
                 <p className="text-green-600 mt-1">אין משימות פתוחות שדורשות את תשומת ליבך כרגע.</p>
               </div>
@@ -88,7 +88,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
 
         <div className="lg:col-span-5 space-y-6">
           <h3 className="font-bold text-xl text-slate-900 mb-4 flex items-center gap-2">
-            <ImageIcon size={22} className="text-slate-300" /> ספריית מסמכים
+            <Image size={22} className="text-slate-300" /> ספריית מסמכים
           </h3>
           <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm divide-y divide-slate-50">
             {clientAssets?.map(asset => (

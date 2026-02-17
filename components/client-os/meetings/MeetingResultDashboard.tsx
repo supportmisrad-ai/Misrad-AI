@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { AILiabilityRisk, AITask, MeetingAnalysisResult } from '../../client-os-full/types';
-import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare, FileText, Share2 } from 'lucide-react';
+import { ArrowLeft, CircleUser, Briefcase, SquareActivity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, TriangleAlert, MessageSquare, Quote, SquareCheck, FileText, Share2 } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 import { motion } from 'framer-motion';
 
@@ -67,7 +67,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                           <div className="space-y-2">
                               <h2 className="text-3xl font-black text-slate-900 tracking-tight">{fileName || 'ניתוח פגישה'}</h2>
                               <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                  <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg"><UserCircle size={14} className="text-slate-300"/> Multi-Participant</span>
+                                  <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg"><CircleUser size={14} className="text-slate-300"/> Multi-Participant</span>
                                   <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
                                   <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg"><Clock size={14} className="text-slate-300"/> 45:00 min</span>
                                   <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
@@ -105,7 +105,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   </div>
                   <div className="ui-card p-6 bg-white flex items-center justify-between group hover:border-primary/20 transition-all">
                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Activity size={22}/></div>
+                          <div className="w-12 h-12 bg-pink-50 text-pink-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><SquareActivity size={22}/></div>
                           <span className="font-black text-slate-900 uppercase text-xs tracking-widest">חמימות</span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -209,7 +209,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                              </div>
                              <p className="text-xl font-serif italic font-bold mb-4 leading-tight">"{risk.quote}"</p>
                              <div className="text-sm font-bold opacity-70 border-t border-current/10 pt-4 flex items-start gap-2">
-                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                <TriangleAlert size={16} className="shrink-0 mt-0.5" />
                                 <span>{risk.context}</span>
                              </div>
                           </div>
@@ -246,14 +246,14 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
               <div className="ui-card p-8 bg-white border border-emerald-50">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                        <UserCircle size={24} className="text-emerald-500"/> משימות לקוח (Client)
+                        <CircleUser size={24} className="text-emerald-500"/> משימות לקוח (Client)
                     </h3>
                     <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-bold uppercase tracking-widest">Waiting for</span>
                   </div>
                   <div className="space-y-4">
                       {analysisResult?.clientTasks.length ? analysisResult.clientTasks.map((t: AITask, i: number) => (
                           <div key={i} className="flex items-center gap-4 p-5 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 group hover:bg-white hover:shadow-lg transition-all duration-300 shadow-inner">
-                              <div className="p-2 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20"><CheckSquare size={16} strokeWidth={3}/></div>
+                              <div className="p-2 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20"><SquareCheck size={16} strokeWidth={3}/></div>
                               <div className="flex-1">
                                   <p className={`text-lg font-bold text-slate-800 ${t.status === 'COMPLETED' ? 'line-through opacity-40' : ''}`}>{t.task}</p>
                                   <p className="text-xs font-black text-emerald-600/60 uppercase tracking-widest mt-1">Pending since: {t.deadline}</p>

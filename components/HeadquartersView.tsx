@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { Task } from './system/types';
-import { Heart, Book, Activity, Lock, Building2, Users } from 'lucide-react';
+import { Heart, Book, SquareActivity, Lock, Building2, Users } from 'lucide-react';
 import HRView from './HRView';
 import KnowledgeBaseView from './KnowledgeBaseView';
 import TrainingView from './TrainingView';
@@ -28,7 +28,7 @@ const HeadquartersView: React.FC<HeadquartersViewProps> = ({ onAddTask, leads = 
                 {[
                     { id: 'hr', label: 'צוות', icon: Users },
                     { id: 'knowledge', label: 'ידע', icon: Book },
-                    { id: 'training', label: 'ניתוח שיחות', icon: Activity },
+                    { id: 'training', label: 'ניתוח שיחות', icon: SquareActivity },
                     { id: 'assets', label: 'נכסים', icon: Lock },
                 ].map(tab => (
                     <button

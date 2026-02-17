@@ -2,7 +2,7 @@
 import React from 'react';
 import { Task, User, Status } from '../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS as DEFAULT_STATUS_COLORS } from '../constants';
-import { CheckCircle2, Circle, AlertCircle, SignalHigh, SignalMedium, SignalLow, CalendarDays, User as UserIcon, Clock, Play, Pause, Mic, Target } from 'lucide-react';
+import { CircleCheckBig, Circle, CircleAlert, SignalHigh, SignalMedium, SignalLow, CalendarDays, User as UserIcon, Clock, Play, Pause, Mic, Target } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useSecondTicker } from '../hooks/useSecondTicker';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -15,7 +15,7 @@ interface TaskItemProps {
 
 const PriorityIcon = ({ priority, className }: { priority: string, className?: string }) => {
   switch (priority) {
-    case 'Urgent': return <AlertCircle size={16} className={className} />;
+    case 'Urgent': return <CircleAlert size={16} className={className} />;
     case 'High': return <SignalHigh size={16} className={className} />;
     case 'Medium': return <SignalMedium size={16} className={className} />;
     case 'Low': return <SignalLow size={16} className={className} />;
@@ -24,7 +24,7 @@ const PriorityIcon = ({ priority, className }: { priority: string, className?: s
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
-    if (status === 'Done') return <CheckCircle2 size={18} className="text-green-500" />;
+    if (status === 'Done') return <CircleCheckBig size={18} className="text-green-500" />;
     if (status === 'Canceled') return <Circle size={18} className="text-gray-300" />;
     if (status === 'In Progress') return <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />;
     if (status === 'Waiting for Review') return <Clock size={18} className="text-orange-400" />;

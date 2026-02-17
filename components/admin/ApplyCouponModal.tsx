@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { X, Tag, Loader2, CheckCircle } from 'lucide-react';
+import { X, Tag, Loader2, CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -191,7 +191,7 @@ export default function ApplyCouponModal({
           {validatedCoupon && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                <CircleCheck className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-green-900 mb-2">✅ קופון תקף!</h3>
                   

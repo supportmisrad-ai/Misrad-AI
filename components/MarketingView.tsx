@@ -4,8 +4,8 @@ import { Campaign, ContentItem } from '../types';
 import { 
     Megaphone, TrendingUp, DollarSign, Users, 
     Play, Pause, Plus, Filter, ArrowUpRight,
-    Zap, Activity, Trash2, Edit, Search, Layers, Lock, Globe, MousePointer, 
-    Clapperboard, FileInput, Network, Link as LinkIcon, CheckCircle2
+    Zap, SquareActivity, Trash2, Edit, Search, Layers, Lock, Globe, MousePointer, 
+    Clapperboard, FileInput, Network, Link as LinkIcon, CircleCheckBig
 } from 'lucide-react';
 import { 
   Tooltip, ResponsiveContainer, Cell, PieChart as RePie, Pie, BarChart, Bar, XAxis, CartesianGrid
@@ -157,7 +157,7 @@ const MarketingView: React.FC<MarketingViewProps> = ({
       const p = platform.toLowerCase();
       if (p.includes('facebook')) return <Globe size={14} className="text-[#1877F2]" />;
       if (p.includes('google')) return <Search size={14} className="text-[#EA4335]" />;
-      if (p.includes('instagram')) return <Activity size={14} className="text-[#E1306C]" />;
+      if (p.includes('instagram')) return <SquareActivity size={14} className="text-[#E1306C]" />;
       if (p.includes('tiktok')) return <span className="font-black text-[10px]">TK</span>;
       if (p.includes('linkedin')) return <Users size={14} className="text-[#0A66C2]" />;
       return <Globe size={14} className="text-slate-500" />;

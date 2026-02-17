@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
-    Bot, Zap, Plus, Save, Trash2, Workflow, CheckCircle2, 
-    ArrowRight, AlertCircle, Clock, CheckSquare, FileText, ChevronDown
+    Bot, Zap, Plus, Save, Trash2, Workflow, CircleCheckBig, 
+    ArrowRight, CircleAlert, Clock, SquareCheck, FileText, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from './contexts/ToastContext';
@@ -41,7 +41,7 @@ interface SimpleAutomation {
 interface AutomationsViewProps {
   leads: Lead[];
   onAddTask: (task: Task) => void;
-  onAddActivity: (leadId: string, activity: unknown) => void;
+  onAddActivity: (leadId: string, SquareActivity: unknown) => void;
   onStatusChange?: (leadId: string, newStatus: PipelineStage) => void;
 }
 
@@ -533,7 +533,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                                   <span className="font-bold text-slate-800 text-sm">{stage.label}</span>
                                 </div>
                                 {formData.trigger.status === stage.id && (
-                                  <CheckCircle2 size={18} className="text-primary shrink-0" />
+                                  <CircleCheckBig size={18} className="text-primary shrink-0" />
                                 )}
                               </button>
                             ))}
@@ -549,7 +549,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
             {/* Action */}
             <div>
               <label className="text-sm font-bold text-slate-700 mb-3 block flex items-center gap-2">
-                <CheckSquare size={16} className="text-primary" />
+                <SquareCheck size={16} className="text-primary" />
                 מה לעשות? (פעולה)
               </label>
               <div className="space-y-3">
@@ -669,7 +669,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                                       {priority.label}
                                     </span>
                                     {formData.action.taskPriority === priority.value && (
-                                      <CheckCircle2 size={18} className="text-primary shrink-0" />
+                                      <CircleCheckBig size={18} className="text-primary shrink-0" />
                                     )}
                                   </button>
                                 ))}

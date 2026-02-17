@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Star, Clock, Link as LinkIcon, CheckCircle, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare, Pencil } from 'lucide-react';
+import { Star, Clock, Link as LinkIcon, CircleCheck, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, Pin, MessageSquare, Pencil } from 'lucide-react';
 import { Client, SocialPlatform } from '@/types/social';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
@@ -14,7 +14,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   whatsapp: MessageCircle,
   threads: Share2,
   youtube: Video,
-  pinterest: PinIcon,
+  pinterest: Pin,
   portal: MessageSquare
 };
 
@@ -133,7 +133,7 @@ export function ClientWorkspaceHeader({
           >
             {isCopyingLink ? (
               <>
-                <CheckCircle size={14}/> הועתק!
+                <CircleCheck size={14}/> הועתק!
               </>
             ) : (
               <>

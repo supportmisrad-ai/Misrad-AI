@@ -8,7 +8,7 @@ import {
   ChevronDown,
   Brain,
   ShieldAlert,
-  PlayCircle,
+  CirclePlay,
   FileText,
   Download,
   ListTodo,
@@ -159,7 +159,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                               className="flex items-center gap-3 p-2 bg-nexus-primary/5 rounded-lg hover:bg-nexus-primary/10 transition-colors group"
                             >
                               <div className="p-1.5 bg-white rounded shadow-sm text-nexus-primary group-hover:text-nexus-accent">
-                                <PlayCircle size={16} />
+                                <CirclePlay size={16} />
                               </div>
                               <div>
                                 <span className="text-xs font-bold text-gray-800 block">הקלטת המפגש המלאה</span>

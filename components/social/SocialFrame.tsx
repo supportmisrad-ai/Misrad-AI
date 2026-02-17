@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
-import { AppWindow, Bell, Calendar, Home, Users } from 'lucide-react';
+import { SquareMousePointer, Bell, Calendar, Home, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import ToastContainer from '@/components/social/ToastContainer';
@@ -210,7 +210,7 @@ export default function SocialFrame({
       className="w-10 h-10 rounded-full bg-white/70 border border-white/60 text-slate-700 flex items-center justify-center shadow-sm"
       aria-label="פתח תפריט"
     >
-      <AppWindow size={18} />
+      <SquareMousePointer size={18} />
     </button>
   );
 
@@ -491,7 +491,7 @@ export default function SocialFrame({
           {
             id: 'menu',
             label: 'תפריט',
-            icon: AppWindow,
+            icon: SquareMousePointer,
             active: isMobileMenuOpen,
             onClick: () => setIsMobileMenuOpen(true),
           },

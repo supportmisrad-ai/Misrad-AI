@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2, AlertOctagon, Info, Check, X } from 'lucide-react';
+import { TriangleAlert, Trash2, OctagonAlert, Info, Check, X } from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -47,7 +47,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
         switch(finalType) {
             case 'danger': 
                 return { 
-                    icon: AlertOctagon, 
+                    icon: OctagonAlert, 
                     color: 'red', 
                     gradient: 'from-red-50 to-red-100', 
                     btn: 'bg-red-600 hover:bg-red-700 shadow-red-200',
@@ -55,7 +55,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
                 };
             case 'warning': 
                 return { 
-                    icon: AlertTriangle, 
+                    icon: TriangleAlert, 
                     color: 'orange', 
                     gradient: 'from-orange-50 to-orange-100', 
                     btn: 'bg-orange-600 hover:bg-orange-700 shadow-orange-200',
@@ -141,7 +141,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
                     {finalType === 'danger' && (
                         <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-full border border-red-100/50 uppercase tracking-wide">
-                            <AlertOctagon size={12} />
+                            <OctagonAlert size={12} />
                             פעולה בלתי הפיכה
                         </div>
                     )}

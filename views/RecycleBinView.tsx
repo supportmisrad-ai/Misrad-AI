@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, RotateCcw, Search, CheckSquare, Briefcase, DollarSign, File, X, Archive, Lightbulb, Users, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, RotateCcw, Search, SquareCheck, Briefcase, DollarSign, File, X, Archive, Lightbulb, Users, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 function asObj(v: unknown): Record<string, unknown> | undefined {
@@ -30,7 +30,7 @@ export const RecycleBinView: React.FC = () => {
     const [itemToDelete, setItemToDelete] = useState<{id: string, name: string} | null>(null);
 
     const tabs = [
-        { id: 'tasks', label: 'משימות', icon: CheckSquare, count: trashTasks.length },
+        { id: 'tasks', label: 'משימות', icon: SquareCheck, count: trashTasks.length },
         { id: 'clients', label: 'לקוחות', icon: Briefcase, count: trashClients.length },
         { id: 'leads', label: 'לידים', icon: DollarSign, count: trashLeads.length },
         { id: 'team', label: 'צוות', icon: Users, count: trashUsers.length },
@@ -230,7 +230,7 @@ export const RecycleBinView: React.FC = () => {
                                     >
                                         <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-0 overflow-hidden">
                                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 border border-gray-100 group-hover:bg-white transition-colors shrink-0">
-                                                {activeTab === 'tasks' && <CheckSquare size={16} className="md:w-[18px] md:h-[18px]" />}
+                                                {activeTab === 'tasks' && <SquareCheck size={16} className="md:w-[18px] md:h-[18px]" />}
                                                 {activeTab === 'clients' && <Briefcase size={16} className="md:w-[18px] md:h-[18px]" />}
                                                 {activeTab === 'leads' && <DollarSign size={16} className="md:w-[18px] md:h-[18px]" />}
                                                 {activeTab === 'assets' && <File size={16} className="md:w-[18px] md:h-[18px]" />}

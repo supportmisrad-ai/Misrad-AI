@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown, Search } from 'lucide-react';
+import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CircleCheckBig, ChevronDown, Search } from 'lucide-react';
 import { Lead, CalendarEvent } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -245,7 +245,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                                 </div>
                                                             </div>
                                                             {formData.leadId === lead.id && (
-                                                                <CheckCircle2 size={18} className="text-primary shrink-0" />
+                                                                <CircleCheckBig size={18} className="text-primary shrink-0" />
                                                             )}
                                                         </button>
                                                     ))
@@ -385,7 +385,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                                 <opt.icon size={16} className={`${reminders.timing === opt.id ? opt.color : 'text-slate-400 group-hover:text-indigo-400'}`} />
                                                                 <span className="text-sm font-bold">{opt.label}</span>
                                                             </div>
-                                                            {reminders.timing === opt.id && <CheckCircle2 size={16} className="text-indigo-600" />}
+                                                            {reminders.timing === opt.id && <CircleCheckBig size={16} className="text-indigo-600" />}
                                                         </button>
                                                     ))}
                                                 </motion.div>

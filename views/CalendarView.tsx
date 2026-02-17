@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, MoreHorizontal, X, Check, AlertTriangle, Calendar, Layout, Trash2, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, MoreHorizontal, X, Check, TriangleAlert, Calendar, Layout, Trash2, ArrowLeft } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Task, Priority, Status, CalendarEvent } from '../types';
 import { AnimatePresence, motion } from 'framer-motion';

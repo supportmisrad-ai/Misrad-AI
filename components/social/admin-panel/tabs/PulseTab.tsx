@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { UserPlus, Users, Wallet, Cpu, AlertCircle, ShieldCheck, XCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { UserPlus, Users, Wallet, Cpu, CircleAlert, ShieldCheck, CircleX, CircleCheckBig, TriangleAlert } from 'lucide-react';
 
 interface PulseTabProps {
   liveKPIs: any;
@@ -64,13 +64,13 @@ export default function PulseTab({ liveKPIs, metrics }: PulseTabProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 p-10 rounded-3xl flex flex-col gap-6 shadow-md">
           <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
-            <AlertCircle className="text-rose-500" size={24}/> שגיאות קריטיות
+            <CircleAlert className="text-rose-500" size={24}/> שגיאות קריטיות
           </h3>
           <div className="flex flex-col gap-4 max-h-96 overflow-y-auto">
             {(liveKPIs?.criticalErrors || []).length > 0 ? (
               liveKPIs.criticalErrors.map((error: any, i: number) => (
                 <div key={i} className="flex items-center gap-4 p-4 bg-rose-50 rounded-xl border border-rose-100">
-                  <XCircle className="text-rose-500 flex-shrink-0" size={20}/>
+                  <CircleX className="text-rose-500 flex-shrink-0" size={20}/>
                   <div className="flex-1">
                     <p className="text-sm font-black text-slate-900">{error.action || 'שגיאה לא ידועה'}</p>
                     <p className="text-[10px] font-bold text-slate-500">{new Date(error.created_at).toLocaleString('he-IL')}</p>
@@ -79,7 +79,7 @@ export default function PulseTab({ liveKPIs, metrics }: PulseTabProps) {
               ))
             ) : (
               <div className="text-center py-8 text-slate-500">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2"/>
+                <CircleCheckBig className="w-12 h-12 text-emerald-500 mx-auto mb-2"/>
                 <p className="font-bold">אין שגיאות קריטיות</p>
               </div>
             )}
@@ -94,7 +94,7 @@ export default function PulseTab({ liveKPIs, metrics }: PulseTabProps) {
             {(liveKPIs?.securityAlerts || []).length > 0 ? (
               liveKPIs.securityAlerts.map((alert: any, i: number) => (
                 <div key={i} className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                  <AlertTriangle className="text-amber-500 flex-shrink-0" size={20}/>
+                  <TriangleAlert className="text-amber-500 flex-shrink-0" size={20}/>
                   <div className="flex-1">
                     <p className="text-sm font-black text-slate-900">{alert.action || 'התראה לא ידועה'}</p>
                     <p className="text-[10px] font-bold text-slate-500">{new Date(alert.created_at).toLocaleString('he-IL')}</p>

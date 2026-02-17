@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, HelpCircle, MessageSquare, Send } from 'lucide-react';
+import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, CircleHelp, MessageSquare, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
@@ -76,7 +76,7 @@ export default function CommandPalette() {
 
   // Define commands list
   const allCommands = [
-    { icon: HelpCircle, label: 'הפעל הדרכת מערכת', action: 'הפעל הדרכה' },
+    { icon: CircleHelp, label: 'הפעל הדרכת מערכת', action: 'הפעל הדרכה' },
     { icon: Sparkles, label: 'צור פוסט חדש', action: 'פוסט חדש' },
     { icon: Users, label: 'הוסף לקוח למערכת', action: 'הוספת לקוח' },
     { icon: Megaphone, label: 'פתח קמפיין פרסום', action: 'קמפיין חדש' },

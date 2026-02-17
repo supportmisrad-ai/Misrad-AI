@@ -908,7 +908,7 @@ export async function createSystemLeadActivity(params: {
   direction?: string | null;
   metadata?: Prisma.InputJsonValue | null;
   recomputeScore?: boolean;
-}): Promise<{ ok: true; activity: SystemLeadActivityDTO; lead?: SystemLeadDTO } | { ok: false; message: string }> {
+}): Promise<{ ok: true; SquareActivity: SystemLeadActivityDTO; lead?: SystemLeadDTO } | { ok: false; message: string }> {
   try {
     const orgSlug = String(params.orgSlug || '').trim();
     const leadId = String(params.leadId || '').trim();
@@ -1000,7 +1000,7 @@ export async function createSystemLeadActivity(params: {
           }
         }
 
-        return { ok: true, activity: toActivityDto(row), lead: leadDto };
+        return { ok: true, SquareActivity: toActivityDto(row), lead: leadDto };
       },
       { source: 'server_actions_system_leads', reason: 'createSystemLeadActivity' }
     );

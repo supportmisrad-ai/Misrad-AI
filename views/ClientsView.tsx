@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
-import { Mail, Phone, ExternalLink, MoreHorizontal, Search, Crown, Users, Plus, LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown, X, Check, ChevronDown, ShoppingBag, PlayCircle, Layers, Globe } from 'lucide-react';
+import { Mail, Phone, ExternalLink, MoreHorizontal, Search, Crown, Users, Plus, LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown, X, Check, ChevronDown, ShoppingBag, CirclePlay, Layers, Globe } from 'lucide-react';
 import { Client } from '../types';
 import { ClientDetailModal } from '../components/ClientDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -342,7 +342,7 @@ export const ClientsView: React.FC = () => {
                                 {/* Onboarding Flow Selection */}
                                 <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                                     <label className="block text-xs font-bold text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                        <PlayCircle size={14} /> הפעלת תהליך קליטה (Playbook)
+                                        <CirclePlay size={14} /> הפעלת תהליך קליטה (Playbook)
                                     </label>
                                     <div className="space-y-2">
                                         {(onboardingTemplates as unknown as Record<string, unknown>[]).map((tplRaw) => {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Client, Status, Priority, Asset, Task, Invoice } from '../types';
 import { useData } from '../context/DataContext';
-import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CheckCircle2, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe } from 'lucide-react';
+import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CircleCheckBig, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TaskItem } from './nexus/TaskItem';
 import { CustomSelect } from './CustomSelect';
@@ -467,7 +467,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                                 </div>
                             ) : (
                                 <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-dashed border-gray-200">
-                                    <CheckCircle2 size={32} className="mx-auto mb-2 opacity-20" />
+                                    <CircleCheckBig size={32} className="mx-auto mb-2 opacity-20" />
                                     <p>אין משימות פתוחות ללקוח זה.</p>
                                 </div>
                             )}

@@ -68,7 +68,7 @@ async function requireTenantOrgAdminOrReturn(
 
   if (!dbUser?.id) return { ok: false, error: 'אין הרשאה' };
 
-  const org = await prisma.social_organizations.findUnique({
+  const org = await prisma.organization.findUnique({
     where: { id: organizationId },
     select: { owner_id: true },
   });
@@ -416,7 +416,7 @@ export async function createSubscriptionOrder(
         try {
           const updated = await prisma.organization.updateMany({
             where: { id: organizationId, partnerId: null },
-            data: { partnerId } satisfies Prisma.social_organizationsUncheckedUpdateManyInput,
+            data: { partnerId } satisfies Prisma.OrganizationUncheckedUpdateManyInput,
           });
 
           if (!updated || updated.count < 1) {

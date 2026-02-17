@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { WorkflowBlueprint, WorkflowStage, WorkflowItem, WorkflowItemType } from '../types';
 import { generateWorkflowBlueprint } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
-import { Sparkles, GitMerge, Plus, Calendar, Clock, Video, MapPin, CheckSquare, Briefcase, FileText, ArrowRight, Play, Box, Edit2, Trash2, Save, X, Layers, LayoutList, Search, UserCheck, ArrowLeft } from 'lucide-react';
+import { Sparkles, GitMerge, Plus, Calendar, Clock, Video, MapPin, SquareCheck, Briefcase, FileText, ArrowRight, Play, Box, Edit2, Trash2, Save, X, Layers, LayoutList, Search, UserCheck, ArrowLeft } from 'lucide-react';
 import { useNexus } from '../context/ClientContext';
 
 const MOCK_BLUEPRINTS: WorkflowBlueprint[] = [];
@@ -167,7 +167,7 @@ const WorkflowBuilder: React.FC = () => {
         switch (type) {
             case 'MEETING_ZOOM': return <Video size={16} className="text-blue-500" />;
             case 'MEETING_FRONTAL': return <MapPin size={16} className="text-nexus-accent" />;
-            case 'TASK_CLIENT': return <CheckSquare size={16} className="text-[color:var(--os-accent)]" />;
+            case 'TASK_CLIENT': return <SquareCheck size={16} className="text-[color:var(--os-accent)]" />;
             case 'TASK_AGENCY': return <Briefcase size={16} className="text-gray-500" />;
             case 'FORM_SEND': return <FileText size={16} className="text-purple-500" />;
             case 'CONTENT_DELIVERY': return <Box size={16} className="text-green-500" />;

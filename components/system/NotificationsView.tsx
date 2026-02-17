@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { 
-    Bell, CheckCircle, AlertTriangle, Info, Clock, Filter, 
+    Bell, CircleCheck, TriangleAlert, Info, Clock, Filter, 
     Trash2, Check, User, DollarSign, FileText, Zap, Shield
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
@@ -114,9 +114,9 @@ const NotificationsView: React.FC<{ orgSlug?: string; initialNotifications?: Not
 
     const getIcon = (type: NotificationType) => {
         switch (type) {
-            case 'success': return <CheckCircle size={20} className="text-emerald-500" />;
-            case 'warning': return <AlertTriangle size={20} className="text-amber-500" />;
-            case 'error': return <AlertTriangle size={20} className="text-red-500" />;
+            case 'success': return <CircleCheck size={20} className="text-emerald-500" />;
+            case 'warning': return <TriangleAlert size={20} className="text-amber-500" />;
+            case 'error': return <TriangleAlert size={20} className="text-red-500" />;
             case 'financial': return <DollarSign size={20} className="text-blue-500" />;
             default: return <Info size={20} className="text-indigo-500" />;
         }
@@ -166,7 +166,7 @@ const NotificationsView: React.FC<{ orgSlug?: string; initialNotifications?: Not
                             { id: 'all', label: 'כל ההתראות', icon: Bell },
                             { id: 'leads', label: 'לידים ומכירות', icon: User },
                             { id: 'finance', label: 'כספים וגבייה', icon: DollarSign },
-                            { id: 'tasks', label: 'משימות', icon: CheckCircle },
+                            { id: 'tasks', label: 'משימות', icon: CircleCheck },
                             { id: 'system', label: 'מערכת', icon: Shield },
                         ].map(cat => (
                             <button 

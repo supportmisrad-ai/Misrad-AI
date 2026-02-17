@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Settings, Globe, Database, Mail, Send, UserPlus, Phone, Languages, Calendar } from 'lucide-react';
+import { CreditCard, ArrowUpRight, SquareActivity, Users, Server, Plus, BarChart, Search, CircleCheckBig, TriangleAlert, CircleX, Eye, Settings, Globe, Database, Mail, Send, UserPlus, Phone, Languages, Calendar } from 'lucide-react';
 import { Tenant } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
@@ -148,7 +148,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                             <h3 className="text-3xl font-black text-slate-900 mt-1">{activeTenants}</h3>
                         </div>
                         <div className="p-3 bg-blue-500/20 text-blue-600 rounded-xl border border-blue-500/30 backdrop-blur-sm">
-                            <Activity size={20} />
+                            <SquareActivity size={20} />
                         </div>
                     </div>
                     <div className="text-xs text-slate-600">
@@ -246,9 +246,9 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                             </div>
                                         </div>
                                         <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border ${statusClass}`}>
-                                            {tenant.status === 'Active' && <CheckCircle2 size={12} />}
-                                            {tenant.status === 'Trial' && <AlertTriangle size={12} />}
-                                            {tenant.status === 'Churned' && <XCircle size={12} />}
+                                            {tenant.status === 'Active' && <CircleCheckBig size={12} />}
+                                            {tenant.status === 'Trial' && <TriangleAlert size={12} />}
+                                            {tenant.status === 'Churned' && <CircleX size={12} />}
                                             {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
                                             {statusLabel}
                                         </span>
@@ -346,7 +346,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                             onClick={() => onToggleStatus(tenant.id, tenant.status)}
                                             className="flex-1 min-w-[48%] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-black"
                                         >
-                                            {tenant.status === 'Active' ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                                            {tenant.status === 'Active' ? <CircleX size={14} /> : <CircleCheckBig size={14} />}
                                             {tenant.status === 'Active' ? 'השבת' : 'הפעל'}
                                         </Button>
                                     </div>
@@ -425,9 +425,9 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                             tenant.status === 'Provisioning' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20' :
                                             'bg-red-500/10 text-red-700 border-red-500/20'
                                         }`}>
-                                            {tenant.status === 'Active' && <CheckCircle2 size={12} />}
-                                            {tenant.status === 'Trial' && <AlertTriangle size={12} />}
-                                            {tenant.status === 'Churned' && <XCircle size={12} />}
+                                            {tenant.status === 'Active' && <CircleCheckBig size={12} />}
+                                            {tenant.status === 'Trial' && <TriangleAlert size={12} />}
+                                            {tenant.status === 'Churned' && <CircleX size={12} />}
                                             {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
                                             {tenant.status === 'Provisioning'
                                               ? 'מקים שרת...'
@@ -512,7 +512,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                                 className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-slate-50 text-slate-700 transition-all hover:scale-105" 
                                                 title={tenant.status === 'Active' ? 'השבת' : 'הפעל'}
                                             >
-                                                {tenant.status === 'Active' ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                                                {tenant.status === 'Active' ? <CircleX size={14} /> : <CircleCheckBig size={14} />}
                                             </Button>
                                         </div>
                                     </td>

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, X, Check, Sparkles, Save, AlertCircle } from 'lucide-react';
+import { Mic, Square, X, Check, Sparkles, Save, CircleAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { AIAnalysisResult, Priority } from '../types';
@@ -277,7 +277,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
         )}
         {isSimulation && (
             <div className="flex items-center gap-2 text-orange-400 text-xs font-bold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
-                <AlertCircle size={12} /> מצב ללא מיקרופון
+                <CircleAlert size={12} /> מצב ללא מיקרופון
             </div>
         )}
       </div>

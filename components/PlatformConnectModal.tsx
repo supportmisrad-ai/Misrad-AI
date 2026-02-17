@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, AlertCircle, Globe, Layout, Smartphone, Video } from 'lucide-react';
+import { X, CircleCheckBig, CircleAlert, Globe, Layout, Smartphone, Video } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 
 interface PlatformConnectModalProps {
@@ -88,11 +88,11 @@ const PlatformConnectModal: React.FC<PlatformConnectModalProps> = ({ onClose, co
                                 <div className="flex items-center gap-1.5 mt-1">
                                     {isConnected ? (
                                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <CheckCircle2 size={10} /> מחובר ומסנכרן
+                                            <CircleCheckBig size={10} /> מחובר ומסנכרן
                                         </span>
                                     ) : (
                                         <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                            <AlertCircle size={10} /> לא מחובר
+                                            <CircleAlert size={10} /> לא מחובר
                                         </span>
                                     )}
                                 </div>

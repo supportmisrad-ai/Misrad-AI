@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { X, CheckCircle, AlertTriangle, Info, AlertOctagon } from 'lucide-react';
+import { X, CircleCheck, TriangleAlert, Info, OctagonAlert } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -52,9 +52,9 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 }`}
             >
                 <div className="flex items-center gap-3">
-                    {toast.type === 'success' && <CheckCircle size={20} />}
-                    {toast.type === 'error' && <AlertOctagon size={20} />}
-                    {toast.type === 'warning' && <AlertTriangle size={20} />}
+                    {toast.type === 'success' && <CircleCheck size={20} />}
+                    {toast.type === 'error' && <OctagonAlert size={20} />}
+                    {toast.type === 'warning' && <TriangleAlert size={20} />}
                     {toast.type === 'info' && <Info size={20} />}
                     <span className="font-bold text-sm">{toast.message}</span>
                 </div>

@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Copy, Plus, X, Check } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, Copy, Plus, X, Check, Settings } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
@@ -183,7 +184,15 @@ export default function AdminOrganizationsClient(props: {
               const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
               return (
                 <div key={String(o.id)} className="bg-white border border-slate-200 rounded-2xl p-4">
-                  <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
+                    <Link
+                      href={`/app/admin/organizations/${o.id}`}
+                      className="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      <Settings className="w-4 h-4 text-slate-600" />
+                    </Link>
+                  </div>
                   <div className="text-xs font-bold text-slate-600 truncate">כתובת: {o.slug || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
@@ -207,6 +216,7 @@ export default function AdminOrganizationsClient(props: {
                 <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">מודולים</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600 text-center">פעולות</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -230,6 +240,15 @@ export default function AdminOrganizationsClient(props: {
                     <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Link
+                        href={`/app/admin/organizations/${o.id}`}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        נהל
+                      </Link>
                     </td>
                   </tr>
                 );

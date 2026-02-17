@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useData } from '../../context/DataContext';
 import { Status, Priority, Task } from '../../types';
-import { Sun, AlertTriangle, CheckCircle2, X, Calendar, Clock, ChevronRight, ArrowLeft, Trophy, Target, Sparkles, Coffee, ArrowUpRight, Zap, ArrowRight, Play, Quote, Plus, Check, Trash2, GripVertical, Lock, Flame, Lightbulb, ListPlus } from 'lucide-react';
+import { Sun, TriangleAlert, CircleCheckBig, X, Calendar, Clock, ChevronRight, ArrowLeft, Trophy, Target, Sparkles, Coffee, ArrowUpRight, Zap, ArrowRight, Play, Quote, Plus, Check, Trash2, GripVertical, Lock, Flame, Lightbulb, ListPlus } from 'lucide-react';
 import { PRIORITY_LABELS } from '../../constants';
 
 // --- Types for the Scheduler ---
@@ -461,7 +461,7 @@ export const MorningBriefing: React.FC = () => {
                                                         <h4 className="font-bold text-gray-900 leading-tight">{task.title}</h4>
                                                         <div className="flex items-center gap-2 mt-1.5">
                                                             <span className="text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                <AlertTriangle size={10} /> דורש תשומת לב
+                                                                <TriangleAlert size={10} /> דורש תשומת לב
                                                             </span>
                                                             <span className="text-[10px] text-gray-400">{task.dueDate ? `יעד: ${task.dueDate}` : 'ללא תאריך'}</span>
                                                         </div>
@@ -506,7 +506,7 @@ export const MorningBriefing: React.FC = () => {
 
                                 {redFlags.length === 0 && existingToday.length === 0 && opportunities.length === 0 && (
                                     <div className="flex flex-col items-center justify-center h-48 text-center bg-white rounded-2xl border border-dashed border-gray-300">
-                                        <CheckCircle2 size={32} className="text-green-500 mb-2" />
+                                        <CircleCheckBig size={32} className="text-green-500 mb-2" />
                                         <p className="text-gray-900 font-bold">הלו"ז נקי!</p>
                                         <p className="text-gray-500 text-sm">אין משימות מערכת דחופות.</p>
                                     </div>

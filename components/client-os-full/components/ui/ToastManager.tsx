@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, X, Zap } from 'lucide-react';
+import { CircleCheckBig, CircleAlert, Info, X, Zap } from 'lucide-react';
 
 export interface Toast {
   id: string;
@@ -47,7 +47,7 @@ export const ToastManager: React.FC = () => {
           className="pointer-events-auto bg-[#0F172A] text-white pl-4 pr-3 py-3.5 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] flex items-center gap-4 animate-slide-up border border-white/10 w-full backdrop-blur-xl"
         >
            <div className={`p-1.5 rounded-full ${toast.type === 'success' ? 'bg-nexus-accent/20 text-nexus-accent' : toast.type === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>
-               {toast.type === 'success' ? <CheckCircle2 size={16} /> : toast.type === 'error' ? <AlertCircle size={16} /> : <Zap size={16} fill="currentColor" />}
+               {toast.type === 'success' ? <CircleCheckBig size={16} /> : toast.type === 'error' ? <CircleAlert size={16} /> : <Zap size={16} fill="currentColor" />}
            </div>
            <span className="text-sm font-medium flex-1 tracking-wide leading-tight">{toast.message}</span>
            <button onClick={() => removeToast(toast.id)} className="text-white/30 hover:text-white transition-colors p-1"><X size={14}/></button>

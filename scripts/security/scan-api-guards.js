@@ -18,6 +18,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/employees/invite/[token]/complete/route.ts',
   'app/api/invitations/token/[token]/route.ts',
   'app/api/invitations/complete/[token]/route.ts',
+  'app/api/webhooks/morning-app/route.ts', // Webhook protected by signature verification
 ]);
 
 const CANDIDATE_APPROVED = new Set([

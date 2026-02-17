@@ -57,7 +57,7 @@ async function main(): Promise<void> {
   const prisma = new PrismaClient();
 
   try {
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       select: { id: true, name: true, slug: true, owner_id: true },
       orderBy: { created_at: 'asc' },
     });

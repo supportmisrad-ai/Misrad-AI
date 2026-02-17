@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { ContentTaskCard } from '../components/nexus/ContentTaskCard';
 import { TaskDetailModal } from '../components/nexus/TaskDetailModal';
-import { Video, Layers, Plus, Image, FileText, Paperclip, CheckCircle2, Clock, Trash2, Edit2, Lightbulb, Zap, Repeat, Search, MonitorPlay, LayoutGrid, Calendar as CalendarIcon, BarChart3, Rocket, Target, List } from 'lucide-react';
+import { Video, Layers, Plus, Image, FileText, Paperclip, CircleCheckBig, Clock, Trash2, Edit2, Lightbulb, Zap, Repeat, Search, MonitorPlay, LayoutGrid, Calendar as CalendarIcon, BarChart3, Rocket, Target, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ContentItem, ContentType, Platform, Status, Priority, Task, ContentStage } from '../types';
 import { ContentModal } from '../components/ContentModal';

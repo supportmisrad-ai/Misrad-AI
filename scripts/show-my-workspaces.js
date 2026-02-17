@@ -62,7 +62,7 @@ async function showMyWorkspaces() {
     }
 
     // ארגונים בבעלות
-    const ownedOrgs = await prisma.social_organizations.findMany({
+    const ownedOrgs = await prisma.organization.findMany({
       where: { owner_id: socialUser.id },
       select: { id: true },
     });
@@ -91,7 +91,7 @@ async function showMyWorkspaces() {
     }
 
     // טען את הארגונים
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       where: { id: { in: ids } },
       select: {
         id: true,

@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
-  CheckCircle2,
+  CircleCheckBig,
   ChevronLeft,
   ArrowRight,
   Play,
   X,
   Video,
-  Activity,
+  SquareActivity,
   Quote,
   Star,
   Users,
@@ -197,7 +197,7 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
               <div className="flex items-center gap-4 text-sm text-slate-500 font-bold">
-                <CheckCircle2 className="text-emerald-500" size={20} />
+                <CircleCheckBig className="text-emerald-500" size={20} />
                 <span>ללא כרטיס אשראי</span>
                 <span>•</span>
                 <span>7 ימים חינם</span>
@@ -612,7 +612,7 @@ export default function LandingPage() {
                 <span>אבטחה מתקדמת</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="text-emerald-300" size={20} />
+                <CircleCheckBig className="text-emerald-300" size={20} />
                 <span>ללא התחייבות</span>
               </div>
               <div className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Key, ShieldCheck, RefreshCw, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Key, ShieldCheck, RefreshCw, Info, CircleCheckBig } from 'lucide-react';
 
 interface InfrastructureTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -113,7 +113,7 @@ export default function InfrastructureTab({ onNotify }: InfrastructureTabProps) 
                 'התראות על חריגות שימוש'
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <CheckCircle2 size={16} className="text-green-500"/>
+                  <CircleCheckBig size={16} className="text-green-500"/>
                   <span className="text-xs font-bold text-slate-600">{item}</span>
                 </div>
               ))}

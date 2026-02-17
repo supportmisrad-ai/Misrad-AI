@@ -44,9 +44,11 @@ export interface TimeEntry {
   startLat?: number;
   startLng?: number;
   startAccuracy?: number | null;
+  startCity?: string;
   endLat?: number;
   endLng?: number;
   endAccuracy?: number | null;
+  endCity?: string;
   voidReason?: string | null;
   voidedBy?: string | null;
   voidedAt?: string;

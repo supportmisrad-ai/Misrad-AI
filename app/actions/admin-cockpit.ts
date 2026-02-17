@@ -315,7 +315,7 @@ export async function getAllUsers(): Promise<{
       orderBy: { createdAt: 'desc' },
     });
 
-    // Get last activity for each user
+    // Get last SquareActivity for each user
     const usersWithActivity = await Promise.all(
       (Array.isArray(updatedTeamMembers) ? updatedTeamMembers : []).map(async (member) => {
         const memberObj = asObject(member) ?? {};
@@ -582,7 +582,7 @@ export async function getFeatureUsageAnalytics(): Promise<{
       take: 50,
     });
 
-    // Get churned users (no activity for 7 days)
+    // Get churned users (no SquareActivity for 7 days)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const users = await prisma.nexusUser.findMany({
       select: { id: true, name: true, email: true, createdAt: true },

@@ -65,6 +65,17 @@ function isSalesPathname(pathname: string): boolean {
   return true;
 }
 
+function shouldLoadWidgets(pathname: string): boolean {
+  const p = String(pathname || '/').toLowerCase();
+  // Don't load widgets on public/auth pages
+  if (p === '/' || p === '/login' || p.startsWith('/login/')) return false;
+  if (p === '/sign-in' || p.startsWith('/sign-in/')) return false;
+  if (p === '/sign-up' || p.startsWith('/sign-up/')) return false;
+  if (p === '/sign-out' || p.startsWith('/sign-out/')) return false;
+  if (p === '/reset-password' || p.startsWith('/reset-password/')) return false;
+  return true;
+}
+
 function LegalConsentSync() {
   const { isLoaded, isSignedIn } = useAuth();
 
@@ -125,6 +136,7 @@ function LegalConsentSync() {
 
 export function ClientOnlyClerkWidgets() {
   const pathname = usePathname();
+  const shouldLoad = shouldLoadWidgets(pathname || '/');
   const showFAB = isSalesPathname(pathname || '/');
   const mounted = useMounted();
   const [enableAiAssistant, setEnableAiAssistant] = useState(false);
@@ -133,7 +145,7 @@ export function ClientOnlyClerkWidgets() {
   const isAuthenticated = p.startsWith('/w/');
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !shouldLoad) return;
     let cancelled = false;
 
     const enable = () => {
@@ -143,7 +155,7 @@ export function ClientOnlyClerkWidgets() {
 
     const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
-      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      const id = w.requestIdleCallback(enable, { timeout: 3000 });
       return () => {
         cancelled = true;
         try {
@@ -153,15 +165,15 @@ export function ClientOnlyClerkWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 350);
+    const t = window.setTimeout(enable, 2000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [mounted]);
+  }, [mounted, shouldLoad]);
 
   useEffect(() => {
-    if (!mounted || !showFAB) return;
+    if (!mounted || !showFAB || !shouldLoad) return;
     let cancelled = false;
 
     const enable = () => {
@@ -171,7 +183,7 @@ export function ClientOnlyClerkWidgets() {
 
     const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
-      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      const id = w.requestIdleCallback(enable, { timeout: 3000 });
       return () => {
         cancelled = true;
         try {
@@ -181,28 +193,30 @@ export function ClientOnlyClerkWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 350);
+    const t = window.setTimeout(enable, 2000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [mounted, showFAB]);
+  }, [mounted, showFAB, shouldLoad]);
 
   return (
     <>
       <LegalConsentSync />
-      {mounted && enablePasskeyPrompt && isAuthenticated && <PasskeyOnboardingPrompt />}
-      {mounted && showFAB && enableAiAssistant && <AiAssistantWidget />}
+      {shouldLoad && mounted && enablePasskeyPrompt && isAuthenticated && <PasskeyOnboardingPrompt />}
+      {shouldLoad && mounted && showFAB && enableAiAssistant && <AiAssistantWidget />}
     </>
   );
 }
 
 export function ClientOnlyGlobalWidgets() {
+  const pathname = usePathname();
+  const shouldLoad = shouldLoadWidgets(pathname || '/');
   const mounted = useMounted();
   const [enableGlobalWidgets, setEnableGlobalWidgets] = useState(false);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !shouldLoad) return;
     let cancelled = false;
 
     const enable = () => {
@@ -212,7 +226,7 @@ export function ClientOnlyGlobalWidgets() {
 
     const w = window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
     if (typeof w.requestIdleCallback === 'function') {
-      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      const id = w.requestIdleCallback(enable, { timeout: 3000 });
       return () => {
         cancelled = true;
         try {
@@ -222,20 +236,20 @@ export function ClientOnlyGlobalWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 350);
+    const t = window.setTimeout(enable, 2000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [mounted]);
+  }, [mounted, shouldLoad]);
 
   return (
     <>
-      {mounted && enableGlobalWidgets && <VoiceCommandFab />}
-      {mounted && enableGlobalWidgets && <ComingSoonPortal />}
-      {mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}
-      {mounted && enableGlobalWidgets && <GlobalSupportModal />}
-      {mounted && enableGlobalWidgets && <GlobalSearchModal />}
+      {shouldLoad && mounted && enableGlobalWidgets && <VoiceCommandFab />}
+      {shouldLoad && mounted && enableGlobalWidgets && <ComingSoonPortal />}
+      {shouldLoad && mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}
+      {shouldLoad && mounted && enableGlobalWidgets && <GlobalSupportModal />}
+      {shouldLoad && mounted && enableGlobalWidgets && <GlobalSearchModal />}
     </>
   );
 }

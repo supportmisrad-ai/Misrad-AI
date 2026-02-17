@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ArrowUpRight, MoreHorizontal, Check } from 'lucide-react';
+import { TriangleAlert, ArrowUpRight, MoreHorizontal, Check } from 'lucide-react';
 
 export const ClientOSDemo = () => {
-    const [view, setView] = useState<'list' | 'analytics' | 'activity'>('list');
+    const [view, setView] = useState<'list' | 'analytics' | 'SquareActivity'>('list');
 
     const activeTabClass = "text-[#C5A572] border-b border-[#C5A572]";
     const inactiveTabClass = "text-slate-500 border-b border-transparent hover:text-slate-700";
@@ -28,7 +28,7 @@ export const ClientOSDemo = () => {
                         <button onClick={() => setView('analytics')} className={`text-[11px] font-bold py-3 transition-all ${view === 'analytics' ? activeTabClass : inactiveTabClass}`}>
                             מדדים
                         </button>
-                        <button onClick={() => setView('activity')} className={`text-[11px] font-bold py-3 transition-all ${view === 'activity' ? activeTabClass : inactiveTabClass}`}>
+                        <button onClick={() => setView('SquareActivity')} className={`text-[11px] font-bold py-3 transition-all ${view === 'SquareActivity' ? activeTabClass : inactiveTabClass}`}>
                             פעולות
                         </button>
                     </div>
@@ -90,7 +90,7 @@ export const ClientOSDemo = () => {
                                 </div>
                                 
                                 <div className="mt-auto bg-[#C5A572]/10 border-r-2 border-[#C5A572]/50 p-2.5 flex items-start gap-2">
-                                    <AlertTriangle size={12} className="text-[#C5A572] shrink-0 mt-0.5" />
+                                    <TriangleAlert size={12} className="text-[#C5A572] shrink-0 mt-0.5" />
                                     <div className="space-y-0.5">
                                         <div className="text-[10px] text-slate-900 font-bold">התראת נטישה</div>
                                         <div className="text-[10px] text-slate-700 leading-tight">זוהתה ירידה בפעילות בתיק CyberArk. מומלץ ליזום שיחה.</div>
@@ -159,11 +159,11 @@ export const ClientOSDemo = () => {
                         )}
                     </AnimatePresence>
 
-                    {/* VIEW 3: ACTIVITY */}
+                    {/* VIEW 3: SquareActivity */}
                     <AnimatePresence mode="wait">
-                        {view === 'activity' && (
+                        {view === 'SquareActivity' && (
                             <motion.div 
-                                key="activity"
+                                key="SquareActivity"
                                 className="absolute inset-0 p-5 flex flex-col gap-3"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}

@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useData } from '../../context/DataContext';
-import { Phone, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Phone, Save, CircleCheckBig, CircleAlert } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 
 // Zod schema for form validation
@@ -181,7 +181,7 @@ export const TelephonyConfigForm: React.FC = () => {
 
             {existingIntegration && existingIntegration.configured && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <CircleCheckBig className="w-5 h-5 text-green-600 flex-shrink-0" />
                     <div>
                         <p className="text-sm font-bold text-green-900">תצורה קיימת נמצאה</p>
                         <p className="text-xs text-green-700 mt-1">
@@ -206,7 +206,7 @@ export const TelephonyConfigForm: React.FC = () => {
                     </select>
                     {errors.provider && (
                         <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
+                            <CircleAlert className="w-3 h-3" />
                             {errors.provider.message}
                         </p>
                     )}
@@ -230,7 +230,7 @@ export const TelephonyConfigForm: React.FC = () => {
                             />
                             {errors.credentials?.UserCode && (
                                 <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" />
+                                    <CircleAlert className="w-3 h-3" />
                                     {errors.credentials.UserCode.message}
                                 </p>
                             )}
@@ -249,7 +249,7 @@ export const TelephonyConfigForm: React.FC = () => {
                             />
                             {errors.credentials?.OrganizationCode && (
                                 <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" />
+                                    <CircleAlert className="w-3 h-3" />
                                     {errors.credentials.OrganizationCode.message}
                                 </p>
                             )}

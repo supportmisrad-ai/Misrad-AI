@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
-import { Lead, Activity, Task } from './types';
+import { Lead, SquareActivity, Task } from './types';
 import { STAGES } from './constants';
 import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import LogCallModal from './LogCallModal';
@@ -35,7 +35,7 @@ import {
 interface LeadModalProps {
   lead: Lead;
   onClose: () => void;
-  onAddActivity: (leadId: string, activity: Activity) => void;
+  onAddActivity: (leadId: string, SquareActivity: SquareActivity) => void;
   onScheduleMeeting: (leadId: string) => void;
   onStatusChange?: (id: string, status: Lead['status']) => void; 
   onOpenClientPortal?: () => void;
@@ -69,7 +69,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   const [noteContent, setNoteContent] = useState('');
   const [isLogCallOpen, setIsLogCallOpen] = useState(false);
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>(() => (Array.isArray(lead.activities) ? lead.activities : []));
+  const [activities, setActivities] = useState<SquareActivity[]>(() => (Array.isArray(lead.activities) ? lead.activities : []));
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftPhone, setDraftPhone] = useState('');
@@ -161,7 +161,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
     setIsLoadingActivities(true);
     try {
       const rows = await getSystemLeadActivities({ orgSlug, leadId: String(lead.id), take: 80 });
-      const mapped = (Array.isArray(rows) ? rows : []).map((a: unknown): Activity => {
+      const mapped = (Array.isArray(rows) ? rows : []).map((a: unknown): SquareActivity => {
         const aObj = asObject(a) ?? {};
         const directionRaw = aObj.direction ? String(aObj.direction) : '';
         const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? directionRaw : undefined;
@@ -169,7 +169,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
         const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
 
         const typeRaw = String(aObj.type || 'note');
-        const type: Activity['type'] =
+        const type: SquareActivity['type'] =
           typeRaw === 'call' ||
           typeRaw === 'whatsapp' ||
           typeRaw === 'email' ||
@@ -189,7 +189,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
           content: String(aObj.content || ''),
           timestamp,
           direction,
-          metadata: (aObj.metadata ?? null) as Activity['metadata'],
+          metadata: (aObj.metadata ?? null) as SquareActivity['metadata'],
         };
       });
       setActivities(mapped.filter((a) => a.id));
@@ -345,11 +345,11 @@ const LeadModal: React.FC<LeadModalProps> = ({
     e.preventDefault();
     if (!noteContent.trim()) return;
     
-    const typeMap: Record<string, Activity['type']> = {
+    const typeMap: Record<string, SquareActivity['type']> = {
         'note': 'note', 'call': 'call', 'email': 'email', 'task': 'system'
     };
 
-    const newActivity: Activity = {
+    const newActivity: SquareActivity = {
       id: Date.now().toString(),
       type: typeMap[composerTab],
       content: noteContent,
@@ -583,7 +583,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
       }
 
       addToast('הקלטה נותחה ונשמרה בליד', 'success');
-      const activityObj = asObject(asObject(res)?.activity) ?? {};
+      const activityObj = asObject(asObject(res)?.SquareActivity) ?? {};
       const ts = activityObj.timestamp ? new Date(String(activityObj.timestamp)) : new Date();
       onAddActivity(lead.id, {
         id: String(activityObj.id || Date.now().toString()),
@@ -953,7 +953,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
                         </div>
                         <div className="text-sm text-slate-700 whitespace-pre-wrap">{act.content}</div>
                         <LeadModalCallAnalysis
-                          activity={act}
+                          SquareActivity={act}
                           createdAiTaskKeys={createdAiTaskKeys}
                           creatingAiTaskKey={creatingAiTaskKey}
                           onCreateTask={handleCreateAiTask}
@@ -1021,7 +1021,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
               }
 
               addToast('סיכום השיחה נשמר', 'success');
-              const activityObj = asObject(asObject(res)?.activity) ?? {};
+              const activityObj = asObject(asObject(res)?.SquareActivity) ?? {};
               const ts = activityObj.timestamp ? new Date(String(activityObj.timestamp)) : new Date();
               onAddActivity(lead.id, {
                 id: String(activityObj.id || Date.now().toString()),

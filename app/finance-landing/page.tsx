@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CheckCircle2, MessageCircle, Play } from 'lucide-react';
+import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CircleCheckBig, MessageCircle, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
@@ -142,7 +142,7 @@ export default function FinanceMarketingPage() {
                       ].map((s, i) => (
                         <div key={s.title} className="group flex items-start gap-4 rounded-2xl bg-slate-50 border border-slate-200 p-4 hover:shadow-lg transition-all">
                           <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-white flex-shrink-0`}>
-                            <CheckCircle2 size={18} />
+                            <CircleCheckBig size={18} />
                           </div>
                           <div>
                             <div className="font-black text-slate-900">{s.title}</div>

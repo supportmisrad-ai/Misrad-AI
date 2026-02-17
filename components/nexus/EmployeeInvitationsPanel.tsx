@@ -13,7 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CircleCheckBig } from 'lucide-react';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 interface EmployeeInvitation {
@@ -248,7 +248,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                             <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.used}</h3>
                         </div>
                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
-                            <CheckCircle2 size={20} className="sm:w-6 sm:h-6" />
+                            <CircleCheckBig size={20} className="sm:w-6 sm:h-6" />
                         </div>
                     </div>
                 </div>
@@ -380,7 +380,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                                         )}
                                         {invitation.usedAt && (
                                             <div className="flex items-center gap-1">
-                                                <CheckCircle2 size={12} />
+                                                <CircleCheckBig size={12} />
                                                 נרשם: {formatDate(invitation.usedAt)}
                                             </div>
                                         )}

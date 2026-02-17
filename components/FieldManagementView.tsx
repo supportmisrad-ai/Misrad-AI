@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Lead, FieldAgent } from './system/types';
 import { INITIAL_AGENTS } from './system/constants';
-import { MapPin, Phone, Search, Filter, Navigation, User, Clock, CheckCircle, AlertCircle, Layers, LocateFixed } from 'lucide-react';
+import { MapPin, Phone, Search, Filter, Navigation, User, Clock, CircleCheck, CircleAlert, Layers, LocateFixed } from 'lucide-react';
 import { useToast } from './system/contexts/ToastContext';
 
 interface FieldManagementViewProps {
@@ -99,7 +99,7 @@ const FieldManagementView: React.FC<FieldManagementViewProps> = ({ leads }) => {
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mt-1">
-                        <CheckCircle size={12} className="text-emerald-500" />
+                        <CircleCheck size={12} className="text-emerald-500" />
                         <span>פנוי למשימה</span>
                     </div>
                   )}
@@ -275,7 +275,7 @@ const FieldManagementView: React.FC<FieldManagementViewProps> = ({ leads }) => {
                                     </div>
                                 ) : (
                                     <div className="px-5 py-2.5 bg-emerald-50 rounded-xl text-emerald-800 text-sm border border-emerald-100 flex items-center gap-2 font-bold">
-                                        <CheckCircle size={18} />
+                                        <CircleCheck size={18} />
                                         פנוי למשימות
                                     </div>
                                 )}

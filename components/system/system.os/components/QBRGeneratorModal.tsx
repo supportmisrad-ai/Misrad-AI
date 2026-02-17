@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../types';
 import { 
-    X, Presentation, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, 
+    X, Presentation, Sparkles, CircleCheckBig, ChevronRight, ChevronLeft, 
     Download, BarChart3, PieChart, TrendingUp, Target, Calendar, 
     Briefcase, ArrowRight
 } from 'lucide-react';
@@ -144,7 +144,7 @@ const QBRGeneratorModal: React.FC<QBRGeneratorModalProps> = ({ lead, onClose }) 
                                             onClick={() => setFocus('ops')}
                                             className={`p-4 rounded-xl border-2 text-right transition-all group ${focus === 'ops' ? 'border-blue-500 bg-blue-50' : 'border-white bg-white hover:border-slate-200'}`}
                                         >
-                                            <div className="mb-2 p-2 w-fit rounded-lg bg-blue-100 text-blue-700"><CheckCircle2 size={20} /></div>
+                                            <div className="mb-2 p-2 w-fit rounded-lg bg-blue-100 text-blue-700"><CircleCheckBig size={20} /></div>
                                             <div className="font-bold text-slate-800">יעילות תפעולית</div>
                                             <div className="text-xs text-slate-500 mt-1">דגש על סדר וארגון.</div>
                                         </button>
@@ -180,15 +180,15 @@ const QBRGeneratorModal: React.FC<QBRGeneratorModalProps> = ({ lead, onClose }) 
 
                             <div className="space-y-4 w-80 relative z-10">
                                 <div className={`flex items-center gap-3 transition-all duration-500 ${loadingStage >= 1 ? 'opacity-100 transform translate-x-0' : 'opacity-0 transform -translate-x-4'}`}>
-                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CircleCheckBig size={14} /></div>
                                     <span className="font-bold text-slate-700">אוסף נתונים פיננסיים...</span>
                                 </div>
                                 <div className={`flex items-center gap-3 transition-all duration-500 delay-100 ${loadingStage >= 2 ? 'opacity-100 transform translate-x-0' : 'opacity-0 transform -translate-x-4'}`}>
-                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CircleCheckBig size={14} /></div>
                                     <span className="font-bold text-slate-700">מנתח מגמות ביצועים...</span>
                                 </div>
                                 <div className={`flex items-center gap-3 transition-all duration-500 delay-200 ${loadingStage >= 3 ? 'opacity-100 transform translate-x-0' : 'opacity-0 transform -translate-x-4'}`}>
-                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>
+                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white"><CircleCheckBig size={14} /></div>
                                     <span className="font-bold text-slate-700">מעצב שקפים...</span>
                                 </div>
                             </div>

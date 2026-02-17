@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-    Activity, Headphones, Star, Play, 
+    SquareActivity, Headphones, Star, Play, 
     Award, Plus
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -29,7 +29,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ leads = [] }) => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                        <Activity className="text-primary" strokeWidth={2.5} />
+                        <SquareActivity className="text-primary" strokeWidth={2.5} />
                         ניתוח שיחות
                     </h2>
                 </div>
@@ -39,7 +39,7 @@ const TrainingView: React.FC<TrainingViewProps> = ({ leads = [] }) => {
                         onClick={() => setActiveTab('analyzer')}
                         className={`px-5 py-2.5 rounded-lg text-base font-bold transition-all flex items-center gap-2 ${activeTab === 'analyzer' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Activity size={18} /> ניתוח שיחות (AI)
+                        <SquareActivity size={18} /> ניתוח שיחות (AI)
                     </button>
                     <button 
                         onClick={() => setActiveTab('library')}

@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
 import { TaskItem } from '../components/nexus/TaskItem';
 import { TaskCard } from '../components/nexus/TaskCard';
-import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, CheckSquare, Star, Users, Flag, Briefcase, Server, Settings, X, Check } from 'lucide-react';
+import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, SquareCheck, Star, Users, Flag, Briefcase, Server, Settings, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
@@ -20,7 +20,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
     'Layers': Layers,
     'UserPlus': UserPlus,
     'FileText': FileText,
-    'CheckSquare': CheckSquare,
+    'SquareCheck': SquareCheck,
     'Star': Star,
     'Zap': Zap,
     'Server': Server

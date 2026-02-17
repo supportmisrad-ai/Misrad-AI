@@ -2,7 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx --yes next build:*)",
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(awk:*)",
+      "Bash(node scripts/analyze-bundle-size.js:*)",
+      "Bash(grep:*)",
+      "Bash(tee:*)",
+      "Bash(else echo \"Build incomplete\")",
+      "Bash(fi)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma generate)"
     ]
   }
 }

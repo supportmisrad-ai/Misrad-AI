@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FormTemplate, FormField, FormStep, FieldType } from '../types';
 import { generateFormTemplate } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
-import { Eye, Plus, Trash2, GripVertical, CheckCircle2, Link, FileText, ChevronLeft, Upload, LayoutList, Layers, ChevronRight, X, Copy, Edit2, PlayCircle, Calendar, Settings2, MoreHorizontal, Sparkles, ArrowRight } from 'lucide-react';
+import { Eye, Plus, Trash2, GripVertical, CircleCheckBig, Link, FileText, ChevronLeft, Upload, LayoutList, Layers, ChevronRight, X, Copy, Edit2, CirclePlay, Calendar, Settings2, MoreHorizontal, Sparkles, ArrowRight } from 'lucide-react';
 
 // --- MOCK TEMPLATES ---
 const MOCK_TEMPLATES: FormTemplate[] = [];
@@ -291,7 +291,7 @@ export const FormsManager: React.FC = () => {
                              </button>
                          ) : (
                              <button className="px-8 py-3.5 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-600/20 hover:bg-green-700 hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                                 שלח טופס <CheckCircle2 size={18} />
+                                 שלח טופס <CircleCheckBig size={18} />
                              </button>
                          )}
                       </div>
@@ -348,7 +348,7 @@ export const FormsManager: React.FC = () => {
                             <Eye size={18} /> תראה לי רגע
                         </button>
                         <GlowButton onClick={handleCopyLink} className="bg-nexus-primary">
-                            {showShareSuccess ? <CheckCircle2 size={18} /> : <Link size={18} />}
+                            {showShareSuccess ? <CircleCheckBig size={18} /> : <Link size={18} />}
                             {showShareSuccess ? 'הועתק!' : 'קח לינק'}
                         </GlowButton>
                     </>
@@ -572,7 +572,7 @@ export const FormsManager: React.FC = () => {
                                                 
                                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                                     <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${field.required ? 'bg-nexus-primary border-nexus-primary' : 'bg-white border-gray-300'}`}>
-                                                        {field.required && <CheckCircle2 size={10} className="text-white" />}
+                                                        {field.required && <CircleCheckBig size={10} className="text-white" />}
                                                     </div>
                                                     <input 
                                                         type="checkbox" 

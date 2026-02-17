@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lead, Activity as LeadActivity, Task } from '../types';
+import { Lead, SquareActivity as LeadActivity, Task } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import { QUICK_ASSETS, STAGES } from '../constants';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
@@ -18,7 +18,7 @@ import CommunicationViewBase, {
 
 interface CommunicationViewProps {
   leads: Lead[];
-  onAddActivity: (leadId: string, activity: LeadActivity) => void;
+  onAddActivity: (leadId: string, SquareActivity: LeadActivity) => void;
   onUpdateLead?: (leadId: string, updates: Partial<Lead>) => void;
   onAddTask?: (task: Task) => void;
   user?: { id: string; phone?: string; [key: string]: unknown };
@@ -34,7 +34,7 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
   return (
     <CommunicationViewBase
       leads={leads as unknown as CommunicationLead[]}
-      onAddActivity={onAddActivity as unknown as (leadId: string, activity: CommunicationActivity) => void}
+      onAddActivity={onAddActivity as unknown as (leadId: string, SquareActivity: CommunicationActivity) => void}
       onUpdateLead={onUpdateLead as unknown as ((leadId: string, updates: Partial<CommunicationLead>) => void) | undefined}
       onAddTask={onAddTask as unknown as (task: CommunicationTask) => void}
       initialTab="inbox"

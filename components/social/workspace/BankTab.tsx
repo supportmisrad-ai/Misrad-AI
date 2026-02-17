@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Database, ImageIcon, Upload, Plus, Trash2 } from 'lucide-react';
+import { Database, Image, Upload, Plus, Trash2 } from 'lucide-react';
 import { Client, Idea, AIOpportunity } from '@/types/social';
 
 interface BankTabProps {
@@ -28,7 +28,7 @@ const BankTab: React.FC<BankTabProps> = ({ client, ideas, onDeleteIdea, onAddIde
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* TODO: Replace with actual media library items from database when implemented */}
           <div className="bg-slate-50/50 p-12 rounded-2xl border-2 border-dashed border-slate-200 text-center flex flex-col items-center justify-center min-h-[200px]">
-            <ImageIcon size={48} className="text-slate-300 mb-4" />
+            <Image size={48} className="text-slate-300 mb-4" />
             <p className="text-sm font-black text-slate-400 mb-2">אין קבצים בספרייה</p>
             <p className="text-xs font-bold text-slate-300">העלה קבצים כדי להתחיל</p>
             </div>

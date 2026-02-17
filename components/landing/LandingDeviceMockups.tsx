@@ -1,4 +1,4 @@
-import { Shield, Target, Rocket, Users, TrendingUp, MessageCircle, Monitor, Smartphone, Plus, Cloud, Fingerprint } from 'lucide-react';
+import { Shield, Target, Rocket, Users, TrendingUp, MessageCircle, Monitor, Smartphone, Plus, Cloud, Scan } from 'lucide-react';
 
 export function LandingDeviceMockups() {
   return (
@@ -226,7 +226,7 @@ export function LandingDeviceMockups() {
             <p className="text-slate-400 text-sm">הצפנת SSL/TLS מלאה, גיבויים שעתיים ושרתים מאובטחים בסטנדרט המחמיר ביותר.</p>
           </div>
           <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800 transition-colors">
-            <Fingerprint size={32} className="text-indigo-400 mb-4" />
+            <Scan size={32} className="text-indigo-400 mb-4" />
             <h3 className="text-lg font-bold text-white mb-2">כניסה ביומטרית</h3>
             <p className="text-slate-400 text-sm">FaceID ו-TouchID מובנים באפליקציה. אין צורך לזכור סיסמאות מסובכות.</p>
           </div>

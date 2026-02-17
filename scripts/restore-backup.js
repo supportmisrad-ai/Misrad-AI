@@ -133,7 +133,7 @@ async function main() {
     for (const org of backup.data.organizations) {
       // Remove the owner relation from the data
       const { owner, ...orgData } = org;
-      await prisma.social_organizations.upsert({
+      await prisma.organization.upsert({
         where: { id: orgData.id },
         update: orgData,
         create: orgData

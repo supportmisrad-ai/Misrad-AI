@@ -39,7 +39,7 @@ export type SocialInitialData = {
   managerRequests: ManagerRequest[];
   conversations: Conversation[];
   ideas: Idea[];
-  activity: ActivityLog[];
+  SquareActivity: ActivityLog[];
   counters: {
     postsTotal: number;
     postsDraft: number;
@@ -700,7 +700,7 @@ export async function getSocialInitialData(params: {
     clientRequests: Array.isArray(clientRequests) ? clientRequests : [],
     managerRequests: Array.isArray(managerRequests) ? managerRequests : [],
     ideas: Array.isArray(ideas) ? ideas : [],
-    activity: Array.isArray(activityResult) ? activityResult : [],
+    SquareActivity: Array.isArray(activityResult) ? activityResult : [],
     counters: getSocialCounters(Array.isArray(postsResult) ? postsResult : []),
   };
 }

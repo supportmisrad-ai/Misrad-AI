@@ -3,10 +3,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { 
-    UploadCloud, FileAudio, X, Activity, 
-    MessageSquare, CheckCircle, AlertTriangle, Target, 
+    UploadCloud, FileAudio, X, SquareActivity, 
+    MessageSquare, CircleCheck, TriangleAlert, Target, 
     ListTodo, ThumbsUp, ThumbsDown, MessageCircle, 
-    Play, Pause, Mic, MicOff, Zap, User, Fingerprint, Clock, FileText,
+    Play, Pause, Mic, MicOff, Zap, User, Scan, Clock, FileText,
     ListChecks, Heart, Smile, History, Trash2, ArrowRight,
     Edit2, Link as LinkIcon, StickyNote
 } from 'lucide-react';
@@ -493,7 +493,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                         <div className="flex gap-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
                             <span className="flex items-center gap-1"><FileAudio size={14} /> MP3, WAV, M4A</span>
                             <span className="flex items-center gap-1"><Clock size={14} /> עד 120 דקות</span>
-                            <span className="flex items-center gap-1"><Fingerprint size={14} /> מאובטח</span>
+                            <span className="flex items-center gap-1"><Scan size={14} /> מאובטח</span>
                         </div>
                     </div>
                 </div>
@@ -576,7 +576,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     <div className="w-20 h-20 mx-auto mb-6 relative">
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
                         <Skeleton className="absolute inset-0 rounded-full bg-indigo-100" />
-                        <Activity className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
+                        <SquareActivity className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
                     </div>
 
                     <h3 className="text-xl font-bold text-slate-800 mb-2">מנתח שיחה...</h3>
@@ -621,7 +621,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
             <div className="shrink-0 p-6 border-b border-slate-200 bg-white flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                        <Activity size={24} />
+                        <SquareActivity size={24} />
                     </div>
                     <div>
                         {isEditingTitle ? (
@@ -633,7 +633,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                     className="border border-indigo-300 rounded px-2 py-1 text-lg font-bold text-slate-800 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                                     autoFocus
                                 />
-                                <button onClick={handleSaveTitle} className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"><CheckCircle size={16} /></button>
+                                <button onClick={handleSaveTitle} className="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"><CircleCheck size={16} /></button>
                             </div>
                         ) : (
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditingTitle(true)}>
@@ -697,7 +697,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                             </audio>
                         ) : (
                             <div className="flex items-center justify-center h-10 text-xs text-slate-400 bg-slate-100 rounded-lg border border-slate-200 border-dashed">
-                                <AlertTriangle size={14} className="mr-2" /> קובץ השמע לא זמין (נמחק או פג תוקף)
+                                <TriangleAlert size={14} className="mr-2" /> קובץ השמע לא זמין (נמחק או פג תוקף)
                             </div>
                         )}
                     </div>
@@ -728,7 +728,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                         <div className={`absolute -bottom-2 ${seg.speaker === 'Agent' ? 'left-2' : 'right-2'} text-[10px] px-1.5 py-0.5 rounded-full border bg-white flex items-center gap-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity ${
                                             seg.sentiment === 'positive' ? 'text-emerald-600 border-emerald-200' : 'text-red-500 border-red-200'
                                         }`}>
-                                            {seg.sentiment === 'positive' ? <Smile size={10} /> : <AlertTriangle size={10} />}
+                                            {seg.sentiment === 'positive' ? <Smile size={10} /> : <TriangleAlert size={10} />}
                                             {seg.sentiment === 'positive' ? 'חיובי' : 'שלילי'}
                                         </div>
                                     )}
@@ -829,7 +829,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                 <ul className="space-y-2">
                                     {result.topics.decisions.map((d, i) => (
                                         <li key={i} className="text-xs font-medium text-slate-700 flex items-start gap-2">
-                                            <CheckCircle size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                                            <CircleCheck size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                                             {d}
                                         </li>
                                     ))}
@@ -934,7 +934,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     {/* 2. Promises (Risk Management) */}
                     <div className="bg-red-50 rounded-2xl border border-red-100 shadow-sm overflow-hidden">
                         <div className="p-4 border-b border-red-100 flex items-center gap-2">
-                            <AlertTriangle size={18} className="text-red-500" />
+                            <TriangleAlert size={18} className="text-red-500" />
                             <h3 className="font-bold text-red-900 text-sm">הבטחות שניתנו (שים לב!)</h3>
                         </div>
                         <div className="p-4">

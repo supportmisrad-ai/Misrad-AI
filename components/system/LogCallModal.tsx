@@ -70,7 +70,9 @@ export default function LogCallModal({
     }
   };
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4" onClick={onCloseAction}>

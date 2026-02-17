@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
-    Image as ImageIcon, Upload, Trash2, Eye, Save, X, 
-    AlertCircle, CheckCircle2, User, Heart
+    Image, Upload, Trash2, Eye, Save, X, 
+    CircleAlert, CircleCheckBig, User, Heart
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
@@ -197,7 +197,7 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
                         {/* Info */}
                         <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
                             <div className="flex items-start gap-3">
-                                <AlertCircle size={18} className="text-indigo-400 shrink-0 mt-0.5" />
+                                <CircleAlert size={18} className="text-indigo-400 shrink-0 mt-0.5" />
                                 <div className="text-sm text-slate-700">
                                     <p className="font-bold text-slate-900 mb-1">טיפים לעיצוב:</p>
                                     <ul className="space-y-1 text-slate-600 list-disc list-inside">
@@ -271,7 +271,7 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
                     {founderImage && (
                         <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                             <div className="flex items-center gap-2">
-                                <CheckCircle2 size={18} className="text-emerald-400" />
+                                <CircleCheckBig size={18} className="text-emerald-400" />
                                 <span className="text-sm text-emerald-400 font-bold">תמונה מוגדרת - תוצג בדף הנחיתה</span>
                             </div>
                         </div>
@@ -288,7 +288,7 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
                         className="bg-white/90 backdrop-blur-2xl border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="text-red-500" size={24} />
+                            <CircleAlert className="text-red-500" size={24} />
                             <h3 className="text-xl font-bold text-slate-900">מחיקת תמונה</h3>
                         </div>
                         <p className="text-slate-600 mb-6">

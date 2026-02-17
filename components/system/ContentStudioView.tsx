@@ -4,8 +4,8 @@
 import React, { useState } from 'react';
 import { ContentItem, ContentStage } from './types';
 import { 
-    Clapperboard, Plus, Video, Image as ImageIcon, Sparkles, 
-    MoreHorizontal, Calendar, User, Eye, CheckCircle2, 
+    Clapperboard, Plus, Video, Image, Sparkles, 
+    MoreHorizontal, Calendar, User, Eye, CircleCheckBig, 
     Youtube, Instagram, Linkedin, GripVertical, Scissors, UploadCloud, Film, Wand2
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';

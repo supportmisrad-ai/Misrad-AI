@@ -5,8 +5,8 @@ import React, { useState } from 'react';
 import { 
     FileInput, Plus, Monitor, Smartphone, Eye, Code, 
     Share2, Palette, Settings, Type, List, Layout, 
-    CheckSquare, GripVertical, Trash2, ArrowRight, Save, 
-    Link, MousePointer, Copy, CheckCircle2
+    SquareCheck, GripVertical, Trash2, ArrowRight, Save, 
+    Link, MousePointer, Copy, CircleCheckBig
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 
@@ -215,7 +215,7 @@ const FormsView: React.FC = () => {
                                     { type: 'phone', label: 'טלפון', icon: Smartphone },
                                     { type: 'textarea', label: 'פסקה', icon: FileInput },
                                     { type: 'select', label: 'בחירה', icon: List },
-                                    { type: 'checkbox', label: 'תיבה', icon: CheckSquare },
+                                    { type: 'checkbox', label: 'תיבה', icon: SquareCheck },
                                 ].map((field) => (
                                     <button
                                         key={field.type}
@@ -315,7 +315,7 @@ const FormsView: React.FC = () => {
                                     </button>
                                     
                                     <div className="mt-6 flex justify-center items-center gap-1.5 text-[10px] text-slate-400 font-medium opacity-60">
-                                        <CheckCircle2 size={10} /> מאובטח ע"י Nexus Forms
+                                        <CircleCheckBig size={10} /> מאובטח ע"י Nexus Forms
                                     </div>
                                 </div>
                             </div>

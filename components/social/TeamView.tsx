@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Briefcase, X, CheckCircle2, Trash2, Settings, Wallet, UserPlus } from 'lucide-react';
+import { Users, Briefcase, X, CircleCheckBig, Trash2, Settings, Wallet, UserPlus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
@@ -231,7 +231,7 @@ export default function TeamView() {
                               rounded="lg"
                             />
                             <span className="font-bold text-xs truncate">{c.companyName}</span>
-                            {isAssigned && <CheckCircle2 size={14} className="text-blue-500 ml-auto"/>}
+                            {isAssigned && <CircleCheckBig size={14} className="text-blue-500 ml-auto"/>}
                           </button>
                         );
                       })}

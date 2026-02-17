@@ -84,7 +84,7 @@ async function GETHandler() {
     if (isSuperAdmin) {
       // Super admins see ALL organizations
       const allOrgs = await prisma.organization.findMany({ select: { id: true } });
-      ids = allOrgs.map((o) => String(o.id)).filter(Boolean);
+      ids = allOrgs.map((o: { id: string }) => String(o.id)).filter(Boolean);
     } else {
       const [ownedOrgs, membershipRows] = await Promise.all([
         prisma.organization.findMany({

@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, LayoutGroup } from 'framer-motion';
-import { Target, BarChart2, Video, Users, LogOut, Settings, HelpCircle, LayoutGrid } from 'lucide-react';
+import { Target, BarChart2, Video, Users, LogOut, Settings, CircleHelp, LayoutGrid } from 'lucide-react';
 import { SignOutButton } from '@clerk/nextjs';
 
 export const NAV_ITEMS = [
@@ -15,7 +15,7 @@ export const NAV_ITEMS = [
 
 const SECONDARY_NAV = [
     { id: 'settings', label: 'הגדרות', icon: Settings, path: '/client-os/hub' },
-    { id: 'support', label: 'תמיכה', icon: HelpCircle, path: '/client-os/support' },
+    { id: 'support', label: 'תמיכה', icon: CircleHelp, path: '/client-os/support' },
 ];
 
 interface SidebarProps {

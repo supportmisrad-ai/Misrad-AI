@@ -34,27 +34,56 @@ function KioskHomePageInner() {
   const [attendanceMessage, setAttendanceMessage] = useState<string>('');
   const [isAttendanceBusy, setIsAttendanceBusy] = useState(false);
 
-  const getLocation = useCallback(async () => {
+  const getLocation = useCallback(async (): Promise<{ lat: number; lng: number; accuracy: number; city?: string }> => {
     if (typeof window === 'undefined') {
-      throw new Error('Location not available');
+      throw new Error('המיקום אינו זמין');
     }
     if (!('geolocation' in navigator)) {
-      throw new Error('אין תמיכה במיקום בדפדפן הזה');
+      throw new Error('הדפדפן אינו תומך במיקום GPS');
     }
 
-    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
       });
-    });
 
-    return {
-      lat: position.coords.latitude,
-      lng: position.coords.longitude,
-      accuracy: position.coords.accuracy,
-    };
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      // Reverse geocoding to get city name in Hebrew
+      let city: string | undefined;
+      try {
+        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
+        const geocodeRes = await fetch(geocodeUrl, {
+          headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
+        });
+        if (geocodeRes.ok) {
+          const geocodeData = await geocodeRes.json();
+          city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+        }
+      } catch {
+        // Silently fail geocoding - not critical
+      }
+
+      return { lat, lng, accuracy, city };
+    } catch (error: unknown) {
+      // Map GPS errors to Hebrew
+      const err = error as { code?: number; message?: string };
+      if (err?.code === 1) { // PERMISSION_DENIED
+        throw new Error('נדרשת הרשאת מיקום. אנא אפשר גישה למיקום בהגדרות הדפדפן.');
+      } else if (err?.code === 2) { // POSITION_UNAVAILABLE
+        throw new Error('לא ניתן לקבל את המיקום. ודא שה-GPS מופעל.');
+      } else if (err?.code === 3) { // TIMEOUT
+        throw new Error('פג הזמן בקבלת המיקום. אנא נסה שוב.');
+      } else {
+        throw new Error('שגיאה בקבלת המיקום. ודא שהמיקום מופעל.');
+      }
+    }
   }, []);
 
   const base = useMemo(() => {
@@ -255,22 +284,31 @@ function KioskHomePageInner() {
                 <button
                   className="rounded-3xl bg-emerald-500 text-emerald-950 p-8 md:p-10 text-right hover:bg-emerald-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                   onClick={async () => {
+                    if (isAttendanceBusy) return; // Prevent double-click
+
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
+
                     try {
+                      // CRITICAL: Get GPS location FIRST before any UI changes
                       const location = await getLocation();
+
+                      // Call API and wait for success
                       const res = await punchIn(orgSlug, attendanceNote, location);
+
+                      // Update UI ONLY after successful API response
                       if (res?.activeShift) {
                         setActiveShift(res.activeShift);
                       }
+
+                      // Refresh shift data
+                      await refreshShift(orgSlug);
+
+                      // Show success message ONLY after everything succeeded
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!');
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
-                      if (msg.toLowerCase().includes('denied')) {
-                        setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת');
-                      } else {
-                        setAttendanceMessage(msg || 'שגיאה בכניסה למשמרת');
-                      }
+                      setAttendanceMessage(msg || 'שגיאה בכניסה למשמרת');
                     } finally {
                       setIsAttendanceBusy(false);
                     }
@@ -286,20 +324,29 @@ function KioskHomePageInner() {
                 <button
                   className="rounded-3xl bg-rose-500 text-rose-950 p-8 md:p-10 text-right hover:bg-rose-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                   onClick={async () => {
+                    if (isAttendanceBusy) return; // Prevent double-click
+
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
+
                     try {
+                      // CRITICAL: Get GPS location FIRST before any UI changes
                       const location = await getLocation();
+
+                      // Call API and wait for success
                       const res = await punchOut(orgSlug, attendanceNote, location);
+
+                      // Update UI ONLY after successful API response
                       setActiveShift(null);
+
+                      // Refresh shift data
+                      await refreshShift(orgSlug);
+
+                      // Show success message ONLY after everything succeeded
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!');
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
-                      if (msg.toLowerCase().includes('denied')) {
-                        setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת');
-                      } else {
-                        setAttendanceMessage(msg || 'שגיאה ביציאה ממשמרת');
-                      }
+                      setAttendanceMessage(msg || 'שגיאה ביציאה ממשמרת');
                     } finally {
                       setIsAttendanceBusy(false);
                     }

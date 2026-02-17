@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, TriangleAlert, Info, CircleCheckBig } from 'lucide-react';
 import { Client } from '@/types/social';
 
 interface VaultTabProps {
@@ -27,7 +27,7 @@ const VaultTab: React.FC<VaultTabProps> = ({ client }) => {
           {/* Security Notice */}
           <div className="bg-red-50 p-8 rounded-[32px] border-2 border-red-200 mb-8">
             <div className="flex items-start gap-4">
-              <AlertTriangle className="text-red-600 shrink-0 mt-1" size={24}/>
+              <TriangleAlert className="text-red-600 shrink-0 mt-1" size={24}/>
               <div className="flex-1">
                 <h4 className="text-lg font-black text-red-900 mb-3">
                   ⚠️ המערכת לא שומרת סיסמאות
@@ -95,19 +95,19 @@ const VaultTab: React.FC<VaultTabProps> = ({ client }) => {
                     </p>
                     <ul className="text-xs font-bold text-slate-600 space-y-2 mr-4">
                       <li className="flex items-start gap-2">
-                        <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5"/>
+                        <CircleCheckBig size={14} className="text-green-600 shrink-0 mt-0.5"/>
                         <span>הוא פותח את האפליקציה</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5"/>
+                        <CircleCheckBig size={14} className="text-green-600 shrink-0 mt-0.5"/>
                         <span>לוחץ כפתור "הורד מדיה" (שומר את התמונה לטלפון)</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5"/>
+                        <CircleCheckBig size={14} className="text-green-600 shrink-0 mt-0.5"/>
                         <span>לוחץ כפתור "העתק טקסט"</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5"/>
+                        <CircleCheckBig size={14} className="text-green-600 shrink-0 mt-0.5"/>
                         <span>פותח אינסטגרם (שכבר מחובר בחשבון הנכון) → מדביק → מפרסם</span>
                       </li>
                     </ul>

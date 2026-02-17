@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-    Image as ImageIcon, Upload, Trash2, Eye, Save, X, 
-    AlertCircle, CheckCircle2, Globe
+    Image, Upload, Trash2, Eye, Save, X, 
+    CircleAlert, CircleCheckBig, Globe
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
@@ -133,7 +133,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                     <img src={logo} alt="Landing Page Logo" className="w-full h-full object-contain p-4" />
                                 ) : (
                                     <div className="text-slate-500 flex flex-col items-center gap-2">
-                                        <ImageIcon size={32} />
+                                        <Image size={32} />
                                         <span className="text-xs font-bold">אין לוגו</span>
                                     </div>
                                 )}
@@ -234,7 +234,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                     {/* Info Box */}
                     <div className="mt-6 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
                         <div className="flex items-start gap-3">
-                            <AlertCircle size={18} className="text-indigo-400 mt-0.5 shrink-0" />
+                            <CircleAlert size={18} className="text-indigo-400 mt-0.5 shrink-0" />
                             <div>
                                 <p className="text-sm font-bold text-slate-900 mb-1">טיפים חשובים</p>
                                 <ul className="text-xs text-slate-600 space-y-1">
@@ -258,7 +258,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                         className="bg-white/90 backdrop-blur-2xl border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="text-red-500" size={24} />
+                            <CircleAlert className="text-red-500" size={24} />
                             <h3 className="text-xl font-bold text-slate-900">מחיקת לוגו</h3>
                         </div>
                         <p className="text-slate-600 mb-6">

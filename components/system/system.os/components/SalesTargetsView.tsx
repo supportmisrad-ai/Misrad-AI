@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Lead } from '../types';
-import { Target, TrendingUp, Calendar, Trophy, AlertCircle } from 'lucide-react';
+import { Target, TrendingUp, Calendar, Trophy, CircleAlert } from 'lucide-react';
 
 interface SystemTargetsViewProps {
   leads: Lead[];
@@ -100,7 +100,7 @@ const SystemTargetsView: React.FC<SystemTargetsViewProps> = ({ leads }) => {
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="text-slate-400 text-xs font-bold uppercase mb-2 flex items-center gap-2">
-                    <AlertCircle size={14} className="text-rose-500" /> פער מהיעד
+                    <CircleAlert size={14} className="text-rose-500" /> פער מהיעד
                 </div>
                 <div className="text-3xl font-bold text-rose-600">
                     —

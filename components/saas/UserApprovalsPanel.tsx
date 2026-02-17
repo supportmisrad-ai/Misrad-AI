@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, X, CheckCircle2, Clock, Mail, Search, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { UserCheck, X, CircleCheckBig, Clock, Mail, Search, Plus, Trash2, CircleAlert } from 'lucide-react';
 import { UserApprovalRequest, Tenant } from '../../types';
 import { Button } from '@/components/ui/button';
 
@@ -108,7 +108,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                             </h3>
                         </div>
                         <div className="p-3 bg-green-500/20 text-green-700 rounded-xl border border-green-500/30 backdrop-blur-sm">
-                            <CheckCircle2 size={20} />
+                            <CircleCheckBig size={20} />
                         </div>
                     </div>
                 </div>
@@ -224,7 +224,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                                     size="sm"
                                                     className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 flex items-center gap-2 shadow-lg shadow-green-200/60 transition-all"
                                                 >
-                                                    <CheckCircle2 size={16} /> אשר
+                                                    <CircleCheckBig size={16} /> אשר
                                                 </Button>
                                                 <Button
                                                     onClick={() => setRejectingId(request.id)}
@@ -320,7 +320,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                     ))
                                 ) : (
                                     <div className="text-center py-4 text-slate-500 text-sm">
-                                        <AlertCircle size={20} className="mx-auto mb-2 opacity-50" />
+                                        <CircleAlert size={20} className="mx-auto mb-2 opacity-50" />
                                         אין מיילים מאושרים. כל מייל צריך אישור מנהל.
                                     </div>
                                 )}

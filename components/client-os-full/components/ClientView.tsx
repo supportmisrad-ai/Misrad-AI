@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { UPSELL_CATALOG } from '../constants';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
 import { generateClientInsight } from '../services/geminiService';
-import { Activity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, AlertCircle, AlertTriangle, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe } from 'lucide-react';
+import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe } from 'lucide-react';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { ClientPulseTab } from './client-tabs/ClientPulseTab';
 import { ClientStrategyTab } from './client-tabs/ClientStrategyTab';
@@ -494,7 +494,7 @@ const ClientView: React.FC = () => {
            {[
                { id: 'strategy', icon: Target, label: 'אסטרטגיה & ROI' },
                { id: 'portal', icon: Globe, label: 'ניהול פורטל' },
-               { id: 'pulse', icon: Activity, label: 'בריאות התיק' },
+               { id: 'pulse', icon: SquareActivity, label: 'בריאות התיק' },
                { id: 'stakeholders', icon: Users, label: 'אנשי קשר' },
                { id: 'tasks', icon: ListTodo, label: 'משימות' },
                { id: 'journey', icon: Map, label: 'תהליך' },

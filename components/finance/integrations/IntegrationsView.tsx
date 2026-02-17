@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plug, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Plug, CircleCheckBig, CircleX, ExternalLink } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../../GreenInvoiceConnectModal';
 import { useToast } from '../../system/contexts/ToastContext';
 
@@ -159,7 +159,7 @@ const IntegrationsView: React.FC = () => {
                 <div className="text-sm font-medium text-slate-500">בודק סטטוס...</div>
               ) : greenInvoiceStatus.connected ? (
                 <div className="flex items-center gap-2 text-emerald-600">
-                  <CheckCircle2 size={20} />
+                  <CircleCheckBig size={20} />
                   <span className="text-sm font-medium">מחובר</span>
                 </div>
               ) : (
@@ -188,7 +188,7 @@ const IntegrationsView: React.FC = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className={`flex items-center gap-2 ${(integration as Record<string, unknown>).connected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                  <CheckCircle2 size={20} />
+                  <CircleCheckBig size={20} />
                   <span className="text-sm font-medium">מחובר</span>
                 </div>
               </div>

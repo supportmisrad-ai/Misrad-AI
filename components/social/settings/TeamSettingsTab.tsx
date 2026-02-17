@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Shield, Users, Trash2, X, Edit2, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { UserPlus, Shield, Users, Trash2, X, Edit2, Save, CircleCheckBig, TriangleAlert } from 'lucide-react';
 import { TeamMember, TeamMemberRole } from '@/types/social';
 import { useApp } from '@/contexts/AppContext';
 import { translateError } from '@/lib/errorTranslations';
@@ -363,7 +363,7 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                   >
                     <div className="flex items-center gap-4 mb-6">
                       <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
-                        <AlertTriangle className="text-red-600" size={24} />
+                        <TriangleAlert className="text-red-600" size={24} />
                       </div>
                       <div>
                         <h3 className="text-xl font-black text-slate-800">הסרת חבר צוות</h3>

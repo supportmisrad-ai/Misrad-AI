@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown, Loader2, ExternalLink, CheckCircle } from 'lucide-react';
+import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CircleCheckBig, ChevronDown, Loader2, ExternalLink, CircleCheck } from 'lucide-react';
 import { CalendarEvent, Lead } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -255,7 +255,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                 <span className="text-sm font-bold">זום / מיט</span>
                                 {!isCheckingStatus && (integrationStatus?.zoom || integrationStatus?.meet) && (
                                     <div className="absolute top-1 left-1">
-                                        <CheckCircle size={14} className="text-green-600" />
+                                        <CircleCheck size={14} className="text-green-600" />
                                     </div>
                                 )}
                             </button>
@@ -351,7 +351,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                                 <opt.icon size={16} className={`${reminders.timing === opt.id ? opt.color : 'text-slate-400 group-hover:text-indigo-400'}`} />
                                                                 <span className="text-sm font-bold">{opt.label}</span>
                                                             </div>
-                                                            {reminders.timing === opt.id && <CheckCircle2 size={16} className="text-indigo-600" />}
+                                                            {reminders.timing === opt.id && <CircleCheckBig size={16} className="text-indigo-600" />}
                                                         </button>
                                                     ))}
                                                 </motion.div>
@@ -438,7 +438,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                     className="bg-green-50 border-2 border-green-200 rounded-2xl p-4"
                 >
                     <div className="flex items-start gap-3">
-                        <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        <CircleCheck size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <h4 className="font-bold text-sm text-green-900 mb-1">✅ הפגישה נוצרה בהצלחה!</h4>
                             <p className="text-xs text-green-700 mb-2">לינק הפגישה:</p>

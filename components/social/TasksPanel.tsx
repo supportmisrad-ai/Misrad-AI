@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, MessageSquare, ShieldAlert, Clock, Trash2, Plus, DollarSign, Zap } from 'lucide-react';
+import { CircleCheckBig, MessageSquare, ShieldAlert, Clock, Trash2, Plus, DollarSign, Zap } from 'lucide-react';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { Avatar } from '@/components/Avatar';
 import { SocialTask } from '@/types/social';
@@ -78,7 +78,7 @@ export default function TasksPanel({ onAddTask, onEditTask }: TasksPanelProps) {
                   onClick={(e) => { e.stopPropagation(); handleToggleTask(task.id); }}
                   className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center transition-all shrink-0 ${task.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-slate-100 text-slate-100 hover:border-green-500 hover:text-green-500'}`}
                 >
-                  <CheckCircle2 size={20} />
+                  <CircleCheckBig size={20} />
                 </button>
                 
                 <div className="flex-1 min-w-0">

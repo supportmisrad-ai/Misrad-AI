@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, Mail, Phone, MapPin, Award, TrendingUp, CheckCircle, Bell, Shield, LogOut, Settings, Camera, Lock, Briefcase } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Award, TrendingUp, CircleCheck, Bell, Shield, LogOut, Settings, Camera, Lock, Briefcase } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 
@@ -108,7 +108,7 @@ const PersonalArea: React.FC = () => {
               <div className="relative z-10">
                   <div className="flex justify-between items-start mb-4">
                       <div className="p-3 bg-white shadow-sm rounded-xl text-blue-600">
-                          <CheckCircle size={24} />
+                          <CircleCheck size={24} />
                       </div>
                       <span className="text-xs font-bold bg-blue-50 text-blue-600 px-2 py-1 rounded">3 פתוחות</span>
                   </div>
@@ -182,7 +182,7 @@ const PersonalArea: React.FC = () => {
               </div>
           </div>
 
-          {/* 4. Recent Activity Log */}
+          {/* 4. Recent SquareActivity Log */}
           <div className="space-y-6">
               <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 h-full">
                   <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">

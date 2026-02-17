@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Circle, Calendar, Briefcase, Zap, CheckCircle2 } from 'lucide-react';
+import { X, Play, Circle, Calendar, Briefcase, Zap, CircleCheckBig } from 'lucide-react';
 import { generateDailyBriefing } from '../services/geminiService';
 import { useNexus } from '../context/ClientContext';
 import { HealthStatus } from '../types';
@@ -112,7 +112,7 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ isOpen, onClose }) => {
                                 onClick={onClose}
                                 className="px-8 py-3 bg-white text-black font-bold rounded-xl hover:bg-nexus-accent hover:text-white transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(197,165,114,0.6)]"
                             >
-                                יאללה לעבודה <CheckCircle2 size={18} />
+                                יאללה לעבודה <CircleCheckBig size={18} />
                             </button>
                         </div>
                     </div>

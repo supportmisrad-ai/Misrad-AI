@@ -1,16 +1,13 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
+import { CircleCheckBig, ArrowRight, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, Pin, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPlatform, StrategicCharacterization, Client } from '@/types/social';
+import { SocialPlatform, StrategicCharacterization, Client, OnboardingStatus, ClientStatus } from '@/types/social';
 import { updateClientForWorkspace } from '@/app/actions/clients';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-
-type OnboardingStatus = 'invited' | 'completed' | 'in_progress' | 'pending';
-type ClientStatus = 'Active' | 'Inactive' | 'Paused' | 'Trial';
 
 const PLATFORM_ICONS: Record<SocialPlatform, React.ComponentType<{ size?: number; className?: string }>> = {
   facebook: Facebook,
@@ -22,7 +19,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, React.ComponentType<{ size?: number
   whatsapp: MessageCircle,
   threads: Share2,
   youtube: Video,
-  pinterest: PinIcon,
+  pinterest: Pin,
   portal: MessageSquare
 };
 
@@ -217,7 +214,7 @@ export default function ClientOnboardingPortal() {
                   step > s ? 'bg-green-500 text-white' : 
                   'bg-slate-100 text-slate-400'
                 }`}>
-                  {step > s ? <CheckCircle2 size={20} /> : s}
+                  {step > s ? <CircleCheckBig size={20} /> : s}
                 </div>
                 {s < 4 && <div className={`w-12 h-1 ${step > s ? 'bg-green-500' : 'bg-slate-100'}`} />}
               </div>

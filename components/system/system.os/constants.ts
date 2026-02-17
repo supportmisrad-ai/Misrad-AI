@@ -1,6 +1,6 @@
 
 import { Lead, SystemStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
-import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, SquareCheck, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
 export const STAGES: { id: SystemStage; label: string; color: string; accent: string }[] = [
   { id: 'incoming', label: 'נכנס', color: 'border-slate-200', accent: 'bg-slate-400' }, 
@@ -27,7 +27,7 @@ export const NAV_GROUPS = [
       { id: 'sales_leads', label: 'לידים', icon: Users }, 
       { id: 'calendar', label: 'אירועים ופגישות', icon: CalendarDays }, 
       { id: 'comms', label: 'דואר נכנס', icon: MessageSquare }, 
-      { id: 'tasks', label: 'משימות שוטפות', icon: CheckSquare }, 
+      { id: 'tasks', label: 'משימות שוטפות', icon: SquareCheck }, 
     ]
   },
   {

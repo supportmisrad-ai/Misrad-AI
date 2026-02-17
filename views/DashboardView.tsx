@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useData } from '../context/DataContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket, Image as ImageIcon, Upload, Plus, Mic, type LucideIcon } from 'lucide-react';
+import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, SquareCheck, Sparkles, ChevronRight, Flame, Rocket, Image, Upload, Plus, Mic, type LucideIcon } from 'lucide-react';
 import { Status, Priority, LeadStatus, User as UserType, type ModuleId } from '../types';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
@@ -495,7 +495,7 @@ export const DashboardView: React.FC<{
             label: 'לוגו לעסק',
             subLabel: 'העלה לוגו לסביבת העבודה',
             done: Boolean(organization.logo && organization.logo.length > 0),
-            icon: ImageIcon,
+            icon: Image,
             action: () => navigate('/settings?tab=branding'),
             color: 'text-pink-600 bg-pink-50',
         },
@@ -504,7 +504,7 @@ export const DashboardView: React.FC<{
             label: 'משימה ראשונה',
             subLabel: 'צור משימה במערכת',
             done: tasks.some((t) => t.creatorId === currentUser.id),
-            icon: CheckSquare,
+            icon: SquareCheck,
             action: () => openCreateTask(),
             color: 'text-purple-600 bg-purple-50',
         },
@@ -952,7 +952,7 @@ export const DashboardView: React.FC<{
                                         <div className="ui-card p-5 transform-none hover:transform-none">
                                             <div className="flex items-center justify-between">
                                                 <div className="text-xs text-slate-500 font-bold">Nexus</div>
-                                                <CheckSquare size={18} className="text-[#3730A3]" />
+                                                <SquareCheck size={18} className="text-[#3730A3]" />
                                             </div>
                                             <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.nexus.tasksOpen ?? 0}</div>
                                             <div className="mt-1 text-xs text-slate-500">משימות פתוחות</div>

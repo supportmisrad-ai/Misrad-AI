@@ -1,23 +1,23 @@
 'use client';
 
 import React from 'react';
-import { Activity } from '../types';
+import { SquareActivity } from '../types';
 import { asObject } from './utils';
 
 interface LeadModalCallAnalysisProps {
-  activity: Activity;
+  SquareActivity: SquareActivity;
   createdAiTaskKeys: string[];
   creatingAiTaskKey: string | null;
   onCreateTask: (key: string, taskText: string) => void;
 }
 
 const LeadModalCallAnalysis: React.FC<LeadModalCallAnalysisProps> = ({
-  activity,
+  SquareActivity,
   createdAiTaskKeys,
   creatingAiTaskKey,
   onCreateTask,
 }) => {
-  const ca = asObject(asObject(activity.metadata)?.callAnalysis);
+  const ca = asObject(asObject(SquareActivity.metadata)?.callAnalysis);
   if (!ca) return null;
 
   const audio = asObject(ca.audio) ?? {};
@@ -66,7 +66,7 @@ const LeadModalCallAnalysis: React.FC<LeadModalCallAnalysisProps> = ({
             <div className="mt-2 space-y-1">
               {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => {
                 const taskText = String(t);
-                const key = `${String(activity.id)}:${idx}:${taskText}`;
+                const key = `${String(SquareActivity.id)}:${idx}:${taskText}`;
                 const disabled = createdAiTaskKeys.includes(key) || creatingAiTaskKey === key;
 
                 return (

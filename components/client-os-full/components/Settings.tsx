@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, Shield, DollarSign, Cpu, Bell, Building2, Key, Info, GitMerge, AlertTriangle, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload } from 'lucide-react';
+import { Save, Shield, DollarSign, Cpu, Bell, Building2, Key, Info, GitMerge, TriangleAlert, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { GlassCard } from './ui/GlassCard';
 
@@ -129,7 +129,7 @@ const Settings: React.FC = () => {
             <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-success/10 text-signal-success border border-signal-success/20">
-                     <AlertTriangle size={24} />
+                     <TriangleAlert size={24} />
                   </div>
                   <div>
                      <h4 className="text-lg font-medium text-gray-900">מתי מתחילים להפסיד?</h4>
@@ -290,7 +290,7 @@ const Settings: React.FC = () => {
             <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-danger/10 text-signal-danger border border-signal-danger/20">
-                     <AlertTriangle size={24} />
+                     <TriangleAlert size={24} />
                   </div>
                   <div>
                      <h4 className="text-lg font-medium text-gray-900">מתי להיכנס ללחץ? (NPS)</h4>

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { 
   Maximize2, Minimize2, X, ArrowUp, MessageSquare, Clock, 
   Search, ChevronLeft, Sparkles, Home, FileText, CreditCard, 
-  HelpCircle, Zap, TrendingUp, Users, Calendar 
+  CircleHelp, Zap, TrendingUp, Users, Calendar 
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -483,7 +483,7 @@ export function AiAssistantWidget() {
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <HelpCircle size={14} className="sm:w-4 sm:h-4" />
+                  <CircleHelp size={14} className="sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">עזרה</span>
                 </button>
               </div>

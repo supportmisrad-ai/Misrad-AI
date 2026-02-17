@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, CreditCard, ChevronLeft, CheckCircle2, Lock, X } from 'lucide-react';
+import { ShieldCheck, CreditCard, ChevronLeft, CircleCheckBig, Lock, X } from 'lucide-react';
 import { PaymentOrder, Client } from '@/types/social';
 import { Avatar } from '@/components/Avatar';
 import { processPayment } from '@/app/actions/payments';
@@ -237,7 +237,7 @@ export default function PaymentCheckoutPortal({ order, client, orgSlug, onSucces
             ) : (
               <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center gap-10 h-full text-center">
                 <div className="w-32 h-32 bg-green-500 text-white rounded-[40px] flex items-center justify-center shadow-2xl shadow-green-100 rotate-12">
-                  <CheckCircle2 size={64} />
+                  <CircleCheckBig size={64} />
                 </div>
                 <div>
                   <h2 className="text-4xl font-black mb-4">התשלום בוצע בהצלחה!</h2>

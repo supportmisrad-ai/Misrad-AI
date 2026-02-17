@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Copy, CircleCheckBig } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { createSubscriptionOrder, getSubscriptionPaymentConfig, submitSubscriptionPaymentProof } from '@/app/actions/subscription-orders';
@@ -285,7 +285,7 @@ function SubscribeCheckoutContent({
       <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
           <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-            <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto mb-6" />
+            <CircleCheckBig className="w-20 h-20 text-emerald-400 mx-auto mb-6" />
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">הבקשה נשלחה בהצלחה! אנחנו מאמתים את התשלום כעת.</h1>
             <p className="text-sm sm:text-base text-slate-600 mb-6">
               ברגע שנאשר, המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור.
@@ -475,7 +475,7 @@ function SubscribeCheckoutContent({
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="inline-flex items-center gap-2 text-emerald-700 font-bold">
-                      <CheckCircle2 size={18} /> הזמנה נוצרה
+                      <CircleCheckBig size={18} /> הזמנה נוצרה
                     </div>
                     <div className="text-sm text-slate-700 mt-2 whitespace-pre-line">{bitPayText}</div>
                   </div>

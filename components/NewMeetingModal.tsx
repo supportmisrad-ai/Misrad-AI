@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown } from 'lucide-react';
+import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CircleCheckBig, ChevronDown } from 'lucide-react';
 import { Lead } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -260,7 +260,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                                 <opt.icon size={16} className={`${reminders.timing === opt.id ? opt.color : 'text-slate-400 group-hover:text-indigo-400'}`} />
                                                                 <span className="text-sm font-bold">{opt.label}</span>
                                                             </div>
-                                                            {reminders.timing === opt.id && <CheckCircle2 size={16} className="text-indigo-600" />}
+                                                            {reminders.timing === opt.id && <CircleCheckBig size={16} className="text-indigo-600" />}
                                                         </button>
                                                     ))}
                                                 </motion.div>

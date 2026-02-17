@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Mail, ShieldCheck, Zap, Globe, Cpu, Lock, CheckCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Mail, ShieldCheck, Zap, Globe, Cpu, Lock, CircleCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import { getSystemIconUrl } from '@/lib/metadata';
@@ -340,14 +340,14 @@ export const ResetPasswordView: React.FC = () => {
                     <div className="flex items-center justify-center gap-2 mb-8">
                         <div className={`flex items-center gap-2 ${step === 'email' ? 'text-blue-600' : step === 'code' || step === 'password' ? 'text-green-600' : 'text-gray-300'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 ${step === 'email' ? 'border-blue-600 bg-blue-50' : step === 'code' || step === 'password' ? 'border-green-600 bg-green-50' : 'border-gray-300 bg-gray-50'}`}>
-                                {step === 'code' || step === 'password' ? <CheckCircle size={16} /> : '1'}
+                                {step === 'code' || step === 'password' ? <CircleCheck size={16} /> : '1'}
                             </div>
                             <span className="text-xs font-bold hidden sm:inline">אימייל</span>
                         </div>
                         <div className={`h-px flex-1 ${step === 'code' || step === 'password' ? 'bg-green-600' : 'bg-gray-200'}`} />
                         <div className={`flex items-center gap-2 ${step === 'code' ? 'text-blue-600' : step === 'password' ? 'text-green-600' : 'text-gray-300'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 ${step === 'code' ? 'border-blue-600 bg-blue-50' : step === 'password' ? 'border-green-600 bg-green-50' : 'border-gray-300 bg-gray-50'}`}>
-                                {step === 'password' ? <CheckCircle size={16} /> : '2'}
+                                {step === 'password' ? <CircleCheck size={16} /> : '2'}
                             </div>
                             <span className="text-xs font-bold hidden sm:inline">קוד</span>
                         </div>
@@ -391,7 +391,7 @@ export const ResetPasswordView: React.FC = () => {
                                 )}
                                 {success && (
                                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-green-600 font-bold flex items-center gap-1">
-                                        <CheckCircle size={14} /> {success}
+                                        <CircleCheck size={14} /> {success}
                                     </motion.p>
                                 )}
                                 <button
@@ -457,7 +457,7 @@ export const ResetPasswordView: React.FC = () => {
                                 )}
                                 {success && (
                                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-green-600 font-bold flex items-center gap-1">
-                                        <CheckCircle size={14} /> {success}
+                                        <CircleCheck size={14} /> {success}
                                     </motion.p>
                                 )}
                                 <button
@@ -505,7 +505,7 @@ export const ResetPasswordView: React.FC = () => {
                                 <div className="mb-6">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white">
-                                            <CheckCircle size={24} />
+                                            <CircleCheck size={24} />
                                         </div>
                                         <div>
                                             <div className="font-bold text-gray-900 text-lg">קוד אומת בהצלחה</div>
@@ -566,7 +566,7 @@ export const ResetPasswordView: React.FC = () => {
                                 )}
                                 {success && (
                                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-green-600 font-bold flex items-center gap-1">
-                                        <CheckCircle size={14} /> {success}
+                                        <CircleCheck size={14} /> {success}
                                     </motion.p>
                                 )}
                                 <button

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    Play, Pause, RotateCcw, CheckCircle, Volume2, 
+    Play, Pause, RotateCcw, CircleCheck, Volume2, 
     VolumeX, X, Maximize2, Minimize2, Coffee, 
     ArrowRight, Zap, Target, Award, ListTodo,
     Moon, Wind, CloudRain
@@ -267,7 +267,7 @@ const FocusModeView: React.FC = () => {
                                         onClick={handleCompleteTask}
                                         className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-4 rounded-2xl transition-all shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center gap-3"
                                     >
-                                        <CheckCircle size={22} />
+                                        <CircleCheck size={22} />
                                         <span className="font-black text-sm uppercase">סיום</span>
                                     </button>
                                     <button 

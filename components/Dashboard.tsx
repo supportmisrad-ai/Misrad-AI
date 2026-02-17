@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { Lead, DashboardStats, PipelineStage } from './system/types';
 import { STAGES } from './system/constants';
-import { CircleAlert, TrendingUp, DollarSign, Users, ArrowUpRight, Target, Activity, Zap, Layers, PieChart as PieChartIcon, Calendar, Megaphone, Wallet, Play, PhoneCall } from 'lucide-react';
+import { CircleAlert, TrendingUp, DollarSign, Users, ArrowUpRight, Target, SquareActivity, Zap, Layers, PieChart as PieChartIcon, Calendar, Megaphone, Wallet, Play, PhoneCall } from 'lucide-react';
 
 interface DashboardProps {
   leads: Lead[];

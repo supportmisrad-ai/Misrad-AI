@@ -187,38 +187,70 @@ export default function AttendanceMiniStatus() {
 
   const clockOutQuick = useCallback(async () => {
     if (!entryId || !orgSlug) return;
+
     setIsBusy(true);
     setErrorMessage(null);
+
     try {
-      if (typeof window === 'undefined') throw new Error('Location not available');
-      if (!('geolocation' in navigator)) throw new Error('אין תמיכה במיקום בדפדפן הזה');
+      // CRITICAL: Get GPS location FIRST before any UI changes
+      if (typeof window === 'undefined') throw new Error('המיקום אינו זמין');
+      if (!('geolocation' in navigator)) throw new Error('הדפדפן אינו תומך במיקום GPS');
+
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           timeout: 15000,
           maximumAge: 0,
         });
+      }).catch((error: any) => {
+        // Map GPS errors to Hebrew
+        if (error?.code === 1) { // PERMISSION_DENIED
+          throw new Error('נדרשת הרשאת מיקום. אנא אפשר גישה למיקום בהגדרות הדפדפן.');
+        } else if (error?.code === 2) { // POSITION_UNAVAILABLE
+          throw new Error('לא ניתן לקבל את המיקום. ודא שה-GPS מופעל.');
+        } else if (error?.code === 3) { // TIMEOUT
+          throw new Error('פג הזמן בקבלת המיקום. אנא נסה שוב.');
+        } else {
+          throw new Error('שגיאה בקבלת המיקום. ודא שהמיקום מופעל.');
+        }
       });
-      await punchOut(orgSlug, undefined, {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      // Reverse geocoding to get city name in Hebrew
+      let city: string | undefined;
+      try {
+        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
+        const geocodeRes = await fetch(geocodeUrl, {
+          headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
+        });
+        if (geocodeRes.ok) {
+          const geocodeData = await geocodeRes.json();
+          city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+        }
+      } catch {
+        // Silently fail geocoding - not critical
+      }
+
+      // Call API and wait for success
+      await punchOut(orgSlug, undefined, { lat, lng, accuracy, city });
+
+      // Update UI ONLY after successful API response
       setEntryId(null);
       setStartTime(null);
       broadcast({ orgSlug, entryId: null, startTime: null });
+
+      // Refresh shift data
       void loadActiveShift();
     } catch (e: unknown) {
       const msg = String(e instanceof Error ? e.message : e);
-      if (msg.toLowerCase().includes('denied')) {
-        setErrorMessage('נדרש אישור גישה למיקום כדי לבצע יציאה');
-      } else {
-        setErrorMessage(msg || 'שגיאה ביציאה');
-      }
+      setErrorMessage(msg || 'שגיאה ביציאה');
     } finally {
       setIsBusy(false);
     }
-  }, [broadcast, entryId, loadActiveShift, orgSlug]);
+  }, [broadcast, entryId, startTime, loadActiveShift, orgSlug]);
 
   if (!orgSlug) return null;
   if (hasNexus === false) return null;

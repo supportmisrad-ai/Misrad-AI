@@ -135,7 +135,7 @@ export const SalesDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Activity Feed */}
+                {/* SquareActivity Feed */}
                 <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                     <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2"><Clock size={20} className="text-blue-500" /> פעילות אחרונה</h3>
                     <div className="space-y-6 relative">

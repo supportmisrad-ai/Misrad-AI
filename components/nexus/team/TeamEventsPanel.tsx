@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Plus, RefreshCw, Users, MapPin, Clock, X, Check, AlertCircle, Edit2, Trash2, Filter, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Calendar, Plus, RefreshCw, Users, MapPin, Clock, X, Check, CircleAlert, Edit2, Trash2, Filter, CircleCheck, CircleX, Eye } from 'lucide-react';
 import { TeamEvent, TeamEventType, TeamEventStatus, EventAttendance, AttendanceStatus, User } from '../../../types';
 import { EventRequestModal } from './EventRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
@@ -286,7 +286,7 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                             <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.pending}</h3>
                         </div>
                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-50 text-yellow-600 rounded-2xl flex items-center justify-center shrink-0">
-                            <AlertCircle size={20} className="sm:w-6 sm:h-6" />
+                            <CircleAlert size={20} className="sm:w-6 sm:h-6" />
                         </div>
                     </div>
                 </div>
@@ -462,12 +462,12 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                                                     <span className="text-xs text-gray-500">אישור הגעה:</span>
                                                     {myStatus === 'attending' ? (
                                                         <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold flex items-center gap-1">
-                                                            <CheckCircle size={14} />
+                                                            <CircleCheck size={14} />
                                                             אני מגיע
                                                         </span>
                                                     ) : myStatus === 'not_attending' ? (
                                                         <span className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-bold flex items-center gap-1">
-                                                            <XCircle size={14} />
+                                                            <CircleX size={14} />
                                                             אני לא מגיע
                                                         </span>
                                                     ) : (
@@ -476,14 +476,14 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                                                                 onClick={() => handleRSVP(event.id, 'attending')}
                                                                 className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-all text-xs font-bold flex items-center gap-1"
                                                             >
-                                                                <CheckCircle size={14} />
+                                                                <CircleCheck size={14} />
                                                                 אני מגיע
                                                             </button>
                                                             <button
                                                                 onClick={() => handleRSVP(event.id, 'not_attending')}
                                                                 className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all text-xs font-bold flex items-center gap-1"
                                                             >
-                                                                <XCircle size={14} />
+                                                                <CircleX size={14} />
                                                                 אני לא מגיע
                                                             </button>
                                                         </>

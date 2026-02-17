@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -40,10 +40,10 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/landing')) return 'platform';
 
   if (p.startsWith('/app/admin/customers')) return 'customers';
+  if (p.startsWith('/app/admin/setup-customer')) return 'customers';
   if (p.startsWith('/app/admin/organizations')) return 'customers';
   if (p.startsWith('/app/admin/org/')) return 'customers';
   if (p.startsWith('/app/admin/users')) return 'customers';
-  if (p.startsWith('/app/admin/tenants')) return 'customers';
   if (p.startsWith('/app/admin/support')) return 'customers';
   if (p.startsWith('/app/admin/client')) return 'customers';
   if (p.startsWith('/app/admin/global/users')) return 'customers';
@@ -187,15 +187,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   type AdminNavItem = { href: string; label: string; icon: LucideIcon };
 
   const dashboardItem = useMemo<AdminNavItem>(
-    () => ({ href: '/app/admin', label: 'דשבורד', icon: LayoutGrid }),
+    () => ({ href: '/app/admin', label: 'מבט כללי', icon: LayoutGrid }),
     []
   );
 
   const customerNavItems = useMemo<AdminNavItem[]>(
     () => [
-      { href: '/app/admin/dashboard/customers', label: 'דשבורד לקוחות', icon: LayoutGrid },
+      { href: '/app/admin/dashboard/customers', label: 'מבט על לקוחות', icon: LayoutGrid },
+      { href: '/app/admin/setup-customer', label: 'הקמת לקוח (Wizard)', icon: UserPlus },
       { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
-      { href: '/app/admin/organizations', label: 'ארגונים', icon: Building2 },
+      { href: '/app/admin/organizations', label: 'ניהול ארגונים', icon: Network },
+      { href: '/app/admin/billing-management', label: 'ניהול גבייה', icon: DollarSign },
       { href: '/app/admin/client/support', label: 'שירות לקוחות', icon: LifeBuoy },
     ],
     []
@@ -203,10 +205,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const platformNavItems = useMemo<AdminNavItem[]>(
     () => [
-      { href: '/app/admin/dashboard/platform', label: 'דשבורד פלטפורמה', icon: LayoutGrid },
+      { href: '/app/admin/dashboard/platform', label: 'מבט על פלטפורמה', icon: LayoutGrid },
       { href: '/app/admin/system-flags', label: 'מתגי מערכת', icon: SlidersHorizontal },
-      { href: '/app/admin/ai', label: 'ניתוח AI', icon: Sparkles },
-      { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
+      { href: '/app/admin/ai', label: 'ניתוח בינה מלאכותית', icon: Sparkles },
+      { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
     ],
     []
   );
@@ -217,7 +219,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const auditNavItems = useMemo<AdminNavItem[]>(
     () => [
-      { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
+      { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
     ],
     []
   );
@@ -236,7 +238,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const base =
       adminArea === 'platform'
         ? [find('/app/admin'), find('/app/admin/system-flags'), find('/app/admin/ai'), find('/app/admin/logs')]
-        : [find('/app/admin'), find('/app/admin/business-clients'), find('/app/admin/organizations'), find('/app/admin/client/support')];
+        : [find('/app/admin'), find('/app/admin/setup-customer'), find('/app/admin/business-clients'), find('/app/admin/organizations')];
     return base.filter((item): item is AdminNavItem => Boolean(item));
   }, [adminArea, effectiveNavItems, isAuditServiceRole]);
 

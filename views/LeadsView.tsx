@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { LeadStatus, Lead } from '../types';
 import { motion } from 'framer-motion';
-import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CheckCircle2, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CircleCheckBig, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag } from 'lucide-react';
 
 export const LeadsView: React.FC = () => {
     const { leads, updateLead, addLead, products, convertLeadToClient } = useData();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { Task, TaskCompletionDetails, TaskContributor, User } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, Clock, AlertTriangle, Star, ThumbsUp, ThumbsDown, X, Save, Users } from 'lucide-react';
+import { CircleCheckBig, Clock, TriangleAlert, Star, ThumbsUp, ThumbsDown, X, Save, Users } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const TaskCompletionModal: React.FC = () => {
@@ -111,7 +111,7 @@ export const TaskCompletionModal: React.FC = () => {
                     <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/30">
-                            <CheckCircle2 size={32} className="text-white" />
+                            <CircleCheckBig size={32} className="text-white" />
                         </div>
                         <h2 className="text-2xl font-black tracking-tight">כל הכבוד! סיימת משימה.</h2>
                         <p className="opacity-90 text-sm mt-1">{taskToComplete.title}</p>
@@ -208,7 +208,7 @@ export const TaskCompletionModal: React.FC = () => {
                     {/* Snooze Shame/Fame */}
                     {snoozeCount > 0 ? (
                         <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
-                            <div className="bg-red-100 p-2 rounded-lg text-red-600"><AlertTriangle size={18} /></div>
+                            <div className="bg-red-100 p-2 rounded-lg text-red-600"><TriangleAlert size={18} /></div>
                             <div>
                                 <h4 className="font-bold text-red-900 text-sm">עיכובים בדרך</h4>
                                 <p className="text-xs text-red-700 mt-1">
@@ -242,7 +242,7 @@ export const TaskCompletionModal: React.FC = () => {
                         onClick={handleConfirm}
                         className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg hover:bg-gray-800 transition-transform active:scale-[0.98] shadow-xl flex items-center justify-center gap-2 shrink-0"
                     >
-                        סמן כבוצע <CheckCircle2 size={20} />
+                        סמן כבוצע <CircleCheckBig size={20} />
                     </button>
 
                 </div>

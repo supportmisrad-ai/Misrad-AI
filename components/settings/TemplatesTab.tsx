@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Layers, Trash2, Calendar, User, ArrowRight, Save, Clock, FileText, Video, Mail, CheckCircle2, GripVertical, ChevronRight } from 'lucide-react';
+import { Plus, X, Layers, Trash2, Calendar, User, ArrowRight, Save, Clock, FileText, Video, Mail, CircleCheckBig, GripVertical, ChevronRight } from 'lucide-react';
 import { Template, Priority, TemplateActionType, TemplateCategory } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { CustomSelect } from '../CustomSelect';
@@ -108,7 +108,7 @@ export const TemplatesTab: React.FC = () => {
             case 'email': return <Mail size={14} className="text-blue-500" />;
             case 'meeting': return <Calendar size={14} className="text-purple-500" />;
             case 'doc': return <FileText size={14} className="text-orange-500" />;
-            default: return <CheckCircle2 size={14} className="text-green-500" />;
+            default: return <CircleCheckBig size={14} className="text-green-500" />;
         }
     };
 
@@ -336,7 +336,7 @@ export const TemplatesTab: React.FC = () => {
                                                             value={item.actionType}
                                                             onChange={(val) => handleUpdateItem(idx, 'actionType', val)}
                                                             options={[
-                                                                { value: 'task', label: 'משימה רגילה', icon: <CheckCircle2 size={14} className="text-green-500" /> },
+                                                                { value: 'task', label: 'משימה רגילה', icon: <CircleCheckBig size={14} className="text-green-500" /> },
                                                                 { value: 'email', label: 'מייל אוטומטי', icon: <Mail size={14} className="text-blue-500" /> },
                                                                 { value: 'meeting', label: 'תיאום פגישה', icon: <Calendar size={14} className="text-purple-500" /> },
                                                                 { value: 'doc', label: 'יצירת מסמך', icon: <FileText size={14} className="text-orange-500" /> },

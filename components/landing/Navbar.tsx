@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { CircleUser, LifeBuoy, Menu, X, HelpCircle, Type, User, LogIn, Accessibility } from 'lucide-react';
+import { CircleUser, LifeBuoy, Menu, X, CircleHelp, Type, User, LogIn, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { getSystemIconUrl } from '@/lib/metadata';
 interface NavbarProps {
@@ -101,7 +101,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                         animate={{ rotate: isFabOpen ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {isFabOpen ? <X size={18} className="sm:w-5 sm:h-5" strokeWidth={2} /> : <Accessibility size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={2} />}
+                        {isFabOpen ? <X size={18} className="sm:w-5 sm:h-5" strokeWidth={2} /> : <Settings size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={2} />}
                     </motion.div>
                 </motion.button>
                 <AnimatePresence>

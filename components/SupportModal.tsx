@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass, Video } from 'lucide-react';
+import { X, MessageSquare, Send, CircleCheckBig, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass, Video } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getContentByKey } from '@/app/actions/site-content';
@@ -282,7 +282,7 @@ export const SupportModal: React.FC = () => {
                             className="p-8 text-center flex flex-col items-center justify-center min-h-[400px]"
                         >
                             <div className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center mb-6 animate-[bounce_1s_infinite]">
-                                <CheckCircle2 size={40} />
+                                <CircleCheckBig size={40} />
                             </div>
                             <h2 className="text-2xl font-black text-gray-900 mb-2">תודה על הפידבק!</h2>
                             <p className="text-gray-500 mb-6 max-w-xs">

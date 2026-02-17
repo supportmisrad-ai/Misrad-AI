@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, CheckCircle2, Download, Copy, X } from 'lucide-react';
+import { Shield, CircleCheckBig, Download, Copy, X } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
 let hasSeenSecurityUpdateModal = false;
@@ -116,7 +116,7 @@ export default function SecurityUpdateModal({ onClose }: SecurityUpdateModalProp
           {/* Benefits */}
           <div className="bg-green-50 rounded-2xl p-6 mb-8 border border-green-100">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="text-green-600 shrink-0 mt-1" size={20} />
+              <CircleCheckBig className="text-green-600 shrink-0 mt-1" size={20} />
               <p className="text-sm font-black text-green-900 leading-relaxed">
                 זהו צעד שנועד להבטיח לכם <strong>אפס סיכוני אבטחה</strong> ושליטה מלאה בחשבונות.
               </p>

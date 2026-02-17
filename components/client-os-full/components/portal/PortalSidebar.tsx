@@ -2,7 +2,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, FileText, Map, BarChart3, CreditCard, 
-  HelpCircle, MessageSquareWarning, LogOut 
+  CircleHelp, MessageSquareWarning, LogOut 
 } from 'lucide-react';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { Client } from '../../types';
@@ -28,7 +28,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
     { id: 'journey', label: 'איפה אנחנו עומדים?', icon: Map },
     { id: 'metrics', label: 'ביצועים ומדדים', icon: BarChart3 },
     { id: 'finance', label: 'פיננסים והסכמים', icon: CreditCard },
-    { id: 'concierge', label: 'מי מטפל בי?', icon: HelpCircle },
+    { id: 'concierge', label: 'מי מטפל בי?', icon: CircleHelp },
   ];
 
   return (

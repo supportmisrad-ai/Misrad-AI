@@ -252,7 +252,7 @@ async function POSTHandler(request: NextRequest) {
                     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
                 }
 
-                const org = await prisma.social_organizations.findUnique({
+                const org = await prisma.organization.findUnique({
                     where: { id: organizationId },
                     select: { owner_id: true },
                 });

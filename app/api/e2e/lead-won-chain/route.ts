@@ -69,7 +69,7 @@ export async function POST(req: Request) {
             },
           });
 
-          const createdOrg = await tx.social_organizations.create({
+          const createdOrg = await tx.organization.create({
             data: {
               ...(maybeId ? { id: maybeId } : {}),
               name: 'E2E Workspace',

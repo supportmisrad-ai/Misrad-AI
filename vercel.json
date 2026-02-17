@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/employee-invite-emails",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/check-trial-expiry",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/send-trial-warnings",
+      "schedule": "0 9,17 * * *"
     }
   ],
   "buildCommand": "npm run build",

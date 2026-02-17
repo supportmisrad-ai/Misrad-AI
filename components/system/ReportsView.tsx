@@ -7,7 +7,7 @@ import {
     Download, Filter, FileText, ChevronDown, ArrowUpRight, 
     ArrowDownRight, Printer, Share2, Layers, FileSpreadsheet, 
     ChevronRight, MoreVertical, Search, FilterX, DollarSign,
-    Zap, Activity, DownloadCloud
+    Zap, SquareActivity, DownloadCloud
 } from 'lucide-react';
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -120,7 +120,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
                     { label: 'הכנסות', value: leads.length ? formatILS(totalRevenue) : '—', delta: null as string | null, isPos: true, icon: DollarSign, color: 'text-indigo-600', bg: 'bg-indigo-50' },
                     { label: 'רווח נקי', value: leads.length ? formatILS(totalProfit) : '—', delta: null as string | null, isPos: true, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'יחס המרה', value: conversionRate === null ? '—' : `${conversionRate}%`, delta: null as string | null, isPos: true, icon: Zap, color: 'text-rose-600', bg: 'bg-rose-50' },
-                    { label: 'עלות ליד (CPL)', value: cpl === null ? '—' : formatILS(cpl), delta: null as string | null, isPos: true, icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' }
+                    { label: 'עלות ליד (CPL)', value: cpl === null ? '—' : formatILS(cpl), delta: null as string | null, isPos: true, icon: SquareActivity, color: 'text-amber-600', bg: 'bg-amber-50' }
                 ].map((kpi, idx) => (
                     <div key={idx} className="ui-card p-8 flex flex-col justify-between h-44 relative overflow-hidden group">
                         <div className="flex justify-between items-start z-10">

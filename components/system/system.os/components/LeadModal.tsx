@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { Lead, Activity, Task, PipelineStage } from '../types';
+import { Lead, SquareActivity, Task, PipelineStage } from '../types';
 import { 
     X, Phone, Mail, FileText, ArrowRight, Building, Play, Thermometer,
-    Crown, Users, Activity as ActivityIcon, CheckSquare, Layers, Mic, MessageSquare,
+    Crown, Users, SquareActivity as ActivityIcon, SquareCheck, Layers, Mic, MessageSquare,
     Briefcase, User, CalendarClock, Zap, PackageOpen, Rocket, CreditCard, Star, LifeBuoy
 } from 'lucide-react';
 import LeadBusinessSide from './LeadBusinessSide';
@@ -13,7 +13,7 @@ import { useToast } from '../contexts/ToastContext';
 interface LeadModalProps {
   lead: Lead;
   onClose: () => void;
-  onAddActivity: (leadId: string, activity: Activity) => void;
+  onAddActivity: (leadId: string, SquareActivity: SquareActivity) => void;
   onScheduleMeeting: (leadId: string) => void;
   onStatusChange?: (id: string, status: PipelineStage) => void; 
   onOpenClientPortal?: () => void;
@@ -32,11 +32,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
     e.preventDefault();
     if (!noteContent.trim()) return;
     
-    const typeMap: Record<string, Activity['type']> = {
+    const typeMap: Record<string, SquareActivity['type']> = {
         'note': 'note', 'call': 'call', 'email': 'email', 'task': 'system'
     };
 
-    const newActivity: Activity = {
+    const newActivity: SquareActivity = {
       id: Date.now().toString(),
       type: typeMap[composerTab],
       content: noteContent,
@@ -46,7 +46,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
     setNoteContent('');
   };
 
-  const getActivityIcon = (type: Activity['type']) => {
+  const getActivityIcon = (type: SquareActivity['type']) => {
       switch(type) {
           case 'call': return <Phone size={14} />;
           case 'feedback': return <Star size={14} />;
@@ -56,7 +56,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
       }
   };
 
-  const getActivityColor = (type: Activity['type']) => {
+  const getActivityColor = (type: SquareActivity['type']) => {
       switch(type) {
           case 'call': return 'bg-rose-50 border-rose-100 text-rose-600';
           case 'feedback': return 'bg-amber-50 border-amber-100 text-amber-600';
@@ -120,7 +120,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
 
             <div className="p-4 md:p-6 border-b border-slate-100 bg-white z-20 shrink-0">
                 <div className="flex gap-4 mb-3">
-                    {[{ id: 'note', label: 'פתק', icon: FileText }, { id: 'call', label: 'שיחה', icon: Phone }, { id: 'task', label: 'משימה', icon: CheckSquare }, { id: 'email', label: 'מייל', icon: Mail }].map(tab => (
+                    {[{ id: 'note', label: 'פתק', icon: FileText }, { id: 'call', label: 'שיחה', icon: Phone }, { id: 'task', label: 'משימה', icon: SquareCheck }, { id: 'email', label: 'מייל', icon: Mail }].map(tab => (
                         <button key={tab.id} onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')} className={`flex items-center gap-2 pb-2 text-sm font-bold border-b-2 transition-colors ${composerTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-400'}`}>
                             <tab.icon size={14} /> {tab.label}
                         </button>
@@ -133,10 +133,10 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onS
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/30">
-                {/* Fixed type errors on lines 144/145 by casting strings to Activity['type'] */}
+                {/* Fixed type errors on lines 144/145 by casting strings to SquareActivity['type'] */}
                 {[
-                    { id: 'm1', type: 'support' as Activity['type'], content: 'פנייה מהפורטל: "צריך להזיז את פגישת הקיק-אוף"', timestamp: new Date(Date.now() - 3600000) },
-                    { id: 'm2', type: 'feedback' as Activity['type'], content: 'המלצה חדשה נתקבלה: "שירות מצוין, תהליך האפיון היה מעבר לציפיות!" (5 כוכבים)', timestamp: new Date(Date.now() - 7200000) },
+                    { id: 'm1', type: 'support' as SquareActivity['type'], content: 'פנייה מהפורטל: "צריך להזיז את פגישת הקיק-אוף"', timestamp: new Date(Date.now() - 3600000) },
+                    { id: 'm2', type: 'feedback' as SquareActivity['type'], content: 'המלצה חדשה נתקבלה: "שירות מצוין, תהליך האפיון היה מעבר לציפיות!" (5 כוכבים)', timestamp: new Date(Date.now() - 7200000) },
                     ...lead.activities
                 ].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((act) => (
                     <div key={act.id} className="flex gap-4 group animate-fade-in">

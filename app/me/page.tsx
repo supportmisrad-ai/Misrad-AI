@@ -108,7 +108,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
       const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
       meLog('[MePage] Last location orgSlug:', lastKey);
       if (lastKey) {
-        const match = orgs.find((o) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
+        const match = orgs.find((o: { id: string; slug: string | null }) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
         if (match) {
           meLog('[MePage] Using last location:', match.slug || match.id);
           return String(match.slug || match.id);
@@ -118,7 +118,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
       const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
       meLog('[MePage] Primary organization_id:', primaryId);
       if (primaryId) {
-        const match = orgs.find((o) => String(o.id) === primaryId);
+        const match = orgs.find((o: { id: string; slug: string | null }) => String(o.id) === primaryId);
         if (match) {
           meLog('[MePage] Using primary organization:', match.slug || match.id);
           return String(match.slug || match.id);

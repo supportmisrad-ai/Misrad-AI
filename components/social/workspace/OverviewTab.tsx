@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Clock, ImageIcon, Eye, Link as LinkIcon, Unlink, RefreshCw, Activity, ShieldCheck, StickyNote, Save } from 'lucide-react';
+import { LayoutGrid, Clock, Image, Eye, Link as LinkIcon, Unlink, RefreshCw, SquareActivity, ShieldCheck, StickyNote, Save } from 'lucide-react';
 import { Client, SocialPost, ClientRequest, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS, PLATFORM_COLORS } from '../SocialIcons';
 import { syncGoogleCalendar } from '@/app/actions/integrations';
@@ -83,7 +83,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
                      </div>
                      
                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-all flex gap-1">
-                        <button title="הגדרות חיבור" className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 shadow-sm"><Activity size={12}/></button>
+                        <button title="הגדרות חיבור" className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-blue-600 shadow-sm"><SquareActivity size={12}/></button>
                         <button title="נתק" className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-red-500 shadow-sm"><Unlink size={12}/></button>
                      </div>
                   </div>
@@ -137,7 +137,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
           {posts.length > 0 ? (
             <div className="flex flex-col md:flex-row gap-8">
               <div className="w-full md:w-56 aspect-square rounded-[32px] overflow-hidden bg-slate-100 shadow-lg shrink-0">
-                {posts[0].mediaUrl ? <img src={posts[0].mediaUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={48}/></div>}
+                {posts[0].mediaUrl ? <img src={posts[0].mediaUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><Image size={48}/></div>}
               </div>
               <div className="flex-1 flex flex-col justify-between py-2">
                 <div>

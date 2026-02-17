@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-    Layout, CheckCircle2, Clock, FileText, CreditCard, 
+    Layout, CircleCheckBig, Clock, FileText, CreditCard, 
     MessageSquare, Download, ChevronRight, Bell, Shield, 
-    LogOut, ExternalLink, Image as ImageIcon, Send,
+    LogOut, ExternalLink, Image, Send,
     X, Check, ClipboardCheck, ArrowRight, Smartphone,
-    FileSignature, HelpCircle, Package, Lock, ListChecks,
-    CheckCircle, Star, MessageCircle, AlertTriangle, LifeBuoy,
+    FileSignature, CircleHelp, Package, Lock, ListChecks,
+    CircleCheck, Star, MessageCircle, TriangleAlert, LifeBuoy,
     ThumbsUp, Heart, Sparkles
 } from 'lucide-react';
 import { Lead, PortalApproval, PortalTask, SupportTicket } from './system/types';
@@ -234,7 +234,7 @@ const ClientPortalView: React.FC<ClientPortalProps> = ({ client, onExit }) => {
 
                         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden">
                             <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex gap-4">
-                                <div className="bg-white p-3 rounded-2xl shadow-sm text-rose-500"><AlertTriangle size={24} /></div>
+                                <div className="bg-white p-3 rounded-2xl shadow-sm text-rose-500"><TriangleAlert size={24} /></div>
                                 <div>
                                     <h3 className="font-black text-slate-800">דיווח על בעיה או בקשת שינוי</h3>
                                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">אנחנו מתחייבים למענה מהיר ומקצועי</p>

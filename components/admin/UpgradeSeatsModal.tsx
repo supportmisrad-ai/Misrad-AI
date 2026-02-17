@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { X, AlertTriangle, TrendingUp, Check } from 'lucide-react';
+import { X, TriangleAlert, TrendingUp, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type UpgradeSeatsModalProps = {
@@ -89,7 +89,7 @@ export default function UpgradeSeatsModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-white">
               <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <AlertTriangle className="w-6 h-6" />
+                <TriangleAlert className="w-6 h-6" />
               </div>
               <div>
                 <h2 className="text-xl font-bold">הגעת למכסת המשתמשים</h2>
@@ -106,7 +106,7 @@ export default function UpgradeSeatsModal({
           {/* Current Situation */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+              <TriangleAlert className="w-5 h-5 text-red-600 mt-0.5" />
               <div className="flex-1">
                 <p className="font-semibold text-red-900">אין מספיק מקומות פנויים</p>
                 <p className="text-sm text-red-700 mt-1">

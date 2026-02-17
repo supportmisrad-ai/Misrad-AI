@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Camera, FileText, Upload, CheckCircle, Sparkles } from 'lucide-react';
+import { Camera, FileText, Upload, CircleCheck, Sparkles } from 'lucide-react';
 import { ManagerRequest } from '@/types/social';
 
 interface TasksTabProps {
@@ -60,7 +60,7 @@ const TasksTab: React.FC<TasksTabProps> = ({ requests, onCompleteRequest, onUplo
       ) : (
         <div className="py-32 bg-white rounded-[64px] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-8 text-center px-10">
           <div className="w-28 h-28 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-2">
-            <CheckCircle size={56} />
+            <CircleCheck size={56} />
           </div>
           <div className="flex flex-col gap-3">
             <h3 className="text-3xl font-black text-slate-800">אין בקשות פתוחות מהמנהל שלך כרגע.</h3>

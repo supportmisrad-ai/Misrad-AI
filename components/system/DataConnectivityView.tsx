@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Zap, CheckCircle2, XCircle, Wifi, Rss, Lock, KeyRound, ShieldCheck, Mail, MessageSquare, Newspaper, Hammer } from 'lucide-react';
+import { Zap, CircleCheckBig, CircleX, Wifi, Rss, Lock, KeyRound, ShieldCheck, Mail, MessageSquare, Newspaper, Hammer } from 'lucide-react';
 
 const DataConnectivityView = () => {
     return (
@@ -25,7 +25,7 @@ const DataConnectivityView = () => {
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                             <h3 className="font-bold text-slate-800 mb-2">זמינות שרת API</h3>
                             <div className="flex items-center gap-2 text-green-500 font-bold">
-                                <CheckCircle2 size={18} />
+                                <CircleCheckBig size={18} />
                                 <span>99.98%</span>
                             </div>
                         </div>
@@ -51,7 +51,7 @@ const DataConnectivityView = () => {
                             </div>
                             <div className="flex items-center gap-6 w-full sm:w-auto">
                                 <div className="text-right sm:text-left">
-                                    <span className="font-bold text-green-500 flex items-center gap-2"><CheckCircle2 size={16}/> מחובר</span>
+                                    <span className="font-bold text-green-500 flex items-center gap-2"><CircleCheckBig size={16}/> מחובר</span>
                                     <p className="text-xs text-slate-400">Latency: 12ms</p>
                                 </div>
                                 <button className="text-sm font-semibold text-primary hover:underline ml-auto">הגדרות ערוץ</button>
@@ -68,7 +68,7 @@ const DataConnectivityView = () => {
                             </div>
                             <div className="flex items-center gap-6 w-full sm:w-auto">
                                  <div className="text-right sm:text-left">
-                                    <span className="font-bold text-green-500 flex items-center gap-2"><CheckCircle2 size={16}/> מחובר</span>
+                                    <span className="font-bold text-green-500 flex items-center gap-2"><CircleCheckBig size={16}/> מחובר</span>
                                     <p className="text-xs text-slate-400">Latency: 45ms</p>
                                 </div>
                                 <button className="text-sm font-semibold text-primary hover:underline ml-auto">הגדרות ערוץ</button>
@@ -84,7 +84,7 @@ const DataConnectivityView = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-6 w-full sm:w-auto">
-                                <span className="font-bold text-red-500 flex items-center gap-2"><XCircle size={16}/> מנותק</span>
+                                <span className="font-bold text-red-500 flex items-center gap-2"><CircleX size={16}/> מנותק</span>
                                 <button className="text-sm font-bold bg-primary text-white py-2 px-4 rounded-lg shadow-md hover:bg-primary/90 transition-colors ml-auto">הגדר חיבור עכשיו</button>
                             </div>
                         </div>
@@ -99,7 +99,7 @@ const DataConnectivityView = () => {
                             </div>
                              <div className="flex items-center gap-6 w-full sm:w-auto">
                                  <div className="text-right sm:text-left">
-                                    <span className="font-bold text-green-500 flex items-center gap-2"><CheckCircle2 size={16}/> מחובר</span>
+                                    <span className="font-bold text-green-500 flex items-center gap-2"><CircleCheckBig size={16}/> מחובר</span>
                                     <p className="text-xs text-slate-400">Latency: 2ms</p>
                                 </div>
                                 <button className="text-sm font-semibold text-primary hover:underline ml-auto">הגדרות ערוץ</button>

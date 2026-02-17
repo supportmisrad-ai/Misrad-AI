@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Lead, PipelineStage, ProductType } from './system/types';
 import { STAGES } from './system/constants';
-import { Phone, MessageSquare, Clock, User, GripVertical, Crown, Users, BookOpen, Flame, Zap, ArrowRight, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { Phone, MessageSquare, Clock, User, GripVertical, Crown, Users, BookOpen, Flame, Zap, ArrowRight, MoreHorizontal, CircleAlert } from 'lucide-react';
 
 interface PipelineBoardProps {
   leads: Lead[];
@@ -184,7 +184,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, onLeadClick, onSta
                                 {stageLeads.length === 0 && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center opacity-40 pointer-events-none">
                                         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-2">
-                                            <AlertCircle size={24} className="text-slate-300" />
+                                            <CircleAlert size={24} className="text-slate-300" />
                                         </div>
                                         <div className="text-sm font-bold text-slate-400">ריק פה...</div>
                                         <div className="text-xs text-slate-300">תביא לידים!</div>

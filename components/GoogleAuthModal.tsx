@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Users } from 'lucide-react';
+import { CircleCheckBig, Users } from 'lucide-react';
 
 interface GoogleAuthModalProps {
     onClose: () => void;
@@ -83,7 +83,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onClose, onSuc
                                 <p className="text-gray-500 font-medium uppercase text-xs tracking-wider">ההרשאה תאפשר ל-Nexus:</p>
                                 <ul className="space-y-3">
                                     <li className="flex gap-3 text-gray-600 items-start">
-                                        <CheckCircle2 size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                        <CircleCheckBig size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                                         <span>
                                             {serviceName === 'Calendar' 
                                                 ? 'לצפות, לערוך, לשתף ולמחוק לצמיתות את כל היומנים שברשותך.'

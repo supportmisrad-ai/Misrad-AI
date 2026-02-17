@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Task, Priority } from '../../types';
 import { useData } from '../../context/DataContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
-import { Timer, Check, X, CheckCheck, Search } from 'lucide-react';
+import { Timer, Check, X, Search } from 'lucide-react';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 
 interface TaskDetailPopoversProps {

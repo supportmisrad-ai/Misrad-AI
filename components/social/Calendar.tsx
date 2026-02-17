@@ -6,7 +6,7 @@ import {
   Clock, X, CalendarDays, RefreshCw, Settings, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, Pin, MessageSquare } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
@@ -27,7 +27,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   whatsapp: MessageCircle,
   threads: Share2,
   youtube: Video,
-  pinterest: PinIcon,
+  pinterest: Pin,
   portal: MessageSquare
 };
 

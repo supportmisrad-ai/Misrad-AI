@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MeetingAnalysisResult } from '../types';
-import { Sparkles, CheckSquare, ShieldAlert, UserCircle, Briefcase, ArrowRight, Eraser, ArrowLeft } from 'lucide-react';
+import { Sparkles, SquareCheck, ShieldAlert, CircleUser, Briefcase, ArrowRight, Eraser, ArrowLeft } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal-clinic';
@@ -239,7 +239,7 @@ const MeetingAnalyzer: React.FC = () => {
                    {/* Client Tasks (External / Waiting For) */}
                    <div className="space-y-3">
                       <h3 className="text-gray-900 font-display font-semibold flex items-center gap-2">
-                         <UserCircle className="text-signal-success" size={18} />
+                         <CircleUser className="text-signal-success" size={18} />
                          משימות שלהם
                       </h3>
                       <div className="bg-white rounded-xl p-1 min-h-[200px] border border-gray-200 relative overflow-hidden">

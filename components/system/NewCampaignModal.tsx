@@ -2,7 +2,7 @@
 
 
 import React, { useState } from 'react';
-import { X, Megaphone, Target, DollarSign, Layout, PlusCircle, ArrowLeft } from 'lucide-react';
+import { X, Megaphone, Target, DollarSign, Layout, CirclePlus, ArrowLeft } from 'lucide-react';
 import { Campaign } from './types';
 
 interface NewCampaignModalProps {
@@ -76,7 +76,7 @@ const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ onClose, onSubmit }
                                 onClick={() => setPlatformMode('custom')}
                                 className="text-[10px] text-indigo-600 hover:underline font-medium flex items-center gap-1"
                              >
-                                 <PlusCircle size={10} /> הוסף חדש
+                                 <CirclePlus size={10} /> הוסף חדש
                              </button>
                         )}
                         {platformMode === 'custom' && (

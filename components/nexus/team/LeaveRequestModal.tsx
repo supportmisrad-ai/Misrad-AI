@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Calendar, FileText, Plane, Heart, Coffee, DollarSign, MoreHorizontal, AlertCircle } from 'lucide-react';
+import { X, Calendar, FileText, Plane, Heart, Coffee, DollarSign, MoreHorizontal, CircleAlert } from 'lucide-react';
 import { LeaveRequest, LeaveRequestType } from '../../../types';
 import { CustomDatePicker } from '../../CustomDatePicker';
 import { CustomSelect } from '../../CustomSelect';
@@ -44,7 +44,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
         endDate: request?.endDate || '',
         daysRequested: request?.daysRequested || 0,
         reason: request?.reason || '',
-        isUrgent: Boolean(((request as unknown as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined)?.isUrgent)
+        isUrgent: Boolean(request?.metadata && typeof request.metadata === 'object' ? (request.metadata as Record<string, unknown>)?.isUrgent : false)
     });
 
     // Calculate days automatically when dates change

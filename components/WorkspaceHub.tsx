@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, CalendarEvent, Task, Activity, Campaign, Student, ContentItem } from './system/types';
+import { Lead, CalendarEvent, Task, SquareActivity, Campaign, Student, ContentItem } from './system/types';
 import SystemCommandCenter from './system/SystemCommandCenter';
 import MorningBriefingView from './system/MorningBriefingView';
 
@@ -16,7 +16,7 @@ interface WorkspaceHubProps {
   onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
   onAddEvent: (event: CalendarEvent) => void;
   onNewMeetingClick: () => void;
-  onAddActivity: (leadId: string, activity: Activity) => void;
+  onAddActivity: (leadId: string, SquareActivity: SquareActivity) => void;
   onAddContact?: (lead: Lead) => void;
   onUpdateTask: (task: Task) => void;
   onAddTask: (task: Task) => void;

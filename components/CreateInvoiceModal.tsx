@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Plus, Trash2, Download, Send, Palette, Image as ImageIcon, Check, Image, Type } from 'lucide-react';
+import { X, FileText, Plus, Trash2, Download, Send, Palette, Image, Check, Type } from 'lucide-react';
 import type { PackageType } from '@/lib/billing/pricing';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -108,8 +108,8 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     const pw = errorData?.paywall as Record<string, unknown> | undefined;
                     setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
                     setPaywallMessage(String(pw?.message || errorData.error || 'פעולה זו זמינה למנויים משלמים'));
-                    const pkgType = pw?.recommendedPackageType;
-                    setRecommendedPackageType(typeof pkgType === 'string' ? (pkgType as PackageType) : undefined);
+                    const pkgType = pw?.recommendedPackageType as PackageType | undefined;
+                    setRecommendedPackageType(pkgType);
                     setIsPaywallOpen(true);
                     return;
                 }
@@ -273,7 +273,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <ImageIcon size={16} className="text-gray-400" />
+                                <Image size={16} className="text-gray-400" />
                                 <span className="font-bold text-sm text-gray-900">עיצוב מותאם אישית</span>
                             </div>
                             <div className={`w-5 h-5 rounded border-2 transition-colors ${showDesignOptions ? 'bg-green-600 border-green-600' : 'border-gray-300'}`}>

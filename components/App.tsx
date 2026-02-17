@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
-import { Lead, PipelineStage, Activity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from '../types';
+import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, SquareActivity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
+import { Lead, PipelineStage, SquareActivity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from '../types';
 import { NAV_ITEMS, NAV_GROUPS, INITIAL_LEADS, INITIAL_CAMPAIGNS, INITIAL_AGENTS, INITIAL_TASKS, INITIAL_CONTENT, INITIAL_STUDENTS, INITIAL_INVOICES } from '../constants';
 
 import LeadModal from './system/LeadModal';
@@ -215,9 +215,9 @@ const SystemOSApp = () => {
     addToast("מזל טוב! תיק לקוח נפתח.", 'success');
   };
 
-  const handleAddActivity = (leadId: string, activity: LeadActivity) => {
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, activities: [activity, ...l.activities], lastContact: new Date() } : l));
-      if (activity.type !== 'system') addToast("נשמר");
+  const handleAddActivity = (leadId: string, SquareActivity: LeadActivity) => {
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, activities: [SquareActivity, ...l.activities], lastContact: new Date() } : l));
+      if (SquareActivity.type !== 'system') addToast("נשמר");
   };
 
   const handleScheduleMeeting = (leadId?: string) => {

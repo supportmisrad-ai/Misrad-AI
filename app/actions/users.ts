@@ -407,7 +407,7 @@ async function upsertProfileForClerkUser(params: {
   const tempOrgId = crypto.randomUUID();
   const { createdOrg, createdProfile } = await prismaForInteractiveTransaction().$transaction(async (tx) => {
     const organizationUser = (tx as unknown as { organizationUser: typeof prisma.organizationUser }).organizationUser;
-    const organization = tx.social_organizations;
+    const organization = (tx as unknown as { organization: typeof prisma.organization }).organization;
 
     const createdSocialUser = await organizationUser.create(
       withPrismaTenantIsolationOverride(

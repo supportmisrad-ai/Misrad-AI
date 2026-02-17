@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../context/DataContext';
-import { Bell, User, Info, AlertTriangle, Check, X, Trash2 } from 'lucide-react';
+import { Bell, User, Info, TriangleAlert, Check, X, Trash2 } from 'lucide-react';
 import { Notification } from '../types';
 
 interface NotificationsPanelProps {
@@ -209,7 +209,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                                             )
                                         ) : notification.type === 'alert' ? (
                                             <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center border border-white shadow-sm animate-pulse">
-                                                <AlertTriangle size={14} />
+                                                <TriangleAlert size={14} />
                                             </div>
                                         ) : notification.type === 'system' ? (
                                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center border border-white shadow-sm">

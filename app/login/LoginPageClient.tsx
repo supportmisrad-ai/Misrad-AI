@@ -18,8 +18,9 @@ type WorkspacesApiPayload = {
   workspaces?: WorkspacesApiItem[];
 };
 
-const MAX_WORKSPACE_RETRIES = 5;
-const WORKSPACE_RETRY_DELAY = 1000;
+// Reduced retries for faster login experience
+const MAX_WORKSPACE_RETRIES = 2;
+const WORKSPACE_RETRY_DELAY = 500;
 
 async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean> }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {

@@ -18,6 +18,9 @@ export const dynamic = 'force-dynamic';
    }
  }
 
+ // Reduced timeout from 8s to 3s for faster failure and redirect
+ const QUERY_TIMEOUT_MS = 3000;
+
 export default async function AppEntryPage() {
   const userId = await getCurrentUserId();
   if (!userId) {
@@ -25,30 +28,16 @@ export default async function AppEntryPage() {
   }
 
   try {
-    const last = await withTimeout(loadCurrentUserLastLocation(), 8000, 'loadCurrentUserLastLocation');
+    const last = await withTimeout(loadCurrentUserLastLocation(), QUERY_TIMEOUT_MS, 'loadCurrentUserLastLocation');
     if (!last.orgSlug) {
-      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-      let socialUser = await withTimeout(
+      const socialUser = await withTimeout(
         prisma.organizationUser.findUnique({
           where: { clerk_user_id: userId },
           select: { id: true, organization_id: true },
         }),
-        8000,
+        QUERY_TIMEOUT_MS,
         'prisma.organizationUser.findUnique'
       );
-
-      if (!socialUser?.id) {
-        await sleep(1000);
-        socialUser = await withTimeout(
-          prisma.organizationUser.findUnique({
-            where: { clerk_user_id: userId },
-            select: { id: true, organization_id: true },
-          }),
-          8000,
-          'prisma.organizationUser.findUnique(retry)'
-        );
-      }
 
       if (!socialUser?.id) {
         redirect('/workspaces');
@@ -59,27 +48,29 @@ export default async function AppEntryPage() {
         orgIds.add(String(socialUser.organization_id));
       }
 
-      const ownedOrgs = await withTimeout(
-        prisma.organization.findMany({
-          where: { owner_id: String(socialUser.id) },
-          select: { id: true },
-        }),
-        8000,
-        'prisma.organization.findMany(owned)'
-      );
+      // Run both queries in parallel for faster resolution
+      const [ownedOrgs, memberships] = await Promise.all([
+        withTimeout(
+          prisma.organization.findMany({
+            where: { owner_id: String(socialUser.id) },
+            select: { id: true },
+          }),
+          QUERY_TIMEOUT_MS,
+          'prisma.organization.findMany(owned)'
+        ),
+        withTimeout(
+          prisma.teamMember.findMany({
+            where: { user_id: String(socialUser.id) },
+            select: { organization_id: true },
+          }),
+          QUERY_TIMEOUT_MS,
+          'prisma.teamMember.findMany'
+        ),
+      ]);
 
-      for (const org of ownedOrgs || []) {
+      for (const org of (ownedOrgs as Array<{ id: string }>) || []) {
         if (org?.id) orgIds.add(String(org.id));
       }
-
-      const memberships = await withTimeout(
-        prisma.teamMember.findMany({
-          where: { user_id: String(socialUser.id) },
-          select: { organization_id: true },
-        }),
-        8000,
-        'prisma.teamMember.findMany'
-      );
 
       for (const row of memberships || []) {
         if (row.organization_id) orgIds.add(String(row.organization_id));
@@ -93,7 +84,7 @@ export default async function AppEntryPage() {
             where: { id: String(onlyOrgId) },
             select: { id: true, slug: true },
           }),
-          8000,
+          QUERY_TIMEOUT_MS,
           'prisma.organization.findUnique'
         );
 
@@ -106,7 +97,7 @@ export default async function AppEntryPage() {
 
     const workspace = await withTimeout(
       requireWorkspaceAccessByOrgSlug(last.orgSlug),
-      8000,
+      QUERY_TIMEOUT_MS,
       'requireWorkspaceAccessByOrgSlug'
     );
 

@@ -32,7 +32,7 @@ export async function getSocialStats(): Promise<SocialStats> {
     const avgTimeSavedHours = Math.round((postsCount * 20) / 60);
 
     // Calculate satisfaction rate
-    // For now, we'll use a formula based on activity level
+    // For now, we'll use a formula based on SquareActivity level
     // If we have feedback data in the future, we can use real feedback
     const satisfactionRate = Math.min(98, Math.max(85, 85 + (orgsCount > 10 ? 10 : orgsCount)));
 

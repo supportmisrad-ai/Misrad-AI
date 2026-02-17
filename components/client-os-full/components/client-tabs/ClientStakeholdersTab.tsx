@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Client, StakeholderRole } from '../../types';
-import { Users, Crown, UserCheck, Shield, Share2, UserCircle } from 'lucide-react';
+import { Users, Crown, UserCheck, Shield, Share2, CircleUser } from 'lucide-react';
 
 interface ClientStakeholdersTabProps {
   client: Client;
@@ -14,7 +14,7 @@ export const ClientStakeholdersTab: React.FC<ClientStakeholdersTabProps> = ({ cl
         case 'DECISION_MAKER': return <UserCheck size={16} className="text-blue-500" />;
         case 'BLOCKER': return <Shield size={16} className="text-red-500" />;
         case 'INFLUENCER': return <Share2 size={16} className="text-purple-500" />;
-        default: return <UserCircle size={16} className="text-gray-400" />;
+        default: return <CircleUser size={16} className="text-gray-400" />;
     }
   };
 

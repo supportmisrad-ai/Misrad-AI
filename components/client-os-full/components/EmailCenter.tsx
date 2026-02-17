@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Email } from '../types';
-import { Mail, Search, Star, Trash2, Send, RefreshCw, Paperclip, ChevronRight, UserCircle, Bot, Sparkles, Archive, Reply } from 'lucide-react';
+import { Mail, Search, Star, Trash2, Send, RefreshCw, Paperclip, ChevronRight, CircleUser, Bot, Sparkles, Archive, Reply } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { getClientIdByClerkEmail, getInbox, markAsRead, sendMessage } from '@/app/actions/client-portal-clinic';
 import { useNexus } from '../context/ClientContext';
@@ -321,7 +321,7 @@ export const EmailCenter: React.FC = () => {
                             <div className="flex flex-wrap gap-2 mt-2">
                                 {email.clientId && (
                                     <span className="text-[10px] flex items-center gap-1 bg-nexus-primary/10 text-nexus-primary px-1.5 py-0.5 rounded font-bold">
-                                        <UserCircle size={10} /> {getClientName(email.clientId)}
+                                        <CircleUser size={10} /> {getClientName(email.clientId)}
                                     </span>
                                 )}
                                 {email.tags.slice(0, 2).map(tag => (
@@ -381,7 +381,7 @@ export const EmailCenter: React.FC = () => {
                                     <div className="flex items-center gap-2 mt-1">
                                         {selectedEmail.clientId && (
                                             <span className="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded-full flex items-center gap-1 text-gray-600 font-medium shadow-sm">
-                                                <UserCircle size={12} className="text-nexus-accent" /> 
+                                                <CircleUser size={12} className="text-nexus-accent" /> 
                                                 לקוח: {getClientName(selectedEmail.clientId)}
                                             </span>
                                         )}

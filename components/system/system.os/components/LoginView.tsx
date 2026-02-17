@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Lock, Mail, Target, Zap, ShieldCheck, Activity } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Target, Zap, ShieldCheck, SquareActivity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBrand } from '../contexts/BrandContext';
 

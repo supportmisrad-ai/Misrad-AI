@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CircleCheckBig, CircleX, Shield } from 'lucide-react';
 import { Toast, User, Tenant } from '../../types';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
 import Image from 'next/image';
@@ -301,7 +301,7 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                                                 : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
                                         }`}
                                     >
-                                        {user.online ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                                        {user.online ? <CircleCheckBig size={12} /> : <CircleX size={12} />}
                                         {user.online ? 'מחובר' : 'מנותק'}
                                     </span>
                                 </div>
@@ -404,7 +404,7 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                                                         : 'bg-slate-500/10 text-slate-600 border-slate-500/20'
                                                 }`}
                                             >
-                                                {user.online ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                                                {user.online ? <CircleCheckBig size={12} /> : <CircleX size={12} />}
                                                 {user.online ? 'מחובר' : 'מנותק'}
                                             </span>
                                         </td>

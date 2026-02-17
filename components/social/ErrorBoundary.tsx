@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { TriangleAlert, RefreshCw, Home } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -80,7 +80,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 md:p-12">
             <div className="flex flex-col items-center text-center">
               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                <AlertTriangle className="w-10 h-10 text-red-600" />
+                <TriangleAlert className="w-10 h-10 text-red-600" />
               </div>
 
               <h1 className="text-3xl font-black text-slate-900 mb-4">

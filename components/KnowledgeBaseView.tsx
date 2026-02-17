@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { 
-    Book, Search, FileText, ChevronRight, PlayCircle, 
+    Book, Search, FileText, ChevronRight, CirclePlay, 
     Mic, Video, Plus, Folder, Hash, Sparkles, UserCheck, 
-    Shield, Clock, ArrowRight, Share2, Bookmark, CheckSquare, 
-    GraduationCap, Layout, CheckCircle2, AlertCircle
+    Shield, Clock, ArrowRight, Share2, Bookmark, SquareCheck, 
+    GraduationCap, Layout, CircleCheckBig, CircleAlert
 } from 'lucide-react';
 import { useToast } from './system/contexts/ToastContext';
 import type { Task, UserRole } from './system/types';
@@ -364,7 +364,7 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
                                                 onClick={handleSOPToTask}
                                                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md"
                                             >
-                                                <CheckSquare size={18} /> הפוך למשימה לביצוע
+                                                <SquareCheck size={18} /> הפוך למשימה לביצוע
                                             </button>
                                         ) : (
                                             <div></div>
@@ -375,7 +375,7 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
                                                 onClick={() => handleMarkAsRead(selectedDoc.id)}
                                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md"
                                             >
-                                                <CheckCircle2 size={18} /> קראתי והבנתי
+                                                <CircleCheckBig size={18} /> קראתי והבנתי
                                             </button>
                                         )}
                                     </div>
@@ -427,7 +427,7 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
 
                         <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                             <div className="flex items-start gap-3">
-                                <AlertCircle size={24} className="text-amber-600 shrink-0" />
+                                <CircleAlert size={24} className="text-amber-600 shrink-0" />
                                 <div>
                                     <h4 className="font-bold text-amber-800 mb-1">חובת קריאה</h4>
                                     <p className="text-sm text-amber-700 leading-snug">
@@ -461,7 +461,7 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
                                         ? 'bg-emerald-100 text-emerald-600 border-emerald-200' 
                                         : 'bg-white text-indigo-600 border-indigo-200'
                                     }`}>
-                                        {task.completed ? <CheckCircle2 size={20} /> : index + 1}
+                                        {task.completed ? <CircleCheckBig size={20} /> : index + 1}
                                     </div>
                                     <div className="flex-1">
                                         <h4 className={`font-bold text-slate-800 ${task.completed ? 'line-through decoration-slate-400' : ''}`}>
@@ -469,8 +469,8 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
                                         </h4>
                                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                                             {task.type === 'read' && <span className="flex items-center gap-1"><FileText size={10} /> קריאה</span>}
-                                            {task.type === 'video' && <span className="flex items-center gap-1"><PlayCircle size={10} /> וידאו</span>}
-                                            {task.type === 'quiz' && <span className="flex items-center gap-1"><CheckSquare size={10} /> מבחן</span>}
+                                            {task.type === 'video' && <span className="flex items-center gap-1"><CirclePlay size={10} /> וידאו</span>}
+                                            {task.type === 'quiz' && <span className="flex items-center gap-1"><SquareCheck size={10} /> מבחן</span>}
                                         </div>
                                     </div>
                                     {!task.completed && (

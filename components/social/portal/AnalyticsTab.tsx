@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   TrendingUp, Users, Share2, MousePointer2, 
   Download, BarChart3, Globe, 
-  CheckCircle2, Sparkles, Zap, Calendar, ArrowUpLeft, 
+  CircleCheckBig, Sparkles, Zap, Calendar, ArrowUpLeft, 
   History, Target, Award
 } from 'lucide-react';
 import { Client, SocialPost, SocialPlatform } from '@/types/social';
@@ -180,7 +180,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ client, posts }) => {
         <div className="lg:col-span-7 bg-white p-10 rounded-[56px] border border-slate-200 shadow-xl flex flex-col gap-10">
           <div className="flex items-center justify-between">
              <h3 className="text-2xl font-black flex items-center gap-3">
-               עמידה ביעדי פרסום <CheckCircle2 className="text-green-500" size={24}/>
+               עמידה ביעדי פרסום <CircleCheckBig className="text-green-500" size={24}/>
              </h3>
              <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-100 px-3 py-1 rounded-lg">ינואר 2025</span>
           </div>

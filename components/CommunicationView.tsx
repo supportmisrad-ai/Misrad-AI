@@ -14,7 +14,7 @@ import CommunicationViewBase, {
 
 interface CommunicationViewProps {
   leads: Lead[];
-  onAddActivity: (leadId: string, activity: CommunicationActivity) => void;
+  onAddActivity: (leadId: string, SquareActivity: CommunicationActivity) => void;
   onUpdateLead?: (leadId: string, updates: Partial<Lead>) => void;
   onAddTask?: (task: Task) => void;
   initialTab?: 'phone' | 'inbox';

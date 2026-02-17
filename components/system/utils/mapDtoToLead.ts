@@ -1,7 +1,7 @@
 'use client';
 
 import { type SystemLeadDTO } from '@/app/actions/system-leads';
-import { Activity as LeadActivity, Lead, PipelineStage } from '../types';
+import { SquareActivity as LeadActivity, Lead, PipelineStage } from '../types';
 
 const toDateOrNow = (value: unknown) => {
   const d = new Date(String(value || ''));

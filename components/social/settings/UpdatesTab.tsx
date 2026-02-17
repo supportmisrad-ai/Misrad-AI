@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Shield, Zap, Wrench, Bug, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Shield, Zap, Wrench, Bug, TriangleAlert, CircleCheckBig } from 'lucide-react';
 import { getUpdatesWithStatus, markUpdateAsViewed, AppUpdate } from '@/app/actions/updates';
 import { useApp } from '@/contexts/AppContext';
 import { Skeleton } from '@/components/ui/skeletons';
@@ -16,7 +16,7 @@ const CATEGORY_CONFIG = {
   feature: { icon: Sparkles, color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'פיצ\'ר חדש' },
   improvement: { icon: Zap, color: 'bg-green-100 text-green-700 border-green-200', label: 'שיפור' },
   bugfix: { icon: Bug, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'תיקון באג' },
-  breaking: { icon: AlertTriangle, color: 'bg-orange-100 text-orange-700 border-orange-200', label: 'שינוי משמעותי' },
+  breaking: { icon: TriangleAlert, color: 'bg-orange-100 text-orange-700 border-orange-200', label: 'שינוי משמעותי' },
 };
 
 const PRIORITY_CONFIG = {
@@ -192,7 +192,7 @@ export default function UpdatesTab({ onNotify }: UpdatesTabProps) {
                     })}</span>
                     {update.isViewed && (
                       <span className="flex items-center gap-1 text-green-600">
-                        <CheckCircle2 size={14} />
+                        <CircleCheckBig size={14} />
                         נקרא
                       </span>
                     )}

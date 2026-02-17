@@ -7,9 +7,9 @@ import {
   TrendingUp, 
   TrendingDown,
   Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
   DollarSign,
   Calendar
 } from 'lucide-react';
@@ -146,7 +146,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
               <p className="text-3xl font-bold text-green-600 mt-1">{stats.activeOrganizations}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+              <CircleCheck className="w-6 h-6 text-green-600" />
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">
@@ -196,7 +196,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-50 rounded shrink-0">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
+              <CircleAlert className="w-5 h-5 text-orange-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs md:text-sm text-gray-500 truncate">ניסיון מסתיים ב-3 ימים</p>
@@ -209,7 +209,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
         <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-50 rounded shrink-0">
-              <XCircle className="w-5 h-5 text-red-600" />
+              <CircleX className="w-5 h-5 text-red-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs md:text-sm text-gray-500 truncate">מבוטלים</p>

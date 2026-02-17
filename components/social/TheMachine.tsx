@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Sparkles, Image as ImageIcon, 
+  X, Sparkles, Image, 
   Search, ArrowRight, Zap, Facebook, Instagram, Linkedin, 
-  MessageCircle, Globe, Video, Twitter, Share2, PinIcon, 
+  MessageCircle, Globe, Video, Twitter, Share2, Pin, 
   MessageSquare, Wand, Clock
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -35,7 +35,7 @@ const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   whatsapp: MessageCircle,
   threads: Share2,
   youtube: Video,
-  pinterest: PinIcon,
+  pinterest: Pin,
   portal: MessageSquare
 };
 
@@ -518,7 +518,7 @@ export default function TheMachine() {
                     {selectedVariation.generatedImage ? (
                       <img src={selectedVariation.generatedImage} className="w-full h-full object-cover" alt="Generated" />
                     ) : (
-                      <ImageIcon size={32}/>
+                      <Image size={32}/>
                     )}
                   </div>
                   <div className="p-4 md:p-5 font-bold text-[10px] md:text-[12px] leading-relaxed text-slate-700">{editableContent}</div>

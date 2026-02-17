@@ -11,20 +11,25 @@ import { LandingDeviceMockups } from '@/components/landing/LandingDeviceMockups'
 import { LandingModulesSection } from '@/components/landing/LandingModulesSection';
 import { LandingPricingCTA } from '@/components/landing/LandingPricingCTA';
 import { LandingValueProps } from '@/components/landing/LandingValueProps';
+import { UnifiedBusinessSection } from '@/components/landing/UnifiedBusinessSection';
+import { AiManagementSection } from '@/components/landing/AiManagementSection';
+import { ModularitySimplicitySection } from '@/components/landing/ModularitySimplicitySection';
 import { asObject } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 10;
 
+// Aggressive caching for landing settings - they rarely change
+// TTL: 10 minutes, SWR: 1 hour
 async function getLandingSettings() {
   try {
     const row = await Promise.race([
       prisma.coreSystemSettings.findUnique({
         where: { key: 'landing_settings' },
         select: { value: true },
-        ...accelerateCache({ ttl: 120, swr: 300 }),
+        ...accelerateCache({ ttl: 600, swr: 3600 }),
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
     ]);
     const rowObj = asObject(row);
     const value = asObject(rowObj?.value) ?? {};
@@ -33,6 +38,7 @@ async function getLandingSettings() {
       logoText: (value.logoText as string | null) ?? null,
     };
   } catch {
+    // Return default values on error/timeout - don't block page render
     return { logo: null, logoText: null };
   }
 }
@@ -58,9 +64,12 @@ export default async function RootPage() {
         <LandingHeroSection />
         <LandingDeviceMockups />
         <LandingModulesSection />
+        <UnifiedBusinessSection />
         <KillerFeaturesBox id="features" />
+        <AiManagementSection />
         <LandingPricingCTA />
         <LandingValueProps />
+        <ModularitySimplicitySection />
         <TestimonialsSection />
         <PartnersLogosSection />
         <SalesFaq variant="default" />

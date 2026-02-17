@@ -52,7 +52,7 @@ async function main() {
   try {
     // Backup organizations
     console.log('📊 מגבה ארגונים...');
-    const organizations = await prisma.social_organizations.findMany({
+    const organizations = await prisma.organization.findMany({
       include: {
         owner: {
           select: {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Bug, Wrench, Zap, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Calendar, ThumbsUp, RefreshCw, Eye, Edit2, Tag } from 'lucide-react';
+import { Sparkles, Bug, Wrench, Zap, Clock, CircleCheckBig, CircleX, CircleAlert, Search, Filter, User, Calendar, ThumbsUp, RefreshCw, Eye, Edit2, Tag } from 'lucide-react';
 import { FeatureRequest } from '../../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
@@ -133,11 +133,11 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'pending': return { color: 'bg-slate-500/10 text-slate-700 border-slate-300/60', icon: Clock, label: 'ממתין' };
-            case 'under_review': return { color: 'bg-orange-500/10 text-orange-700 border-orange-500/20', icon: AlertCircle, label: 'בבדיקה' };
+            case 'under_review': return { color: 'bg-orange-500/10 text-orange-700 border-orange-500/20', icon: CircleAlert, label: 'בבדיקה' };
             case 'planned': return { color: 'bg-blue-500/10 text-blue-700 border-blue-500/20', icon: Tag, label: 'מתוכנן' };
             case 'in_progress': return { color: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20', icon: Clock, label: 'בפיתוח' };
-            case 'completed': return { color: 'bg-green-500/10 text-green-700 border-green-500/20', icon: CheckCircle2, label: 'הושלם' };
-            case 'rejected': return { color: 'bg-red-500/10 text-red-700 border-red-500/20', icon: XCircle, label: 'נדחה' };
+            case 'completed': return { color: 'bg-green-500/10 text-green-700 border-green-500/20', icon: CircleCheckBig, label: 'הושלם' };
+            case 'rejected': return { color: 'bg-red-500/10 text-red-700 border-red-500/20', icon: CircleX, label: 'נדחה' };
             default: return { color: 'bg-slate-500/10 text-slate-700 border-slate-300/60', icon: Clock, label: status };
         }
     };
@@ -199,7 +199,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                             <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.in_progress}</h3>
                         </div>
                         <div className="p-3 bg-yellow-500/10 text-yellow-600 rounded-xl border border-yellow-500/20 backdrop-blur-sm">
-                            <AlertCircle size={20} />
+                            <CircleAlert size={20} />
                         </div>
                     </div>
                 </div>
@@ -210,7 +210,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                             <h3 className="text-3xl font-black text-slate-900 mt-1">{stats.completed}</h3>
                         </div>
                         <div className="p-3 bg-green-500/10 text-green-600 rounded-xl border border-green-500/20 backdrop-blur-sm">
-                            <CheckCircle2 size={20} />
+                            <CircleCheckBig size={20} />
                         </div>
                     </div>
                 </div>
@@ -447,7 +447,7 @@ const FeatureRequestDetailModal: React.FC<FeatureRequestDetailModalProps> = ({
                         size="icon"
                         className="h-10 w-10 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
                     >
-                        <XCircle size={20} />
+                        <CircleX size={20} />
                     </Button>
                 </div>
 

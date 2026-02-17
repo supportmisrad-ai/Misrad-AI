@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code, Package, AlertTriangle, CheckCircle2, Clock, Search, RefreshCw, Download } from 'lucide-react';
+import { Code, Package, TriangleAlert, CircleCheckBig, Clock, Search, RefreshCw, Download } from 'lucide-react';
 import { Tenant } from '../../types';
 import { Button } from '@/components/ui/button';
 
@@ -84,7 +84,7 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                             </h3>
                         </div>
                         <div className="p-3 bg-green-500/20 text-green-700 rounded-xl border border-green-500/30 backdrop-blur-sm">
-                            <CheckCircle2 size={20} />
+                            <CircleCheckBig size={20} />
                         </div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                             </h3>
                         </div>
                         <div className="p-3 bg-yellow-500/20 text-yellow-700 rounded-xl border border-yellow-500/30 backdrop-blur-sm">
-                            <AlertTriangle size={20} />
+                            <TriangleAlert size={20} />
                         </div>
                     </div>
                 </div>
@@ -182,7 +182,7 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                                         <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border ${
                                             tenant.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' : 'bg-slate-100/80 text-slate-600 border-slate-200'
                                         }`}>
-                                            {tenant.status === 'Active' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                            {tenant.status === 'Active' ? <CircleCheckBig size={12} /> : <Clock size={12} />}
                                             {tenant.status}
                                         </span>
                                     </div>
@@ -288,7 +288,7 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                                                 tenant.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/30' :
                                                 'bg-slate-100/80 text-slate-600 border-slate-200'
                                             }`}>
-                                                {tenant.status === 'Active' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                                {tenant.status === 'Active' ? <CircleCheckBig size={12} /> : <Clock size={12} />}
                                                 {tenant.status}
                                             </span>
                                         </td>
@@ -328,14 +328,14 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 hover:border-slate-300/80 transition-all">
                         <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 size={16} className="text-green-600" />
+                            <CircleCheckBig size={16} className="text-green-600" />
                             <span className="font-bold text-slate-900 text-sm">גרסה יציבה</span>
                         </div>
                         <p className="text-xs text-slate-600">מומלץ לרוב הלקוחות. נבדקה ואושרה לשימוש יומיומי.</p>
                     </div>
                     <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 hover:border-slate-300/80 transition-all">
                         <div className="flex items-center gap-2 mb-2">
-                            <AlertTriangle size={16} className="text-yellow-600" />
+                            <TriangleAlert size={16} className="text-yellow-600" />
                             <span className="font-bold text-slate-900 text-sm">גרסת בטא</span>
                         </div>
                         <p className="text-xs text-slate-600">לבדיקות. עשויה להכיל באגים. מומלץ רק ללקוחות שמעוניינים בחדשנות.</p>

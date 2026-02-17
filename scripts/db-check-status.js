@@ -55,7 +55,7 @@ async function main() {
   try {
     const hasMigrations = await tableExists('_prisma_migrations');
 
-    const orgCount = await prisma.social_organizations.count();
+    const orgCount = await prisma.organization.count();
     const userCount = await prisma.organizationUser.count();
 
     console.log('\n📊 DB Status');
@@ -64,7 +64,7 @@ async function main() {
     console.log(`Users: ${userCount}`);
     console.log(`Has _prisma_migrations: ${hasMigrations ? 'YES' : 'NO'}`);
 
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       orderBy: { created_at: 'desc' },
       take: 20,
       select: {
@@ -104,7 +104,7 @@ async function main() {
       }
     }
 
-    const statusAgg = await prisma.social_organizations.groupBy({
+    const statusAgg = await prisma.organization.groupBy({
       by: ['subscription_status'],
       _count: { _all: true },
       orderBy: { subscription_status: 'asc' },
@@ -116,7 +116,7 @@ async function main() {
       console.log(`${row.subscription_status || 'null'}: ${row._count._all}`);
     }
 
-    const planAgg = await prisma.social_organizations.groupBy({
+    const planAgg = await prisma.organization.groupBy({
       by: ['subscription_plan'],
       _count: { _all: true },
       orderBy: { subscription_plan: 'asc' },

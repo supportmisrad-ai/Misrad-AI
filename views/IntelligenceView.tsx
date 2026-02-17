@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
-import { Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
+import { Send, Download, Save, History, Sparkles, TrendingUp, TriangleAlert, CircleCheckBig, User, Zap, SquareActivity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnalysisReport, Priority, Task, Lead, Asset, TimeEntry } from '../types';
 import { useSearchParams } from 'next/navigation';

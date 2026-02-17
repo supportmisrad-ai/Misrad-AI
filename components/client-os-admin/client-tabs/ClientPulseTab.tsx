@@ -1,6 +1,6 @@
 import React from 'react';
 import { Client } from '@/components/client-portal/types';
-import { Dna, Microscope, Sparkles, Zap, Activity } from 'lucide-react';
+import { Dna, Microscope, Sparkles, Zap, SquareActivity } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -87,7 +87,7 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
-                  <Activity size={24} className="opacity-20" />
+                  <SquareActivity size={24} className="opacity-20" />
                   <span className="text-xs">בודק נתונים...</span>
                 </div>
               )}

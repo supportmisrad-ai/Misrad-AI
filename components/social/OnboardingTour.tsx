@@ -2,7 +2,7 @@
 
 import React, { useState, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Sparkles, Rocket, ShieldAlert, Users, Zap, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Sparkles, Rocket, ShieldAlert, Users, Zap, CircleCheckBig } from 'lucide-react';
 
 interface TourStep {
   title: string;
@@ -48,7 +48,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     title: 'ניהול משימות חכם',
     description: 'כאן מרוכזות כל הפעולות הדחופות שדורשות תשומת לב - מאישורי לקוח ועד גבייה בפיגור.',
-    icon: CheckCircle2,
+    icon: CircleCheckBig,
     color: 'bg-green-600',
     selector: '#tasks-panel-section',
     position: 'right'
@@ -213,7 +213,7 @@ export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps)
             >
               {isLastStep ? 'הבנתי, תודה!' : 'הבא'} 
               {!isLastStep && <ChevronLeft size={16}/>}
-              {isLastStep && <CheckCircle2 size={16} className="text-green-400" />}
+              {isLastStep && <CircleCheckBig size={16} className="text-green-400" />}
             </button>
           </div>
         </div>

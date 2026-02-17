@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Cycle, CycleStatus, Client } from '../types';
 import { 
     Layers, Plus, Search, MessageCircle, Slack, Video, 
-    Calendar, Users, CheckCircle2, ChevronRight, ArrowLeft, 
+    Calendar, Users, CircleCheckBig, ChevronRight, ArrowLeft, 
     Zap, Sparkles, FileText, Download, Upload, MoreVertical, Ban
 } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
@@ -207,7 +207,7 @@ const CyclesManager: React.FC = () => {
                             {selectedCycle.sharedTasks.map(task => (
                                 <div key={task.id} className="p-5 bg-gray-50 rounded-[24px] border border-gray-100 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-nexus-primary shadow-sm"><CheckCircle2 size={20}/></div>
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-nexus-primary shadow-sm"><CircleCheckBig size={20}/></div>
                                         <div>
                                             <h4 className="font-bold text-gray-900">{task.title}</h4>
                                             <p className="text-xs text-gray-500">דדליין: {task.dueDate}</p>
@@ -216,7 +216,7 @@ const CyclesManager: React.FC = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="flex -space-x-2">
                                             {cycleClients.slice(0, 3).map(c => (
-                                                <div key={c.id} className="w-6 h-6 rounded-full border-2 border-white bg-green-500 flex items-center justify-center"><CheckCircle2 size={10} className="text-white"/></div>
+                                                <div key={c.id} className="w-6 h-6 rounded-full border-2 border-white bg-green-500 flex items-center justify-center"><CircleCheckBig size={10} className="text-white"/></div>
                                             ))}
                                         </div>
                                         <span className="text-[10px] font-black text-green-600 uppercase">3/3 בוצעו</span>

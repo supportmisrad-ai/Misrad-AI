@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Activity, ShieldCheck, Lock, Zap } from 'lucide-react';
+import { SquareActivity, ShieldCheck, Lock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SystemTabProps {
@@ -25,7 +25,7 @@ export default function SystemTab({
   return (
     <motion.div key="system" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 p-10 rounded-3xl flex flex-col gap-8 shadow-md">
-        <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">חיבורים חיצוניים <Activity className="text-emerald-500" size={24}/></h3>
+        <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">חיבורים חיצוניים <SquareActivity className="text-emerald-500" size={24}/></h3>
         <div className="flex flex-col gap-4">
           {(apiHealth.length > 0 ? apiHealth : [
             { name: 'מערכת תשלומים', status: 'תקין', latency: '132ms' },

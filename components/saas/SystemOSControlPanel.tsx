@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { CircleCheckBig, TriangleAlert, CircleX } from 'lucide-react';
 import { OrganizationProfile, SystemScreenStatus } from '../../types';
 import { Button } from '@/components/ui/button';
 
@@ -87,9 +87,9 @@ export const SystemOSControlPanel: React.FC<SystemOSControlPanelProps> = ({ orga
                             
                             <div className="mt-3 text-center">
                                 <p className="text-[10px] text-slate-500">
-                                    {currentFlag === 'active' && <span className="flex items-center justify-center gap-1"><CheckCircle2 size={10} className="text-green-500" /> זמין לכולם</span>}
-                                    {currentFlag === 'maintenance' && <span className="flex items-center justify-center gap-1"><AlertTriangle size={10} className="text-yellow-500" /> מוצג עם מסך "בשיפוצים"</span>}
-                                    {currentFlag === 'hidden' && <span className="flex items-center justify-center gap-1"><XCircle size={10} className="text-red-500" /> מוסתר מהתפריט וחסום</span>}
+                                    {currentFlag === 'active' && <span className="flex items-center justify-center gap-1"><CircleCheckBig size={10} className="text-green-500" /> זמין לכולם</span>}
+                                    {currentFlag === 'maintenance' && <span className="flex items-center justify-center gap-1"><TriangleAlert size={10} className="text-yellow-500" /> מוצג עם מסך "בשיפוצים"</span>}
+                                    {currentFlag === 'hidden' && <span className="flex items-center justify-center gap-1"><CircleX size={10} className="text-red-500" /> מוסתר מהתפריט וחסום</span>}
                                 </p>
                             </div>
                         </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, AlertTriangle, Video, CheckCircle } from 'lucide-react';
+import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, TriangleAlert, Video, CircleCheck } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -209,7 +209,7 @@ export const IntegrationsTab: React.FC = () => {
                         className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
                     >
                         <div className="flex items-start gap-3">
-                            <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                            <TriangleAlert size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
                                 <h3 className="font-bold text-sm text-red-900 mb-2">
                                     {oauthError === 'invalid_client' 
@@ -304,7 +304,7 @@ export const IntegrationsTab: React.FC = () => {
                                             <Skeleton className="h-4 w-16 rounded" />
                                         ) : integrationStatus?.zoom ? (
                                             <span className="flex items-center gap-1 text-green-600 text-xs">
-                                                <CheckCircle size={14} /> מחובר
+                                                <CircleCheck size={14} /> מחובר
                                             </span>
                                         ) : null}
                                     </div>
@@ -355,7 +355,7 @@ export const IntegrationsTab: React.FC = () => {
                                             <Skeleton className="h-4 w-16 rounded" />
                                         ) : integrationStatus?.meet ? (
                                             <span className="flex items-center gap-1 text-green-600 text-xs">
-                                                <CheckCircle size={14} /> מחובר
+                                                <CircleCheck size={14} /> מחובר
                                             </span>
                                         ) : null}
                                     </div>
@@ -460,7 +460,7 @@ export const IntegrationsTab: React.FC = () => {
                                     Google Calendar
                                     {isCalendarConnected && integrationStatus?.googleCalendar && (
                                         <span className="flex items-center gap-1 text-green-600 text-xs">
-                                            <CheckCircle size={14} /> מחובר
+                                            <CircleCheck size={14} /> מחובר
                                         </span>
                                     )}
                                 </div>
@@ -488,7 +488,7 @@ export const IntegrationsTab: React.FC = () => {
                     {!isCheckingOAuth && oauthConfig && !oauthConfig.configured && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-xs text-yellow-800">
                             <div className="flex items-start gap-2">
-                                <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                                <TriangleAlert size={16} className="flex-shrink-0 mt-0.5" />
                                 <div>
                                     <div className="font-bold mb-1">מפתחות OAuth לא מוגדרים</div>
                                     {oauthConfig.recommendations && (
@@ -534,7 +534,7 @@ export const IntegrationsTab: React.FC = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <AlertTriangle size={20} className="text-yellow-600" />
+                                                <TriangleAlert size={20} className="text-yellow-600" />
                                                 <div>
                                                     <div className="font-bold text-sm text-yellow-900">מפתח AI לא מוגדר</div>
                                                     <div className="text-xs text-yellow-700">יש להוסיף את המפתח למשתני סביבה</div>

@@ -1,0 +1,30 @@
+{
+  "clerkErrors": {
+    "Invalid email or password": "אימייל או סיסמה שגויים",
+    "Invalid password": "סיסמה שגויה",
+    "Password is incorrect": "סיסמה שגויה",
+    "Password is incorrect. Try again, or use another method.": "סיסמה שגויה. נסה שוב, או השתמש בשיטה אחרת.",
+    "form_password_incorrect": "סיסמה שגויה. נסה שוב, או השתמש בשיטה אחרת.",
+    "form_password_invalid": "סיסמה שגויה. נסה שוב.",
+    "Password is too short": "הסיסמה קצרה מדי",
+    "Password must contain": "הסיסמה חייבת להכיל",
+    "Email already exists": "האימייל כבר קיים במערכת",
+    "form_identifier_not_found": "משתמש לא נמצא",
+    "User not found": "משתמש לא נמצא",
+    "Invalid email address": "כתובת אימייל לא תקינה",
+    "form_identifier_invalid": "כתובת אימייל לא תקינה",
+    "Email verification required": "נדרש אימות אימייל",
+    "Invalid verification code": "קוד אימות שגוי",
+    "Verification code expired": "קוד האימות פג תוקף",
+    "passkey_not_found": "לא נמצאה טביעת אצבע",
+    "Passkey not found": "לא נמצאה טביעת אצבע",
+    "Passkey authentication failed": "האימות עם טביעת אצבע נכשל",
+    "WebAuthn not supported": "WebAuthn לא נתמך בדפדפן שלך",
+    "OAuth authentication failed": "האימות עם OAuth נכשל",
+    "Google authentication failed": "האימות עם Google נכשל",
+    "Network error": "שגיאת רשת",
+    "Request timeout": "פג תוקף הבקשה",
+    "Internal server error": "שגיאת שרת פנימית",
+    "Too many requests": "יותר מדי בקשות. נא לנסות שוב מאוחר יותר"
+  }
+}

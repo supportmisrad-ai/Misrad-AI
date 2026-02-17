@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { 
     Zap, Plus, 
-    ChevronRight, Activity, 
+    ChevronRight, SquareActivity, 
     TrendingUp, Star, Phone, Video,
     ArrowRight, Flame, Calendar, Target
 } from 'lucide-react';
@@ -124,7 +124,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                 <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1.5">
                         <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                            <Activity size={14} />
+                            <SquareActivity size={14} />
                         </div>
                         <span className="text-[10px] font-bold text-slate-400">דופק</span>
                     </div>

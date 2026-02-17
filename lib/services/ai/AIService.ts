@@ -24,6 +24,7 @@ import { GroqProvider } from './providers/GroqProvider';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { decrypt } from '@/lib/encryption';
+import prompts from './prompts.json';
 
 type LoadedFeatureSettings = {
   settings: AIFeatureSettingsRow;

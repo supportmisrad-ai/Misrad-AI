@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { Student } from './system/types';
 import { 
-    GraduationCap, Users, Calendar, AlertCircle, CheckCircle, 
+    GraduationCap, Users, Calendar, CircleAlert, CircleCheck, 
     MoreHorizontal, Flame, Layout, MessageSquare, ArrowRight,
-    TrendingUp, Award, BookOpen, AlertTriangle, UserCheck
+    TrendingUp, Award, BookOpen, TriangleAlert, UserCheck
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
@@ -48,9 +48,9 @@ const DeliveryView: React.FC<DeliveryViewProps> = ({ students = [], onUpdateStud
 
     const getStatusIcon = (status: Student['status']) => {
         switch(status) {
-            case 'on_track': return <CheckCircle size={14} />;
-            case 'needs_help': return <AlertCircle size={14} />;
-            case 'at_risk': return <AlertTriangle size={14} />;
+            case 'on_track': return <CircleCheck size={14} />;
+            case 'needs_help': return <CircleAlert size={14} />;
+            case 'at_risk': return <TriangleAlert size={14} />;
             default: return <UserCheck size={14} />;
         }
     };

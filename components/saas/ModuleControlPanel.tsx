@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { CircleCheckBig, TriangleAlert, CircleX } from 'lucide-react';
 import { SYSTEM_SCREENS } from '../../constants';
 import { OrganizationProfile, SystemScreenStatus } from '../../types';
 
@@ -46,13 +46,13 @@ export const ModuleControlPanel: React.FC<ModuleControlPanelProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
-        return <CheckCircle2 size={20} className="text-emerald-600" />;
+        return <CircleCheckBig size={20} className="text-emerald-600" />;
       case 'maintenance':
-        return <AlertTriangle size={20} className="text-amber-600" />;
+        return <TriangleAlert size={20} className="text-amber-600" />;
       case 'hidden':
-        return <XCircle size={20} className="text-slate-400" />;
+        return <CircleX size={20} className="text-slate-400" />;
       default:
-        return <CheckCircle2 size={20} className="text-emerald-600" />;
+        return <CircleCheckBig size={20} className="text-emerald-600" />;
     }
   };
 

@@ -61,7 +61,7 @@ async function POSTHandler(req: Request) {
         const normalizedOrgKey = String(orgKey || '').trim();
         const isAll = normalizedOrgKey.toLowerCase() === 'all';
         const orgIds: string[] = isAll
-          ? (await prisma.organization.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
+          ? (await prisma.organization.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o: { id: string }) => String(o.id))
           : [String((await getWorkspaceByOrgKeyOrThrow(normalizedOrgKey)).workspaceId)];
 
         const results: {

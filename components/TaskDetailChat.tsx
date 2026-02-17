@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Task } from '../types';
-import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Loader2, Copy } from 'lucide-react';
+import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Loader2, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -324,7 +324,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
                                         <div className="flex justify-end items-center gap-1 mt-0.5">
                                             <span className="text-[10px] text-gray-400 opacity-80 font-medium">{msg.createdAt}</span>
-                                            {isMe && <CheckCheck size={12} className="text-blue-400" />}
+                                            {isMe && <Check size={12} className="text-blue-400" />}
                                         </div>
                                     </>
                                 )}

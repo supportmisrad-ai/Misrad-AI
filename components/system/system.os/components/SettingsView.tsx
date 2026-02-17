@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
     User, Bell, Shield, Building, Mail, Smartphone, 
-    Activity, CreditCard, Users, Plus, Trash2, Check, 
-    Globe, Lock, LogOut, Receipt, FileText, AlertTriangle, 
+    SquareActivity, CreditCard, Users, Plus, Trash2, Check, 
+    Globe, Lock, LogOut, Receipt, FileText, TriangleAlert, 
     Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target
 } from 'lucide-react';
 import { INITIAL_AGENTS, STAGES } from '../constants';
@@ -395,7 +395,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
                                         <div className="flex items-center gap-2 text-rose-300 font-bold text-xs uppercase tracking-widest mb-2">
-                                            <Activity size={14} /> המסלול שלך
+                                            <SquareActivity size={14} /> המסלול שלך
                                         </div>
                                         <h3 className="text-3xl font-bold">עסקי מתקדם</h3>
                                     </div>

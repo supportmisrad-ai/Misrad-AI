@@ -5,7 +5,7 @@ import { Lead, ContentItem, Student, Campaign, Task, CalendarEvent } from './typ
 import { 
     Flame, CircleCheck, Video, Target, Phone, ChevronRight, TriangleAlert, 
     Users, Coins, Plus, Calendar, Check,
-    ArrowRight, Activity, Zap,
+    ArrowRight, SquareActivity, Zap,
     Sun, Timer, ArrowUpRight, Radio,
     HeartPulse, MessageSquare, PhoneCall
 } from 'lucide-react';
@@ -496,7 +496,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                 {pulseItems.length === 0 ? (
                   <div className="text-center py-12 px-6">
                     <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-slate-300">
-                      <Activity size={24} />
+                      <SquareActivity size={24} />
                     </div>
                     <h4 className="text-sm font-bold text-slate-700">הכל מעודכן</h4>
                     <p className="text-xs text-slate-400 mt-1">אין עדכונים חדשים כרגע</p>

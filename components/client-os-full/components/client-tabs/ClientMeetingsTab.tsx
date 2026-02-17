@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Meeting } from '../../types';
-import { Calendar, Video, Users, ChevronUp, ChevronDown, Brain, ShieldAlert, PlayCircle, FileText, Download, ListTodo, Check, Edit2, Save, FolderOpen } from 'lucide-react';
+import { Calendar, Video, Users, ChevronUp, ChevronDown, Brain, ShieldAlert, CirclePlay, FileText, Download, ListTodo, Check, Edit2, Save, FolderOpen } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 
 interface ClientMeetingsTabProps {
@@ -125,7 +125,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                                         <div className="space-y-2">
                                             {meeting.recordingUrl && !String(meeting.recordingUrl).startsWith('sb://') && (
                                                 <a href={meeting.recordingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 bg-nexus-primary/5 rounded-lg hover:bg-nexus-primary/10 transition-colors group">
-                                                    <div className="p-1.5 bg-white rounded shadow-sm text-nexus-primary group-hover:text-nexus-accent"><PlayCircle size={16}/></div>
+                                                    <div className="p-1.5 bg-white rounded shadow-sm text-nexus-primary group-hover:text-nexus-accent"><CirclePlay size={16}/></div>
                                                     <div>
                                                         <span className="text-xs font-bold text-gray-800 block">הקלטת המפגש המלאה</span>
                                                         <span className="text-[10px] text-gray-400">לחץ לצפייה</span>

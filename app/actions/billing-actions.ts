@@ -1,8 +1,9 @@
 'use server';
 
-
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import crypto from 'crypto';
 import { requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
@@ -67,7 +68,7 @@ async function requireTenantOrgAdminOrReturn(
 
   if (!dbUser?.id) return { ok: false, error: 'אין הרשאה' };
 
-  const org = await prisma.social_organizations.findUnique({
+  const org = await prisma.organization.findUnique({
     where: { id: organizationId },
     select: { owner_id: true },
   });
@@ -123,7 +124,7 @@ export async function updateOrganizationBilling(
     }
 
     // Update organization
-    const org = await prisma.social_organizations.update({
+    const org = await prisma.organization.update({
       where: { id: orgId },
       data: {
         subscription_plan: input.subscription_plan,
@@ -266,7 +267,7 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
     }
 
     // Get current org billing info
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
         id: true,
@@ -296,7 +297,7 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
     }
 
     // Apply discount to organization
-    await prisma.social_organizations.update({
+    await prisma.organization.update({
       where: { id: orgId },
       data: {
         discount_percent: discountPercent,
@@ -340,7 +341,7 @@ export async function removeCouponFromOrganization(orgId: string) {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    await prisma.social_organizations.update({
+    await prisma.organization.update({
       where: { id: orgId },
       data: {
         discount_percent: 0,
@@ -378,7 +379,7 @@ export async function extendOrganizationTrial(
       return { ok: false, error: 'מספר הימים חייב להיות בין 1 ל-365' };
     }
 
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
         id: true,
@@ -402,7 +403,7 @@ export async function extendOrganizationTrial(
     const currentExtendedDays = org.trial_extended_days || 0;
     const newExtendedDays = currentExtendedDays + additionalDays;
 
-    await prisma.social_organizations.update({
+    await prisma.organization.update({
       where: { id: orgId },
       data: {
         trial_extended_days: newExtendedDays,
@@ -450,7 +451,7 @@ export async function convertTrialToActive(orgId: string, paymentMethodId?: stri
       updates.payment_method_id = paymentMethodId;
     }
 
-    const org = await prisma.social_organizations.update({
+    const org = await prisma.organization.update({
       where: { id: orgId },
       data: updates,
       select: {
@@ -478,7 +479,7 @@ export async function cancelSubscription(orgId: string, reason: string) {
       return { ok: false, error: 'יש לציין סיבת ביטול (לפחות 5 תווים)' };
     }
 
-    await prisma.social_organizations.update({
+    await prisma.organization.update({
       where: { id: orgId },
       data: {
         subscription_status: 'cancelled',
@@ -504,7 +505,7 @@ export async function calculateOrganizationRevenue(orgId: string) {
     const guard = await requireTenantOrgAdminOrReturn(orgId);
     if (!guard.ok) return guard;
 
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
         subscription_plan: true,
@@ -557,7 +558,7 @@ export async function calculateClientTotalRevenue(clientId: string) {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       where: {
         client_id: clientId,
         subscription_status: { in: ['trial', 'active'] },
@@ -568,15 +569,15 @@ export async function calculateClientTotalRevenue(clientId: string) {
       },
     });
 
-    const totalMRR = orgs.reduce((sum, org) => sum + Number(org.mrr || 0), 0);
-    const totalARR = orgs.reduce((sum, org) => sum + Number(org.arr || 0), 0);
+    const totalMRR = orgs.reduce((sum: number, org: { mrr: Prisma.Decimal | null; arr: Prisma.Decimal | null }) => sum + Number(org.mrr || 0), 0);
+    const totalARR = orgs.reduce((sum: number, org: { mrr: Prisma.Decimal | null; arr: Prisma.Decimal | null }) => sum + Number(org.arr || 0), 0);
 
     // Update client totals
     await prisma.businessClient.update({
       where: { id: clientId },
       data: {
-        mrr: totalMRR,
-        arr: totalARR,
+        mrr: Math.round(totalMRR * 100) / 100,
+        arr: Math.round(totalARR * 100) / 100,
         updated_at: new Date(),
       },
     });
@@ -606,7 +607,7 @@ export async function autoUpgradeSeats(organizationId: string, newSeats: number)
       return { ok: false, error: 'פרמטרים לא תקינים' };
     }
 
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: organizationId },
       select: {
         id: true,
@@ -641,7 +642,7 @@ export async function autoUpgradeSeats(organizationId: string, newSeats: number)
     }
 
     // Update seats
-    const updated = await prisma.social_organizations.update({
+    const updated = await prisma.organization.update({
       where: { id: organizationId },
       data: {
         seats_allowed: newSeats,
@@ -685,7 +686,7 @@ export async function getOrganizationBillingInfo(orgId: string) {
     const guard = await requireTenantOrgAdminOrReturn(orgId);
     if (!guard.ok) return guard;
 
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
         id: true,

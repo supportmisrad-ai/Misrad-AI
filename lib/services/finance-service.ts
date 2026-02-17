@@ -84,7 +84,7 @@ async function selectUsersInWorkspaceByIds(params: {
         },
       });
     } catch (error: unknown) {
-      if ((error as { code?: string })?.code === 'P2003' && ALLOW_SCHEMA_FALLBACKS) {
+      if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
         reportSchemaFallback({
           source: 'lib/services/finance-service.selectUsersInWorkspaceByIds',
           reason: 'nexusUser columns missing (fallback to minimal select)',

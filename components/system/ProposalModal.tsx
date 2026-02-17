@@ -5,7 +5,7 @@ import React, { useState, useRef } from 'react';
 import { Lead } from './types';
 import { 
     X, FileText, Send, Check, Plus, Trash2, Smartphone, 
-    Link as LinkIcon, ExternalLink, Copy, CheckCircle2, 
+    Link as LinkIcon, ExternalLink, Copy, CircleCheckBig, 
     UploadCloud, PenTool, File as FileIcon, ChevronRight, Signature
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
@@ -425,7 +425,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
                                         {signature}
                                     </div>
                                     <div className="flex items-center justify-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
-                                        <CheckCircle2 size={12} /> נחתם דיגיטלית
+                                        <CircleCheckBig size={12} /> נחתם דיגיטלית
                                     </div>
                                     <div className="text-[9px] text-emerald-500 mt-1 font-mono">IP: 84.12.11.9 • {new Date().toLocaleTimeString()}</div>
                                 </div>
@@ -465,7 +465,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
                             </>
                         ) : isSigning ? (
                             <>
-                                <CheckCircle2 size={18} className="animate-ping" /> מאמת חתימה...
+                                <CircleCheckBig size={18} className="animate-ping" /> מאמת חתימה...
                             </>
                         ) : (
                             <>

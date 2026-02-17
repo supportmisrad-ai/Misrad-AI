@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Inbox, Send, Camera, FileText, CornerDownLeft, MessageSquare, Sparkles, Plus, X, ImageIcon } from 'lucide-react';
+import { Inbox, Send, Camera, FileText, CornerDownLeft, MessageSquare, Sparkles, Plus, X, Image } from 'lucide-react';
 import { Client, ClientRequest, ManagerRequest, AIOpportunity } from '@/types/social';
 
 interface RequestsTabProps {
@@ -32,7 +32,7 @@ const RequestsTab: React.FC<RequestsTabProps> = ({ client, requests, managerRequ
             <div key={req.id} className={`p-6 rounded-[32px] border-2 flex flex-col gap-4 transition-all ${req.status === 'processed' ? 'bg-slate-50 border-transparent opacity-60' : req.status === 'needs_fix' ? 'border-amber-200 bg-amber-50/30' : 'bg-white border-slate-100 shadow-lg'}`}>
               <div className="flex gap-6 items-start">
                 <div className="w-24 h-24 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-sm">
-                  {req.mediaUrl ? <img src={req.mediaUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24}/></div>}
+                  {req.mediaUrl ? <img src={req.mediaUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><Image size={24}/></div>}
                 </div>
                 <div className="flex-1 flex flex-col gap-2">
                   <div className="flex justify-between items-start">

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Search, Command, ArrowRight, UserCircle, LayoutDashboard, Briefcase, Calculator, Users, Zap, CheckSquare, Sparkles, MessageSquare, CornerDownLeft, FileText } from 'lucide-react';
+import { Search, Command, ArrowRight, CircleUser, LayoutDashboard, Briefcase, Calculator, Users, Zap, SquareCheck, Sparkles, MessageSquare, CornerDownLeft, FileText } from 'lucide-react';
 import { useNexus } from '../context/ClientContext';
 import { HealthStatus } from '../types';
 import { usePathname } from 'next/navigation';
@@ -94,7 +94,7 @@ const NexusCommand: React.FC<NexusCommandProps> = ({ onNavigate, onSelectClient 
           id: 'act-task',
           type: 'ACTION',
           label: 'משימה חדשה',
-          icon: CheckSquare,
+          icon: SquareCheck,
           action: () =>
             window.dispatchEvent(
               new CustomEvent('nexus-toast', { detail: { message: 'יצירת משימה אינה זמינה כרגע.', type: 'info' } })
@@ -141,7 +141,7 @@ const NexusCommand: React.FC<NexusCommandProps> = ({ onNavigate, onSelectClient 
           type: 'CLIENT',
           label: client.name,
           subLabel: client.industry,
-          icon: UserCircle,
+          icon: CircleUser,
           action: () => onSelectClient(client.id),
           meta: client.healthStatus
         });
@@ -154,7 +154,7 @@ const NexusCommand: React.FC<NexusCommandProps> = ({ onNavigate, onSelectClient 
         id: 'act-task',
         type: 'ACTION',
         label: 'משימה חדשה',
-        icon: CheckSquare,
+        icon: SquareCheck,
         action: () =>
           window.dispatchEvent(
             new CustomEvent('nexus-toast', { detail: { message: 'יצירת משימה אינה זמינה כרגע.', type: 'info' } })

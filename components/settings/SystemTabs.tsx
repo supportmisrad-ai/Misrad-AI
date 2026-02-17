@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion } from 'framer-motion';
-import { Trash2, DollarSign, CheckCircle2, AlertTriangle, Download, Upload, ShieldCheck, CheckSquare, Lightbulb, RotateCcw, BarChart3, FileClock, Database, Archive, Building, History, X, UserCheck, Crown, ChevronDown } from 'lucide-react';
+import { Trash2, DollarSign, CircleCheckBig, TriangleAlert, Download, Upload, ShieldCheck, SquareCheck, Lightbulb, RotateCcw, BarChart3, FileClock, Database, Archive, Building, History, X, UserCheck, Crown, ChevronDown } from 'lucide-react';
 import { Notification, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -220,7 +220,7 @@ export const DepartmentsTab: React.FC = () => {
                                         entry.action === 'removed' ? 'bg-red-100 text-red-600' :
                                         'bg-blue-100 text-blue-600'
                                     }`}>
-                                        {entry.action === 'added' ? <CheckCircle2 size={14} /> :
+                                        {entry.action === 'added' ? <CircleCheckBig size={14} /> :
                                          entry.action === 'removed' ? <Trash2 size={14} /> :
                                          <RotateCcw size={14} />}
                                     </div>
@@ -438,7 +438,7 @@ export const GoalsTab: React.FC = () => {
 
                     <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                            <CheckCircle2 size={16} className="text-blue-600" /> יעד השלמת משימות (מספרי)
+                            <CircleCheckBig size={16} className="text-blue-600" /> יעד השלמת משימות (מספרי)
                         </label>
                         <input 
                             type="number" 
@@ -546,7 +546,7 @@ export const DataTab: React.FC = () => {
 
             <h2 className="text-xl font-bold text-gray-900">ניהול נתונים וגיבוי</h2>
             <div className="bg-red-50 border border-red-100 p-4 rounded-xl mb-6 flex items-start gap-3">
-                <AlertTriangle size={20} className="text-red-600 mt-0.5" />
+                <TriangleAlert size={20} className="text-red-600 mt-0.5" />
                 <div>
                     <h4 className="font-bold text-red-900 text-sm">אזור רגיש</h4>
                     <p className="text-xs text-red-700">פעולות אלו חושפות את כל המידע העסקי. וודא שאתה מורשה לבצע אותן.</p>

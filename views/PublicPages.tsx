@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowRight, Shield, Lock, FileText, CheckCircle2, Users, MapPin, Globe, Mail, Calendar, Briefcase, Clock } from 'lucide-react';
+import { ArrowRight, Shield, Lock, FileText, CircleCheckBig, Users, MapPin, Globe, Mail, Calendar, Briefcase, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // --- Shared Layout ---
@@ -99,7 +99,7 @@ export const SecurityView: React.FC = () => (
                 { title: 'הצפנה מקצה לקצה', desc: 'כל הנתונים מוצפנים במעבר (TLS) ובמנוחה (AES-256).', icon: Lock },
                 { title: 'גיבויים אוטומטיים', desc: 'המידע שלך מגובה בזמן אמת לשרתים יתירים במספר מיקומים גיאוגרפיים.', icon: FileText },
                 { title: 'בקרת גישה (RBAC)', desc: 'מערכת הרשאות מתקדמת המאפשרת לך לשלוט בדיוק מי רואה מה.', icon: Users },
-                { title: 'תאימות לתקנים', desc: 'התשתית שלנו עומדת בתקני GDPR, SOC2 ו-ISO 27001.', icon: CheckCircle2 },
+                { title: 'תאימות לתקנים', desc: 'התשתית שלנו עומדת בתקני GDPR, SOC2 ו-ISO 27001.', icon: CircleCheckBig },
             ].map((item, i) => (
                 <div key={i} className="bg-slate-800/50 p-8 rounded-3xl border border-slate-700 hover:border-indigo-500/50 transition-colors">
                     <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mb-4">

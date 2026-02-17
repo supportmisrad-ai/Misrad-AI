@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Task, User } from '../../types';
-import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
+import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 import { usePathname } from 'next/navigation';
@@ -109,7 +109,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             const attachment = {
                 name: file.name,
                 type,
-                senderId: String((currentUser as unknown as { id?: string }).id),
+                senderId: String(currentUser && typeof currentUser === 'object' && 'id' in currentUser ? (currentUser as { id?: string }).id : ''),
                 url: String((data as Record<string, unknown>)?.id || data?.url || '') // Prefer stable sb:// reference for DB
             };
 
@@ -376,7 +376,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
                                         <div className="flex justify-end items-center gap-1 mt-0.5">
                                             <span className="text-[10px] text-gray-400 opacity-80 font-medium">{msg.createdAt}</span>
-                                            {isMe && <CheckCheck size={12} className="text-blue-400" />}
+                                            {isMe && <Check size={12} className="text-blue-400" />}
                                         </div>
                                     </>
                                 )}

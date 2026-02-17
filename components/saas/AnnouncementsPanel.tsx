@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Plus, X, Edit2, Trash2, Users, Shield, AlertCircle } from 'lucide-react';
+import { MessageSquare, Plus, X, Edit2, Trash2, Users, Shield, CircleAlert } from 'lucide-react';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Button } from '@/components/ui/button';
 

@@ -7,7 +7,7 @@ import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 //   import { cached, invalidateCache } from '@/lib/cache';
 //
 //   const getOrg = cached('org', { ttlSeconds: 30, swrSeconds: 60 }, async (orgId: string) => {
-//     return prisma.social_organizations.findUnique({ where: { id: orgId } });
+//     return prisma.organization.findUnique({ where: { id: orgId } });
 //   });
 //   const org = await getOrg('org_123');
 //

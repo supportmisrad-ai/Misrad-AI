@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { ContentItem, ContentStatus } from '../types';
 import { 
-    Clapperboard, Plus, Video, Image as ImageIcon, Sparkles, 
-    MoreHorizontal, Calendar, User, Eye, CheckCircle2, 
+    Clapperboard, Plus, Video, Image, Sparkles, 
+    MoreHorizontal, Calendar, User, Eye, CircleCheckBig, 
     Youtube, Instagram, Linkedin, GripVertical, Scissors, UploadCloud, Film
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
@@ -60,7 +59,7 @@ const ContentStudioView: React.FC<ContentStudioViewProps> = ({ content = [], onU
 
     const formatLabel = (type: ContentItem['type']) => {
         if (type === 'video') return { label: 'וידאו', icon: Film, className: 'bg-indigo-50 text-indigo-700 border-indigo-100' };
-        if (type === 'image') return { label: 'תמונה', icon: ImageIcon, className: 'bg-slate-50 text-slate-600 border-slate-100' };
+        if (type === 'image') return { label: 'תמונה', icon: Image, className: 'bg-slate-50 text-slate-600 border-slate-100' };
         if (type === 'document') return { label: 'מסמך', icon: Scissors, className: 'bg-slate-50 text-slate-600 border-slate-100' };
         if (type === 'idea') return { label: 'רעיון', icon: Sparkles, className: 'bg-slate-50 text-slate-600 border-slate-100' };
         return { label: 'טקסט', icon: Scissors, className: 'bg-slate-50 text-slate-600 border-slate-100' };

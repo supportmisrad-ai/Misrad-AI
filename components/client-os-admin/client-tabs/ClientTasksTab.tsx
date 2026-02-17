@@ -1,6 +1,6 @@
 import React from 'react';
 import { Client, AssignedForm, AutomationSequence, ScheduledAutomation } from '@/components/client-portal/types';
-import { UserCheck, AlertCircle, ClipboardList, Plus, FileText, Zap, Activity, Mail, Timer, X } from 'lucide-react';
+import { UserCheck, CircleAlert, ClipboardList, Plus, FileText, Zap, SquareActivity, Mail, Timer, X } from 'lucide-react';
 
 interface ClientTasksTabProps {
   client: Client;
@@ -24,7 +24,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ client, assigned
                 client.pendingActions.map((action) => (
                   <div key={action.id} className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
                     <div className="mt-1 text-red-500">
-                      <AlertCircle size={18} />
+                      <CircleAlert size={18} />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-bold text-gray-900 text-sm">{action.title}</h4>
@@ -107,7 +107,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ client, assigned
                           <span className="text-[10px] text-white/50">{seq.description}</span>
                         </div>
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/20 text-green-400 rounded text-[10px] font-bold border border-green-500/20">
-                          <Activity size={10} /> פעיל
+                          <SquareActivity size={10} /> פעיל
                         </div>
                       </div>
                     ))}

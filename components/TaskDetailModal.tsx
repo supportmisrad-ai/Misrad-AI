@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task } from '../types';
 import { useData } from '../context/DataContext';
-import { X, Check, Lock, Layout, StickyNote, Trash2, Clock, Paperclip, AlertTriangle, Zap, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Check, Lock, Layout, StickyNote, Trash2, Clock, Paperclip, TriangleAlert, Zap, Calendar as CalendarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { TaskDetailChat } from './TaskDetailChat';
@@ -326,7 +326,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                     }`}>
                         <Clock size={14} /> 
                         נדחה {(task.snoozeCount)} פעמים
-                        {(task.snoozeCount || 0) >= 3 && <span className="mr-auto flex items-center gap-1"><AlertTriangle size={12} /> בטיפול מנהל</span>}
+                        {(task.snoozeCount || 0) >= 3 && <span className="mr-auto flex items-center gap-1"><TriangleAlert size={12} /> בטיפול מנהל</span>}
                     </div>
                 )}
 

@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
     Wallet, TrendingUp, DollarSign, Receipt, 
-    AlertCircle, FileText, Gem, Coins, Repeat, AlertTriangle, Send, CheckCircle2, Crown, ArrowRight, ShoppingBag, Clock, RotateCcw, ArrowUpRight, Users, Zap, ShieldCheck
+    CircleAlert, FileText, Gem, Coins, Repeat, TriangleAlert, Send, CircleCheckBig, Crown, ArrowRight, ShoppingBag, Clock, RotateCcw, ArrowUpRight, Users, Zap, ShieldCheck
 } from 'lucide-react';
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 

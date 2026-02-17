@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useData } from '../context/DataContext';
 import { Status, Task, WorkflowStage, GuestMessage } from '../types';
 import { STATUS_COLORS } from '../constants';
-import { CheckCircle2, Clock, Calendar, ArrowRight, ShieldCheck, Download, MessageSquare, Send, Check } from 'lucide-react';
+import { CircleCheckBig, Clock, Calendar, ArrowRight, ShieldCheck, Download, MessageSquare, Send, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const GuestView: React.FC = () => {
@@ -111,7 +111,7 @@ export const GuestView: React.FC = () => {
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">התקדמות כללית</span>
                             <div className="text-4xl font-bold text-gray-900 flex items-center gap-2">
                                 {progress}%
-                                {task.status === Status.DONE && <CheckCircle2 className="text-green-500" size={32} />}
+                                {task.status === Status.DONE && <CircleCheckBig className="text-green-500" size={32} />}
                             </div>
                         </div>
                         <div className="flex items-center gap-6 text-sm font-medium text-gray-500">

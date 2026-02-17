@@ -4,7 +4,7 @@ import { Lead, ContentItem, Student, Campaign, Task, CalendarEvent } from '../ty
 import { 
     Flame, CircleCheck, Video, Target, Phone, ChevronRight, TriangleAlert, 
     Mic, Users, Coins, BarChart2, Plus, Calendar, Wifi, Check, X, 
-    Voicemail, Mail, ArrowRight, Play, Megaphone, Activity, Layers, Zap,
+    Voicemail, Mail, ArrowRight, Play, Megaphone, SquareActivity, Layers, Zap,
     Sun, Timer, MousePointer2, ArrowUpRight, Radio, CalendarClock, Gauge,
     Cpu, ShieldCheck, HeartPulse, Sparkles, MessageSquare, ExternalLink, Clock, User, PhoneCall
 } from 'lucide-react';
@@ -424,7 +424,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
         >
             <div className="p-8 border-b border-slate-100 bg-white/50 flex justify-between items-center">
                <h3 className="font-black text-slate-800 text-xl flex items-center gap-3">
-                   <Activity size={24} className="text-indigo-600" />
+                   <SquareActivity size={24} className="text-indigo-600" />
                    דופק המערכת
                </h3>
                <div className="flex items-center gap-2 px-2 py-1 bg-emerald-50 rounded-full border border-emerald-100">

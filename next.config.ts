@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   cleanDistDir: true,
   productionBrowserSourceMaps: false,
   compiler: process.env.NODE_ENV === 'production' ? { removeConsole: { exclude: ['error'] } } : undefined,
+
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
@@ -36,7 +37,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com']
-    }
+    },
+    // Modern tree-shaking optimization for icon libraries and UI components
+    optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', '@radix-ui/react-icons']
   },
   // Optimize for Netlify
   compress: true,
@@ -48,27 +51,27 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   // Use webpack instead of Turbopack to avoid issues with Hebrew paths
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Fixes npm packages that depend on `fs` module
     if (!isServer) {
-      config.resolve.fallback = { 
+      config.resolve.fallback = {
         fs: false,
         path: false,
         crypto: false
       };
     }
-    
+
     // Fix for Supabase ESM imports
     config.resolve.extensionAlias = {
       '.js': ['.js', '.ts', '.tsx'],
       '.mjs': ['.mjs', '.mts'],
     };
-    
+
     // Fix for Supabase wrapper.mjs ESM import issue
     config.resolve.alias = {
       ...config.resolve.alias,
     };
-    
+
     // Ensure proper module resolution for Supabase
     config.module = {
       ...config.module,
@@ -82,10 +85,26 @@ const nextConfig: NextConfig = {
       ],
     };
 
-    if (process.env.NODE_ENV === 'development') {
-      return config;
+    // Development optimizations for faster builds
+    if (dev) {
+      // Speed up development builds
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+      };
     }
-    
+
+    // Production optimizations
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: true,
+      };
+    }
+
     return config;
   },
 };

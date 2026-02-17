@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Key, AlertCircle, Check } from 'lucide-react';
+import { X, Key, CircleAlert, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 
 interface GreenInvoiceConnectModalProps {
@@ -128,7 +128,7 @@ export const GreenInvoiceConnectModal: React.FC<GreenInvoiceConnectModalProps> =
 
                         {error && (
                             <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-                                <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+                                <CircleAlert size={16} className="text-red-600 flex-shrink-0" />
                                 <p className="text-red-800 text-sm font-bold">{error}</p>
                             </div>
                         )}

@@ -308,7 +308,7 @@ const FinanceOSApp: React.FC<{
         return <IntegrationsView />;
       case 'me':
         return (
-          <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+          <DataProvider initialCurrentUser={initialCurrentUser as AppUser | undefined} initialOrganization={initialOrganization}>
             <MeView
               basePathOverride={basePath}
               moduleCards={

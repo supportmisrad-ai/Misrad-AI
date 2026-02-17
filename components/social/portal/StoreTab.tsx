@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ImageIcon, Zap, Minus, Plus } from 'lucide-react';
+import { Image, Zap, Minus, Plus } from 'lucide-react';
 import { AgencyServiceConfig } from '@/types/social';
 
 interface StoreTabProps {
@@ -39,7 +39,7 @@ const StoreTab: React.FC<StoreTabProps> = ({ marketplaceAddons, cart, updateCart
             <div key={addon.id} className="bg-white p-8 rounded-[48px] border-2 border-slate-50 shadow-sm hover:shadow-xl transition-all group flex flex-col">
               <div className="flex items-center justify-between mb-6">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${addon.category === 'content' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
-                  {addon.category === 'content' ? <ImageIcon size={28}/> : <Zap size={28}/>}
+                  {addon.category === 'content' ? <Image size={28}/> : <Zap size={28}/>}
                 </div>
                 <span className={`text-[10px] font-black px-3 py-1 rounded-lg uppercase ${addon.isRecurring ? 'bg-purple-50 text-purple-600' : 'bg-slate-50 text-slate-400'}`}>
                   {addon.isRecurring ? 'תוספת חודשית' : 'חד פעמי'}

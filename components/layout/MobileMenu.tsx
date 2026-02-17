@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, PenTool, Sun, Settings, Headphones, Sparkles, Home, CheckSquare, Plus, Briefcase, User, AppWindow } from 'lucide-react';
+import { Mic, PenTool, Sun, Settings, Headphones, Sparkles, Home, SquareCheck, Plus, Briefcase, User, SquareMousePointer } from 'lucide-react';
 import { NAV_ITEMS, getMobileGridStyles } from './layout.types';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
@@ -250,7 +250,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
           {
             id: 'tasks',
             label: 'משימות',
-            icon: CheckSquare,
+            icon: SquareCheck,
             active: isActive('/tasks'),
             onClick: () => handleNavClick('/tasks'),
           },
@@ -272,7 +272,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
           {
             id: 'menu',
             label: 'תפריט',
-            icon: AppWindow,
+            icon: SquareMousePointer,
             active: Boolean(isMobileMenuOpen || isActive('/settings') || isActive('/me')),
             onClick: () => toggleMobileMenu(),
           },

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, DollarSign, FileText, AlertCircle } from 'lucide-react';
+import { TrendingUp, DollarSign, FileText, CircleAlert } from 'lucide-react';
 
 const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialFinanceOverview }) => {
   const data = initialFinanceOverview as Record<string, unknown> | null | undefined;
@@ -55,7 +55,7 @@ const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialF
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-                <AlertCircle className="text-rose-600" size={24} />
+                <CircleAlert className="text-rose-600" size={24} />
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">₪{pendingReceivables.toFixed(0)}</div>

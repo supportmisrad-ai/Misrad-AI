@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Package, Plus, Edit2, Save, X, CheckCircle2, Trash2, Eye, 
-    AlertCircle, ChevronDown, ChevronUp, LayoutDashboard, Zap, HeartPulse, Crown,
+    Package, Plus, Edit2, Save, X, CircleCheckBig, Trash2, Eye, 
+    CircleAlert, ChevronDown, ChevronUp, LayoutDashboard, Zap, HeartPulse, Crown,
     ArrowUp, ArrowDown
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
@@ -499,7 +499,7 @@ export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ 
                                             title={plan.isActive ? 'הסתר' : 'הצג'}
                                             aria-label={plan.isActive ? 'הסתר' : 'הצג'}
                                         >
-                                            <CheckCircle2 size={16} />
+                                            <CircleCheckBig size={16} />
                                         </Button>
                                         <Button
                                             onClick={() => movePlan(plan.id, 'up')}
@@ -679,7 +679,7 @@ export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ 
                             className="bg-white/90 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                         >
                             <div className="flex items-center gap-3 mb-4">
-                                <AlertCircle className="text-red-600" size={24} />
+                                <CircleAlert className="text-red-600" size={24} />
                                 <h3 className="text-xl font-bold text-slate-900">מחיקת חבילה</h3>
                             </div>
                             <p className="text-slate-700 mb-6">

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead, HandoverData } from './types';
-import { X, Server, CheckCircle, ArrowRight, Database, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, Activity, Send, AlertOctagon, Lock } from 'lucide-react';
+import { X, Server, CircleCheck, ArrowRight, Database, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, SquareActivity, Send, OctagonAlert, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 
 interface HandoverDialogProps {
@@ -95,7 +95,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
               <div className="space-y-6">
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 items-start">
                       <div className="bg-white p-2 rounded-full text-amber-600 shadow-sm shrink-0">
-                          <AlertOctagon size={24} />
+                          <OctagonAlert size={24} />
                       </div>
                       <div>
                           <h4 className="font-bold text-amber-900 text-sm">שער העמלה</h4>
@@ -264,7 +264,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
           {step === 'success' && (
             <div className="flex flex-col items-center justify-center py-4 space-y-6 animate-scale-in text-center h-full">
                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 border-4 border-emerald-100 shadow-xl mb-4">
-                  <CheckCircle size={48} />
+                  <CircleCheck size={48} />
                </div>
                
                <div className="space-y-2 max-w-md">
@@ -323,7 +323,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                 onClick={() => setStep('sending')} 
                 className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all hover:-translate-y-0.5 active:scale-95"
               >
-                אשר וסנכרן סופית <CheckCircle size={18} />
+                אשר וסנכרן סופית <CircleCheck size={18} />
               </button>
             </>
           )}

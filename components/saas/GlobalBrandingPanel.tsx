@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { Image, Upload, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -148,7 +148,7 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
                   <img src={defaultLogoUrl} alt="Default Logo" className="w-full h-full object-contain p-3" />
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-slate-500">
-                    <ImageIcon size={28} />
+                    <Image size={28} />
                     <span className="text-[10px] font-black">אין לוגו</span>
                   </div>
                 )}

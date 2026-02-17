@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, X, Zap } from 'lucide-react';
+import { CircleCheckBig, CircleAlert, X, Zap } from 'lucide-react';
 
 export interface Toast {
   id: string;
@@ -48,9 +48,9 @@ export const ToastManager: React.FC = () => {
             }`}
           >
             {toast.type === 'success' ? (
-              <CheckCircle2 size={16} />
+              <CircleCheckBig size={16} />
             ) : toast.type === 'error' ? (
-              <AlertCircle size={16} />
+              <CircleAlert size={16} />
             ) : (
               <Zap size={16} fill="currentColor" />
             )}

@@ -14,7 +14,7 @@ import {
   SuccessGoal,
 } from '@/components/client-portal/types';
 import {
-  Activity,
+  SquareActivity,
   Archive,
   ArrowLeft,
   Ban,
@@ -302,7 +302,7 @@ const ClientView: React.FC = () => {
   const availableTabs = [
     { id: 'strategy', icon: Target, label: 'אסטרטגיה & ROI', module: null },
     { id: 'portal', icon: Globe, label: 'ניהול פורטל', module: 'portals' },
-    { id: 'pulse', icon: Activity, label: 'בריאות התיק', module: null },
+    { id: 'pulse', icon: SquareActivity, label: 'בריאות התיק', module: null },
     { id: 'stakeholders', icon: Users, label: 'אנשי קשר', module: null },
     { id: 'tasks', icon: ListTodo, label: 'משימות', module: null },
     { id: 'journey', icon: Map, label: 'תהליך', module: 'workflows' },

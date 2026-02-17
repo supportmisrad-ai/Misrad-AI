@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, AlertCircle, X, Info, DollarSign, Check, Sparkles } from 'lucide-react';
+import { Bell, CircleCheckBig, CircleAlert, X, Info, DollarSign, Check, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
@@ -177,8 +177,8 @@ export default function NotificationCenter() {
                       n.type === 'update' ? 'bg-blue-600 text-white shadow-lg' :
                       'bg-blue-50 text-blue-600'
                     }`}>
-                      {n.type === 'success' ? <CheckCircle2 size={24}/> : 
-                        n.type === 'error' ? <AlertCircle size={24}/> : 
+                      {n.type === 'success' ? <CircleCheckBig size={24}/> : 
+                        n.type === 'error' ? <CircleAlert size={24}/> : 
                         n.type === 'update' ? <Sparkles size={24}/> :
                         <Info size={24}/>}
                     </div>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toast } from '../types';
-import { Check, X, AlertTriangle, Info, AlertOctagon } from 'lucide-react';
+import { Check, X, TriangleAlert, Info, OctagonAlert } from 'lucide-react';
 
 interface ToastContainerProps {
     toasts: Toast[];
@@ -44,8 +44,8 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeTo
                               'bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-lg shadow-slate-500/20'}
                         `}>
                             {toast.type === 'success' && <Check size={18} strokeWidth={3} />}
-                            {toast.type === 'error' && <AlertOctagon size={18} strokeWidth={3} />}
-                            {toast.type === 'warning' && <AlertTriangle size={18} strokeWidth={3} />}
+                            {toast.type === 'error' && <OctagonAlert size={18} strokeWidth={3} />}
+                            {toast.type === 'warning' && <TriangleAlert size={18} strokeWidth={3} />}
                             {toast.type === 'info' && <Info size={18} strokeWidth={3} />}
                         </div>
                         

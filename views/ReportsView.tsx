@@ -5,7 +5,7 @@ import { useSecureAPI } from '../hooks/useSecureAPI';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import { CustomSelect } from '../components/CustomSelect';
-import { BarChart3, Clock, CheckCircle2, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, Activity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw, MapPin } from 'lucide-react';
+import { BarChart3, Clock, CircleCheckBig, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, SquareActivity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw, MapPin } from 'lucide-react';
 import { Status, TimeEntry, User } from '../types';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TimeEntryModal } from '../components/nexus/TimeEntryModal';
@@ -666,7 +666,7 @@ export const ReportsView: React.FC = () => {
                                     <p className="text-[9px] md:text-[10px] text-gray-600 mt-1">בטווח התאריכים הנבחר</p>
                                 </div>
                                 <div className="p-3 md:p-4 bg-green-50 text-green-600 rounded-2xl group-hover:scale-110 transition-transform">
-                                    <CheckCircle2 size={24} className="md:w-8 md:h-8" />
+                                    <CircleCheckBig size={24} className="md:w-8 md:h-8" />
                                 </div>
                             </div>
                             <div className="bg-white p-4 md:p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-gray-200 transition-all">
@@ -771,7 +771,7 @@ export const ReportsView: React.FC = () => {
                                                         stat.efficiencyScore >= 75 ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                         'bg-orange-50 text-orange-700 border-orange-100'
                                                     }`}>
-                                                        <Activity size={12} />
+                                                        <SquareActivity size={12} />
                                                         {stat.efficiencyScore}
                                                     </div>
                                                 </td>
@@ -826,7 +826,7 @@ export const ReportsView: React.FC = () => {
                                                 stat.efficiencyScore >= 75 ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                 'bg-orange-50 text-orange-700 border-orange-100'
                                             }`}>
-                                                <Activity size={12} />
+                                                <SquareActivity size={12} />
                                                 {stat.efficiencyScore}
                                             </div>
                                         </div>

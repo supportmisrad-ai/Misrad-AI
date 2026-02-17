@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, Activity, AlertTriangle, AlignLeft, Timer } from 'lucide-react';
+import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, SquareActivity, TriangleAlert, AlignStartVertical, Timer } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Client, Priority, Status, Task, User, WorkflowStage } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -271,7 +271,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
 
                         <div className="flex gap-4">
                             <div className="mt-1.5 opacity-30">
-                                <AlignLeft size={20} />
+                                <AlignStartVertical size={20} />
                             </div>
                             <textarea 
                                 value={description}
@@ -320,7 +320,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
                                 }`}
                             >
-                                <Activity size={16} className="text-gray-400" />
+                                <SquareActivity size={16} className="text-gray-400" />
                                 {selectedStatus ? selectedStatus.name : status}
                                 <ChevronDown size={14} className="opacity-30 mr-1" />
                             </button>
@@ -602,7 +602,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                 requiresApproval ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-black hover:bg-gray-800 text-white'
                             }`}
                         >
-                            {requiresApproval ? 'שלח לאישור' : 'צור משימה'} {requiresApproval ? <AlertTriangle size={18} /> : <ArrowUpRight size={18} />}
+                            {requiresApproval ? 'שלח לאישור' : 'צור משימה'} {requiresApproval ? <TriangleAlert size={18} /> : <ArrowUpRight size={18} />}
                         </button>
                     </div>
                 </div>

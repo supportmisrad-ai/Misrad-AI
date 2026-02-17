@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, Tag, Bug, Zap, CheckCircle2, Clock, Sparkles, Wrench, AlertOctagon, Plus, Send, RefreshCw } from 'lucide-react';
+import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, Tag, Bug, Zap, CircleCheckBig, Clock, Sparkles, Wrench, OctagonAlert, Plus, Send, RefreshCw } from 'lucide-react';
 import { FeatureRequest, FeatureRequestType, Priority, ChangeRequest, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
@@ -135,7 +135,7 @@ export const RequestsTab: React.FC = () => {
 
     const getStatusConfig = (status: string) => {
         switch (status) {
-            case 'done': return { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2, label: 'בוצע' };
+            case 'done': return { color: 'bg-green-100 text-green-700 border-green-200', icon: CircleCheckBig, label: 'בוצע' };
             case 'approved': return { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Zap, label: 'אושר' };
             case 'reviewing': return { color: 'bg-orange-50 text-orange-700 border-orange-200', icon: Clock, label: 'בבדיקה' };
             default: return { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: Tag, label: 'נפתח' };

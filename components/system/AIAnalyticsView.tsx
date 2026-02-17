@@ -2,8 +2,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { 
   HeartPulse, Sparkles, TrendingDown, TrendingUp, CircleDollarSign, 
-  Lightbulb, BarChart, AlertTriangle, Target, Users, Zap, Calendar, 
-  ArrowUpRight, ArrowDownRight, Filter, Download, RefreshCw, Activity
+  Lightbulb, BarChart, TriangleAlert, Target, Users, Zap, Calendar, 
+  ArrowUpRight, ArrowDownRight, Filter, Download, RefreshCw, SquareActivity
 } from 'lucide-react';
 import { 
   PieChart, Pie, Sector, Cell, ResponsiveContainer, BarChart as ReBarChart, 
@@ -87,7 +87,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
   }, [period]);
 
   // Filter leads by date range - include leads that were active in this period
-  // (either created OR had activity in this period)
+  // (either created OR had SquareActivity in this period)
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
       const createdInRange = lead.createdAt >= dateRange.start && lead.createdAt <= dateRange.end;
@@ -247,7 +247,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
     if (revenueMetrics.conversionRate < 15) {
       insights.push({
         type: 'warning',
-        icon: AlertTriangle,
+        icon: TriangleAlert,
         title: 'שיעור המרה נמוך',
         message: `שיעור ההמרה שלך הוא ${revenueMetrics.conversionRate.toFixed(1)}%, נמוך מהממוצע.`,
         action: 'בדוק את איכות הלידים ומעקב אחרי פגישות'
@@ -280,7 +280,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       if (worstSource && worstSource.לידים > 0 && worstSource.המרה < 10) {
         insights.push({
           type: 'warning',
-          icon: AlertTriangle,
+          icon: TriangleAlert,
           title: `שיפור נדרש: ${worstSource.name}`,
           message: `${worstSource.name} מביא לידים אבל רק ${worstSource.המרה}% המרה.`,
           action: 'בדוק את איכות הלידים או שקול להפסיק להשקיע במקור הזה'
@@ -297,7 +297,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
     if (stuckLeads.length > 0) {
       insights.push({
         type: 'warning',
-        icon: Activity,
+        icon: SquareActivity,
         title: `${stuckLeads.length} לידים תקועים`,
         message: `${stuckLeads.length} לידים לא טופלו יותר מ-7 ימים.`,
         action: 'עדכן את הסטטוס או צור קשר מחדש'

@@ -1,7 +1,7 @@
  'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, DollarSign, Activity, Ghost, Clock, Zap, ShieldAlert, Sparkles, ArrowRight, Filter, AlertTriangle, Share2, MessageCircle, Star, Sun, Users, Video, Calendar, X, Check, Search, Mail, Plus, Layers, UserCheck, CheckSquare, Square, Smartphone, FileText } from 'lucide-react';
+import { TrendingUp, TrendingDown, CircleAlert, DollarSign, SquareActivity, Ghost, Clock, Zap, ShieldAlert, Sparkles, ArrowRight, Filter, TriangleAlert, Share2, MessageCircle, Star, Sun, Users, Video, Calendar, X, Check, Search, Mail, Plus, Layers, UserCheck, SquareCheck, Square, Smartphone, FileText } from 'lucide-react';
 import { HealthStatus, GroupEvent, ClientStatus } from '../types';
 import DailyBriefing from './DailyBriefing';
 import { useNexus } from '../context/ClientContext';
@@ -241,7 +241,7 @@ const Dashboard: React.FC = () => {
           <div className="relative">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-500 uppercase">כסף בסיכון</span>
-              <AlertTriangle size={18} className="text-signal-danger" />
+              <TriangleAlert size={18} className="text-signal-danger" />
             </div>
             <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">₪{revenueAtRisk.toLocaleString()}</div>
             <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
@@ -269,7 +269,7 @@ const Dashboard: React.FC = () => {
           <div className="relative">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-500 uppercase">משימות פתוחות</span>
-              <CheckSquare size={18} className="text-[color:var(--os-accent)]" />
+              <SquareCheck size={18} className="text-[color:var(--os-accent)]" />
             </div>
             <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{openClientTasksCount + openAgencyTasksCount}</div>
             <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">

@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { Task, Priority } from '../types';
 import { PRIORITY_LABELS } from '../constants';
-import { Activity, AlertTriangle, User as UserIcon, Calendar, Briefcase, Timer, Clock, Edit2, Info, ChevronDown } from 'lucide-react';
+import { SquareActivity, TriangleAlert, User as UserIcon, Calendar, Briefcase, Timer, Clock, Edit2, Info, ChevronDown } from 'lucide-react';
 import { CustomSelect } from './CustomSelect';
 import { CustomDatePicker } from './CustomDatePicker';
 import { CustomTimePicker } from './CustomTimePicker';
@@ -125,7 +125,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
             
             {/* 1. Status */}
             <div>
-                <RenderLabel icon={<Activity size={12} />} label="סטטוס" />
+                <RenderLabel icon={<SquareActivity size={12} />} label="סטטוס" />
                 <CustomSelect 
                     value={task.status}
                     onChange={(val) => updateTask(task.id, { status: val })}
@@ -139,7 +139,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
 
             {/* 2. Priority */}
             <div>
-                <RenderLabel icon={<AlertTriangle size={12} />} label="דחיפות" />
+                <RenderLabel icon={<TriangleAlert size={12} />} label="דחיפות" />
                 <div className="relative">
                         <button 
                             ref={priorityButtonRef}

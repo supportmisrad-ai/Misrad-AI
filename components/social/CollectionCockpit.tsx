@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Lock, ArrowUpRight, Phone } from 'lucide-react';

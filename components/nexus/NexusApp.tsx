@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { CheckSquare, Calendar, Users, Home, Settings, FolderOpen, Trash2, PieChart, Briefcase, Search } from 'lucide-react';
+import { SquareCheck, Calendar, Users, Home, Settings, FolderOpen, Trash2, PieChart, Briefcase, Search } from 'lucide-react';
 import type { Task as SystemTask } from '@/components/system/types';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../system/contexts/AuthContext';
@@ -89,7 +89,7 @@ const NexusOSApp = () => {
   }
 
   const NAV_ITEMS = [
-      { id: 'tasks', label: 'משימות', icon: CheckSquare },
+      { id: 'tasks', label: 'משימות', icon: SquareCheck },
       { id: 'calendar', label: 'אירועים', icon: Calendar },
       { id: 'headquarters', label: 'מפקדה', icon: Home },
       { id: 'team', label: 'צוות', icon: Users },

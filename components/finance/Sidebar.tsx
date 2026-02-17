@@ -12,7 +12,7 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (id: string) => void;
-  user: { name?: string; role?: string; avatar?: string; id?: string };
+  user: { name?: string; role?: string; avatar?: string; id?: string; email?: string };
   logout: () => void;
   mobile?: boolean;
   onClose?: () => void;
@@ -141,7 +141,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                 {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:') || user.avatar.startsWith('/')) ? (
                     <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="text-sm font-medium text-slate-700">{(user as Record<string, any>).email}</div>
+                    <div className="text-sm font-medium text-slate-700">{user.email || user.name?.charAt(0) || 'U'}</div>
                 )}
             </div>
             <div className="flex-1 min-w-0">

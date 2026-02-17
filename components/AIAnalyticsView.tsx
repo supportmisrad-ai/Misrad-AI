@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Sparkles,
-  CheckCircle,
+  CircleCheck,
   RefreshCw,
   History,
   Target,
@@ -84,7 +84,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
                         {report.insights.map((insight, idx) => (
                             <div key={idx} className="p-6 hover:bg-slate-50 transition-colors">
                                 <div className="flex items-start gap-3 mb-2">
-                                    {insight.severity === 'critical' ? <ShieldAlert className="text-red-500" size={18} /> : <CheckCircle className="text-emerald-500" size={18} />}
+                                    {insight.severity === 'critical' ? <ShieldAlert className="text-red-500" size={18} /> : <CircleCheck className="text-emerald-500" size={18} />}
                                     <h4 className="font-bold text-sm text-slate-800">{insight.title}</h4>
                                 </div>
                                 <p className="text-xs text-slate-600 leading-relaxed mb-3">{insight.description}</p>

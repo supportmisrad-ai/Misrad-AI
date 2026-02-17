@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FeedbackItem } from '../types';
-import { MessageSquareQuote, TrendingUp, TrendingDown, MessageCircle, AlertCircle, Sparkles, Send, Settings, Mail, BellRing } from 'lucide-react';
+import { MessageSquareQuote, TrendingUp, TrendingDown, MessageCircle, CircleAlert, Sparkles, Send, Settings, Mail, BellRing } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
 import { getClientOSFeedbacks } from '@/app/actions/client-portal-clinic';
 
@@ -229,7 +229,7 @@ const FeedbackLoop: React.FC = () => {
                            </div>
                            {feedbackItem.score <= 6 && (
                                <button className="text-[10px] flex items-center gap-1 text-signal-danger border border-signal-danger/30 px-2 py-1 rounded bg-signal-danger/5 hover:bg-signal-danger/10 transition-colors">
-                                   <AlertCircle size={10} /> טפל בזה
+                                   <CircleAlert size={10} /> טפל בזה
                                </button>
                            )}
                        </div>

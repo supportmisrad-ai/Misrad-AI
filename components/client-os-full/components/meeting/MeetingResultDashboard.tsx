@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { MeetingAnalysisResult } from '../../types';
-import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CircleUser, Briefcase, SquareActivity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, TriangleAlert, MessageSquare, Quote, SquareCheck } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 
 interface MeetingResultDashboardProps {
@@ -56,7 +56,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                           <div className="min-w-0">
                               <h2 className="text-xl md:text-2xl font-display font-bold text-gray-900 mb-1 truncate">{fileName || 'ישיבת סטטוס רבעונית + השקה'}</h2>
                               <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs text-gray-500">
-                                  <span className="flex items-center gap-1"><UserCircle size={12}/> אלכס, אלינה, דוד</span>
+                                  <span className="flex items-center gap-1"><CircleUser size={12}/> אלכס, אלינה, דוד</span>
                                   <span className="hidden md:inline">•</span>
                                   <span>שעתיים ו-15 דקות</span>
                                   <span className="hidden md:inline">•</span>
@@ -87,7 +87,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   </div>
                   <div className="glass-card p-4 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                          <div className="p-2 bg-pink-50 text-pink-600 rounded-lg"><Activity size={18}/></div>
+                          <div className="p-2 bg-pink-50 text-pink-600 rounded-lg"><SquareActivity size={18}/></div>
                           <span className="font-bold text-gray-700">חמימות</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                              </div>
                              <p className="font-serif italic font-medium mb-2 opacity-90">"{risk.quote}"</p>
                              <div className="text-xs opacity-70 border-t border-gray-200/60 pt-2 flex items-start gap-1">
-                                <AlertTriangle size={12} className="mt-0.5" />
+                                <TriangleAlert size={12} className="mt-0.5" />
                                 {risk.context}
                              </div>
                           </div>
@@ -273,12 +273,12 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
               </div>
               <div className="glass-card p-6 rounded-2xl border border-nexus-accent/20">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <UserCircle size={18} className="text-nexus-accent"/> משימות שלהם (Client)
+                      <CircleUser size={18} className="text-nexus-accent"/> משימות שלהם (Client)
                   </h3>
                   <div className="space-y-3">
                       {analysisResult?.clientTasks.map((t, i) => (
                           <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
-                              <div className="p-1 bg-green-100 rounded text-green-600 mt-0.5"><CheckSquare size={12}/></div>
+                              <div className="p-1 bg-green-100 rounded text-green-600 mt-0.5"><SquareCheck size={12}/></div>
                               <div>
                                   <p className={`text-sm font-bold text-gray-800 ${t.status === 'COMPLETED' ? 'line-through text-gray-400' : ''}`}>{t.task}</p>
                                   <span className="text-xs text-gray-500">מחכים להם: {t.deadline}</span>

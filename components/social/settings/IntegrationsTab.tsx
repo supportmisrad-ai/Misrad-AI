@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, Calendar, Workflow, RefreshCw, X } from 'lucide-react';
+import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CircleCheckBig, Calendar, Workflow, RefreshCw, X } from 'lucide-react';
 import {
   getAllIntegrationsStatusForWorkspace,
   getGoogleCalendarAuthUrl,
@@ -292,7 +292,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                   ) : (
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2 text-green-600 font-black text-[10px] bg-green-50 p-3 rounded-xl">
-                        <CheckCircle2 size={14} />
+                        <CircleCheckBig size={14} />
                         {integration.id === 'make' || integration.id === 'zapier' ? 'וובוק פעיל: Listening...' : 'מסונכרן בזמן אמת'}
                       </div>
                       {(integration.id === 'make' || integration.id === 'zapier') && (

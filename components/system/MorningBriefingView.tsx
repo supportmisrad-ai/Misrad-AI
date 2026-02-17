@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Lead, CalendarEvent, Task } from './types';
 import { 
     Sun, Calendar, Clock, MapPin, Phone, ArrowRight, 
-    CheckCircle, Coffee, TrendingUp, AlertCircle, ChevronRight, Play, CheckCircle2
+    CircleCheck, Coffee, TrendingUp, CircleAlert, ChevronRight, Play, CircleCheckBig
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 
@@ -121,7 +121,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
                                               <span className="font-mono font-black text-slate-900 text-xl tracking-tighter">{event.time}</span>
                                               <span className="text-[10px] font-black uppercase tracking-widest bg-slate-100 px-2.5 py-1 rounded-lg text-slate-500 border border-slate-200">{event.type}</span>
                                           </div>
-                                          {completedSteps.includes(event.id) && <CheckCircle2 size={20} className="text-emerald-500" />}
+                                          {completedSteps.includes(event.id) && <CircleCheckBig size={20} className="text-emerald-500" />}
                                       </div>
                                       <h4 className={`font-black text-slate-800 text-lg ${completedSteps.includes(event.id) && 'line-through'}`}>{event.leadName}</h4>
                                       <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
@@ -138,7 +138,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
               <section>
                   <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                          <CheckCircle size={22} className="text-indigo-600" />
+                          <CircleCheck size={22} className="text-indigo-600" />
                           משימות מפתח
                       </h3>
                   </div>
@@ -151,7 +151,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
                             className="p-5 rounded-[28px] border bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
                           >
                               <div className="w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all border-slate-200 group-hover:border-emerald-500 text-transparent group-hover:text-emerald-500">
-                                  <CheckCircle size={16} fill="currentColor" className="opacity-0 group-hover:opacity-100" />
+                                  <CircleCheck size={16} fill="currentColor" className="opacity-0 group-hover:opacity-100" />
                               </div>
                               <div className="flex-1 min-w-0">
                                   <p className="font-bold text-slate-800 text-sm truncate">{task.title}</p>
@@ -219,7 +219,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
               <div className="bg-slate-900 rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden ring-1 ring-white/10">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
                   <h3 className="font-bold text-white flex items-center gap-3 mb-4 relative z-10">
-                      <AlertCircle size={22} className="text-indigo-400" />
+                      <CircleAlert size={22} className="text-indigo-400" />
                       מסר מהמערכת
                   </h3>
                   <p className="text-sm text-slate-300 leading-relaxed font-medium relative z-10 bg-white/5 p-4 rounded-2xl border border-white/5">

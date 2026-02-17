@@ -126,7 +126,7 @@ export async function runSystemCleanup(): Promise<{
 
     await requireSuperAdmin();
 
-    // Clean up old activity logs (older than 90 days)
+    // Clean up old SquareActivity logs (older than 90 days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
