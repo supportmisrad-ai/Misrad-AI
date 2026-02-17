@@ -67,7 +67,11 @@ function isSalesPathname(pathname: string): boolean {
 
 function shouldLoadWidgets(pathname: string): boolean {
   const p = String(pathname || '/').toLowerCase();
-  // Don't load widgets on auth pages (but allow on landing page)
+  // Load widgets on all pages except auth/admin pages
+  if (p.startsWith('/w/')) return false; // workspace pages
+  if (p === '/admin' || p.startsWith('/admin/')) return false;
+  if (p === '/app/admin' || p.startsWith('/app/admin/')) return false;
+  if (p === '/me') return false;
   if (p === '/login' || p.startsWith('/login/')) return false;
   if (p === '/sign-in' || p.startsWith('/sign-in/')) return false;
   if (p === '/sign-up' || p.startsWith('/sign-up/')) return false;
