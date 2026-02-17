@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Clock, History, MapPin, CircleCheckBig, Users, ArrowRight, Star, CircleAlert, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
+import { Clock, History, MapPin, CheckCircle2, Users, ArrowRight, Star, CircleAlert, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Priority, Status, TimeEntry, User } from '../types';
 import { PRIORITY_LABELS } from '../constants';
@@ -251,7 +251,7 @@ export const TimeClockView: React.FC = () => {
                         <p className="text-[10px] text-gray-400 mt-1">מתוך {users.length} עובדים</p>
                     </div>
                     <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl">
-                        <CircleCheckBig size={32} />
+                        <CheckCircle2 size={32} />
                     </div>
                 </div>
             </div>
