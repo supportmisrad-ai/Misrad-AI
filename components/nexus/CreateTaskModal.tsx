@@ -233,17 +233,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
 
         if (buttonRef?.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            // Calculate position above the button, ensuring it's not hidden by description
-            // Use a reasonable estimate for popover height (max ~300px) and add padding
-            const estimatedPopoverHeight = 300;
-            const topPosition = rect.top - estimatedPopoverHeight - 12;
-            // Ensure popover doesn't go above viewport
-            const finalTop = Math.max(12, topPosition);
+            // Position the popover directly below the button
+            const topPosition = rect.bottom + 8; // 8px gap below button
             
             setPopoverPosition({
-                top: finalTop,
+                top: topPosition,
                 right: window.innerWidth - rect.right,
-                width: popoverWidth
+                width: rect.width // Match button width
             });
         }
     }, [activePopover]);
@@ -450,61 +446,210 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                 style={{ maxHeight: '85vh', maxWidth: 'min(768px, calc(100vw - 2rem))' }}
             >
                 {/* Header */}
-                <div className="px-4 sm:px-8 py-6 flex items-center justify-between bg-white z-10 shrink-0 border-b border-gray-100 overflow-x-hidden">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shrink-0">
-                            <span className="w-3 h-3 bg-black rounded-full animate-pulse shadow-sm shadow-gray-200"></span>
+                <div className="px-6 sm:px-8 py-5 flex items-center justify-between bg-white z-10 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl flex items-center justify-center shadow-sm">
+                            <span className="w-3 h-3 bg-white rounded-full animate-pulse"></span>
                         </div>
-                        <div className="min-w-0 flex-1">
-                            <h2 className="text-lg font-black text-gray-900 leading-none">משימה חדשה</h2>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <p className="text-xs text-gray-400 font-medium whitespace-nowrap">הקם משימה והתחל לעבוד</p>
-                                {missingRecommended > 0 && (
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full shrink-0">
-                                        <Sparkles size={10} className="text-amber-600" />
-                                        <span className="text-[10px] font-bold text-amber-700 whitespace-nowrap">
-                                            {missingRecommended} שדות מומלצים
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900">משימה חדשה</h2>
+                            <p className="text-xs text-gray-500 font-medium mt-0.5">צור משימה ותתחיל לעבוד</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors shrink-0">
-                        <X size={20} />
+                    <button onClick={onClose} className="w-11 h-11 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-all">
+                        <X size={22} />
                     </button>
                 </div>
 
                 {/* Body - Scrollable */}
-                <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-4 custom-scrollbar overflow-x-hidden">
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        <div>
+                <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 custom-scrollbar space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* כותרת המשימה */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                <span>כותרת</span>
+                                <span className="text-red-500">*</span>
+                            </label>
                             <input 
                                 ref={titleInputRef}
                                 autoFocus
                                 type="text"
                                 value={title}
                                 onChange={(e) => { setTitle(e.target.value); setIsShaking(false); }}
-                                placeholder="מה המשימה?"
-                                className={`w-full text-4xl font-black placeholder:text-gray-200 border-none outline-none bg-transparent leading-tight tracking-tight rounded-xl transition-all ${isShaking ? 'text-red-600 animate-shake placeholder:text-red-200' : 'text-gray-900'}`}
+                                placeholder="מה צריך לעשות?"
+                                className={`w-full px-4 py-3.5 text-lg font-bold placeholder:text-gray-300 border-2 outline-none bg-white rounded-2xl transition-all ${isShaking ? 'border-red-500 text-red-600 animate-shake' : 'border-gray-200 text-gray-900 focus:border-gray-900'}`}
                             />
                         </div>
 
-                        <div className="flex gap-4">
-                            <div className="mt-1.5 opacity-30 shrink-0">
-                                <AlignStartVertical size={20} />
-                            </div>
+                        {/* תיאור */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">תיאור</label>
                             <textarea 
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="הוסף פרטים, קישורים או הערות..."
-                                className="w-full min-h-[120px] text-lg text-gray-600 placeholder:text-gray-300 border-none outline-none resize-none bg-transparent leading-relaxed min-w-0"
+                                placeholder="הוסף פרטים, קישורים או הערות נוספות..."
+                                className="w-full px-4 py-3.5 text-base text-gray-700 placeholder:text-gray-300 border-2 border-gray-200 outline-none resize-none bg-white rounded-2xl leading-relaxed focus:border-gray-900 transition-all"
+                                rows={4}
                             />
                         </div>
 
-                        <div className="flex items-center gap-3 pl-8">
-                            <div className="flex items-center gap-2 text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg">
-                                <Hash size={16} />
+                        {/* קו מפריד */}
+                        <div className="border-t border-gray-100"></div>
+
+                        {/* משויך ל + לקוח */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700">משויך ל</label>
+                                <button 
+                                    ref={assigneeButtonRef}
+                                    type="button"
+                                    onClick={() => setActivePopover(activePopover === 'assignee' ? 'none' : 'assignee')}
+                                    className={`property-trigger w-full px-4 py-3 flex items-center gap-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                        assigneeId 
+                                        ? 'bg-gray-50 border-gray-900 text-gray-900'
+                                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {selectedAssignee ? (
+                                        <>
+                                            <img src={selectedAssignee.avatar} alt={selectedAssignee.name} className="w-6 h-6 rounded-full border-2 border-gray-100" />
+                                            <span className="flex-1 text-right">{selectedAssignee.name}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserIcon size={18} className="text-gray-400" />
+                                            <span className="flex-1 text-right">בחר עובד</span>
+                                        </>
+                                    )}
+                                    <ChevronDown size={16} className="opacity-40" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <span>לקוח</span>
+                                    {!hasClient && (
+                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                    )}
+                                </label>
+                                <button 
+                                    ref={clientButtonRef}
+                                    type="button"
+                                    onClick={() => setActivePopover(activePopover === 'client' ? 'none' : 'client')}
+                                    className={`property-trigger w-full px-4 py-3 flex items-center gap-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                        clientId 
+                                        ? 'bg-purple-50 border-purple-600 text-purple-700'
+                                        : !hasClient
+                                        ? 'bg-white border-amber-200 text-gray-500 hover:border-amber-300'
+                                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <Briefcase size={18} className={clientId ? 'text-purple-600' : 'text-gray-400'} />
+                                    <span className="flex-1 text-right">{selectedClient ? selectedClient.companyName : 'בחר לקוח'}</span>
+                                    <ChevronDown size={16} className="opacity-40" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* סטטוס + עדיפות */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700">סטטוס</label>
+                                <button 
+                                    ref={statusButtonRef}
+                                    type="button"
+                                    onClick={() => setActivePopover(activePopover === 'status' ? 'none' : 'status')}
+                                    className="property-trigger w-full px-4 py-3 flex items-center gap-3 rounded-2xl border-2 border-gray-200 text-sm font-bold transition-all bg-white hover:border-gray-300 text-gray-700"
+                                >
+                                    <SquareActivity size={18} className="text-gray-400" />
+                                    <span className="flex-1 text-right">{selectedStatus ? selectedStatus.name : status}</span>
+                                    <ChevronDown size={16} className="opacity-40" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700">עדיפות</label>
+                                <button 
+                                    ref={priorityButtonRef}
+                                    type="button"
+                                    onClick={() => setActivePopover(activePopover === 'priority' ? 'none' : 'priority')}
+                                    className={`property-trigger w-full px-4 py-3 flex items-center gap-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                        priority !== Priority.MEDIUM
+                                        ? 'bg-gray-50 border-gray-900 text-gray-900'
+                                        : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <Flag size={18} className={priority === Priority.URGENT ? 'text-red-500' : 'text-gray-400'} />
+                                    <span className="flex-1 text-right">{PRIORITY_LABELS[priority]}</span>
+                                    <ChevronDown size={16} className="opacity-40" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* תאריך יעד + שעה + הערכה */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <span>תאריך יעד</span>
+                                    {!hasDueDate && (
+                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                    )}
+                                </label>
+                                <div className="h-12">
+                                    <CustomDatePicker 
+                                        value={dueDate}
+                                        onChange={setDueDate}
+                                        placeholder="בחר תאריך"
+                                        className={`property-trigger w-full h-full border-2 rounded-2xl ${!hasDueDate ? 'border-amber-200 hover:border-amber-300' : 'border-gray-200'}`}
+                                        showHebrewDate={true}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700">שעה</label>
+                                <div className="h-12">
+                                    <CustomTimePicker 
+                                        value={dueTime}
+                                        onChange={setDueTime}
+                                        placeholder="בחר שעה"
+                                        className="property-trigger w-full h-full border-2 border-gray-200 rounded-2xl"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                                    <span>הערכה</span>
+                                    {!hasEstimate && (
+                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                    )}
+                                </label>
+                                <button
+                                    ref={estimateButtonRef}
+                                    type="button"
+                                    onClick={() => setActivePopover(activePopover === 'estimate' ? 'none' : 'estimate')}
+                                    className={`property-trigger w-full h-12 px-4 flex items-center gap-2 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                        manualHours || manualMinutes
+                                        ? 'bg-green-50 border-green-600 text-green-700'
+                                        : !hasEstimate 
+                                        ? 'bg-white border-amber-200 text-gray-500 hover:border-amber-300'
+                                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <Timer size={18} className={hasEstimate ? "text-green-600" : "text-gray-400"} /> 
+                                    <span className="flex-1 text-right">
+                                        {manualHours || manualMinutes ? `${manualHours || 0}:${(manualMinutes || '0').padStart(2, '0')}` : 'הערכת זמן'}
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* תגית */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">תגית</label>
+                            <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-2xl">
+                                <Hash size={18} className="text-gray-400" />
                                 <input 
                                     ref={tagInputRef}
                                     type="text"
@@ -518,265 +663,124 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                         setShowTagSuggestions(true); 
                                         updateTagRect(); 
                                     }}
-                                    placeholder="תגית..."
-                                    className="text-sm font-bold bg-transparent border-none outline-none placeholder:text-gray-300 text-gray-700 w-24"
+                                    placeholder="הוסף תגית (אופציונלי)"
+                                    className="flex-1 text-sm font-bold bg-transparent border-none outline-none placeholder:text-gray-400 text-gray-700"
                                 />
                             </div>
                         </div>
                     </form>
                 </div>
 
-                {/* Footer Toolbar */}
-                <div className="px-4 sm:px-8 py-5 bg-[#fafafa] border-t border-gray-100 flex flex-col gap-4 relative z-20 shrink-0 overflow-x-hidden">
-                    
-                    <div className="flex flex-wrap items-center gap-3 overflow-x-hidden">
-                        {/* Status Pill */}
-                        <div className="relative">
-                            <button 
-                                ref={statusButtonRef}
-                                type="button"
-                                onClick={() => setActivePopover(activePopover === 'status' ? 'none' : 'status')}
-                                className={`property-trigger h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                    activePopover === 'status'
-                                    ? 'bg-white border-black text-gray-900 shadow-md ring-2 ring-gray-100'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                                }`}
-                            >
-                                <SquareActivity size={16} className="text-gray-400" />
-                                {selectedStatus ? selectedStatus.name : status}
-                                <ChevronDown size={14} className="opacity-30 mr-1" />
-                            </button>
+                {/* Footer */}
+                <div className="px-6 sm:px-8 py-5 bg-white border-t-2 border-gray-100 flex items-center gap-3">
+                    {missingRecommended > 0 && (
+                        <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                            <Sparkles size={14} className="text-amber-600 shrink-0" />
+                            <span className="text-xs font-bold text-amber-700">
+                                חסרים {missingRecommended} שדות מומלצים
+                            </span>
                         </div>
-
-                        <div className="w-px h-6 bg-gray-200 mx-1"></div>
-
-                        {/* Assignee Pill */}
-                        <div className="relative">
-                            <button 
-                                ref={assigneeButtonRef}
-                                type="button"
-                                onClick={() => setActivePopover(activePopover === 'assignee' ? 'none' : 'assignee')}
-                                className={`property-trigger h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                    activePopover === 'assignee' || assigneeId 
-                                    ? 'bg-white border-black text-gray-900 shadow-md ring-2 ring-gray-100'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                                }`}
-                            >
-                                {selectedAssignee ? (
-                                    <>
-                                        <img src={selectedAssignee.avatar} alt={selectedAssignee.name} className="w-5 h-5 rounded-full border border-gray-100" />
-                                        {selectedAssignee.name}
-                                    </>
-                                ) : (
-                                    <>
-                                        <UserIcon size={16} className="text-gray-400" /> למי לשייך?
-                                    </>
-                                )}
-                            </button>
-                        </div>
-
-                        {/* Client Pill */}
-                        <div className="relative">
-                            {!hasClient && (
-                                <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-white animate-pulse z-10" title="מומלץ: שיוך ללקוח" />
-                            )}
-                            <button 
-                                ref={clientButtonRef}
-                                type="button"
-                                onClick={() => setActivePopover(activePopover === 'client' ? 'none' : 'client')}
-                                className={`property-trigger h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                    activePopover === 'client' || clientId 
-                                    ? 'bg-white border-purple-300 text-purple-700 shadow-md ring-2 ring-purple-100'
-                                    : !hasClient
-                                    ? 'bg-white border-amber-200 text-gray-600 hover:border-amber-300 hover:shadow-sm'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                                }`}
-                            >
-                                <Briefcase size={16} className={clientId ? 'text-purple-500' : 'text-gray-400'} />
-                                {selectedClient ? selectedClient.companyName : 'לקוח'}
-                            </button>
-                            
-                            <AnimatePresence>
-                                {activePopover === 'client' && typeof window !== 'undefined' && window.innerWidth < 768 && createPortal(
-                                    <>
-                                        <motion.div 
-                                            initial={{ opacity: 0 }} 
-                                            animate={{ opacity: 1 }} 
-                                            exit={{ opacity: 0 }} 
-                                            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[99998]"
-                                            onClick={() => setActivePopover('none')}
-                                        />
-                                        <motion.div 
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            style={{
-                                                position: 'fixed',
-                                                inset: 0,
-                                                margin: 'auto',
-                                                width: clientPopoverPosition?.width || Math.min(280, typeof window !== 'undefined' ? window.innerWidth - 32 : 280),
-                                                maxWidth: 'calc(100vw - 32px)',
-                                                maxHeight: '85vh',
-                                                zIndex: 99999
-                                            }}
-                                            className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-                                        >
-                                            <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">שיוך ללקוח</div>
-                                            <div className="p-2 space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
-                                                <button 
-                                                    onClick={() => { setClientId(''); setActivePopover('none'); }}
-                                                    className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 text-gray-500 text-xs font-medium"
-                                                >
-                                                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
-                                                    ללא לקוח (פנימי)
-                                                </button>
-                                                {clients.map((c: Client) => (
-                                                    <button 
-                                                        key={c.id}
-                                                        onClick={() => { setClientId(c.id); setActivePopover('none'); }}
-                                                        className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 transition-colors"
-                                                    >
-                                                        <img src={c.avatar} alt={c.companyName} className="w-8 h-8 rounded-lg border border-gray-100" />
-                                                        <span className={`text-xs font-bold truncate ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
-                                                        {clientId === c.id && <Check size={14} className="mr-auto text-purple-600" />}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    </>,
-                                    document.body
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Priority Pill */}
-                        <div className="relative">
-                            <button 
-                                ref={priorityButtonRef}
-                                type="button"
-                                onClick={() => setActivePopover(activePopover === 'priority' ? 'none' : 'priority')}
-                                className={`property-trigger h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold border transition-all ${
-                                    activePopover === 'priority' || priority !== Priority.MEDIUM
-                                    ? `bg-white shadow-md ${(PRIORITY_COLORS[priority] || '').replace('bg-', 'border-').replace('text-white', 'text-gray-900')}`
-                                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                                }`}
-                            >
-                                <Flag size={16} className={priority === Priority.URGENT ? 'text-red-500' : 'text-gray-400'} />
-                                {PRIORITY_LABELS[priority]}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-4 w-full border-t border-gray-100 pt-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {/* Date Picker Chip */}
-                            <div className="relative min-w-[140px] h-10">
-                                {!hasDueDate && (
-                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-white animate-pulse z-10" title="מומלץ: תאריך יעד" />
-                                )}
-                                <CustomDatePicker 
-                                    value={dueDate}
-                                    onChange={setDueDate}
-                                    placeholder="תאריך יעד"
-                                    className={`property-trigger ${!hasDueDate ? 'border-amber-200 hover:border-amber-300' : ''}`}
-                                    showHebrewDate={true}
-                                />
-                            </div>
-
-                            {/* Custom Time Picker */}
-                            <div className="min-w-[120px] h-10">
-                                <CustomTimePicker 
-                                    value={dueTime}
-                                    onChange={setDueTime}
-                                    placeholder="שעה"
-                                    className="property-trigger"
-                                />
-                            </div>
-
-                            {/* Estimate Time (Optional) */}
-                            <div className="relative">
-                                {!hasEstimate && (
-                                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full border-2 border-white animate-pulse z-10" title="מומלץ: הערכת זמן" />
-                                )}
-                                <button
-                                    ref={estimateButtonRef}
-                                    type="button"
-                                    onClick={() => setActivePopover(activePopover === 'estimate' ? 'none' : 'estimate')}
-                                    className={`property-trigger h-10 flex items-center gap-2 px-4 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
-                                        activePopover === 'estimate' || manualHours || manualMinutes
-                                        ? 'bg-white border-green-300 text-green-700 shadow-md ring-2 ring-green-100'
-                                        : !hasEstimate 
-                                        ? 'bg-white border-amber-200 text-gray-600 hover:border-amber-300 hover:shadow-sm'
-                                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                                    }`}
-                                >
-                                    <Timer size={16} className={hasEstimate ? "text-green-600" : "text-gray-400"} /> 
-                                    {manualHours || manualMinutes ? `${manualHours || 0} שע׳ ${manualMinutes || 0} דק׳` : 'הערכה'}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button 
-                            onClick={handleSubmit}
-                            disabled={isSubmitting || isCreatingTask}
-                            className={`w-full sm:w-auto px-8 h-12 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform active:scale-95 ${
-                                requiresApproval ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-black hover:bg-gray-800 text-white'
-                            }`}
-                        >
-                            {isSubmitting || isCreatingTask ? (
-                                <>
-                                  שומר...
-                                  <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
-                                </>
-                            ) : (
-                                <> {requiresApproval ? 'שלח לאישור' : 'צור משימה'} {requiresApproval ? <TriangleAlert size={18} /> : <ArrowUpRight size={18} />}</>
-                            )}
-                        </button>
-                    </div>
+                    )}
+                    <button 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting || isCreatingTask || !title.trim()}
+                        className={`px-8 h-12 rounded-2xl text-sm font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform active:scale-95 ${
+                            requiresApproval 
+                            ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200' 
+                            : 'bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white shadow-gray-300'
+                        } ${!missingRecommended ? 'flex-1' : ''}`}
+                    >
+                        {isSubmitting || isCreatingTask ? (
+                            <>
+                              <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
+                              שומר...
+                            </>
+                        ) : (
+                            <>
+                                {requiresApproval ? 'שלח לאישור' : 'צור משימה'}
+                                {requiresApproval ? <TriangleAlert size={18} /> : <Check size={18} />}
+                            </>
+                        )}
+                    </button>
                 </div>
             </motion.div>
         </div>
 
-        {/* Portal for Popovers */}
-        {typeof window !== 'undefined' && popoverPosition && activePopover !== 'none' && createPortal(
-                                <AnimatePresence>
+        {/* Mobile Client Popover Portal */}
+        {activePopover === 'client' && typeof window !== 'undefined' && window.innerWidth < 768 && createPortal(
+            <>
+                <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[99998]"
+                    onClick={() => setActivePopover('none')}
+                />
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        margin: 'auto',
+                        width: clientPopoverPosition?.width || Math.min(280, typeof window !== 'undefined' ? window.innerWidth - 32 : 280),
+                        maxWidth: 'calc(100vw - 32px)',
+                        maxHeight: '85vh',
+                        zIndex: 99999
+                    }}
+                    className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                >
+                    <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">שיוך ללקוח</div>
+                    <div className="p-2 space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+                        <button 
+                            onClick={() => { setClientId(''); setActivePopover('none'); }}
+                            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 text-gray-500 text-xs font-medium"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
+                            ללא לקוח (פנימי)
+                        </button>
+                        {clients.map((c: Client) => (
+                            <button 
+                                key={c.id}
+                                onClick={() => { setClientId(c.id); setActivePopover('none'); }}
+                                className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 transition-colors"
+                            >
+                                <img src={c.avatar} alt={c.companyName} className="w-8 h-8 rounded-lg border border-gray-100" />
+                                <span className={`text-xs font-bold truncate ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
+                                {clientId === c.id && <Check size={14} className="mr-auto text-purple-600" />}
+                            </button>
+                        ))}
+                    </div>
+                </motion.div>
+            </>,
+            document.body
+        )}
+
+        {/* Desktop Popovers Portal */}
+        {typeof window !== 'undefined' && popoverPosition && activePopover !== 'none' && activePopover !== 'client' && createPortal(
+            <AnimatePresence mode="wait">
                 {activePopover === 'status' && popoverPosition && (
-                    <>
-                        {isMobile && (
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                className="fixed inset-0 bg-transparent z-[99998]"
-                                onClick={() => setActivePopover('none')}
-                            />
-                        )}
                     <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            style={isMobile ? {
-                                position: 'fixed',
-                                top: popoverPosition.top + 8,
-                                right: popoverPosition.right,
-                                width: popoverPosition.width,
-                                zIndex: 99999
-                            } : {
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        style={{
                             position: 'fixed',
                             top: popoverPosition.top,
                             right: popoverPosition.right,
                             width: popoverPosition.width,
                             zIndex: 99999
                         }}
-                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden p-2"
+                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden p-2"
                     >
-                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">סטטוס התחלתי</div>
-                        <div className="space-y-1">
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">סטטוס</div>
+                        <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                             {workflowStages.map((s: WorkflowStage) => (
                                 <button 
                                     key={s.id}
                                     onClick={() => { setStatus(s.id); setActivePopover('none'); }}
-                                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-xs font-bold transition-colors ${status === s.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}`}
+                                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-xs font-bold transition-colors ${status === s.id ? 'bg-gray-50 text-gray-900' : 'hover:bg-gray-50 text-gray-700'}`}
                                 >
                                     <div className={`w-2.5 h-2.5 rounded-full ${getStatusSolidColor(s.color)}`}></div>
                                     {s.name}
@@ -785,42 +789,20 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             ))}
                         </div>
                     </motion.div>
-                    </>
                 )}
                 {activePopover === 'assignee' && popoverPosition && (
-                    <>
-                        {isMobile && (
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[99998]"
-                                onClick={() => setActivePopover('none')}
-                            />
-                        )}
                     <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            style={isMobile ? {
-                                position: 'fixed',
-                                top: '50%',
-                                left: '16px',
-                                right: '16px',
-                                bottom: 'auto',
-                                transform: 'translateY(-50%)',
-                                width: 'auto',
-                                maxWidth: '320px',
-                                maxHeight: '60vh',
-                                zIndex: 99999
-                            } : {
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        style={{
                             position: 'fixed',
                             top: popoverPosition.top,
                             right: popoverPosition.right,
                             width: popoverPosition.width,
                             zIndex: 99999
                         }}
-                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
                     >
                         <div className="p-3 bg-gray-50 border-b border-gray-100">
                             <input className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-black" placeholder="חפש עובד..." autoFocus />
@@ -840,22 +822,21 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${assigneeId === u.id ? 'bg-gray-50 text-gray-900' : 'hover:bg-gray-50'}`}
                                 >
                                     <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full border border-gray-100" />
-                                    <div className="text-right flex-1">
-                                        <div className="font-bold text-xs">{u.name}</div>
-                                        <div className="text-[10px] opacity-70">{u.role}</div>
+                                    <div className="text-right flex-1 min-w-0">
+                                        <div className="font-bold text-xs truncate">{u.name}</div>
+                                        <div className="text-[10px] opacity-70 truncate">{u.role}</div>
                                     </div>
-                                    {assigneeId === u.id && <Check size={14} className="text-black" />}
+                                    {assigneeId === u.id && <Check size={14} className="text-black shrink-0" />}
                                 </button>
                             ))}
                         </div>
                     </motion.div>
-                    </>
                 )}
-                {activePopover === 'client' && !isMobile && popoverPosition && (
+                {activePopover === 'client' && popoverPosition && (
                     <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
                         style={{
                             position: 'fixed',
                             top: popoverPosition.top,
@@ -863,60 +844,44 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             width: popoverPosition.width,
                             zIndex: 99999
                         }}
-                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
                     >
-                        <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">שיוך ללקוח</div>
+                        <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">לקוח</div>
                         <div className="p-2 space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
                             <button 
                                 onClick={() => { setClientId(''); setActivePopover('none'); }}
                                 className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 text-gray-500 text-xs font-medium"
                             >
                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
-                                ללא לקוח (פנימי)
+                                ללא לקוח
                             </button>
                             {clients.map((c: Client) => (
                                 <button 
                                     key={c.id}
                                     onClick={() => { setClientId(c.id); setActivePopover('none'); }}
-                                    className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 transition-colors"
+                                    className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${clientId === c.id ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                                 >
                                     <img src={c.avatar} alt={c.companyName} className="w-8 h-8 rounded-lg border border-gray-100" />
-                                    <span className={`text-xs font-bold truncate ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
-                                    {clientId === c.id && <Check size={14} className="mr-auto text-purple-600" />}
+                                    <span className={`text-xs font-bold truncate flex-1 text-right ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
+                                    {clientId === c.id && <Check size={14} className="text-purple-600 shrink-0" />}
                                 </button>
                             ))}
                         </div>
                     </motion.div>
                 )}
                 {activePopover === 'priority' && popoverPosition && (
-                    <>
-                        {isMobile && (
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                className="fixed inset-0 bg-transparent z-[99998]"
-                                onClick={() => setActivePopover('none')}
-                            />
-                        )}
                     <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            style={isMobile ? {
-                                position: 'fixed',
-                                top: popoverPosition.top + 8,
-                                right: popoverPosition.right,
-                                width: popoverPosition.width,
-                                zIndex: 99999
-                            } : {
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        style={{
                             position: 'fixed',
                             top: popoverPosition.top,
                             right: popoverPosition.right,
                             width: popoverPosition.width,
                             zIndex: 99999
                         }}
-                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden p-2"
+                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden p-2"
                     >
                         <div className="space-y-1">
                             {Object.values(Priority).map(p => (
@@ -924,7 +889,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     key={p}
                                     onClick={() => { setPriority(p); setActivePopover('none'); }}
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${
-                                        priority === p ? 'bg-gray-100' : 'hover:bg-gray-50'
+                                        priority === p ? 'bg-gray-50 text-gray-900' : 'hover:bg-gray-50 text-gray-700'
                                     }`}
                                 >
                                     <div className={`w-2.5 h-2.5 rounded-full ${getPrioritySolidColor(p)}`}></div>
@@ -933,43 +898,21 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             ))}
                         </div>
                     </motion.div>
-                    </>
                 )}
                 {activePopover === 'estimate' && popoverPosition && (
-                    <>
-                        {isMobile && (
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[99998]"
-                                onClick={() => setActivePopover('none')}
-                            />
-                        )}
-                                        <motion.div 
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            style={isMobile ? {
-                                position: 'fixed',
-                                top: '50%',
-                                left: '16px',
-                                right: '16px',
-                                bottom: 'auto',
-                                transform: 'translateY(-50%)',
-                                width: 'auto',
-                                maxWidth: '280px',
-                                maxHeight: '60vh',
-                                zIndex: 99999
-                            } : {
+                    <motion.div 
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        style={{
                             position: 'fixed',
                             top: popoverPosition.top,
                             right: popoverPosition.right,
                             width: popoverPosition.width,
                             zIndex: 99999
                         }}
-                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 p-6"
-                                        >
+                        className="property-popover bg-white rounded-2xl shadow-xl border border-gray-200 p-6"
+                    >
                                             <div className="flex items-center gap-2 text-gray-500 mb-4 border-b border-gray-100 pb-2">
                                                 <Timer size={18} />
                                                 <span className="font-bold text-sm">הערכת זמן לביצוע</span>
@@ -980,6 +923,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                     <input 
                                                         type="number" 
                                                         value={manualHours}
+                                                        onChange={(e) => setManualHours(e.target.value)}
                                                         onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e as unknown as React.FormEvent<HTMLElement>)}
                                                         className="w-full p-3 text-center bg-gray-50 border border-gray-200 rounded-xl outline-none text-2xl font-bold text-gray-900 focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
                                                         min="0"
@@ -1009,7 +953,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                 אישור
                                             </button>
                                         </motion.div>
-                                    </>
                                     )}
             </AnimatePresence>,
             document.body
