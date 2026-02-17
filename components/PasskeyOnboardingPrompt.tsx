@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Scan, X } from 'lucide-react';
+import { Fingerprint, X } from 'lucide-react';
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;

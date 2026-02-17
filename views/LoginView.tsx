@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Scan } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
