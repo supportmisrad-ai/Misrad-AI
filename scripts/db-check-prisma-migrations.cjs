@@ -162,45 +162,70 @@ async function runCheck(label) {
     result.hasOwnerIdAlignMigration = hasOwnerAlign.length > 0;
     result.lastMigrations = last;
 
-    const socialUsersIdConstraintRows = await prisma.$queryRaw(
-      Prisma.sql`SELECT c.conname, c.contype, pg_get_constraintdef(c.oid) AS def
-        FROM pg_constraint c
-        WHERE c.conrelid = 'public.organization_users'::regclass
-        AND c.contype IN ('p','u');`
-    );
-
-    result.socialUsersHasIdPkOrUnique = socialUsersIdConstraintRows.some((r) => {
-      const def = String(r.def || '').toLowerCase();
-      return def.includes('(') && def.includes('id') && (r.contype === 'p' || r.contype === 'u');
-    });
-
-    const dupeIdRows = await prisma.$queryRaw(
-      Prisma.sql`SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.organization_users GROUP BY id HAVING COUNT(*) > 1) t;`
-    );
-    result.socialUsersDuplicateIdCount = dupeIdRows?.[0]?.dupes ?? null;
-
-    const fkRows = await prisma.$queryRaw(
-      Prisma.sql`SELECT conname, confrelid::regclass::text AS referenced_table FROM pg_constraint WHERE conrelid = 'public.organizations'::regclass AND contype = 'f';`
-    );
-    result.hasOrganizationsOwnerIdFk = fkRows.some((r) => {
-      const referenced = String(r.referenced_table || '').toLowerCase();
-      return (
-        r.conname === 'organizations_owner_id_fkey' &&
-        (referenced === 'public.organization_users' || referenced === 'organization_users')
+    try {
+      const socialUsersIdConstraintRows = await prisma.$queryRaw(
+        Prisma.sql`SELECT c.conname, c.contype, pg_get_constraintdef(c.oid) AS def
+          FROM pg_constraint c
+          WHERE c.conrelid = 'public.organization_users'::regclass
+          AND c.contype IN ('p','u');`
       );
-    });
 
-    const invalidRows = await prisma.$queryRaw(
-      Prisma.sql`SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.organization_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;`
-    );
-    result.invalidOrganizationsOwnerIdCount = invalidRows?.[0]?.invalid_count ?? null;
+      result.socialUsersHasIdPkOrUnique = socialUsersIdConstraintRows.some((r) => {
+        const def = String(r.def || '').toLowerCase();
+        return def.includes('(') && def.includes('id') && (r.contype === 'p' || r.contype === 'u');
+      });
 
-    const failed = await prisma.$queryRaw(
-      Prisma.sql`SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at DESC LIMIT 20;`
-    );
-    result.failedMigrations = failed;
+      const dupeIdRows = await prisma.$queryRaw(
+        Prisma.sql`SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.organization_users GROUP BY id HAVING COUNT(*) > 1) t;`
+      );
+      result.socialUsersDuplicateIdCount = dupeIdRows?.[0]?.dupes ?? null;
+    } catch (e) {
+      if (e.code === 'P2010' || (e.meta && e.meta.code === '42P01')) {
+        console.error('[db-check-prisma-migrations] organization_users table not found - OK in Clean Slate mode');
+      } else {
+        throw e;
+      }
+    }
 
-    const invalidDetails = await prisma.$queryRaw(
+    try {
+      const fkRows = await prisma.$queryRaw(
+        Prisma.sql`SELECT conname, confrelid::regclass::text AS referenced_table FROM pg_constraint WHERE conrelid = 'public.organizations'::regclass AND contype = 'f';`
+      );
+      result.hasOrganizationsOwnerIdFk = fkRows.some((r) => {
+        const referenced = String(r.referenced_table || '').toLowerCase();
+        return (
+          r.conname === 'organizations_owner_id_fkey' &&
+          (referenced === 'public.organization_users' || referenced === 'organization_users')
+        );
+      });
+
+      const invalidRows = await prisma.$queryRaw(
+        Prisma.sql`SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.organization_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;`
+      );
+      result.invalidOrganizationsOwnerIdCount = invalidRows?.[0]?.invalid_count ?? null;
+    } catch (e) {
+      if (e.code === 'P2010' || (e.meta && e.meta.code === '42P01')) {
+        console.error('[db-check-prisma-migrations] organizations table not found - OK in Clean Slate mode');
+      } else {
+        throw e;
+      }
+    }
+
+    try {
+      const failed = await prisma.$queryRaw(
+        Prisma.sql`SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at DESC LIMIT 20;`
+      );
+      result.failedMigrations = failed;
+    } catch (e) {
+      if (e.code === 'P2010' || (e.meta && e.meta.code === '42P01')) {
+        console.error('[db-check-prisma-migrations] _prisma_migrations table not found - OK');
+      } else {
+        throw e;
+      }
+    }
+
+    try {
+      const invalidDetails = await prisma.$queryRaw(
       Prisma.sql`SELECT
         o.id AS organization_id,
         o.name AS organization_name,
@@ -237,8 +262,15 @@ async function runCheck(label) {
       WHERE o.owner_id IS NOT NULL AND su.id IS NULL
       ORDER BY o.id
       LIMIT 50;`
-    );
-    result.invalidOrganizationsSample = invalidDetails;
+      );
+      result.invalidOrganizationsSample = invalidDetails;
+    } catch (e) {
+      if (e.code === 'P2010' || (e.meta && e.meta.code === '42P01')) {
+        console.error('[db-check-prisma-migrations] Cannot query invalidOrganizationsSample - OK in Clean Slate mode');
+      } else {
+        throw e;
+      }
+    }
 
     console.log(JSON.stringify(result, null, 2));
   } finally {
