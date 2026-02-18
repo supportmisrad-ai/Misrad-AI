@@ -15,19 +15,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return [
-      {
-        source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
-        has: [
-          {
-            type: 'host',
-            value: 'www.misrad-ai.com',
-          },
-        ],
-        destination: 'https://misrad-ai.com/:path*',
-        permanent: true,
-      },
-    ];
+    return [];
   },
   async headers() {
     return [
