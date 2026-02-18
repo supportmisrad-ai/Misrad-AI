@@ -15,7 +15,19 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return [];
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.misrad-ai.com',
+          },
+        ],
+        destination: 'https://misrad-ai.com/:path*',
+        permanent: true,
+      },
+    ];
   },
   async headers() {
     return [
