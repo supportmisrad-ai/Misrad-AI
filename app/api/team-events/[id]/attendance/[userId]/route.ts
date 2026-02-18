@@ -84,7 +84,7 @@ async function selectUserByEmailAndWorkspace(params: { email: string; workspaceI
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const existing = await prisma.nexusEventAttendance.findFirst({
+    const existing = await prisma.nexusUser.findFirst({
         where: { organizationId: params.workspaceId, email },
     });
     if (!existing?.id) return null;
