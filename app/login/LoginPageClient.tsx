@@ -228,5 +228,6 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   }
 
   // Show login view
-  return <LoginView mode="sign-in" />;
+  const loginMode = isSignUpMode ? "sign-up" : "sign-in";
+  return <LoginView mode={loginMode} />;
 }
