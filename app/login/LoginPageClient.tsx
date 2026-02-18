@@ -25,13 +25,17 @@ const WORKSPACE_RETRY_DELAY = 500;
 async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean> }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
     try {
+      console.log(`[LoginPageClient] Fetching workspaces (attempt ${attempt + 1}/${MAX_WORKSPACE_RETRIES})...`);
       // Fetch workspaces and last location in parallel
       const [workspacesRes, lastLocationRes] = await Promise.all([
         fetch('/api/workspaces', { cache: 'no-store' }),
         fetch('/api/user/last-location', { cache: 'no-store' }).catch(() => null),
       ]);
 
+      console.log('[LoginPageClient] Workspaces response:', { status: workspacesRes.status, ok: workspacesRes.ok });
+
       if (!workspacesRes.ok) {
+        console.error('[LoginPageClient] Workspaces request failed:', workspacesRes.status);
         if (attempt < MAX_WORKSPACE_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
           continue;
@@ -43,7 +47,10 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
       const payload = extractData<WorkspacesApiPayload>(data);
       const workspaces = Array.isArray(payload?.workspaces) ? payload.workspaces : [];
 
+      console.log('[LoginPageClient] Workspaces data:', { count: workspaces.length, workspaces });
+
       if (workspaces.length === 0 && attempt < MAX_WORKSPACE_RETRIES - 1) {
+        console.warn('[LoginPageClient] No workspaces found, retrying...');
         await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
         continue;
       }
@@ -77,15 +84,20 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
           ? selectedWorkspace.entitlements
           : {};
 
+      console.log('[LoginPageClient] Resolved workspace:', { orgSlug, entitlements });
       return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements };
     } catch (err) {
+      console.error('[LoginPageClient] Error fetching workspaces:', err);
       if (attempt < MAX_WORKSPACE_RETRIES - 1) {
+        console.log('[LoginPageClient] Retrying after error...');
         await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
         continue;
       }
+      console.error('[LoginPageClient] All retries failed, returning null workspace');
       return { orgSlug: null, entitlements: {} };
     }
   }
+  console.warn('[LoginPageClient] Max retries reached, returning null workspace');
   return { orgSlug: null, entitlements: {} };
 }
 
@@ -98,6 +110,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
 
     // If user is signed in, redirect to their first available OS
     if (isSignedIn && userId) {
+      console.log('[LoginPageClient] User is signed in:', { userId, isSignedIn });
       const searchParams = new URLSearchParams(window.location.search);
       const redirectPath =
         searchParams.get('redirect') ||
