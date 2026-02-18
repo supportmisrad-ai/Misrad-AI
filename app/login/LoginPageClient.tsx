@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useSignUp, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { LoginView } from "../../views/LoginView";
-import { useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import CustomAuth from '@/components/social/CustomAuth';
 import { normalizeLegacyRedirectPath, toWorkspacePathForOrgSlug } from '@/lib/os/legacy-routing';
 import { extractData } from '@/lib/shared/api-types';
@@ -91,7 +91,100 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
 
 export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
   const router = useRouter();
+  const [continuationState, setContinuationState] = useState<'idle' | 'handling' | 'done' | 'failed'>('idle');
+  const continuationAttempted = useRef(false);
+
+  const getRedirectTarget = useCallback(() => {
+    if (typeof window === 'undefined') return '/me';
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get('redirect') || '/me';
+  }, []);
+
+  // ── OAuth continuation handler (#/continue) ──
+  // When Clerk redirects back with #/continue, the signUp/signIn objects
+  // already contain the ongoing auth attempt. We check their state and
+  // auto-complete the flow (including transfer between sign-up ↔ sign-in).
+  useEffect(() => {
+    if (!isLoaded || !signUpLoaded || !signInLoaded) return;
+    if (isSignedIn) return;
+    if (continuationAttempted.current) return;
+
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (!hash.includes('continue')) return;
+
+    continuationAttempted.current = true;
+    setContinuationState('handling');
+
+    const handleContinuation = async () => {
+      try {
+        // Case 1: Sign-up completed — just needs session activation
+        if (signUp?.status === 'complete' && signUp.createdSessionId) {
+          await setActive({ session: signUp.createdSessionId });
+          setContinuationState('done');
+          window.location.assign(getRedirectTarget());
+          return;
+        }
+
+        // Case 2: Sign-in completed
+        if (signIn?.status === 'complete' && signIn.createdSessionId) {
+          await setActive({ session: signIn.createdSessionId });
+          setContinuationState('done');
+          window.location.assign(getRedirectTarget());
+          return;
+        }
+
+        // Case 3: Transfer sign-up → sign-in
+        // User tried to sign UP with Google but already has a Clerk account.
+        // signUp.verifications.externalAccount.status === 'transferable'
+        const suVerifications = signUp && typeof signUp === 'object'
+          ? (signUp as unknown as Record<string, unknown>).verifications as Record<string, unknown> | undefined
+          : undefined;
+        const suExtAccount = suVerifications && typeof suVerifications === 'object'
+          ? suVerifications.externalAccount as Record<string, unknown> | undefined
+          : undefined;
+        const externalAccountStatus = suExtAccount?.status;
+
+        if (externalAccountStatus === 'transferable' && signIn) {
+          const res = await signIn.create({ transfer: true } as Parameters<typeof signIn.create>[0]);
+          if (res.status === 'complete' && res.createdSessionId) {
+            await setActive({ session: res.createdSessionId });
+            setContinuationState('done');
+            window.location.assign(getRedirectTarget());
+            return;
+          }
+        }
+
+        // Case 4: Transfer sign-in → sign-up
+        // User tried to sign IN with Google but doesn't have a Clerk account yet.
+        // signIn.firstFactorVerification.status === 'transferable'
+        const siFirstFactor = signIn && typeof signIn === 'object'
+          ? (signIn as unknown as Record<string, unknown>).firstFactorVerification as Record<string, unknown> | undefined
+          : undefined;
+        const firstFactorStatus = siFirstFactor?.status;
+
+        if (firstFactorStatus === 'transferable' && signUp) {
+          const res = await signUp.create({ transfer: true } as Parameters<typeof signUp.create>[0]);
+          if (res.status === 'complete' && res.createdSessionId) {
+            await setActive({ session: res.createdSessionId });
+            setContinuationState('done');
+            window.location.assign(getRedirectTarget());
+            return;
+          }
+        }
+
+        // Could not auto-complete — fall through to show the form
+        setContinuationState('failed');
+      } catch (err) {
+        console.error('[Login] OAuth continuation error:', err);
+        setContinuationState('failed');
+      }
+    };
+
+    handleContinuation();
+  }, [isLoaded, signUpLoaded, signInLoaded, isSignedIn, signUp, signIn, setActive, getRedirectTarget]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -159,6 +252,18 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
     }
   }, [isSignedIn, isLoaded, userId, router]);
 
+  // Show loading state while OAuth continuation is being handled (#/continue)
+  if (continuationState === 'handling' || continuationState === 'done') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
+        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
+          <div className="text-slate-900 font-black">משלים את ההתחברות…</div>
+          <div className="text-sm text-slate-600 mt-2">רגע אחד, מעבד את פרטי החשבון</div>
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state while Clerk is loading
   if (!isLoaded) {
     return (
@@ -187,12 +292,25 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   const mode = (searchParams.get('mode') || '').toLowerCase();
   const isSignUpMode = mode === 'sign-up' || mode === 'signup' || mode === 'register';
 
+  const ssoError = searchParams.get('error');
+  const ssoErrorMessage = ssoError === 'sso_timeout'
+    ? 'תהליך האימות לקח יותר מדי זמן. נא לנסות שוב.'
+    : ssoError === 'sso_failed'
+      ? 'ההרשמה נכשלה. ייתכן שהרשמות חדשות מוגבלות. נא ליצור קשר עם התמיכה.'
+      : null;
+
   if (isSignUpMode) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6" dir="rtl">
         <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-6 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
           <div className="text-2xl font-black text-slate-900">הצטרפות למערכת</div>
           <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון חדש והתחל לנהל את העסק שלך</div>
+
+          {ssoErrorMessage && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold">
+              {ssoErrorMessage}
+            </div>
+          )}
 
           <div className="mt-6">
             <CustomAuth mode="sign-up" onSuccess={() => {

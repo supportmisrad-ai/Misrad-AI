@@ -50,11 +50,11 @@ export default function RootLayout({
   const signInFallbackRedirectUrl =
     process.env.CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ||
     process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ||
-    '/app';
+    '/me';
   const signUpFallbackRedirectUrl =
     process.env.CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
     process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
-    '/app';
+    '/me';
 
   return (
     <html lang="he" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>

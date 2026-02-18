@@ -222,6 +222,14 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(url, 308);
   }
 
+  if (pathname === "/sign-up" || pathname.startsWith("/sign-up/")) {
+    const url = req?.nextUrl?.clone?.();
+    if (!url) return NextResponse.next();
+    url.pathname = "/login";
+    url.searchParams.set("mode", "sign-up");
+    return NextResponse.redirect(url, 308);
+  }
+
   if (pathname.startsWith("/api") || pathname.startsWith("/trpc")) {
     if (pathname === "/api/system/maintenance") {
       return NextResponse.next();
