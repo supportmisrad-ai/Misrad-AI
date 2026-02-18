@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, ScanFace } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
@@ -527,7 +527,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                                     disabled={!isLoaded || isLoading}
                                     className="w-full bg-white text-gray-700 font-medium py-3.5 rounded-xl border border-gray-300 hover:border-gray-400 hover:shadow-md transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                                   >
-                                    <ScanFace size={18} className="text-gray-700" />
+                                    <Fingerprint size={18} className="text-gray-700" />
                                     <span className="text-gray-700 font-medium">כניסה עם Face ID / Touch ID</span>
                                   </button>
                                 )}
