@@ -354,6 +354,15 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
     setIsLoading(true);
     setError('');
 
+    // Ensure clerk-captcha element exists before OAuth (prevents CAPTCHA errors)
+    const captchaEl = document.getElementById('clerk-captcha');
+    if (!captchaEl) {
+      console.warn('[LoginView] clerk-captcha element not found, creating it');
+      const div = document.createElement('div');
+      div.id = 'clerk-captcha';
+      document.body.appendChild(div);
+    }
+
     const origin = window.location.origin;
     const loginReturnUrl = `${origin}${getLoginReturnUrl()}`;
 
