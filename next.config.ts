@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/:path*',
+        source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
         has: [
           {
             type: 'host',
