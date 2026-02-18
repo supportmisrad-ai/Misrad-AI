@@ -211,6 +211,9 @@ export default function AdminOrganizationsClient(props: {
                   <div className="text-xs font-bold text-slate-600 truncate">כתובת: {o.slug || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
+                  {o.businessClientName ? (
+                    <div className="mt-1 text-xs font-bold text-indigo-600 truncate">לקוח עסקי: {o.businessClientName}</div>
+                  ) : null}
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">
                     מודולים: {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
                   </div>
@@ -230,6 +233,7 @@ export default function AdminOrganizationsClient(props: {
                 <th className="px-4 py-3 text-xs font-black text-slate-600">כתובת</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">לקוח עסקי</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">מודולים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600 text-center">פעולות</th>
               </tr>
@@ -253,6 +257,7 @@ export default function AdminOrganizationsClient(props: {
                     <td className="px-4 py-3 text-sm text-slate-700">{o.slug || '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
+                    <td className="px-4 py-3 text-sm text-indigo-700 font-bold">{o.businessClientName || '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
                     </td>

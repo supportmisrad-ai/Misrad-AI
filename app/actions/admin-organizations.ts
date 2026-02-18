@@ -39,6 +39,8 @@ export type OrganizationRecord = {
   subscription_start_date: string | Date | null;
   created_at: string | Date | null;
   updated_at: string | Date | null;
+  client_id?: string | null;
+  businessClientName?: string | null;
 };
 
 export type UserLite = {
@@ -56,6 +58,8 @@ export type OrganizationWithOwner = OrganizationRecord & {
   owner?: Pick<UserLite, 'id' | 'email' | 'full_name' | 'clerk_user_id' | 'role'> | null;
   membersCount?: number;
   primaryClientId?: string | null;
+  client_id?: string | null;
+  businessClientName?: string | null;
 };
 
 function normalizeEmail(input: string): string {
@@ -134,6 +138,7 @@ export async function getOrganizations(params?: {
             subscription_start_date: true,
             created_at: true,
             updated_at: true,
+            client_id: true,
           },
           orderBy: { created_at: 'desc' },
           take: limit,
@@ -141,7 +146,7 @@ export async function getOrganizations(params?: {
 
         const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
 
-        const { ownersById, membersCountByOrg, primaryClientByOrgId } = await withTenantIsolationContext(
+        const { ownersById, membersCountByOrg, primaryClientByOrgId, businessClientNameById } = await withTenantIsolationContext(
           {
             suppressReporting: true,
             reason: 'admin_organizations_hydrate_owners_and_counts',
@@ -211,11 +216,25 @@ export async function getOrganizations(params?: {
               }
             }
 
-            return { ownersById, membersCountByOrg, primaryClientByOrgId };
+            const businessClientNameById: Record<string, string> = {};
+            const clientIds = (orgs || []).map((o) => o.client_id).filter((id): id is string => Boolean(id));
+            if (clientIds.length) {
+              const bizClients = await prisma.businessClient.findMany(
+                withPrismaTenantIsolationOverride(
+                  { where: { id: { in: clientIds } }, select: { id: true, company_name: true } },
+                  { suppressReporting: true, reason: 'admin_organizations_biz_client_names', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
+                )
+              );
+              for (const bc of bizClients || []) {
+                businessClientNameById[String(bc.id)] = String(bc.company_name);
+              }
+            }
+
+            return { ownersById, membersCountByOrg, primaryClientByOrgId, businessClientNameById };
           }
         );
 
-    function toIsoOrNull(value: unknown): string | null {
+        function toIsoOrNull(value: unknown): string | null {
           if (!value) return null;
           if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
           const d = new Date(String(value));
@@ -242,6 +261,7 @@ export async function getOrganizations(params?: {
           subscription_start_date: Date | null;
           created_at: Date | null;
           updated_at: Date | null;
+          client_id?: string | null;
         }) => ({
           id: String(o.id),
           name: String(o.name),
@@ -265,6 +285,8 @@ export async function getOrganizations(params?: {
           owner: ownersById[o.owner_id] || null,
           membersCount: membersCountByOrg[o.id] || 0,
           primaryClientId: primaryClientByOrgId[String(o.id)] || null,
+          client_id: o.client_id ?? null,
+          businessClientName: o.client_id ? (businessClientNameById[o.client_id] ?? null) : null,
         }));
 
         return createSuccessResponse(enriched);
