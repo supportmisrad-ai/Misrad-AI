@@ -160,12 +160,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
         if (direct.status === 'complete') {
           await setActive({ session: direct.createdSessionId });
           const returnUrl = getLoginReturnUrl();
-          if (typeof window !== 'undefined') {
-            window.location.assign(returnUrl);
-            return;
-          }
-          router.replace(returnUrl);
-          router.refresh();
+          router.push(returnUrl);
           return;
         }
 
@@ -188,12 +183,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
         if (init.status === 'complete') {
           await setActive({ session: init.createdSessionId });
           const returnUrl = getLoginReturnUrl();
-          if (typeof window !== 'undefined') {
-            window.location.assign(returnUrl);
-            return;
-          }
-          router.replace(returnUrl);
-          router.refresh();
+          router.push(returnUrl);
           return;
         }
 
@@ -216,12 +206,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
           if (result.status === 'complete') {
             await setActive({ session: result.createdSessionId });
             const returnUrl = getLoginReturnUrl();
-            if (typeof window !== 'undefined') {
-              window.location.assign(returnUrl);
-              return;
-            }
-            router.replace(returnUrl);
-            router.refresh();
+            router.push(returnUrl);
             return;
           }
 
@@ -318,12 +303,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
         const returnUrl = getLoginReturnUrl();
-        if (typeof window !== 'undefined') {
-          window.location.assign(returnUrl);
-          return;
-        }
-        router.replace(returnUrl);
-        router.refresh();
+        router.push(returnUrl);
         return;
       }
 
@@ -388,12 +368,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
         if (result?.createdSessionId) {
           await setActive({ session: result.createdSessionId as string });
           const returnUrl = getLoginReturnUrl();
-          if (typeof window !== 'undefined') {
-            window.location.assign(returnUrl);
-            return;
-          }
-          router.replace(returnUrl);
-          router.refresh();
+          router.push(returnUrl);
         } else {
           setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');
         }

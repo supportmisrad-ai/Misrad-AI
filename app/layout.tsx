@@ -59,6 +59,8 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${heebo.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
+        {/* Required by Clerk Turnstile CAPTCHA - must be in body for OAuth flows */}
+        <div id="clerk-captcha" />
         <ToastProvider>
           <ReactQueryProvider>
           {clerkPublishableKey ? (

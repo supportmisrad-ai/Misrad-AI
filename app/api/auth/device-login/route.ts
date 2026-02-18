@@ -29,6 +29,7 @@ async function POSTHandler(request: NextRequest) {
   return await withTenantIsolationContext(
     { source: 'api_auth_device_login', reason: 'device_login', suppressReporting: true },
     async () => {
+  // First, read token to validate structure and expiration (but don't trust 'used' flag yet)
   let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findUnique>> | null = null;
   try {
     row = await prisma.devicePairingToken.findUnique({
@@ -53,10 +54,6 @@ async function POSTHandler(request: NextRequest) {
 
   if (isExpired) {
     return NextResponse.json({ error: 'Token expired' }, { status: 400 });
-  }
-
-  if (row.used === true || String(row.status || '').toUpperCase() === 'CONSUMED' || row.consumedAt) {
-    return NextResponse.json({ error: 'Token already used' }, { status: 400 });
   }
 
   const creatorClerkUserId = row.creatorClerkUserId ? String(row.creatorClerkUserId) : '';
@@ -92,9 +89,16 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'שגיאה ביצירת sign-in token' }, { status: 500 });
   }
 
+  // Atomic update: only succeed if token is NOT already used (prevents race condition)
+  let updatedToken;
   try {
-    await prisma.devicePairingToken.update({
-      where: { id: String(row.id) },
+    updatedToken = await prisma.devicePairingToken.updateMany({
+      where: {
+        id: String(row.id),
+        used: { not: true },
+        status: { not: 'CONSUMED' },
+        consumedAt: null,
+      },
       data: {
         used: true,
         status: 'CONSUMED',
@@ -106,6 +110,11 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'שגיאה בשמירת סטטוס טוקן' }, { status: 500 });
   }
 
+  // If count is 0, token was already consumed by another request
+  if (updatedToken.count === 0) {
+    return NextResponse.json({ error: 'Token already used' }, { status: 400 });
+  }
+
   const res = NextResponse.json({
     success: true,
     signInToken,
@@ -113,10 +122,11 @@ async function POSTHandler(request: NextRequest) {
   });
 
   res.cookies.set('is_kiosk', 'true', {
-    httpOnly: false,
+    httpOnly: true,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
+    secure: process.env.NODE_ENV === 'production',
   });
 
   return res;
