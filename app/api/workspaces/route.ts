@@ -54,11 +54,9 @@ async function GETHandler() {
     { source: 'api_workspaces_list', reason: 'list_user_workspaces', suppressReporting: true },
     async () => {
     let socialUser: { id: string; organization_id: string | null } | null = null;
-    let isSuperAdmin = false;
     try {
       const actor = await resolveWorkspaceActorApi(clerkUserId);
       socialUser = actor.socialUser as { id: string; organization_id: string | null } | null;
-      isSuperAdmin = actor.isSuperAdmin;
     } catch (err) {
       if (IS_PROD) console.error('GET /api/workspaces failed to resolve actor');
       else console.error('GET /api/workspaces failed to resolve actor', err);
@@ -75,40 +73,34 @@ async function GETHandler() {
       }
     }
 
-    if (!socialUser?.id && !isSuperAdmin) {
+    if (!socialUser?.id) {
       return [] as WorkspaceApiItem[];
     }
 
-    let ids: string[];
+    // Always filter by the user's actual memberships — even super admins.
+    // Admin access to all orgs is available through /app/admin/organizations only.
+    const [ownedOrgs, membershipRows] = await Promise.all([
+      prisma.organization.findMany({
+        where: { owner_id: socialUser.id },
+        select: { id: true },
+      }),
+      prisma.teamMember.findMany({
+        where: { user_id: socialUser.id },
+        select: { organization_id: true },
+      }),
+    ]);
 
-    if (isSuperAdmin) {
-      // Super admins see ALL organizations
-      const allOrgs = await prisma.organization.findMany({ select: { id: true } });
-      ids = allOrgs.map((o: { id: string }) => String(o.id)).filter(Boolean);
-    } else {
-      const [ownedOrgs, membershipRows] = await Promise.all([
-        prisma.organization.findMany({
-          where: { owner_id: socialUser!.id },
-          select: { id: true },
-        }),
-        prisma.teamMember.findMany({
-          where: { user_id: socialUser!.id },
-          select: { organization_id: true },
-        }),
-      ]);
-
-      const orgIds = new Set<string>();
-      if (socialUser!.organization_id) {
-        orgIds.add(String(socialUser!.organization_id));
-      }
-      for (const org of ownedOrgs) {
-        if (org?.id) orgIds.add(String(org.id));
-      }
-      for (const row of membershipRows) {
-        if (row.organization_id) orgIds.add(String(row.organization_id));
-      }
-      ids = Array.from(orgIds).filter(Boolean);
+    const orgIds = new Set<string>();
+    if (socialUser.organization_id) {
+      orgIds.add(String(socialUser.organization_id));
     }
+    for (const org of ownedOrgs) {
+      if (org?.id) orgIds.add(String(org.id));
+    }
+    for (const row of membershipRows) {
+      if (row.organization_id) orgIds.add(String(row.organization_id));
+    }
+    const ids = Array.from(orgIds).filter(Boolean);
 
     if (ids.length === 0) {
       return [] as WorkspaceApiItem[];

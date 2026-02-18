@@ -373,6 +373,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
   return (
     <div className="w-full max-w-md" dir="rtl">
+      {/* Required by Clerk Turnstile bot protection during authenticateWithRedirect */}
+      <div id="clerk-captcha" />
       <form
         onSubmit={
           isSignIn ? handleEmailSignIn : step === 'verify' ? handleVerifyEmailCode : handleEmailSignUp

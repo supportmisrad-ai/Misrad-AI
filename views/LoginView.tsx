@@ -499,6 +499,8 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                                     {error}
                                   </motion.p>
                                 )}
+                                {/* Required by Clerk Turnstile bot protection during authenticateWithRedirect */}
+                                <div id="clerk-captcha" />
                                 {/* Google Login - Moved to top */}
                                 <button
                                   type="button"

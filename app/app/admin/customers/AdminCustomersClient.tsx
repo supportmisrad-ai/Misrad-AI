@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { getOrganizationMembersLite } from '@/app/actions/admin-organizations';
 import type { OrganizationWithOwner, UserLite } from '@/app/actions/admin-organizations';
 import OrgImpersonateButton from '@/app/app/admin/OrgImpersonateButton';
-import AddClientModal from '@/components/admin/AddClientModal';
 
 export type CustomerOwnerGroup = {
   ownerId: string;
@@ -80,8 +79,6 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
   const [expandedOwners, setExpandedOwners] = useState<Record<string, boolean>>({});
   const [expandedOrganizations, setExpandedOrganizations] = useState<Record<string, boolean>>({});
   const [membersByOrg, setMembersByOrg] = useState<Record<string, MembersState>>({});
-  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
-
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -430,15 +427,6 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
         })}
       </div>
 
-      {/* Add Client Modal */}
-      <AddClientModal
-        isOpen={isAddClientModalOpen}
-        onClose={() => setIsAddClientModalOpen(false)}
-        onSuccess={() => {
-          setIsAddClientModalOpen(false);
-          router.refresh();
-        }}
-      />
     </div>
   );
 }

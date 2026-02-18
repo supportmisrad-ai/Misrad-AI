@@ -87,41 +87,44 @@ export async function getAdminUsersPage(params?: {
         const search = parsed.success ? parsed.data.search : undefined;
 
         const s = search && search.trim() ? search.trim() : '';
-        const where: Prisma.NexusUserWhereInput = s
+        const where: Prisma.OrganizationUserWhereInput = s
           ? {
               OR: [
-                { name: { contains: s, mode: 'insensitive' } },
+                { full_name: { contains: s, mode: 'insensitive' } },
                 { email: { contains: s, mode: 'insensitive' } },
               ],
             }
           : {};
 
-        const [total, rows] = await prisma.$transaction([
-          prisma.nexusUser.count(
-            withPrismaTenantIsolationOverride({ where }, { suppressReporting: true, reason: 'admin_users_page_count_all', source: 'admin-users-page', mode: 'global_admin', isSuperAdmin: true })
-          ),
-          prisma.nexusUser.findMany(
-            withPrismaTenantIsolationOverride({
-              where,
-              orderBy: { createdAt: 'desc' as const },
-              skip: offset,
-              take: limit,
-            }, { suppressReporting: true, reason: 'admin_users_page_list_all', source: 'admin-users-page', mode: 'global_admin', isSuperAdmin: true })
-          ),
-        ]);
+        const overrideOpts = { suppressReporting: true, reason: 'admin_users_page_list_all', source: 'admin-users-page', mode: 'global_admin' as const, isSuperAdmin: true };
 
-    const items = (rows || []).map((m) => {
-          const last = m.updatedAt ?? m.createdAt;
+        const total = await prisma.organizationUser.count(
+          withPrismaTenantIsolationOverride({ where }, overrideOpts)
+        );
+
+        const rows = await prisma.organizationUser.findMany(
+          withPrismaTenantIsolationOverride({
+            where,
+            orderBy: { created_at: 'desc' as const },
+            skip: offset,
+            take: limit,
+            select: { id: true, full_name: true, email: true, role: true, created_at: true, updated_at: true, organization_id: true, clerk_user_id: true },
+          }, overrideOpts)
+        );
+
+        const items = (rows || []).map((m) => {
+          const last = m.updated_at ?? m.created_at;
+          const isPending = String(m.clerk_user_id || '').startsWith('pending_');
           return {
             id: String(m.id),
-            name: String(m.name || ''),
+            name: String(m.full_name || m.email || ''),
             email: m.email ? String(m.email) : 'אין דוא"ל',
-            role: m.role ? String(m.role) : 'user',
+            role: isPending ? `${String(m.role || 'user')} (ממתין)` : String(m.role || 'user'),
             plan: 'free' as const,
-            registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
+            registeredAt: m.created_at ? new Date(m.created_at).toISOString() : null,
             lastActivity: last ? new Date(last).toISOString() : null,
             isBanned: false as const,
-            avatar: m.avatar ? String(m.avatar) : null,
+            avatar: null,
           };
         });
 
