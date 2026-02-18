@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   "/connect/offer/(.*)",
   "/marketplace/offer/(.*)",
   "/sso-callback",
+  "/api/integrations/google/callback",
   "/partner-portal(.*)",
   "/pricing(.*)",
   "/checkout(.*)",

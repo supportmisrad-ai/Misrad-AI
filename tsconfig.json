@@ -39,6 +39,7 @@
   "exclude": [
     ".next",
     "node_modules",
+    "remotion/**",
     "**/*.legacy.ts",
     "**/*.legacy.tsx",
     "components/App.tsx",

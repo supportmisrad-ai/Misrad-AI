@@ -15,7 +15,12 @@
       "Bash(fi)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx prisma generate)"
+      "Bash(npx prisma generate)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git revert:*)",
+      "Bash(git push:*)"
     ]
   }
 }
