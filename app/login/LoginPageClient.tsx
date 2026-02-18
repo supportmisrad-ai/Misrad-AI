@@ -217,7 +217,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
 
           <button
             type="button"
-            onClick={() => router.push('/login')}
+            onClick={() => window.location.href = '/login'}
             className="mt-6 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
           >
             כבר יש לך חשבון? התחבר כאן
