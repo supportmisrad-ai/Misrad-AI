@@ -74,9 +74,9 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
   }, []);
 
   const getLoginReturnUrl = () => {
-    if (typeof window === 'undefined') return '/login';
-    const search = window.location.search || '';
-    return `/login${search}`;
+    if (typeof window === 'undefined') return '/me';
+    const sp = new URLSearchParams(window.location.search || '');
+    return sp.get('redirect') || '/me';
   };
 
   const theme = (() => {

@@ -336,10 +336,13 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         }
 
         storePendingLegalConsent();
+        const signUpRedirect = (typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect')
+          : null) || '/me';
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/me',
+          redirectUrlComplete: signUpRedirect,
         });
       } else {
         if (!signInLoaded || !signIn) {
@@ -347,10 +350,13 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
           setIsLoading(false);
           return;
         }
+        const signInRedirect = (typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('redirect')
+          : null) || '/me';
         await signIn.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
-          redirectUrlComplete: '/me',
+          redirectUrlComplete: signInRedirect,
         });
       }
     } catch (err: unknown) {
