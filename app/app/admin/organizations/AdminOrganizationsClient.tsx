@@ -53,6 +53,8 @@ export default function AdminOrganizationsClient(props: {
 
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<PackageType | ''>('');
+  const [businessClientId, setBusinessClientId] = useState<string>('');
+  const [businessClients, setBusinessClients] = useState<{ id: string; company_name: string }[]>([]);
 
   const selectedModules = useMemo(() => {
     if (!selectedPackage) return [];
@@ -67,6 +69,24 @@ export default function AdminOrganizationsClient(props: {
     setOwnerEmail('');
     setSlugTouched(false);
     setSelectedPackage('');
+    setBusinessClientId('');
+  };
+
+  const openModal = async () => {
+    setIsOpen(true);
+    setSlugTouched(false);
+    if (!slugTouched && name.trim()) setSlug(generateOrgSlug(name));
+    if (businessClients.length === 0) {
+      try {
+        const { getBusinessClients } = await import('@/app/actions/business-clients');
+        const res = await getBusinessClients({});
+        if (res.ok && res.clients) {
+          setBusinessClients(res.clients.map((c: { id: string; company_name: string }) => ({ id: c.id, company_name: c.company_name })));
+        }
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const onNameChange = (nextName: string) => {
@@ -91,6 +111,7 @@ export default function AdminOrganizationsClient(props: {
           ownerEmail: ownerEmail.trim(),
           packageType: selectedPackage || null,
           modules: selectedModules.length > 0 ? selectedModules : null,
+          businessClientId: businessClientId || null,
         });
 
         if (!res?.success) {
@@ -138,13 +159,7 @@ export default function AdminOrganizationsClient(props: {
       <AdminToolbar
         actions={
           <Button
-            onClick={() => {
-              setIsOpen(true);
-              setSlugTouched(false);
-              if (!slugTouched && name.trim()) {
-                setSlug(generateOrgSlug(name));
-              }
-            }}
+            onClick={openModal}
           >
             <Plus size={18} />
             הקמת ארגון חדש
@@ -310,6 +325,22 @@ export default function AdminOrganizationsClient(props: {
                   placeholder="studio-yoga-shlomit"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-600 mb-2">קישור ללקוח עסקי (אופציונלי)</label>
+                <select
+                  value={businessClientId}
+                  onChange={(e) => setBusinessClientId(e.target.value)}
+                  disabled={isPending}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
+                  dir="rtl"
+                >
+                  <option value="">— ללא קישור ללקוח עסקי —</option>
+                  {businessClients.map((bc) => (
+                    <option key={bc.id} value={bc.id}>{bc.company_name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

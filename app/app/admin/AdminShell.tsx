@@ -145,7 +145,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const inferred = inferAdminAreaFromPathname(pathname);
     if (inferred === next) return;
 
-    router.push(next === 'customers' ? '/app/admin/customers' : '/app/admin/global/control');
+    router.push(next === 'customers' ? '/app/admin/organizations' : '/app/admin/global/control');
   };
 
   const [expandedGroups, setExpandedGroups] = useState<{ nexus: boolean; social: boolean; system: boolean; landing: boolean; finance: boolean; client: boolean; operations: boolean }>(() => ({
@@ -246,6 +246,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     () => [
       { href: '/app/admin/global/users', label: 'כל המשתמשים' },
       { href: '/app/admin/global/approvals', label: 'אישורי משתמשים' },
+      { href: '/app/admin/users', label: 'חשבונות מנויים (התחזות)' },
     ],
     []
   );

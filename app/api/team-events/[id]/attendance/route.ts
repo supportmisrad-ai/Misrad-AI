@@ -175,19 +175,19 @@ async function GETHandler(
 
         // Get all attendance records for this event
         const attendanceRows = await prisma.nexusEventAttendance.findMany({
-            where: { eventId: String(eventId), organizationId: String(workspace.id) },
-            orderBy: { createdAt: 'asc' },
+            where: { event_id: String(eventId), organizationId: String(workspace.id) },
+            orderBy: { created_at: 'asc' },
         });
 
         // Enrich with user names (batch)
-        const attendeeIds = (attendanceRows || []).map((att) => String(att?.userId ?? '')).filter(Boolean);
+        const attendeeIds = (attendanceRows || []).map((att) => String(att?.user_id ?? '')).filter(Boolean);
         const attendees = await selectUsersByIdsInWorkspace({ workspaceId: workspace.id, userIds: attendeeIds });
         const nameById = new Map(attendees.map((u) => [String(u.id), String(u.name || 'משתמש לא ידוע')]));
 
         const enrichedAttendance = (attendanceRows || []).map((att) => ({
             ...att,
-            userId: att.userId,
-            userName: nameById.get(String(att.userId)) || 'משתמש לא ידוע',
+            userId: att.user_id,
+            userName: nameById.get(String(att.user_id)) || 'משתמש לא ידוע',
         }));
 
         return apiSuccess({ attendance: enrichedAttendance }, { status: 200 });
@@ -297,8 +297,8 @@ async function POSTHandler(
         const existing = await delegate.findFirst({
             where: {
                 organizationId: String(workspace.id),
-                eventId: String(eventId),
-                userId: String(dbUser.id),
+                event_id: String(eventId),
+                user_id: String(dbUser.id),
             },
             select: { id: true },
         });
@@ -311,9 +311,9 @@ async function POSTHandler(
                 },
                 data: {
                     status: String(status),
-                    rsvpAt: now,
+                    rsvp_at: now,
                     notes: notes || null,
-                    updatedAt: now,
+                    updated_at: now,
                 },
             });
         } else {
@@ -321,10 +321,10 @@ async function POSTHandler(
                 await delegate.create({
                     data: {
                         organizationId: String(workspace.id),
-                        eventId: String(eventId),
-                        userId: String(dbUser.id),
+                        event_id: String(eventId),
+                        user_id: String(dbUser.id),
                         status: String(status),
-                        rsvpAt: now,
+                        rsvp_at: now,
                         notes: notes || null,
                         created_at: now,
                         updated_at: now,

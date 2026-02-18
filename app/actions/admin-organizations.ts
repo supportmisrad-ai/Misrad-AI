@@ -459,24 +459,6 @@ export async function createOrganization(input: {
           select: { email: true, full_name: true },
         });
 
-        const existingClient = await prisma.clientClient.findFirst({
-          where: { organizationId: createdOrg.id },
-          select: { id: true },
-        });
-
-        if (!existingClient?.id) {
-          await prisma.clientClient.create({
-            data: {
-              organizationId: createdOrg.id,
-              fullName: name,
-              email: owner?.email || undefined,
-              metadata: {},
-              createdAt: now,
-              updatedAt: now,
-            },
-          });
-        }
-
         return createdOrg;
       }
     );
@@ -516,6 +498,7 @@ export async function createOrganizationOrInviteOwner(input: {
   ownerEmail: string;
   packageType?: string | null;
   modules?: string[] | null;
+  businessClientId?: string | null;
 }): Promise<
   | { success: true; data: { kind: 'organization'; organizationId: string } }
   | { success: true; data: { kind: 'invitation'; token: string; signupUrl: string } }
@@ -581,6 +564,7 @@ export async function createOrganizationOrInviteOwner(input: {
               trial_days: DEFAULT_TRIAL_DAYS,
               created_at: now,
               updated_at: now,
+              ...(input.businessClientId ? { client_id: input.businessClientId } : {}),
             } satisfies OrganizationCreateData,
             select: { id: true },
           });
@@ -589,24 +573,6 @@ export async function createOrganizationOrInviteOwner(input: {
             where: { id: String(existingOwner.id) },
             data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
           });
-
-          const existingClient = await prisma.clientClient.findFirst({
-            where: { organizationId: createdOrg.id },
-            select: { id: true },
-          });
-
-          if (!existingClient?.id) {
-            await prisma.clientClient.create({
-              data: {
-                organizationId: createdOrg.id,
-                fullName: name,
-                email: ownerEmail,
-                metadata: {},
-                createdAt: now,
-                updatedAt: now,
-              },
-            });
-          }
 
           return createdOrg;
         }
