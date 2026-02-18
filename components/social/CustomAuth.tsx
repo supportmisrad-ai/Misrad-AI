@@ -398,8 +398,14 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             {/* Google Sign In - TOP */}
             <button
               type="button"
-              onClick={() => handleOAuthSignIn('oauth_google')}
-              disabled={isLoading || (isSignUp && !legalAccepted)}
+              onClick={() => {
+                if (isSignUp && !legalAccepted) {
+                  setError('יש לאשר את תנאי השימוש ומדיניות הפרטיות לפני ההרשמה');
+                  return;
+                }
+                handleOAuthSignIn('oauth_google');
+              }}
+              disabled={isLoading}
               className="w-full bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-[24px] font-black text-lg shadow-sm hover:shadow-md hover:border-blue-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24">

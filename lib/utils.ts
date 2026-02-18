@@ -8,6 +8,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+const PRODUCTION_DOMAIN = 'https://misrad-ai.com';
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
@@ -32,6 +33,10 @@ export function getBaseUrl(request?: NextRequest): string {
     if (process.env.NEXT_PUBLIC_APP_URL) {
         const url = process.env.NEXT_PUBLIC_APP_URL.trim();
         const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+        // Guard against wrong subdomain (app.misrad-ai.com doesn't exist)
+        if (cleanUrl.includes('app.misrad-ai.com')) {
+            return PRODUCTION_DOMAIN;
+        }
         if (!cleanUrl.includes('your-domain')) {
             return normalizeBaseUrl(cleanUrl);
         }
@@ -52,8 +57,11 @@ export function getBaseUrl(request?: NextRequest): string {
         }
     }
 
-    // 3. Fallback to localhost (development only)
-    if (!IS_PROD) console.warn('[getBaseUrl] Falling back to localhost.');
+    // 3. Production fallback
+    if (IS_PROD) return PRODUCTION_DOMAIN;
+
+    // 4. Fallback to localhost (development only)
+    console.warn('[getBaseUrl] Falling back to localhost.');
     return 'http://localhost:4000';
 }
 

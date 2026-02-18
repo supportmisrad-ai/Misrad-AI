@@ -921,9 +921,13 @@ export const ReportsView: React.FC = () => {
                                                     </td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-gray-600 text-xs md:text-sm">{formatTime(entry.startTime)}</td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
-                                                        {startMapUrl ? (
+                                                        {entry?.startCity ? (
+                                                            <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                                <MapPin size={14} className="text-blue-500" /> {entry.startCity}
+                                                            </span>
+                                                        ) : startMapUrl ? (
                                                             <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                                <MapPin size={14} /> הצג
+                                                                <MapPin size={14} /> הצג במפה
                                                             </a>
                                                         ) : (
                                                             <span className="text-gray-400">-</span>
@@ -931,9 +935,13 @@ export const ReportsView: React.FC = () => {
                                                     </td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-gray-600 text-xs md:text-sm">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
-                                                        {endMapUrl ? (
+                                                        {entry?.endCity ? (
+                                                            <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                                <MapPin size={14} className="text-blue-500" /> {entry.endCity}
+                                                            </span>
+                                                        ) : endMapUrl ? (
                                                             <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                                <MapPin size={14} /> הצג
+                                                                <MapPin size={14} /> הצג במפה
                                                             </a>
                                                         ) : (
                                                             <span className="text-gray-400">-</span>

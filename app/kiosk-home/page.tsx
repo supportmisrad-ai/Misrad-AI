@@ -46,8 +46,8 @@ function KioskHomePageInner() {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
+          timeout: 8000,
+          maximumAge: 30000,
         });
       });
 
@@ -55,13 +55,14 @@ function KioskHomePageInner() {
       const lng = position.coords.longitude;
       const accuracy = position.coords.accuracy;
 
-      // Reverse geocoding to get city name in Hebrew
+      // Reverse geocoding - race with a 3s timeout so it doesn't block
       let city: string | undefined;
       try {
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
-        const geocodeRes = await fetch(geocodeUrl, {
-          headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
-        });
+        const geocodeRes = await Promise.race([
+          fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
         if (geocodeRes.ok) {
           const geocodeData = await geocodeRes.json();
           city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;

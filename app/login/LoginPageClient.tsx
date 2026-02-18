@@ -195,7 +195,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון חדש והתחל לנהל את העסק שלך</div>
 
           <div className="mt-6">
-            <CustomAuth mode="sign-up" onSuccess={() => router.refresh()} />
+            <CustomAuth mode="sign-up" onSuccess={() => {
+              const sp = new URLSearchParams(window.location.search);
+              const redirect = sp.get('redirect') || '/me';
+              window.location.assign(redirect);
+            }} />
           </div>
 
           <button

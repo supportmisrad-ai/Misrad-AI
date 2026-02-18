@@ -199,16 +199,16 @@ export default function AttendanceMiniStatus() {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
+          timeout: 8000,
+          maximumAge: 30000,
         });
-      }).catch((error: any) => {
-        // Map GPS errors to Hebrew
-        if (error?.code === 1) { // PERMISSION_DENIED
+      }).catch((error: unknown) => {
+        const err = error as { code?: number };
+        if (err?.code === 1) {
           throw new Error('נדרשת הרשאת מיקום. אנא אפשר גישה למיקום בהגדרות הדפדפן.');
-        } else if (error?.code === 2) { // POSITION_UNAVAILABLE
+        } else if (err?.code === 2) {
           throw new Error('לא ניתן לקבל את המיקום. ודא שה-GPS מופעל.');
-        } else if (error?.code === 3) { // TIMEOUT
+        } else if (err?.code === 3) {
           throw new Error('פג הזמן בקבלת המיקום. אנא נסה שוב.');
         } else {
           throw new Error('שגיאה בקבלת המיקום. ודא שהמיקום מופעל.');
@@ -219,13 +219,14 @@ export default function AttendanceMiniStatus() {
       const lng = position.coords.longitude;
       const accuracy = position.coords.accuracy;
 
-      // Reverse geocoding to get city name in Hebrew
+      // Reverse geocoding - race with 3s timeout so it doesn't block
       let city: string | undefined;
       try {
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
-        const geocodeRes = await fetch(geocodeUrl, {
-          headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
-        });
+        const geocodeRes = await Promise.race([
+          fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
         if (geocodeRes.ok) {
           const geocodeData = await geocodeRes.json();
           city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
