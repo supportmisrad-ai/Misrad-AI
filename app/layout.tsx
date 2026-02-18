@@ -42,10 +42,6 @@ export default function RootLayout({
   // This prevents build-time errors and runtime crashes when env vars are not set
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-  const isProd = process.env.NODE_ENV === 'production';
-  // Never use custom Clerk domain in production - use Clerk's default domain instead
-  // Custom domains cause 403 "not allowed to access this application" errors
-  const clerkDomain = isProd ? '' : (process.env.NEXT_PUBLIC_CLERK_DOMAIN || '').trim();
 
   const signInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/login';
   const signInUrl = signInUrlRaw.startsWith('/sign-in') ? '/login' : signInUrlRaw;
@@ -68,7 +64,6 @@ export default function RootLayout({
           {clerkPublishableKey ? (
             <ClerkProviderWithRouter
               publishableKey={clerkPublishableKey}
-              {...(isProd && clerkDomain ? { domain: clerkDomain, isSatellite: false } : {})}
               signInUrl={signInUrl}
               signUpUrl={signUpUrl}
               signInFallbackRedirectUrl={signInFallbackRedirectUrl}
