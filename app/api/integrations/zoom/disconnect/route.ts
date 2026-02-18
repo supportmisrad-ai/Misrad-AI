@@ -47,7 +47,7 @@ export async function POST() {
       { source: 'api_integrations_zoom_disconnect', organizationId: profile.organizationId, reason: 'zoom_disconnect' },
       async () => {
         // Deactivate integration
-        await prisma.scale_integrations.updateMany({
+        await prisma.misradIntegration.updateMany({
           where: {
             user_id: userId,
             tenant_id: profile.organizationId,

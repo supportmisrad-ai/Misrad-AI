@@ -374,7 +374,7 @@ async function ensureUserByEmailInWorkspace(params: { organizationId: string; em
 
 function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate | null {
     const prismaObj = asObject(prisma as unknown);
-    const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
+    const delegate = prismaObj ? prismaObj['nexusLeaveRequest'] : null;
     if (!isNexusLeaveRequestsDelegate(delegate)) {
         return null;
     }

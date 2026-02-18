@@ -128,7 +128,7 @@ export async function refreshZoomToken(refreshToken: string): Promise<{
  * Get valid Zoom access token (with auto-refresh)
  */
 async function getZoomAccessToken(userId: string, tenantId: string): Promise<string | null> {
-  const integration = await prisma.scale_integrations.findFirst({
+  const integration = await prisma.misradIntegration.findFirst({
     where: {
       user_id: userId,
       tenant_id: tenantId,
@@ -150,7 +150,7 @@ async function getZoomAccessToken(userId: string, tenantId: string): Promise<str
       const refreshed = await refreshZoomToken(integration.refresh_token);
       accessToken = refreshed.accessToken;
 
-      await prisma.scale_integrations.update({
+      await prisma.misradIntegration.update({
         where: { id: integration.id },
         data: {
           access_token: refreshed.accessToken,
@@ -255,7 +255,7 @@ export async function deleteZoomMeeting(
  * Check if user has Zoom connected
  */
 export async function isZoomConnected(userId: string, tenantId: string): Promise<boolean> {
-  const integration = await prisma.scale_integrations.findFirst({
+  const integration = await prisma.misradIntegration.findFirst({
     where: {
       user_id: userId,
       tenant_id: tenantId,
@@ -263,6 +263,5 @@ export async function isZoomConnected(userId: string, tenantId: string): Promise
       is_active: true,
     },
   });
-
   return !!integration;
 }

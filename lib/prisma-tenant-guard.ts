@@ -801,7 +801,7 @@ function isEmployeeInvitationLookupByTokenUnscopedAllowed(params: {
   args: Record<string, unknown>;
 }): boolean {
   const modelLower = String(params.model || '').toLowerCase();
-  if (modelLower !== 'nexus_employee_invitation_links') return false;
+  if (modelLower !== 'nexusemployeeinvitationlink') return false;
 
   const allowedActions = new Set(['findUnique', 'findFirst']);
   if (!allowedActions.has(params.action)) return false;

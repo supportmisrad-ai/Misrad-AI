@@ -69,7 +69,7 @@ async function selectRolePermissionsByName(roleName: string): Promise<Permission
     if (!name) return null;
 
     try {
-        const row = await prisma.scale_roles.findUnique({
+        const row = await prisma.misradRole.findUnique({
             where: { name },
             select: { permissions: true },
         });
@@ -80,13 +80,13 @@ async function selectRolePermissionsByName(roleName: string): Promise<Permission
         return perms;
     } catch (e: unknown) {
         if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
-            throw new Error(`[SchemaMismatch] scale_roles lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+            throw new Error(`[SchemaMismatch] misrad_roles lookup failed (${getErrorMessage(e) || 'missing relation'})`);
         }
 
         if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
             reportSchemaFallback({
                 source: 'lib/auth.selectRolePermissionsByName',
-                reason: 'scale_roles lookup schema mismatch (fallback to hardcoded role permissions)',
+                reason: 'misrad_roles lookup schema mismatch (fallback to hardcoded role permissions)',
                 error: e,
                 extras: { roleName: String(roleName || '') },
             });

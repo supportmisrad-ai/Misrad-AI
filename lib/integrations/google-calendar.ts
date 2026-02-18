@@ -30,7 +30,7 @@ export async function getCalendarClient(
     }
 
     // Find integration
-    const integration = await prisma.scale_integrations.findFirst({
+    const integration = await prisma.misradIntegration.findFirst({
         where: {
             user_id: String(userId),
             tenant_id: String(tenantId),
@@ -54,7 +54,7 @@ export async function getCalendarClient(
             accessToken = refreshed.accessToken;
 
             // Update database with new token
-            await prisma.scale_integrations.update({
+            await prisma.misradIntegration.update({
                 where: { id: String(integration.id) },
                 data: {
                     access_token: refreshed.accessToken,
@@ -176,7 +176,7 @@ export async function syncTaskToCalendar(
 
         // Log sync
         if (tenantId) {
-            const integrationRow = await prisma.scale_integrations.findFirst({
+            const integrationRow = await prisma.misradIntegration.findFirst({
                 where: {
                     user_id: String(userId),
                     tenant_id: String(tenantId),
@@ -186,7 +186,7 @@ export async function syncTaskToCalendar(
                 select: { id: true },
             });
 
-            await prisma.scale_calendar_sync_log.create({
+            await prisma.misradCalendarSyncLog.create({
                 data: {
                     integration_id: integrationRow?.id ?? null,
                     event_id: eventId,
@@ -249,7 +249,7 @@ export async function syncCalendarToTasks(
 
         // Update last sync time
         if (tenantId) {
-            await prisma.scale_integrations.updateMany({
+            await prisma.misradIntegration.updateMany({
                 where: {
                     user_id: String(userId),
                     tenant_id: String(tenantId),

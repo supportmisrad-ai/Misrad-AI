@@ -66,7 +66,7 @@ export default async function EmployeeInviteFinalizePage({
     return <div>User email not found</div>;
   }
 
-  const inviteRow = await prisma.nexus_employee_invitation_links.findUnique({
+  const inviteRow = await prisma.nexusEmployeeInvitationLink.findUnique({
     where: { token: normalizedToken },
   });
 
@@ -254,7 +254,7 @@ export default async function EmployeeInviteFinalizePage({
 
   // Mark invite as used (idempotent)
   if (!getBoolean(inviteObj.is_used)) {
-    await prisma.nexus_employee_invitation_links.update({
+    await prisma.nexusEmployeeInvitationLink.update({
       where: { id: String(inviteRow.id) },
       data: {
         is_used: true,

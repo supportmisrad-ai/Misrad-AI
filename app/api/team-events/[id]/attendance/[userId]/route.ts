@@ -48,18 +48,18 @@ function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAtte
 
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const obj = asObject(prisma as unknown);
-    const delegate = obj?.['nexus_team_events'];
+    const delegate = obj?.['nexusTeamEvent'];
     if (!isNexusTeamEventsDelegate(delegate)) {
-        throw new Error('Prisma delegate nexus_team_events is unavailable');
+        throw new Error('Prisma delegate nexusTeamEvent is unavailable');
     }
     return delegate;
 }
 
 function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
     const obj = asObject(prisma as unknown);
-    const delegate = obj?.['nexus_event_attendance'];
+    const delegate = obj?.['nexusEventAttendance'];
     if (!isNexusEventAttendanceDelegate(delegate)) {
-        throw new Error('Prisma delegate nexus_event_attendance is unavailable');
+        throw new Error('Prisma delegate nexusEventAttendance is unavailable');
     }
     return delegate;
 }
@@ -84,11 +84,11 @@ async function selectUserByEmailAndWorkspace(params: { email: string; workspaceI
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const row = await prisma.nexusUser.findFirst({
+    const existing = await prisma.nexusEventAttendance.findFirst({
         where: { organizationId: params.workspaceId, email },
     });
-    if (!row?.id) return null;
-    return mapNexusUserRow(row);
+    if (!existing?.id) return null;
+    return mapNexusUserRow(existing);
 }
 
 async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
@@ -96,6 +96,7 @@ async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: 
         where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
     });
 }
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: { id: string; userId: string } }

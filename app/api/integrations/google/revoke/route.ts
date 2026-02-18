@@ -65,9 +65,9 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        let integrations: Awaited<ReturnType<typeof prisma.scale_integrations.findMany>> = [];
+        let integrations: Awaited<ReturnType<typeof prisma.misradIntegration.findMany>> = [];
         try {
-            integrations = await prisma.scale_integrations.findMany({
+            integrations = await prisma.misradIntegration.findMany({
                 where: {
                     user_id: String(dbUserId),
                     tenant_id: String(workspace.id),
@@ -109,7 +109,7 @@ async function POSTHandler(request: NextRequest) {
             }
 
             // Delete from database
-            return prisma.scale_integrations.deleteMany({
+            return prisma.misradIntegration.deleteMany({
                 where: {
                     id: String(integration.id),
                     tenant_id: String(workspace.id),

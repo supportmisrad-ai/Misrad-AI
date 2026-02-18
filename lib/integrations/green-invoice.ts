@@ -27,7 +27,8 @@ function captureIntegrationException(error: unknown, context: Record<string, unk
         }
         Sentry.captureException(error);
     });
-}
+}
+
 
 const GreenInvoiceApiErrorSchema = z
     .object({
@@ -101,7 +102,7 @@ export async function getGreenInvoiceApiKey(userId: string, organizationId: stri
     }
 
     try {
-        const integration = await prisma.scale_integrations.findFirst({
+        const integration = await prisma.misradIntegration.findFirst({
             where: {
                 user_id: String(userId),
                 tenant_id: String(orgId),
@@ -252,7 +253,7 @@ export async function createInvoice(
         // Update last sync time
         const orgId = String(organizationId || '').trim();
         if (orgId) {
-            const existing = await prisma.scale_integrations.findFirst({
+            const existing = await prisma.misradIntegration.findFirst({
                 where: {
                     user_id: String(userId),
                     tenant_id: String(orgId),
@@ -264,7 +265,7 @@ export async function createInvoice(
 
             const prevMeta = asObject(existing?.metadata) ?? {};
             if (existing?.id) {
-                await prisma.scale_integrations.update({
+                await prisma.misradIntegration.update({
                     where: { id: String(existing.id) },
                     data: {
                         last_synced_at: new Date(),

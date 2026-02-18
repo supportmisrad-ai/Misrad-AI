@@ -29,7 +29,7 @@ export async function getDriveClient(
     }
 
     // Find integration
-    const integration = await prisma.scale_integrations.findFirst({
+    const integration = await prisma.misradIntegration.findFirst({
         where: {
             user_id: String(userId),
             tenant_id: String(tenantId),
@@ -53,7 +53,7 @@ export async function getDriveClient(
             accessToken = refreshed.accessToken;
 
             // Update database with new token
-            await prisma.scale_integrations.update({
+            await prisma.misradIntegration.update({
                 where: { id: String(integration.id) },
                 data: {
                     access_token: refreshed.accessToken,
@@ -131,7 +131,7 @@ export async function listDriveFiles(
 
         // Update last sync time
         if (tenantId) {
-            await prisma.scale_integrations.updateMany({
+            await prisma.misradIntegration.updateMany({
                 where: {
                     user_id: String(userId),
                     tenant_id: String(tenantId),

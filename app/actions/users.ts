@@ -328,7 +328,7 @@ async function upsertProfileForClerkUser(params: {
       throw new Error('Employee invite token/email missing');
     }
 
-    const inviteRow = await prisma.nexus_employee_invitation_links.findUnique({
+    const inviteRow = await prisma.nexusEmployeeInvitationLink.findUnique({
       where: { token },
       select: { organizationId: true, employee_email: true, is_active: true, is_used: true, expires_at: true },
     });

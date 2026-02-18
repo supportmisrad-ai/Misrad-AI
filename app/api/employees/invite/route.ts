@@ -299,9 +299,9 @@ async function POSTHandler(request: NextRequest) {
             metadata: {}
         };
 
-        let invitation: Prisma.nexus_employee_invitation_linksGetPayload<Prisma.nexus_employee_invitation_linksDefaultArgs>;
+        let invitation: Prisma.NexusEmployeeInvitationLinkGetPayload<Prisma.NexusEmployeeInvitationLinkDefaultArgs>;
         try {
-            invitation = await prisma.nexus_employee_invitation_links.create({
+            invitation = await prisma.nexusEmployeeInvitationLink.create({
                 data: {
                     organizationId: String(organizationId),
                     token: String(token),

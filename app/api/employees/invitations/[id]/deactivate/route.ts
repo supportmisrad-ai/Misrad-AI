@@ -34,13 +34,13 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
 }
 
 async function loadInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return prisma.nexus_employee_invitation_links.findFirst({
+    return prisma.nexusEmployeeInvitationLink.findFirst({
         where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
     });
 }
 
 async function deactivateInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return prisma.nexus_employee_invitation_links.updateMany({
+    return prisma.nexusEmployeeInvitationLink.updateMany({
         where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
         data: { is_active: false, updated_at: new Date() },
     });

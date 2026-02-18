@@ -23,7 +23,7 @@ export type NexusBillingItemsPayload = {
   updatedAt?: string;
 };
 
-type NexusBillingItemRow = Prisma.nexus_billing_itemsGetPayload<{
+type NexusBillingItemRow = Prisma.NexusBillingItemGetPayload<{
   select: { item_key: true; title: true; cadence: true; amount: true; currency: true; updated_at: true };
 }>;
 
@@ -128,7 +128,7 @@ export function buildNexusBillingItemsForTemplate(templateKey: 'retainer_fixed' 
 export async function getNexusBillingItems(workspaceId: string): Promise<NexusBillingItemsPayload | null> {
   try {
     const take = 200;
-    const rows: NexusBillingItemRow[] = await prisma.nexus_billing_items.findMany({
+    const rows: NexusBillingItemRow[] = await prisma.nexusBillingItem.findMany({
       where: { organization_id: workspaceId },
       orderBy: { created_at: 'asc' },
       select: { item_key: true, title: true, cadence: true, amount: true, currency: true, updated_at: true },
@@ -238,7 +238,7 @@ export async function setNexusBillingItems(params: {
   try {
     await prisma.$transaction(
       rows.map((r) =>
-        prisma.nexus_billing_items.upsert({
+        prisma.nexusBillingItem.upsert({
           where: {
             organization_id_item_key: {
               organization_id: r.organization_id,

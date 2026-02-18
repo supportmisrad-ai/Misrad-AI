@@ -75,15 +75,15 @@ async function GETHandler(request: NextRequest) {
     );
 
     await runCheck('nexus_team_events.organization_id', () =>
-      prisma.nexus_team_events.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
+      prisma.nexusTeamEvent.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
     );
 
     await runCheck('nexus_leave_requests.organization_id', () =>
-      prisma.nexus_leave_requests.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
+      prisma.nexusLeaveRequest.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
     );
 
     await runCheck('nexus_employee_invitation_links.organization_id', () =>
-      prisma.nexus_employee_invitation_links.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
+      prisma.nexusEmployeeInvitationLink.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
     );
 
     await runCheck('misrad_notifications.is_read', () =>

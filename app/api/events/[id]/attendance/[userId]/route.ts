@@ -53,7 +53,7 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
 }
 
 async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
-    return prisma.nexus_team_events.findFirst({
+    return prisma.nexusTeamEvent.findFirst({
         where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
     });
 }
@@ -141,20 +141,20 @@ async function PATCHHandler(
             updateData.notes = notesRaw == null ? null : typeof notesRaw === 'string' ? notesRaw : String(notesRaw);
         }
 
-        const existing = await prisma.nexus_event_attendance.findFirst({
+        const existing = await prisma.nexusEventAttendance.findFirst({
             where: { event_id: String(eventId), user_id: String(userId), organizationId: String(workspace.id) },
             select: { id: true },
         });
 
         const attendance = existing?.id
-            ? await prisma.nexus_event_attendance.update({
+            ? await prisma.nexusEventAttendance.update({
                   where: { id: String(existing.id) },
                   data: {
                       ...updateData,
                       updated_at: now,
                   },
               })
-            : await prisma.nexus_event_attendance.create({
+            : await prisma.nexusEventAttendance.create({
                   data: {
                       organizationId: String(workspace.id),
                       event_id: String(eventId),

@@ -48,7 +48,7 @@ async function GETHandler(
             { source: 'api_employees_invite_token', reason: 'read_employee_invitation', suppressReporting: true },
             async () => {
 
-        const invitation = await prisma.nexus_employee_invitation_links.findUnique({
+        const invitation = await prisma.nexusEmployeeInvitationLink.findUnique({
             where: { token: String(token) },
             select: {
                 id: true,

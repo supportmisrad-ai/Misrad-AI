@@ -82,7 +82,7 @@ async function GETHandler(request: NextRequest, { params }: { params: { id: stri
       return apiError('Ticket ID is required', { status: 400 });
     }
 
-    const ticket = await prisma.scale_support_tickets.findUnique({ where: { id: String(ticketId) } });
+    const ticket = await prisma.misradSupportTicket.findUnique({ where: { id: String(ticketId) } });
     if (!ticket) {
       return apiError('קריאת תמיכה לא נמצאה', { status: 404 });
     }

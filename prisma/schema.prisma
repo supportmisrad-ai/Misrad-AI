@@ -2084,7 +2084,7 @@ model NavigationMenu {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model nexus_billing_items {
+model NexusBillingItem {
   id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id String   @db.Uuid
   item_key        String
@@ -2097,10 +2097,11 @@ model nexus_billing_items {
 
   @@unique([organization_id, item_key])
   @@index([organization_id], map: "idx_nexus_billing_items_org")
+  @@map("nexus_billing_items")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model nexus_employee_invitation_links {
+model NexusEmployeeInvitationLink {
   id             String               @id(map: "employee_invitation_links_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId String               @map("organization_id") @db.Uuid
   token          String               @unique(map: "employee_invitation_links_token_key")
@@ -2127,10 +2128,11 @@ model nexus_employee_invitation_links {
 
   @@index([token], map: "idx_employee_invitation_links_token")
   @@index([organizationId], map: "idx_nexus_employee_invitation_links_organization_id")
+  @@map("nexus_employee_invitation_links")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model nexus_event_attendance {
+model NexusEventAttendance {
   id             String               @id(map: "event_attendance_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId String               @map("organization_id") @db.Uuid
   event_id       String               @db.Uuid
@@ -2146,10 +2148,11 @@ model nexus_event_attendance {
   @@unique([event_id, user_id], map: "event_attendance_event_id_user_id_key")
   @@index([event_id], map: "idx_event_attendance_event")
   @@index([organizationId], map: "idx_nexus_event_attendance_organization_id")
+  @@map("nexus_event_attendance")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model nexus_leave_requests {
+model NexusLeaveRequest {
   id                String               @id(map: "leave_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId    String               @map("organization_id") @db.Uuid
   tenant_id         String?              @db.Uuid
@@ -2176,19 +2179,22 @@ model nexus_leave_requests {
   @@index([organizationId, created_at(sort: Desc)], map: "idx_leave_requests_org_created_at")
   @@index([organizationId, employee_id, created_at(sort: Desc)], map: "idx_leave_requests_org_employee_created_at")
   @@index([organizationId, status, created_at(sort: Desc)], map: "idx_leave_requests_org_status_created_at")
+  @@map("nexus_leave_requests")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model nexus_onboarding_settings {
+model NexusOnboardingSettings {
   organization_id String   @id @db.Uuid
   template_key    String
   selected_at     DateTime @default(now()) @db.Timestamptz(6)
   created_at      DateTime @default(now()) @db.Timestamptz(6)
   updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("nexus_onboarding_settings")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model nexus_team_events {
+model NexusTeamEvent {
   id                   String               @id(map: "team_events_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId       String               @map("organization_id") @db.Uuid
   tenant_id            String?              @db.Uuid
@@ -2217,6 +2223,7 @@ model nexus_team_events {
 
   @@index([tenant_id], map: "idx_team_events_tenant")
   @@index([organizationId], map: "idx_nexus_team_events_organization_id")
+  @@map("nexus_team_events")
 }
 
 model NexusClient {
@@ -2745,7 +2752,7 @@ model Profile {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scale_calendar_sync_log {
+model MisradCalendarSyncLog {
   id             String    @id(map: "calendar_sync_log_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   integration_id String?   @db.Uuid
   event_id       String
@@ -2761,7 +2768,7 @@ model scale_calendar_sync_log {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scale_feature_requests {
+model MisradFeatureRequest {
   id               String    @id(map: "feature_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id          String    @db.Uuid
   tenant_id        String?   @db.Uuid
@@ -2784,8 +2791,9 @@ model scale_feature_requests {
   @@map("misrad_feature_requests")
 }
 
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scale_integrations {
+model MisradIntegration {
   id             String    @id(map: "integrations_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id        String?   @db.Uuid
   tenant_id      String?   @db.Uuid
@@ -2810,7 +2818,7 @@ model scale_integrations {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scale_permissions {
+model MisradPermission {
   id          String    @id(map: "permissions_pkey")
   label       String
   description String?
@@ -2820,7 +2828,7 @@ model scale_permissions {
   @@map("misrad_permissions")
 }
 
-model scale_roles {
+model MisradRole {
   id          String    @id(map: "roles_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name        String    @unique(map: "roles_name_key")
   description String?
@@ -2834,7 +2842,7 @@ model scale_roles {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model scale_support_tickets {
+model MisradSupportTicket {
   id                      String    @id(map: "support_tickets_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id                 String    @db.Uuid
   tenant_id               String?   @db.Uuid
@@ -2936,11 +2944,11 @@ model Organization {
   customerAccounts                 CustomerAccount[]
   finance_whatsapp_reminder_events finance_whatsapp_reminder_events[]
   nexusClients                     NexusClient[]
-  nexusEmployeeInvitationLinks     nexus_employee_invitation_links[]
-  nexusEventAttendance             nexus_event_attendance[]
-  nexusLeaveRequests               nexus_leave_requests[]
+  nexusEmployeeInvitationLinks     NexusEmployeeInvitationLink[]
+  nexusEventAttendance             NexusEventAttendance[]
+  nexusLeaveRequests               NexusLeaveRequest[]
   nexusTasks                       NexusTask[]
-  nexusTeamEvents                  nexus_team_events[]
+  nexusTeamEvents                  NexusTeamEvent[]
   nexusTimeEntries                 NexusTimeEntry[]
   nexusTenant                      NexusTenant?                       @relation("NexusTenantOrganization")
   operationsInventory              OperationsInventory[]

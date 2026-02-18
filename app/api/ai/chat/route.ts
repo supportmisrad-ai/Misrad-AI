@@ -908,7 +908,7 @@ async function POSTHandler(req: Request) {
             const misradInvoicesOpenThisMonth = Number(misradInvoicesAgg._sum?.amount || 0);
 
             let recurringMonthly = 0;
-            const billingAgg = await prisma.nexus_billing_items.aggregate({
+            const billingAgg = await prisma.nexusBillingItem.aggregate({
               where: { organization_id: organizationId, cadence: 'monthly' },
               _sum: { amount: true },
             });

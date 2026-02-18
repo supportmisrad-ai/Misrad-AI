@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AddBusinessClientModal from '@/components/admin/AddBusinessClientModal';
@@ -12,6 +12,7 @@ import ApplyCouponModal from '@/components/admin/ApplyCouponModal';
 import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
+import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
 
 type BusinessClient = {
@@ -50,6 +51,11 @@ export default function BusinessClientsClient() {
   // Edit modals
   const [selectedClientForEdit, setSelectedClientForEdit] = useState<BusinessClient | null>(null);
   const [selectedOrgForEdit, setSelectedOrgForEdit] = useState<any | null>(null);
+  const [selectedContactForEdit, setSelectedContactForEdit] = useState<{ contact: any; clientId: string; clientName: string } | null>(null);
+
+  // Delete client confirmation
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadClients();
@@ -84,6 +90,34 @@ export default function BusinessClientsClient() {
 
   const toggleExpand = (clientId: string) => {
     setExpandedClientId(expandedClientId === clientId ? null : clientId);
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    setIsDeleting(true);
+    try {
+      const { deleteBusinessClient } = await import('@/app/actions/business-clients');
+      const result = await deleteBusinessClient(clientId);
+      if (result.ok) {
+        setDeletingClientId(null);
+        loadClients();
+      }
+    } catch (error) {
+      console.error('Failed to delete client:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRemoveContact = async (clientId: string, userId: string) => {
+    try {
+      const { removeContactFromClient } = await import('@/app/actions/business-clients');
+      const result = await removeContactFromClient(clientId, userId);
+      if (result.ok) {
+        loadClients();
+      }
+    } catch (error) {
+      console.error('Failed to remove contact:', error);
+    }
   };
 
   const primaryContact = (client: BusinessClient) => {
@@ -326,6 +360,18 @@ export default function BusinessClientsClient() {
                         <Building2 className="w-3.5 h-3.5 mr-1" />
                         <span className="hidden sm:inline">הוסף </span>ארגון
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingClientId(client.id);
+                        }}
+                        className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        מחק
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -368,20 +414,61 @@ export default function BusinessClientsClient() {
                           )}
                         </div>
 
-                        {primary && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h5 className="font-medium text-gray-900 mb-2">איש קשר ראשי</h5>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <Users className="w-5 h-5 text-gray-500" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900">{primary.user?.full_name || 'ללא שם'}</p>
-                                <p className="text-sm text-gray-500">{primary.user?.email}</p>
-                              </div>
+                        {/* All Contacts List */}
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <h5 className="font-medium text-gray-900 mb-2">אנשי קשר ({client.contacts.length})</h5>
+                          {client.contacts.length === 0 ? (
+                            <p className="text-sm text-gray-400">אין אנשי קשר</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {client.contacts.map((contact: any) => (
+                                <div key={contact.user_id} className="flex items-center gap-2 p-2 bg-white border border-gray-100 rounded-lg">
+                                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
+                                    <Users className="w-4 h-4 text-gray-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{contact.user?.full_name || 'ללא שם'}</p>
+                                    <p className="text-xs text-gray-500 truncate">{contact.user?.email}</p>
+                                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                                      {contact.is_primary && <span className="px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">ראשי</span>}
+                                      {contact.is_billing_contact && <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">חיובים</span>}
+                                      {contact.is_technical_contact && <span className="px-1 py-0.5 text-xs bg-purple-100 text-purple-700 rounded">טכני</span>}
+                                      {contact.title && <span className="text-xs text-gray-400">{contact.title}</span>}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedContactForEdit({ contact, clientId: client.id, clientName: client.company_name });
+                                      }}
+                                      className="h-7 w-7 p-0"
+                                      title="ערוך איש קשר"
+                                    >
+                                      <UserCog className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm(`למחוק את ${contact.user?.full_name || 'איש קשר'} מ-${client.company_name}?`)) {
+                                          handleRemoveContact(client.id, contact.user_id);
+                                        }
+                                      }}
+                                      className="h-7 w-7 p-0 text-red-500 hover:bg-red-50"
+                                      title="הסר איש קשר"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
                       {/* Organizations */}
@@ -574,6 +661,41 @@ export default function BusinessClientsClient() {
         />
       )}
 
+      {/* Delete Client Confirmation Modal */}
+      {deletingClientId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" dir="rtl">
+          <div className="bg-white rounded-xl shadow-xl p-6 mx-4 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">מחיקת לקוח עסקי</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              האם אתה בטוח שברצונך למחוק לקוח זה? הפעולה ניתנת לביטול על ידי תמיכה.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={() => handleDeleteClient(deletingClientId)}
+                className="flex-1"
+              >
+                {isDeleting ? 'מוחק...' : 'כן, מחק'}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={isDeleting}
+                onClick={() => setDeletingClientId(null)}
+                className="flex-1"
+              >
+                ביטול
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modals */}
       {selectedClientForEdit && (
         <EditBusinessClientModal
@@ -594,6 +716,20 @@ export default function BusinessClientsClient() {
           onClose={() => setSelectedOrgForEdit(null)}
           onSuccess={() => {
             setSelectedOrgForEdit(null);
+            loadClients();
+          }}
+        />
+      )}
+
+      {selectedContactForEdit && (
+        <EditContactModal
+          isOpen={true}
+          clientId={selectedContactForEdit.clientId}
+          clientName={selectedContactForEdit.clientName}
+          contact={selectedContactForEdit.contact}
+          onClose={() => setSelectedContactForEdit(null)}
+          onSuccess={() => {
+            setSelectedContactForEdit(null);
             loadClients();
           }}
         />

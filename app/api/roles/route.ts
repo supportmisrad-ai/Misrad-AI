@@ -67,7 +67,7 @@ async function GETHandler(request: NextRequest) {
         return await withTenantIsolationContext(
             { source: 'api_roles', reason: 'list_roles', suppressReporting: true },
             async () => {
-                const data = await prisma.scale_roles.findMany({
+                const data = await prisma.misradRole.findMany({
                     orderBy: { name: 'asc' },
                 });
 
@@ -136,7 +136,7 @@ async function POSTHandler(request: NextRequest) {
             async () => {
                 let created;
                 try {
-                    created = await prisma.scale_roles.create({
+                    created = await prisma.misradRole.create({
                         data: {
                             name: name.trim(),
                             permissions: parsedPermissions,

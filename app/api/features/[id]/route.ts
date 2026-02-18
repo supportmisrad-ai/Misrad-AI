@@ -99,7 +99,7 @@ async function PATCHHandler(
         }
 
         // Get existing request
-        const existingRequest = await prisma.scale_feature_requests.findUnique({
+        const existingRequest = await prisma.misradFeatureRequest.findUnique({
             where: { id: String(requestId) },
         });
 
@@ -176,9 +176,9 @@ async function PATCHHandler(
             );
         }
 
-        let updatedRequest: Awaited<ReturnType<typeof prisma.scale_feature_requests.update>> | null = null;
+        let updatedRequest: Awaited<ReturnType<typeof prisma.misradFeatureRequest.update>> | null = null;
         try {
-            updatedRequest = await prisma.scale_feature_requests.update({
+            updatedRequest = await prisma.misradFeatureRequest.update({
                 where: { id: String(requestId) },
                 data: {
                     ...updateData,

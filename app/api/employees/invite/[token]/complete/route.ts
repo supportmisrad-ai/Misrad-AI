@@ -175,7 +175,7 @@ async function insertUserInWorkspace(params: { workspaceId: string; userData: un
 
 async function markInvitationUsed(params: { organizationId: string; invitationId: string; patch: unknown }) {
     const patchObj = asObject(params.patch) ?? {};
-    await prisma.nexus_employee_invitation_links.updateMany({
+    await prisma.nexusEmployeeInvitationLink.updateMany({
         where: { id: String(params.invitationId), organizationId: String(params.organizationId) },
         data: {
             is_used: Boolean(patchObj.is_used),
@@ -242,7 +242,7 @@ async function POSTHandler(
         }
 
         // 1. Get invitation by token (token is a secret; use Service Role for unscoped lookup)
-        const invitation = await prisma.nexus_employee_invitation_links.findUnique({
+        const invitation = await prisma.nexusEmployeeInvitationLink.findUnique({
             where: { token: String(token) },
         });
 

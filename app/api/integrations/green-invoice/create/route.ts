@@ -119,7 +119,7 @@ async function POSTHandler(request: NextRequest) {
                 isTrial = subscriptionStatus === 'trial';
 
                 if (isTrial) {
-                    const integration = await prisma.scale_integrations.findFirst({
+                    const integration = await prisma.misradIntegration.findFirst({
                         where: {
                             tenant_id: String(workspaceId),
                             user_id: String(dbUserId),
@@ -284,7 +284,7 @@ async function POSTHandler(request: NextRequest) {
                 const prevTotal = Number(integrationMetadataForUsage.total_trial_invoices ?? 0);
                 const nextTotal = prevTotal + 1;
 
-                await prisma.scale_integrations.update({
+                await prisma.misradIntegration.update({
                     where: { id: String(integrationIdForUsage) },
                     data: {
                         metadata: {

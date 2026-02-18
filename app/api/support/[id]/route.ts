@@ -21,7 +21,7 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 type UnknownRecord = Record<string, unknown>;
-type SupportTicketUpdateData = Parameters<typeof prisma.scale_support_tickets.update>[0]['data'];
+type SupportTicketUpdateData = Parameters<typeof prisma.misradSupportTicket.update>[0]['data'];
 
 
 function asString(value: unknown): string {
@@ -212,7 +212,7 @@ async function PATCHHandler(
         }
 
         // Get existing ticket
-        const existingTicket = await prisma.scale_support_tickets.findUnique({
+        const existingTicket = await prisma.misradSupportTicket.findUnique({
             where: { id: String(ticketId) },
         });
 
@@ -398,7 +398,7 @@ async function PATCHHandler(
         updateData.updated_at = now;
 
         // Update ticket
-        const updatedTicket = await prisma.scale_support_tickets.update({
+        const updatedTicket = await prisma.misradSupportTicket.update({
             where: { id: String(ticketId) },
             data: updateData,
         });

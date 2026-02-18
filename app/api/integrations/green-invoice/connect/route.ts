@@ -73,7 +73,7 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        const existingIntegration = await prisma.scale_integrations.findFirst({
+        const existingIntegration = await prisma.misradIntegration.findFirst({
             where: {
                 user_id: String(dbUserId),
                 tenant_id: String(workspace.id),
@@ -83,7 +83,7 @@ async function POSTHandler(request: NextRequest) {
         });
 
         if (existingIntegration?.id) {
-            await prisma.scale_integrations.update({
+            await prisma.misradIntegration.update({
                 where: { id: String(existingIntegration.id) },
                 data: {
                     access_token: apiKey,
@@ -92,7 +92,7 @@ async function POSTHandler(request: NextRequest) {
                 },
             });
         } else {
-            await prisma.scale_integrations.create({
+            await prisma.misradIntegration.create({
                 data: {
                     user_id: String(dbUserId),
                     tenant_id: String(workspace.id),

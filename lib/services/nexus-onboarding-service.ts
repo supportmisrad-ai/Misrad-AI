@@ -45,7 +45,7 @@ function isMissingPrismaRelationError(error: unknown): boolean {
 
 export async function getNexusOnboardingTemplate(workspaceId: string): Promise<NexusOnboardingTemplatePayload | null> {
   try {
-    const row = await prisma.nexus_onboarding_settings.findUnique({
+    const row = await prisma.nexusOnboardingSettings.findUnique({
       where: { organization_id: workspaceId },
       select: { template_key: true, selected_at: true },
     });
@@ -108,7 +108,7 @@ export async function setNexusOnboardingTemplate(params: {
   const selectedAt = params.selectedAt || new Date().toISOString();
 
   try {
-    await prisma.nexus_onboarding_settings.upsert({
+    await prisma.nexusOnboardingSettings.upsert({
       where: { organization_id: params.workspaceId },
       update: {
         organization_id: params.workspaceId,

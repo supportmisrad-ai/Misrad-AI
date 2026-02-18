@@ -12,7 +12,8 @@ import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { Prisma } from '@prisma/client';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -53,11 +54,11 @@ async function GETHandler(request: NextRequest) {
             return NextResponse.json({ connected: false });
         }
 
-        let integration: Prisma.scale_integrationsGetPayload<{
+        let integration: Prisma.MisradIntegrationGetPayload<{
             select: { id: true; is_active: true; last_synced_at: true; metadata: true };
         }> | null = null;
         try {
-            integration = await prisma.scale_integrations.findFirst({
+            integration = await prisma.misradIntegration.findFirst({
                 where: {
                     user_id: String(dbUserId),
                     tenant_id: String(workspaceId),

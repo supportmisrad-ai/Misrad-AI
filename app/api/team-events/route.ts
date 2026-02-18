@@ -57,9 +57,9 @@ function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAtte
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const client = prisma as unknown;
     const obj = asObject(client);
-    const delegate = obj?.['nexus_team_events'];
+    const delegate = obj?.['nexusTeamEvent'];
     if (!isNexusTeamEventsDelegate(delegate)) {
-        throw new Error('Prisma delegate nexus_team_events is unavailable');
+        throw new Error('Prisma delegate nexusTeamEvent is unavailable');
     }
     return delegate;
 }
@@ -67,9 +67,9 @@ function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
 function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
     const client = prisma as unknown;
     const obj = asObject(client);
-    const delegate = obj?.['nexus_event_attendance'];
+    const delegate = obj?.['nexusEventAttendance'];
     if (!isNexusEventAttendanceDelegate(delegate)) {
-        throw new Error('Prisma delegate nexus_event_attendance is unavailable');
+        throw new Error('Prisma delegate nexusEventAttendance is unavailable');
     }
     return delegate;
 }

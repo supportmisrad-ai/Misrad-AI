@@ -11,14 +11,14 @@ import { getAuthenticatedUser, requirePermission, requireSuperAdmin } from '@/li
 import { RoleDefinition, PermissionId } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
-import type { scale_roles } from '@prisma/client';
+import type { MisradRole } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-type RoleUpdateData = Parameters<typeof prisma.scale_roles.update>[0]['data'];
+type RoleUpdateData = Parameters<typeof prisma.misradRole.update>[0]['data'];
 
 function getUnknownErrorStatus(error: unknown): 401 | 403 | null {
     const msg = getUnknownErrorMessage(error);
@@ -27,7 +27,7 @@ function getUnknownErrorStatus(error: unknown): 401 | 403 | null {
     return null;
 }
 
-function mapRoleRow(row: Pick<scale_roles, 'id' | 'name' | 'permissions' | 'is_system' | 'description'>): RoleDefinition {
+function mapRoleRow(row: Pick<MisradRole, 'id' | 'name' | 'permissions' | 'is_system' | 'description'>): RoleDefinition {
     return {
         id: String(row.id),
         name: String(row.name),
@@ -106,7 +106,7 @@ async function PATCHHandler(
         return await withTenantIsolationContext(
             { source: 'api_roles_id', reason: 'update_role', mode: 'global_admin', isSuperAdmin: true },
             async () => {
-                const data = await prisma.scale_roles.update({
+                const data = await prisma.misradRole.update({
                     where: { id: String(roleId) },
                     data: dbUpdates,
                 });
@@ -164,7 +164,7 @@ async function DELETEHandler(
             { source: 'api_roles_id', reason: 'delete_role', mode: 'global_admin', isSuperAdmin: true },
             async () => {
                 // Check if role is system role
-                const roleRow = await prisma.scale_roles.findUnique({
+                const roleRow = await prisma.misradRole.findUnique({
                     where: { id: String(roleId) },
                     select: { is_system: true },
                 });
@@ -177,7 +177,7 @@ async function DELETEHandler(
                     throw new Error('Cannot delete system role');
                 }
 
-                await prisma.scale_roles.delete({ where: { id: String(roleId) } });
+                await prisma.misradRole.delete({ where: { id: String(roleId) } });
                 
                 await logAuditEvent('role.delete', 'role', {
                     resourceId: roleId,

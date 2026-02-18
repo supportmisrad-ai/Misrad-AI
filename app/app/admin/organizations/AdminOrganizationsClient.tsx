@@ -147,7 +147,7 @@ export default function AdminOrganizationsClient(props: {
             }}
           >
             <Plus size={18} />
-            הוסף לקוח חדש
+            הקמת ארגון חדש
           </Button>
         }
       />
@@ -274,7 +274,7 @@ export default function AdminOrganizationsClient(props: {
                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
                   <Building2 size={18} className="text-indigo-700" />
                 </div>
-                <div className="text-lg font-black text-slate-900">הוספת לקוח חדש</div>
+                <div className="text-lg font-black text-slate-900">הקמת ארגון חדש</div>
               </div>
 
               <Button
@@ -290,7 +290,7 @@ export default function AdminOrganizationsClient(props: {
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">שם הלקוח/ארגון <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-black text-slate-600 mb-2">שם הארגון <span className="text-red-500">*</span></label>
                 <Input
                   value={name}
                   onChange={(e) => onNameChange(e.target.value)}
@@ -358,13 +358,13 @@ export default function AdminOrganizationsClient(props: {
             <div className="p-5 border-t border-slate-200">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
                 <p className="text-xs text-blue-900 font-bold">
-                  💡 פעולה זו תיצור: <strong>לקוח חדש</strong> (client_clients) + <strong>ארגון</strong> (organization) + קישור ביניהם
+                  💡 פעולה זו תיצור <strong>ארגון חדש</strong> במערכת + לקוח מקושר אוטומטית
                 </p>
               </div>
               <div className="pt-2 flex gap-2">
                 <Button disabled={!canSubmit || isPending} onClick={onSubmit} className="flex-1">
                   <Plus size={18} />
-                  {isPending ? 'יוצר...' : 'צור לקוח + ארגון'}
+                  {isPending ? 'יוצר...' : 'צור ארגון'}
                 </Button>
                 <Button
                   variant="outline"

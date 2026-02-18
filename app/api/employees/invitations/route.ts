@@ -16,7 +16,7 @@ import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
-import type { nexus_employee_invitation_links } from '@prisma/client';
+import type { NexusEmployeeInvitationLink } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -95,7 +95,7 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 4. Build query
-        const invitations = await prisma.nexus_employee_invitation_links.findMany({
+        const invitations = await prisma.nexusEmployeeInvitationLink.findMany({
             where: {
                 organizationId: String(workspace.id),
                 ...(isAdmin ? {} : { created_by: String(user.id) }),
@@ -106,7 +106,7 @@ async function GETHandler(request: NextRequest) {
         // 5. Generate URLs for each invitation
         const baseUrl = getBaseUrl(request);
 
-        const invitationsWithUrls = (invitations || []).map((inv: nexus_employee_invitation_links) => ({
+        const invitationsWithUrls = (invitations || []).map((inv: NexusEmployeeInvitationLink) => ({
             id: String(inv.id),
             token: String(inv.token),
             url: `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(String(inv.employee_email || ''))}&invited=true&employee=true&redirect=${encodeURIComponent(`/employee-invite/${encodeURIComponent(String(inv.token))}/finalize`)}`,

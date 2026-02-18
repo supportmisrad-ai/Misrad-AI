@@ -353,7 +353,7 @@ async function GETHandler(
       let recurringMonthly = 0;
 
       try {
-        const billingAgg = await prisma.nexus_billing_items.aggregate({
+        const billingAgg = await prisma.nexusBillingItem.aggregate({
           where: { organization_id: workspace.id, cadence: 'monthly' },
           _sum: { amount: true },
         });

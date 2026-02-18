@@ -499,6 +499,55 @@ export async function removeContactFromClient(clientId: string, userId: string) 
 }
 
 // ============================================================
+// Update Contact on Client
+// ============================================================
+
+export async function updateContactOnClient(
+  clientId: string,
+  userId: string,
+  input: {
+    role?: string;
+    title?: string;
+    department?: string;
+    is_primary?: boolean;
+    is_billing_contact?: boolean;
+    is_technical_contact?: boolean;
+  }
+) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    if (input.is_primary) {
+      await prisma.businessClientContact.updateMany({
+        where: { client_id: clientId, is_primary: true, NOT: { user_id: userId } },
+        data: { is_primary: false },
+      });
+    }
+
+    const contact = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.updateContactOnClient',
+        reason: 'global_admin_update_business_client_contact',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        await prisma.businessClientContact.update({
+          where: { client_id_user_id: { client_id: clientId, user_id: userId } },
+          data: input,
+        })
+    );
+
+    return { ok: true, contact };
+  } catch (error) {
+    logger.error('updateContactOnClient', 'Error:', error);
+    return { ok: false, error: 'שגיאה בעדכון איש קשר' };
+  }
+}
+
+// ============================================================
 // Create Organization for Client
 // ============================================================
 

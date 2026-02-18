@@ -23,9 +23,9 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 type UnknownRecord = Record<string, unknown>;
-type SupportTicketFindManyArgs = NonNullable<Parameters<typeof prisma.scale_support_tickets.findMany>[0]>;
+type SupportTicketFindManyArgs = NonNullable<Parameters<typeof prisma.misradSupportTicket.findMany>[0]>;
 type SupportTicketWhere = SupportTicketFindManyArgs['where'];
-type SupportTicketCreateArgs = NonNullable<Parameters<typeof prisma.scale_support_tickets.create>[0]>;
+type SupportTicketCreateArgs = NonNullable<Parameters<typeof prisma.misradSupportTicket.create>[0]>;
 type SupportTicketCreateData = SupportTicketCreateArgs['data'];
 
 
@@ -229,7 +229,7 @@ async function GETHandler(request: NextRequest) {
             where.status = String(status);
         }
 
-        const tickets = await prisma.scale_support_tickets.findMany({
+        const tickets = await prisma.misradSupportTicket.findMany({
             where,
             orderBy: { created_at: 'desc' },
         });
@@ -322,7 +322,7 @@ async function POSTHandler(request: NextRequest) {
             ticket_number: `TKT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 8)}`
         };
 
-        const ticket = await prisma.scale_support_tickets.create({
+        const ticket = await prisma.misradSupportTicket.create({
             data: ticketData,
         });
 

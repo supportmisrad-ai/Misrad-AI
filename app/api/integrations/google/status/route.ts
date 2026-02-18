@@ -65,9 +65,9 @@ async function GETHandler(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
 
-        let integrations: Awaited<ReturnType<typeof prisma.scale_integrations.findMany>> = [];
+        let integrations: Awaited<ReturnType<typeof prisma.misradIntegration.findMany>> = [];
         try {
-            integrations = await prisma.scale_integrations.findMany({
+            integrations = await prisma.misradIntegration.findMany({
                 where: {
                     user_id: String(dbUserId),
                     tenant_id: String(workspace.id),
@@ -84,12 +84,12 @@ async function GETHandler(request: NextRequest) {
             const msg = getErrorMessage(error);
             if (msg.includes('does not exist') || msg.includes('42P01')) {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
-                    throw new Error(`[SchemaMismatch] scale_integrations missing table (${msg || 'missing relation'})`);
+                    throw new Error(`[SchemaMismatch] misrad_integrations missing table (${msg || 'missing relation'})`);
                 }
 
                 reportSchemaFallback({
                     source: 'app/api/integrations/google/status.GETHandler',
-                    reason: 'scale_integrations missing table (fallback to connected=false)',
+                    reason: 'misrad_integrations missing table (fallback to connected=false)',
                     error,
                     extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
                 });
@@ -106,7 +106,7 @@ async function GETHandler(request: NextRequest) {
             if ((msg.includes('does not exist') || msg.includes('relation') || msg.includes('column')) && ALLOW_SCHEMA_FALLBACKS) {
                 reportSchemaFallback({
                     source: 'app/api/integrations/google/status.GETHandler',
-                    reason: 'scale_integrations query schema mismatch (fallback to connected=false)',
+                    reason: 'misrad_integrations query schema mismatch (fallback to connected=false)',
                     error,
                     extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
                 });

@@ -53,7 +53,7 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
 }
 
 async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
-    return prisma.nexus_team_events.findFirst({
+    return prisma.nexusTeamEvent.findFirst({
         where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
     });
 }
@@ -118,7 +118,7 @@ async function GETHandler(
         }
 
         // Get all attendance records for this event
-        const attendanceRows = await prisma.nexus_event_attendance.findMany({
+        const attendanceRows = await prisma.nexusEventAttendance.findMany({
             where: { event_id: String(eventId), organizationId: String(workspace.id) },
             orderBy: { created_at: 'asc' },
         });
@@ -224,13 +224,13 @@ async function POSTHandler(
 
         const now = new Date();
 
-        const existing = await prisma.nexus_event_attendance.findFirst({
+        const existing = await prisma.nexusEventAttendance.findFirst({
             where: { event_id: String(eventId), user_id: String(dbUser.id), organizationId: String(workspace.id) },
             select: { id: true },
         });
 
         if (existing?.id) {
-            await prisma.nexus_event_attendance.updateMany({
+            await prisma.nexusEventAttendance.updateMany({
                 where: { id: String(existing.id), organizationId: String(workspace.id) },
                 data: {
                     status,
@@ -240,7 +240,7 @@ async function POSTHandler(
                 },
             });
         } else {
-            await prisma.nexus_event_attendance.create({
+            await prisma.nexusEventAttendance.create({
                 data: {
                     organizationId: String(workspace.id),
                     event_id: String(eventId),
@@ -253,7 +253,7 @@ async function POSTHandler(
             });
         }
 
-        const attendance = await prisma.nexus_event_attendance.findFirst({
+        const attendance = await prisma.nexusEventAttendance.findFirst({
             where: { event_id: String(eventId), user_id: String(dbUser.id), organizationId: String(workspace.id) },
         });
 

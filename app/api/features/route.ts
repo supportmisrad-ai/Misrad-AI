@@ -98,7 +98,7 @@ async function GETHandler(request: NextRequest) {
         // Check if user is admin
         const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
-        const where: Prisma.scale_feature_requestsWhereInput = {
+        const where: Prisma.MisradFeatureRequestWhereInput = {
             tenant_id: String(workspaceId),
         };
 
@@ -115,7 +115,7 @@ async function GETHandler(request: NextRequest) {
             where.user_id = String(userId);
         }
 
-        const rows = await prisma.scale_feature_requests.findMany({
+        const rows = await prisma.misradFeatureRequest.findMany({
             where,
             orderBy: { created_at: 'desc' },
         });
@@ -182,7 +182,7 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        const featureRequest = await prisma.scale_feature_requests.create({
+        const featureRequest = await prisma.misradFeatureRequest.create({
             data: {
                 user_id: String(user.id),
                 tenant_id: String(workspaceId),

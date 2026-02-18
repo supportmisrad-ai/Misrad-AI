@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         suppressReporting: true,
       },
       async () =>
-        await prisma.scale_integrations.upsert({
+        await prisma.misradIntegration.upsert({
           where: {
             user_id_tenant_id_service_type: {
               user_id: userId,

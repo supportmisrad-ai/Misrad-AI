@@ -24,7 +24,7 @@ async function GETHandler(request: NextRequest) {
         return await withTenantIsolationContext(
             { source: 'api_permissions', reason: 'list_permissions', suppressReporting: true },
             async () => {
-                const rows = await prisma.scale_permissions.findMany({
+                const rows = await prisma.misradPermission.findMany({
                     orderBy: { id: 'asc' },
                     select: { id: true, label: true, description: true, category: true },
                 });

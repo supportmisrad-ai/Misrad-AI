@@ -268,10 +268,10 @@ async function selectSuperAdminIdsInWorkspace(params: { workspaceId: string }): 
 
 function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate {
     const prismaObj = asObject(prisma as unknown);
-    const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
+    const delegate = prismaObj ? prismaObj['nexusLeaveRequest'] : null;
     if (!isNexusLeaveRequestsDelegate(delegate)) {
         throw new Error(
-            'Prisma Client is missing nexus_leave_requests. Run Prisma generate (npm run prisma:generate) and restart the TS server.'
+            'Prisma Client is missing nexusLeaveRequest. Run Prisma generate (npm run prisma:generate) and restart the TS server.'
         );
     }
     return delegate;

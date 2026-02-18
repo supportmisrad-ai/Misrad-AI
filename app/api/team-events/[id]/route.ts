@@ -41,9 +41,9 @@ function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDele
 
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const obj = asObject(prisma as unknown);
-    const delegate = obj?.['nexus_team_events'];
+    const delegate = obj?.['nexusTeamEvent'];
     if (!isNexusTeamEventsDelegate(delegate)) {
-        throw new Error('Prisma delegate nexus_team_events is unavailable');
+        throw new Error('Prisma delegate nexusTeamEvent is unavailable');
     }
     return delegate;
 }
