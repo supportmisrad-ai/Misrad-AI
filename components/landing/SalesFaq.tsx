@@ -82,7 +82,8 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
       q: 'המערכת עובדת בשבת?',
       a: (
         <span>
-          לא. <strong className="text-slate-900">מצב שבת הוא חובה ואוטומטי לכולם</strong> — המערכת לא פעילה בשבת, וחוזרת לעבוד לבד אחרי צאת הכוכבים.
+          כברירת מחדל — <strong className="text-slate-900">המערכת פועלת גם בשבת</strong>. ניתן להפעיל מצב שבת ידנית בהגדרות הארגון, ואז המערכת תהיה מושבתת בשבת ותחזור לפעול אוטומטית אחרי צאת הכוכבים.{' '}
+          <strong className="text-slate-900">למעט בתי רפואה ומוסדות רפואיים</strong> — עבורם ניתן לבקש הפעלה מלאה ללא הגבלת שבת.
         </span>
       ),
     },

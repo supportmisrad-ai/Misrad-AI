@@ -129,6 +129,7 @@ body {
 #main-scroll-container {
   scrollbar-gutter: stable;
   overscroll-behavior-y: none;
+  scroll-behavior: smooth;
 }
 
 .sidebar {

@@ -27,10 +27,10 @@ const BRAND_COLORS = {
 };
 
 const SOCIAL_LINKS = {
-  facebook: 'https://facebook.com/misrad-ai',
-  linkedin: 'https://linkedin.com/company/misrad-ai',
   instagram: 'https://instagram.com/misrad.ai',
-  twitter: 'https://twitter.com/misrad_ai',
+  tiktok: 'https://tiktok.com/@misrad.ai',
+  linkedin: 'https://linkedin.com/company/misrad-ai',
+  youtube: 'https://youtube.com/@misrad-ai',
 };
 
 /**
@@ -147,23 +147,23 @@ function generateEmailFooter(options?: {
             <table role="presentation" style="margin: 0 auto;">
               <tr>
                 <td style="padding: 0 8px;">
-                  <a href="${SOCIAL_LINKS.facebook}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 40px; transition: all 0.3s;">
-                    <span style="color: #1877f2; font-size: 18px; font-weight: bold;">f</span>
+                  <a href="${SOCIAL_LINKS.instagram}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 36px; text-align: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><rect x="2" y="2" width="20" height="20" rx="5" stroke="#e4405f" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="#e4405f" stroke-width="2"/><circle cx="17.5" cy="6.5" r="1.2" fill="#e4405f"/></svg>
                   </a>
                 </td>
                 <td style="padding: 0 8px;">
-                  <a href="${SOCIAL_LINKS.linkedin}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 40px;">
-                    <span style="color: #0a66c2; font-size: 18px; font-weight: bold;">in</span>
+                  <a href="${SOCIAL_LINKS.tiktok}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 36px; text-align: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#000000" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.73a8.18 8.18 0 0 0 4.78 1.52V6.79a4.85 4.85 0 0 1-1.01-.1z"/></svg>
                   </a>
                 </td>
                 <td style="padding: 0 8px;">
-                  <a href="${SOCIAL_LINKS.instagram}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 40px;">
-                    <span style="color: #e4405f; font-size: 18px; font-weight: bold;">IG</span>
+                  <a href="${SOCIAL_LINKS.linkedin}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 36px; text-align: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#0a66c2" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2" fill="#0a66c2"/></svg>
                   </a>
                 </td>
                 <td style="padding: 0 8px;">
-                  <a href="${SOCIAL_LINKS.twitter}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 40px;">
-                    <span style="color: #1da1f2; font-size: 18px; font-weight: bold;">X</span>
+                  <a href="${SOCIAL_LINKS.youtube}" style="display: inline-block; width: 40px; height: 40px; background-color: #ffffff; border-radius: 50%; text-decoration: none; border: 2px solid #e2e8f0; line-height: 36px; text-align: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75,15.02 15.5,12 9.75,8.98 9.75,15.02" fill="white"/></svg>
                   </a>
                 </td>
               </tr>
@@ -189,7 +189,7 @@ function generateEmailFooter(options?: {
         <div style="color: ${BRAND_COLORS.lightGray}; font-size: 11px; margin-bottom: 12px;">
           <a href="mailto:support@misrad-ai.com" style="color: ${BRAND_COLORS.primary}; text-decoration: none; font-weight: 600;">support@misrad-ai.com</a>
           <span style="margin: 0 8px; color: #cbd5e1;">•</span>
-          <a href="tel:+972525491940" style="color: ${BRAND_COLORS.primary}; text-decoration: none; font-weight: 600;">052-549-1940</a>
+          <a href="https://wa.me/972512239522" style="color: ${BRAND_COLORS.primary}; text-decoration: none; font-weight: 600;">WhatsApp לשירות לקוחות</a>
         </div>
         
         <div style="color: ${BRAND_COLORS.lightGray}; font-size: 11px; line-height: 1.5;">

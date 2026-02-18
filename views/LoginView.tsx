@@ -361,7 +361,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
       // ניסוי ראשון: Redirect (העדפה כי זה ה-flow המלא)
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: loginReturnUrl,
+        redirectUrl: `${origin}/sso-callback`,
         redirectUrlComplete: loginReturnUrl,
       });
       // אם ה-redirect מצליח, לא נגיע לכאן כי הדפדפן ינותב.
