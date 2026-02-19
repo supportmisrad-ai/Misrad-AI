@@ -8,6 +8,7 @@
 
 import { getBaseUrl } from '@/lib/utils';
 import { EmailTemplateComponents, generateBaseEmailTemplate } from './email-templates';
+import { getEmailAssets } from './email-assets';
 
 // ══════════════════════════════════════════════════════════════════════
 // BILLING EMAILS
@@ -513,7 +514,10 @@ export function generateWeeklyReportEmailHTML(params: {
         aiCreditsTotal: number;
     };
     portalUrl: string;
+    chartImageUrl?: string;
+    topAchievement?: string;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
     const aiPercent = params.stats.aiCreditsTotal > 0
         ? Math.round((params.stats.aiCreditsUsed / params.stats.aiCreditsTotal) * 100)
@@ -523,28 +527,49 @@ export function generateWeeklyReportEmailHTML(params: {
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            הסיכום השבועי של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+            הנה הסיכום השבועי של <strong style="color:#6366f1;">"${params.organizationName}"</strong> ☕
             <br /><span style="color:#94a3b8;font-size:14px;">${params.weekRange}</span>
         </div>
+
+        ${params.topAchievement ? EmailTemplateComponents.generateCallout({
+            emoji: '🏆',
+            title: 'ההישג של השבוע',
+            text: params.topAchievement,
+            bgColor: '#ecfdf5',
+            borderColor: '#a7f3d0',
+            titleColor: '#065f46',
+            textColor: '#047857',
+        }) : ''}
 
         ${EmailTemplateComponents.generateStatCard({
             items: [
                 { label: 'משתמשים פעילים', value: String(params.stats.activeUsers) },
                 { label: 'לקוחות חדשים', value: String(params.stats.newClients) },
                 { label: 'משימות שהושלמו', value: String(params.stats.tasksCompleted) },
-                { label: 'שימוש AI', value: `${aiPercent}%` },
+                { label: 'שימוש AI', value: `${aiPercent}%`, color: aiPercent > 80 ? '#ef4444' : aiPercent > 50 ? '#f59e0b' : '#10b981' },
             ],
         })}
+
+        ${params.chartImageUrl || assets.weeklyReportChart ? EmailTemplateComponents.generateScreenshot({
+            src: params.chartImageUrl || assets.weeklyReportChart,
+            alt: 'תרשים שבועי',
+            title: 'MISRAD AI — סטטיסטיקות',
+            href: params.portalUrl,
+        }) : ''}
 
         ${EmailTemplateComponents.generateCTAButton({
             text: 'צפייה בדוח המלא →',
             url: params.portalUrl,
         })}
+
+        <div style="margin-top:24px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
+            שבוע טוב! 💪 צוות MISRAD AI
+        </div>
     `;
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: 'דוח שבועי',
+        headerSubtitle: 'דוח שבועי ☕',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,
@@ -645,25 +670,68 @@ export function generateVersionUpdateEmailHTML(params: {
     version: string;
     highlights: Array<{ title: string; desc: string }>;
     changelogUrl: string;
+    heroImageUrl?: string;
+    screenshotUrl?: string;
 }): string {
+    const assets = getEmailAssets();
+
     const bodyContent = `
+        ${EmailTemplateComponents.generateFeatureBanner({
+            emoji: '🎉',
+            title: 'MISRAD AI ' + params.version,
+            subtitle: 'גרסה חדשה!',
+            gradient: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
+        })}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">שלום,</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            גרסה <strong style="color:#6366f1;">${params.version}</strong> של MISRAD AI שוחררה.
+            גרסה <strong style="color:#6366f1;">${params.version}</strong> שוחררה!
+            <br />
+            אנחנו עובדים בלי הפסקה כדי לתת לכם את הכלי הטוב ביותר.
+            <br />
+            <strong>שנשארתם איתנו — זה לא מובן מאליו.</strong> 💜
         </div>
 
+        ${params.heroImageUrl || assets.versionHero ? EmailTemplateComponents.generateHeroImage({
+            src: params.heroImageUrl || assets.versionHero,
+            alt: 'MISRAD AI ' + params.version,
+            href: params.changelogUrl,
+            caption: 'לחצו להגדלה',
+        }) : ''}
+
+        <div style="font-size:18px;font-weight:900;color:#0f172a;margin:28px 0 16px;">מה חדש?</div>
+
         ${EmailTemplateComponents.generateSteps(params.highlights)}
+
+        ${params.screenshotUrl ? EmailTemplateComponents.generateScreenshot({
+            src: params.screenshotUrl,
+            alt: 'MISRAD AI Dashboard',
+            title: 'MISRAD AI — ' + params.version,
+            href: params.changelogUrl,
+        }) : ''}
 
         ${EmailTemplateComponents.generateCTAButton({
             text: 'צפייה ברשימת השינויים →',
             url: params.changelogUrl,
         })}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        <div style="font-size:14px;color:#64748b;line-height:1.7;text-align:center;">
+            יש לכם שאלות? פשוט תשיבו למייל הזה.<br />
+            אנחנו כאן (והפעם בלי מדים). 😄
+            <br /><br />
+            יאללה, חוזרים לעבודה.<br />
+            <strong>והפתעות נוספות יגיעו בהמשך</strong> 🔥
+            <br /><br />
+            <strong>צוות MISRAD AI</strong>
+        </div>
     `;
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: `גרסה ${params.version} — מה חדש`,
+        headerSubtitle: `גרסה ${params.version} — מה חדש 🎉`,
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: true,
@@ -759,15 +827,26 @@ export function generateSatisfactionSurveyEmailHTML(params: {
 export function generateNewsletterEmailHTML(params: {
     title: string;
     preheader: string;
+    bannerImageUrl?: string;
     sections: Array<{
         heading: string;
         body: string;
+        imageUrl?: string;
         ctaText?: string;
         ctaUrl?: string;
     }>;
+    testimonial?: {
+        quote: string;
+        authorName: string;
+        authorTitle?: string;
+        authorPhotoUrl?: string;
+    };
 }): string {
+    const assets = getEmailAssets();
+
     const sectionsHtml = params.sections.map((s) => `
         <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;">
+            ${s.imageUrl ? `<img src="${s.imageUrl}" alt="${s.heading}" style="display:block;width:100%;border-radius:10px;margin-bottom:16px;border:1px solid #e2e8f0;" />` : ''}
             <div style="font-size:18px;font-weight:900;color:#0f172a;margin-bottom:8px;">${s.heading}</div>
             <div style="font-size:15px;color:#334155;line-height:1.7;">${s.body}</div>
             ${s.ctaText && s.ctaUrl ? `
@@ -779,8 +858,28 @@ export function generateNewsletterEmailHTML(params: {
     `).join('');
 
     const bodyContent = `
+        ${params.bannerImageUrl ? EmailTemplateComponents.generateHeroImage({
+            src: params.bannerImageUrl || assets.newsletterBanner,
+            alt: params.title,
+        }) : ''}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">שלום,</div>
+
         ${sectionsHtml}
+
+        ${params.testimonial ? EmailTemplateComponents.generateTestimonial({
+            quote: params.testimonial.quote,
+            authorName: params.testimonial.authorName,
+            authorTitle: params.testimonial.authorTitle,
+            authorPhotoUrl: params.testimonial.authorPhotoUrl,
+        }) : ''}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        <div style="font-size:14px;color:#64748b;line-height:1.7;text-align:center;">
+            תודה שקראתם 💜<br />
+            נתראה בחודש הבא!
+        </div>
     `;
 
     return generateBaseEmailTemplate({
@@ -797,10 +896,24 @@ export function generateWebinarInviteEmailHTML(params: {
     date: string;
     time: string;
     speaker: string;
+    speakerPhotoUrl?: string;
     description: string;
+    bannerImageUrl?: string;
     registerUrl: string;
 }): string {
+    const assets = getEmailAssets();
+
     const bodyContent = `
+        ${params.bannerImageUrl ? EmailTemplateComponents.generateHeroImage({
+            src: params.bannerImageUrl || assets.webinarBanner,
+            alt: params.title,
+            href: params.registerUrl,
+        }) : EmailTemplateComponents.generateFeatureBanner({
+            emoji: '🎤',
+            title: params.title,
+            subtitle: params.date + ' · ' + params.time,
+        })}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">שלום,</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
@@ -808,6 +921,7 @@ export function generateWebinarInviteEmailHTML(params: {
         </div>
 
         <div style="margin:24px 0;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:22px 24px;">
+            ${params.speakerPhotoUrl ? `<div style="text-align:center;margin-bottom:16px;"><img src="${params.speakerPhotoUrl}" alt="${params.speaker}" width="64" height="64" style="border-radius:50%;border:2px solid #e2e8f0;" /></div>` : ''}
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr><td style="padding:0 0 10px;">
                     <div style="font-size:12px;font-weight:800;color:#64748b;">תאריך</div>
@@ -832,11 +946,15 @@ export function generateWebinarInviteEmailHTML(params: {
             text: 'הרשמה לוובינר →',
             url: params.registerUrl,
         })}
+
+        <div style="margin-top:24px;font-size:13px;color:#94a3b8;text-align:center;">
+            מקומות מוגבלים — כדאי לתפוס מקום 🎯
+        </div>
     `;
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: 'הזמנה לוובינר',
+        headerSubtitle: 'הזמנה לוובינר 🎤',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: true,
@@ -847,28 +965,54 @@ export function generateNewFeatureEmailHTML(params: {
     featureName: string;
     description: string;
     imageUrl?: string;
+    screenshotUrl?: string;
     learnMoreUrl: string;
+    highlights?: Array<{ title: string; desc?: string }>;
 }): string {
+    const assets = getEmailAssets();
+    const screenshotSrc = params.screenshotUrl || params.imageUrl || assets.featureScreenshot;
+
     const bodyContent = `
+        ${EmailTemplateComponents.generateFeatureBanner({
+            emoji: '🚀',
+            title: params.featureName,
+            subtitle: 'פיצ\'ר חדש ב-MISRAD AI',
+        })}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">שלום,</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            שנשארתם איתנו — זה לא מובן מאליו. 💜
+            <br />
             השקנו פיצ'ר חדש: <strong style="color:#6366f1;">${params.featureName}</strong>
         </div>
 
-        ${params.imageUrl ? `
-            <div style="margin:24px 0;">
-                <img src="${params.imageUrl}" alt="${params.featureName}" style="width:100%;max-width:540px;border-radius:12px;border:2px solid #e2e8f0;display:block;margin:0 auto;" />
-            </div>
-        ` : ''}
+        ${EmailTemplateComponents.generateScreenshot({
+            src: screenshotSrc,
+            alt: params.featureName,
+            title: 'MISRAD AI — ' + params.featureName,
+            href: params.learnMoreUrl,
+        })}
 
         <div style="font-size:15px;color:#334155;line-height:1.7;margin-bottom:24px;">
             ${params.description}
         </div>
 
+        ${params.highlights ? EmailTemplateComponents.generateSteps(params.highlights) : ''}
+
         ${EmailTemplateComponents.generateCTAButton({
             text: 'לנסות עכשיו →',
             url: params.learnMoreUrl,
+        })}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'עבדנו קשה על הפיצ\'ר הזה — ואם יש לכם רעיונות לשיפורים, אני רוצה לשמוע. פשוט תשיבו למייל הזה.',
+            signatureText: assets.founderSignature,
         })}
     `;
 
@@ -885,31 +1029,61 @@ export function generateReengagementEmailHTML(params: {
     userName?: string | null;
     daysSinceLastLogin: number;
     portalUrl: string;
+    newFeatures?: string[];
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.userName ? `${params.userName},` : 'היי,';
 
+    const featuresHtml = params.newFeatures && params.newFeatures.length > 0
+        ? `<div style="margin:24px 0;padding:20px 24px;background:#ecfdf5;border:2px solid #a7f3d0;border-radius:14px;">
+            <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:8px;">🎁 מה חדש מאז שעזבת:</div>
+            ${params.newFeatures.map((f) => `<div style="font-size:14px;color:#0f172a;padding:4px 0;">✅ ${f}</div>`).join('')}
+           </div>`
+        : '';
+
     const bodyContent = `
+        ${EmailTemplateComponents.generateHeroImage({
+            src: assets.reengagementHero,
+            alt: 'חיכינו לך',
+            href: params.portalUrl,
+        })}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            לא ראינו אותך ${params.daysSinceLastLogin} ימים. הכל בסדר?
-            <br /><br />
-            הוספנו כמה שיפורים מאז — שווה לבדוק.
+            לא ראינו אותך ${params.daysSinceLastLogin} ימים.
+            <br />
+            הכל בסדר? אנחנו שמים לב כשחסר לנו מישהו. 💙
         </div>
+
+        ${featuresHtml}
+
+        ${EmailTemplateComponents.generateScreenshot({
+            src: assets.welcomeDashboardScreenshot,
+            alt: 'MISRAD AI Dashboard',
+            title: 'כך נראית המערכת עכשיו',
+            href: params.portalUrl,
+        })}
 
         ${EmailTemplateComponents.generateCTAButton({
             text: 'חזרה ל-MISRAD →',
             url: params.portalUrl,
         })}
 
-        <div style="margin-top:28px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
-            צריך עזרה? תשיב למייל הזה — אנחנו קוראים הכל.
-        </div>
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'אני יודע שהחיים עסוקים. אם יש משהו שאנחנו יכולים לעשות טוב יותר — אני פה. תשיב למייל הזה, אני קורא הכל.',
+            signatureText: assets.founderSignature,
+        })}
     `;
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: 'חיכינו לך',
+        headerSubtitle: 'חיכינו לך 💙',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,

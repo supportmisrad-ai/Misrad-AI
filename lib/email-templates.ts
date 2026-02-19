@@ -394,6 +394,172 @@ export function generateBaseEmailTemplate(options: {
   `.trim();
 }
 
+/**
+ * Hero Image — full-width visual at top of email body
+ */
+function generateHeroImage(options: {
+  src: string;
+  alt: string;
+  href?: string;
+  borderRadius?: string;
+  caption?: string;
+}): string {
+  const radius = options.borderRadius || '14px';
+  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;max-width:540px;margin:0 auto;border-radius:${radius};border:2px solid ${BRAND_COLORS.border};" />`;
+  const wrapped = options.href ? `<a href="${options.href}" style="text-decoration:none;">${img}</a>` : img;
+
+  return `
+    <div style="margin:24px 0;text-align:center;">
+      ${wrapped}
+      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.lightGray};margin-top:8px;">${options.caption}</div>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Screenshot Mockup — image inside a browser-like frame
+ */
+function generateScreenshot(options: {
+  src: string;
+  alt: string;
+  title?: string;
+  href?: string;
+}): string {
+  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;border-radius:0 0 10px 10px;" />`;
+  const wrapped = options.href ? `<a href="${options.href}" style="text-decoration:none;">${img}</a>` : img;
+
+  return `
+    <div style="margin:24px 0;border-radius:12px;border:2px solid ${BRAND_COLORS.border};overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);">
+      <div style="background:${BRAND_COLORS.dark};padding:10px 16px;display:flex;align-items:center;gap:6px;">
+        <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+        ${options.title ? `<span style="color:rgba(255,255,255,0.6);font-size:11px;margin-right:auto;font-weight:600;">${options.title}</span>` : ''}
+      </div>
+      ${wrapped}
+    </div>
+  `;
+}
+
+/**
+ * Video Thumbnail — clickable image with play button overlay
+ */
+function generateVideoThumbnail(options: {
+  thumbnailSrc: string;
+  videoUrl: string;
+  alt?: string;
+  caption?: string;
+}): string {
+  return `
+    <div style="margin:24px 0;text-align:center;">
+      <a href="${options.videoUrl}" style="text-decoration:none;display:inline-block;position:relative;">
+        <img src="${options.thumbnailSrc}" alt="${options.alt || 'צפייה בסרטון'}" style="display:block;width:100%;max-width:540px;border-radius:14px;border:2px solid ${BRAND_COLORS.border};" />
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(99,102,241,0.9);box-shadow:0 8px 24px rgba(99,102,241,0.4);text-align:center;line-height:64px;">
+          <span style="display:inline-block;width:0;height:0;border-style:solid;border-width:12px 0 12px 22px;border-color:transparent transparent transparent #ffffff;margin-right:-4px;margin-top:2px;"></span>
+        </div>
+      </a>
+      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.lightGray};margin-top:8px;">${options.caption}</div>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Founder Card — personal message with photo and signature (inspired by Mishloha)
+ */
+function generateFounderCard(options: {
+  photoUrl: string;
+  name: string;
+  title: string;
+  message: string;
+  signatureText?: string;
+}): string {
+  return `
+    <div style="margin:28px 0;padding:28px;background:linear-gradient(135deg,#faf5ff 0%,#f0f9ff 100%);border-radius:18px;border:2px solid ${BRAND_COLORS.border};">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="${options.photoUrl}" alt="${options.name}" width="80" height="80" style="border-radius:50%;border:3px solid ${BRAND_COLORS.primary};box-shadow:0 4px 12px rgba(99,102,241,0.2);" />
+      </div>
+      <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.8;text-align:center;margin-bottom:16px;">
+        ${options.message}
+      </div>
+      <div style="text-align:center;margin-top:16px;">
+        ${options.signatureText ? `<div style="font-family:'Segoe Script','Dancing Script',cursive;font-size:22px;color:${BRAND_COLORS.primary};margin-bottom:4px;">${options.signatureText}</div>` : ''}
+        <div style="font-size:14px;font-weight:800;color:${BRAND_COLORS.dark};">${options.name}</div>
+        <div style="font-size:12px;color:${BRAND_COLORS.gray};">${options.title}</div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Testimonial Quote — customer quote with optional avatar
+ */
+function generateTestimonial(options: {
+  quote: string;
+  authorName: string;
+  authorTitle?: string;
+  authorPhotoUrl?: string;
+}): string {
+  return `
+    <div style="margin:24px 0;padding:24px 28px;background:${BRAND_COLORS.background};border-radius:16px;border-right:4px solid ${BRAND_COLORS.primary};">
+      <div style="font-size:24px;color:${BRAND_COLORS.primary};margin-bottom:8px;line-height:1;">"</div>
+      <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.7;font-style:italic;margin-bottom:16px;">
+        ${options.quote}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${options.authorPhotoUrl ? `<img src="${options.authorPhotoUrl}" alt="${options.authorName}" width="36" height="36" style="border-radius:50%;border:2px solid ${BRAND_COLORS.border};" />` : ''}
+        <div>
+          <div style="font-size:13px;font-weight:800;color:${BRAND_COLORS.dark};">${options.authorName}</div>
+          ${options.authorTitle ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};">${options.authorTitle}</div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Feature Banner — eye-catching gradient banner with icon + text
+ */
+function generateFeatureBanner(options: {
+  emoji: string;
+  title: string;
+  subtitle?: string;
+  gradient?: string;
+}): string {
+  const gradient = options.gradient || `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%)`;
+  return `
+    <div style="margin:24px 0;padding:28px;background:${gradient};border-radius:16px;text-align:center;box-shadow:0 8px 24px rgba(99,102,241,0.2);">
+      <div style="font-size:36px;margin-bottom:12px;">${options.emoji}</div>
+      <div style="font-size:20px;font-weight:900;color:#ffffff;margin-bottom:4px;">${options.title}</div>
+      ${options.subtitle ? `<div style="font-size:14px;color:rgba(255,255,255,0.8);font-weight:500;">${options.subtitle}</div>` : ''}
+    </div>
+  `;
+}
+
+/**
+ * Image Row — 2-3 images side by side (for showcasing features)
+ */
+function generateImageRow(options: {
+  images: Array<{ src: string; alt: string; caption?: string; href?: string }>;
+}): string {
+  const width = options.images.length <= 2 ? '48%' : '31%';
+  const cells = options.images.map((img) => {
+    const imgTag = `<img src="${img.src}" alt="${img.alt}" style="display:block;width:100%;border-radius:10px;border:1px solid ${BRAND_COLORS.border};" />`;
+    const wrapped = img.href ? `<a href="${img.href}" style="text-decoration:none;">${imgTag}</a>` : imgTag;
+    return `
+      <td style="width:${width};vertical-align:top;padding:0 4px;">
+        ${wrapped}
+        ${img.caption ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};text-align:center;margin-top:6px;font-weight:600;">${img.caption}</div>` : ''}
+      </td>
+    `;
+  }).join('');
+
+  return `
+    <table role="presentation" style="width:100%;margin:24px 0;" cellpadding="0" cellspacing="0">
+      <tr>${cells}</tr>
+    </table>
+  `;
+}
+
 export const EmailTemplateComponents = {
   generateEmailHeader,
   generateEmailFooter,
@@ -405,6 +571,13 @@ export const EmailTemplateComponents = {
   generateStatCard,
   generateDivider,
   generateCallout,
+  generateHeroImage,
+  generateScreenshot,
+  generateVideoThumbnail,
+  generateFounderCard,
+  generateTestimonial,
+  generateFeatureBanner,
+  generateImageRow,
   Icons: EmailIcons,
   Colors: BRAND_COLORS,
   Links: BRAND_LINKS,
