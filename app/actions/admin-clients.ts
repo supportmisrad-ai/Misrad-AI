@@ -2,11 +2,13 @@
 
 
 import { logger } from '@/lib/server/logger';
+import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
-import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { requireAuth } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
+import { getBaseUrl } from '@/lib/utils';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 type CreateClientParams = {
   fullName: string;
@@ -14,14 +16,27 @@ type CreateClientParams = {
   sendInviteEmail?: boolean;
 };
 
-type CreateClientResult = 
-  | { ok: true; clientId: string }
+type CreateClientResult =
+  | { ok: true; invitationToken: string; signupUrl: string }
   | { ok: false; error: string };
 
+async function generateUniqueInviteToken(): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const token = randomBytes(16).toString('hex').toUpperCase().slice(0, 32);
+    const existing = await prisma.organization_signup_invitations.findFirst({
+      where: { token },
+      select: { id: true },
+    });
+    if (!existing) return token;
+  }
+  throw new Error('Failed to generate unique invite token');
+}
+
 /**
- * Creates a new client (owner) WITHOUT an organization
- * Organizations are created separately and linked to the client
- * This is the correct flow: Client → Organization(s)
+ * Creates a pending invitation for a new client (owner).
+ * When the client signs up via Google or email/password using the invite link,
+ * the Clerk webhook automatically picks up the invitation by email and provisions
+ * their organization correctly — no orphaned "pending_xxx" records.
  */
 export async function createClient(
   params: CreateClientParams
@@ -40,7 +55,6 @@ export async function createClient(
 
     const { fullName, email, sendInviteEmail = true } = params;
 
-    // Validate required fields
     if (!fullName?.trim()) {
       return { ok: false, error: 'שם מלא הוא שדה חובה' };
     }
@@ -54,53 +68,89 @@ export async function createClient(
       return { ok: false, error: 'כתובת מייל לא תקינה' };
     }
 
-    // Check if email already exists
+    // Check if a real (non-pending) user already exists with this email
     const existingUser = await prisma.organizationUser.findFirst({
-      where: {
-        email: { equals: normalizedEmail, mode: 'insensitive' },
-        role: 'owner',
-      },
-      select: { id: true },
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      select: { id: true, clerk_user_id: true },
     });
 
-    if (existingUser?.id) {
-      return { ok: false, error: `לקוח עם מייל ${normalizedEmail} כבר קיים במערכת` };
+    if (existingUser?.id && !String(existingUser.clerk_user_id || '').startsWith('pending_')) {
+      return { ok: false, error: `משתמש עם מייל ${normalizedEmail} כבר קיים במערכת` };
     }
 
-    const now = new Date();
-
-    // Create client (owner) WITHOUT organization
-    const clerkId = `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    const created = await prisma.organizationUser.create({
-      data: {
-        clerk_user_id: clerkId,
-        email: normalizedEmail,
-        full_name: fullName.trim(),
-        role: 'owner',
-        allowed_modules: ['nexus', 'system', 'finance', 'client', 'operations'],
-        created_at: now,
-        updated_at: now,
+    // Check if there's already an active unused invitation for this email
+    const existingInvite = await prisma.organization_signup_invitations.findFirst({
+      where: {
+        owner_email: normalizedEmail,
+        is_active: true,
+        is_used: false,
       },
-      select: { id: true },
+      select: { id: true, token: true, desired_slug: true },
     });
 
-    const clientId = String(created.id);
+    if (existingInvite?.id) {
+      const baseUrl = getBaseUrl();
+      const token = String(existingInvite.token);
+      const signupUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
+      return { ok: true, invitationToken: token, signupUrl };
+    }
 
-    // TODO: Send invite email if requested
-    // For now, admin will need to manually invite the client via Clerk
-    
-    return {
-      ok: true,
-      clientId,
-    };
+    // Generate a unique slug from the owner's name
+    const slugBase = generateOrgSlug(fullName.trim());
+    const desiredSlug = slugBase ? await generateUniqueOrgSlug(slugBase) : await generateUniqueOrgSlug('org');
+
+    // Derive organization name from owner's full name
+    const orgName = fullName.trim();
+
+    const token = await generateUniqueInviteToken();
+    const now = new Date();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 days
+
+    await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        reason: 'admin_create_client_invitation',
+        source: 'admin-clients',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.organization_signup_invitations.create({
+          data: {
+            token,
+            owner_email: normalizedEmail,
+            organization_name: orgName,
+            desired_slug: desiredSlug,
+            is_used: false,
+            is_active: true,
+            created_at: now,
+            updated_at: now,
+            expires_at: expiresAt,
+            metadata: { owner_full_name: fullName.trim() },
+          },
+        })
+    );
+
+    const baseUrl = getBaseUrl();
+    const signupUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
+
+    if (sendInviteEmail) {
+      try {
+        const { sendTenantInvitationEmail } = await import('@/lib/email');
+        await sendTenantInvitationEmail(normalizedEmail, orgName, signupUrl, { ownerName: fullName.trim() });
+      } catch (emailErr) {
+        logger.error('createClient', 'Failed to send invite email (ignored):', emailErr);
+      }
+    }
+
+    return { ok: true, invitationToken: token, signupUrl };
   } catch (error) {
     logger.error('createClient', 'Error:', error);
-    
+
     if (error instanceof Error) {
       return { ok: false, error: `שגיאה: ${error.message}` };
     }
-    
+
     return { ok: false, error: 'שגיאה לא צפויה ביצירת לקוח' };
   }
 }
