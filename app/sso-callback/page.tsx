@@ -80,10 +80,17 @@ export default function SsoCallbackPage() {
       const response = await originalFetch.apply(this, args);
 
       const url = typeof args[0] === 'string' ? args[0] : args[0] instanceof URL ? args[0].toString() : '';
+      const isClerkApi = url.includes('/v1/client/') || url.includes('clerk.');
       if (url.includes('/v1/client/sign_ups') && response.status === 403) {
         clearSsoAttempts();
         setCallbackError(
           'הרשמה חדשה חסומה על ידי מערכת האימות (שגיאה 403). ייתכן שהרשמות חדשות מוגבלות. נא ליצור קשר עם התמיכה.'
+        );
+      }
+      if (isClerkApi && response.status === 429) {
+        clearSsoAttempts();
+        setCallbackError(
+          'בקשות רבות מדי למערכת האימות (שגיאה 429). אנא המתן דקה ונסה שוב.'
         );
       }
 

@@ -72,6 +72,14 @@ export type EdgeRateLimitResult =
 
 export async function edgeGlobalRateLimit(req: Request): Promise<EdgeRateLimitResult> {
   const ip = getIp(req);
+
+  // In development, skip rate limiting for localhost to prevent 429 cascades
+  // that poison Clerk token refresh and cause infinite loops.
+  const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+  if (isDev && (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip === 'unknown')) {
+    return { allowed: true, remaining: LIMIT };
+  }
+
   const key = `erl:${ip}`;
 
   const redis = getRedis();
@@ -99,7 +107,8 @@ export async function edgeGlobalRateLimit(req: Request): Promise<EdgeRateLimitRe
 
   // ── In-memory fallback ─────────────────────────────────────────────────
   const now = Date.now();
-  const degradedLimit = Math.max(1, Math.floor(LIMIT / 3));
+  // Use 80% of configured limit (not /3 which was too aggressive)
+  const degradedLimit = Math.max(1, Math.floor(LIMIT * 0.8));
 
   const existing = buckets.get(key);
   if (!existing || existing.resetAt <= now) {

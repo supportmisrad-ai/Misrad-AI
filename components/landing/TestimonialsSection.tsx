@@ -33,6 +33,7 @@ export default function TestimonialsSection() {
         setError(null);
 
         const res = await fetch('/api/landing/testimonials');
+        if (res.status === 429) return; // Rate limited — use defaults silently
         if (!res.ok) throw new Error('Failed to load testimonials');
 
         const data = await res.json();

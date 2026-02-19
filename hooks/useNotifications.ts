@@ -22,6 +22,7 @@ export const useNotifications = (
     addToast: (msg: string, type?: Toast['type']) => void
 ) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const backoffRef = { current: 0 };
 
     const mergeServerNotifications = (serverRows: unknown[]) => {
         const mapped: Notification[] = (Array.isArray(serverRows) ? serverRows : []).map((row) => {
@@ -94,7 +95,14 @@ export const useNotifications = (
                     'x-org-id': orgSlug,
                 },
             });
+            if (res.status === 429) {
+                // Back off exponentially to avoid poisoning Clerk token refresh
+                backoffRef.current = Math.min(backoffRef.current + 1, 6);
+                return;
+            }
             if (!res.ok) return;
+            // Success — reset backoff
+            backoffRef.current = 0;
             const data: unknown = await res.json();
             const dataObj = asObject(data) ?? {};
             const notificationsValue = dataObj.notifications;
@@ -104,10 +112,15 @@ export const useNotifications = (
         }
     };
 
-    // Initial load + periodic refresh
+    // Initial load + periodic refresh with backoff
     useEffect(() => {
         fetchServerNotifications();
         const interval = setInterval(() => {
+            // Skip this tick if backing off (exponential: 30s, 60s, 120s, ...)
+            if (backoffRef.current > 0) {
+                backoffRef.current = Math.max(0, backoffRef.current - 1);
+                return;
+            }
             fetchServerNotifications();
         }, 30000);
         return () => clearInterval(interval);

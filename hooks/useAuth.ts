@@ -302,6 +302,12 @@ export const useAuth = (
             const errorObj = asObject(error);
             const status = typeof errorObj?.status === 'number' ? errorObj.status : 0;
 
+            // 429 Too Many Requests — back off silently without logging
+            if (status === 429 || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
+                presenceFailureCountRef.current += 2; // Increase backoff faster
+                return;
+            }
+
             if (status === 401 || errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
                 // Silent stop on 401 - no console spam
                 if (!stopAllActivityRef.current) {
