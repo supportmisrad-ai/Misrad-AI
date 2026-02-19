@@ -17,6 +17,7 @@ import {
     type EmailCategory,
     type SenderKey,
 } from './email-registry';
+import { ensureEmailAssetsCacheWarm } from './email-assets';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -107,6 +108,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         forceSend = false,
         senderKeyOverride,
     } = options;
+
+    // Warm email assets cache (DB overrides) — TTL-guarded, no-op if warm
+    await ensureEmailAssetsCacheWarm();
 
     // Validate recipient
     if (!to || !to.includes('@')) {

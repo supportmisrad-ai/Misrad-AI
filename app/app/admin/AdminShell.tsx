@@ -28,6 +28,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/global/ai')) return 'platform';
   if (p.startsWith('/app/admin/global/links')) return 'platform';
   if (p.startsWith('/app/admin/global/downloads')) return 'platform';
+  if (p.startsWith('/app/admin/global/email-assets')) return 'platform';
   if (p.startsWith('/app/admin/global/help-videos')) return 'platform';
   if (p.startsWith('/app/admin/global/kb-videos')) return 'platform';
   if (p.startsWith('/app/admin/global/work-listings')) return 'platform';
@@ -259,6 +260,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/global/ai', label: 'מוח AI' },
       { href: '/app/admin/global/links', label: 'מרכז קישורים' },
       { href: '/app/admin/global/downloads', label: 'הורדות' },
+      { href: '/app/admin/global/email-assets', label: 'תמונות מיילים' },
       { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה' },
       { href: '/app/admin/global/data', label: 'דאטה' },
     ],
