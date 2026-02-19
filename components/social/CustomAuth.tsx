@@ -230,17 +230,21 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         return;
       }
 
-      const result = await signUp.attemptEmailAddressVerification({ code });
+      let result = await signUp.attemptEmailAddressVerification({ code });
+
+      // missing_requirements: email is verified but sign-up still needs something
+      // (e.g. bot-protection/Turnstile not yet complete). Wait briefly then reload.
+      if (result.status === 'missing_requirements') {
+        await new Promise<void>(r => setTimeout(r, 1000));
+        try { result = await signUp.reload(); } catch { /* use original */ }
+      }
+
       if (result.status === 'complete') {
         const sessionId = result.createdSessionId;
-        if (sessionId) {
-          if (typeof setActive === 'function') {
-            await setActive({ session: sessionId });
-          }
+        if (sessionId && typeof setActive === 'function') {
+          await setActive({ session: sessionId });
         }
-
         await recordLegalConsent();
-
         if (onSuccess) {
           onSuccess();
         } else {
@@ -249,12 +253,47 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         return;
       }
 
+      // Still missing_requirements after reload — give a helpful message
+      if (result.status === 'missing_requirements') {
+        const signUpObj = result as unknown as Record<string, unknown>;
+        const missingArr = Array.isArray(signUpObj.missingFields) ? signUpObj.missingFields as string[] : [];
+        if (missingArr.includes('captcha')) {
+          setError('נדרש אימות נגד בוטים. נא לרענן את הדף ולנסות שוב.');
+        } else {
+          setError('אימות האימייל הצליח אך ההרשמה דורשת פרטים נוספים. נא לרענן ולנסות שוב.');
+        }
+        return;
+      }
+
       setError('האימות לא הושלם. בדוק את הקוד ונסה שוב.');
     } catch (err: unknown) {
-      console.error('Email verification error:', err);
       const clerkErr = err as ClerkAPIError;
-      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה באימות האימייל. נסה שוב.';
-      setError(translateClerkError(errorMsg));
+      const errorMsg = clerkErr?.errors?.[0]?.message || '';
+
+      // "Already verified" — user submitted the code a second time after it already worked.
+      // Reload the sign-up: if it's complete, activate the session instead of showing an error.
+      if (errorMsg.includes('already been verified') || errorMsg.includes('already verified')) {
+        try {
+          const reloaded = await signUp.reload();
+          if (reloaded.status === 'complete' && reloaded.createdSessionId) {
+            if (typeof setActive === 'function') {
+              await setActive({ session: reloaded.createdSessionId });
+            }
+            await recordLegalConsent();
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              router.push('/');
+            }
+            return;
+          }
+        } catch { /* ignore */ }
+        setError('הקוד כבר אומת בהצלחה. אם לא עברת לאפליקציה, נא לרענן את הדף.');
+        return;
+      }
+
+      console.error('Email verification error:', err);
+      setError(translateClerkError(errorMsg || 'שגיאה באימות האימייל. נסה שוב.'));
     } finally {
       setIsLoading(false);
     }
