@@ -20,6 +20,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/invitations/complete/[token]/route.ts',
   'app/api/webhooks/morning-app/route.ts', // Webhook protected by signature verification
   'app/api/email/unsubscribe/route.ts', // Public: HMAC token verified, no auth required
+  'app/api/contact/route.ts', // Public: contact form, rate-limited internally, no auth required
 ]);
 
 const CANDIDATE_APPROVED = new Set([
