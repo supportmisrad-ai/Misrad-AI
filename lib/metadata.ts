@@ -61,11 +61,11 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     themeColor: '#0EA5E9',
   },
   admin: {
-    title: 'MISRAD AI - Admin',
-    description: 'פאנל אדמין',
+    title: 'MISRAD AI — ניהול-על',
+    description: 'פאנל ניהול-על · MISRAD AI',
     icon: '/icons/admin-icon.svg',
     appleIcon: '/icons/admin-icon-192.png',
-    manifest: '/manifest.json',
+    manifest: '/manifests/admin-manifest.json',
     themeColor: '#0F172A',
   },
   social: {

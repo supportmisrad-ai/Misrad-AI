@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -13,60 +13,86 @@ import { Button } from '@/components/ui/button';
 import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
 import type { Lead } from '@/types';
 
-type AdminArea = 'customers' | 'platform';
-const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v1';
+type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra';
+const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v2';
 
 function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   const p = String(pathname || '');
-  if (p.startsWith('/app/admin/modules')) return 'platform';
-  if (p.startsWith('/app/admin/system-flags')) return 'platform';
-  if (p.startsWith('/app/admin/logs')) return 'platform';
-  if (p.startsWith('/app/admin/ai')) return 'platform';
 
-  if (p === '/app/admin/global' || p === '/app/admin/global/') return 'platform';
-  if (p.startsWith('/app/admin/global/control')) return 'platform';
-  if (p.startsWith('/app/admin/global/ai')) return 'platform';
-  if (p.startsWith('/app/admin/global/links')) return 'platform';
-  if (p.startsWith('/app/admin/global/downloads')) return 'platform';
-  if (p.startsWith('/app/admin/global/email-assets')) return 'platform';
-  if (p.startsWith('/app/admin/global/help-videos')) return 'platform';
-  if (p.startsWith('/app/admin/global/kb-videos')) return 'platform';
-  if (p.startsWith('/app/admin/global/work-listings')) return 'platform';
-  if (p.startsWith('/app/admin/global/data')) return 'platform';
-  if (p.startsWith('/app/admin/global/versions')) return 'platform';
-
-  if (p.startsWith('/app/admin/nexus')) return 'platform';
-  if (p.startsWith('/app/admin/social')) return 'platform';
-  if (p.startsWith('/app/admin/system')) return 'platform';
-  if (p.startsWith('/app/admin/landing')) return 'platform';
-
+  // customers
   if (p.startsWith('/app/admin/customers')) return 'customers';
   if (p.startsWith('/app/admin/setup-customer')) return 'customers';
   if (p.startsWith('/app/admin/organizations')) return 'customers';
   if (p.startsWith('/app/admin/org/')) return 'customers';
-  if (p.startsWith('/app/admin/users')) return 'customers';
-  if (p.startsWith('/app/admin/support')) return 'customers';
-  if (p.startsWith('/app/admin/client')) return 'customers';
-  if (p.startsWith('/app/admin/global/users')) return 'customers';
-  if (p.startsWith('/app/admin/global/approvals')) return 'customers';
-  if (p.startsWith('/app/admin/global/updates')) return 'platform';
-  if (p.startsWith('/app/admin/global/announcements')) return 'platform';
+  if (p.startsWith('/app/admin/business-clients')) return 'customers';
+  if (p.startsWith('/app/admin/billing-management')) return 'customers';
+
+  // users
+  if (p.startsWith('/app/admin/global/users')) return 'users';
+  if (p.startsWith('/app/admin/global/approvals')) return 'users';
+  if (p.startsWith('/app/admin/users')) return 'users';
+
+  // support
+  if (p.startsWith('/app/admin/client/support')) return 'support';
+  if (p.startsWith('/app/admin/client/features')) return 'support';
+  if (p.startsWith('/app/admin/client/announcements')) return 'support';
+  if (p.startsWith('/app/admin/support')) return 'support';
+
+  // product (module controls)
+  if (p.startsWith('/app/admin/nexus')) return 'product';
+  if (p.startsWith('/app/admin/social')) return 'product';
+  if (p.startsWith('/app/admin/system')) return 'product';
+  if (p.startsWith('/app/admin/finance')) return 'product';
+  if (p.startsWith('/app/admin/client/control')) return 'product';
+  if (p.startsWith('/app/admin/operations')) return 'product';
+
+  // content
+  if (p.startsWith('/app/admin/landing')) return 'content';
+  if (p.startsWith('/app/admin/global/email-assets')) return 'content';
+  if (p.startsWith('/app/admin/global/help-videos')) return 'content';
+  if (p.startsWith('/app/admin/global/kb-videos')) return 'content';
+  if (p.startsWith('/app/admin/global/links')) return 'content';
+  if (p.startsWith('/app/admin/global/work-listings')) return 'content';
+
+  // infra
+  if (p.startsWith('/app/admin/modules')) return 'infra';
+  if (p.startsWith('/app/admin/system-flags')) return 'infra';
+  if (p.startsWith('/app/admin/logs')) return 'infra';
+  if (p.startsWith('/app/admin/ai')) return 'infra';
+  if (p === '/app/admin/global' || p === '/app/admin/global/') return 'infra';
+  if (p.startsWith('/app/admin/global/control')) return 'infra';
+  if (p.startsWith('/app/admin/global/feature-flags')) return 'infra';
+  if (p.startsWith('/app/admin/global/ai')) return 'infra';
+  if (p.startsWith('/app/admin/global/downloads')) return 'infra';
+  if (p.startsWith('/app/admin/global/data')) return 'infra';
+  if (p.startsWith('/app/admin/global/versions')) return 'infra';
+  if (p.startsWith('/app/admin/global/updates')) return 'infra';
+  if (p.startsWith('/app/admin/global/announcements')) return 'infra';
 
   return null;
 }
 
+const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra'];
+
 function isAdminArea(value: unknown): value is AdminArea {
-  return value === 'customers' || value === 'platform';
+  return ADMIN_AREAS.includes(value as AdminArea);
 }
 
+const AREA_META: Record<AdminArea, { label: string; description: string }> = {
+  customers: { label: 'לקוחות', description: 'ארגונים · לקוחות עסקיים · גבייה' },
+  users: { label: 'משתמשים', description: 'חשבונות · אישורים · התחזות' },
+  support: { label: 'תמיכה', description: 'תקלות · בקשות · הודעות' },
+  product: { label: 'מוצר', description: 'מודולים · בקרה · הגדרות' },
+  content: { label: 'תוכן', description: 'נחיתה · מיילים · סרטונים' },
+  infra: { label: 'מערכת', description: 'תשתית · לוגים · AI · דאטה' },
+};
+
 function getAdminAreaLabel(area: AdminArea): string {
-  return area === 'customers' ? 'ניהול לקוחות' : 'ניהול פלטפורמה';
+  return AREA_META[area]?.label || area;
 }
 
 function getAdminAreaDescription(area: AdminArea): string {
-  return area === 'customers'
-    ? 'לקוחות · ארגונים · משתמשים · תמיכה'
-    : 'מוצר · מודולים · תשתית · לוגים';
+  return AREA_META[area]?.description || '';
 }
 
 function isActivePath(pathname: string, href: string, currentSearch: string) {
@@ -146,30 +172,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const inferred = inferAdminAreaFromPathname(pathname);
     if (inferred === next) return;
 
-    router.push(next === 'customers' ? '/app/admin/organizations' : '/app/admin/global/control');
+    router.push('/app/admin');
   };
-
-  const [expandedGroups, setExpandedGroups] = useState<{ nexus: boolean; social: boolean; system: boolean; landing: boolean; finance: boolean; client: boolean; operations: boolean }>(() => ({
-    nexus: pathname.startsWith('/app/admin/nexus'),
-    social: pathname.startsWith('/app/admin/social'),
-    system: pathname.startsWith('/app/admin/system'),
-    landing: pathname.startsWith('/app/admin/landing'),
-    finance: pathname.startsWith('/app/admin/finance'),
-    client: pathname.startsWith('/app/admin/client'),
-    operations: pathname.startsWith('/app/admin/operations'),
-  }));
-
-  useEffect(() => {
-    setExpandedGroups((prev) => ({
-      nexus: prev.nexus || pathname.startsWith('/app/admin/nexus'),
-      social: prev.social || pathname.startsWith('/app/admin/social'),
-      system: prev.system || pathname.startsWith('/app/admin/system'),
-      landing: prev.landing || pathname.startsWith('/app/admin/landing'),
-      finance: prev.finance || pathname.startsWith('/app/admin/finance'),
-      client: prev.client || pathname.startsWith('/app/admin/client'),
-      operations: prev.operations || pathname.startsWith('/app/admin/operations'),
-    }));
-  }, [pathname]);
 
   const keydownOptions = useMemo(() => ({ capture: true }), []);
 
@@ -192,31 +196,56 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     []
   );
 
-  const customerNavItems = useMemo<AdminNavItem[]>(
-    () => [
+  const areaNavMap = useMemo<Record<AdminArea, AdminNavItem[]>>(() => ({
+    customers: [
       { href: '/app/admin/dashboard/customers', label: 'מבט על לקוחות', icon: LayoutGrid },
-      { href: '/app/admin/setup-customer', label: 'הקמת לקוח (Wizard)', icon: UserPlus },
+      { href: '/app/admin/setup-customer', label: 'הקמת לקוח', icon: UserPlus },
       { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
       { href: '/app/admin/organizations', label: 'ניהול ארגונים', icon: Network },
       { href: '/app/admin/billing-management', label: 'ניהול גבייה', icon: DollarSign },
-      { href: '/app/admin/client/support', label: 'שירות לקוחות', icon: LifeBuoy },
     ],
-    []
-  );
-
-  const platformNavItems = useMemo<AdminNavItem[]>(
-    () => [
-      { href: '/app/admin/dashboard/platform', label: 'מבט על פלטפורמה', icon: LayoutGrid },
+    users: [
+      { href: '/app/admin/global/users', label: 'כל המשתמשים', icon: Users },
+      { href: '/app/admin/global/approvals', label: 'אישורי משתמשים', icon: ShieldCheck },
+      { href: '/app/admin/users', label: 'חשבונות מנויים', icon: Users },
+    ],
+    support: [
+      { href: '/app/admin/client/support', label: 'דיווחי תקלות', icon: LifeBuoy },
+      { href: '/app/admin/client/features', label: "בקשות פיצ'רים", icon: Sparkles },
+      { href: '/app/admin/client/announcements', label: 'הודעות ללקוחות', icon: ScrollText },
+      { href: '/app/admin/support', label: 'הגדרות תמיכה', icon: Settings },
+    ],
+    product: [
+      { href: '/app/admin/nexus/control', label: 'Nexus', icon: Sparkles },
+      { href: '/app/admin/social', label: 'Social', icon: ShieldCheck },
+      { href: '/app/admin/system/control', label: 'System', icon: Settings },
+      { href: '/app/admin/finance/control', label: 'Finance', icon: DollarSign },
+      { href: '/app/admin/client/control', label: 'Client', icon: Users },
+      { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
+    ],
+    content: [
+      { href: '/app/admin/landing/pricing', label: 'דפי נחיתה', icon: Globe },
+      { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: Globe },
+      { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: Globe },
+      { href: '/app/admin/global/links', label: 'מרכז קישורים', icon: Globe },
+      { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Globe },
+    ],
+    infra: [
+      { href: '/app/admin/dashboard/platform', label: 'מבט על מערכת', icon: LayoutGrid },
+      { href: '/app/admin/global/control', label: 'בקרת פלטפורמה', icon: Server },
       { href: '/app/admin/system-flags', label: 'מתגי מערכת', icon: SlidersHorizontal },
-      { href: '/app/admin/ai', label: 'ניתוח בינה מלאכותית', icon: Sparkles },
+      { href: '/app/admin/global/feature-flags', label: 'הגדרות מתקדמות', icon: Settings },
+      { href: '/app/admin/ai', label: 'ניתוח AI', icon: Sparkles },
+      { href: '/app/admin/global/ai', label: 'מוח AI', icon: Sparkles },
       { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
+      { href: '/app/admin/global/data', label: 'דאטה', icon: Server },
+      { href: '/app/admin/global/downloads', label: 'הורדות', icon: Server },
     ],
-    []
-  );
+  }), []);
 
   const navItems = useMemo<AdminNavItem[]>(() => {
-    return adminArea === 'platform' ? platformNavItems : customerNavItems;
-  }, [adminArea, customerNavItems, platformNavItems]);
+    return areaNavMap[adminArea] || [];
+  }, [adminArea, areaNavMap]);
 
   const auditNavItems = useMemo<AdminNavItem[]>(
     () => [
@@ -236,118 +265,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const base = [find('/app/admin/logs')];
       return base.filter((item): item is AdminNavItem => Boolean(item));
     }
-    const base =
-      adminArea === 'platform'
-        ? [find('/app/admin'), find('/app/admin/system-flags'), find('/app/admin/ai'), find('/app/admin/logs')]
-        : [find('/app/admin'), find('/app/admin/setup-customer'), find('/app/admin/business-clients'), find('/app/admin/organizations')];
+    const areaItems = navItems.slice(0, 3).map((i) => find(i.href));
+    const base = [find('/app/admin'), ...areaItems];
     return base.filter((item): item is AdminNavItem => Boolean(item));
   }, [adminArea, effectiveNavItems, isAuditServiceRole]);
-
-  const customerUsersSubItems = useMemo(
-    () => [
-      { href: '/app/admin/global/users', label: 'כל המשתמשים' },
-      { href: '/app/admin/global/approvals', label: 'אישורי משתמשים' },
-      { href: '/app/admin/users', label: 'חשבונות מנויים (התחזות)' },
-    ],
-    []
-  );
-
-  const platformInfraSubItems = useMemo(
-    () => [
-      { href: '/app/admin/global/control', label: 'בקרת פלטפורמה' },
-      { href: '/app/admin/global/feature-flags', label: 'הגדרות מתקדמות' },
-      { href: '/app/admin/landing/pricing', label: 'דפי נחיתה' },
-      { href: '/app/admin/global/ai', label: 'מוח AI' },
-      { href: '/app/admin/global/links', label: 'מרכז קישורים' },
-      { href: '/app/admin/global/downloads', label: 'הורדות' },
-      { href: '/app/admin/global/email-assets', label: 'תמונות מיילים' },
-      { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה' },
-      { href: '/app/admin/global/data', label: 'דאטה' },
-    ],
-    []
-  );
-
-  const nexusSubItems = useMemo(
-    () => [
-      { href: '/app/admin/nexus/control', label: 'בקרת מערכת' },
-      { href: '/app/admin/nexus/intelligence', label: 'בינה' },
-      { href: '/app/admin/nexus/invitations', label: 'הזמנות' },
-      { href: '/app/admin/nexus/announcements', label: 'הודעות' },
-    ],
-    []
-  );
-
-  const socialSubItems = useMemo(
-    () => [
-      { href: '/app/admin/social?tab=overview', label: 'מבט על' },
-      { href: '/app/admin/social?tab=team', label: 'צוות' },
-      { href: '/app/admin/social?tab=integrations', label: 'אינטגרציות' },
-      { href: '/app/admin/social?tab=quotas', label: 'מכסות' },
-      { href: '/app/admin/social?tab=automation', label: 'אוטומציות' },
-      { href: '/app/admin/social?tab=features', label: "בקשות פיצ'רים" },
-      { href: '/app/admin/social?tab=advanced', label: 'ניהול מתקדם' },
-    ],
-    []
-  );
-
-  const systemSubItems = useMemo(
-    () => [
-      { href: '/app/admin/system/control', label: 'בקרת מערכת' },
-      { href: '/app/admin/system/announcements', label: 'הודעות מערכת' },
-    ],
-    []
-  );
-
-  const clientSubItems = useMemo(
-    () => [
-      { href: '/app/admin/client/support', label: 'דיווחי תקלות' },
-      { href: '/app/admin/client/features', label: "בקשות פיצ'רים" },
-      { href: '/app/admin/client/announcements', label: 'הודעות ללקוחות' },
-      { href: '/app/admin/support', label: 'הגדרות תמיכה' },
-    ],
-    []
-  );
-
-  const financeSubItems = useMemo(
-    () => [
-      { href: '/app/admin/finance/control', label: 'בקרת מערכת' },
-    ],
-    []
-  );
-
-  const clientSubItemsModule = useMemo(
-    () => [
-      { href: '/app/admin/client/control', label: 'בקרת מערכת' },
-    ],
-    []
-  );
-
-  const operationsSubItems = useMemo(
-    () => [
-      { href: '/app/admin/operations/control', label: 'בקרת מערכת' },
-    ],
-    []
-  );
-
-  const landingSubItems = useMemo(
-    () => [
-      { href: '/app/admin/landing/pricing', label: 'תמחור' },
-      { href: '/app/admin/landing/content', label: 'תוכן' },
-      { href: '/app/admin/landing/payment-links', label: 'לינקים לתשלום' },
-      { href: '/app/admin/landing/branding', label: 'מיתוג' },
-      { href: '/app/admin/landing/partners', label: 'שותפים' },
-      { href: '/app/admin/landing/founder', label: 'מייסד' },
-    ],
-    []
-  );
-
-  const platformSystemSubItems = useMemo(
-    () => [
-      { href: '/app/admin/global/updates', label: 'עדכוני מערכת' },
-      { href: '/app/admin/global/announcements', label: 'הודעות מערכת' },
-    ],
-    []
-  );
 
   const commandPaletteNavItems = useMemo<CommandPaletteNavItem[]>(() => {
     const main: CommandPaletteNavItem[] = effectiveNavItems.map((i) => ({ id: i.href, label: i.label, icon: i.icon }));
@@ -355,20 +276,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       return main;
     }
 
-    if (adminArea === 'customers') {
-      const customerUsers: CommandPaletteNavItem[] = customerUsersSubItems.map((i) => ({ id: i.href, label: `לקוחות · ${i.label}`, icon: Users }));
-      const customerService: CommandPaletteNavItem[] = clientSubItems.map((i) => ({ id: i.href, label: `שירות לקוחות · ${i.label}`, icon: LifeBuoy }));
-      return [...main, ...customerUsers, ...customerService];
+    const allAreaItems: CommandPaletteNavItem[] = [];
+    for (const area of ADMIN_AREAS) {
+      if (area === adminArea) continue;
+      const areaLabel = getAdminAreaLabel(area);
+      for (const item of areaNavMap[area]) {
+        allAreaItems.push({ id: item.href, label: `${areaLabel} · ${item.label}`, icon: item.icon });
+      }
     }
-
-    const infra: CommandPaletteNavItem[] = platformInfraSubItems.map((i) => ({ id: i.href, label: `פלטפורמה · ${i.label}`, icon: Globe }));
-    const platformSys: CommandPaletteNavItem[] = platformSystemSubItems.map((i) => ({ id: i.href, label: `פלטפורמה · ${i.label}`, icon: Server }));
-    const nexus: CommandPaletteNavItem[] = nexusSubItems.map((i) => ({ id: i.href, label: `מוצר · נקסוס · ${i.label}`, icon: Sparkles }));
-    const social: CommandPaletteNavItem[] = socialSubItems.map((i) => ({ id: i.href, label: `מוצר · סושיאל · ${i.label}`, icon: ShieldCheck }));
-    const system: CommandPaletteNavItem[] = systemSubItems.map((i) => ({ id: i.href, label: `מוצר · מערכת · ${i.label}`, icon: Server }));
-    const landing: CommandPaletteNavItem[] = landingSubItems.map((i) => ({ id: i.href, label: `מוצר · דף נחיתה · ${i.label}`, icon: Globe }));
-    return [...main, ...infra, ...platformSys, ...nexus, ...social, ...system, ...landing];
-  }, [adminArea, clientSubItems, customerUsersSubItems, effectiveNavItems, isAuditServiceRole, landingSubItems, nexusSubItems, platformInfraSubItems, platformSystemSubItems, socialSubItems, systemSubItems]);
+    return [...main, ...allAreaItems];
+  }, [adminArea, areaNavMap, effectiveNavItems, isAuditServiceRole]);
 
   const commandPaletteLeads = useMemo<Lead[]>(() => (Array.isArray(leads) ? leads : []), [leads]);
 
@@ -387,59 +304,47 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   return (
     <AdminGuard>
-      <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-slate-900 font-sans relative overflow-hidden flex">
+      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100/50 text-slate-900 font-sans relative overflow-hidden flex">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 -right-1/4 w-[800px] h-[800px] bg-indigo-200/40 rounded-full blur-3xl animate-pulse"></div>
-          <div
-            className="absolute bottom-0 -left-1/4 w-[600px] h-[600px] bg-purple-200/40 rounded-full blur-3xl animate-pulse"
-            style={{ animationDelay: '1s' }}
-          ></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-blue-100/40 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 -right-1/4 w-[800px] h-[800px] bg-slate-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 -left-1/4 w-[600px] h-[600px] bg-slate-100/40 rounded-full blur-3xl"></div>
         </div>
 
         <aside className="hidden md:flex w-72 shrink-0 flex-col border-l border-slate-200/70 bg-white/80 backdrop-blur-3xl fixed right-0 top-0 bottom-0 z-20 shadow-2xl shadow-slate-200/60 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-slate-400/3 to-slate-500/5 pointer-events-none"></div>
           <div className="pt-6 pb-4 px-5 shrink-0 relative z-10 border-b border-slate-200/70">
-            <div className="flex items-center gap-2 text-indigo-700 font-bold uppercase tracking-wider text-xs mb-2">
-              <div className="p-1.5 bg-indigo-50 rounded-lg backdrop-blur-sm border border-indigo-200">
+            <div className="flex items-center gap-2 text-slate-700 font-bold uppercase tracking-wider text-xs mb-2">
+              <div className="p-1.5 bg-slate-100 rounded-lg backdrop-blur-sm border border-slate-300">
                 <Shield size={12} />
               </div>
               ניהול-על
             </div>
-            <div className="text-lg font-black text-slate-900 tracking-tight bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+            <div className="text-lg font-black text-slate-900 tracking-tight">
               ענן משרד
             </div>
-            <div className="mt-2 h-0.5 w-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
+            <div className="mt-2 h-0.5 w-16 bg-gradient-to-r from-slate-800 to-slate-500 rounded-full"></div>
           </div>
 
           <nav className="p-3 flex-1 min-h-0 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
 
             {!isAuditServiceRole ? (
               <div className="mb-3 rounded-2xl border border-slate-200 bg-white/70 p-3">
-                <div className="text-xs font-black text-slate-600">מצב עבודה</div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => switchAdminArea('customers')}
-                    className={`px-4 py-2 rounded-lg text-sm font-black transition-all border-2 ${
-                      adminArea === 'customers'
-                        ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-md'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    לקוחות
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchAdminArea('platform')}
-                    className={`px-4 py-2 rounded-lg text-sm font-black transition-all border-2 ${
-                      adminArea === 'platform'
-                        ? 'bg-violet-600 text-white border-violet-600 hover:bg-violet-700 shadow-md'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    פלטפורמה
-                  </button>
+                <div className="text-xs font-black text-slate-600">סביבת עבודה</div>
+                <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  {ADMIN_AREAS.map((area) => (
+                    <button
+                      key={area}
+                      type="button"
+                      onClick={() => switchAdminArea(area)}
+                      className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border ${
+                        adminArea === area
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      {getAdminAreaLabel(area)}
+                    </button>
+                  ))}
                 </div>
                 <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
               </div>
@@ -454,7 +359,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   href={item.href}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
                     active
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                      ? 'bg-slate-900 text-white border border-slate-800'
                       : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
@@ -464,311 +369,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               );
             })}
 
-            {!isAuditServiceRole ? (
-              <div className="mt-4 space-y-2">
-                {adminArea === 'customers' ? (
-                  <div className="space-y-2">
-                    <div className="text-xs font-black text-slate-500 px-4 pt-2">ניהול משתמשים</div>
-                    <div className="space-y-1 pr-4">
-                      {customerUsersSubItems.map((sub) => {
-                        const active = isActivePath(pathname, sub.href, currentSearch);
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                              active
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="flex-1">{sub.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    <div className="text-xs font-black text-slate-500 px-4 pt-2">שירות לקוחות</div>
-                    <div className="space-y-1 pr-4">
-                      {clientSubItems.map((sub) => {
-                        const active = isActivePath(pathname, sub.href, currentSearch);
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                              active
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="flex-1">{sub.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="text-xs font-black text-slate-500 px-4 pt-2">תשתית</div>
-                    <div className="space-y-1 pr-4">
-                      {platformInfraSubItems.map((sub) => {
-                        const active = isActivePath(pathname, sub.href, currentSearch);
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                              active
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="flex-1">{sub.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    <div className="text-xs font-black text-slate-500 px-4 pt-2">מערכת</div>
-                    <div className="space-y-1 pr-4">
-                      {platformSystemSubItems.map((sub) => {
-                        const active = isActivePath(pathname, sub.href, currentSearch);
-                        return (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                              active
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                            }`}
-                          >
-                            <span className="flex-1">{sub.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, nexus: !s.nexus }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/nexus')
-                          ? 'bg-indigo-50 text-indigo-800 border border-indigo-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Sparkles size={18} />
-                      <span className="flex-1 text-right">Nexus</span>
-                      {expandedGroups.nexus ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.nexus ? (
-                      <div className="space-y-1 pr-4">
-                        {nexusSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-indigo-100/70 text-indigo-800 border border-indigo-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, social: !s.social }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/social')
-                          ? 'bg-blue-50 text-blue-800 border border-blue-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <ShieldCheck size={18} />
-                      <span className="flex-1 text-right">Social</span>
-                      {expandedGroups.social ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.social ? (
-                      <div className="space-y-1 pr-4">
-                        {socialSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-blue-100/70 text-blue-800 border border-blue-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, system: !s.system }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/system')
-                          ? 'bg-red-50 text-red-800 border border-red-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Settings size={18} />
-                      <span className="flex-1 text-right">System</span>
-                      {expandedGroups.system ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.system ? (
-                      <div className="space-y-1 pr-4">
-                        {systemSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-red-100/70 text-red-800 border border-red-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, finance: !s.finance }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/finance')
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <DollarSign size={18} />
-                      <span className="flex-1 text-right">Finance</span>
-                      {expandedGroups.finance ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.finance ? (
-                      <div className="space-y-1 pr-4">
-                        {financeSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-emerald-100/70 text-emerald-800 border border-emerald-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, client: !s.client }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/client')
-                          ? 'bg-amber-50 text-amber-800 border border-amber-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Users size={18} />
-                      <span className="flex-1 text-right">Client</span>
-                      {expandedGroups.client ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.client ? (
-                      <div className="space-y-1 pr-4">
-                        {clientSubItemsModule.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-amber-100/70 text-amber-800 border border-amber-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-
-                    <Button
-                      type="button"
-                      onClick={() => setExpandedGroups((s) => ({ ...s, operations: !s.operations }))}
-                      variant="ghost"
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                        pathname.startsWith('/app/admin/operations')
-                          ? 'bg-cyan-50 text-cyan-800 border border-cyan-100'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <Briefcase size={18} />
-                      <span className="flex-1 text-right">Operations</span>
-                      {expandedGroups.operations ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </Button>
-
-                    {expandedGroups.operations ? (
-                      <div className="space-y-1 pr-4">
-                        {operationsSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
-                                active
-                                  ? 'bg-cyan-100/70 text-cyan-800 border border-cyan-200'
-                                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                              }`}
-                            >
-                              <span className="flex-1">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            ) : null}
           </nav>
 
           <div className="p-4 border-t border-slate-200/70 relative z-10 bg-gradient-to-t from-white/60 to-transparent">
@@ -886,7 +486,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   href={item.href}
                   onClick={() => setIsMobileNavOpen(false)}
                   className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 font-black text-[10px] transition-colors ${
-                    active ? 'text-indigo-700' : 'text-slate-600'
+                    active ? 'text-slate-900' : 'text-slate-600'
                   }`}
                   aria-label={item.label}
                 >
@@ -901,7 +501,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               onClick={() => setIsMobileNavOpen(true)}
               variant="ghost"
               className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 font-black text-[10px] transition-colors ${
-                isMobileNavOpen ? 'text-indigo-700' : 'text-slate-600'
+                isMobileNavOpen ? 'text-slate-900' : 'text-slate-600'
               }`}
               aria-label="עוד"
             >
@@ -953,7 +553,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         href={item.href}
                         onClick={() => setIsMobileNavOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-colors ${
-                          active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
+                          active ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-50 text-slate-700'
                         }`}
                       >
                         <Icon size={18} />
@@ -966,180 +566,25 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 <div className="space-y-2">
                   {!isAuditServiceRole ? (
                     <div className="px-2 pt-2">
-                      <div className="text-xs font-black text-slate-500">מצב עבודה</div>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <button
-                          type="button"
-                          onClick={() => switchAdminArea('customers')}
-                          className={`px-4 py-2 rounded-lg text-sm font-black transition-all border-2 ${
-                            adminArea === 'customers'
-                              ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 shadow-md'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          לקוחות
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => switchAdminArea('platform')}
-                          className={`px-4 py-2 rounded-lg text-sm font-black transition-all border-2 ${
-                            adminArea === 'platform'
-                              ? 'bg-violet-600 text-white border-violet-600 hover:bg-violet-700 shadow-md'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          פלטפורמה
-                        </button>
+                      <div className="text-xs font-black text-slate-500">סביבת עבודה</div>
+                      <div className="grid grid-cols-3 gap-1.5 mt-2">
+                        {ADMIN_AREAS.map((area) => (
+                          <button
+                            key={area}
+                            type="button"
+                            onClick={() => { switchAdminArea(area); setIsMobileNavOpen(false); }}
+                            className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border ${
+                              adminArea === area
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {getAdminAreaLabel(area)}
+                          </button>
+                        ))}
                       </div>
                       <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
                     </div>
-                  ) : null}
-
-                  {adminArea === 'customers' && !isAuditServiceRole ? (
-                    <>
-                      <div className="text-xs font-black text-slate-500 px-2 pt-3">ניהול משתמשים</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {customerUsersSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      <div className="text-xs font-black text-slate-500 px-2 pt-3">שירות לקוחות</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {clientSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : null}
-
-                  {adminArea === 'platform' && !isAuditServiceRole ? (
-                    <>
-                      <div className="text-xs font-black text-slate-500 px-2 pt-3">תשתית</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {platformInfraSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      <div className="text-xs font-black text-slate-500 px-2 pt-3">מערכת</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {platformSystemSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">{sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        {nexusSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">נקסוס · {sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                        {socialSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-blue-50 text-blue-800 border border-blue-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">סושיאל · {sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                        {systemSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">מערכת · {sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                        {landingSubItems.map((sub) => {
-                          const active = isActivePath(pathname, sub.href, currentSearch);
-                          return (
-                            <Link
-                              key={sub.href}
-                              href={sub.href}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-4 py-3 rounded-2xl font-black text-xs transition-colors ${
-                                active ? 'bg-purple-50 text-purple-800 border border-purple-100' : 'bg-slate-50 text-slate-700'
-                              }`}
-                            >
-                              <span className="block truncate">דף נחיתה · {sub.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </>
                   ) : null}
                 </div>
               </div>
@@ -1168,7 +613,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 <Button
                   type="button"
                   onClick={() => setIsMobileNavOpen(false)}
-                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-2xl font-black text-sm bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors"
                 >
                   סגור
                 </Button>
