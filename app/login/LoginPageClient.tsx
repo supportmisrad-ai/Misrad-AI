@@ -89,6 +89,13 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
   return { orgSlug: null, entitlements: {} };
 }
 
+/** Generate a unique username from an email address (Clerk requires username). */
+function generateUsername(email: string): string {
+  const prefix = (email.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 16) || 'user';
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${prefix}_${suffix}`;
+}
+
 export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
@@ -175,11 +182,71 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           }
         }
 
+        // Case 5: Sign-up has missing_requirements (e.g. username after OAuth)
+        // Clerk requires username but Google doesn't provide one.
+        if (signUp?.status === 'missing_requirements') {
+          const missing: string[] = Array.isArray(
+            (signUp as unknown as Record<string, unknown>).missingFields
+          ) ? (signUp as unknown as Record<string, unknown>).missingFields as string[] : [];
+          console.log('[Login] OAuth continuation: missing_requirements, fields:', missing);
+
+          const updatePayload: Record<string, string> = {};
+          const suEmail = typeof (signUp as unknown as Record<string, unknown>).emailAddress === 'string'
+            ? (signUp as unknown as Record<string, unknown>).emailAddress as string
+            : 'user';
+
+          if (missing.includes('username')) {
+            updatePayload.username = generateUsername(suEmail);
+          }
+          if (missing.includes('first_name')) {
+            updatePayload.firstName = suEmail.split('@')[0] || 'user';
+          }
+          if (missing.includes('last_name')) {
+            updatePayload.lastName = suEmail.split('@')[0] || 'user';
+          }
+
+          if (Object.keys(updatePayload).length > 0) {
+            try {
+              await signUp.update(updatePayload);
+              const reloaded = await signUp.reload();
+              if (reloaded.status === 'complete' && reloaded.createdSessionId) {
+                await setActive({ session: reloaded.createdSessionId });
+                setContinuationState('done');
+                window.location.assign(getRedirectTarget());
+                return;
+              }
+            } catch (updateErr) {
+              console.error('[Login] Failed to provide missing fields for OAuth sign-up:', updateErr);
+              // Retry once with different username in case of collision
+              if (updatePayload.username) {
+                try {
+                  updatePayload.username = generateUsername(suEmail);
+                  await signUp.update(updatePayload);
+                  const reloaded = await signUp.reload();
+                  if (reloaded.status === 'complete' && reloaded.createdSessionId) {
+                    await setActive({ session: reloaded.createdSessionId });
+                    setContinuationState('done');
+                    window.location.assign(getRedirectTarget());
+                    return;
+                  }
+                } catch { /* fall through to failed */ }
+              }
+            }
+          }
+        }
+
         // Could not auto-complete — fall through to show the form
         setContinuationState('failed');
+        // Remove #/continue hash so page refresh doesn't re-trigger continuation
+        if (typeof window !== 'undefined') {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
       } catch (err) {
         console.error('[Login] OAuth continuation error:', err);
         setContinuationState('failed');
+        if (typeof window !== 'undefined') {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
       }
     };
 

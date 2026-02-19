@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
+import { heIL } from '@clerk/localizations';
 import { useRouter } from 'next/navigation';
 
 type ClerkProviderProps = React.ComponentProps<typeof ClerkProvider>;
@@ -51,6 +52,7 @@ export function ClerkProviderWithRouter({
     return (
       <ClerkProvider
         publishableKey={publishableKey}
+        localization={heIL}
         signInUrl={signInUrl}
         signUpUrl={signUpUrl}
         signInFallbackRedirectUrl={finalSignInFallbackRedirectUrlOrUndefined}
@@ -68,6 +70,7 @@ export function ClerkProviderWithRouter({
     return (
       <ClerkProvider
         publishableKey={publishableKey}
+        localization={heIL}
         signInUrl={signInUrl}
         signUpUrl={signUpUrl}
         signInFallbackRedirectUrl={finalSignInFallbackRedirectUrlOrUndefined}
@@ -85,6 +88,7 @@ export function ClerkProviderWithRouter({
   return (
     <ClerkProvider
       publishableKey={publishableKey}
+      localization={heIL}
       signInUrl={signInUrl}
       signUpUrl={signUpUrl}
       signInFallbackRedirectUrl={finalSignInFallbackRedirectUrlOrUndefined}

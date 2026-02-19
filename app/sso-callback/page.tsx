@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 export const dynamic = 'force-dynamic';
 
 const SSO_ATTEMPT_KEY = 'sso_callback_attempt';
-const MAX_SSO_ATTEMPTS = 2;
+const MAX_SSO_ATTEMPTS = 5;
 
 function getSsoAttemptCount(): number {
   try {
@@ -53,7 +53,7 @@ export default function SsoCallbackPage() {
     // Clear attempts after successful navigation (5s grace period)
     const clearTimer = setTimeout(() => {
       clearSsoAttempts();
-    }, 5000);
+    }, 10000);
 
     return () => clearTimeout(clearTimer);
   }, []);

@@ -9,11 +9,18 @@ import { translateClerkError } from '@/lib/errorTranslations';
 import { OAuthStrategy } from '@clerk/types';
 
 interface ClerkAPIError {
-  errors?: Array<{ code?: string; message?: string }>;
+  errors?: Array<{ code?: string; message?: string; meta?: Record<string, unknown> }>;
   message?: string;
 }
 
 const LEGAL_CONSENT_STORAGE_KEY = 'pending_legal_consent_v1';
+
+/** Generate a unique username from an email address (Clerk requires username). */
+function generateUsername(email: string): string {
+  const prefix = (email.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 16) || 'user';
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${prefix}_${suffix}`;
+}
 
 interface CustomAuthProps {
   mode?: 'sign-in' | 'sign-up';
@@ -27,6 +34,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
   const router = useRouter();
 
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -170,9 +178,16 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
     try {
       const normalizedEmail = String(email || '').trim().toLowerCase();
+      const nameParts = (fullName || '').trim().split(/\s+/);
+      const firstName = nameParts[0] || normalizedEmail.split('@')[0] || 'משתמש';
+      const lastName = nameParts.slice(1).join(' ') || undefined;
+      const username = generateUsername(normalizedEmail);
       const result = await signUp.create({
         emailAddress: normalizedEmail,
         password: password,
+        firstName,
+        lastName,
+        username,
       });
 
       if (result.status === 'complete') {
@@ -199,7 +214,45 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     } catch (err: unknown) {
       console.error('Sign up error:', err);
       const clerkErr = err as ClerkAPIError;
-      const errorMsg = clerkErr?.errors?.[0]?.message || 'שגיאה בהרשמה. נסה שוב.';
+      const firstError = clerkErr?.errors?.[0];
+      const code = firstError?.code || '';
+
+      // Username collision — retry once with a different username
+      if (code === 'form_identifier_exists' && firstError?.meta && typeof firstError.meta === 'object' && 'paramName' in firstError.meta && firstError.meta.paramName === 'username') {
+        try {
+          const normalizedEmail = String(email || '').trim().toLowerCase();
+          const nameParts = (fullName || '').trim().split(/\s+/);
+          const firstName = nameParts[0] || normalizedEmail.split('@')[0] || 'משתמש';
+          const lastName = nameParts.slice(1).join(' ') || undefined;
+          const retryResult = await signUp!.create({
+            emailAddress: normalizedEmail,
+            password,
+            firstName,
+            lastName,
+            username: generateUsername(normalizedEmail),
+          });
+          if (retryResult.status === 'complete' && retryResult.createdSessionId) {
+            await setActive?.({ session: retryResult.createdSessionId });
+            await recordLegalConsent();
+            onSuccess ? onSuccess() : router.push('/');
+            return;
+          }
+          await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
+          setStep('verify');
+          setInfo('שלחנו קוד אימות לאימייל. הזן את הקוד כדי להשלים הרשמה.');
+          return;
+        } catch (retryErr) {
+          console.error('Sign up retry error:', retryErr);
+        }
+      }
+
+      // Email already exists — suggest sign-in
+      if (code === 'form_identifier_exists') {
+        setError('כתובת האימייל כבר רשומה במערכת. נסה להתחבר במקום להירשם.');
+        return;
+      }
+
+      const errorMsg = firstError?.message || 'שגיאה בהרשמה. נסה שוב.';
       setError(translateClerkError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -232,11 +285,46 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
       let result = await signUp.attemptEmailAddressVerification({ code });
 
-      // missing_requirements: email is verified but sign-up still needs something
-      // (e.g. bot-protection/Turnstile not yet complete). Wait briefly then reload.
+      // missing_requirements: email is verified but sign-up still needs something.
+      // Auto-provide any missing fields (username, name) before giving up.
       if (result.status === 'missing_requirements') {
-        await new Promise<void>(r => setTimeout(r, 1000));
-        try { result = await signUp.reload(); } catch { /* use original */ }
+        const missing: string[] = Array.isArray(result.missingFields) ? result.missingFields : [];
+        console.log('[CustomAuth] missing_requirements after verify, fields:', missing);
+
+        const updatePayload: Record<string, string> = {};
+
+        if (missing.includes('username')) {
+          updatePayload.username = generateUsername(email);
+        }
+        if (missing.includes('first_name')) {
+          const nameParts = (fullName || '').trim().split(/\s+/);
+          updatePayload.firstName = nameParts[0] || email.split('@')[0] || 'user';
+        }
+        if (missing.includes('last_name')) {
+          const nameParts = (fullName || '').trim().split(/\s+/);
+          updatePayload.lastName = nameParts.slice(1).join(' ') || updatePayload.firstName || email.split('@')[0] || 'user';
+        }
+
+        if (Object.keys(updatePayload).length > 0) {
+          try {
+            await signUp.update(updatePayload);
+            result = await signUp.reload();
+          } catch (updateErr) {
+            console.error('[CustomAuth] Failed to update missing fields:', updateErr);
+            // If username collision, retry with a different one
+            if (updatePayload.username) {
+              try {
+                updatePayload.username = generateUsername(email);
+                await signUp.update(updatePayload);
+                result = await signUp.reload();
+              } catch { /* use original result */ }
+            }
+          }
+        } else {
+          // No obvious missing fields — wait briefly for async requirements (e.g. captcha)
+          await new Promise<void>(r => setTimeout(r, 2000));
+          try { result = await signUp.reload(); } catch { /* use original */ }
+        }
       }
 
       if (result.status === 'complete') {
@@ -253,12 +341,12 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         return;
       }
 
-      // Still missing_requirements after reload — give a helpful message
+      // Still missing_requirements after auto-fix attempt
       if (result.status === 'missing_requirements') {
-        const signUpObj = result as unknown as Record<string, unknown>;
-        const missingArr = Array.isArray(signUpObj.missingFields) ? signUpObj.missingFields as string[] : [];
-        if (missingArr.includes('captcha')) {
-          setError('נדרש אימות נגד בוטים. נא לרענן את הדף ולנסות שוב.');
+        const stillMissing: string[] = Array.isArray(result.missingFields) ? result.missingFields : [];
+        console.error('[CustomAuth] Still missing fields after auto-fix:', stillMissing);
+        if (stillMissing.length > 0) {
+          setError(`אימות האימייל הצליח אך עדיין חסרים שדות: ${stillMissing.join(', ')}. נא לרענן ולנסות שוב.`);
         } else {
           setError('אימות האימייל הצליח אך ההרשמה דורשת פרטים נוספים. נא לרענן ולנסות שוב.');
         }
@@ -504,6 +592,25 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         )}
 
         <div className="flex flex-col gap-3">
+          {isSignUp && step !== 'verify' && (
+            <>
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">
+                שם מלא
+              </label>
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="ישראל ישראלי"
+                  required
+                  disabled={isLoading}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-5 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-right"
+                />
+              </div>
+            </>
+          )}
+
           <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">
             כתובת אימייל
           </label>
@@ -628,7 +735,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             !email ||
             (!usePasskey && !password) ||
             (!isSignIn && step === 'verify' && !verificationCode) ||
-            (!isSignIn && !legalAccepted)
+            (!isSignIn && !legalAccepted) ||
+            (!isSignIn && step !== 'verify' && !fullName.trim())
           }
           className="w-full bg-slate-900 text-white px-8 py-5 rounded-[24px] font-black text-lg shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
