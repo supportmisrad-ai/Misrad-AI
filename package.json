@@ -168,6 +168,9 @@
     "@google/genai": {
       "minimatch": "^10.2.1"
     },
+    "@sentry/nextjs": {
+      "minimatch": "^10.2.1"
+    },
     "bn.js": "^5.2.3"
   },
   "main": "electron/main.js",
