@@ -6,6 +6,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { Resend } from 'resend';
 import { getBaseUrl } from '@/lib/utils';
 import { EmailTemplateComponents, generateBaseEmailTemplate } from './email-templates';
+import { getEmailAssets } from './email-assets';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -395,27 +396,54 @@ function generateOrganizationWelcomeEmailHTML(params: {
     ownerName?: string | null;
     portalUrl: string;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
 
     const bodyContent = `
+        ${EmailTemplateComponents.generateFeatureBanner({
+            emoji: '🎉',
+            title: `"${params.organizationName}" מוכן לפעולה!`,
+            subtitle: 'הארגון שלך ב-MISRAD AI הוקם בהצלחה',
+            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        })}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
-        
+
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
             הארגון <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${params.organizationName}"</strong> מוכן לפעולה.
+            <br />
+            הנה 3 צעדים קצרים להתחלה מושלמת:
         </div>
-        
+
         ${EmailTemplateComponents.generateSteps([
             { title: 'השלמת פרופיל', desc: 'שם העסק, לוגו ופרטי התקשרות' },
             { title: 'הוספת חברי צוות', desc: 'הזמנו עובדים והגדירו הרשאות' },
             { title: 'התחילו לעבוד', desc: 'AI ילמד את הדפוסים שלכם ויתאים את עצמו' },
         ])}
-        
+
+        ${EmailTemplateComponents.generateScreenshot({
+            src: assets.welcomeDashboardScreenshot,
+            alt: 'MISRAD AI Dashboard',
+            title: 'MISRAD AI — הדשבורד שלך',
+            href: params.portalUrl,
+        })}
+
         ${EmailTemplateComponents.generateCTAButton({
             text: 'כניסה למערכת →',
             url: params.portalUrl,
         })}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'שמח שבחרתם ב-MISRAD AI. אנחנו פה בשבילכם — כל שאלה, הצעה, או בעיה, פשוט תשיבו למייל הזה.',
+            signatureText: assets.founderSignature,
+        })}
     `;
-    
+
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הארגון שלך מוכן',
@@ -572,20 +600,20 @@ function generateFirstCustomerEmailHTML(params: {
     founderName: string;
     founderPhone: string;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `${params.ownerName},` : 'היי,';
-    
+
     const bodyContent = `
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
-        
-        <div style="font-size:17px;line-height:1.9;color:#334155;margin-bottom:28px;">
-            אני ${params.founderName}, המייסד של MISRAD.
-            <br /><br />
-            ראיתי שנרשמת ורציתי לפנות אליך אישית.
-            אני מאמין שאנחנו בונים משהו מיוחד, והדעת שלך חשובה לנו.
-            <br /><br />
-            אם משהו לא ברור, נתקע או צריך עזרה — אני קרוב כמו הודעה הזאת:
-        </div>
-        
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: `ראיתי שנרשמת ורציתי לפנות אליך אישית.<br />אני מאמין שאנחנו בונים משהו מיוחד, והדעת שלך חשובה לנו מאוד.<br /><br />אם משהו לא ברור, נתקע או צריך עזרה — אני קרוב כמו הודעה הזאת.`,
+            signatureText: assets.founderSignature,
+        })}
+
         <div style="margin:28px 0;padding:24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:16px;border:2px solid #fbbf24;text-align:center;">
             <div style="font-size:14px;font-weight:800;color:#78350f;margin-bottom:10px;">
                 הנייד האישי שלי
@@ -597,13 +625,12 @@ function generateFirstCustomerEmailHTML(params: {
                 וואטסאפ, טלפון, SMS — מה שנוח לך
             </div>
         </div>
-        
-        <div style="margin-top:28px;font-size:14px;color:#64748b;line-height:1.7;">
-            בהצלחה,<br />
-            ${params.founderName}, MISRAD AI
+
+        <div style="margin-top:28px;font-size:14px;color:#64748b;line-height:1.7;text-align:center;">
+            הדלת תמיד פתוחה 💜
         </div>
     `;
-    
+
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הודעה אישית מהמייסד',
@@ -685,27 +712,31 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
     founderName: string;
     founderPhone?: string | null;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `היי ${params.ownerName},` : 'היי,';
     const founderPhone = String(params.founderPhone || '').trim();
 
     const bodyContent = `
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
-        
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.support}
-        </div>
-        
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:32px;">
-            אני ${params.founderName}. ראיתי שנרשמת ל-MISRAD ב-24 השעות האחרונות, אבל לא ראיתי מנוי פעיל.
+
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            ראיתי שנרשמת ל-MISRAD ב-24 השעות האחרונות, אבל לא ראיתי מנוי פעיל.
             <br /><br />
             <strong style="color:#6366f1;">רציתי לשאול אם משהו נתקע בדרך, ואם אני יכול לעזור?</strong>
         </div>
-        
+
+        ${EmailTemplateComponents.generateScreenshot({
+            src: assets.welcomeDashboardScreenshot,
+            alt: 'MISRAD AI Dashboard',
+            title: 'MISRAD AI — המערכת מחכה לך',
+            href: params.checkoutUrl,
+        })}
+
         ${EmailTemplateComponents.generateCTAButton({
             text: 'להשלמת מנוי / תשלום',
             url: params.checkoutUrl,
         })}
-        
+
         ${founderPhone ? `
             <div style="margin:32px 0;padding:20px;background:#ecfdf5;border-radius:14px;border:2px solid #a7f3d0;text-align:center;">
                 <div style="font-size:15px;color:#065f46;line-height:1.7;">
@@ -717,14 +748,24 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
                 </div>
             </div>
         ` : ''}
-        
-        <div style="margin-top:32px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'אני יודע שהתחלה עם מערכת חדשה יכולה להיות מרתיעה. אם יש משהו שאנחנו יכולים לעשות טוב יותר — אני פה. פשוט תשיב למייל הזה.',
+            signatureText: assets.founderSignature,
+        })}
+
+        <div style="margin-top:24px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
             <div style="font-size:12px;color:#64748b;line-height:1.6;">
                 אם קיבלת את ההודעה בטעות, אפשר להתעלם
             </div>
         </div>
     `;
-    
+
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'רק לבדוק אם הכל בסדר',
@@ -869,6 +910,7 @@ function generateMisradWelcomeEmailHTML(params: {
     windowsUrl?: string | null;
     androidUrl?: string | null;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
     const windowsUrl = String(params.windowsUrl ?? (process.env.MISRAD_WINDOWS_DOWNLOAD_URL || '')).trim();
     const androidUrl = String(params.androidUrl ?? (process.env.MISRAD_ANDROID_DOWNLOAD_URL || '')).trim();
@@ -876,42 +918,40 @@ function generateMisradWelcomeEmailHTML(params: {
     const migrationEmail = String(params.migrationEmail ?? (process.env.MISRAD_MIGRATION_EMAIL || '')).trim();
     const videoUrl = (process.env.MISRAD_WELCOME_VIDEO_URL || '').trim();
     const videoThumbUrl = (process.env.MISRAD_WELCOME_VIDEO_THUMBNAIL_URL || '').trim();
-    
+
     const bodyContent = `
+        ${EmailTemplateComponents.generateHeroImage({
+            src: assets.welcomeHero,
+            alt: 'ברוכים הבאים ל-MISRAD AI',
+            href: params.signInUrl,
+        })}
+
         <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
-        
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.rocket}
-        </div>
-        
+
         <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            <strong style="color:#6366f1;">ברוכים הבאים ל-MISRAD</strong>
+            <strong style="color:#6366f1;">ברוכים הבאים ל-MISRAD</strong> 🎉
             <br />
             הכנו לך כמה משאבים להתחלה מהירה
         </div>
-        
+
+        ${EmailTemplateComponents.generateScreenshot({
+            src: assets.welcomeDashboardScreenshot,
+            alt: 'MISRAD AI Dashboard',
+            title: 'MISRAD AI — המערכת שלך',
+            href: params.signInUrl,
+        })}
+
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'כניסה למערכת',
+            text: 'כניסה למערכת →',
             url: params.signInUrl,
         })}
-        
-        ${videoUrl ? `
-            <div style="margin:32px 0;padding:24px;background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);border-radius:16px;border:2px solid #bae6fd;">
-                <div style="font-size:16px;font-weight:900;color:#0c4a6e;margin-bottom:16px;text-align:center;">
-                    סרטון קצר: פתיחת קריאת שירות ראשונה (60 שניות)
-                </div>
-                ${videoThumbUrl ? `
-                    <a href="${videoUrl}" style="text-decoration:none;display:block;margin-bottom:12px;">
-                        <img src="${videoThumbUrl}" alt="סרטון הדרכה" style="width:100%;max-width:540px;border-radius:12px;border:2px solid #0ea5e9;display:block;margin:0 auto;" />
-                    </a>
-                ` : ''}
-                <div style="text-align:center;">
-                    <a href="${videoUrl}" style="display:inline-block;background:#0f172a;color:white;padding:14px 24px;border-radius:12px;text-decoration:none;font-weight:900;font-size:15px;box-shadow:0 4px 12px rgba(15,23,42,0.3);">
-                        צפה בסרטון
-                    </a>
-                </div>
-            </div>
-        ` : ''}
+
+        ${videoUrl ? EmailTemplateComponents.generateVideoThumbnail({
+            thumbnailSrc: videoThumbUrl || assets.demoVideoThumbnail,
+            videoUrl,
+            alt: 'סרטון הדרכה קצר (60 שניות)',
+            caption: 'סרטון קצר: פתיחת קריאת שירות ראשונה (60 שניות)',
+        }) : ''}
         
         ${(windowsUrl || androidUrl) ? `
             <div style="margin:28px 0;padding:20px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;text-align:center;">
@@ -1123,11 +1163,20 @@ function generateTrialExpiryWarningEmailHTML(params: {
     daysRemaining: number;
     portalUrl: string;
 }): string {
+    const assets = getEmailAssets();
     const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
     const urgencyColor = params.daysRemaining <= 1 ? '#ef4444' : params.daysRemaining <= 3 ? '#f59e0b' : '#6366f1';
     const urgencyText = params.daysRemaining === 1 ? 'מחר' : `בעוד ${params.daysRemaining} ימים`;
+    const isUrgent = params.daysRemaining <= 3;
 
     const bodyContent = `
+        ${isUrgent ? EmailTemplateComponents.generateFeatureBanner({
+            emoji: params.daysRemaining <= 1 ? '🚨' : '⏰',
+            title: `נותרו ${params.daysRemaining} ${params.daysRemaining === 1 ? 'יום' : 'ימים'} בלבד`,
+            subtitle: 'תקופת הניסיון מסתיימת',
+            gradient: `linear-gradient(135deg, ${urgencyColor} 0%, #dc2626 100%)`,
+        }) : ''}
+
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
@@ -1139,10 +1188,17 @@ function generateTrialExpiryWarningEmailHTML(params: {
             emoji: params.daysRemaining <= 1 ? '🚨' : '📋',
             title: 'מה קורה אחרי סיום הניסיון?',
             text: 'הגישה למערכת תיחסם עד להשלמת התשלום. כל הנתונים שלך נשמרים ויחזרו מיד אחרי חידוש.',
-            bgColor: params.daysRemaining <= 3 ? '#fff7ed' : '#eff6ff',
-            borderColor: params.daysRemaining <= 3 ? '#fed7aa' : '#bfdbfe',
-            titleColor: params.daysRemaining <= 3 ? '#9a3412' : '#1e40af',
-            textColor: params.daysRemaining <= 3 ? '#9a3412' : '#1e3a5f',
+            bgColor: isUrgent ? '#fff7ed' : '#eff6ff',
+            borderColor: isUrgent ? '#fed7aa' : '#bfdbfe',
+            titleColor: isUrgent ? '#9a3412' : '#1e40af',
+            textColor: isUrgent ? '#9a3412' : '#1e3a5f',
+        })}
+
+        ${EmailTemplateComponents.generateScreenshot({
+            src: assets.welcomeDashboardScreenshot,
+            alt: 'MISRAD AI Dashboard',
+            title: 'MISRAD AI — המערכת שלך',
+            href: params.portalUrl,
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
@@ -1150,15 +1206,21 @@ function generateTrialExpiryWarningEmailHTML(params: {
             url: params.portalUrl,
         })}
 
-        <div style="margin-top:28px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
-            שאלות? פשוט תשיב למייל הזה.
-        </div>
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'אם יש משהו שמפריע לך או שצריך עזרה עם ההחלטה — תשיב למייל הזה ונסדר את זה יחד.',
+            signatureText: assets.founderSignature,
+        })}
     `;
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: `תקופת הניסיון מסתיימת ${urgencyText}`,
-        headerGradient: `linear-gradient(135deg, ${urgencyColor} 0%, ${params.daysRemaining <= 3 ? '#dc2626' : '#4f46e5'} 100%)`,
+        headerGradient: `linear-gradient(135deg, ${urgencyColor} 0%, ${isUrgent ? '#dc2626' : '#4f46e5'} 100%)`,
         bodyContent,
         showSocialLinks: false,
     });
