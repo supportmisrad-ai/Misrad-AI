@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useData } from '@/context/DataContext';
 import { adminGetEmailAssets, adminUpdateEmailAssets } from '@/app/actions/admin-email-assets';
-import { getEmailAssets, EMAIL_ASSET_LABELS } from '@/lib/email-assets';
+import { EMAIL_ASSET_LABELS } from '@/lib/email-asset-labels';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 type AssetsState = Record<string, string>;
@@ -30,7 +30,7 @@ export default function EmailAssetsClient() {
   const [saving, setSaving] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
-  const defaults = useMemo(() => getEmailAssets(), []);
+  const defaults = useMemo(() => ({} as Record<string, string>), []);
 
   const allKeys = useMemo(() => Object.keys(EMAIL_ASSET_LABELS), []);
 

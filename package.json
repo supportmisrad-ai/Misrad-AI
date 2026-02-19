@@ -91,6 +91,7 @@
     "@ai-sdk/react": "^3.0.3",
     "@capacitor/app": "^7.1.1",
     "@capacitor/core": "^7.4.5",
+    "@clerk/localizations": "^3.36.0",
     "@clerk/nextjs": "^6.36.2",
     "@google/genai": "^1.33.0",
     "@hebcal/core": "^6.0.6",

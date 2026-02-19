@@ -5,7 +5,6 @@
 import { NextRequest } from 'next/server';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PRODUCTION_DOMAIN = 'https://misrad-ai.com';
@@ -113,6 +112,7 @@ export async function generateInvitationToken(): Promise<string> {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] system_invitation_links missing table (${message || 'missing relation'})`);
                 }
+                const { reportSchemaFallback } = await import('@/lib/server/schema-fallbacks');
                 reportSchemaFallback({
                     source: 'lib/utils.generateInvitationToken',
                     reason: 'system_invitation_links missing table (skip uniqueness check)',
