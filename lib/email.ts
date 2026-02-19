@@ -9,7 +9,8 @@ import { EmailTemplateComponents, generateBaseEmailTemplate } from './email-temp
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-type ResendSendEmailParams = Parameters<Resend['emails']['send']>[0];
+type ResendSendEmailParams = Parameters<Resend['emails']['send']>[0];
+
 
 function resolveSupportFromEmail(): string {
     return (process.env.MISRAD_SUPPORT_FROM_EMAIL || 'support@misrad-ai.com').trim() || 'support@misrad-ai.com';
@@ -26,7 +27,8 @@ function getErrorField(error: unknown, field: string): string {
     const obj = asObject(error);
     const value = obj ? obj[field] : undefined;
     return typeof value === 'string' ? value : '';
-}
+}
+
 
 function getErrorName(error: unknown): string {
     if (error instanceof Error && error.name) return error.name;
@@ -58,55 +60,63 @@ function generateSupportTicketReceivedEmailHTML(params: {
     message: string;
     orgSlug: string;
 }): string {
-    const greeting = params.name ? `היי ${params.name},` : 'היי,';
+    const greeting = params.name ? `${params.name},` : 'היי,';
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:16px;">${greeting}</div>
+        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.CircleCheck}
+        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:8px;">
+            קיבלנו את הדיווח שלך ונטפל בו.
         </div>
         
-        <div style="font-size:17px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            הדיווח התקבל ונכנס לתור בדיקה.
-            <br />
-            זמן מענה משוער: 24-48 שעות.
-            <br />
-            <span style="display:inline-block;margin-top:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;font-weight:900;">
-                מספר קריאה: #${params.ticketNumber}
-            </span>
+        <div style="margin:24px 0;padding:20px 24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+            <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding:0 0 12px;">
+                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">מספר קריאה</div>
+                        <div style="font-size:22px;font-weight:900;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:4px;">#${params.ticketNumber}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">נושא</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.subject}</div>
+                    </td>
+                </tr>
+                ${params.message ? `
+                <tr>
+                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">תיאור</div>
+                        <div style="font-size:14px;color:#334155;line-height:1.7;margin-top:4px;white-space:pre-line;">${params.message}</div>
+                    </td>
+                </tr>
+                ` : ''}
+            </table>
         </div>
         
-        ${EmailTemplateComponents.generateInfoBox({
-            title: 'נושא הדיווח',
-            content: `<strong style="color:#0f172a;font-size:16px;">${params.subject}</strong>\n\n${params.message}`,
-            backgroundColor: '#f8fafc',
-            borderColor: '#e2e8f0',
+        ${EmailTemplateComponents.generateCallout({
+            emoji: '⏱️',
+            title: 'זמן מענה משוער: 24-48 שעות',
+            text: 'נחזור אליך בהקדם האפשרי. אם יש עדכון דחוף — אפשר להשיב ישירות למייל הזה.',
+            bgColor: '#eff6ff',
+            borderColor: '#bfdbfe',
+            titleColor: '#1e40af',
+            textColor: '#1e3a5f',
         })}
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'לצפייה במרכז הדיווחים',
+            text: 'צפייה בסטטוס הדיווח',
             url: portalUrl,
         })}
-        
-        <div style="margin-top:32px;padding:20px;background:#fff7ed;border-radius:14px;border:2px solid #fed7aa;">
-            <div style="font-size:14px;color:#9a3412;line-height:1.7;text-align:center;">
-                <strong style="color:#7c2d12;">צריך משהו נוסף?</strong>
-                <br>
-                אפשר להשיב ישירות למייל הזה ונחזור אליך בהקדם.
-            </div>
-        </div>
     `;
     
     return generateBaseEmailTemplate({
-        headerTitle: 'Misrad AI',
-        headerSubtitle: 'מרכז דיווח תקלות',
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'הדיווח התקבל',
         headerGradient: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-        headerIcon: EmailTemplateComponents.Icons.support,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+        showSocialLinks: false,
     });
 }
 
@@ -117,62 +127,38 @@ function generateSupportTicketReplyEmailHTML(params: {
     reply: string;
     orgSlug: string;
 }): string {
-    const greeting = params.name ? `היי ${params.name},` : 'היי,';
+    const greeting = params.name ? `${params.name},` : 'היי,';
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:16px;">${greeting}</div>
+        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.mailOpen}
+        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:20px;">
+            יש לנו עדכון לגבי קריאה <strong style="color:#6366f1;">#${params.ticketNumber}</strong> — ${params.subject}:
         </div>
         
-        <div style="font-size:17px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            עדכון על הדיווח שלך.
-            <br />
-            <span style="display:inline-block;margin-top:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;font-weight:900;">
-                מספר קריאה: #${params.ticketNumber}
-            </span>
-        </div>
-        
-        ${EmailTemplateComponents.generateInfoBox({
-            title: 'נושא הדיווח',
-            content: `<strong style="color:#0f172a;font-size:16px;">${params.subject}</strong>`,
-            backgroundColor: '#f1f5f9',
-            borderColor: '#cbd5e1',
-        })}
-        
-        <div style="margin:28px 0;padding:24px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border-radius:16px;border:2px solid #e2e8f0;">
-            <div style="font-size:13px;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">
-                העדכון שלנו
-            </div>
+        <div style="margin:24px 0;padding:24px;background:linear-gradient(135deg,#f0f9ff 0%,#eff6ff 100%);border-radius:14px;border-right:4px solid #6366f1;">
             <div style="font-size:15px;font-weight:600;color:#1e293b;line-height:1.8;white-space:pre-line;">
                 ${params.reply}
             </div>
         </div>
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'חזרה למרכז הדיווחים',
+            text: 'צפייה בקריאה',
             url: portalUrl,
         })}
         
-        <div style="margin-top:32px;padding:20px;background:#ecfdf5;border-radius:14px;border:2px solid #a7f3d0;">
-            <div style="font-size:14px;color:#065f46;line-height:1.7;text-align:center;">
-                <strong style="color:#047857;">יש עוד שאלה?</strong>
-                <br>
-                אפשר להשיב למייל הזה ואני אחזור אליך.
-            </div>
+        <div style="margin-top:24px;font-size:14px;color:#64748b;line-height:1.7;">
+            יש עוד שאלות? פשוט תשיב למייל הזה.
         </div>
     `;
     
     return generateBaseEmailTemplate({
-        headerTitle: 'Misrad AI',
-        headerSubtitle: 'עדכון לגבי דיווח תקלה',
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: `עדכון קריאה #${params.ticketNumber}`,
         headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        headerIcon: EmailTemplateComponents.Icons.mailOpen,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+        showSocialLinks: false,
     });
 }
 
@@ -365,60 +351,42 @@ function generateInvitationEmailHTML(
     signupUrl: string,
     subdomain?: string
 ): string {
-    const greeting = ownerName ? `שלום ${ownerName},` : 'שלום,';
+    const greeting = ownerName ? `${ownerName},` : 'שלום,';
     
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.celebration}
-        </div>
-        
-        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            העסק שלך <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:20px;">"${tenantName}"</strong>
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:28px;">
+            העסק <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${tenantName}"</strong> הוקם בהצלחה במערכת.
             <br />
-            הוקם בהצלחה במערכת Misrad AI
+            נשאר רק ליצור חשבון ולהתחיל.
         </div>
-        
-        ${EmailTemplateComponents.generateInfoBox({
-            content: 'כדי להתחיל להשתמש במערכת, לחץ על הכפתור למטה ויצור את החשבון שלך.',
-            backgroundColor: '#f0f9ff',
-            borderColor: '#bae6fd',
-        })}
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'צור חשבון',
+            text: 'יצירת חשבון →',
             url: signupUrl,
         })}
         
         ${subdomain ? `
-            <div style="margin:32px 0;padding:20px;background:#fefce8;border-radius:14px;border:2px solid #fde047;text-align:center;">
-                <div style="font-size:13px;font-weight:800;color:#854d0e;margin-bottom:8px;">
-                    הקישור הישיר שלך
-                </div>
-                <a href="https://${subdomain}.nexus-os.co" style="color:#6366f1;font-size:16px;font-weight:700;text-decoration:none;">
-                    https://${subdomain}.nexus-os.co
+            <div style="margin:28px 0;padding:18px 24px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;text-align:center;">
+                <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">הכתובת הישירה שלך</div>
+                <a href="https://${subdomain}.misrad-ai.com" style="color:#6366f1;font-size:16px;font-weight:700;text-decoration:none;">
+                    ${subdomain}.misrad-ai.com
                 </a>
             </div>
         ` : ''}
         
-        <div style="margin-top:40px;padding:20px 0;border-top:2px solid #e2e8f0;">
-            <div style="font-size:12px;color:#64748b;line-height:1.6;text-align:center;">
-                הקישור תקף ללא הגבלת זמן.
-                <br>
-                אם לא יצרת את הבקשה, אפשר להתעלם מהמייל הזה.
-            </div>
+        <div style="margin-top:32px;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+            הקישור תקף ללא הגבלת זמן. לא יצרת את הבקשה? אפשר להתעלם.
         </div>
     `;
     
     return generateBaseEmailTemplate({
-        headerTitle: 'Misrad AI',
-        headerSubtitle: 'ברוכים הבאים',
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'העסק שלך מוכן',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        headerIcon: EmailTemplateComponents.Icons.rocket,
         bodyContent,
         showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
     });
 }
 
@@ -427,56 +395,33 @@ function generateOrganizationWelcomeEmailHTML(params: {
     ownerName?: string | null;
     portalUrl: string;
 }): string {
-    const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
+    const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
 
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.celebration}
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            הארגון <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${params.organizationName}"</strong> מוכן לפעולה.
         </div>
         
-        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            <strong style="color:#10b981;">הארגון שלך מוכן</strong>
-            <br />
-            <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:22px;">"${params.organizationName}"</strong>
-            <br />
-            נוצר בהצלחה
-        </div>
-        
-        ${EmailTemplateComponents.generateInfoBox({
-            content: 'הפורטל שלך מוכן לשימוש. לחץ על הכפתור למטה לכניסה.',
-            backgroundColor: '#ecfdf5',
-            borderColor: '#a7f3d0',
-        })}
+        ${EmailTemplateComponents.generateSteps([
+            { title: 'השלמת פרופיל', desc: 'שם העסק, לוגו ופרטי התקשרות' },
+            { title: 'הוספת חברי צוות', desc: 'הזמנו עובדים והגדירו הרשאות' },
+            { title: 'התחילו לעבוד', desc: 'AI ילמד את הדפוסים שלכם ויתאים את עצמו' },
+        ])}
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'כניסה לפורטל',
+            text: 'כניסה למערכת →',
             url: params.portalUrl,
         })}
-        
-        <div style="margin-top:40px;padding:24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:16px;border:2px solid #fbbf24;">
-            <div style="text-align:center;">
-                <div style="font-size:16px;font-weight:900;color:#78350f;margin-bottom:8px;">
-                    ממה להתחיל?
-                </div>
-                <div style="font-size:14px;color:#92400e;line-height:1.7;">
-                    מומלץ להתחיל עם הגדרת הפרופיל שלך והוספת חברי צוות.
-                    <br>
-                    אנחנו כאן לעזור בכל שלב.
-                </div>
-            </div>
-        </div>
     `;
     
     return generateBaseEmailTemplate({
-        headerTitle: 'Misrad AI',
-        headerSubtitle: 'הארגון שלך מוכן לפעולה',
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'הארגון שלך מוכן',
         headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-        headerIcon: EmailTemplateComponents.Icons.celebration,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+        showSocialLinks: false,
     });
 }
 
@@ -491,55 +436,59 @@ function generateEmployeeInvitationEmailHTML(
     invitationUrl: string,
     createdByName?: string | null
 ): string {
-    const greeting = employeeName ? `שלום ${employeeName},` : `שלום,`;
-    const inviter = createdByName ? ` ${createdByName}` : '';
+    const greeting = employeeName ? `${employeeName},` : 'שלום,';
+    const inviter = createdByName ? `${createdByName} ` : '';
     
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.userPlus}
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            ${inviter ? `${inviter}הזמין אותך להצטרף לצוות` : 'הוזמנת להצטרף לצוות'} ב-MISRAD.
         </div>
         
-        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            ${inviter ? `${inviter} הזמין אותך להצטרף` : 'הוזמנת להצטרף'}
-        </div>
-        
-        ${EmailTemplateComponents.generateInfoBox({
-            title: 'פרטי ההזמנה',
-            content: `<strong style="color:#6366f1;">מחלקה:</strong> ${department}\n<strong style="color:#6366f1;">תפקיד:</strong> ${role}\n<strong style="color:#6366f1;">אימייל:</strong> ${employeeEmail}`,
-            backgroundColor: '#f7fafc',
-            borderColor: '#e2e8f0',
-        })}
-        
-        <div style="margin:28px 0;padding:20px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:14px;border:2px solid #fbbf24;text-align:center;">
-            <div style="font-size:15px;color:#78350f;line-height:1.7;">
-                <strong>להשלמת ההרשמה:</strong> לחץ על הכפתור למטה
-                <br>
-                (הקישור תקף 30 יום)
-            </div>
+        <div style="margin:24px 0;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:22px 24px;">
+            <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding:0 0 10px;">
+                        <div style="font-size:12px;font-weight:800;color:#64748b;letter-spacing:0.5px;">מחלקה</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:2px;">${department}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:10px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:800;color:#64748b;letter-spacing:0.5px;">תפקיד</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:2px;">${role}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'השלמת הרשמה',
+            text: 'השלמת הרשמה →',
             url: invitationUrl,
         })}
         
-        <div style="margin-top:40px;padding:20px 0;border-top:2px solid #e2e8f0;">
-            <div style="font-size:12px;color:#64748b;line-height:1.6;text-align:center;">
-                אם לא ביקשת הזמנה זו, אפשר להתעלם מהמייל.
-            </div>
+        ${EmailTemplateComponents.generateCallout({
+            emoji: '⏰',
+            title: 'הקישור תקף 30 יום',
+            text: 'לאחר מכן תצטרך הזמנה חדשה.',
+            bgColor: '#fff7ed',
+            borderColor: '#fed7aa',
+            titleColor: '#9a3412',
+            textColor: '#9a3412',
+        })}
+        
+        <div style="margin-top:28px;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+            לא ביקשת הזמנה זו? אפשר להתעלם מהמייל.
         </div>
     `;
     
     return generateBaseEmailTemplate({
-        headerTitle: 'הזמנה להצטרף לצוות',
-        headerSubtitle: 'Misrad AI - מערכת ניהול צוות מתקדמת',
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'הזמנה להצטרף לצוות',
         headerGradient: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-        headerIcon: EmailTemplateComponents.Icons.userPlus,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+        showSocialLinks: false,
     });
 }
 
@@ -623,41 +572,35 @@ function generateFirstCustomerEmailHTML(params: {
     founderName: string;
     founderPhone: string;
 }): string {
-    const greeting = params.ownerName ? `היי ${params.ownerName},` : 'היי,';
+    const greeting = params.ownerName ? `${params.ownerName},` : 'היי,';
     
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.userPlus}
+        <div style="font-size:17px;line-height:1.9;color:#334155;margin-bottom:28px;">
+            אני ${params.founderName}, המייסד של MISRAD.
+            <br /><br />
+            ראיתי שנרשמת ורציתי לפנות אליך אישית.
+            אני מאמין שאנחנו בונים משהו מיוחד, והדעת שלך חשובה לנו.
+            <br /><br />
+            אם משהו לא ברור, נתקע או צריך עזרה — אני קרוב כמו הודעה הזאת:
         </div>
         
-        <div style="font-size:17px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            <strong style="color:#6366f1;">הודעה אישית מהמייסד</strong>
-        </div>
-        
-        ${EmailTemplateComponents.generateInfoBox({
-            content: `אני ${params.founderName}, המייסד של MISRAD.\n\nראיתי שנרשמת ואני מתרגש.\n\nאני כאן בשבילך אישית.`,
-            backgroundColor: '#f0f9ff',
-            borderColor: '#bae6fd',
-        })}
-        
-        <div style="margin:32px 0;padding:24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:16px;border:2px solid #fbbf24;text-align:center;">
-            <div style="font-size:16px;font-weight:900;color:#78350f;margin-bottom:12px;">
-                הנייד שלי
+        <div style="margin:28px 0;padding:24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:16px;border:2px solid #fbbf24;text-align:center;">
+            <div style="font-size:14px;font-weight:800;color:#78350f;margin-bottom:10px;">
+                הנייד האישי שלי
             </div>
-            <div style="font-size:20px;font-weight:900;color:#0f172a;">
+            <a href="https://wa.me/${params.founderPhone.replace(/[^0-9]/g, '')}" style="font-size:22px;font-weight:900;color:#0f172a;text-decoration:none;">
                 ${params.founderPhone}
-            </div>
+            </a>
             <div style="margin-top:8px;font-size:13px;color:#92400e;">
-                אפשר לשלוח וואטסאפ או להתקשר בכל שעה
+                וואטסאפ, טלפון, SMS — מה שנוח לך
             </div>
         </div>
         
-        <div style="margin-top:32px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
-            <div style="font-size:12px;color:#64748b;line-height:1.6;">
-                אם קיבלת את ההודעה בטעות, אפשר להתעלם
-            </div>
+        <div style="margin-top:28px;font-size:14px;color:#64748b;line-height:1.7;">
+            בהצלחה,<br />
+            ${params.founderName}, MISRAD AI
         </div>
     `;
     
@@ -667,7 +610,6 @@ function generateFirstCustomerEmailHTML(params: {
         headerGradient: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
         bodyContent,
         showSocialLinks: false,
-        footerAdditionalInfo: 'תודה שבחרת ב-MISRAD - אנחנו כאן בשבילך',
     });
 }
 
@@ -787,10 +729,8 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'רק לבדוק אם הכל בסדר',
         headerGradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-        headerIcon: EmailTemplateComponents.Icons.support,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן לעזור',
+        showSocialLinks: false,
     });
 }
 
@@ -1011,10 +951,8 @@ function generateMisradWelcomeEmailHTML(params: {
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'ברוכים הבאים',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        headerIcon: EmailTemplateComponents.Icons.rocket,
         bodyContent,
         showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
     });
 }
 
@@ -1138,7 +1076,7 @@ export async function sendTenantInvitationEmail(
         const { data, error } = await resend.emails.send({
             from: fromEmail,
             to: toEmail,
-            subject: `הזמנה להצטרף ל-Misrad - ${tenantName}`,
+            subject: `הזמנה להצטרף ל-MISRAD - ${tenantName}`,
             html: html,
         });
 
@@ -1185,48 +1123,35 @@ function generateTrialExpiryWarningEmailHTML(params: {
     daysRemaining: number;
     portalUrl: string;
 }): string {
-    const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
+    const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
     const urgencyColor = params.daysRemaining <= 1 ? '#ef4444' : params.daysRemaining <= 3 ? '#f59e0b' : '#6366f1';
     const urgencyText = params.daysRemaining === 1 ? 'מחר' : `בעוד ${params.daysRemaining} ימים`;
 
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
-        <div style="text-align:center;margin:32px 0;">
-            ${EmailTemplateComponents.Icons.support}
-        </div>
-
-        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
             תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
-            <br />
-            תסתיים <strong style="color:${urgencyColor};">${urgencyText}</strong>
+            תסתיים <strong style="color:${urgencyColor};">${urgencyText}</strong>.
         </div>
 
-        ${EmailTemplateComponents.generateInfoBox({
-            title: 'מה קורה אחרי סיום תקופת הניסיון?',
-            content: 'הגישה למערכת תיחסם עד להשלמת התשלום.\nכל הנתונים שלך נשמרים ויחזרו מיד לאחר חידוש המנוי.',
-            backgroundColor: params.daysRemaining <= 3 ? '#fff7ed' : '#f0f9ff',
-            borderColor: params.daysRemaining <= 3 ? '#fed7aa' : '#bae6fd',
+        ${EmailTemplateComponents.generateCallout({
+            emoji: params.daysRemaining <= 1 ? '🚨' : '📋',
+            title: 'מה קורה אחרי סיום הניסיון?',
+            text: 'הגישה למערכת תיחסם עד להשלמת התשלום. כל הנתונים שלך נשמרים ויחזרו מיד אחרי חידוש.',
+            bgColor: params.daysRemaining <= 3 ? '#fff7ed' : '#eff6ff',
+            borderColor: params.daysRemaining <= 3 ? '#fed7aa' : '#bfdbfe',
+            titleColor: params.daysRemaining <= 3 ? '#9a3412' : '#1e40af',
+            textColor: params.daysRemaining <= 3 ? '#9a3412' : '#1e3a5f',
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'השלמת תשלום ומעבר לתוכנית בתשלום',
+            text: 'מעבר לתוכנית בתשלום →',
             url: params.portalUrl,
         })}
 
-        <div style="margin:32px 0;padding:24px;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border-radius:16px;border:2px solid #a7f3d0;">
-            <div style="font-size:16px;font-weight:900;color:#065f46;margin-bottom:12px;text-align:center;">
-                צריך עזרה?
-            </div>
-            <div style="font-size:14px;color:#047857;line-height:1.7;text-align:center;">
-                אנחנו כאן בשבילך! פשוט השב למייל הזה או צור קשר דרך הפורטל.
-            </div>
-        </div>
-
-        <div style="margin-top:32px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
-            <div style="font-size:12px;color:#64748b;line-height:1.6;">
-                כדי לשמור על הרצף והגישה למערכת, מומלץ להשלים את התשלום בהקדם
-            </div>
+        <div style="margin-top:28px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
+            שאלות? פשוט תשיב למייל הזה.
         </div>
     `;
 
@@ -1234,10 +1159,8 @@ function generateTrialExpiryWarningEmailHTML(params: {
         headerTitle: 'MISRAD AI',
         headerSubtitle: `תקופת הניסיון מסתיימת ${urgencyText}`,
         headerGradient: `linear-gradient(135deg, ${urgencyColor} 0%, ${params.daysRemaining <= 3 ? '#dc2626' : '#4f46e5'} 100%)`,
-        headerIcon: EmailTemplateComponents.Icons.support,
         bodyContent,
-        showSocialLinks: true,
-        footerAdditionalInfo: 'אנחנו כאן בשבילך',
+        showSocialLinks: false,
     });
 }
 

@@ -1,6 +1,5 @@
 'use server';
 
-
 import { logger } from '@/lib/server/logger';
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendInvitationEmail } from './email';
@@ -10,7 +9,8 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
-import { getBaseUrl } from '@/lib/utils';
+import { getBaseUrl } from '@/lib/utils';
+import { generateBaseEmailTemplate, EmailTemplateComponents } from '@/lib/email-templates';
 
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
@@ -177,64 +177,36 @@ async function sendTeamInvitationEmail(params: {
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
     const toEmail = resolveRecipientEmail(params.email);
 
+    const bodyContent = `
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">שלום,</div>
+        
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            הוזמנת להצטרף לצוות ב-MISRAD בתפקיד <strong style="color:#6366f1;">${roleName}</strong>.
+        </div>
+
+        ${EmailTemplateComponents.generateCTAButton({
+            text: 'השלמת הרשמה \u2192',
+            url: params.invitationLink,
+        })}
+
+        <div style="margin-top:28px;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+            הכפתור לא עובד? <a href="${params.invitationLink}" style="color:#6366f1;word-break:break-all;">לחץ כאן</a>
+        </div>
+    `;
+
+    const html = generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'הזמנה להצטרף לצוות',
+        headerGradient: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+        bodyContent,
+        showSocialLinks: false,
+    });
+
     const { error } = await resend.emails.send({
       from: fromEmail,
       to: toEmail,
-      subject: `הזמנה להצטרף ל-Social OS - ${roleName}`,
-      html: `
-        <!DOCTYPE html>
-        <html dir="rtl" lang="he">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>הזמנה ל-Social OS</title>
-        </head>
-        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; background-color: #f8fafc; padding: 20px;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #1e293b; font-size: 28px; font-weight: 900; margin: 0;">Social OS</h1>
-              <p style="color: #64748b; font-size: 14px; margin-top: 8px;">מערכת הניהול המתקדמת לניהול סושיאל מדיה</p>
-            </div>
-            
-            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 30px;">
-              <h2 style="color: white; font-size: 24px; font-weight: 900; margin: 0 0 10px 0;">שלום!</h2>
-              <p style="color: rgba(255, 255, 255, 0.9); font-size: 16px; margin: 0;">הוזמנת להצטרף לצוות ב-Social OS</p>
-            </div>
-
-            <div style="margin-bottom: 30px;">
-              <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-                הוזמנת להצטרף לצוות ב-<strong>Social OS</strong> בתפקיד <strong>${roleName}</strong>.
-              </p>
-              <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-                דרך המערכת תוכל:
-              </p>
-              <ul style="color: #475569; font-size: 15px; line-height: 1.8; padding-right: 20px;">
-                <li>לנהל לקוחות וקמפיינים</li>
-                <li>ליצור ולנהל תוכן</li>
-                <li>לצפות בביצועים ואנליטיקס</li>
-                <li>ולעבוד יחד עם הצוות</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin-bottom: 30px;">
-              <a 
-                href="${params.invitationLink}" 
-                style="display: inline-block; background-color: #3b82f6; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);"
-              >
-                התחבר עכשיו
-              </a>
-            </div>
-
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
-              <p style="color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 0;">
-                אם הכפתור לא עובד, העתק והדבק את הקישור הבא בדפדפן שלך:<br>
-                <a href="${params.invitationLink}" style="color: #3b82f6; word-break: break-all;">${params.invitationLink}</a>
-              </p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      subject: `הזמנה להצטרף ל-MISRAD - ${roleName}`,
+      html,
     });
 
     if (error) {
