@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -211,12 +211,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     ],
     support: [
       { href: '/app/admin/client/support', label: 'דיווחי תקלות', icon: LifeBuoy },
-      { href: '/app/admin/client/features', label: "בקשות פיצ'רים", icon: Sparkles },
+      { href: '/app/admin/client/features', label: "בקשות פיצ'רים", icon: Lightbulb },
       { href: '/app/admin/client/announcements', label: 'הודעות ללקוחות', icon: ScrollText },
       { href: '/app/admin/support', label: 'הגדרות תמיכה', icon: Settings },
     ],
     product: [
-      { href: '/app/admin/nexus/control', label: 'Nexus', icon: Sparkles },
+      { href: '/app/admin/nexus/control', label: 'Nexus', icon: Zap },
       { href: '/app/admin/social', label: 'Social', icon: ShieldCheck },
       { href: '/app/admin/system/control', label: 'System', icon: Settings },
       { href: '/app/admin/finance/control', label: 'Finance', icon: DollarSign },
@@ -235,8 +235,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/global/control', label: 'בקרת פלטפורמה', icon: Server },
       { href: '/app/admin/system-flags', label: 'מתגי מערכת', icon: SlidersHorizontal },
       { href: '/app/admin/global/feature-flags', label: 'הגדרות מתקדמות', icon: Settings },
-      { href: '/app/admin/ai', label: 'ניתוח AI', icon: Sparkles },
-      { href: '/app/admin/global/ai', label: 'מוח AI', icon: Sparkles },
+      { href: '/app/admin/ai', label: 'ניתוח AI', icon: BrainCircuit },
+      { href: '/app/admin/global/ai', label: 'מוח AI', icon: BrainCircuit },
       { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
       { href: '/app/admin/global/data', label: 'דאטה', icon: Server },
       { href: '/app/admin/global/downloads', label: 'הורדות', icon: Server },
@@ -407,7 +407,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   title="ניתוח AI"
                   aria-label="ניתוח AI"
                 >
-                  <Sparkles size={18} />
+                  <BrainCircuit size={18} />
                 </Button>
                 <Button
                   type="button"

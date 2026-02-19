@@ -135,7 +135,7 @@ export default function EmailAssetsClient() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Image size={18} className="text-indigo-600" />
+              <Image size={18} className="text-slate-700" />
               תמונות וויזואלים למיילים
             </div>
             <div className="text-xs font-bold text-slate-600 mt-1">
@@ -187,7 +187,7 @@ export default function EmailAssetsClient() {
                   {keys.length} שדות
                 </div>
                 {catOverrides > 0 && (
-                  <div className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                  <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
                     {catOverrides} מוגדרים
                   </div>
                 )}
@@ -205,7 +205,7 @@ export default function EmailAssetsClient() {
                   const isImg = isImageKey(key);
 
                   return (
-                    <div key={key} className="border border-slate-100 rounded-2xl p-4 space-y-2 hover:border-indigo-200 transition-colors">
+                    <div key={key} className="border border-slate-100 rounded-2xl p-4 space-y-2 hover:border-slate-300 transition-colors">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-xs font-black text-slate-800">{meta?.label || key}</div>
@@ -231,7 +231,7 @@ export default function EmailAssetsClient() {
                               href={currentValue.trim() || defaultValue}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="h-7 w-7 p-0 flex items-center justify-center text-slate-400 hover:text-indigo-600"
+                              className="h-7 w-7 p-0 flex items-center justify-center text-slate-400 hover:text-slate-700"
                               title="פתח בכרטיסייה חדשה"
                             >
                               <ExternalLink size={13} />
@@ -245,7 +245,7 @@ export default function EmailAssetsClient() {
                         onChange={(e) => handleChange(key, e.target.value)}
                         placeholder={defaultValue}
                         disabled={loading || saving}
-                        className={`text-xs ${hasOverride ? 'border-indigo-300 bg-indigo-50/30' : ''}`}
+                        className={`text-xs ${hasOverride ? 'border-slate-300 bg-slate-50/30' : ''}`}
                         dir="ltr"
                       />
 

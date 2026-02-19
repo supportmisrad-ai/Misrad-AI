@@ -212,7 +212,7 @@ export default function AdminOrganizationsClient(props: {
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
                   {o.businessClientName ? (
-                    <div className="mt-1 text-xs font-bold text-indigo-600 truncate">לקוח עסקי: {o.businessClientName}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-700 truncate">לקוח עסקי: {o.businessClientName}</div>
                   ) : null}
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">
                     מודולים: {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
@@ -257,14 +257,14 @@ export default function AdminOrganizationsClient(props: {
                     <td className="px-4 py-3 text-sm text-slate-700">{o.slug || '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
-                    <td className="px-4 py-3 text-sm text-indigo-700 font-bold">{o.businessClientName || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700 font-bold">{o.businessClientName || '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Link
                         href={`/app/admin/organizations/${o.id}`}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
                       >
                         <Settings className="w-3.5 h-3.5" />
                         נהל
@@ -291,8 +291,8 @@ export default function AdminOrganizationsClient(props: {
           <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-xl">
             <div className="p-5 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Building2 size={18} className="text-indigo-700" />
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+                  <Building2 size={18} className="text-slate-700" />
                 </div>
                 <div className="text-lg font-black text-slate-900">הקמת ארגון חדש</div>
               </div>
@@ -370,8 +370,8 @@ export default function AdminOrganizationsClient(props: {
                       onClick={() => setSelectedPackage(selectedPackage === p.key ? '' : p.key)}
                       className={`px-3 py-1.5 rounded-full text-xs font-black border-2 transition-all ${
                         selectedPackage === p.key
-                          ? 'bg-indigo-600 text-white border-indigo-500'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'
+                          ? 'bg-slate-900 text-white border-slate-800'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
                       }`}
                     >
                       {p.emoji} {p.label}
@@ -381,7 +381,7 @@ export default function AdminOrganizationsClient(props: {
                 {selectedPackage && selectedModules.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {selectedModules.map((m) => (
-                      <span key={m} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100 text-[10px] font-bold text-indigo-700">
+                      <span key={m} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700">
                         <Check size={10} strokeWidth={3} />
                         {MODULE_LABELS[m] || m}
                       </span>

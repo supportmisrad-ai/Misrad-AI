@@ -140,7 +140,7 @@ export default function BillingManagementClient() {
             {events.filter((e) => e.eventType === 'payment_failed').length}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+        <div className="bg-gradient-to-br from-blue-50 to-slate-50 border border-blue-200 rounded-xl p-4">
           <p className="text-sm text-gray-600 mb-1">Webhooks</p>
           <p className="text-2xl font-black text-blue-700">
             {events.filter((e) => e.eventType.startsWith('webhook_')).length}

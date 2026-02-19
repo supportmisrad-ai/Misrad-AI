@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { IntelligencePanel } from '@/components/saas/IntelligencePanel';
 import { ReportDetailModal } from '@/components/saas/ReportDetailModal';
@@ -42,7 +42,7 @@ export default function AdminNexusIntelligencePageClient() {
   return (
     <>
       <div className="space-y-6 pb-24" dir="rtl">
-        <AdminPageHeader title="בינה" subtitle="בינה עסקית ודוחות" icon={Sparkles} />
+        <AdminPageHeader title="בינה" subtitle="בינה עסקית ודוחות" icon={BrainCircuit} />
         <IntelligencePanel
           systemReports={systemReports || []}
           feedbacks={feedbacks || []}

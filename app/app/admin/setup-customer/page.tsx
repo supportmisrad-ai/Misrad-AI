@@ -19,7 +19,7 @@ export default async function SetupCustomerPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-blue-50 to-slate-50 border border-blue-200 rounded-xl p-6">
         <h3 className="text-lg font-black text-blue-900 mb-2">💡 איך זה עובד?</h3>
         <ul className="space-y-2 text-sm text-blue-800">
           <li>✓ <strong>שלב 1:</strong> הזן פרטי החברה המשלמת (שם, ח.פ, כתובת)</li>

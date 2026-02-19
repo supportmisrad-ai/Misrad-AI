@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Boxes, Globe, Network, Settings, ShieldCheck, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Boxes, Globe, Network, Settings, ShieldCheck, SlidersHorizontal, BrainCircuit } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 
 type ModuleAction = { label: string; href: string };
@@ -66,7 +66,7 @@ export default function ModulesAdminPageClient() {
     {
       title: 'בינה מלאכותית',
       description: 'ניתוח AI ומוח AI גלובלי.',
-      icon: Sparkles,
+      icon: BrainCircuit,
       actions: [
         { label: 'ניתוח AI', href: '/app/admin/ai' },
         { label: 'מוח AI (גלובלי)', href: '/app/admin/global/ai' },
@@ -84,7 +84,7 @@ export default function ModulesAdminPageClient() {
           return (
             <div key={card.title} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700">
                   <Icon size={18} />
                 </div>
                 <div>

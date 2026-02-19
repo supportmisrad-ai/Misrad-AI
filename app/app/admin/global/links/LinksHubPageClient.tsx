@@ -995,7 +995,7 @@ export default function LinksHubPageClient() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="חפש לפי שם, URL, או תיאור…"
-              className="mt-2 w-full h-12 px-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-bold outline-none focus:border-indigo-300"
+              className="mt-2 w-full h-12 px-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-bold outline-none focus:border-slate-400"
             />
           </div>
         </div>

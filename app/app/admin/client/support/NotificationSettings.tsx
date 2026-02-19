@@ -37,7 +37,7 @@ export default function NotificationSettings() {
     <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <Bell size={20} className="text-indigo-600" />
+          <Bell size={20} className="text-slate-700" />
           <h3 className="text-lg font-black text-slate-900">הגדרות התראות</h3>
         </div>
         <p className="text-sm text-slate-600">
@@ -51,13 +51,13 @@ export default function NotificationSettings() {
           onClick={() => setChannel('both')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
             channel === 'both'
-              ? 'border-indigo-600 bg-indigo-50'
+              ? 'border-slate-900 bg-slate-50'
               : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Smartphone size={18} className={channel === 'both' ? 'text-indigo-600' : 'text-slate-500'} />
-            <Mail size={18} className={channel === 'both' ? 'text-indigo-600' : 'text-slate-500'} />
+            <Smartphone size={18} className={channel === 'both' ? 'text-slate-700' : 'text-slate-500'} />
+            <Mail size={18} className={channel === 'both' ? 'text-slate-700' : 'text-slate-500'} />
           </div>
           <div className="flex-1 text-right">
             <div className="text-sm font-black text-slate-900">Push + Email</div>
@@ -70,11 +70,11 @@ export default function NotificationSettings() {
           onClick={() => setChannel('push')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
             channel === 'push'
-              ? 'border-indigo-600 bg-indigo-50'
+              ? 'border-slate-900 bg-slate-50'
               : 'border-slate-200 hover:border-slate-300'
           }`}
         >
-          <Smartphone size={18} className={channel === 'push' ? 'text-indigo-600' : 'text-slate-500'} />
+          <Smartphone size={18} className={channel === 'push' ? 'text-slate-700' : 'text-slate-500'} />
           <div className="flex-1 text-right">
             <div className="text-sm font-black text-slate-900">Push בלבד</div>
             <div className="text-xs text-slate-600">התראות דחיפה בלבד</div>
@@ -86,11 +86,11 @@ export default function NotificationSettings() {
           onClick={() => setChannel('email')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
             channel === 'email'
-              ? 'border-indigo-600 bg-indigo-50'
+              ? 'border-slate-900 bg-slate-50'
               : 'border-slate-200 hover:border-slate-300'
           }`}
         >
-          <Mail size={18} className={channel === 'email' ? 'text-indigo-600' : 'text-slate-500'} />
+          <Mail size={18} className={channel === 'email' ? 'text-slate-700' : 'text-slate-500'} />
           <div className="flex-1 text-right">
             <div className="text-sm font-black text-slate-900">Email בלבד</div>
             <div className="text-xs text-slate-600">התראות במייל בלבד</div>
@@ -102,7 +102,7 @@ export default function NotificationSettings() {
           onClick={() => setChannel('none')}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all ${
             channel === 'none'
-              ? 'border-indigo-600 bg-indigo-50'
+              ? 'border-slate-900 bg-slate-50'
               : 'border-slate-200 hover:border-slate-300'
           }`}
         >

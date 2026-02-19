@@ -520,6 +520,32 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
     },
 
     // ══════════════════════════════════════════════════════════════════
+    // CONTACT — Public contact form
+    // ══════════════════════════════════════════════════════════════════
+    {
+        id: 'contact_form_received',
+        label: 'פנייה מטופס צור קשר התקבלה',
+        category: 'transactional',
+        audience: 'user',
+        canUnsubscribe: false,
+        preferenceKey: 'contact_form',
+        description: 'אישור אוטומטי שהפנייה מטופס צור קשר התקבלה',
+        implemented: true,
+        trigger: 'שליחת טופס צור קשר',
+    },
+    {
+        id: 'contact_form_admin_notification',
+        label: 'התראת אדמין — פנייה חדשה',
+        category: 'transactional',
+        audience: 'admin',
+        canUnsubscribe: true,
+        preferenceKey: 'contact_admin_notifications',
+        description: 'התראה לאדמין על פנייה חדשה מטופס צור קשר',
+        implemented: true,
+        trigger: 'שליחת טופס צור קשר',
+    },
+
+    // ══════════════════════════════════════════════════════════════════
     // SYSTEM — Alerts, reports, maintenance
     // ══════════════════════════════════════════════════════════════════
     {

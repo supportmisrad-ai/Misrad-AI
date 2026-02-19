@@ -97,7 +97,7 @@ export default function FeatureFlagsClient() {
       <div className="space-y-6 pb-24" dir="rtl">
         <AdminPageHeader title="הגדרות מתקדמות" subtitle="ניהול מודולים ותכונות מערכת" icon={Settings} />
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="animate-spin text-indigo-600" size={32} />
+          <Loader2 className="animate-spin text-slate-700" size={32} />
         </div>
       </div>
     );
@@ -180,7 +180,7 @@ export default function FeatureFlagsClient() {
                   onClick={() => toggleModule(moduleKey)}
                   className={`relative p-4 rounded-2xl border-2 transition-all text-right ${
                     enabled
-                      ? 'border-indigo-300 bg-indigo-50'
+                      ? 'border-slate-400 bg-slate-50'
                       : 'border-slate-200 bg-slate-50 hover:border-slate-300'
                   }`}
                 >
@@ -198,7 +198,7 @@ export default function FeatureFlagsClient() {
                       <div
                         className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                           enabled
-                            ? 'bg-indigo-600 border-indigo-600'
+                            ? 'bg-slate-900 border-slate-900'
                             : 'bg-white border-slate-300'
                         }`}
                       >

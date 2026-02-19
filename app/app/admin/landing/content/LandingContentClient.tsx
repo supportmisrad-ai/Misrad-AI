@@ -285,7 +285,7 @@ export default function LandingContentClient() {
               onClick={() => setActiveTab('testimonials')}
               className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-colors ${
                 activeTab === 'testimonials'
-                  ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600'
+                  ? 'bg-slate-50 text-slate-900 border-b-2 border-slate-900'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -295,7 +295,7 @@ export default function LandingContentClient() {
               onClick={() => setActiveTab('faq')}
               className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-colors ${
                 activeTab === 'faq'
-                  ? 'bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600'
+                  ? 'bg-slate-50 text-slate-900 border-b-2 border-slate-900'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -312,7 +312,7 @@ export default function LandingContentClient() {
                   </h2>
                   <button
                     onClick={addTestimonial}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors"
                   >
                     <Plus size={18} />
                     הוסף המלצה
@@ -339,7 +339,7 @@ export default function LandingContentClient() {
                             onChange={(e) =>
                               updateTestimonial(testimonial.id, 'name', e.target.value)
                             }
-                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300"
                             placeholder="שם"
                           />
                           <input
@@ -348,7 +348,7 @@ export default function LandingContentClient() {
                             onChange={(e) =>
                               updateTestimonial(testimonial.id, 'role', e.target.value)
                             }
-                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300"
                             placeholder="תפקיד"
                           />
                           <input
@@ -357,7 +357,7 @@ export default function LandingContentClient() {
                             onChange={(e) =>
                               updateTestimonial(testimonial.id, 'company', e.target.value)
                             }
-                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300"
                             placeholder="חברה"
                           />
                         </div>
@@ -368,7 +368,7 @@ export default function LandingContentClient() {
                             updateTestimonial(testimonial.id, 'content', e.target.value)
                           }
                           rows={3}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 mb-4"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300 mb-4"
                           placeholder="תוכן ההמלצה..."
                         />
 
@@ -515,7 +515,7 @@ export default function LandingContentClient() {
                   </h2>
                   <button
                     onClick={addFAQ}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors"
                   >
                     <Plus size={18} />
                     הוסף שאלה
@@ -541,7 +541,7 @@ export default function LandingContentClient() {
                           onChange={(e) =>
                             updateFAQ(faq.id, 'question', e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 mb-4"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300 mb-4"
                           placeholder="השאלה..."
                         />
 
@@ -555,7 +555,7 @@ export default function LandingContentClient() {
                               updateFAQ(faq.id, 'answer', e.target.value)
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 mb-4"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-300 mb-4"
                             placeholder="התשובה..."
                           />
 

@@ -130,7 +130,7 @@ export default function WorkListingsAdminClient() {
                     <td className="px-4 py-3 text-xs font-bold text-slate-700">{interested}</td>
                     <td className="px-4 py-3 text-xs font-bold text-slate-600">{String(r.sourceOrgSlug || '')}</td>
                     <td className="px-4 py-3 text-xs font-black">
-                      <a href={publicUrl} target="_blank" rel="noreferrer" className="text-indigo-700 hover:underline">
+                      <a href={publicUrl} target="_blank" rel="noreferrer" className="text-slate-700 hover:underline">
                         פתח
                       </a>
                     </td>

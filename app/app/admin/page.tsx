@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Building2, Globe, LifeBuoy, Server, Settings, Shield, Sparkles, Users, type LucideIcon } from 'lucide-react';
+import { Building2, Globe, LifeBuoy, Server, Settings, Shield, BrainCircuit, Users, type LucideIcon } from 'lucide-react';
 import { getAdminGodView } from '@/app/actions/admin-godview';
 import type { AdminGodViewRecentOrganization, AdminGodViewAlert } from '@/app/actions/admin-godview';
 import OrgImpersonateButton from './OrgImpersonateButton';

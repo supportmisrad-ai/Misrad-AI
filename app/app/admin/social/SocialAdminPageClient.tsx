@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutGrid, Plug, Rocket, SlidersHorizontal, Sparkles, Users } from 'lucide-react';
+import { LayoutGrid, Plug, Rocket, SlidersHorizontal, Lightbulb, Zap, Users } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { IntegrationsTab } from '@/components/saas/social/tabs/IntegrationsTab';
@@ -48,8 +48,8 @@ export default function SocialAdminPageClient() {
       { id: 'team', label: 'צוות', icon: Users },
       { id: 'integrations', label: 'אינטגרציות', icon: Plug },
       { id: 'quotas', label: 'מכסות', icon: SlidersHorizontal },
-      { id: 'automation', label: 'אוטומציות', icon: Sparkles },
-      { id: 'features', label: "בקשות פיצ'רים", icon: Sparkles },
+      { id: 'automation', label: 'אוטומציות', icon: Zap },
+      { id: 'features', label: "בקשות פיצ'רים", icon: Lightbulb },
       { id: 'updates', label: 'עדכוני מערכת', icon: Rocket },
       { id: 'advanced', label: 'ניהול מתקדם', icon: Users },
     ],
@@ -143,7 +143,7 @@ export default function SocialAdminPageClient() {
               <select
                 value={selectedTenantId}
                 onChange={(e) => setSelectedTenantId(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200/60"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/60"
               >
                 {tenantOptions.length === 0 ? (
                   <option value="">אין חשבונות SaaS</option>

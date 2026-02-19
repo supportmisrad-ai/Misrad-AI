@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
-import { Mail, Clock, Send, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Mail, Clock, MessageCircle, ArrowLeft } from 'lucide-react';
+import ContactFormClient from './ContactFormClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,32 +69,7 @@ export default function ContactPage() {
                 <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-[2rem] blur-xl" />
                 <div className="relative rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl p-6 sm:p-8">
                   <div className="text-base sm:text-lg font-black text-slate-900 mb-5 sm:mb-6">שלח הודעה</div>
-                  <form className="space-y-4">
-                    <input
-                      name="name"
-                      placeholder="שם מלא"
-                      className="w-full rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-                    />
-                    <input
-                      name="email"
-                      type="email"
-                      placeholder="אימייל"
-                      className="w-full rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none dir-ltr"
-                    />
-                    <textarea
-                      name="message"
-                      placeholder="במה אפשר לעזור?"
-                      rows={4}
-                      className="w-full rounded-2xl bg-slate-50 border border-slate-200 px-5 py-4 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none resize-none"
-                    />
-                    <button
-                      type="button"
-                      className="group w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black px-6 py-4 shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Send size={18} />
-                      שלח הודעה
-                    </button>
-                  </form>
+                  <ContactFormClient />
                 </div>
               </div>
             </div>

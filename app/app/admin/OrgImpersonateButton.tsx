@@ -51,7 +51,7 @@ export default function OrgImpersonateButton(props: {
       className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border font-black transition-colors ${
         isLoading || !props.clientId
           ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-          : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100'
+          : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
       }`}
       title="התחזות"
     >

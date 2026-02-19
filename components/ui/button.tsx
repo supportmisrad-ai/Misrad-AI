@@ -11,10 +11,10 @@ export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:opacity-60 disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:opacity-60 disabled:pointer-events-none';
 
 const variants: Record<ButtonVariant, string> = {
-  default: 'bg-indigo-600 text-white hover:bg-indigo-700',
+  default: 'bg-slate-900 text-white hover:bg-slate-800',
   secondary: 'bg-slate-900 text-white hover:bg-slate-800',
   outline: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
   ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',

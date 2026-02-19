@@ -276,8 +276,8 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                    <Users size={18} className="text-indigo-700" />
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+                    <Users size={18} className="text-slate-700" />
                   </div>
                   <ChevronDown size={18} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                 </div>
