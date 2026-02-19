@@ -273,18 +273,35 @@ function generateSteps(steps: Array<{ title: string; desc?: string }>): string {
 }
 
 /**
- * Stat Card — for numbers/metrics
+ * Stat Card — for numbers/metrics (single or multi-item)
  */
 function generateStatCard(options: {
-  value: string;
-  label: string;
+  value?: string;
+  label?: string;
   color?: string;
+  items?: Array<{ label: string; value: string; color?: string }>;
 }): string {
+  if (options.items && options.items.length > 0) {
+    const cells = options.items.map((item) => {
+      const c = item.color || BRAND_COLORS.primary;
+      return `
+        <td style="text-align:center;padding:16px 12px;background:${BRAND_COLORS.background};border-radius:12px;border:1px solid ${BRAND_COLORS.border};">
+          <div style="font-size:24px;font-weight:900;color:${c};letter-spacing:-1px;">${item.value}</div>
+          <div style="font-size:11px;font-weight:600;color:${BRAND_COLORS.gray};margin-top:4px;">${item.label}</div>
+        </td>
+      `;
+    }).join('<td style="width:8px;"></td>');
+    return `
+      <table role="presentation" style="width:100%;margin:24px 0;" cellpadding="0" cellspacing="0">
+        <tr>${cells}</tr>
+      </table>
+    `;
+  }
   const color = options.color || BRAND_COLORS.primary;
   return `
     <div style="display:inline-block;text-align:center;padding:16px 24px;background:${BRAND_COLORS.background};border-radius:12px;border:1px solid ${BRAND_COLORS.border};margin:4px;">
-      <div style="font-size:28px;font-weight:900;color:${color};letter-spacing:-1px;">${options.value}</div>
-      <div style="font-size:12px;font-weight:600;color:${BRAND_COLORS.gray};margin-top:4px;">${options.label}</div>
+      <div style="font-size:28px;font-weight:900;color:${color};letter-spacing:-1px;">${options.value || ''}</div>
+      <div style="font-size:12px;font-weight:600;color:${BRAND_COLORS.gray};margin-top:4px;">${options.label || ''}</div>
     </div>
   `;
 }

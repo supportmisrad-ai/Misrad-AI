@@ -19,6 +19,9 @@ import { markPaymentSuccessful, markPaymentFailed } from '@/lib/services/app-bil
 import { getErrorMessage } from '@/lib/shared/unknown';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { sendEmail } from '@/lib/email-sender';
+import { generatePaymentSuccessEmailHTML, generatePaymentFailedEmailHTML } from '@/lib/email-generators';
+import { getBaseUrl } from '@/lib/utils';
 
 const MORNING_WEBHOOK_SECRET = process.env.MORNING_WEBHOOK_SECRET;
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -222,6 +225,36 @@ export async function POST(request: NextRequest) {
           if (!IS_PROD) {
             console.log('[Webhook] Payment marked successful for organization:', organizationId);
           }
+
+          // Send payment success email
+          try {
+            const org = await prisma.organization.findUnique({
+              where: { id: organizationId },
+              select: { name: true, billing_email: true, slug: true, owner: { select: { email: true, full_name: true } } },
+            });
+            const toEmail = org?.billing_email || org?.owner?.email;
+            if (toEmail) {
+              const baseUrl = getBaseUrl();
+              const portalUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : baseUrl;
+              const html = generatePaymentSuccessEmailHTML({
+                ownerName: org?.owner?.full_name || null,
+                organizationName: org?.name || '',
+                amount,
+                invoiceNumber: String(documentId || ''),
+                portalUrl,
+              });
+              await sendEmail({
+                emailTypeId: 'billing_payment_success',
+                to: toEmail,
+                subject: `\u2705 תשלום התקבל בהצלחה — ${org?.name || ''}`,
+                html,
+                forceSend: true,
+              });
+            }
+          } catch (emailErr: unknown) {
+            if (!IS_PROD) console.error('[Webhook] Failed to send payment success email:', emailErr);
+          }
+
           return NextResponse.json({ received: true, status: 'processed' });
         } else {
           return NextResponse.json({ received: true, status: 'error', error: result.error }, { status: 500 });
@@ -248,6 +281,36 @@ export async function POST(request: NextRequest) {
           if (!IS_PROD) {
             console.log('[Webhook] Payment marked failed for organization:', organizationId);
           }
+
+          // Send payment failed email
+          try {
+            const org = await prisma.organization.findUnique({
+              where: { id: organizationId },
+              select: { name: true, billing_email: true, slug: true, owner: { select: { email: true, full_name: true } } },
+            });
+            const toEmail = org?.billing_email || org?.owner?.email;
+            if (toEmail) {
+              const baseUrl = getBaseUrl();
+              const retryUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : `${baseUrl}/subscribe/checkout`;
+              const html = generatePaymentFailedEmailHTML({
+                ownerName: org?.owner?.full_name || null,
+                organizationName: org?.name || '',
+                amount: Number(payload.amount || payload.total || 0),
+                reason: String(reason),
+                retryUrl,
+              });
+              await sendEmail({
+                emailTypeId: 'billing_payment_failed',
+                to: toEmail,
+                subject: `\u26a0\ufe0f בעיה בתשלום — ${org?.name || ''}`,
+                html,
+                forceSend: true,
+              });
+            }
+          } catch (emailErr: unknown) {
+            if (!IS_PROD) console.error('[Webhook] Failed to send payment failed email:', emailErr);
+          }
+
           return NextResponse.json({ received: true, status: 'processed' });
         } else {
           return NextResponse.json({ received: true, status: 'error', error: result.error }, { status: 500 });
