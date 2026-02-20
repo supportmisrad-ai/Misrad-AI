@@ -50,6 +50,8 @@ const isPublicRoute = createRouteMatcher([
   "/manifests/(.*)",
   "/api/webhooks/clerk",
   "/api/email/unsubscribe",
+  "/api/landing/(.*)",
+  "/api/debug/clerk-config",
   "/api/cron(.*)",
   "/favicon.ico",
   "/robots.txt",
@@ -354,11 +356,9 @@ export default clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next();
 }, {
-  // proxyUrl must match NEXT_PUBLIC_CLERK_PROXY_URL used in ClerkProvider.
-  // Without this, sessions created through the proxy are not recognized
-  // server-side, causing an infinite redirect loop (client thinks logged in,
-  // server rejects → back to /login → loop).
-  proxyUrl: process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined,
+  // DISABLED: Proxy URL causes 403 in production. Using Clerk's default domain.
+  // To re-enable when proxy DNS/CNAME is verified:
+  //   proxyUrl: process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined,
   isSatellite: false,
 });
 

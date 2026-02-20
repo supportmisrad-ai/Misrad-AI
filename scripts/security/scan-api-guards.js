@@ -21,6 +21,9 @@ const PUBLIC_APPROVED = new Set([
   'app/api/webhooks/morning-app/route.ts', // Webhook protected by signature verification
   'app/api/email/unsubscribe/route.ts', // Public: HMAC token verified, no auth required
   'app/api/contact/route.ts', // Public: rate-limited, no auth required — contact form
+  'app/api/landing/testimonials/route.ts', // Public: landing page data, no auth required
+  'app/api/landing/faq/route.ts', // Public: landing page data, no auth required
+  'app/api/debug/clerk-config/route.ts', // Public: exposes only NEXT_PUBLIC_ env vars for diagnostics
 ]);
 
 const CANDIDATE_APPROVED = new Set([

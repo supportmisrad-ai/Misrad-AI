@@ -34,10 +34,14 @@ export function ClerkProviderWithRouter({
 
   const isProd = process.env.NODE_ENV === 'production';
 
-  const envProxyUrl = process.env.NEXT_PUBLIC_CLERK_PROXY_URL;
-  const finalProxyUrl = proxyUrl ?? (isProd ? envProxyUrl : undefined);
+  // DISABLED: Proxy URL causes 403 in production. Clerk's default domain works
+  // in DEV — let PROD use the same path until proxy DNS/CNAME is verified.
+  // To re-enable: uncomment the next two lines and remove the overrides.
+  // const envProxyUrl = process.env.NEXT_PUBLIC_CLERK_PROXY_URL;
+  // const finalProxyUrl = proxyUrl ?? (isProd ? envProxyUrl : undefined);
+  const finalProxyUrl = undefined;
 
-  const useProxyUrl = finalProxyUrl !== undefined && finalProxyUrl !== '';
+  const useProxyUrl = false;
   const useDomain = domain !== undefined && isSatellite !== undefined;
 
   const finalSignInFallbackRedirectUrl = signInFallbackRedirectUrl;
