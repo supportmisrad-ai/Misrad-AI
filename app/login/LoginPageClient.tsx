@@ -131,7 +131,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         if (signUp?.status === 'complete' && signUp.createdSessionId) {
           await setActive({ session: signUp.createdSessionId });
           setContinuationState('done');
-          window.location.assign(getRedirectTarget());
+          router.push(getRedirectTarget());
           return;
         }
 
@@ -139,7 +139,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         if (signIn?.status === 'complete' && signIn.createdSessionId) {
           await setActive({ session: signIn.createdSessionId });
           setContinuationState('done');
-          window.location.assign(getRedirectTarget());
+          router.push(getRedirectTarget());
           return;
         }
 
@@ -159,7 +159,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           if (res.status === 'complete' && res.createdSessionId) {
             await setActive({ session: res.createdSessionId });
             setContinuationState('done');
-            window.location.assign(getRedirectTarget());
+            router.push(getRedirectTarget());
             return;
           }
         }
@@ -177,7 +177,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           if (res.status === 'complete' && res.createdSessionId) {
             await setActive({ session: res.createdSessionId });
             setContinuationState('done');
-            window.location.assign(getRedirectTarget());
+            router.push(getRedirectTarget());
             return;
           }
         }
@@ -212,7 +212,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
               if (reloaded.status === 'complete' && reloaded.createdSessionId) {
                 await setActive({ session: reloaded.createdSessionId });
                 setContinuationState('done');
-                window.location.assign(getRedirectTarget());
+                router.push(getRedirectTarget());
                 return;
               }
             } catch (updateErr) {
@@ -226,7 +226,7 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
                   if (reloaded.status === 'complete' && reloaded.createdSessionId) {
                     await setActive({ session: reloaded.createdSessionId });
                     setContinuationState('done');
-                    window.location.assign(getRedirectTarget());
+                    router.push(getRedirectTarget());
                     return;
                   }
                 } catch { /* fall through to failed */ }
