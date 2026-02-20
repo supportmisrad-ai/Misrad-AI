@@ -127,6 +127,31 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
 
     const handleContinuation = async () => {
       try {
+        // --- DIAGNOSTIC LOGGING ---
+        const suStatus = signUp?.status ?? 'null';
+        const siStatus = signIn?.status ?? 'null';
+        const suSessionId = signUp?.createdSessionId ?? 'none';
+        const siSessionId = signIn?.createdSessionId ?? 'none';
+        const suVerifications = signUp && typeof signUp === 'object'
+          ? (signUp as unknown as Record<string, unknown>).verifications
+          : null;
+        const siFirstFactor = signIn && typeof signIn === 'object'
+          ? (signIn as unknown as Record<string, unknown>).firstFactorVerification
+          : null;
+        const suMissing = signUp && typeof signUp === 'object'
+          ? (signUp as unknown as Record<string, unknown>).missingFields
+          : null;
+        console.log('[Login] ===== OAuth Continuation Debug =====');
+        console.log('[Login] signUp.status:', suStatus);
+        console.log('[Login] signUp.createdSessionId:', suSessionId);
+        console.log('[Login] signUp.verifications:', JSON.stringify(suVerifications, null, 2));
+        console.log('[Login] signUp.missingFields:', JSON.stringify(suMissing));
+        console.log('[Login] signIn.status:', siStatus);
+        console.log('[Login] signIn.createdSessionId:', siSessionId);
+        console.log('[Login] signIn.firstFactorVerification:', JSON.stringify(siFirstFactor, null, 2));
+        console.log('[Login] ==========================================');
+        // --- END DIAGNOSTIC LOGGING ---
+
         // Case 1: Sign-up completed — just needs session activation
         if (signUp?.status === 'complete' && signUp.createdSessionId) {
           await setActive({ session: signUp.createdSessionId });
@@ -236,13 +261,15 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         }
 
         // Could not auto-complete — fall through to show the form
+        console.error('[Login] OAuth continuation: NO CASE MATCHED. signUp.status:', suStatus, 'signIn.status:', siStatus);
         setContinuationState('failed');
         // Remove #/continue hash so page refresh doesn't re-trigger continuation
         if (typeof window !== 'undefined') {
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
       } catch (err) {
-        console.error('[Login] OAuth continuation error:', err);
+        console.error('[Login] OAuth continuation EXCEPTION:', err);
+        console.error('[Login] Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
         setContinuationState('failed');
         if (typeof window !== 'undefined') {
           window.history.replaceState(null, '', window.location.pathname + window.location.search);
