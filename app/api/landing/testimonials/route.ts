@@ -72,10 +72,9 @@ export async function GET() {
       } catch (error: unknown) {
         if (IS_PROD) console.error('Error fetching testimonials');
         else console.error('Error fetching testimonials:', error);
-        return NextResponse.json(
-          { error: 'Failed to fetch testimonials' },
-          { status: 500 }
-        );
+        // Return empty array instead of 500 so the landing page doesn't break
+        // (table may not exist in PROD yet — run migration to fix permanently)
+        return NextResponse.json({ testimonials: [] });
       }
     }
   );

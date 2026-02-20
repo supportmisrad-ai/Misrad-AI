@@ -108,7 +108,7 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
           }
 
           if (modulesInfo.length === 0) {
-            router.push("/");
+            router.push("/workspaces/new");
             return;
           }
 
