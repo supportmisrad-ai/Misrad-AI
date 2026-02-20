@@ -206,15 +206,28 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         // Case 5: Sign-up has missing_requirements (e.g. username after OAuth)
         // Clerk requires username but Google doesn't provide one.
         if (signUp?.status === 'missing_requirements') {
-          const missing: string[] = Array.isArray(
-            (signUp as unknown as Record<string, unknown>).missingFields
-          ) ? (signUp as unknown as Record<string, unknown>).missingFields as string[] : [];
-          console.log('[Login] OAuth continuation: missing_requirements, fields:', missing);
+          const signUpRecord = signUp as unknown as Record<string, unknown>;
+          const missing: string[] = Array.isArray(signUpRecord.missingFields)
+            ? signUpRecord.missingFields as string[]
+            : [];
+          console.log('[Login] Case 5: missing_requirements, fields:', missing);
+
+          const suEmail = typeof signUpRecord.emailAddress === 'string'
+            ? signUpRecord.emailAddress
+            : 'user';
+
+          // First: try a reload — Clerk may have completed server-side
+          try {
+            const reloaded = await signUp.reload();
+            if (reloaded.status === 'complete' && reloaded.createdSessionId) {
+              await setActive({ session: reloaded.createdSessionId });
+              setContinuationState('done');
+              router.push(getRedirectTarget());
+              return;
+            }
+          } catch { /* continue to update */ }
 
           const updatePayload: Record<string, string> = {};
-          const suEmail = typeof (signUp as unknown as Record<string, unknown>).emailAddress === 'string'
-            ? (signUp as unknown as Record<string, unknown>).emailAddress as string
-            : 'user';
 
           if (missing.includes('username')) {
             updatePayload.username = generateUsername(suEmail);
@@ -226,32 +239,44 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             updatePayload.lastName = suEmail.split('@')[0] || 'user';
           }
 
-          if (Object.keys(updatePayload).length > 0) {
+          // Fallback: missingFields is empty but status is still missing_requirements.
+          // Most common cause: Clerk Dashboard requires "username" but Google doesn't provide one.
+          if (Object.keys(updatePayload).length === 0) {
+            console.log('[Login] Case 5: missingFields empty, injecting username as fallback');
+            updatePayload.username = generateUsername(suEmail);
+          }
+
+          const tryUpdate = async (payload: Record<string, string>): Promise<boolean> => {
             try {
-              await signUp.update(updatePayload);
+              await signUp.update(payload);
               const reloaded = await signUp.reload();
               if (reloaded.status === 'complete' && reloaded.createdSessionId) {
                 await setActive({ session: reloaded.createdSessionId });
                 setContinuationState('done');
                 router.push(getRedirectTarget());
-                return;
+                return true;
               }
-            } catch (updateErr) {
-              console.error('[Login] Failed to provide missing fields for OAuth sign-up:', updateErr);
-              // Retry once with different username in case of collision
-              if (updatePayload.username) {
-                try {
-                  updatePayload.username = generateUsername(suEmail);
-                  await signUp.update(updatePayload);
-                  const reloaded = await signUp.reload();
-                  if (reloaded.status === 'complete' && reloaded.createdSessionId) {
-                    await setActive({ session: reloaded.createdSessionId });
-                    setContinuationState('done');
-                    router.push(getRedirectTarget());
-                    return;
-                  }
-                } catch { /* fall through to failed */ }
-              }
+              console.log('[Login] Case 5: after update, status is still:', reloaded.status);
+              return false;
+            } catch (e) {
+              console.error('[Login] Case 5 update error:', e);
+              return false;
+            }
+          };
+
+          // Attempt 1: full payload
+          if (await tryUpdate(updatePayload)) return;
+
+          // Attempt 2: retry username with new random suffix (collision avoidance)
+          if (updatePayload.username) {
+            const payload2 = { ...updatePayload, username: generateUsername(suEmail) };
+            if (await tryUpdate(payload2)) return;
+
+            // Attempt 3: without username (in case username is not actually required)
+            const payloadNoUser = { ...updatePayload };
+            delete payloadNoUser.username;
+            if (Object.keys(payloadNoUser).length > 0) {
+              if (await tryUpdate(payloadNoUser)) return;
             }
           }
         }
