@@ -169,7 +169,9 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Global per-IP rate limiting for all API routes
-  if (pathname.startsWith('/api/')) {
+  // Skip rate limiting for /api/system/maintenance — called internally by this
+  // middleware on every page load; counting it would eat into the user's budget.
+  if (pathname.startsWith('/api/') && pathname !== '/api/system/maintenance') {
     try {
       const rl = await edgeGlobalRateLimit(req);
       if (!rl.allowed) {

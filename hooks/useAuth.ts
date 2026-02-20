@@ -302,9 +302,9 @@ export const useAuth = (
             const errorObj = asObject(error);
             const status = typeof errorObj?.status === 'number' ? errorObj.status : 0;
 
-            // 429 Too Many Requests — back off silently without logging
+            // 429 Too Many Requests — back off aggressively without logging
             if (status === 429 || errorMsg.includes('429') || errorMsg.includes('too many requests')) {
-                presenceFailureCountRef.current += 2; // Increase backoff faster
+                presenceFailureCountRef.current += 4; // Increase backoff much faster to avoid cascade
                 return;
             }
 

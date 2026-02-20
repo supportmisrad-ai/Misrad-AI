@@ -73,10 +73,17 @@ export type EdgeRateLimitResult =
 export async function edgeGlobalRateLimit(req: Request): Promise<EdgeRateLimitResult> {
   const ip = getIp(req);
 
-  // In development, skip rate limiting for localhost to prevent 429 cascades
-  // that poison Clerk token refresh and cause infinite loops.
+  // Skip rate limiting for unidentifiable IPs ('unknown') in ALL environments.
+  // On Vercel Edge, internal middleware fetches (e.g. maintenance check) have no
+  // IP headers, so they all share the 'unknown' bucket — rate-limiting them would
+  // block legitimate traffic for every user.
+  // In development, also skip localhost to prevent 429 cascades that poison Clerk
+  // token refresh and cause infinite redirect loops.
+  if (ip === 'unknown') {
+    return { allowed: true, remaining: LIMIT };
+  }
   const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
-  if (isDev && (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip === 'unknown')) {
+  if (isDev && (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost')) {
     return { allowed: true, remaining: LIMIT };
   }
 

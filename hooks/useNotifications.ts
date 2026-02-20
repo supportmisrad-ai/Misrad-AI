@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Notification, Toast, User } from '../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
@@ -22,7 +22,7 @@ export const useNotifications = (
     addToast: (msg: string, type?: Toast['type']) => void
 ) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const backoffRef = { current: 0 };
+    const backoffRef = useRef(0);
 
     const mergeServerNotifications = (serverRows: unknown[]) => {
         const mapped: Notification[] = (Array.isArray(serverRows) ? serverRows : []).map((row) => {
@@ -96,8 +96,10 @@ export const useNotifications = (
                 },
             });
             if (res.status === 429) {
-                // Back off exponentially to avoid poisoning Clerk token refresh
-                backoffRef.current = Math.min(backoffRef.current + 1, 6);
+                // Back off aggressively to avoid poisoning Clerk token refresh.
+                // Each tick skips polling and decrements by 1, so setting to 8
+                // means ~4 minutes of silence (8 ticks × 30s).
+                backoffRef.current = Math.min(backoffRef.current + 4, 12);
                 return;
             }
             if (!res.ok) return;
