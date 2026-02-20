@@ -55,6 +55,10 @@ export default function RootLayout({
     process.env.CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
     process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
     '/me';
+  
+  // Custom domain configuration for Clerk (required for cookie sync between clerk.misrad-ai.com and misrad-ai.com)
+  const clerkDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || undefined;
+  const isSatellite = clerkDomain ? (process.env.NEXT_PUBLIC_CLERK_IS_SATELLITE !== 'false') : undefined;
 
   return (
     <html lang="he" dir="rtl" data-scroll-behavior="smooth" suppressHydrationWarning>
@@ -70,6 +74,8 @@ export default function RootLayout({
               signUpUrl={signUpUrl}
               signInFallbackRedirectUrl={signInFallbackRedirectUrl}
               signUpFallbackRedirectUrl={signUpFallbackRedirectUrl}
+              domain={clerkDomain}
+              isSatellite={isSatellite}
             >
               {children}
               <ClientOnlyClerkWidgets />
