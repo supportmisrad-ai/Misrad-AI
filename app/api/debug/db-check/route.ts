@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withTenantIsolationContext, withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
+import { getEffectiveDatabaseUrlForPrisma } from '@/lib/prisma-database-url';
 
 /**
  * Public diagnostic endpoint — tests critical DB tables in PROD.
@@ -23,6 +24,11 @@ async function safeCount(fn: () => Promise<number>): Promise<{ ok: boolean; coun
 }
 
 export async function GET() {
+  const effectiveUrl = getEffectiveDatabaseUrlForPrisma();
+  const isAccelerateUrl = Boolean(
+    effectiveUrl && (effectiveUrl.startsWith('prisma://') || effectiveUrl.startsWith('prisma+postgres://'))
+  );
+
   const checks = await withTenantIsolationContext(
     { suppressReporting: true, reason: 'db_diagnostic_check', source: 'api-debug-db-check', isSuperAdmin: true, mode: 'global_admin' },
     async () => ({
@@ -81,6 +87,10 @@ export async function GET() {
     summary: failed.length === 0 ? 'ALL_OK' : `${failed.length}_TABLES_FAILED`,
     nodeEnv: process.env.NODE_ENV,
     dbRegion,
+    prisma: {
+      effectiveProtocol: effectiveUrl ? effectiveUrl.slice(0, effectiveUrl.indexOf('://') + 3) : null,
+      accelerateEnabled: isAccelerateUrl,
+    },
     passed: passed.map(([k, v]) => ({ table: k, count: v.count })),
     failed: failed.map(([k, v]) => ({ table: k, error: v.error })),
   });
