@@ -354,6 +354,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   return NextResponse.next();
 }, {
+  // proxyUrl must match NEXT_PUBLIC_CLERK_PROXY_URL used in ClerkProvider.
+  // Without this, sessions created through the proxy are not recognized
+  // server-side, causing an infinite redirect loop (client thinks logged in,
+  // server rejects → back to /login → loop).
+  proxyUrl: process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined,
   isSatellite: false,
 });
 
