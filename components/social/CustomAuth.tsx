@@ -452,6 +452,9 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
           strategy,
           redirectUrl: '/sso-callback',
           redirectUrlComplete: signUpRedirect,
+          // Pass legal consent to Clerk so sign-up doesn't return missing_requirements.
+          // Required in Clerk v5 when "Legal consent" is enabled in the Dashboard.
+          legalAccepted: true,
         });
       } else {
         if (!signInLoaded || !signIn) {
