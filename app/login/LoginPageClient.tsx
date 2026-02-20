@@ -171,11 +171,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         // Case 3: Transfer sign-up → sign-in
         // User tried to sign UP with Google but already has a Clerk account.
         // signUp.verifications.externalAccount.status === 'transferable'
-        const suVerifications = signUp && typeof signUp === 'object'
-          ? (signUp as unknown as Record<string, unknown>).verifications as Record<string, unknown> | undefined
-          : undefined;
         const suExtAccount = suVerifications && typeof suVerifications === 'object'
-          ? suVerifications.externalAccount as Record<string, unknown> | undefined
+          ? (suVerifications as Record<string, unknown>).externalAccount as Record<string, unknown> | undefined
           : undefined;
         const externalAccountStatus = suExtAccount?.status;
 
@@ -192,10 +189,9 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         // Case 4: Transfer sign-in → sign-up
         // User tried to sign IN with Google but doesn't have a Clerk account yet.
         // signIn.firstFactorVerification.status === 'transferable'
-        const siFirstFactor = signIn && typeof signIn === 'object'
-          ? (signIn as unknown as Record<string, unknown>).firstFactorVerification as Record<string, unknown> | undefined
+        const firstFactorStatus = siFirstFactor && typeof siFirstFactor === 'object'
+          ? (siFirstFactor as Record<string, unknown>).status
           : undefined;
-        const firstFactorStatus = siFirstFactor?.status;
 
         if (firstFactorStatus === 'transferable' && signUp) {
           const res = await signUp.create({ transfer: true } as Parameters<typeof signUp.create>[0]);
