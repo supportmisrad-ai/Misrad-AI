@@ -88,10 +88,7 @@ async function POSTHandler(req: Request): Promise<Response> {
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error || '');
         if (msg.toLowerCase().includes('record to update not found')) {
-          return apiError('User not ready', {
-            status: 409,
-            message: 'החשבון עדיין מסתנכרן. נסה שוב בעוד כמה שניות.',
-          });
+          return apiSuccess({ ok: true, pending: true, consent: null });
         }
         return apiError(error);
       }

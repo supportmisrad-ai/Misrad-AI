@@ -90,6 +90,11 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
         if (res.ok) {
           try {
+            const data = (await res.json()) as { ok?: boolean; pending?: boolean };
+            if (data?.pending) {
+              await new Promise((r) => setTimeout(r, 750));
+              continue;
+            }
             if (typeof window !== 'undefined') {
               window.localStorage.removeItem(LEGAL_CONSENT_STORAGE_KEY);
             }
