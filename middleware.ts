@@ -52,6 +52,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/email/unsubscribe",
   "/api/landing/(.*)",
   "/api/debug/clerk-config",
+  "/api/debug/db-check",
   "/api/cron(.*)",
   "/favicon.ico",
   "/robots.txt",

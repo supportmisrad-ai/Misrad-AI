@@ -298,14 +298,18 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
       if (result.status === 'complete') {
         const sessionId = result.createdSessionId;
-        if (sessionId && typeof setActive === 'function') {
+        if (!sessionId) {
+          setError('ההרשמה הושלמה אך לא נוצרה סשן. נא לנסות להתחבר.');
+          return;
+        }
+        if (typeof setActive === 'function') {
           await setActive({ session: sessionId });
         }
         await recordLegalConsent();
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push('/');
+          router.push('/workspaces/new');
         }
         return;
       }
@@ -340,7 +344,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             if (onSuccess) {
               onSuccess();
             } else {
-              router.push('/');
+              router.push('/workspaces/new');
             }
             return;
           }

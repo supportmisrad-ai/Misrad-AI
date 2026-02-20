@@ -382,8 +382,12 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           <div className="mt-6">
             <CustomAuth mode="sign-up" onSuccess={() => {
               const sp = new URLSearchParams(window.location.search);
-              const redirect = sp.get('redirect') || '/me';
-              window.location.assign(redirect);
+              const redirect = sp.get('redirect');
+              // Use router.push (soft nav) — avoids race condition where window.location.assign
+              // fires before the __session cookie is committed, causing middleware to reject the
+              // session and redirect back to /login?mode=sign-up.
+              // New users always land at /workspaces/new so skip the /me→/workspaces chain.
+              router.push(redirect && !redirect.startsWith('/login') ? redirect : '/workspaces/new');
             }} />
           </div>
 

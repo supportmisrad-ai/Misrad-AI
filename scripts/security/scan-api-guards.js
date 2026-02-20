@@ -24,6 +24,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/landing/testimonials/route.ts', // Public: landing page data, no auth required
   'app/api/landing/faq/route.ts', // Public: landing page data, no auth required
   'app/api/debug/clerk-config/route.ts', // Public: exposes only NEXT_PUBLIC_ env vars for diagnostics
+  'app/api/debug/db-check/route.ts', // Public: table existence diagnostic — no sensitive data returned
 ]);
 
 const CANDIDATE_APPROVED = new Set([
