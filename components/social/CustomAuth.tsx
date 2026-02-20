@@ -15,7 +15,7 @@ interface ClerkAPIError {
 
 const LEGAL_CONSENT_STORAGE_KEY = 'pending_legal_consent_v1';
 
-/** Generate a unique username from an email address (Clerk requires username). */
+/** Generate a unique username from an email address (only if Clerk requires username). */
 function generateUsername(email: string): string {
   const prefix = (email.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 16) || 'user';
   const suffix = Math.random().toString(36).slice(2, 6);
@@ -181,13 +181,11 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       const nameParts = (fullName || '').trim().split(/\s+/);
       const firstName = nameParts[0] || normalizedEmail.split('@')[0] || 'משתמש';
       const lastName = nameParts.slice(1).join(' ') || undefined;
-      const username = generateUsername(normalizedEmail);
       const result = await signUp.create({
         emailAddress: normalizedEmail,
         password: password,
         firstName,
         lastName,
-        username,
       });
 
       if (result.status === 'complete') {
@@ -216,35 +214,6 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       const clerkErr = err as ClerkAPIError;
       const firstError = clerkErr?.errors?.[0];
       const code = firstError?.code || '';
-
-      // Username collision — retry once with a different username
-      if (code === 'form_identifier_exists' && firstError?.meta && typeof firstError.meta === 'object' && 'paramName' in firstError.meta && firstError.meta.paramName === 'username') {
-        try {
-          const normalizedEmail = String(email || '').trim().toLowerCase();
-          const nameParts = (fullName || '').trim().split(/\s+/);
-          const firstName = nameParts[0] || normalizedEmail.split('@')[0] || 'משתמש';
-          const lastName = nameParts.slice(1).join(' ') || undefined;
-          const retryResult = await signUp!.create({
-            emailAddress: normalizedEmail,
-            password,
-            firstName,
-            lastName,
-            username: generateUsername(normalizedEmail),
-          });
-          if (retryResult.status === 'complete' && retryResult.createdSessionId) {
-            await setActive?.({ session: retryResult.createdSessionId });
-            await recordLegalConsent();
-            onSuccess ? onSuccess() : router.push('/');
-            return;
-          }
-          await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' });
-          setStep('verify');
-          setInfo('שלחנו קוד אימות לאימייל. הזן את הקוד כדי להשלים הרשמה.');
-          return;
-        } catch (retryErr) {
-          console.error('Sign up retry error:', retryErr);
-        }
-      }
 
       // Email already exists — suggest sign-in
       if (code === 'form_identifier_exists') {
