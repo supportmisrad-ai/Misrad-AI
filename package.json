@@ -83,7 +83,11 @@
     "protect:middleware": "node scripts/protect-middleware.js",
     "check:middleware": "node scripts/monitor-middleware-protection.js",
     "remotion:preview": "remotion preview remotion/index.ts",
-    "remotion:render": "remotion render remotion/index.ts MisradAIPromo out/video.mp4",
+    "remotion:render": "remotion render remotion/index.ts",
+    "remotion:render:all": "node scripts/remotion-render-all.js",
+    "remotion-v2:preview": "remotion preview remotion-v2/index.ts",
+    "remotion-v2:render": "remotion render remotion-v2/index.ts",
+    "remotion-v2:render:all": "node scripts/remotion-v2-render-all.js",
     "remotion:upgrade": "remotion upgrade"
   },
   "dependencies": {

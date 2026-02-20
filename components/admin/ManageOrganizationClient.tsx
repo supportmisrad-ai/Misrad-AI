@@ -36,7 +36,7 @@ import {
   updateOrganizationBusinessClientDetails,
   deleteOrganization,
 } from '@/app/actions/manage-organization';
-import { generatePaymentLink, adjustBalanceManually } from '@/app/actions/app-billing';
+import { generatePaymentLink, adjustBalanceManually, getOrganizationInvoices, createOrganizationInvoice, type AdminInvoice } from '@/app/actions/app-billing';
 
 type Tab = 'settings' | 'package' | 'users' | 'billing' | 'business_client';
 
@@ -142,6 +142,12 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
   const [adjustmentMethod, setAdjustmentMethod] = useState<'cash' | 'bit' | 'bank_transfer' | 'check' | 'correction'>('cash');
   const [adjustingBalance, setAdjustingBalance] = useState(false);
 
+  // Invoice History
+  const [invoices, setInvoices] = useState<AdminInvoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+  const [invoicesLoaded, setInvoicesLoaded] = useState(false);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
+
   // Tab 5: Business Client Details
   const [businessClientData, setBusinessClientData] = useState({
     company_name: initialData.business_client?.company_name || '',
@@ -193,6 +199,46 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
   };
 
   const trialStatus = calculateTrialStatus();
+
+  // Load invoices when billing tab becomes active
+  const loadInvoices = async (force = false) => {
+    if (!force && (invoicesLoaded || invoicesLoading)) return;
+    setInvoicesLoading(true);
+    try {
+      const result = await getOrganizationInvoices(initialData.id);
+      if (result.success && result.data) {
+        setInvoices(result.data);
+      }
+      setInvoicesLoaded(true);
+    } catch {
+      // silent
+    } finally {
+      setInvoicesLoading(false);
+    }
+  };
+
+  const handleCreateInvoice = async () => {
+    setCreatingInvoice(true);
+    try {
+      const result = await createOrganizationInvoice(initialData.id);
+      if (result.success && result.data) {
+        showMessage('success', `חשבונית #${result.data.invoiceNumber || 'N/A'} נוצרה ונשלחה בהצלחה!`);
+        await loadInvoices(true);
+      } else {
+        showMessage('error', result.error || 'שגיאה ביצירת חשבונית');
+      }
+    } catch {
+      showMessage('error', 'שגיאה ביצירת חשבונית');
+    } finally {
+      setCreatingInvoice(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'billing' && !invoicesLoaded) {
+      loadInvoices();
+    }
+  }, [activeTab]);
 
   // Handlers
   const handleSaveSettings = async () => {
@@ -1240,6 +1286,101 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       <p className="text-xs text-yellow-800">
                         ⚠️ יש להגדיר MRR (הכנסה חודשית) בטאב "חבילה ומודולים" לפני יצירת קישור תשלום
                       </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Invoice Creation + History */}
+                <div className="p-6 bg-white border border-gray-200 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-gray-900 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      חשבוניות ({invoices.length})
+                    </h4>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => loadInvoices(true)}
+                        disabled={invoicesLoading}
+                      >
+                        {invoicesLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'רענן'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleCreateInvoice}
+                        disabled={creatingInvoice || !initialData.mrr || parseFloat(initialData.mrr) <= 0}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {creatingInvoice ? (
+                          <>
+                            <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                            יוצר...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 ml-1" />
+                            צור חשבונית + שלח מייל
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {invoicesLoading && !invoicesLoaded && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    </div>
+                  )}
+
+                  {invoicesLoaded && invoices.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">
+                      <p className="font-medium">אין חשבוניות עדיין</p>
+                      <p className="text-sm mt-1">לחץ "צור חשבונית" ליצירה ושליחה אוטומטית</p>
+                    </div>
+                  )}
+
+                  {invoices.length > 0 && (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {invoices.map((inv) => (
+                        <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${
+                              inv.status === 'paid' ? 'bg-green-500' :
+                              inv.status === 'pending' ? 'bg-amber-500' :
+                              inv.status === 'overdue' ? 'bg-red-500' : 'bg-gray-400'
+                            }`} />
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900">#{inv.invoiceNumber}</p>
+                              {inv.description && <p className="text-xs text-gray-500 truncate">{inv.description}</p>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="font-black text-gray-900">₪{inv.amount.toLocaleString()}</span>
+                            <span className={`px-2 py-0.5 text-xs font-bold rounded-lg ${
+                              inv.status === 'paid' ? 'bg-green-100 text-green-700' :
+                              inv.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                              inv.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {inv.status === 'paid' ? 'שולם' : inv.status === 'pending' ? 'ממתין' : inv.status === 'overdue' ? 'באיחור' : inv.status}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(inv.createdAt).toLocaleDateString('he-IL')}
+                            </span>
+                            {inv.emailSent && <span title="מייל נשלח"><Mail className="w-3.5 h-3.5 text-green-500" /></span>}
+                            {inv.pdfUrl && (
+                              <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold">
+                                PDF
+                              </a>
+                            )}
+                            {inv.paymentUrl && inv.status === 'pending' && (
+                              <a href={inv.paymentUrl} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:text-green-800 text-xs font-bold">
+                                תשלום
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

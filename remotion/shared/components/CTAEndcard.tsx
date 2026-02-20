@@ -154,6 +154,38 @@ export const CTAEndcard: React.FC<{
         </div>
       )}
 
+      {/* Shabbat-friendly badge */}
+      <div
+        style={{
+          marginTop: price ? 20 : 32,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '10px 28px',
+          borderRadius: 30,
+          background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          border: isDark ? '1px solid rgba(255,255,255,0.14)' : '1px solid rgba(0,0,0,0.08)',
+          opacity: spring({ frame: Math.max(0, frame - 26), fps, config: SPRING.ui, durationInFrames: 18 }),
+          transform: `translateY(${interpolate(
+            spring({ frame: Math.max(0, frame - 26), fps, config: SPRING.ui, durationInFrames: 18 }),
+            [0, 1], [15, 0]
+          )}px)`,
+        }}
+      >
+        <span style={{ fontSize: 18 }}>🕎</span>
+        <span
+          style={{
+            fontFamily: HEEBO,
+            fontSize: 16,
+            fontWeight: 700,
+            color: mutedColor,
+            direction: 'rtl',
+          }}
+        >
+          מותאם לשומרי שבת וחג
+        </span>
+      </div>
+
       <NoiseLayer opacity={isDark ? 0.02 : 0.015} />
     </AbsoluteFill>
   );

@@ -47,8 +47,8 @@ export const GlassCard: React.FC<{
     : 'rgba(255, 255, 255, 0.72)';
 
   const borderColor = isDark
-    ? 'rgba(255, 255, 255, 0.08)'
-    : 'rgba(0, 0, 0, 0.06)';
+    ? 'rgba(255, 255, 255, 0.14)'
+    : 'rgba(0, 0, 0, 0.08)';
 
   const shadowColor = isDark
     ? 'rgba(0, 0, 0, 0.4)'

@@ -8,6 +8,7 @@
  */
 
 import { Resend } from 'resend';
+import crypto from 'crypto';
 import { getBaseUrl } from '@/lib/utils';
 import {
     EMAIL_SENDERS,
@@ -53,7 +54,6 @@ function resolveRecipient(email: string): string {
 // Simple HMAC-based token so users can unsubscribe via link without login.
 function generateUnsubscribeToken(email: string, preferenceKey: string): string {
     const secret = process.env.EMAIL_UNSUBSCRIBE_SECRET || process.env.NEXTAUTH_SECRET || 'misrad-unsub-fallback';
-    const crypto = require('crypto');
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(`${email}:${preferenceKey}`);
     return hmac.digest('hex').slice(0, 32);
@@ -174,7 +174,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
             ...(Object.keys(headers).length > 0 ? { headers } : {}),
         };
 
-        const { data, error } = await (client.emails.send as Function)(sendParams);
+        const { data, error } = await (client.emails.send as unknown as (params: Record<string, unknown>) => Promise<{ data: { id: string } | null; error: { message: string } | null }>)(sendParams);
 
         if (error) {
             const errMsg = typeof error === 'object' && error !== null && 'message' in error

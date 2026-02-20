@@ -55,6 +55,7 @@ export const TextReveal: React.FC<{
           transform: `translateY(${y}px)`,
           filter: `blur(${blur}px)`,
           opacity: progress,
+          textShadow: '0 2px 12px rgba(0,0,0,0.5)',
           willChange: 'transform, filter, opacity',
           ...style,
         }}
@@ -101,6 +102,7 @@ export const TextReveal: React.FC<{
               transform: `translateY(${y}px)`,
               filter: `blur(${blur}px)`,
               opacity: progress,
+              textShadow: '0 2px 12px rgba(0,0,0,0.5)',
               willChange: 'transform, filter, opacity',
             }}
           >

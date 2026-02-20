@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "android/**/build/**",
     "next-env.d.ts",
     "test-tenant-guard-fix.js",
+    // Standalone Remotion video projects (not part of Next.js app):
+    "remotion/**",
+    "remotion-v2/**",
   ]),
 
   // Prisma-First (Tenant Isolation): soft-block new direct Supabase DB usage.

@@ -60,6 +60,65 @@ export function generatePaymentSuccessEmailHTML(params: {
     });
 }
 
+export function generateInvoiceCreatedEmailHTML(params: {
+    ownerName?: string | null;
+    organizationName: string;
+    amount: number;
+    currency?: string;
+    invoiceNumber: string;
+    invoiceUrl?: string;
+    pdfUrl?: string;
+    paymentUrl?: string;
+    portalUrl: string;
+    description?: string;
+    dueDate?: string;
+}): string {
+    const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
+    const curr = params.currency || 'ILS';
+    const symbol = curr === 'ILS' ? '₪' : curr;
+
+    const bodyContent = `
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            חשבונית חדשה הונפקה עבור <strong style="color:#6366f1;">"${params.organizationName}"</strong>.
+            ${params.description ? `<br /><span style="color:#64748b;font-size:14px;">${params.description}</span>` : ''}
+        </div>
+
+        <div style="margin:24px 0;background:#eff6ff;border:2px solid #bfdbfe;border-radius:14px;padding:24px;text-align:center;">
+            <div style="font-size:12px;font-weight:800;color:#1e40af;letter-spacing:0.5px;margin-bottom:8px;">סכום לתשלום</div>
+            <div style="font-size:36px;font-weight:900;color:#1d4ed8;">${symbol}${params.amount.toLocaleString()}</div>
+            <div style="font-size:13px;color:#3b82f6;margin-top:8px;">חשבונית #${params.invoiceNumber}</div>
+            ${params.dueDate ? `<div style="font-size:12px;color:#64748b;margin-top:4px;">לתשלום עד: ${params.dueDate}</div>` : ''}
+        </div>
+
+        ${params.paymentUrl ? EmailTemplateComponents.generateCTAButton({
+            text: 'תשלום מאובטח עכשיו →',
+            url: params.paymentUrl,
+        }) : ''}
+
+        ${params.pdfUrl ? EmailTemplateComponents.generateSecondaryCTA({
+            text: 'הורדת חשבונית PDF',
+            url: params.pdfUrl,
+        }) : params.invoiceUrl ? EmailTemplateComponents.generateSecondaryCTA({
+            text: 'צפייה בחשבונית',
+            url: params.invoiceUrl,
+        }) : ''}
+
+        <div style="margin-top:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;font-size:13px;color:#64748b;line-height:1.7;">
+            שאלות לגבי החשבונית? השב למייל זה או פנה ל-<a href="mailto:billing@misrad-ai.com" style="color:#6366f1;">billing@misrad-ai.com</a>
+        </div>
+    `;
+
+    return generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'חשבונית חדשה',
+        headerGradient: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+        bodyContent,
+        showSocialLinks: false,
+    });
+}
+
 export function generatePaymentFailedEmailHTML(params: {
     ownerName?: string | null;
     organizationName: string;

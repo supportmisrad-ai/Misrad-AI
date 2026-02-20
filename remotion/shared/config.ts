@@ -25,7 +25,7 @@ export const BRAND = {
   gradient: 'linear-gradient(135deg, #A21D3C 0%, #3730A3 100%)',
 
   white: '#FAFAFA',
-  muted: '#6B7280',
+  muted: '#94A3B8',
 
   bgDark: '#09090B',
   surfaceDark: '#18181B',

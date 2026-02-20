@@ -13,6 +13,7 @@ import {
   DollarSign,
   Calendar
 } from 'lucide-react';
+import Link from 'next/link';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 
@@ -295,7 +296,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
       <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">פעולות מהירות</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <a 
+          <Link 
             href="/app/admin/customers"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
@@ -304,9 +305,9 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
               <p className="font-medium text-gray-900">ניהול לקוחות</p>
               <p className="text-sm text-gray-500">צפייה וניהול כל הלקוחות</p>
             </div>
-          </a>
+          </Link>
 
-          <a 
+          <Link 
             href="/app/admin/organizations"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
@@ -315,9 +316,9 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
               <p className="font-medium text-gray-900">ניהול ארגונים</p>
               <p className="text-sm text-gray-500">צפייה וניהול ארגונים</p>
             </div>
-          </a>
+          </Link>
 
-          <a 
+          <Link 
             href="/app/admin/billing"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
@@ -326,7 +327,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
               <p className="font-medium text-gray-900">ניהול חיובים</p>
               <p className="text-sm text-gray-500">מעקב אחר תשלומים</p>
             </div>
-          </a>
+          </Link>
         </div>
       </div>
     </div>

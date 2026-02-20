@@ -226,11 +226,26 @@ export async function POST(request: NextRequest) {
             console.log('[Webhook] Payment marked successful for organization:', organizationId);
           }
 
+          // Mark invoice as paid in billing_invoices table
+          try {
+            await prisma.billing_invoices.updateMany({
+              where: { morning_invoice_id: String(documentId), organization_id: organizationId },
+              data: { status: 'paid', paid_at: new Date(), updated_at: new Date() },
+            });
+          } catch (dbErr: unknown) {
+            if (!IS_PROD) console.error('[Webhook] Failed to update invoice status:', dbErr);
+          }
+
           // Send payment success email
           try {
             const org = await prisma.organization.findUnique({
               where: { id: organizationId },
               select: { name: true, billing_email: true, slug: true, owner: { select: { email: true, full_name: true } } },
+            });
+            // Fetch stored invoice for PDF URL
+            const storedInvoice = await prisma.billing_invoices.findFirst({
+              where: { morning_invoice_id: String(documentId), organization_id: organizationId },
+              select: { invoice_url: true, pdf_url: true, invoice_number: true },
             });
             const toEmail = org?.billing_email || org?.owner?.email;
             if (toEmail) {
@@ -240,7 +255,8 @@ export async function POST(request: NextRequest) {
                 ownerName: org?.owner?.full_name || null,
                 organizationName: org?.name || '',
                 amount,
-                invoiceNumber: String(documentId || ''),
+                invoiceNumber: storedInvoice?.invoice_number || String(documentId || ''),
+                invoiceUrl: storedInvoice?.pdf_url || storedInvoice?.invoice_url || undefined,
                 portalUrl,
               });
               await sendEmail({
@@ -280,6 +296,16 @@ export async function POST(request: NextRequest) {
         if (result.success) {
           if (!IS_PROD) {
             console.log('[Webhook] Payment marked failed for organization:', organizationId);
+          }
+
+          // Mark invoice as overdue in billing_invoices table
+          try {
+            await prisma.billing_invoices.updateMany({
+              where: { morning_invoice_id: String(documentId), organization_id: organizationId },
+              data: { status: 'overdue', updated_at: new Date() },
+            });
+          } catch (dbErr: unknown) {
+            if (!IS_PROD) console.error('[Webhook] Failed to update invoice status to overdue:', dbErr);
           }
 
           // Send payment failed email

@@ -11,6 +11,8 @@ import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/e
 import type { ActionResult } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import * as Sentry from '@sentry/nextjs';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import {
   createAppInvoice,
   getOrganizationBilling,
@@ -403,5 +405,70 @@ export async function adjustBalanceManually(
       amount: Number(amount),
     });
     return createErrorResponse(error, 'שגיאה בעדכון יתרה ידני');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Get Organization Invoices (Admin only)
+// ─────────────────────────────────────────────────────────────
+
+export type AdminInvoice = {
+  id: string;
+  morningInvoiceId: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  status: string;
+  invoiceUrl: string | null;
+  pdfUrl: string | null;
+  paymentUrl: string | null;
+  description: string | null;
+  emailSent: boolean;
+  paidAt: Date | null;
+  dueDate: Date | null;
+  createdAt: Date;
+};
+
+export async function getOrganizationInvoices(
+  organizationId: string
+): Promise<ActionResult<AdminInvoice[]>> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return createErrorResponse(authCheck.error || 'Unauthorized', 'נדרשת התחברות');
+    }
+
+    await requireSuperAdmin();
+
+    const invoices = await prisma.billing_invoices.findMany({
+      where: { organization_id: organizationId },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    });
+
+    const mapped: AdminInvoice[] = invoices.map((inv) => ({
+      id: inv.id,
+      morningInvoiceId: inv.morning_invoice_id,
+      invoiceNumber: inv.invoice_number,
+      amount: inv.amount instanceof Prisma.Decimal ? inv.amount.toNumber() : Number(inv.amount),
+      currency: inv.currency,
+      status: inv.status,
+      invoiceUrl: inv.invoice_url,
+      pdfUrl: inv.pdf_url,
+      paymentUrl: inv.payment_url,
+      description: inv.description,
+      emailSent: inv.email_sent,
+      paidAt: inv.paid_at,
+      dueDate: inv.due_date,
+      createdAt: inv.created_at,
+    }));
+
+    return createSuccessResponse(mapped);
+  } catch (error: unknown) {
+    captureActionException(error, {
+      action: 'getOrganizationInvoices',
+      organizationId: String(organizationId),
+    });
+    return createErrorResponse(error, 'שגיאה בטעינת חשבוניות');
   }
 }

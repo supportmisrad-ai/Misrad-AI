@@ -1,0 +1,793 @@
+
+C:\Projects\Misrad-AI\app\RootPageClient.tsx
+  25:42  warning  'initialUserId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\accessibility\page.tsx
+  1:8  warning  'Link' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-cockpit.ts
+   349:3  warning  'userId' is defined but never used   @typescript-eslint/no-unused-vars
+   350:3  warning  'reason' is defined but never used   @typescript-eslint/no-unused-vars
+   370:3  warning  'userId' is defined but never used   @typescript-eslint/no-unused-vars
+  1166:3  warning  'userIds' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-maintenance.ts
+  43:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-navigation.ts
+  9:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-notifications.ts
+  10:10  warning  'isMissingOrganizationIdColumnError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-organizations.ts
+  479:15  warning  'owner' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-social.ts
+    7:20  warning  'getErrorMessage' is defined but never used     @typescript-eslint/no-unused-vars
+   14:10  warning  'getErrorCode' is defined but never used        @typescript-eslint/no-unused-vars
+  216:11  warning  'memberIds' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin-users.ts
+  419:11  warning  'fullName' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\admin.ts
+   17:10  warning  'isMissingOrganizationIdColumnError' is defined but never used  @typescript-eslint/no-unused-vars
+  321:12  warning  'error' is defined but never used                               @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\ai-actions.ts
+  141:46  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\app-billing.ts
+  334:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\actions\auth.ts
+    5:10  warning  'sendInvitationEmail' is defined but never used           @typescript-eslint/no-unused-vars
+   15:10  warning  'asObject' is defined but never used                      @typescript-eslint/no-unused-vars
+  122:11  warning  'lobbyRedirect' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  126:11  warning  'emailResult' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  154:13  warning  'sendInvitationEmail' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\billing-actions.ts
+  3:10  warning  'revalidatePath' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\campaigns.ts
+  210:3   warning  'campaignData' is defined but never used  @typescript-eslint/no-unused-vars
+  219:3   warning  'campaignId' is defined but never used    @typescript-eslint/no-unused-vars
+  220:3   warning  'updates' is defined but never used       @typescript-eslint/no-unused-vars
+  228:38  warning  'campaignId' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\chat-history.ts
+  7:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\client-clients.ts
+    5:31  warning  'createSuccessResponse' is defined but never used  @typescript-eslint/no-unused-vars
+  216:11  warning  'endInclusive' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\client-portal-clinic.ts
+  26:3  warning  'Email' is defined but never used                    @typescript-eslint/no-unused-vars
+  33:3  warning  'createClinicTask' is defined but never used         @typescript-eslint/no-unused-vars
+  35:3  warning  'listClinicPortalContent' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\client-portal.ts
+  164:10  warning  'toPrismaJsonObject' is defined but never used  @typescript-eslint/no-unused-vars
+  169:10  warning  'asStringArray' is defined but never used       @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\clients.ts
+   11:31  warning  'createSuccessResponse' is defined but never used                 @typescript-eslint/no-unused-vars
+   17:7   warning  'clientClientSelect' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+  279:9   warning  'userRole' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+  570:3   warning  'clerkUserId' is defined but never used                           @typescript-eslint/no-unused-vars
+  720:3   warning  'clerkUserId' is defined but never used                           @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\customer-accounts.ts
+  157:19  warning  'memberRole' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\email.ts
+   6:10  warning  'Client' is defined but never used    @typescript-eslint/no-unused-vars
+  13:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\files.ts
+   10:8   warning  'prisma' is defined but never used         @typescript-eslint/no-unused-vars
+   11:15  warning  'Prisma' is defined but never used         @typescript-eslint/no-unused-vars
+   91:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  242:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\ideas.ts
+  142:7  warning  'mediaUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  228:7  warning  'mediaUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\integrations.ts
+  395:39  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\manage-organization.ts
+  149:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  486:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\actions\nexus\_internal\presence.ts
+  151:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\nexus\_internal\time-entries.ts
+  17:3  warning  'listNexusTimeEntryRows' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\operations.ts
+  122:3  warning  'OperationsWorkOrderRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\partner-portal.ts
+  8:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\posts.ts
+  12:23  warning  'createErrorResponse' is defined but never used    @typescript-eslint/no-unused-vars
+  12:44  warning  'createSuccessResponse' is defined but never used  @typescript-eslint/no-unused-vars
+  16:10  warning  'asObject' is defined but never used               @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\profiles.ts
+  55:10  warning  'getWorkspaceId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\requests.ts
+  16:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\site-content.ts
+  10:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\subscription-orders-admin.ts
+  270:34  warning  '_seatsAllowed' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\subscription-orders.ts
+  525:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  660:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\system-reports.ts
+  43:10  warning  'toSystemCampaignDto' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\tasks.ts
+   89:3   warning  'taskData' is defined but never used  @typescript-eslint/no-unused-vars
+   98:3   warning  'taskId' is defined but never used    @typescript-eslint/no-unused-vars
+   99:3   warning  'updates' is defined but never used   @typescript-eslint/no-unused-vars
+  107:34  warning  'taskId' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\trial.ts
+  12:3  warning  'initializeTrial' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\actions\users.ts
+   10:31  warning  'createSuccessResponse' is defined but never used  @typescript-eslint/no-unused-vars
+  923:3   warning  'supabaseUserId' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\admin\ai\feature-settings\route.ts
+  10:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\admin\ai\ingest-history\route.ts
+  15:6  warning  'IngestHistoryRequest' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\ai\assistant\route.ts
+  37:6  warning  'SmartResponse' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\ai\chat\route.ts
+  3:10  warning  'getAuthenticatedUser' is defined but never used  @typescript-eslint/no-unused-vars
+  8:10  warning  'APIError' is defined but never used              @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\ai\feedback\route.ts
+  58:11  warning  'msg' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\ai\vision\identify\route.ts
+  8:10  warning  'APIError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\announcements\route.ts
+  258:15  warning  'announcementObj' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\chat\route.ts
+   54:7   warning  'inflightByKey' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   77:10  warning  'cacheGet' is defined but never used                @typescript-eslint/no-unused-vars
+   87:10  warning  'cacheSet' is defined but never used                @typescript-eslint/no-unused-vars
+  202:10  warning  'streamTextResponse' is defined but never used      @typescript-eslint/no-unused-vars
+  358:11  warning  'cacheKey' is assigned a value but never used       @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\debug\db-health\route.ts
+  21:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  23:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\api\download\android\route.ts
+  5:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\download\windows\route.ts
+  5:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\employees\invitations\[id]\deactivate\route.ts
+   1:10  warning  'asObject' is defined but never used   @typescript-eslint/no-unused-vars
+  59:18  warning  'authError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\employees\invitations\route.ts
+   1:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+  79:22  warning  'e' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\employees\invite\[token]\complete\route.ts
+  22:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\employees\invite\[token]\route.ts
+  1:10  warning  'asObject' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\employees\invite\route.ts
+  153:18  warning  'permError' is defined but never used             @typescript-eslint/no-unused-vars
+  359:15  warning  'finalizeUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\features\[id]\route.ts
+  16:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\features\route.ts
+  20:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\integrations\google\test\route.ts
+  17:27  warning  'request' is defined but never used          @typescript-eslint/no-unused-vars
+  45:23  warning  'client' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\integrations\onboard-client\route.ts
+   1:39  warning  'getUnknownErrorMessage' is defined but never used  @typescript-eslint/no-unused-vars
+  27:6   warning  'UnknownRecord' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\invitations\[id]\deactivate\route.ts
+  14:10  warning  'reportSchemaFallback' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\invitations\create\route.ts
+  15:10  warning  'reportSchemaFallback' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\landing\upload-image\route.ts
+  37:13  warning  'data' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\nexus\billing\route.ts
+  5:10  warning  'getErrorMessage' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\nexus\migrate\route.ts
+  12:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\permissions\route.ts
+  17:27  warning  'request' is defined but never used        @typescript-eslint/no-unused-vars
+  19:15  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\roles\route.ts
+  18:6   warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+  51:27  warning  'request' is defined but never used        @typescript-eslint/no-unused-vars
+  56:13  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\settings\ai-key\route.ts
+  19:27  warning  'request' is defined but never used        @typescript-eslint/no-unused-vars
+  22:15  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\shabbat\status\route.ts
+  19:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\storage\test\route.ts
+  37:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\support\[id]\route.ts
+  23:6  warning  'UnknownRecord' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\support\route.ts
+  10:32  warning  'requirePermission' is defined but never used  @typescript-eslint/no-unused-vars
+  25:6   warning  'UnknownRecord' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\system\ai-history\route.ts
+   5:10  warning  'APIError' is defined but never used         @typescript-eslint/no-unused-vars
+  10:20  warning  'getErrorMessage' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\system\flags\route.ts
+  51:17  warning  '_user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\tenants\[id]\route.ts
+  12:29  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+  16:30  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\tenants\[id]\send-invitation\route.ts
+   9:20  warning  'apiSuccessCompat' is defined but never used  @typescript-eslint/no-unused-vars
+  13:28  warning  '_request' is defined but never used          @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\tenants\route.ts
+  12:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+  16:28  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\version\route.ts
+  7:27  warning  '_request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\voice\command\route.ts
+  549:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\webhooks\make\route.ts
+  247:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\api\webhooks\morning-app\route.ts
+   89:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  160:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\api\webhooks\zapier\route.ts
+  247:27  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\AdminShell.tsx
+  271:6   warning  React Hook useMemo has a missing dependency: 'navItems'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  524:26  warning  '_lead' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\billing-management\BillingManagementClient.tsx
+  15:3  warning  'Filter' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\business-clients\BusinessClientsClient.tsx
+   32:13  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   33:18  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   47:70  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   48:68  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   49:66  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   53:64  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   54:83  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+   62:6   warning  React Hook useEffect has a missing dependency: 'loadClients'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  263:19  warning  'primary' is assigned a value but never used                                                                    @typescript-eslint/no-unused-vars
+  424:62  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\app\admin\client\support\NotificationSettings.tsx
+  24:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\customers\AdminCustomersClient.tsx
+   76:9  warning  The 'groups' conditional could make the dependencies of useMemo Hook (at line 99) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'groups' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  187:9  warning  'openWorkspace' is assigned a value but never used                                                                                                                                                                           @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\dashboard\customers\CustomersDashboardClient.tsx
+   8:3  warning  'TrendingDown' is defined but never used  @typescript-eslint/no-unused-vars
+  14:3  warning  'Calendar' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\global\GlobalAdminPageClient.tsx
+  44:9  warning  'setTabAndSyncUrl' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\global\email-assets\EmailAssetsClient.tsx
+  138:15  warning  Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                              jsx-a11y/alt-text
+  261:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projects\Misrad-AI\app\app\admin\global\feature-flags\FeatureFlagsClient.tsx
+  40:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  61:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\global\kb-videos\page.tsx
+  1:8  warning  'React' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\landing\content\LandingContentClient.tsx
+    4:30  warning  'Upload' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   32:10  warning  'isSaving' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+   32:20  warning  'setIsSaving' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+   34:9   warning  'fileInputRef' is assigned a value but never used                                                            @typescript-eslint/no-unused-vars
+  438:35  warning  Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  464:33  warning  Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+C:\Projects\Misrad-AI\app\app\admin\nexus\tenants\page.tsx
+  1:8  warning  'React' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\org\[id]\OrgDetailClient.tsx
+    9:3  warning  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+  295:3  warning  'orgId' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\organizations\[id]\page.tsx
+  2:10  warning  'redirect' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\page.tsx
+  3:64  warning  'BrainCircuit' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\app\admin\social\components\HeavySocialAdminPanel.tsx
+   84:5   warning  'isEditProfileModalOpen' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   85:5   warning  'setIsEditProfileModalOpen' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   86:5   warning  'editingUser' is assigned a value but never used                @typescript-eslint/no-unused-vars
+   87:5   warning  'setEditingUser' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   88:5   warning  'handleSaveUserProfile' is assigned a value but never used      @typescript-eslint/no-unused-vars
+   89:5   warning  'isNotificationModalOpen' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  130:58  warning  Unexpected any. Specify a different type                        @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\app\client\ClientOSPageClient.tsx
+  6:49   warning  'Phone' is defined but never used           @typescript-eslint/no-unused-vars
+  6:82   warning  'SquareActivity' is defined but never used  @typescript-eslint/no-unused-vars
+  6:172  warning  'Sparkles' is defined but never used        @typescript-eslint/no-unused-vars
+  6:182  warning  'Shield' is defined but never used          @typescript-eslint/no-unused-vars
+  6:190  warning  'Star' is defined but never used            @typescript-eslint/no-unused-vars
+  6:196  warning  'Briefcase' is defined but never used       @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\employee-invite\[token]\finalize\page.tsx
+  206:9  warning  'baseNexusUserPayload' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\finance-landing\page.tsx
+  142:33  warning  'i' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\invite\[token]\page.tsx
+   43:11  warning  'router' is assigned a value but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  572:41  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projects\Misrad-AI\app\login\LoginPageClient.tsx
+  81:14  warning  'err' is defined but never used            @typescript-eslint/no-unused-vars
+  99:43  warning  'initialUserId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\me\page.tsx
+  5:10  warning  'getAuthenticatedUser' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\portal\ops\[token]\page.tsx
+  334:33  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projects\Misrad-AI\app\save-time\page.tsx
+  4:21  warning  'ArrowRight' is defined but never used  @typescript-eslint/no-unused-vars
+  4:67  warning  'Sparkles' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\subscribe\checkout\SubscribeCheckoutPageClient.tsx
+  148:6   warning  React Hook useEffect has missing dependencies: 'enablePaymentCreditCard' and 'enablePaymentManual'. Either include them or remove the dependency array                                                                                                                                   react-hooks/exhaustive-deps
+  533:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projects\Misrad-AI\app\system\SystemOSPageClient.tsx
+  6:56   warning  'Crown' is defined but never used           @typescript-eslint/no-unused-vars
+  6:63   warning  'Sparkles' is defined but never used        @typescript-eslint/no-unused-vars
+  6:111  warning  'CircleCheckBig' is defined but never used  @typescript-eslint/no-unused-vars
+  6:127  warning  'ArrowUp' is defined but never used         @typescript-eslint/no-unused-vars
+  6:143  warning  'SquareActivity' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\finance\FinanceShell.tsx
+  53:9  warning  'isMeRoute' is assigned a value but never used                                                                                                   @typescript-eslint/no-unused-vars
+  85:6  warning  React Hook useCallback has an unnecessary dependency: 'systemIdentity.needsProfileCompletion'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\nexus\page.tsx
+  26:28  warning  'signedLogoMaybe' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\operations\work-orders\[id]\page.tsx
+  206:18  warning  'doneAction' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  575:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\operations\work-orders\page.tsx
+  12:10  warning  'formatStatus' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\SystemLeadsClient.tsx
+  8:10  warning  'Lead' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\SystemSalesPipelineClient.tsx
+   18:3   warning  'getSystemLeadAssignees' is defined but never used  @typescript-eslint/no-unused-vars
+   69:21  warning  'setAssignees' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  718:31  warning  '_leadId' is defined but never used                 @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\SystemShellGateClient.tsx
+  22:36  warning  'User' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\analytics\SystemAnalyticsClient.tsx
+  5:37  warning  'TaskPriority' is defined but never used  @typescript-eslint/no-unused-vars
+  5:51  warning  'TaskStatus' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\dialer\SystemDialerClient.tsx
+  18:16  warning  '_callHistory' is defined but never used    @typescript-eslint/no-unused-vars
+  19:18  warning  '_initialStages' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\reports\SystemReportsClient.tsx
+   5:37  warning  'TaskPriority' is defined but never used  @typescript-eslint/no-unused-vars
+   5:51  warning  'TaskStatus' is defined but never used    @typescript-eslint/no-unused-vars
+  46:12  warning  '_orgSlug' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\app\w\[orgSlug]\(modules)\system\tasks\SystemTasksClient.tsx
+  128:6  warning  React Hook useEffect has a missing dependency: 'createNewTaskFromShell'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Projects\Misrad-AI\contexts\AppContext.tsx
+    9:10  warning  'getCampaigns' is defined but never used                                                                                                                                               @typescript-eslint/no-unused-vars
+  273:10  warning  'isLoadingData' is assigned a value but never used                                                                                                                                     @typescript-eslint/no-unused-vars
+  304:6   warning  React Hook useEffect has a missing dependency: 'hasInitialDataForOrg'. Either include it or remove the dependency array                                                                react-hooks/exhaustive-deps
+  316:9   warning  The 'addToast' function makes the dependencies of useCallback Hook (at line 537) change on every render. To fix this, wrap the definition of 'addToast' in its own useCallback() Hook  react-hooks/exhaustive-deps
+  359:6   warning  React Hook useEffect has missing dependencies: 'user.emailAddresses' and 'user.fullName'. Either include them or remove the dependency array                                           react-hooks/exhaustive-deps
+  411:6   warning  React Hook useEffect has missing dependencies: 'roleCache', 'user.emailAddresses', 'user.fullName', and 'user.imageUrl'. Either include them or remove the dependency array            react-hooks/exhaustive-deps
+  606:6   warning  React Hook useEffect has missing dependencies: 'hasInitialDataForOrg' and 'initialSocialData'. Either include them or remove the dependency array                                      react-hooks/exhaustive-deps
+
+C:\Projects\Misrad-AI\contexts\SocialSessionContext.tsx
+  9:9  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\lib\ai-security.ts
+  8:10  warning  'PermissionId' is defined but never used         @typescript-eslint/no-unused-vars
+  9:25  warning  'filterSensitiveData' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\api-shabbat-guard.ts
+  106:10  warning  'calculateTimeUntil' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\audit.ts
+  60:18  warning  'authError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\auth.ts
+   1:10  warning  'asObject' is defined but never used       @typescript-eslint/no-unused-vars
+  16:10  warning  'toStringArray' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\billing\calculator.ts
+  14:10  warning  'startOfUtcMonth' is defined but never used  @typescript-eslint/no-unused-vars
+  18:10  warning  'startOfUtcYear' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\billing\sync.ts
+  30:10  warning  'isMissingColumnError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\constants.ts
+  1:10   warning  'Client' is defined but never used         @typescript-eslint/no-unused-vars
+  1:18   warning  'SocialPost' is defined but never used     @typescript-eslint/no-unused-vars
+  1:30   warning  'AIOpportunity' is defined but never used  @typescript-eslint/no-unused-vars
+  1:45   warning  'Idea' is defined but never used           @typescript-eslint/no-unused-vars
+  1:51   warning  'Conversation' is defined but never used   @typescript-eslint/no-unused-vars
+  1:65   warning  'Invoice' is defined but never used        @typescript-eslint/no-unused-vars
+  1:74   warning  'SocialTask' is defined but never used     @typescript-eslint/no-unused-vars
+  1:107  warning  'TeamMember' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\db.ts
+    2:20  warning  'getErrorMessage' is defined but never used     @typescript-eslint/no-unused-vars
+   22:10  warning  'getErrorCode' is defined but never used        @typescript-eslint/no-unused-vars
+   28:10  warning  'parseOptionalFloat' is defined but never used  @typescript-eslint/no-unused-vars
+   84:32  warning  'filters' is defined but never used             @typescript-eslint/no-unused-vars
+  102:32  warning  'filters' is defined but never used             @typescript-eslint/no-unused-vars
+  114:38  warning  'filters' is defined but never used             @typescript-eslint/no-unused-vars
+  130:34  warning  'filters' is defined but never used             @typescript-eslint/no-unused-vars
+  142:34  warning  'filters' is defined but never used             @typescript-eslint/no-unused-vars
+  156:5   warning  'table' is defined but never used               @typescript-eslint/no-unused-vars
+  157:5   warning  'data' is defined but never used                @typescript-eslint/no-unused-vars
+  158:5   warning  'options' is defined but never used             @typescript-eslint/no-unused-vars
+  171:5   warning  'table' is defined but never used               @typescript-eslint/no-unused-vars
+  172:5   warning  'id' is defined but never used                  @typescript-eslint/no-unused-vars
+  173:5   warning  'updates' is defined but never used             @typescript-eslint/no-unused-vars
+  174:5   warning  'options' is defined but never used             @typescript-eslint/no-unused-vars
+  187:5   warning  'table' is defined but never used               @typescript-eslint/no-unused-vars
+  188:5   warning  'id' is defined but never used                  @typescript-eslint/no-unused-vars
+  189:5   warning  'options' is defined but never used             @typescript-eslint/no-unused-vars
+  222:37  warning  'name' is defined but never used                @typescript-eslint/no-unused-vars
+  230:34  warning  'role' is defined but never used                @typescript-eslint/no-unused-vars
+  238:34  warning  'roleId' is defined but never used              @typescript-eslint/no-unused-vars
+  238:50  warning  'updates' is defined but never used             @typescript-eslint/no-unused-vars
+  246:34  warning  'roleId' is defined but never used              @typescript-eslint/no-unused-vars
+  253:42  warning  'userId' is defined but never used              @typescript-eslint/no-unused-vars
+  257:51  warning  'params' is defined but never used              @typescript-eslint/no-unused-vars
+  269:5   warning  'userId' is defined but never used              @typescript-eslint/no-unused-vars
+  270:5   warning  'roleId' is defined but never used              @typescript-eslint/no-unused-vars
+  271:5   warning  'options' is defined but never used             @typescript-eslint/no-unused-vars
+  280:5   warning  'userId' is defined but never used              @typescript-eslint/no-unused-vars
+  281:5   warning  'managerId' is defined but never used           @typescript-eslint/no-unused-vars
+  282:5   warning  'options' is defined but never used             @typescript-eslint/no-unused-vars
+  288:5   warning  'userId' is defined but never used              @typescript-eslint/no-unused-vars
+  289:5   warning  'managerId' is defined but never used           @typescript-eslint/no-unused-vars
+  290:5   warning  'tenantId' is defined but never used            @typescript-eslint/no-unused-vars
+  298:41  warning  'managerId' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\googleAuth.ts
+  1:10  warning  'google' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\hebrewCalendar.ts
+    6:33  warning  'Location' is defined but never used            @typescript-eslint/no-unused-vars
+  111:7   warning  'HOLIDAYS' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  157:7   warning  'FAST_DAYS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\integrations\google-calendar.ts
+  243:15  warning  'events' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\integrations\green-invoice.ts
+  1:20  warning  'getErrorMessage' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\prisma-type-assertions.ts
+   43:6  warning  '_AssertSystemLeadWhereHasOrgId' is defined but never used                    @typescript-eslint/no-unused-vars
+   44:6  warning  '_AssertSystemLeadCreateHasOrgId' is defined but never used                   @typescript-eslint/no-unused-vars
+   59:6  warning  '_AssertNexusTaskWhereHasOrgId' is defined but never used                     @typescript-eslint/no-unused-vars
+   60:6  warning  '_AssertNexusTaskCreateHasOrgId' is defined but never used                    @typescript-eslint/no-unused-vars
+   76:6  warning  '_AssertSystemInvoiceWhereHasOrgId' is defined but never used                 @typescript-eslint/no-unused-vars
+   79:6  warning  '_AssertSystemInvoiceCreateHasOrgId' is defined but never used                @typescript-eslint/no-unused-vars
+   96:6  warning  '_AssertSystemLeadActivityWhereHasOrgId' is defined but never used            @typescript-eslint/no-unused-vars
+   99:6  warning  '_AssertSystemLeadActivityCreateHasOrgId' is defined but never used           @typescript-eslint/no-unused-vars
+  116:6  warning  '_AssertNexusClientWhereHasOrgId' is defined but never used                   @typescript-eslint/no-unused-vars
+  117:6  warning  '_AssertNexusClientCreateHasOrgId' is defined but never used                  @typescript-eslint/no-unused-vars
+  132:6  warning  '_AssertOperationsProjectWhereHasOrgId' is defined but never used             @typescript-eslint/no-unused-vars
+  135:6  warning  '_AssertOperationsProjectCreateHasOrgId' is defined but never used            @typescript-eslint/no-unused-vars
+  150:6  warning  '_AssertOperationsWorkOrderWhereHasOrgId' is defined but never used           @typescript-eslint/no-unused-vars
+  153:6  warning  '_AssertOperationsWorkOrderCreateHasOrgId' is defined but never used          @typescript-eslint/no-unused-vars
+  170:6  warning  '_AssertMisradClientWhereHasOrgId' is defined but never used                  @typescript-eslint/no-unused-vars
+  171:6  warning  '_AssertMisradClientCreateHasOrgId' is defined but never used                 @typescript-eslint/no-unused-vars
+  186:6  warning  '_AssertMisradInvoiceWhereHasOrgId' is defined but never used                 @typescript-eslint/no-unused-vars
+  187:6  warning  '_AssertMisradInvoiceCreateHasOrgId' is defined but never used                @typescript-eslint/no-unused-vars
+  202:6  warning  '_AssertMisradMeetingAnalysisResultWhereHasOrgId' is defined but never used   @typescript-eslint/no-unused-vars
+  205:6  warning  '_AssertMisradMeetingAnalysisResultCreateHasOrgId' is defined but never used  @typescript-eslint/no-unused-vars
+  222:6  warning  '_AssertMisradActivityLogWhereHasOrgId' is defined but never used             @typescript-eslint/no-unused-vars
+  223:6  warning  '_AssertMisradActivityLogCreateHasOrgId' is defined but never used            @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\server\authHelper.ts
+  30:51  warning  'request' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\server\couponEngine.ts
+  174:16  warning  'loadCouponByCode' is defined but never used               @typescript-eslint/no-unused-vars
+  229:16  warning  'isCouponAlreadyRedeemedForOrg' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\server\web-push.ts
+  20:10  warning  'getString' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\server\workspace.ts
+  239:11  warning  'msg' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\ai\AIService.ts
+  27:8  warning  'prompts' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\client-os\meetings\analyze-and-store-meeting.ts
+  292:39  warning  '_deadlineAt' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\geminiService.ts
+  81:3  warning  'clientName' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\meeting-service.ts
+  8:10  warning  'syncTaskToCalendar' is defined but never used  @typescript-eslint/no-unused-vars
+  9:8   warning  'prisma' is defined but never used              @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\nexus-onboarding-service.ts
+  7:34  warning  'isSchemaMismatchError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\operations\contractors.ts
+  8:10  warning  'resolveStorageUrlMaybe' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\operations\stock.ts
+   19:3   warning  'ensureOperationsVehicleHolderIdTx' is defined but never used                                        @typescript-eslint/no-unused-vars
+   32:16  warning  'createOperationsItemForOrganizationId' is defined but never used                                    @typescript-eslint/no-unused-vars
+   87:16  warning  'setOperationsWorkOrderStockSourceToMyActiveVehicleAutoForOrganizationId' is defined but never used  @typescript-eslint/no-unused-vars
+  181:16  warning  'getOperationsStockSourceOptionsAutoForOrganizationId' is defined but never used                     @typescript-eslint/no-unused-vars
+  284:16  warning  'getOperationsVehicleStockBalancesForOrganizationId' is defined but never used                       @typescript-eslint/no-unused-vars
+  345:16  warning  'transferOperationsStockToVehicleForOrganizationId' is defined but never used                        @typescript-eslint/no-unused-vars
+  445:16  warning  'addOperationsStockToActiveVehicleForOrganizationId' is defined but never used                       @typescript-eslint/no-unused-vars
+  608:16  warning  'getOperationsInventoryOptionsForOrganizationId' is defined but never used                           @typescript-eslint/no-unused-vars
+  641:16  warning  'getOperationsInventoryOptionsForHolderForOrganizationId' is defined but never used                  @typescript-eslint/no-unused-vars
+  709:16  warning  'consumeOperationsInventoryForWorkOrderForOrganizationId' is defined but never used                  @typescript-eslint/no-unused-vars
+  825:16  warning  'getOperationsMaterialsForWorkOrderForOrganizationId' is defined but never used                      @typescript-eslint/no-unused-vars
+  876:16  warning  'getOperationsInventoryDataForOrganizationId' is defined but never used                              @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\operations\stock\transfers.ts
+  6:79  warning  'toNumberSafe' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\operations\work-orders.ts
+   36:16  warning  'setOperationsWorkOrderCompletionSignatureForOrganizationId' is defined but never used  @typescript-eslint/no-unused-vars
+   62:16  warning  'addOperationsWorkOrderAttachmentForOrganizationId' is defined but never used           @typescript-eslint/no-unused-vars
+  116:16  warning  'getOperationsWorkOrderAttachmentsForOrganizationId' is defined but never used          @typescript-eslint/no-unused-vars
+  167:16  warning  'getOperationsWorkOrderCheckinsForOrganizationId' is defined but never used             @typescript-eslint/no-unused-vars
+  208:16  warning  'addOperationsWorkOrderCheckinForOrganizationId' is defined but never used              @typescript-eslint/no-unused-vars
+  251:16  warning  'setOperationsWorkOrderAssignedTechnicianForOrganizationId' is defined but never used   @typescript-eslint/no-unused-vars
+  355:16  warning  'getOperationsWorkOrdersDataForOrganizationId' is defined but never used                @typescript-eslint/no-unused-vars
+  498:16  warning  'createOperationsWorkOrderForOrganizationId' is defined but never used                  @typescript-eslint/no-unused-vars
+  569:16  warning  'getOperationsWorkOrderByIdForOrganizationId' is defined but never used                 @typescript-eslint/no-unused-vars
+  699:16  warning  'setOperationsWorkOrderStatusForOrganizationId' is defined but never used               @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\social-service.ts
+  8:34  warning  'isSchemaMismatchError' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\socialService.ts
+  31:39  warning  'statusId' is defined but never used  @typescript-eslint/no-unused-vars
+  40:44  warning  'postId' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\supabaseService.ts
+   7:36  warning  'userId' is defined but never used    @typescript-eslint/no-unused-vars
+  11:44  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  19:38  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  27:34  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  35:34  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  43:42  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  51:34  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  59:43  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+  63:44  warning  'clientId' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\system\leads-service.ts
+  8:10  warning  'logger' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\services\system\pipeline-stages.ts
+  34:6  warning  'StageRow' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\shabbat.ts
+  27:3  warning  'date' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\social-integration.ts
+  8:33  warning  'Strategy' is defined but never used  @typescript-eslint/no-unused-vars
+  8:43  warning  'Trend' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\supabase.ts
+   11:6  warning  'UnknownRecord' is defined but never used                    @typescript-eslint/no-unused-vars
+   12:6  warning  'AnyFn' is defined but never used                            @typescript-eslint/no-unused-vars
+  361:7  warning  'supabaseServiceRoleKey' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\trial.ts
+  71:3  warning  'subscriptionStartDate' is defined but never used     @typescript-eslint/no-unused-vars
+  73:9  warning  'isActiveStatus' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  75:9  warning  'isExpiredStatus' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\lib\validation.ts
+  7:10  warning  'SocialPlatform' is defined but never used  @typescript-eslint/no-unused-vars
+  7:26  warning  'ClientStatus' is defined but never used    @typescript-eslint/no-unused-vars
+  7:40  warning  'PostStatus' is defined but never used      @typescript-eslint/no-unused-vars
+  7:52  warning  'PricingPlan' is defined but never used     @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\prisma\seed.ts
+  156:11  warning  'org' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\analyze-bundle-size.js
+   15:10  warning  'getFileSize' is defined but never used  @typescript-eslint/no-unused-vars
+  104:12  warning  'error' is defined but never used        @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\audit-prisma-migrations-table-refs.cjs
+  66:10  warning  'normalizeRef' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\audit-raw-sql-tables.js
+  50:12  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\check-prisma-history.js
+  96:31  warning  'i' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\codemod-remove-as-any.cjs
+  39:33  warning  'filePath' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\command-interceptor.js
+  39:10  warning  'parseCommandArgs' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\comprehensive-schema-analysis.js
+  91:11  warning  'tableName' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\fix-embedded-shared-unknown-imports.cjs
+   1:10  warning  'asObject' is defined but never used                                   @typescript-eslint/no-unused-vars
+  41:5   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  57:5   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+C:\Projects\Misrad-AI\scripts\force-backup-wrapper.js
+  10:9  warning  'execSync' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\generate-icons.js
+  6:7  warning  'fs' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\merge-schemas-v7.js
+  204:58  warning  'k' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\migrate-clients-to-client-clients.js
+   1:1   warning  Unused eslint-disable directive (no problems were reported from 'no-console')
+  18:10  warning  'requiredEnv' is defined but never used                                        @typescript-eslint/no-unused-vars
+  24:10  warning  'toNumber' is defined but never used                                           @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\pre-migrate-check.js
+  87:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\prod-migration-sync\00-check-schema-diff.js
+  78:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\prod-migration-sync\04-baseline-migrations.js
+  43:17  warning  'stdout' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\prod-migration-sync\05-deploy-migrations.js
+  26:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\protect-organizations.js
+  185:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\protect-the-protector.js
+   13:7   warning  'ADMIN_PASSWORD' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  202:11  warning  'backups' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\rebuild-tenants.ts
+  102:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\scripts\restore-backup.js
+  135:15  warning  'owner' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\run-sql.js
+  9:7  warning  'path' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\safe-migrate.js
+  111:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\safe-sql.js
+  225:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\show-db-connection.js
+  64:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\scripts\test-security.ts
+  75:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\scripts\wrap-shabbat-guard.cjs
+  128:7  warning  'touchedCount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\tests\e2e\setup-auth.spec.ts
+  399:3  warning  'whoamiJson' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Projects\Misrad-AI\types\client.ts
+    1:10  warning  'LucideIcon' is defined but never used    @typescript-eslint/no-unused-vars
+   22:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projects\Misrad-AI\types\finance.ts
+  1:10  warning  'LucideIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 415 problems (0 errors, 415 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

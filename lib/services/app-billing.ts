@@ -13,6 +13,9 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import { sendEmail } from '@/lib/email-sender';
+import { generateInvoiceCreatedEmailHTML } from '@/lib/email-generators';
+import { getBaseUrl } from '@/lib/utils';
 
 // Morning API Configuration (for app billing)
 const MORNING_API_URL = 'https://api.greeninvoice.co.il/api/v1';
@@ -216,22 +219,104 @@ export async function createAppInvoice(
 
     const result = await response.json();
 
-    // Update organization's last invoice data
-    await prisma.organization.update({
-      where: { id: organizationId },
+    if (!result.id || !result.number) {
+      captureException(new Error('Morning API returned invoice without id or number'), {
+        action: 'createAppInvoice',
+        organizationId,
+        result: JSON.stringify(result).slice(0, 500),
+      });
+      return { success: false, error: 'Morning API returned incomplete invoice data' };
+    }
+
+    const invoiceId = String(result.id);
+    const invoiceNumber = String(result.number);
+    const invoiceUrl = result.url ? String(result.url) : undefined;
+    const pdfUrl = result.pdfUrl ? String(result.pdfUrl) : undefined;
+    const paymentUrl = result.paymentUrl ? String(result.paymentUrl) : undefined;
+
+    // Save invoice to DB
+    await prisma.billing_invoices.create({
       data: {
-        last_payment_date: new Date(),
-        updated_at: new Date(),
+        organization_id: organizationId,
+        morning_invoice_id: invoiceId,
+        invoice_number: invoiceNumber,
+        amount: new Prisma.Decimal(orgBilling.mrr),
+        currency: 'ILS',
+        status: 'pending',
+        invoice_url: invoiceUrl ?? null,
+        pdf_url: pdfUrl ?? null,
+        payment_url: paymentUrl ?? null,
+        description: options?.description ?? `מנוי חודשי - ${orgBilling.name}`,
+        due_date: options?.dueDate ?? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        email_sent: false,
+      },
+    });
+
+    // Send invoice email to billing_email automatically
+    let emailSent = false;
+    try {
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { billing_email: true, slug: true, owner: { select: { email: true, full_name: true } } },
+      });
+      const toEmail = org?.billing_email || org?.owner?.email;
+      if (toEmail) {
+        const baseUrl = getBaseUrl();
+        const portalUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : baseUrl;
+        const html = generateInvoiceCreatedEmailHTML({
+          ownerName: org?.owner?.full_name ?? null,
+          organizationName: orgBilling.name,
+          amount: orgBilling.mrr,
+          invoiceNumber,
+          invoiceUrl,
+          pdfUrl,
+          paymentUrl,
+          portalUrl,
+          description: options?.description ?? `מנוי חודשי - ${orgBilling.name}`,
+        });
+        await sendEmail({
+          emailTypeId: 'billing_invoice_created',
+          to: toEmail,
+          subject: `חשבונית חדשה #${invoiceNumber} — ${orgBilling.name}`,
+          html,
+          forceSend: true,
+        });
+        emailSent = true;
+        // Mark email as sent
+        await prisma.billing_invoices.updateMany({
+          where: { morning_invoice_id: invoiceId, organization_id: organizationId },
+          data: { email_sent: true, updated_at: new Date() },
+        });
+      }
+    } catch (emailErr: unknown) {
+      captureException(emailErr, { action: 'createAppInvoice:sendEmail', organizationId });
+    }
+
+    // Create billing event for audit trail
+    await prisma.billing_events.create({
+      data: {
+        organization_id: organizationId,
+        event_type: 'invoice_created',
+        payload: {
+          morningInvoiceId: invoiceId,
+          invoiceNumber,
+          amount: orgBilling.mrr,
+          currency: 'ILS',
+          emailSent,
+          source: 'manual',
+        } as Prisma.InputJsonValue,
+        occurred_at: new Date(),
+        created_at: new Date(),
       },
     });
 
     return {
       success: true,
-      invoiceId: String(result.id),
-      invoiceNumber: String(result.number),
-      invoiceUrl: result.url || undefined,
-      pdfUrl: result.pdfUrl || undefined,
-      paymentUrl: result.paymentUrl || undefined,
+      invoiceId,
+      invoiceNumber,
+      invoiceUrl,
+      pdfUrl,
+      paymentUrl,
     };
   } catch (error: unknown) {
     captureException(error, { action: 'createAppInvoice', organizationId });

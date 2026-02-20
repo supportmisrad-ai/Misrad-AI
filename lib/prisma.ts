@@ -163,6 +163,7 @@ type PrismaClientWithAliases = PrismaClient & {
   teamMember: PrismaClient['teamMember'];
   teamMemberClient: PrismaClient['teamMemberClient'];
   socialMediaInvoice: _SocialMediaInvoiceDelegate;
+  billing_invoices: PrismaClient['billing_invoices'];
 };
 
 const _basePrismaClient = _client;
@@ -173,6 +174,7 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   teamMember: _basePrismaClient.teamMember,
   teamMemberClient: _basePrismaClient.teamMemberClient,
   socialMediaInvoice: (_basePrismaClient as unknown as Record<string, unknown>).socialMediaInvoice ?? (_basePrismaClient as unknown as Record<string, unknown>).social_invoices,
+  billing_invoices: _basePrismaClient.billing_invoices,
 });
 
 // ═══════════════════════════════════════════════════════════════════
