@@ -243,6 +243,7 @@ const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
   'employee_invite_finalize',
   'health_check_test_write',
   'health_check_tables',
+  'legal_consent_record',
   'integrations_onboard_client_resolve_org',
   'kiosk_pairing_create_or_refresh',
   'kiosk_pairing_status',
