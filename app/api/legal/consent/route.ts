@@ -2,6 +2,7 @@ import { createServiceRoleClient } from '@/lib/supabase';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { rateLimit } from '@/lib/server/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,18 @@ async function POSTHandler(req: Request): Promise<Response> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return apiError('Unauthorized', { status: 401 });
+  }
+
+  const rl = await rateLimit({
+    namespace: 'legal-consent',
+    key: clerkUserId,
+    limit: 10,
+    windowMs: 60_000,
+    mode: 'degraded',
+    degradedLimit: 10,
+  });
+  if (!rl.ok) {
+    return apiError('Too many requests', { status: 429 });
   }
 
   let body: ConsentRequestBody = {};
