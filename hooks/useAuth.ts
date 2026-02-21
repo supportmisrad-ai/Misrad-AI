@@ -765,10 +765,15 @@ export const useAuth = (
             }
 
             try {
-                // CRITICAL: Get GPS location FIRST before any UI changes
-                const location = await getLocation();
+                // GPS is best-effort for clock-out — NEVER block exit
+                let location: { lat: number; lng: number; accuracy: number; city?: string } | null = null;
+                try {
+                    location = await getLocation();
+                } catch {
+                    // GPS failed — proceed without location
+                }
 
-                // Call API and wait for success
+                // Call API and wait for success (location may be null)
                 const res = await punchOut(orgSlug, undefined, location);
 
                 // Update UI ONLY after successful API response

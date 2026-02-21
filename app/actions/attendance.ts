@@ -135,7 +135,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   };
 }
 
-export async function punchOut(orgSlugOrId: string, note: string | undefined, location: AttendanceGeoLocationInput) {
+export async function punchOut(orgSlugOrId: string, note: string | undefined, location?: AttendanceGeoLocationInput | null) {
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
 
@@ -144,7 +144,13 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
     return { success: true, closed: false, noActiveShift: true };
   }
 
-  const geo = parseGeoLocationRequired(location);
+  // Location is OPTIONAL for clock-out — GPS should never block exit
+  let geo: { lat: number; lng: number; accuracy: number | null; city: string | null } | null = null;
+  try {
+    if (location) geo = parseGeoLocationRequired(location);
+  } catch {
+    // GPS data invalid — proceed without location
+  }
 
   const now = new Date();
   const endTime = now.toISOString();
@@ -161,10 +167,10 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
       UPDATE nexus_time_entries
       SET
         end_time = ${endTime}::timestamptz,
-        end_lat = ${geo.lat}::double precision,
-        end_lng = ${geo.lng}::double precision,
-        end_accuracy = ${geo.accuracy}::double precision,
-        end_city = ${geo.city},
+        end_lat = ${geo ? geo.lat : null}::double precision,
+        end_lng = ${geo ? geo.lng : null}::double precision,
+        end_accuracy = ${geo ? geo.accuracy : null}::double precision,
+        end_city = ${geo ? geo.city : null},
         duration_minutes = ${durationMinutes}::int,
         note = COALESCE(note, ${noteValue})
       WHERE
