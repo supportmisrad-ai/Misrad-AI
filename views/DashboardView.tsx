@@ -1230,8 +1230,9 @@ export const DashboardView: React.FC<{
                         <div className="mt-6 text-center">
                             {activeShift ? (
                                 <>
-                                    <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-2 drop-shadow-lg">{elapsed}</div>
-                                    <div className="flex justify-center mt-8"><HoldButton isActive={true} onComplete={clockOut} label="יציאה" size="small" /></div>
+                                    <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-1 drop-shadow-lg">{elapsed}</div>
+                                    <div className="text-xs font-bold text-white/50 mb-1">כניסה: {new Date(activeShift.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</div>
+                                    <div className="flex justify-center mt-6"><HoldButton isActive={true} onComplete={clockOut} label="יציאה" size="small" /></div>
                                 </>
                             ) : (
                                 <>

@@ -210,9 +210,10 @@ export const useAuth = (
             let city: string | undefined;
             try {
                 const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
-                const geocodeRes = await fetch(geocodeUrl, {
-                    headers: { 'User-Agent': 'MisradAI-Attendance/1.0' }
-                });
+                const geocodeRes = await Promise.race([
+                    fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+                    new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+                ]);
                 if (geocodeRes.ok) {
                     const geocodeData = await geocodeRes.json();
                     city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
@@ -691,7 +692,8 @@ export const useAuth = (
                 await refreshTimeEntries();
 
                 // Show success toast ONLY after everything succeeded
-                addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!', 'success');
+                const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
             } catch (e: unknown) {
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
@@ -721,7 +723,8 @@ export const useAuth = (
                 await refreshTimeEntries();
 
                 // Show success toast ONLY after everything succeeded
-                addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!', 'info');
+                const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTimeStr}. תודה!`, 'info');
             } catch (e: unknown) {
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה ביציאה ממשמרת', 'error');

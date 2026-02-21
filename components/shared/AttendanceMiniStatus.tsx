@@ -173,7 +173,7 @@ export default function AttendanceMiniStatus() {
     if (!orgSlug) return;
     if (!isClerkLoaded || !isSignedIn) return;
     loadActiveShift();
-    const interval = window.setInterval(loadActiveShift, 25_000);
+    const interval = window.setInterval(loadActiveShift, 10_000);
     return () => window.clearInterval(interval);
   }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
 
@@ -225,7 +225,7 @@ export default function AttendanceMiniStatus() {
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
         const geocodeRes = await Promise.race([
           fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
         ]);
         if (geocodeRes.ok) {
           const geocodeData = await geocodeRes.json();

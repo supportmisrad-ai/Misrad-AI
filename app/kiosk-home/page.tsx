@@ -61,7 +61,7 @@ function KioskHomePageInner() {
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
         const geocodeRes = await Promise.race([
           fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
         ]);
         if (geocodeRes.ok) {
           const geocodeData = await geocodeRes.json();
@@ -306,7 +306,8 @@ function KioskHomePageInner() {
                       await refreshShift(orgSlug);
 
                       // Show success message ONLY after everything succeeded
-                      setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!');
+                      const inTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                      setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${inTime}. עבודה נעימה!`);
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
                       setAttendanceMessage(msg || 'שגיאה בכניסה למשמרת');
@@ -344,7 +345,8 @@ function KioskHomePageInner() {
                       await refreshShift(orgSlug);
 
                       // Show success message ONLY after everything succeeded
-                      setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!');
+                      const outTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                      setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTime}. תודה!`);
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
                       setAttendanceMessage(msg || 'שגיאה ביציאה ממשמרת');

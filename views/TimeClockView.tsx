@@ -367,12 +367,18 @@ export const TimeClockView: React.FC = () => {
                                         <td className="px-6 py-4 font-mono text-gray-600">{formatTime(entry.startTime)}</td>
                                         <td className="px-6 py-4 text-xs">
                                             {entry?.startCity ? (
-                                                <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
-                                                    <MapPin size={14} className="text-blue-500" /> {entry.startCity}
-                                                </span>
+                                                startMapUrl ? (
+                                                    <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-gray-700 hover:text-blue-700 font-bold transition-colors">
+                                                        <MapPin size={14} className="text-blue-500" /> {entry.startCity}
+                                                    </a>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                        <MapPin size={14} className="text-blue-500" /> {entry.startCity}
+                                                    </span>
+                                                )
                                             ) : startMapUrl ? (
-                                                <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                    <MapPin size={14} /> הצג
+                                                <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                                                    <MapPin size={14} /> מפה
                                                 </a>
                                             ) : (
                                                 <span className="text-gray-400">-</span>
@@ -381,12 +387,18 @@ export const TimeClockView: React.FC = () => {
                                         <td className="px-6 py-4 font-mono text-gray-600">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
                                         <td className="px-6 py-4 text-xs">
                                             {entry?.endCity ? (
-                                                <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
-                                                    <MapPin size={14} className="text-blue-500" /> {entry.endCity}
-                                                </span>
+                                                endMapUrl ? (
+                                                    <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-gray-700 hover:text-blue-700 font-bold transition-colors">
+                                                        <MapPin size={14} className="text-blue-500" /> {entry.endCity}
+                                                    </a>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-gray-700 font-bold">
+                                                        <MapPin size={14} className="text-blue-500" /> {entry.endCity}
+                                                    </span>
+                                                )
                                             ) : endMapUrl ? (
-                                                <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                    <MapPin size={14} /> הצג
+                                                <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold transition-colors">
+                                                    <MapPin size={14} /> מפה
                                                 </a>
                                             ) : (
                                                 <span className="text-gray-400">-</span>
