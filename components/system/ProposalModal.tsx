@@ -9,6 +9,7 @@ import {
     UploadCloud, PenTool, File as FileIcon, ChevronRight, Signature
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 declare const confetti: unknown;
 
@@ -31,6 +32,7 @@ interface LineItem {
 const CATALOG: { id: string; name: string; price: number; description?: string }[] = [];
 
 const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, onDealWon }) => {
+  useBackButtonClose(true, onClose);
   const { addToast } = useToast();
   
   // Creation Mode: 'builder' (Smart items) or 'upload' (PDF/Doc)

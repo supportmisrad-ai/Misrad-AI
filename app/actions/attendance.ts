@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
@@ -128,6 +129,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
     startTime: created.start_time instanceof Date ? created.start_time.toISOString() : String(created.start_time),
   };
 
+  revalidatePath('/', 'layout');
   return {
     success: true,
     activeShift: { id: String(entry.id), startTime: String(entry.startTime) },
@@ -135,7 +137,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   };
 }
 
-export async function punchOut(orgSlugOrId: string, note: string | undefined, location?: AttendanceGeoLocationInput | null) {
+export async function punchOut(orgSlugOrId: string, note: string | undefined, location: AttendanceGeoLocationInput) {
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
 
@@ -144,13 +146,7 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
     return { success: true, closed: false, noActiveShift: true };
   }
 
-  // Location is OPTIONAL for clock-out — GPS should never block exit
-  let geo: { lat: number; lng: number; accuracy: number | null; city: string | null } | null = null;
-  try {
-    if (location) geo = parseGeoLocationRequired(location);
-  } catch {
-    // GPS data invalid — proceed without location
-  }
+  const geo = parseGeoLocationRequired(location);
 
   const now = new Date();
   const endTime = now.toISOString();
@@ -167,10 +163,10 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
       UPDATE nexus_time_entries
       SET
         end_time = ${endTime}::timestamptz,
-        end_lat = ${geo ? geo.lat : null}::double precision,
-        end_lng = ${geo ? geo.lng : null}::double precision,
-        end_accuracy = ${geo ? geo.accuracy : null}::double precision,
-        end_city = ${geo ? geo.city : null},
+        end_lat = ${geo.lat}::double precision,
+        end_lng = ${geo.lng}::double precision,
+        end_accuracy = ${geo.accuracy}::double precision,
+        end_city = ${geo.city},
         duration_minutes = ${durationMinutes}::int,
         note = COALESCE(note, ${noteValue})
       WHERE
@@ -182,5 +178,6 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
 
   if (!updatedCount) throw new Error('Failed to punch out');
 
+  revalidatePath('/', 'layout');
   return { success: true, closed: true, entryId: existing.activeShift.id, noActiveShift: false };
 }

@@ -6,9 +6,11 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getContentByKey } from '@/app/actions/site-content';
 import { Skeleton } from '@/components/ui/skeletons';
 import { extractData, extractError } from '@/lib/shared/api-types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export const SupportModal: React.FC = () => {
     const { isSupportModalOpen, closeSupport, currentUser, addNotification, supportDraft, setSupportDraft, startTutorial } = useData();
+    useBackButtonClose(isSupportModalOpen, closeSupport);
     const [step, setStep] = useState<'form' | 'success'>('form');
     const [ticketId, setTicketId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);

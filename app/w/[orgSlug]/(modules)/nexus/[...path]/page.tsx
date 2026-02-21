@@ -5,7 +5,7 @@ import { asObject } from '@/lib/shared/unknown';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import type { ModuleId, OrganizationProfile } from '@/types';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 function getStringFromMetadata(value: unknown): string | null {
   if (typeof value === 'string') return value;

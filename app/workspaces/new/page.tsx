@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { provisionCurrentUserWorkspaceAction } from '@/app/actions/users';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function NewWorkspacePage() {
   const res = await provisionCurrentUserWorkspaceAction();

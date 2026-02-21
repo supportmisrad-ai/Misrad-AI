@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -269,6 +271,7 @@ export async function getMyProfile(params: { orgSlug: string }): Promise<{
     const existingObj = asObject(existing.data) ?? {};
     const existingProfile = (existingObj.profile as ProfileRecord | null) ?? null;
     if (existingProfile?.id) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse({ profile: existingProfile });
     }
 

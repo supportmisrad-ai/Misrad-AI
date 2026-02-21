@@ -4,7 +4,7 @@ import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/sto
 import { currentUser } from '@clerk/nextjs/server';
 import LobbyClient from './LobbyClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 
 export default async function LobbyPage({

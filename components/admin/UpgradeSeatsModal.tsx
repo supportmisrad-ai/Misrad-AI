@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { X, TriangleAlert, TrendingUp, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type UpgradeSeatsModalProps = {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function UpgradeSeatsModal({
   const [isPending, startTransition] = useTransition();
   const [selectedSeats, setSelectedSeats] = useState(suggestedSeats);
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -2,7 +2,7 @@
 
 import WorkflowBuilder from '@/components/client-os-full/components/WorkflowBuilder';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function ClientWorkflowsPage() {
   return <WorkflowBuilder />;

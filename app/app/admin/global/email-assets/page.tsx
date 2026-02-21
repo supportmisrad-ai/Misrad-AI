@@ -3,7 +3,7 @@ import { Mail } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import EmailAssetsClient from './EmailAssetsClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function EmailAssetsPage() {
   return (

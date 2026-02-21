@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
 import { CustomSelect } from '@/components/CustomSelect';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function DevicePairingModal(props: {
   open: boolean;
@@ -12,6 +13,7 @@ export default function DevicePairingModal(props: {
   approvePairing: (params: { code: string; approvedForUserId: string }) => Promise<any>;
   addToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }) {
+  useBackButtonClose(props.open, props.onClose);
   const [pairingCode, setPairingCode] = useState('');
   const [pairingUserId, setPairingUserId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);

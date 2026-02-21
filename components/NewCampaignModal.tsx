@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X, Megaphone, Target, DollarSign, Layout, CirclePlus, ArrowLeft } from 'lucide-react';
 import { Campaign } from '../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface NewCampaignModalProps {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface NewCampaignModalProps {
 }
 
 const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ onClose, onSubmit }) => {
+  useBackButtonClose(true, onClose);
   const [name, setName] = useState('');
   const [platformMode, setPlatformMode] = useState<'select' | 'custom'>('select');
   const [platform, setPlatform] = useState<string>('facebook');

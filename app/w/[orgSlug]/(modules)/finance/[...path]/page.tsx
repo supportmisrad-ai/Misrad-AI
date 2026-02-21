@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function FinanceCatchAllPage({
   params,

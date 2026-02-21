@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 import Dashboard from '@/components/social/Dashboard';
 import prisma from '@/lib/prisma';

@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { randomUUID } from 'crypto';
 import type { PackageType } from '@/lib/server/workspace';
@@ -98,6 +100,8 @@ async function requireTenantOrgAdminOrReturn(
   if (!isTenantAdminRole(clerkRole) && !isTenantAdminRole(membershipRole)) {
     return { ok: false, error: 'אין הרשאה (נדרש אדמין ארגון)' };
   }
+
+  revalidatePath('/', 'layout');
 
   return { ok: true };
 }
@@ -444,6 +448,8 @@ export async function createSubscriptionOrder(
       createdAt: now.toISOString(),
     };
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(order);
   } catch (error: unknown) {
     captureActionException(error, { action: 'createSubscriptionOrder', stage: 'outer' });
@@ -536,6 +542,8 @@ export async function getSubscriptionOrder(
     });
     if (!access.ok) return createErrorResponse('Forbidden', access.error);
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(row);
   } catch (error: unknown) {
     captureActionException(error, { action: 'getSubscriptionOrder' });
@@ -557,6 +565,7 @@ export async function getSubscriptionPaymentConfig(
     });
 
     if (!data) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse({
         packageType,
         title: null,
@@ -743,6 +752,8 @@ export async function submitSubscriptionPaymentProof(input: {
       captureActionException(updateError, { action: 'submitSubscriptionPaymentProof', stage: 'update_order', orderId });
       return createErrorResponse(updateError, 'שגיאה בעדכון הזמנה');
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(proof);
   } catch (error: unknown) {

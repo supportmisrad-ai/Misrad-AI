@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Lead } from '../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { 
     X, FileText, Send, Check, Plus, Trash2, Smartphone, 
     Link as LinkIcon, ExternalLink, Copy, CircleCheckBig, 
@@ -29,6 +30,7 @@ interface LineItem {
 const CATALOG: { id: string; name: string; price: number; description?: string }[] = [];
 
 const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, onDealWon }) => {
+  useBackButtonClose(true, onClose);
   const { addToast } = useToast();
   
   // Creation Mode: 'builder' (Smart items) or 'upload' (PDF/Doc)

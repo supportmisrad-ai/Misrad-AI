@@ -4,9 +4,11 @@ import { Task, TaskCompletionDetails, TaskContributor, User } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CircleCheckBig, Clock, TriangleAlert, Star, ThumbsUp, ThumbsDown, X, Save, Users } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export const TaskCompletionModal: React.FC = () => {
     const { taskToComplete, confirmCompleteTask, cancelCompleteTask, users } = useData();
+    useBackButtonClose(!!taskToComplete, cancelCompleteTask);
     
     // Single User State
     const [actualHours, setActualHours] = useState(0);

@@ -136,9 +136,19 @@ export async function createNexusTask(params: {
     const assigneeIds = assigneeIdsRaw.filter((id): id is string => typeof id === 'string' && isUUID(id));
     let assigneeId = typeof body.assigneeId === 'string' && isUUID(body.assigneeId) ? body.assigneeId : undefined;
 
+    // Ensure the current user's NexusUser ID is always in the assignee list
+    // Client may send a Profile UUID instead of NexusUser UUID — always include dbUserId
+    if (assigneeId && assigneeId !== dbUserId && !assigneeIds.includes(dbUserId)) {
+      assigneeIds.push(dbUserId);
+    }
     if (assigneeId && !assigneeIds.includes(assigneeId)) assigneeIds.push(assigneeId);
     if (!assigneeIds.length) {
       assigneeIds.push(dbUserId);
+      assigneeId = dbUserId;
+    }
+    // If the provided assigneeId is not a NexusUser ID, override with dbUserId
+    // so the task is always findable via the creatorId/assigneeId filters
+    if (assigneeId && assigneeId !== dbUserId) {
       assigneeId = dbUserId;
     }
 
@@ -252,8 +262,22 @@ export async function updateNexusTask(params: {
     if (updates.description !== undefined) patch.description = updates.description;
     if (updates.status !== undefined) patch.status = updates.status;
     if (updates.priority !== undefined) patch.priority = updates.priority == null ? null : String(updates.priority);
-    if (updates.assigneeIds !== undefined) patch.assigneeIds = updates.assigneeIds;
-    if (updates.assigneeId !== undefined) patch.assigneeId = updates.assigneeId ?? null;
+    if (updates.assigneeIds !== undefined) {
+      const rawIds = Array.isArray(updates.assigneeIds) ? updates.assigneeIds : [];
+      const filteredIds = rawIds.filter((id): id is string => typeof id === 'string' && isUUID(id));
+      const dbUser = asObject(resolved.user) ?? {};
+      const dbUserId = String(dbUser.id ?? '').trim();
+      // Ensure current user's NexusUser ID is in assigneeIds for discoverability
+      if (dbUserId && !filteredIds.includes(dbUserId)) filteredIds.push(dbUserId);
+      patch.assigneeIds = filteredIds;
+    }
+    if (updates.assigneeId !== undefined) {
+      const dbUser = asObject(resolved.user) ?? {};
+      const dbUserId = String(dbUser.id ?? '').trim();
+      // Normalize assigneeId to NexusUser UUID to match list query filters
+      const rawId = typeof updates.assigneeId === 'string' && isUUID(updates.assigneeId) ? updates.assigneeId : null;
+      patch.assigneeId = (rawId && rawId !== dbUserId) ? dbUserId : (rawId ?? null);
+    }
     if (updates.creatorId !== undefined) patch.creatorId = updates.creatorId;
     if (updates.tags !== undefined) patch.tags = updates.tags;
     if (updates.dueDate !== undefined) patch.dueDate = parseDateOnlyToDate(updates.dueDate) ?? null;

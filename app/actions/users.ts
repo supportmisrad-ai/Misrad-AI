@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { currentUser } from '@clerk/nextjs/server';
 import crypto from 'crypto';
@@ -438,7 +440,7 @@ async function upsertProfileForClerkUser(params: {
         name: orgName,
         slug: slugBase || null,
         owner_id: createdSocialUser.id,
-        has_nexus: pendingPlan ? hasModule('nexus') : true,
+        has_nexus: pendingPlan ? hasModule('nexus') : false,
         has_system: pendingPlan ? hasModule('system') : false,
         has_social: pendingPlan ? hasModule('social') : false,
         has_finance: pendingPlan ? true : false, // Finance is a free bonus for any paid package
@@ -527,6 +529,7 @@ export async function getOrCreateSupabaseUserAction(
     if (isE2E) {
       // Playwright env: some test DBs enforce strict RLS on social_users, causing inserts to fail.
       // We avoid writes here and let workspace.ts provide E2E-safe fallbacks.
+      revalidatePath('/', 'layout');
       return { success: true, userId: String(clerkUserId) };
     }
 
@@ -541,6 +544,7 @@ export async function getOrCreateSupabaseUserAction(
 
         // Option A: webhook is the manager. If the user arrives with invite token, do NOT provision anything here.
         if (isOrgInviteMode) {
+          revalidatePath('/', 'layout');
           return { success: true, userId: String(clerkUserId) };
         }
 
@@ -552,6 +556,8 @@ export async function getOrCreateSupabaseUserAction(
           preferredOrganizationKey: safePreferredOrganizationKey,
           sendWelcomeEmail,
         });
+
+        revalidatePath('/', 'layout');
 
         return { success: true, userId: out.profileId };
       }
@@ -613,6 +619,7 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
               role,
             },
           });
+          revalidatePath('/', 'layout');
           return { success: true, profileId: existing.id };
         }
 
@@ -627,6 +634,8 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
           },
           select: { id: true },
         });
+
+        revalidatePath('/', 'layout');
 
         return { success: true, profileId: created.id };
       }
@@ -719,6 +728,8 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
             select: { id: true },
           });
 
+          revalidatePath('/', 'layout');
+
           return { success: true, userId: String(existing.id) };
         }
 
@@ -742,6 +753,8 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
           data: createData,
           select: { id: true },
         });
+
+        revalidatePath('/', 'layout');
 
         return { success: true, userId: created?.id ? String(created.id) : undefined };
       }
@@ -806,7 +819,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
           pendingPlan,
           pendingSoloModule,
           pendingSeats,
-          sendWelcomeEmail: false,
+          sendWelcomeEmail: true,
         });
 
         if (pendingPlan) {
@@ -821,6 +834,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
         }
 
         const organizationKey = String(out.organizationSlug || out.organizationId);
+        revalidatePath('/', 'layout');
         return { success: true, organizationKey };
       }
     );
@@ -937,6 +951,7 @@ export async function getUserRoleFromSupabaseAction(
     // The old argument is ignored.
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
+      revalidatePath('/', 'layout');
       return { success: true, role: 'team_member' };
     }
 

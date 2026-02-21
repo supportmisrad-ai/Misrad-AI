@@ -153,6 +153,20 @@ export const useTasks = (
         }
     }, [tasks]);
 
+    // Listen for optimistic task replacement (when server returns real task ID)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (!detail || typeof detail !== 'object') return;
+            const { optimisticId, realTask } = detail as { optimisticId?: string; realTask?: Task };
+            if (!optimisticId || !realTask) return;
+            setTasks(prev => prev.map(t => t.id === optimisticId ? { ...t, ...realTask } : t));
+        };
+        window.addEventListener('nexusTaskReplaceOptimistic', handler);
+        return () => window.removeEventListener('nexusTaskReplaceOptimistic', handler);
+    }, []);
+
     const addTask = (task: Task, options?: { silent?: boolean }) => {
         setTasks(prev => [task, ...prev]);
         if (!options?.silent) {

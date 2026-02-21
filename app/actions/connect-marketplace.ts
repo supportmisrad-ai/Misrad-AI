@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
@@ -173,6 +175,8 @@ export async function createConnectMarketplaceListing(params: {
     const base = getBaseUrl();
     const url = `${base}/connect/offer/${encodeURIComponent(tokenOut)}`;
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, token: tokenOut, url, publicUrl: url, listingId };
   } catch (e: unknown) {
     return { ok: false, message: getErrorMessage(e) || 'שגיאה ביצירת לינק שיתוף' };
@@ -242,6 +246,8 @@ export async function getConnectListingRequests(params: {
         };
       })
       .filter((x): x is ConnectListingRequestDTO => Boolean(x && x.id && x.token));
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, requests };
   } catch (e: unknown) {
@@ -341,6 +347,8 @@ export async function getConnectOfferByToken(params: {
       interestedAt: getDateIso(rowObj.interestedAt),
       approvedAt: getDateIso(rowObj.approvedAt),
     };
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, offer };
   } catch (e: unknown) {
@@ -464,6 +472,8 @@ export async function markConnectOfferInterested(params: {
       });
     }
 
+    revalidatePath('/', 'layout');
+
     return { ok: true };
   } catch (e: unknown) {
     return { ok: false, message: getErrorMessage(e) || 'שגיאה בסימון מעוניין' };
@@ -506,6 +516,7 @@ export async function approveConnectOfferDisclosure(params: {
     }
 
     if (listingObj.approvedAt) {
+      revalidatePath('/', 'layout');
       return { ok: true };
     }
 
@@ -516,6 +527,8 @@ export async function approveConnectOfferDisclosure(params: {
         status: 'APPROVED',
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (e: unknown) {

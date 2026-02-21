@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CircleCheckBig, ChevronDown } from 'lucide-react';
 import { Lead } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface NewMeetingModalProps {
   leads: Lead[];
@@ -12,6 +13,7 @@ interface NewMeetingModalProps {
 }
 
 const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId, onClose, onSave }) => {
+  useBackButtonClose(true, onClose);
   const [activeTab, setActiveTab] = useState<'details' | 'automation'>('details');
   const [isTimingOpen, setIsTimingOpen] = useState(false);
   

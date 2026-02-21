@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -80,6 +82,8 @@ export async function getAdminClients(params?: {
       };
     });
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(clients);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת לקוחות');
@@ -158,6 +162,8 @@ export async function getSystemMetrics(): Promise<{
       },
     };
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(metrics);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בקבלת נתוני מערכת');
@@ -195,6 +201,8 @@ export async function updateClientStatus(
       clientId: String(clientRow.id),
       updates: { metadata: nextMetadata },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -235,6 +243,8 @@ export async function toggleClientAccess(
       clientId: String(clientRow.id),
       updates: { metadata: nextMetadata },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -292,6 +302,8 @@ export async function refreshSystemData(): Promise<{ success: boolean; error?: s
         new_clients_this_month: newClientsThisMonth,
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -380,6 +392,8 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: A
       },
     ];
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(healthStatus);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בבדיקת תקינות ממשקים');
@@ -417,10 +431,13 @@ export async function getSecurityAuditLog(params?: {
       timestamp: log.completed_at ? new Date(log.completed_at).toISOString() : null,
     }));
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(fallbackLogs);
   } catch (error) {
     logger.error('getSecurityAuditLog', 'Error:', error);
     // Return empty array instead of mock data
+    revalidatePath('/', 'layout');
     return createSuccessResponse([]);
   }
 }
@@ -480,6 +497,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
         error: sessionError,
         extras: { clientId: String(clientId || '') },
       });
+      revalidatePath('/', 'layout');
       return createSuccessResponse({ impersonationToken: token });
     }
 

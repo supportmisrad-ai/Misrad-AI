@@ -3,7 +3,7 @@ import { Share2 } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import WorkListingsAdminClient from './WorkListingsAdminClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminGlobalWorkListingsPage() {
   return (

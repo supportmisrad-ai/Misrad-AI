@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -62,6 +64,7 @@ async function requireSuperAdminOrFail(): Promise<AdminCheckResult> {
   if (!authCheck.userId) {
     return { success: false, error: 'נדרשת התחברות' };
   }
+  revalidatePath('/', 'layout');
   return { success: true, userId: authCheck.userId };
 }
 
@@ -112,6 +115,7 @@ export async function getHelpVideoByRoute(params: {
     });
 
     if (rows.length === 0) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse(null);
     }
 
@@ -141,6 +145,8 @@ export async function getHelpVideoByRoute(params: {
     if (moduleDefault) {
       return createSuccessResponse(mapRow(moduleDefault));
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(null);
   } catch (error: unknown) {
@@ -286,6 +292,7 @@ export async function adminDeleteHelpVideo(id: string): Promise<{ success: boole
     }
 
     await prisma.help_videos.delete({ where: { id: resolvedId } });
+    revalidatePath('/', 'layout');
     return createSuccessResponse(true);
   } catch (error: unknown) {
     return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה במחיקת סרטון');

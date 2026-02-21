@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 import { createOperationsItem, getOperationsInventoryData } from '@/app/actions/operations';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';

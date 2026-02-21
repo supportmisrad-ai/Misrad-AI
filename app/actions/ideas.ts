@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import { Idea } from '@/types/social';
@@ -86,6 +88,8 @@ export async function getIdeas(
       };
     });
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: ideas };
   } catch (error: unknown) {
     logger.error('ideas', 'Error in getIdeas:', error);
@@ -170,6 +174,8 @@ export async function createIdea(
           ? ((asObject(idea) ?? {}).created_at as Date).toISOString()
           : String((asObject(idea) ?? {}).created_at ?? ''),
     };
+
+    revalidatePath('/', 'layout');
 
     return { success: true, data: formattedIdea };
   } catch (error: unknown) {
@@ -264,9 +270,12 @@ export async function updateIdea(
     if (result.success && result.data) {
       const updatedIdea = result.data.find(i => i.id === ideaId);
       if (updatedIdea) {
+        revalidatePath('/', 'layout');
         return { success: true, data: updatedIdea };
       }
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -316,6 +325,8 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
         error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת רעיון'),
       };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {

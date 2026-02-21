@@ -14,6 +14,7 @@ type WorkspacesApiItem = {
   id?: string;
   slug?: string;
   entitlements?: Record<string, boolean>;
+  onboardingComplete?: boolean;
 };
 
 type WorkspacesApiPayload = {
@@ -24,7 +25,7 @@ type WorkspacesApiPayload = {
 const MAX_WORKSPACE_RETRIES = 2;
 const WORKSPACE_RETRY_DELAY = 500;
 
-async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean> }> {
+async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean>; onboardingComplete: boolean }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
     try {
       // Fetch workspaces and last location in parallel
@@ -38,7 +39,7 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
           await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
           continue;
         }
-        return { orgSlug: null, entitlements: {} };
+        return { orgSlug: null, entitlements: {}, onboardingComplete: false };
       }
 
       const data: unknown = await workspacesRes.json();
@@ -51,7 +52,7 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
       }
 
       if (workspaces.length === 0) {
-        return { orgSlug: null, entitlements: {} };
+        return { orgSlug: null, entitlements: {}, onboardingComplete: false };
       }
 
       // Workspace selection priority:
@@ -79,16 +80,18 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
           ? selectedWorkspace.entitlements
           : {};
 
-      return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements };
+      const onboardingComplete = Boolean(selectedWorkspace.onboardingComplete);
+
+      return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements, onboardingComplete };
     } catch (err) {
       if (attempt < MAX_WORKSPACE_RETRIES - 1) {
         await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
         continue;
       }
-      return { orgSlug: null, entitlements: {} };
+      return { orgSlug: null, entitlements: {}, onboardingComplete: false };
     }
   }
-  return { orgSlug: null, entitlements: {} };
+  return { orgSlug: null, entitlements: {}, onboardingComplete: false };
 }
 
 /** Generate a unique username from an email address (Clerk requires username). */
@@ -339,10 +342,16 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
       } else {
         (async () => {
           try {
-            const { orgSlug, entitlements } = await resolveFirstWorkspace();
+            const { orgSlug, entitlements, onboardingComplete } = await resolveFirstWorkspace();
             
             if (!orgSlug) {
               router.push('/workspaces/new');
+              return;
+            }
+
+            // If onboarding is not complete (no plan selected), send to onboarding
+            if (!onboardingComplete) {
+              router.push('/workspaces/onboarding');
               return;
             }
 

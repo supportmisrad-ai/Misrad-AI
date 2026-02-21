@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Target, Users, DollarSign, Save, Rocket, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Client, type Campaign } from '@/types/social';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface EditCampaignModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ isOpen, onClose, 
       setBudget(campaign.budget as number);
     }
   }, [campaign, isOpen]);
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen || !campaign) return null;
 

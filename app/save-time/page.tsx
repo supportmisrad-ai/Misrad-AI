@@ -7,7 +7,7 @@ import { Footer } from '@/components/landing/Footer';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function SaveTimeHubPage() {
   return (

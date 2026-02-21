@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type AddClientModalProps = {
   isOpen: boolean;
@@ -15,6 +16,7 @@ type AddClientModalProps = {
 
 export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClientModalProps) {
   const [isPending, startTransition] = useTransition();
+  useBackButtonClose(isOpen, onClose);
 
   const [ownerFullName, setOwnerFullName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');

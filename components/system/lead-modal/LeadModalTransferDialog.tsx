@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, Copy, MessageSquare } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface LeadModalTransferDialogProps {
   isCreatingTransfer: boolean;
@@ -22,6 +23,7 @@ const LeadModalTransferDialog: React.FC<LeadModalTransferDialogProps> = ({
   onResetTransferUrl,
   onClose,
 }) => {
+  useBackButtonClose(true, onClose);
   return (
     <div
       className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"

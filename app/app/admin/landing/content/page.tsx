@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import LandingContentClient from './LandingContentClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function LandingContentPage() {
   const userId = await getCurrentUserId();

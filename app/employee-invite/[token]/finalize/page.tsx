@@ -11,7 +11,7 @@ import type { Prisma } from '@prisma/client';
 import { asObject } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 

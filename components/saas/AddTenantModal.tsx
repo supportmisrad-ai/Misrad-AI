@@ -7,6 +7,7 @@ import { Building2, Mail, Globe2, Package, Server, X, Sparkles, Phone, Users, La
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StyledDropdown } from '@/components/ui/StyledDropdown';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface AddTenantModalProps {
     onClose: () => void;
@@ -15,6 +16,7 @@ interface AddTenantModalProps {
 }
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, products }) => {
+    useBackButtonClose(true, onClose);
     const [selectedPlan, setSelectedPlan] = useState(products[0]?.name || '');
     const [selectedRegion, setSelectedRegion] = useState<NonNullable<Tenant['region']>>('il-central');
 

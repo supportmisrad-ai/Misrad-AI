@@ -1,6 +1,6 @@
 import Settings from '@/components/social/Settings';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SocialSettingsPage() {
   return <Settings />;

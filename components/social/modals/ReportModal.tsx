@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { X, Download, FileText, TrendingUp, Users, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function ReportModal() {
   const { isReportModalOpen, setIsReportModalOpen } = useApp();
+  useBackButtonClose(isReportModalOpen, () => setIsReportModalOpen(false));
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isReportModalOpen) return null;

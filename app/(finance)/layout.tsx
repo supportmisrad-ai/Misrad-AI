@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('finance');
 
@@ -20,7 +20,7 @@ export default async function FinanceLayout({
     if (clerkUserId) {
       const user = await prisma.organizationUser.findUnique({
         where: { clerk_user_id: clerkUserId },
-        select: { organization_id: true },
+        select: { organization_id: true, Organization: { select: { has_finance: true } } },
       });
 
       const organizationId = user?.organization_id;
@@ -28,11 +28,7 @@ export default async function FinanceLayout({
         redirect('/subscribe/checkout');
       }
 
-      const org = await prisma.organization.findUnique({
-        where: { id: String(organizationId) },
-        select: { has_finance: true },
-      });
-
+      const org = user?.Organization;
       if (org && org.has_finance === false) {
         redirect('/subscribe/checkout');
       }

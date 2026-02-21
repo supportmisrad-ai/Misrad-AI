@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time errors
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 import { motion } from 'framer-motion';
 import { Building2, User, Mail, Phone, Globe, MapPin, FileText, Upload, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';

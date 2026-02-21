@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Sparkles, Zap } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface DemoVideoModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface DemoVideoModalProps {
 }
 
 export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
+  useBackButtonClose(isOpen, onClose);
   const [demoVideoUrl, setDemoVideoUrl] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('demo_video_url');

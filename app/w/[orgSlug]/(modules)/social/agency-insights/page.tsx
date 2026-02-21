@@ -4,7 +4,7 @@ import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 
 const AgencyInsightsView = nextDynamic(() => import('@/components/social/AgencyInsightsView'), {

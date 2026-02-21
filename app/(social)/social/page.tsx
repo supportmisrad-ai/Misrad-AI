@@ -1,6 +1,6 @@
 import LandingPage from '@/components/social/LandingPage';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function SocialLandingPage() {
   return <LandingPage />;

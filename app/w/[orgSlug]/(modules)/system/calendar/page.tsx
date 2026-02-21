@@ -1,7 +1,7 @@
 import { getSystemCalendarEventsRange, getSystemLeadsPage } from '@/app/actions/system-leads';
 import SystemCalendarClient from './SystemCalendarClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SystemCalendarPage({
   params,

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type AddOrganizationToClientModalProps = {
   isOpen: boolean;
@@ -46,6 +47,7 @@ export default function AddOrganizationToClientModal({
   const [isShabatProtected, setIsShabatProtected] = useState(true);
   
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

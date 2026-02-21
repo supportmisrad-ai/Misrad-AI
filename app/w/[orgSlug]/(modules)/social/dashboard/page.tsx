@@ -1,7 +1,7 @@
 import Dashboard from '@/components/social/Dashboard';
 import prisma from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 
 export default async function DashboardPage({

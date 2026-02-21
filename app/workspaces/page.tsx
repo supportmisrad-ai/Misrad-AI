@@ -4,13 +4,14 @@ import { cookies } from 'next/headers';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import prisma from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 type WorkspaceItem = {
   id: string;
   slug: string;
   name: string;
   logo?: string | null;
+  subscriptionPlan: string | null;
 };
 
 async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
@@ -66,14 +67,16 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
       slug: true,
       name: true,
       logo: true,
+      subscription_plan: true,
     },
   });
 
-  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null }) => ({
+  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null; subscription_plan: string | null }) => ({
     id: String(o.id),
     slug: String(o.slug || o.id),
     name: String(o.name || 'Workspace'),
     logo: o.logo ?? null,
+    subscriptionPlan: o.subscription_plan ?? null,
   }));
 }
 
@@ -87,11 +90,17 @@ export default async function WorkspacesPage() {
   if (pinnedOrgId) {
     const pinnedWorkspace = workspaces.find((ws) => ws.id === pinnedOrgId);
     if (pinnedWorkspace) {
+      if (!pinnedWorkspace.subscriptionPlan) {
+        redirect('/workspaces/onboarding');
+      }
       redirect(`/w/${encodeURIComponent(pinnedWorkspace.slug)}`);
     }
   }
 
   if (workspaces.length === 1) {
+    if (!workspaces[0].subscriptionPlan) {
+      redirect('/workspaces/onboarding');
+    }
     redirect(`/w/${encodeURIComponent(workspaces[0].slug)}`);
   }
 

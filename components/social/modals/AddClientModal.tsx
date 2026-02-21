@@ -11,6 +11,7 @@ import { createClientForWorkspace } from '@/app/actions/clients';
 import { translateError } from '@/lib/errorTranslations';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 const PLANS = [
   { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
@@ -24,6 +25,7 @@ export default function AddClientModal() {
   const routeInfo = parseWorkspaceRoute(pathname);
   const { clients, setClients } = useSocialData();
   const { isAddClientModalOpen, setIsAddClientModalOpen, addToast } = useSocialUI();
+  useBackButtonClose(isAddClientModalOpen, () => setIsAddClientModalOpen(false));
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -34,7 +36,6 @@ export default function AddClientModal() {
   const [phone, setPhone] = useState(''); // Optional phone
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan>('pro');
   const [monthlyFee, setMonthlyFee] = useState<number>(PLANS.find(p => p.id === 'pro')?.price ?? 2990);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,127 +131,83 @@ export default function AddClientModal() {
       return;
     }
 
-    setIsProcessing(true);
     setErrors({});
+
+    // Ensure companyName is valid (at least 2 characters)
+    const finalCompanyName = (invoiceName && invoiceName.trim().length >= 2)
+      ? invoiceName.trim()
+      : (name && name.trim().length >= 2)
+        ? name.trim()
+        : name.trim() || 'לקוח חדש';
+
+    const clientPayload = {
+      name: name.trim(),
+      companyName: finalCompanyName,
+      ...(businessId && { businessId }),
+      ...(phone && { phone }),
+      ...(email && { email }),
+      ...(logo && { avatar: logo }),
+      brandVoice: '',
+      dna: {
+        brandSummary: '',
+        voice: { formal: 50, funny: 50, length: 50 },
+        vocabulary: { loved: [], forbidden: [] },
+        colors: { primary: '#1e293b', secondary: '#334155' }
+      },
+      credentials: [],
+      activePlatforms: [],
+      quotas: [],
+      postingRhythm: selectedPlan === 'starter' ? 'פעמיים בשבוע' : selectedPlan === 'pro' ? '3 פעמים בשבוע' : 'יומי',
+      status: 'Active' as const,
+      onboardingStatus: 'completed' as const,
+      color: '#1e293b',
+      plan: selectedPlan,
+      monthlyFee,
+      paymentStatus: 'pending' as const,
+      autoRemindersEnabled: true,
+      businessMetrics: {
+        timeSpentMinutes: 0,
+        expectedHours: selectedPlan === 'starter' ? 5 : selectedPlan === 'pro' ? 10 : 20,
+        punctualityScore: 100,
+        responsivenessScore: 100,
+        revisionCount: 0,
+      },
+    };
+
+    // Optimistic: add client to list immediately & close modal
+    const optimisticId = `optimistic-client-${Date.now()}`;
+    const optimisticClient: Client = {
+      id: optimisticId,
+      organizationId: '',
+      portalToken: '',
+      avatar: logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=1e293b&color=fff&bold=true&size=64`,
+      ...clientPayload,
+    };
+    setClients(prev => [...prev, optimisticClient]);
+    resetAndClose();
+
+    // Persist in background
     try {
-      // Ensure companyName is valid (at least 2 characters)
-      const finalCompanyName = (invoiceName && invoiceName.trim().length >= 2) 
-        ? invoiceName.trim() 
-        : (name && name.trim().length >= 2) 
-          ? name.trim() 
-          : name.trim() || 'לקוח חדש';
-      
-      const result = await createClientForWorkspace(orgSlug, {
-        name: name.trim(),
-        companyName: finalCompanyName,
-        ...(businessId && { businessId }),
-        ...(phone && { phone }),
-        ...(email && { email }),
-        ...(logo && { avatar: logo }),
-        brandVoice: '',
-        dna: {
-          brandSummary: '',
-          voice: { formal: 50, funny: 50, length: 50 },
-          vocabulary: { loved: [], forbidden: [] },
-          colors: { primary: '#1e293b', secondary: '#334155' }
-        },
-        credentials: [], // We don't store passwords - see VaultTab for explanation
-        activePlatforms: [], // Will be set later when connecting platforms
-        quotas: [],
-        postingRhythm: selectedPlan === 'starter' ? 'פעמיים בשבוע' : selectedPlan === 'pro' ? '3 פעמים בשבוע' : 'יומי',
-        status: 'Active',
-        onboardingStatus: 'completed',
-        color: '#1e293b',
-        plan: selectedPlan,
-        monthlyFee,
-        paymentStatus: 'pending',
-        autoRemindersEnabled: true,
-        businessMetrics: {
-          timeSpentMinutes: 0,
-          expectedHours: selectedPlan === 'starter' ? 5 : selectedPlan === 'pro' ? 10 : 20,
-          punctualityScore: 100,
-          responsivenessScore: 100,
-          revisionCount: 0,
-        }
-      } as unknown as Partial<Client>, user.id);
+      const result = await createClientForWorkspace(orgSlug, clientPayload as unknown as Partial<Client>, user.id);
 
       if (result.success && result.data) {
-        setClients(prev => [...prev, result.data!]);
-        resetAndClose();
-        addToast(`הלקוח ${name} נוסף בהצלחה למערכת`);
-        // Optional: Redirect to client workspace
-        // router.push(`/social-os/workspace?clientId=${result.data.id}`);
+        // Replace optimistic client with real one
+        setClients(prev => prev.map(c => c.id === optimisticId ? result.data! : c));
+        addToast(`הלקוח ${name} נוסף בהצלחה למערכת`, 'success');
       } else {
+        // Rollback: remove optimistic client
+        setClients(prev => prev.filter(c => c.id !== optimisticId));
         const errorMsg = result.error ? translateError(result.error) : 'שגיאה ביצירת לקוח';
-        
-        // Log full error for debugging
-        console.error('Error creating client:', {
-          error: result.error,
-          name,
-          companyName: invoiceName || name,
-          email,
-          phone,
-          businessId,
-        });
-        
+        console.error('Error creating client:', { error: result.error, name, companyName: invoiceName || name, email, phone, businessId });
         addToast(errorMsg, 'error');
-        
-        // Try to identify which field caused the error
-        if (result.error) {
-          const errorLower = result.error.toLowerCase();
-          
-          // Check for validation errors
-          if (errorLower.includes('שם חייב להכיל') || errorLower.includes('שם חברה חייב להכיל')) {
-            setStep(1);
-            setErrors({ name: 'שם העסק חייב להכיל לפחות 2 תווים' });
-          } else if (errorLower.includes('name') || errorLower.includes('שם')) {
-            setStep(1);
-            setErrors({ name: 'שם העסק שגוי או כבר קיים' });
-          } else if (errorLower.includes('email') || errorLower.includes('אימייל') || errorLower.includes('כתובת אימייל')) {
-            setStep(2);
-            setErrors({ email: 'אימייל שגוי או כבר קיים' });
-          } else if (errorLower.includes('phone') || errorLower.includes('טלפון') || errorLower.includes('מספר טלפון')) {
-            setStep(2);
-            setErrors({ phone: 'טלפון שגוי' });
-          } else if (errorLower.includes('business') || errorLower.includes('ח.פ')) {
-            setStep(2);
-            setErrors({ businessId: 'ח.פ/ע.מ שגוי או כבר קיים' });
-          } else if (errorLower.includes('משתמש') || errorLower.includes('user') || errorLower.includes('organization') || errorLower.includes('ארגון')) {
-            // User/organization error - show general error
-            addToast('שגיאה: בעיה בהרשאות או בארגון. נא לנסות שוב או ליצור קשר עם התמיכה.', 'error');
-          }
-        }
       }
     } catch (error: unknown) {
+      // Rollback: remove optimistic client
+      setClients(prev => prev.filter(c => c.id !== optimisticId));
       const errObj = error instanceof Error ? error : null;
-      console.error('Error creating client:', {
-        error,
-        message: errObj?.message,
-        stack: errObj?.stack,
-        name: errObj?.name,
-        clientData: {
-          name: name.trim(),
-          companyName: invoiceName || name,
-          email,
-          phone,
-          businessId,
-        }
-      });
-      
+      console.error('Error creating client:', { error, message: errObj?.message, clientData: { name: name.trim(), companyName: invoiceName || name, email, phone, businessId } });
       const errorMsg = errObj?.message ? translateError(errObj.message) : 'שגיאה ביצירת לקוח';
-      
-          // Check for specific error types
-          if (errorMsg.includes('משתמש') || errorMsg.includes('user') || errorMsg.includes('ארגון') || errorMsg.includes('organization')) {
-            if (errorMsg.includes('SERVICE_ROLE_KEY') || errorMsg.includes('RLS') || errorMsg.includes('הרשאות')) {
-              addToast('שגיאה: בעיה בהגדרות Supabase. נא לוודא שיש SERVICE_ROLE_KEY מוגדר ב-.env.local', 'error');
-            } else {
-              addToast('שגיאה: בעיה בהרשאות או בארגון. נא לוודא שאתה מחובר ולנסות שוב.', 'error');
-            }
-          } else {
-            addToast('שגיאה ביצירת לקוח: ' + errorMsg, 'error');
-          }
-    } finally {
-      setIsProcessing(false);
+      addToast('שגיאה ביצירת לקוח: ' + errorMsg, 'error');
     }
   };
 
@@ -412,7 +369,7 @@ export default function AddClientModal() {
                     }
                     setStep(2);
                   }}
-                  disabled={!name || isProcessing}
+                  disabled={!name}
                   className="w-full py-4 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 transition-all min-h-[48px]"
                 >
                   המשך <ArrowRight size={18} className="inline mr-2 md:w-5 md:h-5" />
@@ -573,7 +530,6 @@ export default function AddClientModal() {
                           setSelectedPlan(plan.id);
                           setMonthlyFee(plan.price);
                         }}
-                        disabled={isProcessing}
                         className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all ${
                           selectedPlan === plan.id 
                             ? 'border-green-600 bg-green-600 text-white shadow-lg shadow-green-100' 
@@ -601,10 +557,9 @@ export default function AddClientModal() {
                 <button
                   ref={submitButtonRef}
                   onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full py-4 md:py-5 bg-green-600 text-white rounded-xl md:rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
+                  className="w-full py-4 md:py-5 bg-green-600 text-white rounded-xl md:rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-2 md:gap-3 hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  {isProcessing ? <>מעבד...</> : <>הוסף לקוח</>}
+                  הוסף לקוח
                 </button>
               </motion.div>
             )}

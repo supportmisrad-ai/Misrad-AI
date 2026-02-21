@@ -10,7 +10,7 @@ import OperationsShell from '@/components/operations/OperationsShell';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('operations');
 
@@ -22,13 +22,17 @@ export default async function OperationsModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
+  // enforceModuleAccessOrRedirect returns workspace info — must resolve first for workspace.id
   const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
-  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
-  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
 
-  const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+  // Run user resolution and logo signing in parallel (both need workspace.id)
+  const [user, signedLogo] = await Promise.all([
+    resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
+    resolveStorageUrlMaybeServiceRole(workspace.logo, 3600, { organizationId: workspace.id }),
+  ]);
   const def = getModuleDefinition('operations');
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
 
   const style = {
     '--os-accent': def.theme.accent,

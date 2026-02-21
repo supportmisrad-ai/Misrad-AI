@@ -3,7 +3,7 @@ import { getFirstAllowedModule, loadCurrentUserLastLocation, persistCurrentUserL
 import type { WorkspaceEntitlements } from '@/lib/server/workspace';
 import { asObject } from '@/lib/shared/unknown';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 
 function safeDecodeURIComponent(value: string): string {
@@ -45,19 +45,17 @@ export default async function WorkspaceEntryPage({
     .filter(([, v]) => v)
     .map(([k]) => k);
 
-  try {
-    await persistCurrentUserLastLocation({ orgSlug });
-  } catch (e: unknown) {
-    console.error('[WorkspaceEntryPage] persistCurrentUserLastLocation failed (ignored):', e);
-  }
-
-  let last: Awaited<ReturnType<typeof loadCurrentUserLastLocation>> | null = null;
-  try {
-    last = await loadCurrentUserLastLocation();
-  } catch (e: unknown) {
-    console.error('[WorkspaceEntryPage] loadCurrentUserLastLocation failed (ignored):', e);
-    last = null;
-  }
+  // Run persist and load in parallel (both are independent)
+  const [, lastResult] = await Promise.all([
+    persistCurrentUserLastLocation({ orgSlug }).catch((e: unknown) => {
+      console.error('[WorkspaceEntryPage] persistCurrentUserLastLocation failed (ignored):', e);
+    }),
+    loadCurrentUserLastLocation().catch((e: unknown) => {
+      console.error('[WorkspaceEntryPage] loadCurrentUserLastLocation failed (ignored):', e);
+      return null;
+    }),
+  ]);
+  const last = lastResult ?? null;
   if (last?.orgSlug && String(last.orgSlug) === String(orgSlug) && last.module) {
     if (entitlements[last.module]) {
       redirect(`/w/${encodeURIComponent(orgSlug)}/${last.module}`);

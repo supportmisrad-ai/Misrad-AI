@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { X, CircleCheckBig, CircleAlert, Globe, Layout, Smartphone, Video } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface PlatformConnectModalProps {
   onClose: () => void;
@@ -35,6 +36,7 @@ const PLATFORMS = [
 ];
 
 const PlatformConnectModal: React.FC<PlatformConnectModalProps> = ({ onClose, connectedPlatforms, onToggleConnection }) => {
+  useBackButtonClose(true, onClose);
   const [connectingId, setConnectingId] = useState<string | null>(null);
 
   const handleToggle = (id: string) => {

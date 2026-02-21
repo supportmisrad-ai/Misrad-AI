@@ -15,7 +15,7 @@ import {
 import { redirect } from 'next/navigation';
 import type { OperationsHolderStockRow } from '@/lib/services/operations/types';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function OperationsMePage({
   params,

@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -851,6 +853,7 @@ export async function updateTaskStatus(params:
           data: { status: params.status },
         });
         if (!updated?.count) throw new Error('Task not found');
+        revalidatePath('/', 'layout');
         return { ok: true };
       }
 
@@ -859,6 +862,8 @@ export async function updateTaskStatus(params:
         data: { status: params.status },
       });
       if (!updated?.count) throw new Error('Task not found');
+
+      revalidatePath('/', 'layout');
 
       return { ok: true };
     },
@@ -1055,6 +1060,8 @@ export async function markAsRead(params: { orgId: string; messageId: string; rea
         data: { read_status: read },
       });
       if (!updated?.count) throw new Error('Message not found');
+
+      revalidatePath('/', 'layout');
 
       return { ok: true };
     },

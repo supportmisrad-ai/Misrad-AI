@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
@@ -345,6 +347,7 @@ export async function getClients(
     }
 
     const resolved = await resolveClientsAvatarsMaybe(acc.slice(0, maxTotal), organizationId);
+    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClients:', error);
@@ -495,6 +498,7 @@ export async function getClientByIdForWorkspace(params: {
     if (!row?.id) return { success: false, error: 'לקוח לא נמצא' };
     const client = mapClientClientToSocialClient(row);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClientByIdForWorkspace:', error);
@@ -556,6 +560,8 @@ export async function createClientInvitationLinkForWorkspace(params: {
       },
       select: { id: true },
     });
+
+    revalidatePath('/', 'layout');
 
     return { success: true, token };
   } catch (error: unknown) {
@@ -705,6 +711,7 @@ export async function createClientForWorkspace(
 
     const client = mapClientClientToSocialClient(row);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in createClientForWorkspace:', error);
@@ -790,6 +797,7 @@ export async function createClient(
 
     const client = mapClientClientToSocialClient(created);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in createClient:', error);
@@ -860,6 +868,8 @@ export async function updateClient(
     if (!updated.count) {
       return { success: false, error: 'שגיאה בעדכון לקוח' };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -949,6 +959,8 @@ export async function updateClientForWorkspace(
       return { success: false, error: 'לקוח לא נמצא' };
     }
 
+    revalidatePath('/', 'layout');
+
     return { success: true };
   } catch (error: unknown) {
     logger.error('clients', 'Error in updateClientForWorkspace:', error);
@@ -974,6 +986,8 @@ export async function deleteClient(clientId: string): Promise<{ success: boolean
     if (!deleted.count) {
       return { success: false, error: 'לקוח לא נמצא' };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -1010,6 +1024,8 @@ export async function deleteClientForWorkspace(
     if (!deleted.count) {
       return { success: false, error: 'לקוח לא נמצא' };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -1146,6 +1162,8 @@ export async function inviteClientForWorkspace(
       };
     }
 
+    revalidatePath('/', 'layout');
+
     return { success: true };
   } catch (error: unknown) {
     logger.error('clients', 'Error in inviteClientForWorkspace:', error);
@@ -1224,6 +1242,7 @@ export async function getClientByInvitationToken(
     }
 
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClientByInvitationToken:', error);

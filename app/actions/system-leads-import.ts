@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { AIService } from '@/lib/services/ai/AIService';
@@ -330,6 +332,8 @@ ${headers.map((h) => `- ${h}`).join('\n')}
 
         const suggestedCustomFields = Array.from(suggestedByHeader.values()).slice(0, 30);
 
+        revalidatePath('/', 'layout');
+
         return { ok: true, mapping, provider: out.provider, model: out.model, stages, suggestedCustomFields };
       },
       { source: 'server_actions_system_leads_import', reason: 'suggestSystemLeadImportMapping' }
@@ -636,6 +640,8 @@ export async function importSystemLeadsFromFile(params: {
           if (issuesTruncated) {
             unshiftIssue({ kind: 'skipped', rowNumber: null, reason: `פירוט שורות מוגבל ל-${MAX_ISSUES_RETURNED.toLocaleString()} פריטים` });
           }
+
+          revalidatePath('/', 'layout');
 
           return { ok: true, created: 0, skipped, invalid, issues, receivedRows, consideredRows, truncated };
         }

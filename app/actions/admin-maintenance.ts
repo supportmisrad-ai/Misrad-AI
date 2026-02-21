@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
@@ -42,6 +44,7 @@ export async function getMaintenanceInfo(): Promise<{
     });
   } catch (error: unknown) {
     // Return empty/default data if RPC doesn't exist
+    revalidatePath('/', 'layout');
     return createSuccessResponse({
       databaseSize: 'לא זמין',
       lastBackup: null,
@@ -104,6 +107,8 @@ export async function createBackup(): Promise<{
       // Table might not exist, that's okay
     }
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse({ backupId });
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה ביצירת גיבוי');
@@ -155,6 +160,8 @@ export async function runSystemCleanup(): Promise<{
     } catch {
       // Best-effort only
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ cleanedItems });
   } catch (error: unknown) {
@@ -226,6 +233,8 @@ export async function updateSystemSettings(
     } catch {
       // Best-effort only
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {

@@ -6,8 +6,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 
-// Force dynamic rendering as this layout depends on authentication
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 /**
  * System.OS Layout
@@ -31,7 +30,7 @@ export default async function SystemLayout({
     if (clerkUserId) {
       const user = await prisma.organizationUser.findUnique({
         where: { clerk_user_id: clerkUserId },
-        select: { organization_id: true },
+        select: { organization_id: true, Organization: { select: { has_system: true } } },
       });
 
       const organizationId = user?.organization_id;
@@ -39,11 +38,7 @@ export default async function SystemLayout({
         redirect('/subscribe/checkout');
       }
 
-      const org = await prisma.organization.findUnique({
-        where: { id: String(organizationId) },
-        select: { has_system: true },
-      });
-
+      const org = user?.Organization;
       if (org && org.has_system === false) {
         redirect('/subscribe/checkout');
       }

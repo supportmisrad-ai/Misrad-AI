@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { PaymentOrder } from '@/types/social';
 import { Avatar } from '@/components/Avatar';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function PaymentLinkModal() {
   const { 
@@ -16,6 +17,7 @@ export default function PaymentLinkModal() {
     setTasks,
     addToast 
   } = useApp();
+  useBackButtonClose(isPaymentModalOpen, () => setIsPaymentModalOpen(false));
 
   const [step, setStep] = useState(1);
   const [selectedClientId, setSelectedClientId] = useState('');

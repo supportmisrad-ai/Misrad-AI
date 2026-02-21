@@ -4,7 +4,7 @@ import { Footer } from '@/components/landing/Footer';
 import { getContentByKey } from '@/app/actions/site-content';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SecurityPage() {
   const result = await getContentByKey('legal', 'documents', 'security_markdown');

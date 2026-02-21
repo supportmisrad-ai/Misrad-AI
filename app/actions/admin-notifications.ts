@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
@@ -136,6 +138,8 @@ export async function sendNotification(
       });
     }
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשליחת התראה');
@@ -173,6 +177,8 @@ export async function getNotificationHistory(params?: {
       skip: offset,
       take: limit,
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(notifications || []);
   } catch (error) {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type EditOrganizationModalProps = {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
       setIsShabatProtected(organization.is_shabbat_protected ?? true);
     }
   }, [isOpen, organization]);
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -5,6 +5,7 @@ import { X, Save, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialTask } from '@/types/social';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function TaskModal() {
   const { 
@@ -18,6 +19,7 @@ export default function TaskModal() {
     setTasks,
     addToast 
   } = useApp();
+  useBackButtonClose(isTaskModalOpen, () => setIsTaskModalOpen(false));
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

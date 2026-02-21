@@ -3,7 +3,7 @@ import { LandingPageVideosPanel } from '@/components/saas/LandingPageVideosPanel
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Video } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminLandingVideosPage() {
   return (

@@ -3,7 +3,7 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getMyBillingData } from '@/app/actions/my-billing';
 import BillingPortalClient from './BillingPortalClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export async function generateMetadata({ params }: { params: Promise<{ orgSlug: string }> | { orgSlug: string } }) {
   const { orgSlug } = await params;

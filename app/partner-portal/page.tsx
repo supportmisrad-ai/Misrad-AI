@@ -1,6 +1,6 @@
 import PartnerPortalPageClient from './PartnerPortalPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function PartnerPortalPage() {
   return <PartnerPortalPageClient />;

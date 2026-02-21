@@ -2,7 +2,7 @@ import React from 'react';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import WorkspaceCanonicalRedirect from './WorkspaceCanonicalRedirect';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 function safeDecodeURIComponent(value: string): string {
   try {

@@ -58,6 +58,7 @@ const config: Config = {
         'spin-slow': 'spin 8s linear infinite',
         'float': 'float 3s ease-in-out infinite',
         'bounce-slow': 'bounceSlow 2s ease-in-out infinite',
+        'slide-down': 'slideDown 0.15s cubic-bezier(0.2, 0, 0, 1) forwards',
       },
       keyframes: {
         blob: {
@@ -107,6 +108,10 @@ const config: Config = {
         bounceSlow: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-8px)' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-12px) scale(0.95)', opacity: '0' },
+          '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
         }
       }
     },

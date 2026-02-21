@@ -8,7 +8,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function AdminSupportSettingsPage() {
   const [whatsappGroupUrl, setWhatsappGroupUrl] = useState('');

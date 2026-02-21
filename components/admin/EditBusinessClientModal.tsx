@@ -5,6 +5,7 @@ import { X, Building2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type EditBusinessClientModalProps = {
   isOpen: boolean;
@@ -73,6 +74,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
       setNotes(client.notes || '');
     }
   }, [isOpen, client]);
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

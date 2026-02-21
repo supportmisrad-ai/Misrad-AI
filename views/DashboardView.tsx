@@ -260,8 +260,8 @@ export const DashboardView: React.FC<{
             return listNexusUsers({ orgId: workspaceOrgSlug as string, page: 1, pageSize: 200 });
         },
         enabled: Boolean(workspaceOrgSlug),
-        staleTime: 30_000,
-        refetchInterval: 60_000,
+        staleTime: 5_000,
+        refetchInterval: 30_000,
         retry: 1,
     });
 

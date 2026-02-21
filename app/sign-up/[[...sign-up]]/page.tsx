@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time Clerk errors
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function Page({
   searchParams,

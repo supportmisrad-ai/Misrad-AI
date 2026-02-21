@@ -3,13 +3,14 @@
  * This file can be imported in Server Components, Server Actions, and API Routes
  */
 
+import { auth } from '@clerk/nextjs/server';
+
 /**
  * Get the current user's Clerk ID
  * Works in Server Components, Server Actions, and API Routes
  */
 export async function getCurrentUserId(): Promise<string | null> {
   try {
-    const { auth } = await import('@clerk/nextjs/server');
     const { userId } = await auth();
     return userId || null;
   } catch (error) {
@@ -29,7 +30,6 @@ export async function getCurrentUserId(): Promise<string | null> {
  */
 export async function getCurrentUserIdFromRequest(request?: Request): Promise<string | null> {
   try {
-    const { auth } = await import('@clerk/nextjs/server');
     const { userId } = await auth();
     return userId || null;
   } catch (error) {

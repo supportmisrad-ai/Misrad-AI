@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
@@ -64,6 +66,8 @@ async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; 
 
   const user = await getAuthenticatedUser();
   if (!user.isSuperAdmin) return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+
+  revalidatePath('/', 'layout');
 
   return { ok: true };
 }
@@ -246,6 +250,8 @@ export async function getBusinessClients(filters?: {
         })
     );
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, clients };
   } catch (error) {
     logger.error('getBusinessClients', 'Error:', error);
@@ -314,6 +320,8 @@ export async function getBusinessClient(clientId: string) {
       return { ok: false, error: 'לקוח עסקי לא נמצא' };
     }
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, client };
   } catch (error) {
     logger.error('getBusinessClient', 'Error:', error);
@@ -380,6 +388,8 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
         });
       }
     );
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, client };
   } catch (error) {
@@ -455,6 +465,8 @@ export async function addContactToClient(clientId: string, input: ContactInput) 
         })
     );
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, contact };
   } catch (error) {
     logger.error('addContactToClient', 'Error:', error);
@@ -490,6 +502,8 @@ export async function removeContactFromClient(clientId: string, userId: string) 
         });
       }
     );
+
+    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (error) {
@@ -539,6 +553,8 @@ export async function updateContactOnClient(
           data: input,
         })
     );
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, contact };
   } catch (error) {
@@ -628,6 +644,8 @@ export async function createOrganizationForClient(
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, organization: org };
   } catch (error) {
     logger.error('createOrganizationForClient', 'Error:', error);
@@ -677,6 +695,8 @@ export async function updateOrganization(orgId: string, input: {
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, organization: org };
   } catch (error) {
     logger.error('updateOrganization', 'Error:', error);
@@ -709,6 +729,8 @@ export async function deleteBusinessClient(clientId: string) {
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return { ok: true };
   } catch (error) {
     logger.error('deleteBusinessClient', 'Error:', error);
@@ -726,6 +748,7 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
     if (!guard.ok) return guard;
 
     if (!searchTerm.trim()) {
+      revalidatePath('/', 'layout');
       return { ok: true, users: [] };
     }
 
@@ -773,6 +796,8 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
           take: 10,
         })
     );
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, users };
   } catch (error) {

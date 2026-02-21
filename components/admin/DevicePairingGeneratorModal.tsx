@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { QrCode, RefreshCcw } from 'lucide-react';
 import QRCode from 'qrcode';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function DevicePairingGeneratorModal(props: {
   open: boolean;
@@ -11,6 +12,7 @@ export default function DevicePairingGeneratorModal(props: {
   createTokenAction: () => Promise<{ token: string; expiresAt: string } | null>;
   addToastAction: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }) {
+  useBackButtonClose(props.open, props.onCloseAction);
   const [token, setToken] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [isLoading, setIsLoading] = useState(false);

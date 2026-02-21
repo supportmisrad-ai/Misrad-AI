@@ -4,7 +4,7 @@ import { DataProvider } from "../../context/DataContext";
 import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time Clerk errors and handle auth server-side
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 export const runtime = 'nodejs';
 
 export default async function ResetPasswordPage() {

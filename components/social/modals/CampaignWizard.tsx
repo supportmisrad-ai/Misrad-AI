@@ -6,9 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
 import { openComingSoon } from '@/components/shared/coming-soon';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function CampaignWizard() {
   const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients } = useApp();
+  useBackButtonClose(isCampaignWizardOpen, () => setIsCampaignWizardOpen(false));
   const [step, setStep] = useState(1);
   const [clientId, setClientId] = useState(clients[0]?.id || '');
   const [objective, setObjective] = useState('engagement');

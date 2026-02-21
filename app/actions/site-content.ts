@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
@@ -99,6 +101,8 @@ export async function getSiteContent(
       updatedBy: row.updated_by ? String(row.updated_by) : '',
     }));
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: out };
   } catch (error) {
     if (isMissingTableError(error)) {
@@ -112,6 +116,7 @@ export async function getSiteContent(
         error,
         extras: { page },
       });
+      revalidatePath('/', 'layout');
       return { success: true, data: [] };
     }
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
@@ -173,6 +178,8 @@ export async function updateSiteContent(
         },
       });
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error) {

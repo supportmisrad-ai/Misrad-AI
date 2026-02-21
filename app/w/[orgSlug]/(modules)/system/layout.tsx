@@ -6,7 +6,7 @@ import { getSystemBootstrap } from '@/lib/services/system-service';
 import SystemShellGateClient from './SystemShellGateClient';
 import { getSystemMetadata } from '@/lib/metadata';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('system');
 
@@ -20,10 +20,15 @@ export default async function SystemModuleLayout({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
-  await persistCurrentUserLastLocation({ orgSlug, module: 'system' });
+  // Run module access check and bootstrap data fetch in parallel
+  const [, bootstrap] = await Promise.all([
+    enforceModuleAccessOrRedirect({ orgSlug, module: 'system' }),
+    getSystemBootstrap(orgSlug),
+  ]);
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'system' }).catch(() => undefined);
   const def = getModuleDefinition('system');
-  const { initialCurrentUser, initialOrganization } = await getSystemBootstrap(orgSlug);
+  const { initialCurrentUser, initialOrganization } = bootstrap;
 
   const style = {
     '--os-accent': def.theme.accent,

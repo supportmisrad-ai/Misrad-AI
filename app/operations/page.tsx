@@ -11,7 +11,7 @@ import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function OperationsMarketingPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);

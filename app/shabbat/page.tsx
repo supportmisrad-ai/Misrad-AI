@@ -7,7 +7,7 @@
 import { ShabbatScreen } from '../../components/ShabbatScreen';
 
 // Force dynamic rendering to prevent build-time errors
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function ShabbatPage() {
   return <ShabbatScreen />;

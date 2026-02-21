@@ -153,8 +153,8 @@ export const ReportsView: React.FC = () => {
             });
         },
         enabled: Boolean(orgSlug),
-        staleTime: 30_000,
-        refetchInterval: 60_000,
+        staleTime: 5_000,
+        refetchInterval: 30_000,
         retry: 1,
     });
 
@@ -170,8 +170,8 @@ export const ReportsView: React.FC = () => {
             });
         },
         enabled: Boolean(orgSlug),
-        staleTime: 30_000,
-        refetchInterval: 60_000,
+        staleTime: 5_000,
+        refetchInterval: 30_000,
         retry: 1,
     });
 

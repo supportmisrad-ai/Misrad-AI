@@ -6,7 +6,7 @@ import FeedbackLoop from '@/components/client-os-full/components/FeedbackLoop';
 import MeetingIntelligence from '@/components/client-os-full/components/MeetingIntelligence';
 import MeetingAnalyzer from '@/components/client-os-full/components/MeetingAnalyzer';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function ClientViewPage({
   params,

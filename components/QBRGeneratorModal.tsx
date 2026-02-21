@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface QBRGeneratorModalProps {
     lead: Lead;
@@ -17,6 +18,7 @@ interface QBRGeneratorModalProps {
 type GenerationStep = 'config' | 'generating' | 'preview';
 
 const QBRGeneratorModal: React.FC<QBRGeneratorModalProps> = ({ lead, onClose }) => {
+    useBackButtonClose(true, onClose);
     const { addToast } = useToast();
     const now = new Date();
     const formatQuarterLabel = (q: number, y: number) => `רבעון ${q} ${y}`;

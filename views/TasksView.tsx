@@ -30,7 +30,7 @@ type GroupByOption = 'status' | 'assignee' | 'priority' | 'client';
 
 export const TasksView: React.FC = () => {
   const { navigate, pathname } = useNexusNavigation();
-  const { users, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission, addToast, isCreateTaskOpen, tasks: contextTasks, toggleTimer: contextToggleTimer, replaceTasks: replaceContextTasks } = useData();
+  const { users, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission, addToast, tasks: contextTasks, toggleTimer: contextToggleTimer, replaceTasks: replaceContextTasks } = useData();
   const queryClient = useQueryClient();
   const orgSlug = useMemo(() => {
       return getWorkspaceOrgSlugFromPathname(pathname || '');
@@ -42,8 +42,8 @@ export const TasksView: React.FC = () => {
           return listNexusTasks({ orgId: orgSlug as string });
       },
       enabled: Boolean(orgSlug),
-      staleTime: 30_000,
-      refetchInterval: false,
+      staleTime: 5_000,
+      refetchInterval: 30_000,
       retry: 1,
   });
 
@@ -127,10 +127,6 @@ export const TasksView: React.FC = () => {
       };
   }, [isMobile]);
 
-  // Track previous modal state to detect when it closes
-  const prevModalOpenRef = useRef(isCreateTaskOpen);
-  const hasReloadedRef = useRef(false);
-
   const tasksRef = useRef<Task[]>(tasks);
   useEffect(() => {
       tasksRef.current = tasks;
@@ -197,14 +193,25 @@ export const TasksView: React.FC = () => {
           setCachedTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
       };
 
+      const onReplaceOptimistic = (e: Event) => {
+          const ce = e as CustomEvent;
+          const optimisticId = ce?.detail?.optimisticId as string | undefined;
+          const realTask = ce?.detail?.realTask as Task | undefined;
+          if (!optimisticId || !realTask) return;
+          setTasks(prev => prev.map(t => (t.id === optimisticId ? { ...t, ...realTask } : t)));
+          setCachedTasks(prev => prev.map(t => (t.id === optimisticId ? { ...t, ...realTask } : t)));
+      };
+
       window.addEventListener('nexusTaskDeleted', onDeleted as EventListener);
       window.addEventListener('nexusTaskRestored', onRestored as EventListener);
       window.addEventListener('nexusTaskUpdated', onUpdated as EventListener);
+      window.addEventListener('nexusTaskReplaceOptimistic', onReplaceOptimistic as EventListener);
 
       return () => {
           window.removeEventListener('nexusTaskDeleted', onDeleted as EventListener);
           window.removeEventListener('nexusTaskRestored', onRestored as EventListener);
           window.removeEventListener('nexusTaskUpdated', onUpdated as EventListener);
+          window.removeEventListener('nexusTaskReplaceOptimistic', onReplaceOptimistic as EventListener);
       };
   }, []);
 
@@ -250,55 +257,13 @@ export const TasksView: React.FC = () => {
           loadTasks();
       }, 100);
       
-      // Auto-sync every 30 seconds (polling)
-      const syncInterval = setInterval(() => {
-          loadTasks();
-      }, 60000); // 60 seconds
+      // Polling is now handled by React Query refetchInterval (30s)
       
       return () => {
           clearTimeout(timeoutId);
-          clearInterval(syncInterval);
       };
   }, [orgSlug, contextTasks, refetchTasks, replaceContextTasks]);
 
-  // Reload tasks when create task modal closes (task was created)
-  useEffect(() => {
-      // Only reload if modal was just closed (transition from open to closed)
-      const wasOpen = prevModalOpenRef.current;
-      const isNowClosed = !isCreateTaskOpen;
-      
-      if (wasOpen && isNowClosed && !hasReloadedRef.current) {
-          // Modal was just closed, reload tasks to get newly created ones from database
-          hasReloadedRef.current = true;
-          
-          const loadTasks = async () => {
-              try {
-                  if (!orgSlug) return;
-                  const res = await refetchTasks();
-                  const newTasks = res.data?.tasks || [];
-                  setTasks(newTasks);
-                  setCachedTasks(newTasks);
-                  if (typeof replaceContextTasks === 'function') {
-                      replaceContextTasks(newTasks);
-                  }
-              } catch (error) {
-                  console.error('Failed to reload tasks:', error);
-              } finally {
-                  // Reset flag after a delay to allow future reloads
-                  setTimeout(() => {
-                      hasReloadedRef.current = false;
-                  }, 1000);
-              }
-          };
-          
-          // Small delay to ensure API has processed the creation
-          const timeoutId = setTimeout(loadTasks, 300);
-          return () => clearTimeout(timeoutId);
-      }
-      
-      // Update ref for next render
-      prevModalOpenRef.current = isCreateTaskOpen;
-  }, [isCreateTaskOpen, orgSlug, refetchTasks, replaceContextTasks]);
 
   // Wrapper for updateTask that updates local state and calls API
   const updateTask = async (taskId: string, updates: Partial<Task>) => {

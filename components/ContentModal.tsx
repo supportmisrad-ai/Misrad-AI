@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { ContentItem, ContentType, Platform, ContentStatus, PlatformDefinition } from '../types';
 import { useData } from '../context/DataContext';
 import { CustomDatePicker } from './CustomDatePicker';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface ContentModalProps {
     onClose: () => void;
@@ -13,6 +14,7 @@ interface ContentModalProps {
 }
 
 export const ContentModal: React.FC<ContentModalProps> = ({ onClose, editItem }) => {
+    useBackButtonClose(true, onClose);
     const { addContent, updateContent, currentUser, platforms: availablePlatforms } = useData();
     
     // Form State

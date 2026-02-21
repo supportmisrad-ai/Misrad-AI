@@ -31,6 +31,8 @@ type WorkspaceApiItem = {
     isTeamManagementEnabled: boolean;
     seatsAllowed: number;
   };
+  subscriptionPlan: string | null;
+  onboardingComplete: boolean;
 };
 
 async function GETHandler() {
@@ -123,6 +125,7 @@ async function GETHandler() {
           has_client: true,
           has_operations: true,
           seats_allowed: true,
+          subscription_plan: true,
           created_at: true,
         },
         orderBy: { created_at: 'desc' },
@@ -163,6 +166,8 @@ async function GETHandler() {
           fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
           seatsAllowedOverride: o.seats_allowed ?? null,
         }),
+        subscriptionPlan: o.subscription_plan ?? null,
+        onboardingComplete: Boolean(o.subscription_plan),
       };
     });
 

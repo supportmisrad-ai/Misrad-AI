@@ -3,7 +3,7 @@ import { getCampaigns } from '@/app/actions/campaigns';
 import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import SystemAnalyticsClient from './SystemAnalyticsClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SystemAnalyticsPage({
   params,

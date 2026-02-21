@@ -6,6 +6,7 @@ import { X, UserPlus, Mail, User, Shield } from 'lucide-react';
 import { Tenant } from '../../types';
 import { createNexusUser, sendNexusUserInvitation } from '@/app/actions/nexus';
 import { Button } from '@/components/ui/button';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
@@ -24,6 +25,7 @@ interface AddUserToTenantModalProps {
 }
 
 export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tenant, onClose, onSuccess }) => {
+    useBackButtonClose(true, onClose);
     const [formData, setFormData] = useState({
         name: '',
         email: '',

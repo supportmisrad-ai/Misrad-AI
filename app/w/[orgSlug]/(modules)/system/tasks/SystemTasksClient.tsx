@@ -85,7 +85,6 @@ export default function SystemTasksClient({
       addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
       return;
     }
-    addToast('המשימה נוצרה', 'success');
   };
 
   const createNewTaskFromShell = () => {

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Paperclip } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function LogCallModal({
   open,
@@ -19,6 +20,7 @@ export default function LogCallModal({
   onSaveAction: (content: string) => Promise<void> | void;
   onUploadRecordingAction?: (file: File) => Promise<void> | void;
 }) {
+  useBackButtonClose(open, onCloseAction);
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

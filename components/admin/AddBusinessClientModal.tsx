@@ -5,6 +5,7 @@ import { X, Building2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type AddBusinessClientModalProps = {
   isOpen: boolean;
@@ -69,6 +70,7 @@ export default function AddBusinessClientModal({ isOpen, onClose, onSuccess }: A
   const [notes, setNotes] = useState('');
   
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

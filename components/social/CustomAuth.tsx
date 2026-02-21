@@ -452,7 +452,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         
         const signUpRedirect = (typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('redirect')
-          : null) || '/me';
+          : null) || '/workspaces/onboarding';
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',

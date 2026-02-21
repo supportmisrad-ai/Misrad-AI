@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead, SquareActivity, Task, PipelineStage } from '../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { 
     X, Phone, Mail, FileText, ArrowRight, Building, Play, Thermometer,
     Crown, Users, SquareActivity as ActivityIcon, SquareCheck, Layers, Mic, MessageSquare,
@@ -21,6 +22,7 @@ interface LeadModalProps {
 }
 
 const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onScheduleMeeting, onStatusChange, onOpenClientPortal, onAddTask }) => {
+  useBackButtonClose(true, onClose);
   const { addToast } = useToast();
   const [composerTab, setComposerTab] = useState<'note' | 'call' | 'task' | 'email'>('note');
   const [noteContent, setNoteContent] = useState('');

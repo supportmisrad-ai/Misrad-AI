@@ -1,7 +1,7 @@
 import React from 'react';
 import AdminNexusControlPageClient from './AdminNexusControlPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminNexusControlPage() {
   return <AdminNexusControlPageClient />;

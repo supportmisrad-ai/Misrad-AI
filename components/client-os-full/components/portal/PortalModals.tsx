@@ -2,6 +2,7 @@
 import React from 'react';
 import { MessageSquareWarning, X, Send, Star, Quote, Copy, Sparkles } from 'lucide-react';
 import { JourneyStage } from '../../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface PortalModalsProps {
   showFrictionModal: boolean;
@@ -20,11 +21,12 @@ interface PortalModalsProps {
 }
 
 export const PortalModals: React.FC<PortalModalsProps> = ({
-  showFrictionModal, setShowFrictionModal, frictionText, setFrictionText, 
+  showFrictionModal, setShowFrictionModal, frictionText, setFrictionText,
   isSubmittingFeedback, onSubmitFriction,
   celebratingStage, setCelebratingStage, testimonialInput, setTestimonialInput,
   generatedTestimonial, isGeneratingTestimonial, onGenerateTestimonial
 }) => {
+  useBackButtonClose(showFrictionModal, () => setShowFrictionModal(false));
   return (
     <>
       {showFrictionModal && (

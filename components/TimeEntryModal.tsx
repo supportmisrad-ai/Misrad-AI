@@ -6,6 +6,7 @@ import { User as UserType, TimeEntry } from '../types';
 import { CustomSelect } from './CustomSelect';
 import { CustomDatePicker } from './CustomDatePicker';
 import { CustomTimePicker } from './CustomTimePicker';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface TimeEntryModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ interface TimeEntryModalProps {
 export const TimeEntryModal: React.FC<TimeEntryModalProps> = ({ 
     isOpen, onClose, entryToEdit, onSave, users, currentUserId, isManager 
 }) => {
+    useBackButtonClose(isOpen, onClose);
     const [userId, setUserId] = useState(currentUserId);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [startTime, setStartTime] = useState('09:00');

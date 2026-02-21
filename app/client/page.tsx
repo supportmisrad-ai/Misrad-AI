@@ -1,6 +1,6 @@
 import ClientOSPage from './ClientOSPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function ClientPage() {
   return <ClientOSPage />;

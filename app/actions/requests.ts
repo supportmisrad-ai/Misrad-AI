@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
@@ -174,6 +176,8 @@ export async function getClientRequests(
       };
     });
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: requests };
   } catch (error: unknown) {
     logger.error('requests', 'Error in getClientRequests:', error);
@@ -217,6 +221,8 @@ export async function getManagerRequests(
       createdAt: toIsoStringOrNow(req.created_at),
       feedbackFromClient: req.feedback_from_client == null ? undefined : String(req.feedback_from_client),
     }));
+
+    revalidatePath('/', 'layout');
 
     return { success: true, data: requests };
   } catch (error: unknown) {
@@ -317,6 +323,8 @@ export async function createClientRequest(
       status: normalizeClientRequestStatus(request.status),
     };
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
     logger.error('requests', 'Error in createClientRequest:', error);
@@ -378,6 +386,8 @@ export async function createManagerRequest(
       feedbackFromClient: request.feedback_from_client == null ? undefined : String(request.feedback_from_client),
     };
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
     logger.error('requests', 'Error in createManagerRequest:', error);
@@ -436,6 +446,8 @@ export async function approveClientRequest(
       }
     }
 
+    revalidatePath('/', 'layout');
+
     return { success: true };
   } catch (error: unknown) {
     logger.error('requests', 'Error in approveClientRequest:', error);
@@ -488,6 +500,8 @@ export async function rejectClientRequest(
         error: translateError('שגיאה בדחיית בקשה'),
       };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -550,6 +564,8 @@ export async function updateManagerRequest(
         error: translateError('שגיאה בעדכון בקשה'),
       };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {

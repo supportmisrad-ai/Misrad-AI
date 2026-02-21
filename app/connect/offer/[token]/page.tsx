@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 import { getConnectOfferByToken } from '@/app/actions/connect-marketplace';
 import OfferInterestedClient from './OfferInterestedClient';

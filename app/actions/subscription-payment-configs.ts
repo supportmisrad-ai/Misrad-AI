@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -60,6 +62,8 @@ async function requireSuperAdmin(): Promise<{ success: true } | { success: false
     return { success: false, error: 'אין הרשאה (נדרש Super Admin)' };
   }
 
+  revalidatePath('/', 'layout');
+
   return { success: true };
 }
 
@@ -95,6 +99,8 @@ export async function getSubscriptionPaymentConfigs(): Promise<{
         external_payment_url: obj.external_payment_url == null ? null : String(obj.external_payment_url),
       };
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(mapped);
   } catch (e: unknown) {
@@ -151,6 +157,8 @@ export async function upsertSubscriptionPaymentConfig(input: {
       create: createData,
       update: updateData,
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (e: unknown) {

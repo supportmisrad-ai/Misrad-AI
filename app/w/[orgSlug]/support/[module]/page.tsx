@@ -34,7 +34,7 @@ import { getHelpVideosByModule } from '@/app/actions/help-videos';
 import { getContentByKey } from '@/app/actions/site-content';
 import { getDocsArticlesForModule, getDocsCategoriesForModule } from '@/config/docs';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 function isDirectVideo(url: string): boolean {
   const u = String(url || '').toLowerCase();

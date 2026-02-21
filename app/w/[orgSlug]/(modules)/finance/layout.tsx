@@ -11,7 +11,7 @@ import FinanceModuleEntryClient from './FinanceModuleEntryClient';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('finance');
 
@@ -24,12 +24,16 @@ export default async function FinanceModuleLayout({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
-  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
-  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
 
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  // Run all independent data fetches in parallel
+  const [, workspace, initialCurrentUser] = await Promise.all([
+    enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' }),
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    resolveWorkspaceCurrentUserForUi(orgSlug),
+  ]);
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
+
   const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
   const initialOrganization = {
     name: workspace.name,

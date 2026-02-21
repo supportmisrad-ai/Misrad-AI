@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { 
     X, Presentation, Sparkles, CircleCheckBig, ChevronRight, ChevronLeft, 
     Download, BarChart3, PieChart, TrendingUp, Target, Calendar, 
@@ -17,6 +18,7 @@ interface QBRGeneratorModalProps {
 type GenerationStep = 'config' | 'generating' | 'preview';
 
 const QBRGeneratorModal: React.FC<QBRGeneratorModalProps> = ({ lead, onClose }) => {
+    useBackButtonClose(true, onClose);
     const { addToast } = useToast();
     const now = new Date();
     const formatQuarterLabel = (q: number, y: number) => `רבעון ${q} ${y}`;

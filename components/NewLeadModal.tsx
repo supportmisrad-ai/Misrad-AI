@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, User, Building, Phone, Mail, Globe, DollarSign, Flame, Save, CircleCheck, CircleAlert, Clock, Package } from 'lucide-react';
 import { Lead, ProductType } from './system/types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface NewLeadModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface NewLeadModalProps {
 }
 
 const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
+  useBackButtonClose(true, onClose);
   const [formData, setFormData] = useState({
     name: '', 
     company: '', 

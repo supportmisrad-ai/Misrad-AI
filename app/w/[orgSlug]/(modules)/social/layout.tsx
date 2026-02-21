@@ -10,7 +10,7 @@ import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { getSystemMetadata } from '@/lib/metadata';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('social');
 
@@ -22,12 +22,21 @@ export default async function SocialModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'social' });
-  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
-  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
-  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
+
+  // Run ALL independent data fetches in parallel instead of sequentially
+  const [, workspace, initialCurrentUser, initialSocialData, initialNavigationMenu, systemFlags] = await Promise.all([
+    enforceModuleAccessOrRedirect({ orgSlug, module: 'social' }),
+    requireWorkspaceAccessByOrgSlugUi(orgSlug),
+    resolveWorkspaceCurrentUserForUi(orgSlug),
+    getSocialInitialDataCached({ orgSlug, clerkUserId: null }),
+    getSocialNavigationMenu(),
+    getSystemFeatureFlags(),
+  ]);
+
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
+
   const def = getModuleDefinition('social');
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
   const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
   const initialOrganization = {
     name: workspace.name,
@@ -35,14 +44,7 @@ export default async function SocialModuleLayout({
     primaryColor: '#000000',
     isShabbatProtected: workspace.isShabbatProtected,
   };
-  const initialSocialData = await getSocialInitialDataCached({
-    orgSlug,
-    clerkUserId: null,
-  });
 
-  const initialNavigationMenu = await getSocialNavigationMenu();
-
-  const systemFlags = await getSystemFeatureFlags();
   const caps = computeWorkspaceCapabilities({
     entitlements: workspace?.entitlements,
     fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),

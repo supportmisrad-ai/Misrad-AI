@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Client, Status, Priority, Asset, Task, Invoice } from '../types';
 import { useData } from '../context/DataContext';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CircleCheckBig, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TaskItem } from './nexus/TaskItem';
@@ -15,6 +16,7 @@ interface ClientDetailModalProps {
 }
 
 export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, onClose }) => {
+  useBackButtonClose(true, onClose);
   const { tasks, assets, users, openCreateTask, updateClient, deleteClient, addAsset, invoices, generateInvoice, hasPermission } = useData();
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'assets' | 'invoices'>('overview');
   const [isEditing, setIsEditing] = useState(false);

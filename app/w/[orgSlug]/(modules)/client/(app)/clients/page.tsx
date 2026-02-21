@@ -2,7 +2,7 @@
 
 import ClientView from '@/components/client-os-full/components/ClientView';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function ClientClientsPage() {
   return <ClientView />;

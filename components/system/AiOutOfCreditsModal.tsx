@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, Zap, ArrowRight } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function AiOutOfCreditsModal({
   open,
@@ -16,6 +17,7 @@ export default function AiOutOfCreditsModal({
   outputsCount: number;
   savedHours: number;
 }) {
+  useBackButtonClose(open, onCloseAction);
   if (!open) return null;
 
   return (

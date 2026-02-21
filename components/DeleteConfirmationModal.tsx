@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TriangleAlert, Trash2, OctagonAlert, Info, Check, X } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -31,6 +31,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
     requireReason = false
 }) => {
     const [reason, setReason] = useState('');
+    useBackButtonClose(isOpen, onClose);
 
     if (!isOpen) return null;
 

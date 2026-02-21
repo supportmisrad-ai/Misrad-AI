@@ -10,6 +10,7 @@ import { useUser } from '@clerk/nextjs';
 import { translateError } from '@/lib/errorTranslations';
 import { usePathname, useRouter } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 const PLANS = [
   { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
@@ -31,6 +32,7 @@ export default function InviteClientModal() {
     setIsOnboardingMode,
     addToast 
   } = useApp();
+  useBackButtonClose(isInviteModalOpen, () => setIsInviteModalOpen(false));
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');

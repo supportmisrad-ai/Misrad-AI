@@ -4,7 +4,7 @@ import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SocialTeamLayout({
   children,
@@ -15,8 +15,11 @@ export default async function SocialTeamLayout({
 }) {
   const { orgSlug } = await params;
 
-  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
-  const systemFlags = await getSystemFeatureFlags();
+  // Run workspace access and feature flags in parallel
+  const [workspace, systemFlags] = await Promise.all([
+    requireWorkspaceAccessByOrgSlugUi(orgSlug),
+    getSystemFeatureFlags(),
+  ]);
   const caps = computeWorkspaceCapabilities({
     entitlements: workspace?.entitlements,
     fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),

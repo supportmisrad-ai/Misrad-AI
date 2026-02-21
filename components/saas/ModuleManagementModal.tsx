@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { Product, Tenant, ModuleId } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { Button } from '@/components/ui/button';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface ModuleManagementModalProps {
     tenant: Tenant;
@@ -16,6 +17,7 @@ interface ModuleManagementModalProps {
 }
 
 export const ModuleManagementModal: React.FC<ModuleManagementModalProps> = ({ tenant, products, onClose, onToggle, onSetModules }) => {
+    useBackButtonClose(true, onClose);
     const planDefaults = (() => {
         const list = Array.isArray(products) ? products : [];
         const match = list.find((p) => String(p?.name || '') === String(tenant.plan || ''));

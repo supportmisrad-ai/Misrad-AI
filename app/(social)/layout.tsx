@@ -3,8 +3,7 @@ import { Metadata } from 'next';
 import { getSystemMetadata } from '@/lib/metadata';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 
-// Force dynamic rendering as Social OS depends on authentication and organization context
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('social');
 

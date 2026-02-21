@@ -5,6 +5,7 @@ import { X, Clock, Loader2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type ExtendTrialModalProps = {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function ExtendTrialModal({
   const [additionalDays, setAdditionalDays] = useState<number>(7);
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

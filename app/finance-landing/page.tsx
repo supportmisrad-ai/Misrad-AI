@@ -10,7 +10,7 @@ import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 const features = [
   { icon: FileText, title: 'חשבוניות מהירות', desc: 'יצירה פשוטה, שליחה בקליק, ומעקב אוטומטי.', color: 'bg-emerald-600' },

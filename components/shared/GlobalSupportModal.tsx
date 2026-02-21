@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, Send, CircleCheckBig, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass, Video } from 'lucide-react';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 const CATEGORIES = [
   { id: 'Tech', label: 'תמיכה טכנית', icon: LifeBuoy, sla: 'עד שעתיים' },
@@ -28,6 +29,8 @@ export function GlobalSupportModal() {
     window.addEventListener('os:open-support', handler);
     return () => window.removeEventListener('os:open-support', handler);
   }, []);
+
+  useBackButtonClose(isOpen, () => setIsOpen(false));
 
   const handleClose = useCallback(() => {
     setIsOpen(false);

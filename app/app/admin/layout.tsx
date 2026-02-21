@@ -7,7 +7,7 @@ import AdminShell from './AdminShell';
 import { getSystemMetadata } from '@/lib/metadata';
 import { hasAuditLogAccess } from '@/lib/auth';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('admin');
 

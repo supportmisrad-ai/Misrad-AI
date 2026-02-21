@@ -6,6 +6,7 @@ import { User, RoleDefinition } from '../../../types';
 import { CustomSelect } from '../../CustomSelect';
 import { OS_MODULES } from '../../../types/os-modules';
 import { OSModuleIcon } from '../../shared/OSModuleIcon';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface TeamMemberModalProps {
     isOpen: boolean;
@@ -81,6 +82,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                 : [...prev.allowed_modules, moduleId]
         }));
     };
+    useBackButtonClose(isOpen, onClose);
 
     if (!isOpen) return null;
 

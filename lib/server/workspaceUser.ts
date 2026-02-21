@@ -278,24 +278,26 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
   const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
 
-  const profileRow = await ensureProfileRow({
-    organizationId: workspaceId,
-    clerkUserId,
-    email,
-    fullName: clerk?.fullName ?? null,
-    avatarUrl,
-    role,
-    isSuperAdmin,
-  });
-
-  const nexusUser = await ensureNexusUserRow({
-    organizationId: workspaceId,
-    email: String(email).trim().toLowerCase(),
-    name,
-    role,
-    avatarUrl,
-    isSuperAdmin,
-  });
+  // Run profile and nexus user creation in parallel — they are independent
+  const [profileRow, nexusUser] = await Promise.all([
+    ensureProfileRow({
+      organizationId: workspaceId,
+      clerkUserId,
+      email,
+      fullName: clerk?.fullName ?? null,
+      avatarUrl,
+      role,
+      isSuperAdmin,
+    }),
+    ensureNexusUserRow({
+      organizationId: workspaceId,
+      email: String(email).trim().toLowerCase(),
+      name,
+      role,
+      avatarUrl,
+      isSuperAdmin,
+    }),
+  ]);
 
   const profileObj = asObject(profileRow) ?? {};
   const nexusObj = asObject(nexusUser) ?? {};

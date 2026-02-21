@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, DollarSign, TrendingUp, Lock } from 'lucide-react';
 import { User, RoleDefinition } from '../../types';
 import { CustomSelect } from '../CustomSelect';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface TeamMemberModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ interface TeamMemberModalProps {
 export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
     isOpen, onClose, mode, initialData, onSave, roleDefinitions, departments, isGlobalAdmin, myDepartment
 }) => {
+    useBackButtonClose(isOpen, onClose);
     const [form, setForm] = useState({ 
         name: '', 
         role: 'עובד', 

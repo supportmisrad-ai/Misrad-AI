@@ -28,6 +28,33 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/icons/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      {
+        source: '/:path*.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
     ];
   },
   // Use 'export' for static sites, or remove for server-side rendering
@@ -39,7 +66,15 @@ const nextConfig: NextConfig = {
       allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com']
     },
     // Modern tree-shaking optimization for icon libraries and UI components
-    optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', '@radix-ui/react-icons']
+    optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', '@radix-ui/react-icons'],
+    // Client-side router cache: cache dynamic page responses so soft navigations
+    // (Link clicks) reuse the cached RSC payload instead of a full server round-trip.
+    // dynamic=30s means clicking back/forth between pages within 30s is instant.
+    // static=300s for statically rendered pages.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
   },
   // Optimize for Netlify
   compress: true,
@@ -59,6 +94,18 @@ const nextConfig: NextConfig = {
         path: false,
         crypto: false
       };
+    }
+
+    // Fix: Remove EvalSourceMapDevToolPlugin for client dev builds.
+    // Packages like @clerk/localizations contain template literals and escape
+    // sequences that produce broken JavaScript when wrapped in eval("...").
+    // Using cheap-module-source-map provides source maps without eval().
+    if (dev && !isServer) {
+      config.plugins = (config.plugins || []).filter(
+        (p: { constructor?: { name?: string } }) =>
+          p?.constructor?.name !== 'EvalSourceMapDevToolPlugin'
+      );
+      config.devtool = 'cheap-module-source-map';
     }
 
     // Fix for Supabase ESM imports
@@ -85,7 +132,6 @@ const nextConfig: NextConfig = {
       ],
     };
 
-    // Development optimizations for faster builds
     if (dev) {
       // Speed up development builds
       config.optimization = {
@@ -93,6 +139,7 @@ const nextConfig: NextConfig = {
         removeAvailableModules: false,
         removeEmptyChunks: false,
         splitChunks: false,
+        moduleIds: 'deterministic',
       };
     }
 

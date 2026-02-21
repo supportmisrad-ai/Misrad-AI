@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { loadCurrentUserLastLocation, requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminRootPage() {
   const last = await loadCurrentUserLastLocation();

@@ -8,12 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../constants';
 import { CustomDatePicker } from './CustomDatePicker';
 import { CustomTimePicker } from './CustomTimePicker';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface CreateTaskModalProps {
     onClose: () => void;
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => {
+    useBackButtonClose(true, onClose);
     const { addTask, users, clients, createTaskDefaults, tasks, workflowStages, currentUser, hasPermission } = useData();
     
     // Form State

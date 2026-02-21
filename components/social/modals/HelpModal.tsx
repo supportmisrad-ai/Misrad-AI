@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, MessageSquare, LifeBuoy, User, FileText, CreditCard, Send } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type SupportSubject = 'technical' | 'account' | 'feature' | 'billing';
 
 export default function HelpModal() {
   const { isHelpModalOpen, setIsHelpModalOpen, setIsTourActive, addToast } = useApp();
+  useBackButtonClose(isHelpModalOpen, () => setIsHelpModalOpen(false));
   const [subject, setSubject] = useState<SupportSubject>('technical');
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');

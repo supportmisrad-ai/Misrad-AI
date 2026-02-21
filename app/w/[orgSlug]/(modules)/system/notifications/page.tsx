@@ -1,7 +1,7 @@
 import NotificationsView from '@/components/system/NotificationsView';
 import { getSystemNotifications } from '@/app/actions/system-notifications';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SystemNotificationsPage({
   params,

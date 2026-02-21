@@ -2,6 +2,7 @@
 
 import { X, Play } from 'lucide-react';
 import { useEffect } from 'react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface VideoModalProps {
 }
 
 export const VideoModal = ({ isOpen, onClose, videoUrl, title = 'צפייה במערכת' }: VideoModalProps) => {
+  useBackButtonClose(isOpen, onClose);
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';

@@ -26,9 +26,11 @@ export type SystemBootstrap = {
 };
 
 export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstrap> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  // Run workspace access and user resolution in parallel — they share React.cache internally
+  const [workspace, initialCurrentUser] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    resolveWorkspaceCurrentUserForUi(orgSlug),
+  ]);
   const normalizedCurrentUser = {
     ...initialCurrentUser,
     ...(initialCurrentUser.phone != null ? { phone: initialCurrentUser.phone } : { phone: undefined }),

@@ -10,7 +10,7 @@ import { SalesFaq } from '@/components/landing/SalesFaq';
 import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
 import { Target, Users, Briefcase, BarChart3, Lightbulb, Archive, Play } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function NexusMarketingPage() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);

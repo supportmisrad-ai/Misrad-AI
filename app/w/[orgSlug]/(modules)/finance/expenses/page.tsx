@@ -4,7 +4,7 @@ import { hasPermission } from '@/lib/auth';
 import { getFinanceExpensesData } from '@/lib/services/finance-service';
 import FinanceExpensesClient from './FinanceExpensesClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function FinanceExpensesPage({
   params,

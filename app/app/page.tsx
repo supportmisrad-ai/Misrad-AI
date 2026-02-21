@@ -4,7 +4,7 @@ import { loadCurrentUserLastLocation, requireWorkspaceAccessByOrgSlug } from '@/
 import prisma from '@/lib/prisma';
 
 // Force dynamic rendering to prevent build-time Clerk errors and handle auth server-side
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
  async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
    let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -18,8 +18,8 @@ export const dynamic = 'force-dynamic';
    }
  }
 
- // Reduced timeout from 8s to 3s for faster failure and redirect
- const QUERY_TIMEOUT_MS = 3000;
+ // 5s timeout — DB is in Korea (ap-northeast-2), Vercel in Virginia (iad1)
+ const QUERY_TIMEOUT_MS = 5000;
 
 export default async function AppEntryPage() {
   const userId = await getCurrentUserId();

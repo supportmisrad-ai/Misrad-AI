@@ -2,7 +2,7 @@ import { getSystemLeadsPage } from '@/app/actions/system-leads';
 import { getSystemPipelineStages } from '@/app/actions/system-pipeline-stages';
 import SystemSalesPipelineClient from '../SystemSalesPipelineClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SystemSalesPipelinePage({
   params,

@@ -1,10 +1,14 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
+import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 
 export type CustomerAccountRecord = {
   id: string;
@@ -175,8 +179,66 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
       // ignore
     }
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בשמירת פרטי העסק');
+  }
+}
+
+export async function selectPlanForCurrentOrganization(input: {
+  orgSlug: string;
+  planKey: string;
+  soloModuleKey?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const orgSlug = String(input.orgSlug || '').trim();
+    if (!orgSlug) {
+      return createErrorResponse(null, 'ארגון לא נמצא');
+    }
+
+    const planKey = String(input.planKey || '').trim();
+    if (!planKey || !Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, planKey)) {
+      return createErrorResponse(null, 'חבילה לא תקינה');
+    }
+
+    const organizationId = await requireCurrentOrganizationId(orgSlug);
+    const pkg = BILLING_PACKAGES[planKey as PackageType];
+
+    const validSoloModules: OSModuleKey[] = ['system', 'social', 'client', 'operations', 'nexus'];
+    let modules: OSModuleKey[];
+    if (planKey === 'solo') {
+      const soloMod = String(input.soloModuleKey || '').trim();
+      const resolvedMod: OSModuleKey = validSoloModules.includes(soloMod as OSModuleKey)
+        ? (soloMod as OSModuleKey)
+        : 'system';
+      modules = [resolvedMod];
+    } else {
+      modules = [...pkg.modules];
+    }
+
+    const hasModule = (k: OSModuleKey): boolean => modules.includes(k);
+
+    const now = new Date();
+    await prisma.organization.update({
+      where: { id: String(organizationId) },
+      data: {
+        subscription_plan: planKey,
+        has_nexus: hasModule('nexus'),
+        has_system: hasModule('system'),
+        has_social: hasModule('social'),
+        has_finance: true, // Finance is a free bonus for any paid package
+        has_client: hasModule('client'),
+        has_operations: hasModule('operations'),
+        updated_at: now,
+      },
+    });
+
+    revalidatePath('/', 'layout');
+
+    return createSuccessResponse(undefined);
+  } catch (error: unknown) {
+    return createErrorResponse(error, 'שגיאה בבחירת חבילה');
   }
 }

@@ -24,7 +24,7 @@ const fs = require('fs');
 // Config
 // ---------------------------------------------------------------------------
 const BASE_URL   = (process.env.SCREENSHOT_BASE_URL   || 'http://localhost:4000').replace(/\/$/, '');
-const ORG_SLUG   = process.env.SCREENSHOT_ORG_SLUG   || 'tests';
+const ORG_SLUG   = process.env.SCREENSHOT_ORG_SLUG   || 'misrad-ai-hq';
 const SS_PATH    = process.env.SCREENSHOT_STORAGE_STATE || 'tests/e2e/.auth/storageState.json';
 const OUTPUT_DIR = process.env.SCREENSHOT_OUTPUT_DIR  || 'screenshots';
 const HEADLESS   = ['1','true'].includes(String(process.env.SCREENSHOT_HEADLESS || '').toLowerCase());
@@ -359,20 +359,79 @@ async function captureExtras(page) {
 // ---------------------------------------------------------------------------
 // Login helper (manual fallback)
 // ---------------------------------------------------------------------------
-async function manualLogin(page) {
-  console.log('\n⚠️  No valid storageState found.');
-  console.log('    Opening browser for manual login. Log in and then press Enter here.\n');
+async function manualLogin(_page) {
+  console.log('\n⚠️  Session invalid / no storageState — opening real Chrome for login.');
+  console.log('    👉  Log in to the app (use email or Google). The script waits for /w/.\n');
 
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
-
-  await new Promise((resolve) => {
-    process.stdin.once('data', resolve);
-    console.log('    Press Enter after you have logged in …');
+  // Use REAL system Chrome (not Playwright Chromium) so Google OAuth isn't rejected.
+  const loginBrowser = await chromium.launch({
+    headless: false,
+    channel: 'chrome',
+    ignoreDefaultArgs: ['--enable-automation'],
+    args: ['--disable-blink-features=AutomationControlled'],
   });
+  const loginCtx = await loginBrowser.newContext({
+    viewport: { width: W, height: H },
+    locale: 'he-IL',
+    timezoneId: 'Asia/Jerusalem',
+  });
+  await loginCtx.addInitScript(() => {
+    try { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); } catch {}
+  });
+  const page = await loginCtx.newPage();
 
-  const ctx = page.context();
-  await ctx.storageState({ path: SS_PATH });
-  console.log(`    ✅  Auth saved → ${SS_PATH}\n`);
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+
+  // Wait up to 5 minutes for the user to actually reach a workspace page.
+  // We must NOT proceed on intermediate pages like /workspaces/onboarding,
+  // /sso-callback, /me, etc. — only when the URL contains /w/ (real workspace).
+  const loginTimeout = 300_000;
+  const pollInterval = 2_000;
+  const deadline = Date.now() + loginTimeout;
+  let lastPath = '';
+
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(pollInterval);
+    const currentUrl = new URL(page.url());
+    const p = currentUrl.pathname || '';
+
+    if (p !== lastPath) {
+      lastPath = p;
+      console.log(`    🔄  Current page: ${p}`);
+    }
+
+    // Success: user reached a workspace page
+    if (p.startsWith('/w/')) {
+      console.log('    ✅  Workspace reached!');
+      break;
+    }
+
+    // If stuck on onboarding, let the user know
+    if (p.includes('/onboarding')) {
+      // Check if it auto-redirects (customer_account exists)
+      await page.waitForTimeout(3000);
+      const after = new URL(page.url()).pathname;
+      if (after.startsWith('/w/')) {
+        console.log('    ✅  Onboarding auto-redirected to workspace!');
+        break;
+      }
+    }
+  }
+
+  if (!page.url().includes('/w/')) {
+    await loginBrowser.close();
+    throw new Error('Login timeout — never reached a /w/ workspace page. Please check the login flow manually.');
+  }
+
+  // Extra settle time after reaching workspace
+  await page.waitForTimeout(3000);
+
+  const dir = require('path').dirname(SS_PATH);
+  if (!require('fs').existsSync(dir)) require('fs').mkdirSync(dir, { recursive: true });
+  await loginCtx.storageState({ path: SS_PATH });
+  console.log(`    ✅  Auth saved → ${SS_PATH}`);
+  await loginBrowser.close();
+  console.log('    ✅  Login browser closed — continuing with Playwright for screenshots.\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -394,16 +453,16 @@ async function main() {
 
   const storageStateExists = fs.existsSync(SS_PATH);
 
-  const browser = await chromium.launch({ headless: HEADLESS, slowMo: 0 });
+  let browser = await chromium.launch({ headless: HEADLESS, slowMo: 0 });
 
-  const context = await browser.newContext({
+  let context = await browser.newContext({
     viewport: { width: W, height: H },
     locale: 'he-IL',
     timezoneId: 'Asia/Jerusalem',
     ...(storageStateExists ? { storageState: SS_PATH } : {}),
   });
 
-  const page = await context.newPage();
+  let page = await context.newPage();
 
   // Silence console errors from the app
   page.on('console', (msg) => {
@@ -412,23 +471,47 @@ async function main() {
     }
   });
 
+  let needsLogin = false;
+
   if (!storageStateExists) {
-    await manualLogin(page);
+    needsLogin = true;
   } else {
-    // Quick check: try to reach a protected page; if redirected to login, re-auth
+    // Quick check: try to reach a protected page; if not on /w/ → re-auth
     try {
       await page.goto(`${BASE_URL}${w('/lobby')}`, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
-      await page.waitForTimeout(1500);
+      await page.waitForTimeout(3000);
       const url = page.url();
-      if (url.includes('/login') || url.includes('/sign-in') || url.includes('/sign-up')) {
-        console.log('  ⚠️  Session expired – falling back to manual login …');
-        await manualLogin(page);
-      } else {
+      if (url.includes('/w/')) {
         console.log('  ✅  Session valid\n');
+      } else {
+        console.log(`  ⚠️  Session expired (landed on ${new URL(url).pathname}) – falling back to manual login …`);
+        needsLogin = true;
       }
     } catch {
-      console.log('  ⚠️  Could not verify session – proceeding anyway …\n');
+      console.log('  ⚠️  Could not verify session – falling back to manual login …\n');
+      needsLogin = true;
     }
+  }
+
+  if (needsLogin) {
+    await manualLogin(page);
+    // manualLogin uses its own Chrome browser and saves storageState.
+    // Close the current context/browser and reopen with the saved state.
+    await browser.close();
+    browser = await chromium.launch({ headless: HEADLESS, slowMo: 0 });
+    context = await browser.newContext({
+      viewport: { width: W, height: H },
+      locale: 'he-IL',
+      timezoneId: 'Asia/Jerusalem',
+      storageState: SS_PATH,
+    });
+    page = await context.newPage();
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && process.env.DEBUG_CONSOLE) {
+        console.log(`  [browser:err] ${msg.text()}`);
+      }
+    });
+    console.log('  ✅  New browser context loaded with saved auth\n');
   }
 
   // ── Main screens ──────────────────────────────────────────────────────────

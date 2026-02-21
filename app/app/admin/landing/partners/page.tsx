@@ -1,7 +1,7 @@
 import React from 'react';
 import AdminLandingPartnersPageClient from './AdminLandingPartnersPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function AdminLandingPartnersPage() {
   return <AdminLandingPartnersPageClient />;

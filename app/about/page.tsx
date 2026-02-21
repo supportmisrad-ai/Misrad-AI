@@ -3,7 +3,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { Target, Palette, Zap, ArrowLeft, Sparkles } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function AboutPage() {
   const values = [

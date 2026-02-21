@@ -17,10 +17,10 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeTo
                     <motion.div
                         key={toast.id}
                         layout
-                        initial={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(10px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(10px)' }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+                        initial={{ opacity: 0, y: -12, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -12, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: [0.2, 0, 0, 1] }}
                         className={`pointer-events-auto flex items-center gap-4 p-2 pl-3 pr-2 backdrop-blur-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[90vw] sm:max-w-md rounded-[1.25rem] overflow-hidden relative group
                             ${toast.type === 'success' ? 'bg-white/90 border-emerald-100/50' :
                               toast.type === 'error' ? 'bg-white/90 border-rose-100/50' :

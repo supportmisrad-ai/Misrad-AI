@@ -2,7 +2,7 @@ import React from 'react';
 import { getOrganizations } from '@/app/actions/admin-organizations';
 import AdminOrganizationsClient from './AdminOrganizationsClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminOrganizationsPage({
   searchParams,

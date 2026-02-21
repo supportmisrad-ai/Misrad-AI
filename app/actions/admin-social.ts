@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
@@ -63,6 +65,7 @@ async function requireSuperAdminOrFail(): Promise<SuperAdminCheckResult> {
   }
   const userId = String(authCheck.userId ?? authCheck.data?.userId ?? '').trim();
   if (!userId) return { success: false, error: 'נדרשת התחברות' };
+  revalidatePath('/', 'layout');
   return { success: true, userId };
 }
 
@@ -205,6 +208,7 @@ export async function getTeam(tenantId: string): Promise<{ success: boolean; dat
 
     const organizationId = await resolveOrganizationIdFromTenantKey(tenantId);
     if (!organizationId) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse([]);
     }
 
@@ -262,6 +266,8 @@ export async function getTeam(tenantId: string): Promise<{ success: boolean; dat
       };
     });
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(mapped);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת צוות');
@@ -311,6 +317,7 @@ export async function getSocialAutomation(
 
     const flags = getJsonObject(row?.system_flags);
     const automation = normalizeAutomation(flags.socialAutomation);
+    revalidatePath('/', 'layout');
     return createSuccessResponse(automation);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת אוטומציות');
@@ -372,6 +379,8 @@ export async function updateSocialAutomation(
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשמירת אוטומציות');
@@ -419,6 +428,8 @@ export async function updateUserRole(
       where: { id: resolvedUserId, organization_id: organizationId },
       data: { role: resolvedRole },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -499,6 +510,8 @@ export async function removeUserFromTeam(
       return createErrorResponse(deleteUserRow.error, 'שגיאה בהסרת משתמש');
     }
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בהסרת משתמש');
@@ -554,6 +567,7 @@ export async function getSocialQuotas(
 
     const flags = getJsonObject(row?.system_flags);
     const quotas = normalizeQuotas(flags.socialQuotas);
+    revalidatePath('/', 'layout');
     return createSuccessResponse(quotas);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת מכסות');
@@ -615,6 +629,8 @@ export async function updateSocialQuotas(
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשמירת מכסות');
@@ -630,6 +646,7 @@ export async function getSocialIntegrations(
 
     const organizationId = await resolveOrganizationIdFromTenantKey(tenantId);
     if (!organizationId) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse([
         { provider: 'facebook', label: 'Facebook', connected: false, tokenExpiresAt: null, connectedAt: null },
         { provider: 'instagram', label: 'Instagram', connected: false, tokenExpiresAt: null, connectedAt: null },
@@ -644,6 +661,7 @@ export async function getSocialIntegrations(
 
     const userIds = (socialUsers || []).map((u) => String(u.id)).filter(Boolean);
     if (userIds.length === 0) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse([
         { provider: 'facebook', label: 'Facebook', connected: false, tokenExpiresAt: null, connectedAt: null },
         { provider: 'instagram', label: 'Instagram', connected: false, tokenExpiresAt: null, connectedAt: null },
@@ -693,6 +711,8 @@ export async function getSocialIntegrations(
       toRow('whatsapp', 'WhatsApp'),
     ];
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(result);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת אינטגרציות');
@@ -719,6 +739,7 @@ export async function disconnectSocialIntegration(
 
     const userIds = (socialUsers || []).map((u) => String(u?.id || '')).filter(Boolean);
     if (userIds.length === 0) {
+      revalidatePath('/', 'layout');
       return createSuccessResponse({ deleted: 0 });
     }
 

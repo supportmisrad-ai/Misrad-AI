@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
@@ -67,6 +69,7 @@ export async function getNavigationMenu(): Promise<{
 
     // Do not expose role-restricted items in the public menu endpoint.
     const publicItems = items.filter((i) => !Array.isArray(i.requiresRole) || i.requiresRole.length === 0);
+    revalidatePath('/', 'layout');
     return createSuccessResponse(publicItems);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת תפריט');
@@ -118,6 +121,8 @@ export async function updateNavigationMenu(
       }
     }
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשמירת תפריט');
@@ -158,6 +163,8 @@ export async function getAllNavigationItems(): Promise<{
         requiresRole: requiresRole ?? undefined,
       };
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(items);
   } catch (error) {

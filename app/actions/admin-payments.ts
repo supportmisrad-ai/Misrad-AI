@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
@@ -148,6 +150,8 @@ export async function getAllPayments(): Promise<
       (row) => asObject(row) ?? {}
     );
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse({
       paymentOrders: paymentOrders || [],
       invoices: invoices || [],
@@ -212,6 +216,8 @@ export async function updatePaymentOrderStatus(
       metadata: { orderId: String(parsed.data.orderId), status: parsed.data.status },
     });
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error: unknown) {
     captureActionException(error, { action: 'updatePaymentOrderStatus', orderId: String(orderId) });
@@ -271,6 +277,8 @@ export async function updateInvoiceStatus(
       organizationId,
       metadata: { invoiceId: String(parsed.data.invoiceId), status: parsed.data.status },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {

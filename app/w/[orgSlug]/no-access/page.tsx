@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ShieldAlert, ArrowRight, Home } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function NoAccessPage({
   params,

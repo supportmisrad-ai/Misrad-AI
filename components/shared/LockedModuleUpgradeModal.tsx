@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Lock, MessageSquareText, X } from 'lucide-react';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 function getUpsellCopy(module: OSModuleKey): { title: string; message: string } {
   const def = modulesRegistry[module];
@@ -56,6 +57,7 @@ export function LockedModuleUpgradeModal({
   module: OSModuleKey | null;
   onCloseAction: () => void;
 }) {
+  useBackButtonClose(!!module, onCloseAction);
   const copy = useMemo(() => {
     if (!module) return null;
     return getUpsellCopy(module);

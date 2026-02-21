@@ -4,7 +4,7 @@ import { getContentByKey } from '@/app/actions/site-content';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import { DEFAULT_REFUND_POLICY_MARKDOWN } from '@/lib/legal-defaults';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function RefundPolicyPage() {
   const result = await getContentByKey('legal', 'documents', 'refund_policy_markdown');

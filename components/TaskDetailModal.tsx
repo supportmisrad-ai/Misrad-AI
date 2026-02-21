@@ -9,6 +9,7 @@ import { TaskDetailChat } from './TaskDetailChat';
 import { TaskDetailProperties } from './TaskDetailProperties';
 import { TaskDetailPopovers } from './TaskDetailPopovers';
 import { CustomDatePicker } from './CustomDatePicker';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface TaskDetailModalProps {
   task: Task;
@@ -16,6 +17,7 @@ interface TaskDetailModalProps {
 }
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose }) => {
+  useBackButtonClose(true, onClose);
   const { currentUser, updateTask, deleteTask, snoozeTask, clients } = useData();
   const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details'); 
   const [showShareTooltip, setShowShareTooltip] = useState(false);

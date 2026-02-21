@@ -13,6 +13,7 @@ import { TeamEvent, TeamEventType } from '../../../types';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 let showHebrewDatesPreference = false;
 
@@ -29,7 +30,7 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
     onSuccess,
     addToast
 }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    useBackButtonClose(true, onClose);
     const [showHebrewDates, setShowHebrewDates] = useState(() => showHebrewDatesPreference);
     const [formData, setFormData] = useState({
         title: event?.title || '',
@@ -72,13 +73,14 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
             return;
         }
 
-        setIsSubmitting(true);
+        // Close immediately - save in background
+        onClose();
+
+        const url = event ? `/api/team-events/${event.id}` : '/api/team-events';
+        const method = event ? 'PATCH' : 'POST';
+        const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+
         try {
-            const url = event ? `/api/team-events/${event.id}` : '/api/team-events';
-            const method = event ? 'PATCH' : 'POST';
-
-            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
-
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
@@ -96,10 +98,10 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
             }
 
             onSuccess();
+            addToast(event ? 'אירוע עודכן בהצלחה' : 'אירוע נשמר בהצלחה', 'success');
         } catch (error: unknown) {
             addToast(error instanceof Error ? error.message : 'שגיאה בשמירת אירוע', 'error');
-        } finally {
-            setIsSubmitting(false);
+            onSuccess();
         }
     };
 
@@ -300,10 +302,9 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50"
+                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all"
                         >
-                            {isSubmitting ? 'שומר...' : (event ? 'עדכן' : 'צור אירוע')}
+                            {event ? 'עדכן' : 'צור אירוע'}
                         </button>
                     </div>
                 </form>

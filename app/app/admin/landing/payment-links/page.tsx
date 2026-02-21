@@ -3,7 +3,7 @@ import { LandingPaymentLinksPanel } from '@/components/saas/LandingPaymentLinksP
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { CreditCard } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminLandingPaymentLinksPage() {
   return (

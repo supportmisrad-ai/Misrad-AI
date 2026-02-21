@@ -1,7 +1,7 @@
 import PackageLandingPage from '@/components/landing/PackageLandingPage';
 import { getContentByKey } from '@/app/actions/site-content';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SaveTimeFieldLandingPage() {
   const videoRes = await getContentByKey('landing', 'package_landings', 'save_time_field_video_url');

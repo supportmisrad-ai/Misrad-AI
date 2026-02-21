@@ -229,7 +229,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           return;
         }
 
-        const res = await fetch('/api/workspaces', { cache: 'no-store' });
+        const res = await fetch('/api/workspaces');
         if (!res.ok) {
           setIsTeamManagementEnabled(false);
           return;
@@ -334,15 +334,21 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     addToast('המשימה נמחקה');
   };
   
-  // Sync user profile image with Google when it changes
+  // Sync user profile image with Google — once per browser session, not every mount.
+  // Uses sessionStorage to avoid repeated server action calls on every navigation.
   useEffect(() => {
     const syncProfileImage = async () => {
       if (!user?.id || !user?.imageUrl || !isLoaded) {
         return;
       }
 
+      const syncKey = `profile_sync_${user.id}`;
       try {
-        // Update profile image in Supabase via Server Action
+        const lastSync = sessionStorage.getItem(syncKey);
+        if (lastSync) return;
+      } catch { /* SSR/privacy guard */ }
+
+      try {
         const { getOrCreateSupabaseUserAction } = await import('@/app/actions/users');
         await getOrCreateSupabaseUserAction(
           user.id,
@@ -350,6 +356,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           user.fullName || undefined,
           user.imageUrl
         );
+        try { sessionStorage.setItem(syncKey, '1'); } catch { /* ignore */ }
       } catch (error) {
         console.error('[AppContext] Error syncing profile image:', error);
       }

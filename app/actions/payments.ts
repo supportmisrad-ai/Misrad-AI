@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { PaymentOrder } from '@/types/social';
 import type { Invoice as FinanceInvoice } from '@/types/finance';
@@ -140,6 +142,8 @@ export async function createPaymentOrder(
           data: createData,
           select: { id: true },
         });
+
+        revalidatePath('/', 'layout');
 
         return createSuccessResponse(paymentOrder);
       },
@@ -305,6 +309,8 @@ export async function processPayment(
         // Create invoice
         await createInvoice(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse({ transactionId });
       },
       { source: 'server_actions_payments', reason: 'processPayment' }
@@ -441,6 +447,8 @@ export async function getInvoices(
           };
         });
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse(invoices);
       },
       { source: 'server_actions_payments', reason: 'getInvoices' }
@@ -486,6 +494,7 @@ export async function getPaymentHistory(
         });
 
         const list: unknown[] = Array.isArray(data) ? data : [];
+        revalidatePath('/', 'layout');
         return createSuccessResponse(list);
       },
       { source: 'server_actions_payments', reason: 'getPaymentHistory' }

@@ -1,5 +1,7 @@
 'use server';
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/errorHandler';
@@ -12,6 +14,8 @@ async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; 
 
   const user = await getAuthenticatedUser();
   if (!user.isSuperAdmin) return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+
+  revalidatePath('/', 'layout');
 
   return { ok: true };
 }
@@ -50,6 +54,8 @@ export async function getOrganizationDetails(organizationId: string) {
     if (!organization) {
       return { ok: false, error: 'ארגון לא נמצא' };
     }
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, organization };
   } catch (error) {
@@ -103,6 +109,8 @@ export async function updateOrganizationSettings(
       organizationId,
       changes: data,
     });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, organization: updated };
   } catch (error) {
@@ -181,6 +189,8 @@ export async function updateOrganizationPackage(
       changes: data,
     });
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, organization: updated };
   } catch (error) {
     logger.error('updateOrganizationPackage', 'Error:', error);
@@ -222,6 +232,8 @@ export async function updateOrganizationUserRole(
     );
 
     logger.info('updateOrganizationUserRole', 'User role updated', { userId, role });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, user: updated };
   } catch (error) {
@@ -267,6 +279,8 @@ export async function removeUserFromOrganization(userId: string) {
     );
 
     logger.info('removeUserFromOrganization', 'User removed', { userId });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (error) {
@@ -322,6 +336,8 @@ export async function extendOrganizationTrial(
       organizationId,
       additionalDays,
     });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, organization: updated };
   } catch (error) {
@@ -393,6 +409,8 @@ export async function deleteOrganization(organizationId: string) {
       organizationId,
       result,
     });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, data: result };
   } catch (error) {
@@ -512,6 +530,8 @@ export async function updateOrganizationBusinessClientDetails(
       organizationId,
       changes: data,
     });
+
+    revalidatePath('/', 'layout');
 
     return { ok: true, businessClient: result };
   } catch (error) {

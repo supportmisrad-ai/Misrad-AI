@@ -5,6 +5,7 @@ import { X, DollarSign, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type ManageBillingModalProps = {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export default function ManageBillingModal({
       setPaymentMethodId(currentBilling.payment_method_id || '');
     }
   }, [isOpen, currentBilling]);
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

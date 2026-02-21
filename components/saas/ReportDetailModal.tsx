@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { X, Download } from 'lucide-react';
 import { GeneratedReport } from '../../types';
 import { Button } from '@/components/ui/button';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface ReportDetailModalProps {
     report: GeneratedReport;
@@ -12,6 +13,7 @@ interface ReportDetailModalProps {
 }
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, onDownload }) => {
+    useBackButtonClose(true, onClose);
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(amount);
     };

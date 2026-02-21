@@ -12,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import PaywallModal from '@/components/shared/PaywallModal';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface CreateInvoiceModalProps {
     isOpen: boolean;
@@ -34,6 +35,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     defaultAmount = 0,
     defaultDescription = ''
 }) => {
+    useBackButtonClose(isOpen, onClose);
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
 

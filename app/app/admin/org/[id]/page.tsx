@@ -2,7 +2,7 @@ import React from 'react';
 import { getOrganizationDetail } from '@/app/actions/admin-org-details';
 import OrgDetailClient from './OrgDetailClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 type PageProps = {
   params: Promise<{ id: string }>;

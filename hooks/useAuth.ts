@@ -472,11 +472,11 @@ export const useAuth = (
             !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) &&
             !stopAllActivityRef.current
         ),
-        staleTime: 30_000,
+        staleTime: 5_000,
         refetchInterval: () => {
             if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
-            return 90_000; // Increased from 60s to 90s (less aggressive)
+            return 60_000; // Reduced from 90s to 60s for fresher data
         },
         retry: (failureCount, error) => {
             // Detect 401 and stop retries
@@ -513,11 +513,11 @@ export const useAuth = (
             orgSlug &&
             !stopAllActivityRef.current
         ),
-        staleTime: 30_000,
+        staleTime: 5_000,
         refetchInterval: () => {
             if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
-            return 90_000; // Increased from 60s to 90s (less aggressive)
+            return 60_000; // Reduced from 90s to 60s for fresher data
         },
         retry: (failureCount, error) => {
             // Detect 401 and stop retries
@@ -722,31 +722,43 @@ export const useAuth = (
     };
 
     const clockIn = () => {
+        if (!orgSlug) { addToast('חסר ארגון פעיל', 'error'); return; }
+
+        // OPTIMISTIC: immediately show active shift so clock starts counting
+        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticStart = new Date().toISOString();
+        const optimisticEntry: TimeEntry = {
+            id: optimisticId,
+            userId: currentUser.id,
+            date: optimisticStart.slice(0, 10),
+            startTime: optimisticStart,
+        };
+        const prevEntries = timeEntries;
+        setTimeEntries(prev => [optimisticEntry, ...prev]);
+        broadcastAttendanceUpdate(orgSlug, optimisticId, optimisticStart);
+
+        const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        addToast(`נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
+
+        // BACKGROUND: GPS + server call, rollback on failure
         void (async () => {
-            if (!orgSlug) {
-                addToast('חסר ארגון פעיל', 'error');
-                return;
-            }
-
             try {
-                // CRITICAL: Get GPS location FIRST before any UI changes
                 const location = await getLocation();
-
-                // Call API and wait for success
                 const res = await punchIn(orgSlug, undefined, location);
 
-                // Update UI ONLY after successful API response
+                // Replace optimistic entry with real server data
                 await refreshTimeEntries();
 
-                // Broadcast to AttendanceMiniStatus for instant sync
                 if (res?.activeShift?.id && res?.activeShift?.startTime) {
                     broadcastAttendanceUpdate(orgSlug, res.activeShift.id, new Date(res.activeShift.startTime).toISOString());
                 }
-
-                // Show success toast ONLY after everything succeeded
-                const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-                addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
+                if (res?.alreadyActive) {
+                    addToast('כבר יש משמרת פעילה.', 'info');
+                }
             } catch (e: unknown) {
+                // ROLLBACK optimistic entry
+                setTimeEntries(prevEntries);
+                broadcastAttendanceUpdate(orgSlug, null, null);
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
             }
@@ -754,46 +766,47 @@ export const useAuth = (
     };
 
     const clockOut = () => {
+        if (!orgSlug) { addToast('חסר ארגון פעיל', 'error'); return; }
+        if (!activeShift) { addToast('אין משמרת פעילה לסגירה.', 'info'); return; }
+
+        // OPTIMISTIC: immediately mark shift as ended so clock stops
+        const prevEntries = timeEntries;
+        const nowIso = new Date().toISOString();
+        setTimeEntries(prev => prev.map(t =>
+            t.id === activeShift.id
+                ? { ...t, endTime: nowIso, durationMinutes: Math.round((Date.now() - new Date(t.startTime).getTime()) / 60000) }
+                : t
+        ));
+        broadcastAttendanceUpdate(orgSlug, null, null);
+
+        const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        addToast(`יצאת ממשמרת ב-${outTimeStr}. תודה!`, 'info');
+
+        // BACKGROUND: GPS + server call, rollback on failure
         void (async () => {
-            if (!orgSlug) {
-                addToast('חסר ארגון פעיל', 'error');
-                return;
-            }
-            if (!activeShift) {
-                addToast('אין משמרת פעילה לסגירה.', 'info');
-                return;
-            }
-
             try {
-                // GPS is best-effort for clock-out — NEVER block exit
-                let location: { lat: number; lng: number; accuracy: number; city?: string } | null = null;
-                try {
-                    location = await getLocation();
-                } catch {
-                    // GPS failed — proceed without location
-                }
-
-                // Call API and wait for success (location may be null)
+                const location = await getLocation();
                 const res = await punchOut(orgSlug, undefined, location);
 
-                // Update UI ONLY after successful API response
+                // Sync with real server data
                 await refreshTimeEntries();
 
-                // Broadcast to AttendanceMiniStatus for instant sync
-                broadcastAttendanceUpdate(orgSlug, null, null);
-
-                // Show success toast ONLY after everything succeeded
-                const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-                addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTimeStr}. תודה!`, 'info');
+                if (res?.noActiveShift) {
+                    addToast('אין משמרת פעילה לסגירה.', 'info');
+                }
             } catch (e: unknown) {
+                // ROLLBACK — restore active shift
+                setTimeEntries(prevEntries);
+                if (activeShift) {
+                    broadcastAttendanceUpdate(orgSlug, activeShift.id, activeShift.startTime);
+                }
                 const msg = String(e instanceof Error ? e.message : e);
-                addToast(msg || 'שגיאה ביציאה ממשמרת', 'error');
+                addToast(msg || 'שגיאה ביציאה ממשמרת — המשמרת עדיין פעילה', 'error');
             }
         })();
     };
 
     const addManualTimeEntry = (entry: TimeEntry) => {
-        // Calculate duration if end time exists
         let durationMinutes = 0;
         if (entry.endTime) {
             const start = new Date(entry.startTime).getTime();
@@ -830,7 +843,6 @@ export const useAuth = (
     const deleteTimeEntry = (id: string, reason?: string) => {
         const entry = timeEntries.find(t => t.id === id);
         if (entry) {
-            // Add audit info before deleting
             const voidedEntry = { 
                 ...entry, 
                 voidReason: reason || 'No reason provided',
@@ -894,7 +906,7 @@ export const useAuth = (
         users, roleDefinitions, currentUser, isAuthenticated, isLoadingCurrentUser, timeEntries, trashUsers, trashTimeEntries,
         activeShift, changeRequests,
         login, logout, switchUser, hasPermission, addUser, updateUser, removeUser, restoreUser,
-        permanentlyDeleteUser, clockIn, clockOut, 
+        permanentlyDeleteUser, clockIn, clockOut,
         addManualTimeEntry, updateTimeEntry, deleteTimeEntry, restoreTimeEntry, permanentlyDeleteTimeEntry,
         setRoleDefinitions, deleteRole, requestNameChange, approveNameChange, rejectNameChange
     };

@@ -1,7 +1,7 @@
 import { getSystemLeadsPage } from '@/app/actions/system-leads';
 import SystemSalesLeadsClient from './SystemSalesLeadsClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SystemSalesLeadsPage({
   params,

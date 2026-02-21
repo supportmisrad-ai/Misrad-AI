@@ -5,6 +5,7 @@ import { X, Tag, Loader2, CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type ApplyCouponModalProps = {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function ApplyCouponModal({
   const [couponCode, setCouponCode] = useState('');
   const [validatedCoupon, setValidatedCoupon] = useState<ValidatedCoupon | null>(null);
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -5,7 +5,7 @@ import { getAdminGodView } from '@/app/actions/admin-godview';
 import type { AdminGodViewRecentOrganization, AdminGodViewAlert } from '@/app/actions/admin-godview';
 import OrgImpersonateButton from './OrgImpersonateButton';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 interface AreaCard {
   title: string;

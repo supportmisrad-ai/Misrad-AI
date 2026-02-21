@@ -4,7 +4,7 @@ import { Footer } from '@/components/landing/Footer';
 import { Mail, Clock, MessageCircle, ArrowLeft } from 'lucide-react';
 import ContactFormClient from './ContactFormClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function ContactPage() {
   return (

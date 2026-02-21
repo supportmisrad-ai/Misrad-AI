@@ -2,7 +2,7 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import GlobalAdminPageClient from '@/app/app/admin/global/GlobalAdminPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function AdminGlobalPage({
   searchParams,

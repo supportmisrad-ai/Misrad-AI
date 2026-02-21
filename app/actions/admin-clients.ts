@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
@@ -92,6 +94,7 @@ export async function createClient(
       const baseUrl = getBaseUrl();
       const token = String(existingInvite.token);
       const signupUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
+      revalidatePath('/', 'layout');
       return { ok: true, invitationToken: token, signupUrl };
     }
 
@@ -143,6 +146,8 @@ export async function createClient(
       }
     }
 
+    revalidatePath('/', 'layout');
+
     return { ok: true, invitationToken: token, signupUrl };
   } catch (error) {
     logger.error('createClient', 'Error:', error);
@@ -179,6 +184,8 @@ export async function getClients() {
     if (!result.success) {
       return { ok: false, error: result.error || 'שגיאה בטעינת נתונים' };
     }
+    
+    revalidatePath('/', 'layout');
     
     return { ok: true, data: result };
   } catch (error) {

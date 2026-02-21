@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type ContactForEdit = {
   user_id: string;
@@ -47,6 +48,7 @@ export default function EditContactModal({
   const [isBillingContact, setIsBillingContact] = useState(contact.is_billing_contact);
   const [isTechnicalContact, setIsTechnicalContact] = useState(contact.is_technical_contact);
   const [error, setError] = useState('');
+  useBackButtonClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

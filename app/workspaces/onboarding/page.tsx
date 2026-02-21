@@ -7,7 +7,7 @@ import { getCustomerAccountForCurrentOrganization } from '@/app/actions/customer
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import WorkspaceOnboardingClient from '@/app/workspaces/onboarding/WorkspaceOnboardingClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string; subscriptionPlan: string | null }> {
   const clerkUserId = await getCurrentUserId();
@@ -77,16 +77,18 @@ export default async function WorkspaceOnboardingPage({
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
 
-  if (hasCompany && hasPhone) {
-    redirect(`/w/${encodeURIComponent(organizationKey)}`);
-  }
-
   const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
   const planRaw = resolvedSearchParams?.plan;
   const planFromUrl = String(Array.isArray(planRaw) ? planRaw[0] : planRaw || '').trim();
   const planKey = (planFromUrl && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, planFromUrl))
     ? planFromUrl
     : (subscriptionPlan && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, subscriptionPlan) ? subscriptionPlan : null);
+
+  const hasPlan = Boolean(planKey);
+
+  if (hasCompany && hasPhone && hasPlan) {
+    redirect(`/w/${encodeURIComponent(organizationKey)}`);
+  }
 
   const seatsRaw = resolvedSearchParams?.seats;
   const seatsStr = String(Array.isArray(seatsRaw) ? seatsRaw[0] : seatsRaw || '').trim();

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CircleCheckBig, Users } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface GoogleAuthModalProps {
     onClose: () => void;
@@ -10,6 +11,7 @@ interface GoogleAuthModalProps {
 }
 
 export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onClose, onSuccess, serviceName }) => {
+    useBackButtonClose(true, onClose);
     const [step, setStep] = useState<'account' | 'consent'>('account');
     const [isLoading, setIsLoading] = useState(false);
 

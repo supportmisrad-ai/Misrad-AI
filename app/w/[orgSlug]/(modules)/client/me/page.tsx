@@ -9,7 +9,7 @@ import ClientModuleEntryClient from '../ClientModuleEntryClient';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { asObject } from '@/lib/shared/unknown';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 function getRoleFromMetadata(value: unknown): string | null {
   if (typeof value === 'string') return value;

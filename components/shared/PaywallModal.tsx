@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Check } from 'lucide-react';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export type PaywallReason = 'seats' | 'finance' | 'generic';
 
@@ -16,6 +17,7 @@ export default function PaywallModal(props: {
   reason?: PaywallReason;
   recommendedPackageType?: PackageType;
 }) {
+  useBackButtonClose(props.isOpen, props.onCloseAction);
   const router = useRouter();
 
   const packages = useMemo(() => {

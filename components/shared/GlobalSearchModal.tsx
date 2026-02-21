@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { isOSModuleKey } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 type ChatMessage = {
   id: string;
@@ -47,6 +48,7 @@ function makeId() {
 
 export function GlobalSearchModal() {
   const [isOpen, setIsOpen] = useState(false);
+  useBackButtonClose(isOpen, () => setIsOpen(false));
   const [mode, setMode] = useState<SearchMode>('search');
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);

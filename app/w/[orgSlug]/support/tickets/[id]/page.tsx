@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { SupportTicketDetailClient } from './SupportTicketDetailClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SupportTicketDetailPage({
   params,

@@ -3,7 +3,7 @@ import { hasPermission } from '@/lib/auth';
 import { getFinanceOverviewData, type FinanceOverviewData } from '@/lib/services/finance-service';
 import OverviewView from '@/components/finance/OverviewView';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function FinanceOverviewPage({
   params,

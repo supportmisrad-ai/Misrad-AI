@@ -38,13 +38,26 @@ const buckets: Map<string, Bucket> = (() => {
 
 // ─── Redis singleton ────────────────────────────────────────────────────────
 
+declare global {
+  var __MISRAD_EDGE_RL_REDIS__: Redis | null | undefined;
+}
+
 function getRedis(): Redis | null {
+  if (globalThis.__MISRAD_EDGE_RL_REDIS__ !== undefined) {
+    return globalThis.__MISRAD_EDGE_RL_REDIS__;
+  }
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  if (!url || !token) {
+    globalThis.__MISRAD_EDGE_RL_REDIS__ = null;
+    return null;
+  }
   try {
-    return new Redis({ url, token });
+    const instance = new Redis({ url, token });
+    globalThis.__MISRAD_EDGE_RL_REDIS__ = instance;
+    return instance;
   } catch {
+    globalThis.__MISRAD_EDGE_RL_REDIS__ = null;
     return null;
   }
 }

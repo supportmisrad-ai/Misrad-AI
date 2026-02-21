@@ -1,6 +1,6 @@
 import Inbox from '@/components/social/Inbox';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 
 export default async function InboxPage() {

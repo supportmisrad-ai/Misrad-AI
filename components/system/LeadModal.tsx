@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { Lead, SquareActivity, Task } from './types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { STAGES } from './constants';
 import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import LogCallModal from './LogCallModal';
@@ -62,6 +63,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   assignees,
   onUpdateLead,
 }) => {
+  useBackButtonClose(true, onClose);
   const { addToast } = useToast();
   const { user } = useAuth();
   const pathname = usePathname();

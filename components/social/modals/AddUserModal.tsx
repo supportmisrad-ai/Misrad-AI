@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { createUser } from '@/app/actions/admin-users';
 import { UserRole } from '@/types/social';
 import { Button } from '@/components/ui/button';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     role: 'team_member' as UserRole,
     plan: 'free' as 'free' | 'pro',
   });
+  useBackButtonClose(isOpen, onClose);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

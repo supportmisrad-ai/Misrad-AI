@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Plus, ArrowLeft } from 'lucide-react';
 import { Task } from '../../types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface TaskAssignmentModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ interface TaskAssignmentModalProps {
 export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     isOpen, onClose, userName, unassignedTasks, onAssignNew, onAssignExisting
 }) => {
+    useBackButtonClose(isOpen, onClose);
     if (!isOpen) return null;
 
     return (

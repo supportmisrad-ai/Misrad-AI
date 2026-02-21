@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
@@ -172,6 +174,8 @@ export async function getPosts(params: {
       };
     });
 
+    revalidatePath('/', 'layout');
+
     return { success: true, data: posts };
   } catch (error: unknown) {
     logger.error('posts', 'Error in getPosts:', error);
@@ -295,6 +299,7 @@ export async function createPost(
     if (result.success && result.data) {
       const createdPost = result.data.find(p => p.id === post.id);
       if (createdPost) {
+        revalidatePath('/', 'layout');
         return { success: true, data: createdPost };
       }
     }
@@ -416,9 +421,12 @@ export async function updatePost(
     if (result.success && result.data) {
       const updatedPost = result.data.find(p => p.id === postId);
       if (updatedPost) {
+        revalidatePath('/', 'layout');
         return { success: true, data: updatedPost };
       }
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -503,6 +511,8 @@ export async function deletePost(postId: string, orgSlug: string): Promise<{ suc
         logger.error('posts', 'Error deleting media file:', fileError);
       }
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -602,6 +612,8 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
         error: translateError(getUnknownErrorMessage(error) || 'שגיאה בפרסום פוסט'),
       };
     }
+
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {

@@ -152,7 +152,7 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
     try {
         // Try to get from database first
         const perms = await selectRolePermissionsByName(roleName);
-        if (perms && perms.length >= 0) {
+        if (perms && perms.length > 0) {
             return perms;
         }
     } catch (error) {
@@ -325,14 +325,25 @@ export async function isTenantOwner(userEmail?: string, tenantId?: string): Prom
             return false;
         }
         
-        // Check if user's email matches tenant's ownerEmail
+        // Check if user's email matches tenant's ownerEmail (legacy NexusTenant)
         const filters: { ownerEmail?: string; tenantId?: string } = { ownerEmail: email };
         if (tenantId) {
             filters.tenantId = tenantId;
         }
         
         const tenants = await selectTenants(filters);
-        return tenants.length > 0;
+        if (tenants.length > 0) return true;
+
+        // Also check Organization ownership — new customers have Organization but no NexusTenant
+        const orgUser = await prisma.organizationUser.findFirst({
+            where: { clerk_user_id: user.id },
+            select: { role: true, organization_id: true },
+        });
+        if (orgUser?.role === 'owner' && orgUser.organization_id) {
+            return true;
+        }
+
+        return false;
     } catch (error) {
         if (getErrorMessage(error).includes('[SchemaMismatch]')) {
             throw error;

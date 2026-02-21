@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign } from 'lucide-react';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface BonusConfirmationModalProps {
     isOpen: boolean;
@@ -13,6 +14,7 @@ interface BonusConfirmationModalProps {
 export const BonusConfirmationModal: React.FC<BonusConfirmationModalProps> = ({ 
     isOpen, onClose, recommendation, onConfirm 
 }) => {
+    useBackButtonClose(isOpen, onClose);
     if (!isOpen || !recommendation) return null;
 
     return (

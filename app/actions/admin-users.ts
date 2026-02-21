@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
@@ -54,6 +56,7 @@ async function requireSuperAdminOrFail(): Promise<{ success: true; userId: strin
   if (!isSuperAdmin) {
     return { success: false, error: createErrorResponse('Forbidden', 'אין הרשאה').error || 'אין הרשאה' };
   }
+  revalidatePath('/', 'layout');
   return { success: true, userId: String(authCheck.userId || '') };
 }
 
@@ -128,6 +131,8 @@ export async function getAdminUsersPage(params?: {
           };
         });
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse({ items, total: total || 0 });
       } catch (error) {
         return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
@@ -179,6 +184,8 @@ export async function deleteAdminUser(userId: string): Promise<{ success: boolea
       });
     } catch {
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -255,6 +262,8 @@ export async function updateUserProfile(
       });
     } catch {
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -478,6 +487,8 @@ export async function createUser(
           safeErrorLog('Error logging invitation action', logError);
         }
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse({
           clerkUserId: invitation.id,
           supabaseUserId: '',
@@ -508,6 +519,8 @@ export async function createUser(
         } catch (logError) {
           safeErrorLog('Error logging invitation action', logError);
         }
+        
+        revalidatePath('/', 'layout');
         
         return createSuccessResponse({
           clerkUserId: invitation.id,

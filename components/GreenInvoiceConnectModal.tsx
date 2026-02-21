@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Key, CircleAlert, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface GreenInvoiceConnectModalProps {
     isOpen: boolean;
@@ -20,6 +21,7 @@ export const GreenInvoiceConnectModal: React.FC<GreenInvoiceConnectModalProps> =
     onClose,
     onSuccess
 }) => {
+    useBackButtonClose(isOpen, onClose);
     const [apiKey, setApiKey] = useState('');
     const [isConnecting, setIsConnecting] = useState(false);
     const [error, setError] = useState<string | null>(null);

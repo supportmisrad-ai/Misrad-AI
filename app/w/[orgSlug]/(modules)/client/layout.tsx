@@ -4,7 +4,7 @@ import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('client');
 
@@ -18,8 +18,8 @@ export default async function ClientModuleLayout({
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'client' });
-  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'client' }).catch(() => undefined);
-  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'client' }).catch(() => undefined);
   const def = getModuleDefinition('client');
 
   const style = {

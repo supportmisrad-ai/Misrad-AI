@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, SquareActivity, TriangleAlert, AlignStartVertical, Timer, Sparkles } from 'lucide-react';
+import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Briefcase, SquareActivity, TriangleAlert, AlignStartVertical, Timer, Sparkles, Plus, Info, Wand2, Loader2 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
@@ -10,11 +10,11 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { createNexusTask } from '@/app/actions/nexus';
 import { Priority, Status, Task, User, Client, WorkflowStage } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
+import { PRIORITY_LABELS } from '../../constants';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { CustomTimePicker } from '../CustomTimePicker';
-import { Skeleton } from '@/components/ui/skeletons';
 import { isTenantAdminRole } from '@/lib/constants/roles';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface CreateTaskModalProps {
     onClose: () => void;
@@ -90,7 +90,8 @@ function TagSuggestionsPortal({
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => {
-    const { addTask, users, clients, createTaskDefaults, tasks, workflowStages, currentUser, hasPermission } = useData();
+    useBackButtonClose(true, onClose);
+    const { addTask, addClient, users, clients, createTaskDefaults, tasks, workflowStages, currentUser, hasPermission, addToast } = useData();
     const queryClient = useQueryClient();
     const pathname = usePathname();
     const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
@@ -100,9 +101,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
             return createNexusTask({ orgId: orgSlug, input });
         },
     });
-    const isCreatingTask = createTaskMutation.isPending;
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    
     // Form State
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -124,6 +122,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     const [activePopover, setActivePopover] = useState<'none' | 'assignee' | 'priority' | 'client' | 'status' | 'estimate'>('none');
     
     const [isShaking, setIsShaking] = useState(false);
+    const [showAddClientInline, setShowAddClientInline] = useState(false);
+    const [newClientName, setNewClientName] = useState('');
+    const [newClientPhone, setNewClientPhone] = useState('');
+    const [newClientEmail, setNewClientEmail] = useState('');
+    const [isAddingClient, setIsAddingClient] = useState(false);
+    const [recommendedTooltip, setRecommendedTooltip] = useState<string | null>(null);
+    const [aiEstimating, setAiEstimating] = useState(false);
+    const [aiEstimateResult, setAiEstimateResult] = useState<{ hours: number; minutes: number; reasoning: string } | null>(null);
+    const [dueTimeError, setDueTimeError] = useState('');
     const titleInputRef = useRef<HTMLInputElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
     const tagInputRef = useRef<HTMLInputElement>(null);
@@ -336,12 +343,127 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [title, description, priority, assigneeId, tag, dueDate, dueTime, activePopover, clientId, showTagSuggestions]);
 
+    // Validate due time is not in the past for today
+    const validateDueTime = (time: string, date: string): boolean => {
+        if (!time || !date) return true;
+        const today = new Date().toISOString().split('T')[0];
+        if (date !== today) return true;
+        const now = new Date();
+        const [h, m] = time.split(':').map(Number);
+        if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
+            return false;
+        }
+        return true;
+    };
+
+    const handleDueTimeChange = (time: string) => {
+        setDueTime(time);
+        if (time && dueDate && !validateDueTime(time, dueDate)) {
+            setDueTimeError('שעה זו כבר עברה היום');
+        } else {
+            setDueTimeError('');
+        }
+    };
+
+    const handleDueDateChange = (date: string) => {
+        setDueDate(date);
+        if (dueTime && date && !validateDueTime(dueTime, date)) {
+            setDueTimeError('שעה זו כבר עברה היום');
+        } else {
+            setDueTimeError('');
+        }
+    };
+
+    // AI Time Estimation
+    const handleAiEstimate = async () => {
+        if (!description.trim()) {
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 400);
+            return;
+        }
+        setAiEstimating(true);
+        setAiEstimateResult(null);
+        try {
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
+                body: JSON.stringify({
+                    messages: [{
+                        role: 'user',
+                        content: `אתה מומחה לניהול פרויקטים. העריך כמה זמן לוקח לבצע את המשימה הבאה. ענה רק בפורמט JSON: {"hours": X, "minutes": Y, "reasoning": "הסבר קצר"}\n\nכותרת: ${title}\nתיאור: ${description}`
+                    }],
+                    featureKey: 'task-time-estimate'
+                })
+            });
+            if (res.ok) {
+                const data: unknown = await res.json();
+                const dataObj = data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, unknown> : null;
+                const text = typeof dataObj?.text === 'string' ? dataObj.text : typeof dataObj?.response === 'string' ? dataObj.response : '';
+                const jsonMatch = text.match(/\{[^}]+\}/);
+                if (jsonMatch) {
+                    const parsed: unknown = JSON.parse(jsonMatch[0]);
+                    const parsedObj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+                    if (parsedObj) {
+                        setAiEstimateResult({
+                            hours: typeof parsedObj.hours === 'number' ? parsedObj.hours : 0,
+                            minutes: typeof parsedObj.minutes === 'number' ? parsedObj.minutes : 0,
+                            reasoning: typeof parsedObj.reasoning === 'string' ? parsedObj.reasoning : 'הערכה אוטומטית'
+                        });
+                    }
+                }
+            }
+        } catch {
+            // silently fail
+        } finally {
+            setAiEstimating(false);
+        }
+    };
+
+    const applyAiEstimate = () => {
+        if (aiEstimateResult) {
+            setManualHours(String(aiEstimateResult.hours));
+            setManualMinutes(String(aiEstimateResult.minutes));
+            setAiEstimateResult(null);
+        }
+    };
+
+    // Inline Add Client
+    const handleAddClientInline = () => {
+        if (!newClientName.trim()) return;
+        setIsAddingClient(true);
+        const newClient: Client = {
+            id: `CL-${Date.now()}`,
+            name: newClientName.trim(),
+            companyName: newClientName.trim(),
+            contactPerson: newClientName.trim(),
+            email: newClientEmail.trim() || '',
+            phone: newClientPhone.trim() || '',
+            status: 'Active',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName.trim())}&background=7c3aed&color=fff&bold=true&size=64`,
+            package: '',
+            joinedAt: new Date().toISOString()
+        };
+        addClient(newClient);
+        setClientId(newClient.id);
+        setShowAddClientInline(false);
+        setNewClientName('');
+        setNewClientPhone('');
+        setNewClientEmail('');
+        setIsAddingClient(false);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim()) {
             setIsShaking(true);
             titleInputRef.current?.focus();
             setTimeout(() => setIsShaking(false), 400);
+            return;
+        }
+
+        // Validate due time
+        if (dueTime && dueDate && !validateDueTime(dueTime, dueDate)) {
+            setDueTimeError('שעה זו כבר עברה היום');
             return;
         }
 
@@ -374,12 +496,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
             });
         }
 
+        const optimisticId = `TSK-${Date.now()}`;
         const taskData: Omit<Task, 'id'> = {
             title,
             description,
             status: status || Status.TODO,
             priority,
-            // Auto-assign to creator if no assignee specified
             assigneeIds: assigneeId ? [assigneeId] : [currentUser.id],
             assigneeId: assigneeId || currentUser.id,
             clientId: clientId || undefined,
@@ -396,20 +518,29 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
             department: currentUser.department || undefined
         };
 
-        setIsSubmitting(true);
+        // Optimistic: add task to local state immediately & close modal
+        const optimisticTask: Task = { id: optimisticId, ...taskData };
+        addTask(optimisticTask, { silent: true });
+        onClose();
+
+        // Persist in background
         try {
             const createdTask = await createTaskMutation.mutateAsync(taskData);
-            // Also add to local state for immediate UI update
-            addTask(createdTask);
+            // Replace optimistic task with real one from server
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('nexusTaskReplaceOptimistic', { detail: { optimisticId, realTask: createdTask } }));
+            }
             if (orgSlug) {
                 queryClient.invalidateQueries({ queryKey: ['nexus', 'tasks', orgSlug] });
             }
-            onClose();
+            addToast('משימה נשמרה בהצלחה ✓', 'success');
         } catch (error) {
-            // Error already handled by useSecureAPI
             console.error('Failed to create task:', error);
-        } finally {
-            setIsSubmitting(false);
+            // Rollback: remove the optimistic task
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('nexusTaskDeleted', { detail: { taskId: optimisticId } }));
+            }
+            addToast('שגיאה בשמירת המשימה – נסה שנית', 'error');
         }
     };
 
@@ -529,9 +660,30 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <span>לקוח</span>
                                     {!hasClient && (
-                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                        <>
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setRecommendedTooltip(recommendedTooltip === 'client' ? null : 'client'); }}
+                                                className="text-gray-400 hover:text-amber-600 transition-colors"
+                                            >
+                                                <Info size={14} />
+                                            </button>
+                                        </>
                                     )}
                                 </label>
+                                {recommendedTooltip === 'client' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed"
+                                    >
+                                        <div className="flex items-center gap-1.5 font-black text-amber-900 mb-1">
+                                            <Sparkles size={12} /> למה לשייך לקוח?
+                                        </div>
+                                        ה-AI מנתח את כל המשימות לפי לקוח — מזהה דפוסים, מחשב רווחיות, ומתריע כשלקוח דורש תשומת לב. בלי שיוך, הנתונים האלו חסרים.
+                                    </motion.div>
+                                )}
                                 <button 
                                     ref={clientButtonRef}
                                     type="button"
@@ -586,20 +738,42 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             </div>
                         </div>
 
-                        {/* תאריך יעד + שעה + הערכה */}
+                        {/* תאריך יעד + שעת יעד + הערכת זמן משימה */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                                     <span>תאריך יעד</span>
                                     {!hasDueDate && (
-                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                        <>
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setRecommendedTooltip(recommendedTooltip === 'dueDate' ? null : 'dueDate'); }}
+                                                className="text-gray-400 hover:text-amber-600 transition-colors"
+                                            >
+                                                <Info size={14} />
+                                            </button>
+                                        </>
                                     )}
                                 </label>
+                                {recommendedTooltip === 'dueDate' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed"
+                                    >
+                                        <div className="flex items-center gap-1.5 font-black text-amber-900 mb-1">
+                                            <Sparkles size={12} /> למה תאריך יעד?
+                                        </div>
+                                        ה-AI עוקב אחרי דד-ליינים — מזהה צווארי בקבוק, מתריע על עומס, ומציע חלוקה מחדש. עם תאריך יעד, המערכת יודעת לתעדף בשבילך.
+                                    </motion.div>
+                                )}
                                 <div className="h-12">
                                     <CustomDatePicker 
                                         value={dueDate}
-                                        onChange={setDueDate}
+                                        onChange={handleDueDateChange}
                                         placeholder="בחר תאריך"
+                                        minDate={new Date().toISOString().split('T')[0]}
                                         className={`property-trigger w-full h-full border-2 rounded-2xl ${!hasDueDate ? 'border-amber-200 hover:border-amber-300' : 'border-gray-200'}`}
                                         showHebrewDate={true}
                                     />
@@ -607,41 +781,126 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700">שעה</label>
+                                <label className="text-sm font-bold text-gray-700">שעת יעד</label>
                                 <div className="h-12">
                                     <CustomTimePicker 
                                         value={dueTime}
-                                        onChange={setDueTime}
+                                        onChange={handleDueTimeChange}
                                         placeholder="בחר שעה"
-                                        className="property-trigger w-full h-full border-2 border-gray-200 rounded-2xl"
+                                        className={`property-trigger w-full h-full border-2 rounded-2xl ${dueTimeError ? 'border-red-300' : 'border-gray-200'}`}
                                     />
                                 </div>
+                                {dueTimeError && (
+                                    <p className="text-[11px] text-red-500 font-bold">{dueTimeError}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                    <span>הערכה</span>
+                                    <span>הערכת זמן משימה</span>
                                     {!hasEstimate && (
-                                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                        <>
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-bold">מומלץ</span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); setRecommendedTooltip(recommendedTooltip === 'estimate' ? null : 'estimate'); }}
+                                                className="text-gray-400 hover:text-amber-600 transition-colors"
+                                            >
+                                                <Info size={14} />
+                                            </button>
+                                        </>
                                     )}
                                 </label>
-                                <button
-                                    ref={estimateButtonRef}
-                                    type="button"
-                                    onClick={() => setActivePopover(activePopover === 'estimate' ? 'none' : 'estimate')}
-                                    className={`property-trigger w-full h-12 px-4 flex items-center gap-2 rounded-2xl border-2 text-sm font-bold transition-all ${
-                                        manualHours || manualMinutes
-                                        ? 'bg-green-50 border-green-600 text-green-700'
-                                        : !hasEstimate 
-                                        ? 'bg-white border-amber-200 text-gray-500 hover:border-amber-300'
-                                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                                    }`}
-                                >
-                                    <Timer size={18} className={hasEstimate ? "text-green-600" : "text-gray-400"} /> 
-                                    <span className="flex-1 text-right">
-                                        {manualHours || manualMinutes ? `${manualHours || 0}:${(manualMinutes || '0').padStart(2, '0')}` : 'הערכת זמן'}
-                                    </span>
-                                </button>
+                                {recommendedTooltip === 'estimate' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -4 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed"
+                                    >
+                                        <div className="flex items-center gap-1.5 font-black text-amber-900 mb-1">
+                                            <Sparkles size={12} /> למה הערכת זמן?
+                                        </div>
+                                        ה-AI משווה הערכות מול זמן ביצוע בפועל — לומד את הדיוק שלך, מזהה משימות שתמיד חורגות, ומשפר תחזיות לאורך זמן.
+                                    </motion.div>
+                                )}
+                                <div className="flex gap-2">
+                                    <button
+                                        ref={estimateButtonRef}
+                                        type="button"
+                                        onClick={() => setActivePopover(activePopover === 'estimate' ? 'none' : 'estimate')}
+                                        className={`property-trigger flex-1 h-12 px-4 flex items-center gap-2 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                            manualHours || manualMinutes
+                                            ? 'bg-green-50 border-green-600 text-green-700'
+                                            : !hasEstimate 
+                                            ? 'bg-white border-amber-200 text-gray-500 hover:border-amber-300'
+                                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Timer size={18} className={hasEstimate ? "text-green-600" : "text-gray-400"} /> 
+                                        <span className="flex-1 text-right">
+                                            {manualHours || manualMinutes ? `${manualHours || 0}:${(manualMinutes || '0').padStart(2, '0')}` : 'הערכת זמן'}
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleAiEstimate}
+                                        disabled={aiEstimating}
+                                        title={!description.trim() ? 'יש להזין תיאור משימה קודם' : 'הערכת זמן בעזרת AI'}
+                                        className={`h-12 w-12 flex items-center justify-center rounded-2xl border-2 transition-all ${
+                                            aiEstimating
+                                            ? 'bg-purple-50 border-purple-300 text-purple-500'
+                                            : 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 text-purple-600 hover:border-purple-400 hover:shadow-md hover:shadow-purple-100'
+                                        }`}
+                                    >
+                                        {aiEstimating ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                                    </button>
+                                </div>
+                                {/* AI Estimate Result Popover */}
+                                <AnimatePresence>
+                                    {aiEstimateResult && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                                            className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl p-4 space-y-3"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center">
+                                                    <Wand2 size={16} className="text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-black text-purple-900">הערכת זמן משימה</p>
+                                                    <p className="text-[10px] text-purple-600 font-medium">מבוסס AI</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-center py-2">
+                                                <span className="text-3xl font-black text-purple-800">
+                                                    {aiEstimateResult.hours > 0 ? `${aiEstimateResult.hours} שע׳` : ''}
+                                                    {aiEstimateResult.hours > 0 && aiEstimateResult.minutes > 0 ? ' ו-' : ''}
+                                                    {aiEstimateResult.minutes > 0 ? `${aiEstimateResult.minutes} דק׳` : ''}
+                                                    {aiEstimateResult.hours === 0 && aiEstimateResult.minutes === 0 ? 'פחות מדקה' : ''}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-purple-700 leading-relaxed text-center">{aiEstimateResult.reasoning}</p>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={applyAiEstimate}
+                                                    className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black transition-colors flex items-center justify-center gap-1.5"
+                                                >
+                                                    <Check size={14} /> אשר הערכה
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAiEstimateResult(null)}
+                                                    className="py-2.5 px-4 bg-white border border-purple-200 text-purple-600 rounded-xl text-xs font-bold hover:bg-purple-50 transition-colors"
+                                                >
+                                                    ביטול
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
 
@@ -663,8 +922,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                         setShowTagSuggestions(true); 
                                         updateTagRect(); 
                                     }}
-                                    placeholder="הוסף תגית (אופציונלי)"
-                                    className="flex-1 text-sm font-bold bg-transparent border-none outline-none placeholder:text-gray-400 text-gray-700"
+                                    placeholder="לדוגמה: שיווק, פיתוח, דחוף, ישיבה..."
+                                    className="flex-1 text-sm font-bold bg-transparent border-none outline-none placeholder:text-gray-300 text-gray-700"
                                 />
                             </div>
                         </div>
@@ -683,24 +942,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                     )}
                     <button 
                         onClick={handleSubmit}
-                        disabled={isSubmitting || isCreatingTask || !title.trim()}
+                        disabled={!title.trim() || !!dueTimeError}
                         className={`px-8 h-12 rounded-2xl text-sm font-black shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform active:scale-95 ${
                             requiresApproval 
                             ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-orange-200' 
                             : 'bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white shadow-gray-300'
                         } ${!missingRecommended ? 'flex-1' : ''}`}
                     >
-                        {isSubmitting || isCreatingTask ? (
-                            <>
-                              <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
-                              שומר...
-                            </>
-                        ) : (
-                            <>
-                                {requiresApproval ? 'שלח לאישור' : 'צור משימה'}
-                                {requiresApproval ? <TriangleAlert size={18} /> : <Check size={18} />}
-                            </>
-                        )}
+                        {requiresApproval ? 'שלח לאישור' : 'צור משימה'}
+                        {requiresApproval ? <TriangleAlert size={18} /> : <Check size={18} />}
                     </button>
                 </div>
             </motion.div>
@@ -740,6 +990,62 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
                             ללא לקוח (פנימי)
                         </button>
+                        {clients.length === 0 && !showAddClientInline && (
+                            <div className="p-3 text-center space-y-2">
+                                <p className="text-xs text-gray-500">אין לקוחות עדיין</p>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddClientInline(true)}
+                                    className="w-full flex items-center justify-center gap-2 p-2.5 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold hover:bg-purple-100 transition-colors border border-purple-200"
+                                >
+                                    <Plus size={14} /> הוסף לקוח חדש
+                                </button>
+                            </div>
+                        )}
+                        {showAddClientInline && (
+                            <div className="p-3 space-y-2 bg-purple-50/50 rounded-xl border border-purple-100">
+                                <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">לקוח חדש</p>
+                                <input
+                                    type="text"
+                                    value={newClientName}
+                                    onChange={(e) => setNewClientName(e.target.value)}
+                                    placeholder="שם החברה *"
+                                    className="w-full px-3 py-2 text-xs border border-purple-200 rounded-lg outline-none focus:border-purple-500 bg-white"
+                                    autoFocus
+                                />
+                                <input
+                                    type="tel"
+                                    value={newClientPhone}
+                                    onChange={(e) => setNewClientPhone(e.target.value)}
+                                    placeholder="טלפון"
+                                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg outline-none focus:border-purple-500 bg-white"
+                                />
+                                <input
+                                    type="email"
+                                    value={newClientEmail}
+                                    onChange={(e) => setNewClientEmail(e.target.value)}
+                                    placeholder="אימייל"
+                                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg outline-none focus:border-purple-500 bg-white"
+                                />
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddClientInline}
+                                        disabled={!newClientName.trim() || isAddingClient}
+                                        className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {isAddingClient ? 'שומר...' : 'הוסף'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowAddClientInline(false); setNewClientName(''); setNewClientPhone(''); setNewClientEmail(''); }}
+                                        className="py-2 px-3 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors"
+                                    >
+                                        ביטול
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         {clients.map((c: Client) => (
                             <button 
                                 key={c.id}
@@ -855,6 +1161,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
                                 ללא לקוח
                             </button>
+                            {clients.length === 0 && (
+                                <div className="p-3 text-center">
+                                    <p className="text-xs text-gray-400 mb-2">אין לקוחות עדיין</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowAddClientInline(true); }}
+                                        className="w-full flex items-center justify-center gap-2 p-2 bg-purple-50 text-purple-700 rounded-xl text-xs font-bold hover:bg-purple-100 transition-colors border border-purple-200"
+                                    >
+                                        <Plus size={14} /> הוסף לקוח חדש
+                                    </button>
+                                </div>
+                            )}
                             {clients.map((c: Client) => (
                                 <button 
                                     key={c.id}
@@ -915,7 +1233,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                     >
                                             <div className="flex items-center gap-2 text-gray-500 mb-4 border-b border-gray-100 pb-2">
                                                 <Timer size={18} />
-                                                <span className="font-bold text-sm">הערכת זמן לביצוע</span>
+                                                <span className="font-bold text-sm">הערכת זמן משימה</span>
                                             </div>
                                             
                                             <div className="flex items-center gap-3 mb-4">

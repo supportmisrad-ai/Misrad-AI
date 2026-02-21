@@ -3,7 +3,7 @@ import { Download } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminGlobalDownloadsPageClient from './AdminGlobalDownloadsPageClient';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function AdminGlobalDownloadsPage() {
   return (

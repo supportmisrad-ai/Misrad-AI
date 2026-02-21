@@ -15,6 +15,7 @@ import { CustomSelect } from '../../CustomSelect';
 import { SearchableEmployeeSelect } from '../SearchableEmployeeSelect';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface LeaveRequestModalProps {
     request?: LeaveRequest | null;
@@ -33,7 +34,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
     users = [],
     canCreateForOthers = false
 }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    useBackButtonClose(true, onClose);
     const [isShaking, setIsShaking] = useState(false);
     const startDateRef = useRef<HTMLDivElement>(null);
     const endDateRef = useRef<HTMLDivElement>(null);
@@ -112,32 +113,31 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
             return;
         }
 
-        setIsSubmitting(true);
-        try {
-            const url = request ? `/api/leave-requests/${request.id}` : '/api/leave-requests';
-            const method = request ? 'PATCH' : 'POST';
+        // Close immediately - save in background
+        onClose();
 
-            const orgSlug = typeof window !== 'undefined'
-                ? (getWorkspaceOrgSlugFromPathname(window.location.pathname) || null)
-                : null;
+        const url = request ? `/api/leave-requests/${request.id}` : '/api/leave-requests';
+        const method = request ? 'PATCH' : 'POST';
+        const orgSlug = typeof window !== 'undefined'
+            ? (getWorkspaceOrgSlugFromPathname(window.location.pathname) || null)
+            : null;
 
-            // Prepare request body - only include employeeId if canCreateForOthers is true
-            const requestBody: Record<string, unknown> = {
-                leaveType: formData.leaveType,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                daysRequested: finalDaysRequested,
-                reason: formData.reason || undefined,
-                metadata: {
-                    isUrgent: formData.isUrgent || false
-                }
-            };
-
-            // Only include employeeId if creating for others
-            if (canCreateForOthers && formData.employeeId) {
-                requestBody.employeeId = formData.employeeId;
+        const requestBody: Record<string, unknown> = {
+            leaveType: formData.leaveType,
+            startDate: formData.startDate,
+            endDate: formData.endDate,
+            daysRequested: finalDaysRequested,
+            reason: formData.reason || undefined,
+            metadata: {
+                isUrgent: formData.isUrgent || false
             }
+        };
 
+        if (canCreateForOthers && formData.employeeId) {
+            requestBody.employeeId = formData.employeeId;
+        }
+
+        try {
             const response = await fetch(url, {
                 method,
                 headers: {
@@ -153,14 +153,11 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 throw new Error(errorMsg || 'שגיאה בשמירת בקשת חופש');
             }
 
-            await response.json().catch(() => ({}));
-            // Don't show toast here - let the parent component handle it via onSuccess
             onSuccess();
-            onClose();
+            addToast(request ? 'בקשת חופש עודכנה בהצלחה' : 'בקשת חופש נשלחה בהצלחה', 'success');
         } catch (error: unknown) {
             addToast(error instanceof Error ? error.message : 'שגיאה בשמירת בקשת חופש', 'error');
-        } finally {
-            setIsSubmitting(false);
+            onSuccess();
         }
     };
 
@@ -371,10 +368,9 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50"
+                            className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all"
                         >
-                            {isSubmitting ? 'שומר...' : (request ? 'עדכן' : 'שלח בקשה')}
+                            {request ? 'עדכן' : 'שלח בקשה'}
                         </button>
                     </div>
                 </form>

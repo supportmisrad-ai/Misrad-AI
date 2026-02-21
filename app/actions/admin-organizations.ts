@@ -1,6 +1,8 @@
 'use server';
 
 
+
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
@@ -92,6 +94,8 @@ async function requireSuperAdmin(): Promise<{ success: true } | { success: false
   if (!user?.isSuperAdmin) {
     return { success: false, error: 'אין הרשאה (נדרש Super Admin)' };
   }
+
+  revalidatePath('/', 'layout');
 
   return { success: true };
 }
@@ -289,6 +293,8 @@ export async function getOrganizations(params?: {
           businessClientName: o.client_id ? (businessClientNameById[o.client_id] ?? null) : null,
         }));
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse(enriched);
       } catch (error) {
         return createErrorResponse(error, 'שגיאה בטעינת ארגונים');
@@ -346,6 +352,8 @@ export async function getOrganizationMembersLite(params: {
           }
         );
 
+        revalidatePath('/', 'layout');
+
         return createSuccessResponse(rows || []);
       } catch (error) {
         return createErrorResponse(error, 'שגיאה בטעינת משתמשי ארגון');
@@ -394,6 +402,8 @@ export async function getUsersLite(params?: {
             );
           }
         );
+
+        revalidatePath('/', 'layout');
 
         return createSuccessResponse(data || []);
       } catch (error) {
@@ -507,6 +517,8 @@ export async function createOrganization(input: {
     } catch (e) {
       logger.error('createOrganization', 'welcome email failed (ignored)', e);
     }
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ organizationId: createdOrg.id });
   } catch (error) {
@@ -725,6 +737,8 @@ export async function updateOrganization(input: {
       data: patch,
     });
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בעדכון ארגון');
@@ -768,6 +782,8 @@ export async function setOrganizationOwner(input: {
       }
     );
 
+    revalidatePath('/', 'layout');
+
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בעדכון בעלים');
@@ -801,6 +817,8 @@ export async function setUserOrganization(input: {
           data: { organization_id: organizationId, updated_at: new Date() } satisfies UserUpdateManyData,
         })
     );
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {

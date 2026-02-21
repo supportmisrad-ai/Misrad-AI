@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { currentUser } from '@clerk/nextjs/server';
 import type { Task, User, TimeEntry } from '@/types';
@@ -72,7 +73,9 @@ export async function createNexusTaskByOrgSlug(params: {
   input: Omit<Task, 'id'> & { leadId?: string | null };
 }): Promise<Task> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return createNexusTaskInternal({ orgId: workspace.id, input: params.input });
+  const result = await createNexusTaskInternal({ orgId: workspace.id, input: params.input });
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function updateNexusTaskByOrgSlug(params: {
@@ -81,7 +84,9 @@ export async function updateNexusTaskByOrgSlug(params: {
   updates: Partial<Task>;
 }): Promise<Task> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return updateNexusTaskInternal({ orgId: workspace.id, taskId: params.taskId, updates: params.updates });
+  const result = await updateNexusTaskInternal({ orgId: workspace.id, taskId: params.taskId, updates: params.updates });
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function listNexusTasks(params: {
@@ -102,17 +107,23 @@ export async function createNexusTask(params: {
   input: (Omit<Task, 'id'> & { leadId?: string | null }) & { id?: string | null };
 }): Promise<Task> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return createNexusTaskInternal(params);
+  const result = await createNexusTaskInternal(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function updateNexusTask(params: { orgId: string; taskId: string; updates: Partial<Task> }): Promise<Task> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return updateNexusTaskInternal(params);
+  const result = await updateNexusTaskInternal(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function deleteNexusTask(params: { orgId: string; taskId: string }): Promise<{ ok: true }> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return deleteNexusTaskInternal(params);
+  const result = await deleteNexusTaskInternal(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function getNexusMe(params: { orgId: string }): Promise<{
@@ -154,7 +165,9 @@ export async function sendNexusUserInvitation(params: {
   role?: string | null;
 }): Promise<{ success: true; signupUrl: string; emailSent: boolean }> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return sendNexusUserInvitationImpl(params);
+  const result = await sendNexusUserInvitationImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function listNexusUsers(params: {
@@ -170,22 +183,30 @@ export async function listNexusUsers(params: {
 
 export async function createNexusUser(params: { orgId: string; input: Omit<User, 'id'> }): Promise<User> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return createNexusUserImpl(params);
+  const result = await createNexusUserImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function updateNexusUser(params: { orgId: string; userId: string; updates: Partial<User> }): Promise<User> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return updateNexusUserImpl(params);
+  const result = await updateNexusUserImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function updateNexusMyTargets(params: { orgId: string; targets: User['targets'] }): Promise<User> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return updateNexusMyTargetsImpl(params);
+  const result = await updateNexusMyTargetsImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function deleteNexusUser(params: { orgId: string; userId: string }): Promise<{ ok: true }> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return deleteNexusUserImpl(params);
+  const result = await deleteNexusUserImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function listNexusTimeEntries(params: {
@@ -206,7 +227,9 @@ export async function createNexusTimeEntry(params: {
   input: Partial<TimeEntry> & { userId?: string };
 }): Promise<TimeEntry> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return createNexusTimeEntryImpl(params);
+  const result = await createNexusTimeEntryImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function updateNexusTimeEntry(params: {
@@ -216,15 +239,21 @@ export async function updateNexusTimeEntry(params: {
   updates?: Partial<TimeEntry> & { userId?: string };
 }): Promise<TimeEntry> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return updateNexusTimeEntryImpl(params);
+  const result = await updateNexusTimeEntryImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function deleteNexusTimeEntry(params: { orgId: string; entryId: string }): Promise<{ ok: true }> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return deleteNexusTimeEntryImpl(params);
+  const result = await deleteNexusTimeEntryImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }
 
 export async function voidNexusTimeEntry(params: { orgId: string; entryId: string; reason: string }): Promise<TimeEntry> {
   await requireWorkspaceAccessForOrgId(params.orgId);
-  return voidNexusTimeEntryImpl(params);
+  const result = await voidNexusTimeEntryImpl(params);
+  revalidatePath('/', 'layout');
+  return result;
 }

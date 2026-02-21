@@ -9,6 +9,7 @@ import {
 import LeadBusinessSide from './system/LeadBusinessSide';
 import LeadScoringTool from './system/LeadScoringTool';
 import { useToast } from '../contexts/ToastContext';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface LeadModalProps {
   lead: Lead;
@@ -21,6 +22,7 @@ interface LeadModalProps {
 }
 
 const LeadModal: React.FC<LeadModalProps> = ({ lead, onClose, onAddActivity, onScheduleMeeting, onStatusChange, onOpenClientPortal, onAddTask }) => {
+  useBackButtonClose(true, onClose);
   const { addToast } = useToast();
   const [composerTab, setComposerTab] = useState<'note' | 'call' | 'task' | 'email'>('note');
   const [noteContent, setNoteContent] = useState('');

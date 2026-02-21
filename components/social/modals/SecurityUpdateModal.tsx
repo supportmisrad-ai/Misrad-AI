@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, CircleCheckBig, Download, Copy, X } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 let hasSeenSecurityUpdateModal = false;
 
@@ -12,6 +13,7 @@ interface SecurityUpdateModalProps {
 }
 
 export default function SecurityUpdateModal({ onClose }: SecurityUpdateModalProps) {
+  useBackButtonClose(true, onClose);
   const { user } = useUser();
   const [isVisible, setIsVisible] = useState(false);
 

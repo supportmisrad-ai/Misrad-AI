@@ -16,7 +16,7 @@ import { AiManagementSection } from '@/components/landing/AiManagementSection';
 import { ModularitySimplicitySection } from '@/components/landing/ModularitySimplicitySection';
 import { asObject } from '@/lib/shared/unknown';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 export const maxDuration = 10;
 
 // Aggressive caching for landing settings - they rarely change

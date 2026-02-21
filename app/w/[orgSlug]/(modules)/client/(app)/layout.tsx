@@ -12,7 +12,7 @@ import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/sto
 import { getSystemMetadata } from '@/lib/metadata';
 import { asObject } from '@/lib/shared/unknown';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('client');
 
@@ -25,14 +25,25 @@ export default async function ClientAppLayout({
 }) {
   const { orgSlug } = await params;
 
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  // Run workspace access + clerk user fetch in parallel
+  const [workspace, clerkUserId] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    getCurrentUserId(),
+  ]);
 
-  const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client`)}`);
   }
 
-  const clerkUser = await currentUser();
+  // Run clerk user, user info, and DB user lookup in parallel
+  const [clerkUser, userInfo, user] = await Promise.all([
+    currentUser(),
+    getCurrentUserInfo(),
+    prisma.organizationUser.findFirst({
+      where: { clerk_user_id: clerkUserId },
+      select: { organization_id: true, role: true },
+    }).catch(() => null),
+  ]);
 
   const clerkPublicMeta = asObject(clerkUser?.publicMetadata);
   const clerkPrivateMeta = asObject(clerkUser?.privateMetadata);
@@ -41,7 +52,6 @@ export default async function ClientAppLayout({
   const clerkIsSuperAdmin =
     Boolean(clerkPublicMeta?.isSuperAdmin) ||
     String(clerkPublicMeta?.role || '').toLowerCase() === 'super_admin';
-  const userInfo = await getCurrentUserInfo();
 
   const fallbackUser = userInfo.success
     ? {
@@ -49,16 +59,6 @@ export default async function ClientAppLayout({
         role: userInfo.role ?? null,
       }
     : null;
-
-  let user: { organization_id: string | null; role: string | null } | null = null;
-  try {
-    user = await prisma.organizationUser.findFirst({
-      where: { clerk_user_id: clerkUserId },
-      select: { organization_id: true, role: true },
-    });
-  } catch {
-    user = null;
-  }
 
   const roleFromClerk =
     clerkPublicMeta?.role ??
