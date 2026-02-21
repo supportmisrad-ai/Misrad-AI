@@ -13,6 +13,16 @@ import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHe
 import { punchIn, punchOut } from '@/app/actions/attendance';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+const ATTENDANCE_BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
+
+function broadcastAttendanceUpdate(orgSlug: string, entryId: string | null, startTime: string | null) {
+    if (typeof window === 'undefined') return;
+    try {
+        const bc = new BroadcastChannel(ATTENDANCE_BROADCAST_CHANNEL);
+        bc.postMessage({ orgSlug, entryId, startTime });
+        bc.close();
+    } catch { /* ignore */ }
+}
 const PRESENCE_REQUEST_TIMEOUT_MS = 5_000; // Reduced from 8-15s to 5s
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 90_000; // Increased from 30s to 90s (less aggressive)
 
@@ -691,6 +701,11 @@ export const useAuth = (
                 // Update UI ONLY after successful API response
                 await refreshTimeEntries();
 
+                // Broadcast to AttendanceMiniStatus for instant sync
+                if (res?.activeShift?.id && res?.activeShift?.startTime) {
+                    broadcastAttendanceUpdate(orgSlug, res.activeShift.id, new Date(res.activeShift.startTime).toISOString());
+                }
+
                 // Show success toast ONLY after everything succeeded
                 const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                 addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
@@ -721,6 +736,9 @@ export const useAuth = (
 
                 // Update UI ONLY after successful API response
                 await refreshTimeEntries();
+
+                // Broadcast to AttendanceMiniStatus for instant sync
+                broadcastAttendanceUpdate(orgSlug, null, null);
 
                 // Show success toast ONLY after everything succeeded
                 const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
