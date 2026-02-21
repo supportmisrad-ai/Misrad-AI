@@ -3,7 +3,7 @@
 import { AuthenticateWithRedirectCallback, useAuth } from '@clerk/nextjs';
 import { useEffect, useState, useRef, useCallback } from 'react';
 
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 const SSO_ATTEMPT_KEY = 'sso_callback_attempt';
 const MAX_SSO_ATTEMPTS = 5;
@@ -253,7 +253,7 @@ export default function SsoCallbackPage() {
         signInUrl="/login"
         signUpUrl="/login?mode=sign-up"
         signInFallbackRedirectUrl="/me"
-        signUpFallbackRedirectUrl="/me"
+        signUpFallbackRedirectUrl="/workspaces/onboarding"
       />
     </div>
   );

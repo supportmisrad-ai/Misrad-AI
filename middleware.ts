@@ -80,30 +80,13 @@ const getProp = (obj: unknown, key: string): unknown => {
   return (obj as Record<string, unknown>)[key];
 };
 
-let cachedMaintenanceMode: { value: boolean; ts: number } | null = null;
-
-async function isMaintenanceModeEnabled(origin: string): Promise<boolean> {
-  const now = Date.now();
-  if (cachedMaintenanceMode && now - cachedMaintenanceMode.ts < 15_000) {
-    return cachedMaintenanceMode.value;
-  }
-
-  try {
-    const url = new URL("/api/system/maintenance", origin).toString();
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "content-type": "application/json" },
-      cache: "no-store",
-    });
-
-    const json = await res.json().catch(() => null);
-    const value = Boolean((json as { maintenanceMode?: unknown } | null)?.maintenanceMode);
-    cachedMaintenanceMode = { value, ts: now };
-    return value;
-  } catch {
-    cachedMaintenanceMode = { value: false, ts: now };
-    return false;
-  }
+// Maintenance mode check — env-var only, NO self-fetch.
+// Set MAINTENANCE_MODE=true in Vercel dashboard to enable.
+// The previous self-fetch to /api/system/maintenance was a major perf bottleneck:
+// on cold starts every page request waited for an HTTP round-trip to itself.
+function isMaintenanceModeEnabled(): boolean {
+  const envFlag = String(process.env.MAINTENANCE_MODE || '').trim().toLowerCase();
+  return envFlag === 'true' || envFlag === '1';
 }
 
 function extractEmailFromClaims(claims: unknown): string | null {
@@ -312,7 +295,7 @@ export default clerkMiddleware(async (auth, req) => {
 
   const maintenanceMode = (isE2E || (isDev && !allowDevMaintenance))
     ? false
-    : await isMaintenanceModeEnabled(req.nextUrl.origin);
+    : isMaintenanceModeEnabled();
   const isSuperAdmin = Boolean(
     getProp(getProp(claims, 'publicMetadata'), 'isSuperAdmin') === true ||
       getProp(getProp(claims, 'public_metadata'), 'isSuperAdmin') === true ||

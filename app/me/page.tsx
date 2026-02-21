@@ -6,7 +6,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 // Force dynamic rendering as this page depends on authentication
-export const dynamic = 'force-dynamic';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 const ME_PAGE_DEBUG =
   process.env.NODE_ENV !== 'production' &&
@@ -29,6 +29,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         return null;
       }
 
+      // Stage 1: Get social user (required for subsequent queries)
       meLog('[MePage] Looking up organization_user for clerkUserId:', clerkUserId);
       const socialUser = await prisma.organizationUser.findUnique(
         withPrismaTenantIsolationOverride({
@@ -37,60 +38,46 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true, reason: 'me_page_lookup_social_user_by_clerk_user_id', source: 'me-page-redirect' })
       );
 
-      meLog('[MePage] organization_user found:', socialUser ? 'YES' : 'NO', socialUser);
-
       if (!socialUser?.id) {
         meLog('[MePage] No organization_user record found for clerkUserId:', clerkUserId);
         return null;
       }
 
-      const orgIds = new Set<string>();
+      // Stage 2: Run ALL independent queries in parallel (was sequential before)
+      const [ownedOrgs, memberships, last] = await Promise.all([
+        prisma.organization.findMany(
+          withPrismaTenantIsolationOverride({
+            where: { owner_id: String(socialUser.id) },
+            select: { id: true },
+          }, { suppressReporting: true, reason: 'me_page_lookup_owned_orgs_by_social_user_id', source: 'me-page-redirect' })
+        ),
+        prisma.teamMember.findMany(
+          withPrismaTenantIsolationOverride({
+            where: { user_id: String(socialUser.id) },
+            select: { organization_id: true },
+          }, { suppressReporting: true, reason: 'me_page_lookup_team_memberships_by_social_user_id', source: 'me-page-redirect' })
+        ),
+        loadCurrentUserLastLocation(),
+      ]);
 
+      const orgIds = new Set<string>();
       if (socialUser.organization_id) {
         orgIds.add(String(socialUser.organization_id));
-        meLog('[MePage] Added primary organization_id:', socialUser.organization_id);
       }
-
-      meLog('[MePage] Looking for owned organizations for user:', socialUser.id);
-      const ownedOrgs = await prisma.organization.findMany(
-        withPrismaTenantIsolationOverride({
-          where: { owner_id: String(socialUser.id) },
-          select: { id: true },
-        }, { suppressReporting: true, reason: 'me_page_lookup_owned_orgs_by_social_user_id', source: 'me-page-redirect' })
-      );
-
-      meLog('[MePage] Found owned organizations:', ownedOrgs.length);
       for (const row of ownedOrgs) {
-        if (row?.id) {
-          orgIds.add(String(row.id));
-          meLog('[MePage] Added owned organization_id:', row.id);
-        }
+        if (row?.id) orgIds.add(String(row.id));
       }
-
-      meLog('[MePage] Looking for team memberships for user:', socialUser.id);
-      const memberships = await prisma.teamMember.findMany(
-        withPrismaTenantIsolationOverride({
-          where: { user_id: String(socialUser.id) },
-          select: { organization_id: true },
-        }, { suppressReporting: true, reason: 'me_page_lookup_team_memberships_by_social_user_id', source: 'me-page-redirect' })
-      );
-
-      meLog('[MePage] Found team memberships:', memberships.length);
       for (const row of memberships) {
-        if (row?.organization_id) {
-          orgIds.add(String(row.organization_id));
-          meLog('[MePage] Added membership organization_id:', row.organization_id);
-        }
+        if (row?.organization_id) orgIds.add(String(row.organization_id));
       }
 
       const ids = Array.from(orgIds);
       meLog('[MePage] Total organization IDs found:', ids.length, ids);
       if (!ids.length) {
-        meLog('[MePage] No organizations found for user');
         return null;
       }
 
-      meLog('[MePage] Looking up organization details for IDs:', ids);
+      // Stage 3: Get org details (needs IDs from stage 2)
       const orgs = await prisma.organization.findMany(
         withPrismaTenantIsolationOverride({
           where: { id: { in: ids } },
@@ -98,36 +85,28 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true, reason: 'me_page_lookup_org_details_by_ids', source: 'me-page-redirect' })
       );
 
-      meLog('[MePage] Found organization details:', orgs.length, orgs);
       if (!orgs.length) {
-        meLog('[MePage] No organization details found for IDs');
         return null;
       }
 
-      const last = await loadCurrentUserLastLocation();
+      // Resolve best org: prefer last location > primary org > first available
       const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
-      meLog('[MePage] Last location orgSlug:', lastKey);
       if (lastKey) {
         const match = orgs.find((o: { id: string; slug: string | null }) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
         if (match) {
-          meLog('[MePage] Using last location:', match.slug || match.id);
           return String(match.slug || match.id);
         }
       }
 
       const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
-      meLog('[MePage] Primary organization_id:', primaryId);
       if (primaryId) {
         const match = orgs.find((o: { id: string; slug: string | null }) => String(o.id) === primaryId);
         if (match) {
-          meLog('[MePage] Using primary organization:', match.slug || match.id);
           return String(match.slug || match.id);
         }
       }
 
-      const fallback = String(orgs[0].slug || orgs[0].id);
-      meLog('[MePage] Using fallback organization:', fallback);
-      return fallback;
+      return String(orgs[0].slug || orgs[0].id);
     }
   );
 }
@@ -154,6 +133,24 @@ export default async function MePage({
   }
 
   if (orgSlug) {
+    // Check if onboarding is complete (plan selected) before sending to workspace
+    const orgRecord = await withTenantIsolationContext(
+      { suppressReporting: true, reason: 'me_page_check_onboarding', source: 'me-page-redirect' },
+      async () => {
+        const allOrgs = await prisma.organization.findMany(
+          withPrismaTenantIsolationOverride({
+            where: { OR: [{ slug: orgSlug }, ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgSlug ?? '') ? [{ id: orgSlug }] : [])] },
+            select: { subscription_plan: true },
+          }, { suppressReporting: true, reason: 'me_page_check_plan', source: 'me-page-redirect' })
+        );
+        return allOrgs[0] ?? null;
+      }
+    );
+
+    if (!orgRecord?.subscription_plan) {
+      redirect('/workspaces/onboarding');
+    }
+
     // Preserve query parameters when redirecting
     const sp = searchParams ? await Promise.resolve(searchParams) : {};
     const queryString = new URLSearchParams();
