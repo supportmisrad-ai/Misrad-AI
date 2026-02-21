@@ -464,6 +464,7 @@ function isAllowedSupabaseDbStack(stack: string | undefined): boolean {
 
   const allow = [
     '/app/api/e2e/',
+    '/app/api/legal/',
     '/app/api/webhooks/',
   ];
 
