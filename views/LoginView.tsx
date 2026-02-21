@@ -584,6 +584,16 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                                     </div>
                                   )}
                                 </div>
+
+                                <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/login?mode=sign-up')}
+                                    className="text-sm font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                                  >
+                                    אין לך חשבון? <span className="text-indigo-600 underline">הצטרף כאן</span>
+                                  </button>
+                                </div>
                             </motion.div>
                         ) : (
                             <motion.div 
