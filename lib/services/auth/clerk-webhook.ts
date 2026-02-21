@@ -113,17 +113,42 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
     const now = new Date();
 
     // ✅ CRITICAL FIX: Read existing full_name to preserve it
-    const existing = await prisma.organizationUser.findUnique({
+    let existing = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: clerkUserId },
       select: { id: true, full_name: true, email: true },
     });
 
+    // Fallback: admin pre-created user (has temp_/pending_ placeholder clerk_user_id)
+    if (!existing && email) {
+      const byEmail = await prisma.organizationUser.findFirst({
+        where: {
+          email: String(email).trim().toLowerCase(),
+          OR: [
+            { clerk_user_id: { startsWith: 'temp_' } },
+            { clerk_user_id: { startsWith: 'pending_' } },
+          ],
+        },
+        select: { id: true, full_name: true, email: true },
+        orderBy: { created_at: 'desc' },
+      });
+      if (byEmail?.id) {
+        // Claim this record — replace placeholder with real Clerk user ID
+        await prisma.organizationUser.update({
+          where: { id: byEmail.id },
+          data: { clerk_user_id: clerkUserId },
+          select: { id: true },
+        });
+        existing = byEmail;
+      }
+    }
+
     // ✅ CRITICAL: Prefer existing name over webhook name
     // This prevents overwriting names set by Admin with names from Google OAuth
-    const shouldUpdateName = !existing?.full_name || existing.full_name.trim() === '';
+    const existingName = existing?.full_name ?? null;
+    const shouldUpdateName = !existingName || existingName.trim() === '';
     const finalFullName = shouldUpdateName
       ? (params.fullName ? String(params.fullName) : null)
-      : existing.full_name;
+      : existingName;
 
     const updateData: {
       email: string | null;
