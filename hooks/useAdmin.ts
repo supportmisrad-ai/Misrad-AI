@@ -524,6 +524,15 @@ export const useAdmin = (
                 }
             }));
             
+            // Notify user immediately (in sync with optimistic update)
+            if (status === 'maintenance') {
+                addToast(`מסך ${screenId} עבר למצב תחזוקה`, 'warning');
+            } else if (status === 'hidden') {
+                addToast(`מסך ${screenId} הוסתר`, 'info');
+            } else {
+                addToast(`מסך ${screenId} הופעל`, 'success');
+            }
+            
             // Save to database via API
             const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/system/flags', {
@@ -546,15 +555,6 @@ export const useAdmin = (
                     ...prev,
                     systemFlags: nextFlags as Record<string, SystemScreenStatus>
                 }));
-            }
-            
-            // Notify user
-            if (status === 'maintenance') {
-                addToast(`מסך ${screenId} עבר למצב תחזוקה`, 'warning');
-            } else if (status === 'hidden') {
-                addToast(`מסך ${screenId} הוסתר`, 'info');
-            } else {
-                addToast(`מסך ${screenId} הופעל`, 'success');
             }
         } catch (error: unknown) {
             console.error('[Admin] Error updating system flag:', error);

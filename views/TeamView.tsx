@@ -409,27 +409,35 @@ export const TeamView: React.FC = () => {
                   queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
               }
           } else if (editingUser) {
-              const updated = await updateUserMutation.mutateAsync({
-                  userId: editingUser.id,
-                  updates: {
-                      name: formData.name,
-                      role: formData.role,
-                      department: formData.department,
-                      capacity: Number(formData.capacity),
-                      paymentType: formData.paymentType,
-                      hourlyRate: Number(formData.hourlyRate),
-                      monthlySalary: Number(formData.monthlySalary),
-                      commissionPct: Number(formData.commissionPct),
-                      bonusPerTask: Number(formData.bonusPerTask),
-                      managerId: formData.managerId,
-                  },
-              });
-
-              updateUser(editingUser.id, updated);
-              if (orgSlug) {
-                  queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
-              }
+              // Optimistic: update UI + toast immediately
+              const optimisticUpdates = {
+                  name: formData.name,
+                  role: formData.role,
+                  department: formData.department,
+                  capacity: Number(formData.capacity),
+                  paymentType: formData.paymentType,
+                  hourlyRate: Number(formData.hourlyRate),
+                  monthlySalary: Number(formData.monthlySalary),
+                  commissionPct: Number(formData.commissionPct),
+                  bonusPerTask: Number(formData.bonusPerTask),
+                  managerId: formData.managerId,
+              };
+              updateUser(editingUser.id, optimisticUpdates);
               addToast('פרטי העובד עודכנו בהצלחה', 'success');
+
+              // Persist in background
+              updateUserMutation.mutateAsync({
+                  userId: editingUser.id,
+                  updates: optimisticUpdates,
+              }).then((updated) => {
+                  updateUser(editingUser.id, updated);
+                  if (orgSlug) {
+                      queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+                  }
+              }).catch((err: unknown) => {
+                  console.error('Error updating member in background:', err);
+                  addToast('שגיאה בשמירת הפרטים בשרת', 'error');
+              });
           }
 
           setIsMemberModalOpen(false);
