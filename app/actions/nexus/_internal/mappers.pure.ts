@@ -109,8 +109,9 @@ export function mapTimeEntryRow(row: unknown): TimeEntry {
     endAccuracy: toNumberMaybe(obj.end_accuracy ?? obj.endAccuracy) ?? null,
     date: toDateOnlyStringMaybe(obj.date) ?? String(obj.date ?? ''),
     durationMinutes: Number(obj.duration_minutes ?? obj.durationMinutes ?? 0),
-    voidReason: obj.void_reason ?? obj.voidReason ?? null,
-    voidedBy: obj.voided_by ?? obj.voidedBy ?? null,
+    note: typeof obj.note === 'string' ? obj.note : null,
+    voidReason: typeof (obj.void_reason ?? obj.voidReason) === 'string' ? String(obj.void_reason ?? obj.voidReason) : null,
+    voidedBy: typeof (obj.voided_by ?? obj.voidedBy) === 'string' ? String(obj.voided_by ?? obj.voidedBy) : null,
     voidedAt: toIsoStringMaybe(obj.voided_at ?? obj.voidedAt),
   } as TimeEntry;
 }

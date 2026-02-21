@@ -101,9 +101,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
         start_city,
         date,
         duration_minutes,
-        void_reason,
-        voided_by,
-        voided_at
+        note
       )
       VALUES (
         ${String(workspace.id)}::uuid,
@@ -116,9 +114,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
         ${geo.city},
         ${dateOnly}::date,
         NULL,
-        ${noteValue},
-        NULL,
-        NULL
+        ${noteValue}
       )
       RETURNING id, start_time
     `,
@@ -170,7 +166,7 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
         end_accuracy = ${geo.accuracy}::double precision,
         end_city = ${geo.city},
         duration_minutes = ${durationMinutes}::int,
-        void_reason = ${noteValue}
+        note = COALESCE(note, ${noteValue})
       WHERE
         id = ${String(existing.activeShift.id)}::uuid
         AND organization_id = ${String(workspace.id)}::uuid

@@ -137,8 +137,11 @@ export async function listNexusTimeEntries(params: {
       end_lat,
       end_lng,
       end_accuracy,
+      start_city,
+      end_city,
       date,
       duration_minutes,
+      note,
       void_reason,
       voided_by,
       voided_at

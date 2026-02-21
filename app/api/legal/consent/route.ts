@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -43,66 +43,74 @@ async function POSTHandler(req: Request): Promise<Response> {
     });
   }
 
-  const supabase = createServiceRoleClient({ reason: 'legal_consent_record', allowUnscoped: true });
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
 
-  // Fetch document versions for audit trail
-  const { data: contentRows } = await supabase
-    .from('social_media_site_content')
-    .select('key, updated_at')
-    .eq('page', 'legal')
-    .eq('section', 'documents')
-    .in('key', ['terms_markdown', 'privacy_markdown']);
+  // Fetch document versions for audit trail (Prisma)
+  let termsVersion = nowIso;
+  let privacyVersion = nowIso;
+  try {
+    const contentRows = await prisma.socialMediaSiteContent.findMany({
+      where: {
+        page: 'legal',
+        section: 'documents',
+        key: { in: ['terms_markdown', 'privacy_markdown'] },
+      },
+      select: { key: true, updated_at: true },
+    });
 
-  const versionsByKey = new Map<string, string>();
-  for (const row of (contentRows ?? [])) {
-    const k = String(row.key || '').trim();
-    if (!k) continue;
-    const ts = row.updated_at ? new Date(row.updated_at) : null;
-    versionsByKey.set(k, ts && !Number.isNaN(ts.getTime()) ? ts.toISOString() : now);
+    for (const row of contentRows) {
+      const ts = row.updated_at ? row.updated_at.toISOString() : nowIso;
+      if (row.key === 'terms_markdown') termsVersion = ts;
+      if (row.key === 'privacy_markdown') privacyVersion = ts;
+    }
+  } catch {
+    // If content table is empty or missing docs, use current time as version
   }
 
-  const termsVersion = versionsByKey.get('terms_markdown') || now;
-  const privacyVersion = versionsByKey.get('privacy_markdown') || now;
+  // Find the user record
+  const existingUser = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: String(clerkUserId) },
+    select: { id: true },
+  });
 
-  const { data, error } = await supabase
-    .from('organization_users')
-    .update({
-      terms_accepted_at: now,
-      privacy_accepted_at: now,
-      terms_accepted_version: termsVersion,
-      privacy_accepted_version: privacyVersion,
-      updated_at: now,
-    })
-    .eq('clerk_user_id', String(clerkUserId))
-    .select('id, terms_accepted_at, privacy_accepted_at, terms_accepted_version, privacy_accepted_version');
-
-  if (error) {
-    return apiError(error.message);
-  }
-
-  // No rows updated → webhook hasn't created the organizationUser record yet
-  if (!data || data.length === 0) {
+  // No record → webhook hasn't created the organizationUser record yet
+  if (!existingUser) {
     return apiSuccess({ ok: true, pending: true, consent: null });
   }
 
-  const updated = data[0] as {
-    id: string;
-    terms_accepted_at: string | null;
-    privacy_accepted_at: string | null;
-    terms_accepted_version: string | null;
-    privacy_accepted_version: string | null;
-  };
+  try {
+    const updated = await prisma.organizationUser.update({
+      where: { clerk_user_id: String(clerkUserId) },
+      data: {
+        terms_accepted_at: now,
+        privacy_accepted_at: now,
+        terms_accepted_version: termsVersion,
+        privacy_accepted_version: privacyVersion,
+        updated_at: now,
+      },
+      select: {
+        id: true,
+        terms_accepted_at: true,
+        privacy_accepted_at: true,
+        terms_accepted_version: true,
+        privacy_accepted_version: true,
+      },
+    });
 
-  return apiSuccess({
-    ok: true,
-    consent: {
-      termsAcceptedAt: updated.terms_accepted_at ?? null,
-      privacyAcceptedAt: updated.privacy_accepted_at ?? null,
-      termsVersion: updated.terms_accepted_version ?? null,
-      privacyVersion: updated.privacy_accepted_version ?? null,
-    },
-  });
+    return apiSuccess({
+      ok: true,
+      consent: {
+        termsAcceptedAt: updated.terms_accepted_at?.toISOString() ?? null,
+        privacyAcceptedAt: updated.privacy_accepted_at?.toISOString() ?? null,
+        termsVersion: updated.terms_accepted_version ?? null,
+        privacyVersion: updated.privacy_accepted_version ?? null,
+      },
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Failed to update consent';
+    return apiError(msg, { status: 500 });
+  }
 }
 
 export const POST = shabbatGuard(POSTHandler);

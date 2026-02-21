@@ -2369,6 +2369,7 @@ model NexusTimeEntry {
   endCity         String?              @map("end_city")
   date            DateTime             @db.Date
   durationMinutes Int?                 @map("duration_minutes")
+  note            String?
   voidReason      String?              @map("void_reason")
   voidedBy        String?              @map("voided_by") @db.Uuid
   voidedAt        DateTime?            @map("voided_at") @db.Timestamptz(6)
