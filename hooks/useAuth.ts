@@ -176,6 +176,7 @@ export const useAuth = (
 
     const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
 
+    const refreshTimeEntriesRetryRef = useRef(0);
     const refreshTimeEntries = useCallback(async () => {
         if (!orgSlug) return;
         try {
@@ -190,8 +191,16 @@ export const useAuth = (
             });
             if (Array.isArray(res?.timeEntries)) {
                 setTimeEntries(res.timeEntries);
+                refreshTimeEntriesRetryRef.current = 0;
             }
-        } catch {
+        } catch (err) {
+            console.warn('[useAuth] refreshTimeEntries failed:', err instanceof Error ? err.message : err);
+            // Retry up to 2 times with increasing delay
+            if (refreshTimeEntriesRetryRef.current < 2) {
+                refreshTimeEntriesRetryRef.current += 1;
+                const delay = refreshTimeEntriesRetryRef.current * 3000;
+                setTimeout(() => { void refreshTimeEntries(); }, delay);
+            }
         }
     }, [orgSlug]);
 
@@ -414,6 +423,34 @@ export const useAuth = (
         if (!isClerkLoaded) return;
         void refreshTimeEntries();
     }, [orgSlug, isClerkLoaded, refreshTimeEntries]);
+
+    // Re-fetch time entries when currentUser.id becomes available (resolves race condition)
+    const currentUserIdRef = useRef(currentUser.id);
+    useEffect(() => {
+        if (currentUser.id && currentUser.id !== currentUserIdRef.current) {
+            currentUserIdRef.current = currentUser.id;
+            void refreshTimeEntries();
+        }
+    }, [currentUser.id, refreshTimeEntries]);
+
+    // Listen to BroadcastChannel from AttendanceMiniStatus for instant sync
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!orgSlug) return;
+        try {
+            const bc = new BroadcastChannel(ATTENDANCE_BROADCAST_CHANNEL);
+            const handler = () => {
+                void refreshTimeEntries();
+            };
+            bc.addEventListener('message', handler);
+            return () => {
+                bc.removeEventListener('message', handler);
+                bc.close();
+            };
+        } catch {
+            return undefined;
+        }
+    }, [orgSlug, refreshTimeEntries]);
 
     const meQuery = useQuery({
         queryKey: ['nexus', 'me', orgSlug],
