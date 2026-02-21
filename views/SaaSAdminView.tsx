@@ -316,6 +316,10 @@ export const SaaSAdminView: React.FC = () => {
     };
 
     const handleUpdateTenant = async (id: string, updates: Partial<Tenant>) => {
+        // Optimistic: update local state + toast immediately
+        updateTenant(id, updates);
+        addToast('הארגון עודכן בהצלחה!', 'success');
+
         try {
             const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/admin/tenants/${id}`, {
@@ -336,17 +340,13 @@ export const SaaSAdminView: React.FC = () => {
             const raw = await response.json().catch(() => ({}));
             const payload = extractData<{ tenant?: Tenant }>(raw);
             const updatedTenant = payload?.tenant;
-            if (!updatedTenant) {
-                throw new Error('שגיאה בעדכון tenant');
+            if (updatedTenant) {
+                updateTenant(id, updatedTenant);
             }
-
-            // Update local state only if API call succeeded
-            updateTenant(id, updatedTenant);
-            addToast('הארגון עודכן בהצלחה!', 'success');
         } catch (error: unknown) {
             console.error('[SaaSAdmin] Error updating tenant:', error);
             addToast((error instanceof Error ? error.message : String(error)) || 'שגיאה בעדכון הארגון', 'error');
-            throw error; // Re-throw to allow caller to handle
+            throw error;
         }
     };
 

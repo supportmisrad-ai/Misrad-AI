@@ -411,8 +411,11 @@ export const ReportsView: React.FC = () => {
     };
 
     const handleSaveEntry = async (entryData: Partial<TimeEntry>) => {
+        const isEdit = Boolean(entryToEdit);
+        // Show toast immediately so user gets instant feedback
+        addToast(isEdit ? 'דיווח השעות עודכן' : 'דיווח שעות ידני נוסף בהצלחה', 'success');
         try {
-            if (entryToEdit) {
+            if (isEdit && entryToEdit) {
                 await updateEntryMutation.mutateAsync({
                     entryId: entryToEdit.id,
                     updates: {
@@ -422,7 +425,6 @@ export const ReportsView: React.FC = () => {
                         endTime: entryData.endTime,
                     },
                 });
-                addToast('דיווח השעות עודכן', 'success');
             } else {
                 await createEntryMutation.mutateAsync({
                     userId: entryData.userId,
@@ -430,7 +432,6 @@ export const ReportsView: React.FC = () => {
                     startTime: entryData.startTime,
                     endTime: entryData.endTime,
                 });
-                addToast('דיווח שעות ידני נוסף בהצלחה', 'success');
             }
             if (orgSlug) {
                 queryClient.invalidateQueries({ queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end] });

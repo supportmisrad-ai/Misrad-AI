@@ -90,8 +90,8 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                 throw new Error(errorMsg || 'שגיאה בעדכון סטטוס');
             }
 
-            await loadTickets();
             addToast('סטטוס עודכן בהצלחה', 'success');
+            await loadTickets();
             
             if (selectedTicket?.id === ticketId) {
                 const updated = await fetch(`/api/support?id=${ticketId}`, {
@@ -127,8 +127,8 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                 throw new Error(errorMsg || 'שגיאה בהוספת עדכון');
             }
 
-            await loadTickets();
             addToast(sendEmail ? 'עדכון נשלח במייל' : 'עדכון נוסף בהצלחה', 'success');
+            await loadTickets();
             
             if (selectedTicket?.id === ticketId) {
                 const updated = await fetch(`/api/support?id=${ticketId}`, {

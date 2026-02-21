@@ -75,8 +75,8 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                 throw new Error(errorData.error || 'שגיאה בעדכון סטטוס');
             }
 
-            await loadRequests();
             addToast('סטטוס עודכן בהצלחה', 'success');
+            await loadRequests();
             
             if (selectedRequest?.id === requestId) {
                 const updated = await fetch(`/api/features?id=${requestId}`, {
@@ -108,8 +108,8 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                 throw new Error('שגיאה בהוספת הערות');
             }
 
-            await loadRequests();
             addToast('הערות נוספו בהצלחה', 'success');
+            await loadRequests();
             
             if (selectedRequest?.id === requestId) {
                 const updated = await fetch(`/api/features?id=${requestId}`, {

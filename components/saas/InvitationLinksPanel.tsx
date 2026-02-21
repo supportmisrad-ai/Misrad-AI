@@ -220,8 +220,8 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
             await response.json().catch(() => ({}));
             addToast('קישור חד פעמי נוצר בהצלחה', 'success');
             
-            // Reload invitations
-            await loadInvitations();
+            // Reload invitations in background
+            loadInvitations();
         } catch (error: unknown) {
             console.error('[InvitationLinks] Error creating invitation:', error);
             addToast(getErrorMessage(error) || 'שגיאה ביצירת קישור', 'error');
