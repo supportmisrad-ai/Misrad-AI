@@ -319,7 +319,7 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
           </Link>
 
           <Link 
-            href="/app/admin/billing"
+            href="/app/admin/billing-management"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
             <DollarSign className="w-5 h-5 text-green-600" />
