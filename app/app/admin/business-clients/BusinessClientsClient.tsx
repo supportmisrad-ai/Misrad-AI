@@ -14,6 +14,7 @@ import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal'
 import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
+import { getBusinessClients, deleteBusinessClient, removeContactFromClient } from '@/app/actions/business-clients';
 
 type BusinessClient = {
   id: string;
@@ -64,7 +65,6 @@ export default function BusinessClientsClient() {
   const loadClients = async () => {
     setLoading(true);
     try {
-      const { getBusinessClients } = await import('@/app/actions/business-clients');
       const result = await getBusinessClients({
         search: searchTerm || undefined,
         status: statusFilter || undefined,
@@ -95,7 +95,6 @@ export default function BusinessClientsClient() {
   const handleDeleteClient = async (clientId: string) => {
     setIsDeleting(true);
     try {
-      const { deleteBusinessClient } = await import('@/app/actions/business-clients');
       const result = await deleteBusinessClient(clientId);
       if (result.ok) {
         setDeletingClientId(null);
@@ -110,7 +109,6 @@ export default function BusinessClientsClient() {
 
   const handleRemoveContact = async (clientId: string, userId: string) => {
     try {
-      const { removeContactFromClient } = await import('@/app/actions/business-clients');
       const result = await removeContactFromClient(clientId, userId);
       if (result.ok) {
         loadClients();

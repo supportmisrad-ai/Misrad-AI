@@ -208,7 +208,15 @@ async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const { workspace } = await getWorkspaceOrThrow(request);
+        let workspace: Awaited<ReturnType<typeof getWorkspaceOrThrow>>['workspace'];
+        try {
+            ({ workspace } = await getWorkspaceOrThrow(request));
+        } catch (e: unknown) {
+            if (e instanceof APIError && e.status === 400) {
+                return apiSuccess({ events: [] }, { status: 200 });
+            }
+            throw e;
+        }
 
         const allowUnscoped = isBypassModuleEntitlementsEnabled();
         if (allowUnscoped) {
