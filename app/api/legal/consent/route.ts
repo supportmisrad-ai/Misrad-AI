@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -86,8 +87,11 @@ async function POSTHandler(req: Request): Promise<Response> {
           },
         });
       } catch (error: unknown) {
-        const msg = error instanceof Error ? error.message : String(error || '');
-        if (msg.toLowerCase().includes('record to update not found')) {
+        // P2025 = record not found (webhook hasn't created organizationUser yet)
+        const isNotFound =
+          (error instanceof Prisma.PrismaClientKnownRequestError && (error as Prisma.PrismaClientKnownRequestError).code === 'P2025') ||
+          (error instanceof Error && error.message.toLowerCase().includes('not found'));
+        if (isNotFound) {
           return apiSuccess({ ok: true, pending: true, consent: null });
         }
         return apiError(error);
