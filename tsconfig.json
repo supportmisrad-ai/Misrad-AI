@@ -40,6 +40,7 @@
     ".next",
     "node_modules",
     "remotion/**",
+    "remotion-v2/**",
     "**/*.legacy.ts",
     "**/*.legacy.tsx",
     "components/App.tsx",
