@@ -7,6 +7,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import CustomAuth from '@/components/social/CustomAuth';
 import { normalizeLegacyRedirectPath, toWorkspacePathForOrgSlug } from '@/lib/os/legacy-routing';
 import { extractData } from '@/lib/shared/api-types';
+import { ShieldCheck, Zap } from 'lucide-react';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 type WorkspacesApiItem = {
   id?: string;
@@ -416,37 +418,89 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
 
   if (isSignUpMode) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6" dir="rtl">
-        <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-6 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
-          <div className="text-2xl font-black text-slate-900">הצטרפות למערכת</div>
-          <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון חדש והתחל לנהל את העסק שלך</div>
+      <div className="min-h-screen bg-white flex flex-row overflow-hidden" dir="rtl">
+        <main className="w-full flex flex-row">
 
-          {ssoErrorMessage && (
-            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold">
-              {ssoErrorMessage}
+          {/* Right Side — Brand Panel (identical to sign-in) */}
+          <div className="hidden lg:flex lg:w-1/2 bg-black relative flex-col justify-between p-12 text-white overflow-hidden">
+            <div className="absolute inset-0 opacity-30">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-pulse" />
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2" />
             </div>
-          )}
 
-          <div className="mt-6">
-            <CustomAuth mode="sign-up" onSuccess={() => {
-              const sp = new URLSearchParams(window.location.search);
-              const redirect = sp.get('redirect');
-              // Use router.push (soft nav) — avoids race condition where window.location.assign
-              // fires before the __session cookie is committed, causing middleware to reject the
-              // session and redirect back to /login?mode=sign-up.
-              // New users always land at /workspaces/new so skip the /me→/workspaces chain.
-              router.push(redirect && !redirect.startsWith('/login') ? redirect : '/workspaces/new');
-            }} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
+                  <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                </div>
+                <span className="font-bold text-3xl tracking-tight">MISRAD AI</span>
+              </div>
+              <h2 className="text-5xl font-bold leading-tight max-w-md">
+                הצטרף למערכת,<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">ברמה הבאה.</span>
+              </h2>
+            </div>
+
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full backdrop-blur-md border border-white/10">
+                  <ShieldCheck size={16} className="text-green-400" /> אבטחה מקצה לקצה
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full backdrop-blur-md border border-white/10">
+                  <Zap size={16} className="text-yellow-400" /> ביצועים מהירים
+                </div>
+              </div>
+              <p className="text-gray-500 text-xs flex items-center gap-2">
+                <span>Powered by MISRAD AI</span>
+                <span>&copy; 2026 MISRAD AI.</span>
+              </p>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => window.location.href = '/login'}
-            className="mt-6 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
-          >
-            כבר יש לך חשבון? התחבר כאן
-          </button>
-        </div>
+          {/* Left Side — Sign-Up Form */}
+          <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50 relative">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-purple-600 lg:hidden" />
+
+            <div className="w-full max-w-md">
+              <div className="mb-8 text-center lg:text-right">
+                <div className="lg:hidden flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
+                    <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-2" />
+                  </div>
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">הצטרפות למערכת</h3>
+                <p className="text-gray-500">
+                  צור חשבון חדש והתחל לנהל את העסק שלך בצורה חכמה
+                </p>
+              </div>
+
+              {ssoErrorMessage && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold">
+                  {ssoErrorMessage}
+                </div>
+              )}
+
+              <div className="bg-white p-2 rounded-3xl shadow-xl shadow-gray-200/50 border border-white">
+                <div className="p-6">
+                  <CustomAuth mode="sign-up" onSuccess={() => {
+                    const sp = new URLSearchParams(window.location.search);
+                    const redirect = sp.get('redirect');
+                    router.push(redirect && !redirect.startsWith('/login') ? redirect : '/workspaces/new');
+                  }} />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => window.location.href = '/login'}
+                className="mt-4 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
+              >
+                כבר יש לך חשבון? התחבר כאן
+              </button>
+            </div>
+          </div>
+
+        </main>
       </div>
     );
   }
