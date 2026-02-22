@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface CallButtonProps {
   /**
@@ -84,11 +85,16 @@ export const CallButton: React.FC<CallButtonProps> = ({
 
     try {
       // Call API to initiate telephony call
+      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (orgSlug) {
+        headers['x-org-id'] = encodeURIComponent(orgSlug);
+      }
       const response = await fetch('/api/telephony/call', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           to: phoneNumber,      // Destination (target phone)
           from: callerNumber    // Source (current user's phone)

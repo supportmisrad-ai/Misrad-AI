@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { CommCallAnalysis, CommPhoneTab } from './comm-view';
 import type {
   CommunicationActivity,
@@ -257,11 +258,16 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
     }
 
     try {
+      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (orgSlug) {
+        headers['x-org-id'] = encodeURIComponent(orgSlug);
+      }
       const response = await fetch('/api/telephony/call', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           to: targetNumber,
           from: callerNumber,
