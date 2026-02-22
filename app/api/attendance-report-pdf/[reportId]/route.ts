@@ -6,7 +6,7 @@ import { hasPermission } from '@/lib/auth';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getBaseUrl } from '@/lib/utils';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
-import type { DailySummaryEntry } from '@/app/actions/attendance-reports';
+import type { DailySummaryEntry } from '@/types/attendance-reports';
 
 function minutesToHHMM(minutes: number): string {
   const h = Math.floor(Math.abs(minutes) / 60);
