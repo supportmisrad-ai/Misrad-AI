@@ -11,6 +11,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { getErrorMessageFromErrorOr as getErrorMessage } from '@/lib/shared/unknown';
+import { getOrganizationEntitlements } from '@/lib/server/workspace-access/entitlements';
 type ClientClientsRow = {
   id: string;
   organization_id: string;
@@ -401,6 +402,63 @@ export async function createClient(
 
     if (!row?.id) {
       return createErrorResponse(new Error('הלקוח נוצר אך נכשל בטעינת הנתונים המלאים'), 'שגיאה בטעינת לקוח');
+    }
+
+    // ── Cross-sync: ClientClient → NexusClient (if org has Nexus module) ──
+    const metaObj = (typeof row.metadata === 'object' && row.metadata !== null ? row.metadata : {}) as Record<string, unknown>;
+    const metaSource = String(metaObj.source ?? '');
+    const skipNexusSync = metaSource === 'nexus_sync' || metaSource === 'system_leads';
+    if (!skipNexusSync) {
+      try {
+        const entitlements = await getOrganizationEntitlements(organizationId);
+        if (entitlements.nexus) {
+          const syncPhone = safeString(clientData.phone, '').trim();
+          const syncEmail = safeString(clientData.email, '').trim().toLowerCase();
+          const syncName = name || companyName;
+
+          let existingNexus: { id: string } | null = null;
+          if (syncPhone) {
+            existingNexus = await prisma.nexusClient.findFirst({
+              where: { organizationId, phone: syncPhone },
+              select: { id: true },
+            });
+          }
+          if (!existingNexus?.id && syncEmail) {
+            existingNexus = await prisma.nexusClient.findFirst({
+              where: { organizationId, email: { equals: syncEmail, mode: 'insensitive' } },
+              select: { id: true },
+            });
+          }
+
+          if (existingNexus?.id) {
+            await prisma.nexusClient.updateMany({
+              where: { id: existingNexus.id, organizationId },
+              data: {
+                name: syncName,
+                companyName,
+                email: syncEmail || undefined,
+                source: 'client_sync',
+              },
+            });
+          } else {
+            await prisma.nexusClient.create({
+              data: {
+                organizationId,
+                name: syncName,
+                companyName,
+                contactPerson: syncName,
+                email: syncEmail || '',
+                phone: syncPhone || '',
+                status: 'Active',
+                source: 'client_sync',
+              },
+              select: { id: true },
+            });
+          }
+        }
+      } catch (syncErr: unknown) {
+        console.warn('[client-clients] ClientClient→NexusClient sync failed (ignored):', getErrorMessage(syncErr, 'unknown sync error'));
+      }
     }
 
     return {

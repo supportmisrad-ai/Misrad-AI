@@ -17,6 +17,7 @@ import prisma from '@/lib/prisma';
 import { APIError, getOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { Prisma } from '@prisma/client';
+import { getOrganizationEntitlements } from '@/lib/server/workspace-access/entitlements';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -507,6 +508,47 @@ async function POSTHandler(request: NextRequest) {
             joinedAt: clientData.joinedAt,
             source: 'integration',
         };
+
+        // ── Cross-sync: NexusClient → ClientClient (if org has Client module) ──
+        try {
+            const entitlements = await getOrganizationEntitlements(String(organizationId));
+            if (entitlements.client) {
+                const syncName = companyName || contactName;
+                let existingCC: { id: string } | null = null;
+                if (normalizedEmail) {
+                    existingCC = await prisma.clientClient.findFirst({
+                        where: { organizationId: String(organizationId), email: { equals: normalizedEmail, mode: 'insensitive' } },
+                        select: { id: true },
+                    });
+                }
+
+                if (existingCC?.id) {
+                    await prisma.clientClient.updateMany({
+                        where: { id: existingCC.id, organizationId: String(organizationId) },
+                        data: {
+                            fullName: syncName,
+                            phone: normalizedPhone || undefined,
+                            email: normalizedEmail || undefined,
+                            metadata: { source: 'nexus_sync', nexusClientId: newClientId },
+                        },
+                    });
+                } else {
+                    await prisma.clientClient.create({
+                        data: {
+                            organizationId: String(organizationId),
+                            fullName: syncName,
+                            phone: normalizedPhone || null,
+                            email: normalizedEmail || null,
+                            metadata: { source: 'nexus_sync', nexusClientId: newClientId },
+                        },
+                        select: { id: true },
+                    });
+                }
+            }
+        } catch (syncErr: unknown) {
+            if (IS_PROD) console.warn('[API] Integration Nexus→ClientClient sync failed (ignored)');
+            else console.warn('[API] Integration Nexus→ClientClient sync failed:', getUnknownErrorMessage(syncErr));
+        }
 
         // 4. Create automatic invitation link for the new client
         let invitationUrl: string | null = null;
