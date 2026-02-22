@@ -1,4 +1,5 @@
 import SystemFieldMapClient from './SystemFieldMapClient';
+import { getFieldTeamsAction } from '@/app/actions/system-field-teams';
 
 export default async function SystemFieldMapPage({
   params,
@@ -7,5 +8,7 @@ export default async function SystemFieldMapPage({
 }) {
   const { orgSlug } = await params;
 
-  return <SystemFieldMapClient orgSlug={orgSlug} />;
+  const { teams } = await getFieldTeamsAction(orgSlug).catch(() => ({ teams: [] }));
+
+  return <SystemFieldMapClient orgSlug={orgSlug} initialTeams={teams} />;
 }

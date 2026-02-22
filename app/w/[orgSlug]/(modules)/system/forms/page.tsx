@@ -1,4 +1,5 @@
 import SystemFormsClient from './SystemFormsClient';
+import { getSystemFormsAction } from '@/app/actions/system-forms';
 
 export default async function SystemFormsPage({
   params,
@@ -7,5 +8,7 @@ export default async function SystemFormsPage({
 }) {
   const { orgSlug } = await params;
 
-  return <SystemFormsClient orgSlug={orgSlug} />;
+  const { forms } = await getSystemFormsAction(orgSlug).catch(() => ({ forms: [] }));
+
+  return <SystemFormsClient orgSlug={orgSlug} initialForms={forms} />;
 }

@@ -1,4 +1,5 @@
 import SystemTeamsClient from './SystemTeamsClient';
+import { getSalesTeamsAction } from '@/app/actions/system-sales-teams';
 
 export default async function SystemTeamsPage({
   params,
@@ -7,5 +8,7 @@ export default async function SystemTeamsPage({
 }) {
   const { orgSlug } = await params;
 
-  return <SystemTeamsClient orgSlug={orgSlug} />;
+  const { teams } = await getSalesTeamsAction(orgSlug).catch(() => ({ teams: [] }));
+
+  return <SystemTeamsClient orgSlug={orgSlug} initialTeams={teams} />;
 }

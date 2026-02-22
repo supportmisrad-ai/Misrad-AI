@@ -5,8 +5,10 @@ import {
     User, Bell, Shield, Building, Mail, Smartphone, 
     SquareActivity, CreditCard, Users, Plus, Trash2, Check, 
     Globe, Lock, LogOut, Receipt, FileText, TriangleAlert, 
-    Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target
+    Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target,
+    FileInput, Zap, ExternalLink
 } from 'lucide-react';
+import Link from 'next/link';
 import { INITIAL_AGENTS, STAGES } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -17,11 +19,12 @@ import { Lead } from '../types';
 interface SettingsViewProps {
   logs?: unknown[]; 
   leads?: Lead[];
+  orgSlug?: string;
 }
 
 type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications';
 
-const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' }) => {
   const { canAccess, user, isSuperAdmin, isTenantAdmin } = useAuth();
   const { addToast } = useToast();
   const { brandName, brandLogo, setBrandName, setBrandLogo } = useBrand();
@@ -112,6 +115,30 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                  גישה מוגבלת ({(userRole as unknown as string) === 'agent' ? 'סוכן' : 'צופה'})
              </div>
         )}
+      </div>
+
+      {/* Quick Tools Bar */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <Link
+          href={orgSlug ? `/w/${encodeURIComponent(orgSlug)}/system/forms` : '#'}
+          className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all group"
+        >
+          <div className="p-1.5 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100 transition-colors">
+            <FileInput size={16} />
+          </div>
+          טפסים
+          <ExternalLink size={12} className="text-slate-300 group-hover:text-slate-400" />
+        </Link>
+        <Link
+          href={orgSlug ? `/w/${encodeURIComponent(orgSlug)}/system/automations` : '#'}
+          className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all group"
+        >
+          <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 group-hover:bg-amber-100 transition-colors">
+            <Zap size={16} />
+          </div>
+          אוטומציות
+          <ExternalLink size={12} className="text-slate-300 group-hover:text-slate-400" />
+        </Link>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 flex-1 min-h-0">

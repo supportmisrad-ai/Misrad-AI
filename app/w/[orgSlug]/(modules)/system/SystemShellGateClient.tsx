@@ -7,7 +7,7 @@ import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { CallAnalysisProvider } from '@/components/system/contexts/CallAnalysisContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
-import { NAV_ITEMS } from '@/components/system/constants';
+import { NAV_ITEMS, NAV_GROUPS } from '@/components/system/constants';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
@@ -163,11 +163,14 @@ function SystemShellGateClientCore({
     />
   );
 
-  const navItems = NAV_ITEMS.map((i) => ({
-    label: i.label,
-    path: i.id === 'workspace' ? '/' : `/${i.id}`,
-    icon: i.icon,
-  }));
+  const navItems = NAV_GROUPS.flatMap((group, gi) =>
+    group.items.map((i, ii) => ({
+      label: i.label,
+      path: i.id === 'workspace' ? '/' : `/${i.id}`,
+      icon: i.icon,
+      ...(gi > 0 && ii === 0 ? { separatorBefore: true, sectionLabel: group.title || undefined } : {}),
+    }))
+  );
   const primaryNavPaths = ['/', '/sales_pipeline', '/tasks', '/calendar'];
 
   const isActiveAction = (path: string) => {

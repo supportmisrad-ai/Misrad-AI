@@ -37,11 +37,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'כלים',
     items: [
-      { id: 'forms', label: 'טפסים', icon: FileInput },
-      { id: 'automations', label: 'אוטומציות', icon: Zap },
       { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
-      { id: 'partners', label: 'שותפים', icon: Users },
-      { id: 'teams', label: 'צוותי מכירות', icon: Network },
+      { id: 'partners', label: 'שותפים', icon: Network },
+      { id: 'teams', label: 'צוותי מכירות', icon: Users },
       { id: 'field_map', label: 'צוותי שטח', icon: Map },
     ]
   },

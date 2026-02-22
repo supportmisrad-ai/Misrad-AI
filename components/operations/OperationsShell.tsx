@@ -91,10 +91,7 @@ export default function OperationsShell({
     []
   );
 
-  const primaryNavPaths = React.useMemo(
-    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors'],
-    []
-  );
+  const primaryNavPaths = undefined;
 
   // Prefetch all nav routes on mount
   React.useEffect(() => {

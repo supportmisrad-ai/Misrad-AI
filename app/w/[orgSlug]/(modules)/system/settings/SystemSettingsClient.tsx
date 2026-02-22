@@ -6,7 +6,7 @@ import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 
 export default function SystemSettingsClient({
-  orgSlug: _orgSlug,
+  orgSlug,
   initialLeads,
 }: {
   orgSlug: string;
@@ -14,5 +14,5 @@ export default function SystemSettingsClient({
 }) {
   const leads = initialLeads.map(mapDtoToLead);
 
-  return <SettingsView leads={leads} />;
+  return <SettingsView leads={leads} orgSlug={orgSlug} />;
 }

@@ -4561,6 +4561,135 @@ model Notification {
   @@ignore
 }
 
+// ─── SALES TEAMS ──────────────────────────────────────────────────
+
+enum MisradSalesTeamMemberRole {
+  LEADER
+  CLOSER
+  SDR
+  MEMBER
+}
+
+model MisradSalesTeam {
+  id              String                    @id @default(uuid()) @db.Uuid
+  organization_id String                    @db.Uuid
+  name            String
+  description     String?
+  color           String?                   @default("#6366f1")
+  target_monthly  Int?                      @default(0)
+  is_active       Boolean                   @default(true)
+  created_at      DateTime                  @default(now())
+  updated_at      DateTime                  @updatedAt
+  members         MisradSalesTeamMember[]
+
+  @@index([organization_id])
+  @@index([organization_id, is_active])
+  @@map("misrad_sales_teams")
+}
+
+model MisradSalesTeamMember {
+  id              String                    @id @default(uuid()) @db.Uuid
+  organization_id String                    @db.Uuid
+  team_id         String                    @db.Uuid
+  user_id         String?                   @db.Uuid
+  name            String
+  email           String?
+  phone           String?
+  avatar          String?
+  role            MisradSalesTeamMemberRole @default(MEMBER)
+  target_monthly  Int?                      @default(0)
+  is_active       Boolean                   @default(true)
+  created_at      DateTime                  @default(now())
+  updated_at      DateTime                  @updatedAt
+  team            MisradSalesTeam           @relation(fields: [team_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([team_id])
+  @@index([user_id])
+  @@map("misrad_sales_team_members")
+}
+
+// ─── FIELD TEAMS ──────────────────────────────────────────────────
+
+enum MisradFieldAgentStatus {
+  AVAILABLE
+  EN_ROUTE
+  ON_SITE
+  BREAK
+  OFFLINE
+}
+
+enum MisradFieldVisitStatus {
+  UPCOMING
+  CURRENT
+  COMPLETED
+  CANCELLED
+}
+
+model MisradFieldTeam {
+  id              String              @id @default(uuid()) @db.Uuid
+  organization_id String              @db.Uuid
+  name            String
+  area            String?
+  color           String?             @default("#f43f5e")
+  is_active       Boolean             @default(true)
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  agents          MisradFieldAgent[]
+
+  @@index([organization_id])
+  @@index([organization_id, is_active])
+  @@map("misrad_field_teams")
+}
+
+model MisradFieldAgent {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organization_id String                 @db.Uuid
+  team_id         String?                @db.Uuid
+  user_id         String?                @db.Uuid
+  name            String
+  phone           String?
+  avatar          String?
+  area            String?
+  status          MisradFieldAgentStatus @default(AVAILABLE)
+  lat             Float?
+  lng             Float?
+  last_location_at DateTime?
+  is_active       Boolean                @default(true)
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+  team            MisradFieldTeam?       @relation(fields: [team_id], references: [id], onDelete: SetNull)
+  visits          MisradFieldVisit[]
+
+  @@index([organization_id])
+  @@index([team_id])
+  @@index([user_id])
+  @@map("misrad_field_agents")
+}
+
+model MisradFieldVisit {
+  id              String                  @id @default(uuid()) @db.Uuid
+  organization_id String                  @db.Uuid
+  agent_id        String                  @db.Uuid
+  client_name     String
+  address         String?
+  lat             Float?
+  lng             Float?
+  scheduled_at    DateTime
+  started_at      DateTime?
+  completed_at    DateTime?
+  status          MisradFieldVisitStatus  @default(UPCOMING)
+  notes           String?
+  created_at      DateTime                @default(now())
+  updated_at      DateTime                @updatedAt
+  agent           MisradFieldAgent        @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([agent_id])
+  @@index([organization_id, scheduled_at])
+  @@map("misrad_field_visits")
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // LEGACY MODELS (1)
 // ═══════════════════════════════════════════════════════════════════
