@@ -147,7 +147,6 @@ export async function resolveStorageUrlsMaybeBatchedServiceRole(
     const sb = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'storage_signed_url_resolve' });
     return await resolveStorageUrlsMaybeBatchedWithClient(sb, inputs, ttlSeconds, scope);
   } catch (err) {
-    // DEBUG: log resolve failures (temporary — remove after fix)
     console.error('[resolveStorageUrlsMaybeBatchedServiceRole] FAILED for inputs:', inputs.map(r => r ? String(r).substring(0, 60) : r), 'error:', err instanceof Error ? err.message : err);
     return inputs.map(() => null);
   }
@@ -184,7 +183,6 @@ export async function resolveStorageUrlsMaybeBatchedWithClient(
         orgSlug: scope.orgSlug,
       });
     } catch (scopeErr) {
-      // DEBUG: log scope failures (temporary — remove after fix)
       console.error('[resolveStorage] assertStoragePathScoped REJECTED ref:', raw.substring(0, 80), 'orgId:', scope.organizationId, 'error:', scopeErr instanceof Error ? scopeErr.message : scopeErr);
       continue;
     }

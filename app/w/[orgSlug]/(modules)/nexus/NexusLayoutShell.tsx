@@ -53,9 +53,6 @@ export default async function NexusLayoutShell({
   const rawProfileAvatar = typeof profileObj.avatarUrl === 'string' ? profileObj.avatarUrl : '';
   const rawProfileName = typeof profileObj.fullName === 'string' ? profileObj.fullName : '';
 
-  // DEBUG: trace logo persistence (temporary — remove after fix)
-  console.log('[NexusLayoutShell] workspace.logo raw from DB:', workspace.logo);
-
   // Resolve sb:// refs for logo and avatar in parallel
   const [signedLogo, signedAvatar] = await Promise.all([
     workspace.logo
@@ -65,9 +62,6 @@ export default async function NexusLayoutShell({
       ? resolveStorageUrlMaybeServiceRole(rawProfileAvatar, 60 * 60, { organizationId: workspace.id })
       : Promise.resolve(rawProfileAvatar || null),
   ]);
-
-  // DEBUG: trace logo resolve result (temporary — remove after fix)
-  console.log('[NexusLayoutShell] signedLogo resolved to:', signedLogo ? signedLogo.substring(0, 80) + '...' : signedLogo);
 
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);

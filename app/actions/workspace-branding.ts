@@ -54,16 +54,13 @@ export async function saveWorkspaceLogo(params: {
     }
 
     // Direct update — Organization model doesn't need tenant scoping
-    const updated = await prisma.organization.update({
+    await prisma.organization.update({
       where: { id: workspace.id },
       data: {
         logo: params.logoRef || null,
         updated_at: new Date(),
       },
-      select: { logo: true },
     });
-
-    console.log('[saveWorkspaceLogo] saved logoRef:', params.logoRef, '| DB now has:', updated.logo);
 
     revalidatePath('/', 'layout');
     return { ok: true };
