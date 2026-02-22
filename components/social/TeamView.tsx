@@ -9,16 +9,48 @@ import { Avatar } from '@/components/Avatar';
 import { getTeamRoleDisplayName } from '@/lib/roleTranslations';
 import { getSocialBasePath } from '@/lib/os/social-routing';
 import { canManageTeamMembers } from '@/lib/rbac';
+import { translateError } from '@/lib/errorTranslations';
+import { CustomSelect } from '@/components/CustomSelect';
 
 export default function TeamView() {
   const router = useRouter();
   const pathname = usePathname();
-  const { team, clients, setSettingsSubView, userRole } = useApp();
+  const { team, clients, setSettingsSubView, userRole, addToast } = useApp();
   const [selectedMember, setSelectedMember] = useState<typeof team[0] | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('account_manager');
+  const [isInviting, setIsInviting] = useState(false);
 
   const basePath = getSocialBasePath(pathname);
   const orgSlug = basePath.startsWith('/w/') ? basePath.split('/')[2] : null;
+
+  const handleInvite = async () => {
+    if (!inviteEmail) {
+      addToast('נא להזין כתובת אימייל', 'error');
+      return;
+    }
+    setIsInviting(true);
+    try {
+      const { inviteTeamMember } = await import('@/app/actions/auth');
+      const result = await inviteTeamMember(inviteEmail, inviteRole, orgSlug || undefined);
+      if (result.success) {
+        addToast(`הזמנה נשלחה לכתובת ${inviteEmail}`, 'success');
+        setInviteEmail('');
+        setInviteRole('account_manager');
+        setIsInviteOpen(false);
+      } else {
+        const errorMsg = result.error ? translateError(result.error) : 'שגיאה בשליחת הזמנה';
+        addToast(errorMsg, 'error');
+      }
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error && error.message ? translateError(error.message) : 'שגיאה בשליחת הזמנה';
+      addToast(errorMsg, 'error');
+    } finally {
+      setIsInviting(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-10 pb-20 animate-in fade-in" dir="rtl">
@@ -37,6 +69,53 @@ export default function TeamView() {
         </div>
       </div>
 
+      {canManageTeamMembers(userRole) && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setIsInviteOpen(true)}
+            className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 shadow-lg hover:bg-slate-800 transition-all"
+          >
+            <UserPlus size={16} /> הוסף חבר צוות
+          </button>
+        </div>
+      )}
+
+      {isInviteOpen && (
+        <div className="bg-blue-50/50 p-6 rounded-[32px] border-2 border-dashed border-blue-200 flex flex-col md:flex-row gap-4 items-end animate-in fade-in">
+          <div className="flex-1 flex flex-col gap-2 w-full">
+            <label className="text-[10px] font-black text-slate-400 uppercase mr-2">כתובת אימייל</label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              placeholder='דוא"ל'
+              className="bg-white border border-slate-200 rounded-xl p-3 font-bold text-sm w-full outline-none focus:ring-2 ring-blue-200"
+            />
+          </div>
+          <div className="w-full md:w-48 flex flex-col gap-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase mr-2">תפקיד</label>
+            <CustomSelect
+              value={inviteRole}
+              onChange={(val) => setInviteRole(val)}
+              options={[
+                { value: 'account_manager', label: 'מנהל לקוח' },
+                { value: 'designer', label: 'מעצב גרפי' },
+                { value: 'content_creator', label: 'קופירייטר' },
+                { value: 'social_manager', label: 'מנהל סושיאל מדיה' },
+              ]}
+            />
+          </div>
+          <button
+            onClick={handleInvite}
+            disabled={isInviting}
+            className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-black text-xs shadow-lg h-[46px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isInviting ? 'שולח...' : 'שלח הזמנה'}
+          </button>
+          <button onClick={() => setIsInviteOpen(false)} className="p-3 text-slate-400 hover:text-slate-600"><X size={20}/></button>
+        </div>
+      )}
+
       {team.length === 0 ? (
         <div className="bg-white p-20 rounded-[48px] border border-slate-200 shadow-xl text-center flex flex-col items-center gap-6">
           <Users size={64} className="text-slate-200" />
@@ -47,12 +126,7 @@ export default function TeamView() {
           <button 
             onClick={() => {
               if (!canManageTeamMembers(userRole)) return;
-              setSettingsSubView('team_management');
-              if (orgSlug) {
-                router.push(`/w/${encodeURIComponent(orgSlug)}/social/settings`);
-                return;
-              }
-              router.push('/');
+              setIsInviteOpen(true);
             }}
             className={`bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl transition-all flex items-center gap-2 ${
               canManageTeamMembers(userRole) ? 'hover:bg-blue-700' : 'opacity-50 cursor-not-allowed'

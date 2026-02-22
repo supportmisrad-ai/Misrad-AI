@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type ContactForEdit = {
   user_id: string;
@@ -106,18 +107,17 @@ export default function EditContactModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="ec-role">תפקיד במערכת</Label>
-              <select
-                id="ec-role"
+              <CustomSelect
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(val) => setRole(val)}
                 disabled={isPending}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="contact">איש קשר</option>
-                <option value="primary">איש קשר ראשי</option>
-                <option value="billing">חיובים</option>
-                <option value="technical">טכני</option>
-              </select>
+                options={[
+                  { value: 'contact', label: 'איש קשר' },
+                  { value: 'primary', label: 'איש קשר ראשי' },
+                  { value: 'billing', label: 'חיובים' },
+                  { value: 'technical', label: 'טכני' },
+                ]}
+              />
             </div>
             <div>
               <Label htmlFor="ec-title">תפקיד בחברה</Label>

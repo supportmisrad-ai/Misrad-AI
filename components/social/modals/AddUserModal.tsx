@@ -7,6 +7,7 @@ import { createUser } from '@/app/actions/admin-users';
 import { UserRole } from '@/types/social';
 import { Button } from '@/components/ui/button';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -273,30 +274,26 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-black text-slate-400 mb-2">תפקיד</label>
-                <select
-                  ref={roleRef}
+                <CustomSelect
                   value={formData.role}
-                  onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}
-                  onKeyDown={(e) => handleKeyDown(e, planRef)}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none focus:ring-4 ring-blue-50"
-                >
-                  <option value="team_member">חבר צוות</option>
-                  <option value="owner">בעלים</option>
-                  <option value="super_admin">מנהל מערכת</option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, role: val as UserRole })}
+                  options={[
+                    { value: 'team_member', label: 'חבר צוות' },
+                    { value: 'owner', label: 'בעלים' },
+                    { value: 'super_admin', label: 'מנהל מערכת' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="block text-sm font-black text-slate-400 mb-2">חבילה</label>
-                <select
-                  ref={planRef}
+                <CustomSelect
                   value={formData.plan}
-                  onChange={e => setFormData({ ...formData, plan: e.target.value as 'free' | 'pro' })}
-                  onKeyDown={(e) => handleKeyDown(e, submitButtonRef)}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none focus:ring-4 ring-blue-50"
-                >
-                  <option value="free">Free</option>
-                  <option value="pro">PRO</option>
-                </select>
+                  onChange={(val) => setFormData({ ...formData, plan: val as 'free' | 'pro' })}
+                  options={[
+                    { value: 'free', label: 'Free' },
+                    { value: 'pro', label: 'PRO' },
+                  ]}
+                />
               </div>
             </div>
           </div>

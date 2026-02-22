@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useApp } from '@/contexts/AppContext';
 import ClientsHeaderActions from '@/components/social/clients/ClientsHeaderActions';
 import { Avatar } from '@/components/Avatar';
@@ -107,49 +108,39 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative">
-              <SlidersHorizontal size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={planFilter}
-                onChange={(e) => {
-                  setPlanFilter(e.target.value as typeof planFilter);
-                }}
-                className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
-              >
-                <option value="all">כל החבילות</option>
-                <option value="starter">Starter</option>
-                <option value="pro">Professional</option>
-                <option value="agency">Agency</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
+            <CustomSelect
+              value={planFilter}
+              onChange={(val) => setPlanFilter(val as typeof planFilter)}
+              icon={<SlidersHorizontal size={16} />}
+              options={[
+                { value: 'all', label: 'כל החבילות' },
+                { value: 'starter', label: 'Starter' },
+                { value: 'pro', label: 'Professional' },
+                { value: 'agency', label: 'Agency' },
+                { value: 'custom', label: 'Custom' },
+              ]}
+            />
 
-            <div className="relative">
-              <SlidersHorizontal size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={onboardingFilter}
-                onChange={(e) => {
-                  setOnboardingFilter(e.target.value as typeof onboardingFilter);
-                }}
-                className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
-              >
-                <option value="all">כל הסטטוסים</option>
-                <option value="invited">ממתין להקמה</option>
-                <option value="completed">הושלם</option>
-              </select>
-            </div>
+            <CustomSelect
+              value={onboardingFilter}
+              onChange={(val) => setOnboardingFilter(val as typeof onboardingFilter)}
+              icon={<SlidersHorizontal size={16} />}
+              options={[
+                { value: 'all', label: 'כל הסטטוסים' },
+                { value: 'invited', label: 'ממתין להקמה' },
+                { value: 'completed', label: 'הושלם' },
+              ]}
+            />
 
-            <div className="relative">
-              <ArrowUpDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as typeof sort)}
-                className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
-              >
-                <option value="name_asc">שם (א-ת)</option>
-                <option value="name_desc">שם (ת-א)</option>
-              </select>
-            </div>
+            <CustomSelect
+              value={sort}
+              onChange={(val) => setSort(val as typeof sort)}
+              icon={<ArrowUpDown size={16} />}
+              options={[
+                { value: 'name_asc', label: 'שם (א-ת)' },
+                { value: 'name_desc', label: 'שם (ת-א)' },
+              ]}
+            />
           </div>
         </div>
 

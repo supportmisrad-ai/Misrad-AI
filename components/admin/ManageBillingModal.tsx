@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type ManageBillingModalProps = {
   isOpen: boolean;
@@ -159,34 +160,26 @@ export default function ManageBillingModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="subscriptionPlan">תוכנית *</Label>
-                <select
-                  id="subscriptionPlan"
+                <CustomSelect
                   value={subscriptionPlan}
-                  onChange={(e) => setSubscriptionPlan(e.target.value)}
+                  onChange={(val) => setSubscriptionPlan(val)}
                   disabled={isPending}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">בחר חבילה...</option>
-                  {PLANS.map((plan) => (
-                    <option key={plan.value} value={plan.value}>
-                      {plan.label} (₪{plan.price}/מקום)
-                    </option>
-                  ))}
-                </select>
+                  placeholder="בחר חבילה..."
+                  options={PLANS.map((plan) => ({ value: plan.value, label: `${plan.label} (₪${plan.price}/מקום)` }))}
+                />
               </div>
 
               <div>
                 <Label htmlFor="billingCycle">מחזור חיוב</Label>
-                <select
-                  id="billingCycle"
+                <CustomSelect
                   value={billingCycle}
-                  onChange={(e) => setBillingCycle(e.target.value)}
+                  onChange={(val) => setBillingCycle(val)}
                   disabled={isPending}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="monthly">חודשי</option>
-                  <option value="yearly">שנתי (חסכון 15%)</option>
-                </select>
+                  options={[
+                    { value: 'monthly', label: 'חודשי' },
+                    { value: 'yearly', label: 'שנתי (חסכון 15%)' },
+                  ]}
+                />
               </div>
             </div>
 

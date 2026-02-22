@@ -386,7 +386,7 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: A
         latency: formatLatency(geminiLatency),
       },
       {
-        name: 'שער תשתית Social OS',
+        name: 'שער תשתית Social',
         status: 'תקין',
         latency: formatLatency(supabaseLatency),
       },

@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   updateOrganizationSettings,
@@ -668,18 +668,11 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
               >
                 <div>
                   <Label htmlFor="plan">חבילת מנוי</Label>
-                  <Select
-                    id="plan"
+                  <CustomSelect
                     value={packageData.subscription_plan}
-                    onChange={(e) => setPackageData({ ...packageData, subscription_plan: e.target.value })}
-                    className="mt-2"
-                  >
-                    {PLANS.map((plan) => (
-                      <option key={plan.value} value={plan.value}>
-                        {plan.label} - {plan.price}
-                      </option>
-                    ))}
-                  </Select>
+                    onChange={(val) => setPackageData({ ...packageData, subscription_plan: val })}
+                    options={PLANS.map((plan) => ({ value: plan.value, label: `${plan.label} - ${plan.price}` }))}
+                  />
                 </div>
 
                 <div>
@@ -794,18 +787,12 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                         <p className="text-sm text-gray-600 truncate">{user.email}</p>
                       </div>
 
-                      <Select
+                      <CustomSelect
                         value={user.role || 'team_member'}
-                        onChange={(e) => handleChangeUserRole(user.id, e.target.value)}
+                        onChange={(val) => handleChangeUserRole(user.id, val)}
                         disabled={saving || user.role === 'owner'}
-                        className="w-[140px]"
-                      >
-                        {ROLES.map((role) => (
-                          <option key={role.value} value={role.value}>
-                            {role.label}
-                          </option>
-                        ))}
-                      </Select>
+                        options={ROLES.map((role) => ({ value: role.value, label: role.label }))}
+                      />
 
                       <Button
                         size="sm"
@@ -1121,19 +1108,18 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                         <div>
                           <Label htmlFor="adjustment_method">אמצעי תשלום</Label>
-                          <Select
-                            id="adjustment_method"
+                          <CustomSelect
                             value={adjustmentMethod}
-                            onChange={(e) => setAdjustmentMethod(e.target.value as typeof adjustmentMethod)}
+                            onChange={(val) => setAdjustmentMethod(val as typeof adjustmentMethod)}
                             disabled={adjustingBalance}
-                            className="mt-2"
-                          >
-                            <option value="cash">מזומן</option>
-                            <option value="bit">ביט</option>
-                            <option value="bank_transfer">העברה בנקאית</option>
-                            <option value="check">צ׳ק</option>
-                            <option value="correction">תיקון ידני</option>
-                          </Select>
+                            options={[
+                              { value: 'cash', label: 'מזומן' },
+                              { value: 'bit', label: 'ביט' },
+                              { value: 'bank_transfer', label: 'העברה בנקאית' },
+                              { value: 'check', label: 'צ׳ק' },
+                              { value: 'correction', label: 'תיקון ידני' },
+                            ]}
+                          />
                         </div>
                       </div>
 

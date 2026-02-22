@@ -7,6 +7,7 @@ import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal-clinic';
 import { Skeleton } from '@/components/ui/skeletons';
+import { CustomSelect } from '@/components/CustomSelect';
 
 const SAMPLE_TRANSCRIPT = `נציג: היי דני, מה שלומך? רציתי לעדכן לגבי הקמפיין החדש.
 לקוח: האמת שאני קצת מודאג. עדיין לא קיבלנו את הלידים שהבטחתם לשבוע שעבר.
@@ -93,16 +94,12 @@ const MeetingAnalyzer: React.FC = () => {
            <div className="glass-card p-4 rounded-2xl border border-slate-200/70 space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">לקוח</label>
-                <select
-                  className="w-full bg-transparent border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:border-nexus-primary"
+                <CustomSelect
                   value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                >
-                  <option value="">(ברירת מחדל: לקוח ראשון)</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setClientId(val)}
+                  placeholder="(ברירת מחדל: לקוח ראשון)"
+                  options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">כותרת</label>
@@ -115,15 +112,15 @@ const MeetingAnalyzer: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">סוג פגישה</label>
-                <select
-                  className="w-full bg-transparent border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:border-nexus-primary"
+                <CustomSelect
                   value={location}
-                  onChange={(e) => setLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
-                >
-                  <option value="ZOOM">ZOOM</option>
-                  <option value="FRONTAL">FRONTAL</option>
-                  <option value="PHONE">PHONE</option>
-                </select>
+                  onChange={(val) => setLocation(val as 'ZOOM' | 'FRONTAL' | 'PHONE')}
+                  options={[
+                    { value: 'ZOOM', label: 'ZOOM' },
+                    { value: 'FRONTAL', label: 'FRONTAL' },
+                    { value: 'PHONE', label: 'PHONE' },
+                  ]}
+                />
               </div>
            </div>
            <div className="glass-card flex-1 p-4 rounded-2xl border border-slate-200/70 flex flex-col relative group focus-within:border-nexus-primary/50 transition-colors">

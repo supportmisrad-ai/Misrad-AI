@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { Avatar } from '@/components/Avatar';
 import PaywallModal from '@/components/shared/PaywallModal';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface TeamSettingsTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -188,16 +189,16 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                 </div>
                 <div className="w-full md:w-48 flex flex-col gap-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase mr-2">תפקיד</label>
-                  <select 
+                  <CustomSelect
                     value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-xl p-3 font-bold text-sm outline-none focus:ring-2 ring-blue-200"
-                  >
-                    <option value="account_manager">מנהל לקוח</option>
-                    <option value="designer">מעצב גרפי</option>
-                    <option value="content_creator">קופירייטר</option>
-                    <option value="social_manager">מנהל סושיאל מדיה</option>
-                  </select>
+                    onChange={(val) => setInviteRole(val)}
+                    options={[
+                      { value: 'account_manager', label: 'מנהל לקוח' },
+                      { value: 'designer', label: 'מעצב גרפי' },
+                      { value: 'content_creator', label: 'קופירייטר' },
+                      { value: 'social_manager', label: 'מנהל סושיאל מדיה' },
+                    ]}
+                  />
                 </div>
                 <button 
                   onClick={handleInvite} 
@@ -243,24 +244,24 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                                   onChange={e => setEditingMember({ ...editingMember!, name: e.target.value })}
                                   className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 font-black text-sm outline-none focus:ring-2 ring-blue-200"
                                 />
-                                <select
+                                <CustomSelect
                                   value={memberData.role}
-                                  onChange={e => setEditingMember({ ...editingMember!, role: e.target.value as TeamMemberRole })}
-                                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none focus:ring-2 ring-blue-200"
-                                >
-                                  <option value="account_manager">מנהל לקוח</option>
-                                  <option value="designer">מעצב גרפי</option>
-                                  <option value="content_creator">קופירייטר</option>
-                                  <option value="social_manager">מנהל סושיאל מדיה</option>
-                                </select>
-                                <select
+                                  onChange={(val) => setEditingMember({ ...editingMember!, role: val as TeamMemberRole })}
+                                  options={[
+                                    { value: 'account_manager', label: 'מנהל לקוח' },
+                                    { value: 'designer', label: 'מעצב גרפי' },
+                                    { value: 'content_creator', label: 'קופירייטר' },
+                                    { value: 'social_manager', label: 'מנהל סושיאל מדיה' },
+                                  ]}
+                                />
+                                <CustomSelect
                                   value={memberData.memberType}
-                                  onChange={e => setEditingMember({ ...editingMember!, memberType: e.target.value as 'employee' | 'freelancer' })}
-                                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none focus:ring-2 ring-blue-200"
-                                >
-                                  <option value="employee">עובד</option>
-                                  <option value="freelancer">פרילנסר</option>
-                                </select>
+                                  onChange={(val) => setEditingMember({ ...editingMember!, memberType: val as 'employee' | 'freelancer' })}
+                                  options={[
+                                    { value: 'employee', label: 'עובד' },
+                                    { value: 'freelancer', label: 'פרילנסר' },
+                                  ]}
+                                />
                                 {memberData.memberType === 'employee' ? (
                                   <input
                                     type="number"

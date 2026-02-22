@@ -6,6 +6,7 @@ import { HealthStatus, GroupEvent, ClientStatus } from '../types';
 import DailyBriefing from './DailyBriefing';
 import { useNexus } from '../context/ClientContext';
 import { getClientDashboardData } from '@/app/actions/client-portal-clinic';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type FeedItemType = 'RISK' | 'OPPORTUNITY' | 'OPS';
 
@@ -299,15 +300,15 @@ const Dashboard: React.FC = () => {
                       />
                     </div>
                     <div className="flex-1 sm:flex-none sm:w-44">
-                      <select
+                      <CustomSelect
                         value={mapStatus}
-                        onChange={(e) => setMapStatus(e.target.value as 'ALL' | 'ACTIVE' | 'LEAD')}
-                        className="w-full py-2.5 px-3 bg-white/50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:border-nexus-primary/30"
-                      >
-                        <option value="ALL">כל הסטטוסים</option>
-                        <option value="ACTIVE">פעיל</option>
-                        <option value="LEAD">בהמתנה</option>
-                      </select>
+                        onChange={(val) => setMapStatus(val as 'ALL' | 'ACTIVE' | 'LEAD')}
+                        options={[
+                          { value: 'ALL', label: 'כל הסטטוסים' },
+                          { value: 'ACTIVE', label: 'פעיל' },
+                          { value: 'LEAD', label: 'בהמתנה' },
+                        ]}
+                      />
                     </div>
                   </div>
                 </div>

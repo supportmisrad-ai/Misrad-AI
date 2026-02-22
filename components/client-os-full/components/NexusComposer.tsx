@@ -4,6 +4,7 @@ import { generateEmailDraft } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 import { Skeleton } from '@/components/ui/skeletons';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface NexusComposerProps {
     isOpen: boolean;
@@ -72,41 +73,39 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
             <div className="p-4 border-b border-gray-100 bg-gray-50 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-gray-500 w-20">למי שולחים?</span>
-                    <select 
+                    <CustomSelect
                         value={selectedClientId}
-                        onChange={(e) => setSelectedClientId(e.target.value)}
-                        className="flex-1 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-nexus-primary"
-                    >
-                        {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.mainContact})</option>)}
-                    </select>
+                        onChange={(val) => setSelectedClientId(val)}
+                        options={clients.map(c => ({ value: c.id, label: `${c.name} (${c.mainContact})` }))}
+                    />
                 </div>
                 <div className="flex gap-2">
                     <div className="flex items-center gap-2 flex-1">
                         <span className="text-xs font-bold text-gray-500 w-16">מה המטרה?</span>
-                        <select 
+                        <CustomSelect
                             value={intent}
-                            onChange={(e) => setIntent(e.target.value)}
-                            className="flex-1 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-nexus-primary"
-                        >
-                            <option>עדכון סטטוס</option>
-                            <option>התנצלות על עיכוב</option>
-                            <option>הצעת הרחבה</option>
-                            <option>תיאום פגישה</option>
-                            <option>ברכת חג</option>
-                        </select>
+                            onChange={(val) => setIntent(val)}
+                            options={[
+                                { value: 'עדכון סטטוס', label: 'עדכון סטטוס' },
+                                { value: 'התנצלות על עיכוב', label: 'התנצלות על עיכוב' },
+                                { value: 'הצעת הרחבה', label: 'הצעת הרחבה' },
+                                { value: 'תיאום פגישה', label: 'תיאום פגישה' },
+                                { value: 'ברכת חג', label: 'ברכת חג' },
+                            ]}
+                        />
                     </div>
                     <div className="flex items-center gap-2 flex-1">
                         <span className="text-xs font-bold text-gray-500">באיזה וייב?</span>
-                        <select 
+                        <CustomSelect
                             value={tone}
-                            onChange={(e) => setTone(e.target.value)}
-                            className="flex-1 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-nexus-primary"
-                        >
-                            <option>מקצועי</option>
-                            <option>חברי</option>
-                            <option>אסרטיבי</option>
-                            <option>אמפתי</option>
-                        </select>
+                            onChange={(val) => setTone(val)}
+                            options={[
+                                { value: 'מקצועי', label: 'מקצועי' },
+                                { value: 'חברי', label: 'חברי' },
+                                { value: 'אסרטיבי', label: 'אסרטיבי' },
+                                { value: 'אמפתי', label: 'אמפתי' },
+                            ]}
+                        />
                     </div>
                 </div>
             </div>

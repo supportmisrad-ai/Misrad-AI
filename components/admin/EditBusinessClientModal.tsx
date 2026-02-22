@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type EditBusinessClientModalProps = {
   isOpen: boolean;
@@ -176,10 +177,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
               </div>
               <div>
                 <Label htmlFor="legalEntityType">סוג ישות משפטית</Label>
-                <select id="legalEntityType" value={legalEntityType} onChange={(e) => setLegalEntityType(e.target.value)} disabled={isPending} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
-                  <option value="">בחר...</option>
-                  {LEGAL_ENTITY_TYPES.map((type) => (<option key={type} value={type}>{type}</option>))}
-                </select>
+                <CustomSelect value={legalEntityType} onChange={(val) => setLegalEntityType(val)} disabled={isPending} placeholder="בחר..." options={LEGAL_ENTITY_TYPES.map((type) => ({ value: type, label: type }))} />
               </div>
             </div>
           </div>
@@ -228,17 +226,11 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="industry">תחום עיסוק</Label>
-                <select id="industry" value={industry} onChange={(e) => setIndustry(e.target.value)} disabled={isPending} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
-                  <option value="">בחר...</option>
-                  {INDUSTRIES.map((ind) => (<option key={ind} value={ind}>{ind}</option>))}
-                </select>
+                <CustomSelect value={industry} onChange={(val) => setIndustry(val)} disabled={isPending} placeholder="בחר..." options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))} />
               </div>
               <div>
                 <Label htmlFor="companySize">גודל חברה</Label>
-                <select id="companySize" value={companySize} onChange={(e) => setCompanySize(e.target.value)} disabled={isPending} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
-                  <option value="">בחר...</option>
-                  {COMPANY_SIZES.map((size) => (<option key={size} value={size}>{size} עובדים</option>))}
-                </select>
+                <CustomSelect value={companySize} onChange={(val) => setCompanySize(val)} disabled={isPending} placeholder="בחר..." options={COMPANY_SIZES.map((size) => ({ value: size, label: `${size} עובדים` }))} />
               </div>
               <div>
                 <Label htmlFor="leadSource">מקור ליד</Label>

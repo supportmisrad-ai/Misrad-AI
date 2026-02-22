@@ -7,6 +7,7 @@ import { updatePaymentOrderStatus, updateInvoiceStatus } from '@/app/actions/adm
 import { adminMarkSubscriptionOrderPaid } from '@/app/actions/subscription-orders-admin';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 import { getPackageLabelHe } from '@/lib/billing/plan-labels';
 import type { PackageType } from '@/lib/server/workspace';
 
@@ -376,19 +377,19 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
 
                     <div className="md:col-span-1">
                       <div className="text-xs font-black text-slate-600 mb-2">Payment Method</div>
-                      <select
+                      <CustomSelect
                         value={configs[pkg]?.paymentMethod ?? 'manual'}
-                        onChange={(e) =>
+                        onChange={(val) =>
                           setConfigs((prev) => ({
                             ...prev,
-                            [pkg]: { ...prev[pkg], paymentMethod: e.target.value === 'automatic' ? 'automatic' : 'manual' },
+                            [pkg]: { ...prev[pkg], paymentMethod: val === 'automatic' ? 'automatic' : 'manual' },
                           }))
                         }
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
-                      >
-                        <option value="manual">manual (QR + הוכחה)</option>
-                        <option value="automatic">automatic (ישראכרט/Grow)</option>
-                      </select>
+                        options={[
+                          { value: 'manual', label: 'manual (QR + הוכחה)' },
+                          { value: 'automatic', label: 'automatic (ישראכרט/Grow)' },
+                        ]}
+                      />
                     </div>
 
                     <div className="md:col-span-1">
@@ -481,23 +482,22 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                           <p className="text-sm text-slate-600">{new Date(order.created_at).toLocaleDateString('he-IL')}</p>
                         </td>
                         <td className="p-4">
-                          <select
+                          <CustomSelect
                             value={order.status}
-                            onChange={async (e) => {
-                              const next = e.target.value;
-                              if (next !== 'pending' && next !== 'paid' && next !== 'cancelled') return;
-                              const result = await updatePaymentOrderStatus(order.id, next);
+                            onChange={async (val) => {
+                              if (val !== 'pending' && val !== 'paid' && val !== 'cancelled') return;
+                              const result = await updatePaymentOrderStatus(order.id, val);
                               if (result.success) {
                                 addToast('סטטוס עודכן', 'success');
                                 onRefresh();
                               }
                             }}
-                            className="bg-white border border-indigo-200 rounded-lg px-3 py-1 text-sm outline-none focus:border-indigo-400"
-                          >
-                            <option value="pending">ממתין</option>
-                            <option value="paid">שולם</option>
-                            <option value="cancelled">בוטל</option>
-                          </select>
+                            options={[
+                              { value: 'pending', label: 'ממתין' },
+                              { value: 'paid', label: 'שולם' },
+                              { value: 'cancelled', label: 'בוטל' },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -555,23 +555,22 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                           <p className="text-sm text-slate-600">{new Date(invoice.date || invoice.created_at).toLocaleDateString('he-IL')}</p>
                         </td>
                         <td className="p-4">
-                          <select
+                          <CustomSelect
                             value={invoice.status}
-                            onChange={async (e) => {
-                              const next = e.target.value;
-                              if (next !== 'pending' && next !== 'paid' && next !== 'overdue') return;
-                              const result = await updateInvoiceStatus(invoice.id, next);
+                            onChange={async (val) => {
+                              if (val !== 'pending' && val !== 'paid' && val !== 'overdue') return;
+                              const result = await updateInvoiceStatus(invoice.id, val);
                               if (result.success) {
                                 addToast('סטטוס עודכן', 'success');
                                 onRefresh();
                               }
                             }}
-                            className="bg-white border border-purple-200 rounded-lg px-3 py-1 text-sm outline-none focus:border-purple-400"
-                          >
-                            <option value="pending">ממתין</option>
-                            <option value="paid">שולם</option>
-                            <option value="overdue">בפיגור</option>
-                          </select>
+                            options={[
+                              { value: 'pending', label: 'ממתין' },
+                              { value: 'paid', label: 'שולם' },
+                              { value: 'overdue', label: 'בפיגור' },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}

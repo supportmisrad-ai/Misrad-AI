@@ -132,7 +132,7 @@ export async function getUserPurchasedModules(userId: string, orgSlug?: string |
  * Priority order:
  * 1. Nexus (if purchased) - default/main module
  * 2. System OS (if purchased)
- * 3. Social OS (if purchased)
+ * 3. Social (if purchased)
  * 4. Finance OS (if purchased)
  * 5. Client OS (if purchased)
  * 

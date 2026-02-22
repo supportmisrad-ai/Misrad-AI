@@ -15,6 +15,7 @@ import {
   type UserLite,
 } from '@/app/actions/admin-organizations';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type CreateFormState = {
   name: string;
@@ -420,18 +421,15 @@ export default function OrganizationsTab() {
                 }}
                 className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
               />
-              <select
+              <CustomSelect
                 value={createForm.ownerUserId}
-                onChange={(e) => setCreateForm((s) => ({ ...s, ownerUserId: e.target.value }))}
-                className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
-              >
-                <option value="">בחר Owner (social_users)</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {(u.full_name || u.email || u.clerk_user_id) + (u.email ? ` (${u.email})` : '')}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setCreateForm((s) => ({ ...s, ownerUserId: val }))}
+                placeholder="בחר Owner (social_users)"
+                options={users.map((u) => ({
+                  value: u.id,
+                  label: (u.full_name || u.email || u.clerk_user_id) + (u.email ? ` (${u.email})` : ''),
+                }))}
+              />
             </div>
 
             <div className="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
@@ -539,17 +537,14 @@ export default function OrganizationsTab() {
                     <td className="p-6 align-top">
                       <div className="flex flex-col gap-2">
                         <p className="text-sm font-bold text-slate-700">{org.owner?.email || org.owner_id}</p>
-                        <select
+                        <CustomSelect
                           value={org.owner_id}
-                          onChange={(e) => updateOwner(org.id, e.target.value)}
-                          className="bg-white border border-indigo-200 rounded-xl px-3 py-2 text-slate-900 text-xs outline-none focus:border-indigo-400"
-                        >
-                          {users.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {(u.full_name || u.email || u.clerk_user_id) + (u.email ? ` (${u.email})` : '')}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => updateOwner(org.id, val)}
+                          options={users.map((u) => ({
+                            value: u.id,
+                            label: (u.full_name || u.email || u.clerk_user_id) + (u.email ? ` (${u.email})` : ''),
+                          }))}
+                        />
                       </div>
                     </td>
 

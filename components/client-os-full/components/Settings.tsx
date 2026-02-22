@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Save, Shield, DollarSign, Cpu, Bell, Building2, Key, Info, GitMerge, TriangleAlert, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { GlassCard } from './ui/GlassCard';
+import { CustomSelect } from '@/components/CustomSelect';
 
 import { UPSELL_CATALOG } from '../constants';
 
@@ -20,6 +21,7 @@ const Settings: React.FC = () => {
   const [catalog, setCatalog] = useState(() => ([] as typeof UPSELL_CATALOG));
   const [npsThreshold, setNpsThreshold] = useState(0);
   const [surveyFrequency, setSurveyFrequency] = useState('');
+  const [currency, setCurrency] = useState('שקל (₪)');
   
   // Bug fix: Manage files in state
   const [companyFiles, setCompanyFiles] = useState<{ name: string; id: string }[]>([]);
@@ -54,11 +56,15 @@ const Settings: React.FC = () => {
                </div>
                <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">באיזה כסף עובדים</label>
-                  <select className="w-full bg-white border border-gray-200 rounded-xl p-3 text-gray-900 focus:border-nexus-primary focus:outline-none transition-colors">
-                     <option>דולר ($)</option>
-                     <option>שקל (₪)</option>
-                     <option>אירו (€)</option>
-                  </select>
+                  <CustomSelect
+                    value={currency}
+                    onChange={(val) => setCurrency(val)}
+                    options={[
+                      { value: 'דולר ($)', label: 'דולר ($)' },
+                      { value: 'שקל (₪)', label: 'שקל (₪)' },
+                      { value: 'אירו (€)', label: 'אירו (€)' },
+                    ]}
+                  />
                </div>
             </div>
 
@@ -274,16 +280,16 @@ const Settings: React.FC = () => {
                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                    <Clock size={20} className="text-gray-400"/>
                    <span className="text-sm font-bold text-gray-700">שלח סקר כל:</span>
-                   <select 
+                   <CustomSelect
                       value={surveyFrequency}
-                      onChange={(e) => setSurveyFrequency(e.target.value)}
-                      className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-nexus-primary focus:border-nexus-primary block p-2.5 outline-none font-bold"
-                   >
-                       <option value="30">30 יום</option>
-                       <option value="60">60 יום</option>
-                       <option value="90">90 יום (רבעון)</option>
-                       <option value="180">180 יום (חצי שנה)</option>
-                   </select>
+                      onChange={(val) => setSurveyFrequency(val)}
+                      options={[
+                        { value: '30', label: '30 יום' },
+                        { value: '60', label: '60 יום' },
+                        { value: '90', label: '90 יום (רבעון)' },
+                        { value: '180', label: '180 יום (חצי שנה)' },
+                      ]}
+                   />
                </div>
             </div>
 

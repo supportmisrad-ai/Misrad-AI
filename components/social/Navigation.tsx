@@ -167,10 +167,10 @@ function NavigationImpl({
           {isSidebarOpen && (
             <div className="flex flex-col min-w-0">
               <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent truncate">
-                Social OS
+                Social
               </span>
               <span className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase truncate">
-                SOCIAL
+                MISRAD AI
               </span>
             </div>
           )}

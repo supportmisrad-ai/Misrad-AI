@@ -10,6 +10,7 @@ import { useAuth } from '@clerk/nextjs';
 import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface MeetingsPageClientProps {
   initialMeetings: Meeting[];
@@ -464,16 +465,13 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                     <div className="space-y-2">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">בחירת לקוח</label>
                         <div className="flex gap-2">
-                            <select 
-                            className="flex-1 bg-slate-50 border-slate-200 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-                            value={selectedClientId}
-                            onChange={(e) => setSelectedClientId(e.target.value)}
-                            >
-                            <option value="">בחר לקוח מתוך הרשימה...</option>
-                            {initialClients.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                            </select>
+                            <CustomSelect
+                              className="flex-1"
+                              value={selectedClientId}
+                              onChange={(val) => setSelectedClientId(val)}
+                              placeholder="בחר לקוח מתוך הרשימה..."
+                              options={initialClients.map(c => ({ value: c.id, label: c.name }))}
+                            />
                             <button
                                 onClick={() => setIsAddingClient(!isAddingClient)}
                                 className={`p-4 rounded-2xl transition-all border ${isAddingClient ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-slate-400 border-slate-200 hover:border-primary hover:text-primary'}`}
@@ -486,15 +484,15 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
 
                     <div className="space-y-2">
                         <label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">מיקום / סוג</label>
-                        <select 
-                        className="w-full bg-slate-50 border-slate-200 rounded-2xl p-4 font-bold focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-                        value={newMeetingLocation}
-                        onChange={(e) => setNewMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
-                        >
-                        <option value="ZOOM">שיחת ZOOM / וידאו</option>
-                        <option value="FRONTAL">פגישה פרונטלית</option>
-                        <option value="PHONE">שיחה טלפונית</option>
-                        </select>
+                        <CustomSelect
+                          value={newMeetingLocation}
+                          onChange={(val) => setNewMeetingLocation(val as 'ZOOM' | 'FRONTAL' | 'PHONE')}
+                          options={[
+                            { value: 'ZOOM', label: 'שיחת ZOOM / וידאו' },
+                            { value: 'FRONTAL', label: 'פגישה פרונטלית' },
+                            { value: 'PHONE', label: 'שיחה טלפונית' },
+                          ]}
+                        />
                     </div>
                   </div>
 
@@ -699,28 +697,24 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       <div className="lg:col-span-2 ui-card p-6 flex flex-col justify-center bg-white">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">סינון לפי לקוח</label>
-                          <select
-                              className="w-full bg-slate-50 border-transparent rounded-2xl p-4 font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none border border-slate-100"
+                          <CustomSelect
                               value={selectedClientId}
-                              onChange={(e) => setSelectedClientId(e.target.value)}
-                          >
-                              <option value="">כל הלקוחות (הצג הכל)</option>
-                              {initialClients.map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                          </select>
+                              onChange={(val) => setSelectedClientId(val)}
+                              placeholder="כל הלקוחות (הצג הכל)"
+                              options={initialClients.map((c) => ({ value: c.id, label: c.name }))}
+                          />
                       </div>
                       <div className="lg:col-span-1 ui-card p-6 flex flex-col justify-center bg-white">
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">סוג פגישה</label>
-                          <select
-                              className="w-full bg-slate-50 border-transparent rounded-2xl p-4 font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none border border-slate-100"
+                          <CustomSelect
                               value={meetingLocation}
-                              onChange={(e) => setMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
-                          >
-                              <option value="ZOOM">ZOOM / וידאו</option>
-                              <option value="FRONTAL">פרונטלי</option>
-                              <option value="PHONE">טלפון</option>
-                          </select>
+                              onChange={(val) => setMeetingLocation(val as 'ZOOM' | 'FRONTAL' | 'PHONE')}
+                              options={[
+                                  { value: 'ZOOM', label: 'ZOOM / וידאו' },
+                                  { value: 'FRONTAL', label: 'פרונטלי' },
+                                  { value: 'PHONE', label: 'טלפון' },
+                              ]}
+                          />
                       </div>
                       <div className="lg:col-span-1 bg-primary rounded-[2rem] p-6 flex flex-col justify-center text-white shadow-lg shadow-primary/20 relative overflow-hidden group hover:scale-[1.02] transition-all cursor-default">
                           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">

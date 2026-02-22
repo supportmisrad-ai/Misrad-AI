@@ -56,7 +56,7 @@ export default function ClientWorkspace() {
   const clientIdeas = ideas.filter(i => i.clientId === activeClient.id);
   const clientConversations = conversations.filter(c => c.clientId === activeClient.id);
   
-  const portalLink = `social-os.com/portal/${activeClient.portalToken}`;
+  const portalLink = `misrad-ai.com/portal/${activeClient.portalToken}`;
 
   const handleCopyLink = () => {
     setIsCopyingLink(true);

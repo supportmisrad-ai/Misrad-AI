@@ -1,7 +1,7 @@
 /**
- * Social OS Integration Utilities
+ * Social Integration Utilities
  * 
- * Helper functions for integrating Social OS with external services
+ * Helper functions for integrating Social module with external services
  * and managing social media content and campaigns.
  */
 

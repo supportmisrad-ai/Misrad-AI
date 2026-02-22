@@ -886,7 +886,7 @@ function getLinks(): HubLink[] {
     },
     {
       id: 'workspace-social',
-      title: 'Social OS',
+      title: 'Social',
       href: '/w/{orgSlug}/social',
       category: 'מערכת (Workspace)',
       icon: Briefcase,

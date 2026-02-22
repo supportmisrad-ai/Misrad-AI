@@ -6,6 +6,7 @@ import { MeetingAnalysisResult } from '../types';
 import { UploadCloud, Video, Mic, MicOff, Zap } from 'lucide-react';
 import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
+import { CustomSelect } from '@/components/CustomSelect';
 
 import { useAuth } from '@clerk/nextjs';
 import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
@@ -421,28 +422,24 @@ const MeetingIntelligence: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
                 <div className="text-gray-400 uppercase text-[10px] font-bold mb-2">לקוח</div>
-                <select
-                  className="w-full bg-transparent border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
+                <CustomSelect
                   value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                >
-                  <option value="">(ברירת מחדל: לקוח ראשון)</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedClientId(val)}
+                  placeholder="(ברירת מחדל: לקוח ראשון)"
+                  options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                />
               </div>
               <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
                 <div className="text-gray-400 uppercase text-[10px] font-bold mb-2">סוג פגישה</div>
-                <select
-                  className="w-full bg-transparent border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
+                <CustomSelect
                   value={meetingLocation}
-                  onChange={(e) => setMeetingLocation(e.target.value as 'ZOOM' | 'FRONTAL' | 'PHONE')}
-                >
-                  <option value="ZOOM">ZOOM</option>
-                  <option value="FRONTAL">FRONTAL</option>
-                  <option value="PHONE">PHONE</option>
-                </select>
+                  onChange={(val) => setMeetingLocation(val as 'ZOOM' | 'FRONTAL' | 'PHONE')}
+                  options={[
+                    { value: 'ZOOM', label: 'ZOOM' },
+                    { value: 'FRONTAL', label: 'FRONTAL' },
+                    { value: 'PHONE', label: 'PHONE' },
+                  ]}
+                />
               </div>
             </div>
             <div className="relative border-2 border-dashed border-slate-200/70 rounded-3xl p-12 text-center bg-white hover:border-nexus-primary transition-all cursor-pointer">

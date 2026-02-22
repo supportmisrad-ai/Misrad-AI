@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { SetupCustomerInput } from '@/app/actions/setup-customer-wizard';
+import { CustomSelect } from '@/components/CustomSelect';
 
 const STEPS = [
   { id: 1, title: 'פרטי החברה', icon: Building2, description: 'מידע על הלקוח המשלם' },
@@ -376,20 +377,12 @@ export default function SetupCustomerWizard() {
 
                 <div>
                   <Label htmlFor="legal_entity_type">סוג ישות משפטית</Label>
-                  <select
-                    id="legal_entity_type"
-                    value={data.businessClient.legal_entity_type}
-                    onChange={(e) => updateData('businessClient', 'legal_entity_type', e.target.value)}
-                    className="mt-2 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-right bg-white"
-                    dir="rtl"
-                  >
-                    <option value="">בחר...</option>
-                    {LEGAL_ENTITY_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={data.businessClient.legal_entity_type || ''}
+                    onChange={(val) => updateData('businessClient', 'legal_entity_type', val)}
+                    placeholder="בחר..."
+                    options={LEGAL_ENTITY_TYPES.map((type) => ({ value: type, label: type }))}
+                  />
                 </div>
 
                 <div>
@@ -417,38 +410,22 @@ export default function SetupCustomerWizard() {
 
                 <div>
                   <Label htmlFor="industry">תחום עיסוק</Label>
-                  <select
-                    id="industry"
-                    value={data.businessClient.industry}
-                    onChange={(e) => updateData('businessClient', 'industry', e.target.value)}
-                    className="mt-2 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-right bg-white"
-                    dir="rtl"
-                  >
-                    <option value="">בחר...</option>
-                    {INDUSTRIES.map((ind) => (
-                      <option key={ind} value={ind}>
-                        {ind}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={data.businessClient.industry || ''}
+                    onChange={(val) => updateData('businessClient', 'industry', val)}
+                    placeholder="בחר..."
+                    options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="company_size">גודל חברה</Label>
-                  <select
-                    id="company_size"
-                    value={data.businessClient.company_size}
-                    onChange={(e) => updateData('businessClient', 'company_size', e.target.value)}
-                    className="mt-2 w-full px-4 py-2.5 border border-gray-300 rounded-lg text-right bg-white"
-                    dir="rtl"
-                  >
-                    <option value="">בחר...</option>
-                    {COMPANY_SIZES.map((size) => (
-                      <option key={size} value={size}>
-                        {size} עובדים
-                      </option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={data.businessClient.company_size || ''}
+                    onChange={(val) => updateData('businessClient', 'company_size', val)}
+                    placeholder="בחר..."
+                    options={COMPANY_SIZES.map((size) => ({ value: size, label: `${size} עובדים` }))}
+                  />
                 </div>
 
                 <div className="md:col-span-2">

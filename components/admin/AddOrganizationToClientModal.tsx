@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type AddOrganizationToClientModalProps = {
   isOpen: boolean;
@@ -219,11 +220,9 @@ export default function AddOrganizationToClientModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="subscriptionPlan">חבילת מנוי</Label>
-                <select
-                  id="subscriptionPlan"
+                <CustomSelect
                   value={subscriptionPlan}
-                  onChange={(e) => {
-                    const plan = e.target.value;
+                  onChange={(plan) => {
                     setSubscriptionPlan(plan);
                     if (plan === 'solo') {
                       setHasNexus(false); setHasSocial(false); setHasFinance(false); setHasClient(false); setHasOperations(false);
@@ -239,15 +238,15 @@ export default function AddOrganizationToClientModal({
                     }
                   }}
                   disabled={isPending || !primaryContactUserId}
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">ללא חבילה (ניסיון)</option>
-                  <option value="solo">🎯 מודול בודד — ₪149</option>
-                  <option value="the_closer">💼 מכירות — ₪249</option>
-                  <option value="the_authority">🎨 שיווק ומיתוג — ₪349</option>
-                  <option value="the_operator">🔧 תפעול ושטח — ₪349</option>
-                  <option value="the_empire">👑 הכל כלול — ₪499</option>
-                </select>
+                  placeholder="ללא חבילה (ניסיון)"
+                  options={[
+                    { value: 'solo', label: '🎯 מודול בודד — ₪149' },
+                    { value: 'the_closer', label: '💼 מכירות — ₪249' },
+                    { value: 'the_authority', label: '🎨 שיווק ומיתוג — ₪349' },
+                    { value: 'the_operator', label: '🔧 תפעול ושטח — ₪349' },
+                    { value: 'the_empire', label: '👑 הכל כלול — ₪499' },
+                  ]}
+                />
               </div>
 
               <div>

@@ -86,7 +86,7 @@ export default function NotFound() {
             </Link>
             <span className="text-gray-300">|</span>
             <Link href="/app/social" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Social OS
+              Social
             </Link>
             <span className="text-gray-300">|</span>
             <Link href="/app/client" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">

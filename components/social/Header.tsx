@@ -319,7 +319,7 @@ export default function Header() {
   );
 
   const mobileBrand = {
-    name: 'Social OS',
+    name: 'Social',
     logoUrl: null,
     fallbackIcon: <OSModuleSquircleIcon moduleKey="social" boxSize={32} iconSize={16} className="shadow-none" />,
     badgeModuleKey: 'social' as OSModuleKey,

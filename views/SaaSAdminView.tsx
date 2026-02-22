@@ -614,7 +614,7 @@ export const SaaSAdminView: React.FC = () => {
                     </div>
                 )}
 
-                    {/* Social OS Button */}
+                    {/* Social Button */}
                     <button
                         onClick={() => setSelectedSystem(selectedSystem === 'social' ? null : 'social')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
@@ -978,7 +978,7 @@ export const SaaSAdminView: React.FC = () => {
                             </>
                         )}
 
-                        {/* Social OS Content */}
+                        {/* Social Content */}
                         {selectedSystem === 'social' && (
                             <>
                                 {!currentUser?.isSuperAdmin ? (

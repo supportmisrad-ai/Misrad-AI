@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type AddContactToClientModalProps = {
   isOpen: boolean;
@@ -251,18 +252,17 @@ export default function AddContactToClientModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="role">תפקיד במערכת</Label>
-                    <select
-                      id="role"
+                    <CustomSelect
                       value={role}
-                      onChange={(e) => setRole(e.target.value)}
+                      onChange={(val) => setRole(val)}
                       disabled={isPending}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="contact">איש קשר</option>
-                      <option value="primary">איש קשר ראשי</option>
-                      <option value="billing">חיובים</option>
-                      <option value="technical">טכני</option>
-                    </select>
+                      options={[
+                        { value: 'contact', label: 'איש קשר' },
+                        { value: 'primary', label: 'איש קשר ראשי' },
+                        { value: 'billing', label: 'חיובים' },
+                        { value: 'technical', label: 'טכני' },
+                      ]}
+                    />
                   </div>
 
                   <div>
