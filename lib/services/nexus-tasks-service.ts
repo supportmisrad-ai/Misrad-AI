@@ -85,6 +85,8 @@ export async function findNexusTaskByShareToken(
       source: 'guest_task_share',
       reason: 'public_guest_task_lookup_by_share_token',
       organizationId: '',
+      mode: 'global_admin',
+      isSuperAdmin: true,
       suppressReporting: true,
     },
     async () =>
@@ -98,6 +100,8 @@ export async function findNexusTaskByShareToken(
             source: 'guest_task_share',
             reason: 'public_guest_task_lookup_by_share_token',
             organizationId: '',
+            mode: 'global_admin',
+            isSuperAdmin: true,
             suppressReporting: true,
           }
         )
@@ -117,6 +121,8 @@ export async function findNexusTaskByIdPublic(
       source: 'guest_task_share',
       reason: 'public_guest_task_lookup_by_id_backward_compat',
       organizationId: '',
+      mode: 'global_admin',
+      isSuperAdmin: true,
       suppressReporting: true,
     },
     async () =>
@@ -130,6 +136,8 @@ export async function findNexusTaskByIdPublic(
             source: 'guest_task_share',
             reason: 'public_guest_task_lookup_by_id_backward_compat',
             organizationId: '',
+            mode: 'global_admin',
+            isSuperAdmin: true,
             suppressReporting: true,
           }
         )

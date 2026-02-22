@@ -4,12 +4,17 @@ import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 
 /**
  * Save a logo reference (sb:// URI) to the workspace's organization row.
  * Requires the caller to be the org owner or an admin-level role.
+ *
+ * NOTE: Organization model has no organizationId field — it IS the tenant.
+ * The tenant guard skips it automatically, so withTenantIsolationContext
+ * is unnecessary here. We use enterTenantIsolationContext only to satisfy
+ * the guard for the authorization queries above.
  */
 export async function saveWorkspaceLogo(params: {
   orgSlug: string;
@@ -19,6 +24,14 @@ export async function saveWorkspaceLogo(params: {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) return { ok: false, error: 'Unauthorized' };
+
+    // Set tenant context for authorization queries
+    enterTenantIsolationContext({
+      source: 'actions/workspace-branding.saveWorkspaceLogo',
+      reason: 'owner_update_logo',
+      mode: 'default',
+      organizationId: workspace.id,
+    });
 
     // Check the caller is org owner or admin
     const dbUser = await prisma.organizationUser.findUnique({
@@ -40,30 +53,17 @@ export async function saveWorkspaceLogo(params: {
       return { ok: false, error: 'רק הבעלים או אדמין יכולים לעדכן את הלוגו' };
     }
 
-    await withTenantIsolationContext(
-      {
-        source: 'actions/workspace-branding.saveWorkspaceLogo',
-        reason: 'owner_update_logo',
-        mode: 'default',
-        organizationId: workspace.id,
-      },
-      async () => {
-        await prisma.organization.update({
-          where: { id: workspace.id },
-          data: {
-            logo: params.logoRef || null,
-            updated_at: new Date(),
-          },
-        });
-      },
-    );
-
-    // DEBUG: verify logo was saved (temporary — remove after fix)
-    const verify = await prisma.organization.findUnique({
+    // Direct update — Organization model doesn't need tenant scoping
+    const updated = await prisma.organization.update({
       where: { id: workspace.id },
+      data: {
+        logo: params.logoRef || null,
+        updated_at: new Date(),
+      },
       select: { logo: true },
     });
-    console.log('[saveWorkspaceLogo] saved logoRef:', params.logoRef, '| DB now has:', verify?.logo);
+
+    console.log('[saveWorkspaceLogo] saved logoRef:', params.logoRef, '| DB now has:', updated.logo);
 
     revalidatePath('/', 'layout');
     return { ok: true };
