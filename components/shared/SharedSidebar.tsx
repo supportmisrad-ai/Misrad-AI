@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useRef, useState } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -28,6 +29,7 @@ export function SharedSidebar({
   containerClassName,
   showCollapseControls = true,
   secondaryDefaultOpen = false,
+  linkHrefPrefix,
 }: {
   isOpen: boolean;
   onSetOpenAction: (open: boolean) => void;
@@ -49,6 +51,7 @@ export function SharedSidebar({
   containerClassName?: string;
   showCollapseControls?: boolean;
   secondaryDefaultOpen?: boolean;
+  linkHrefPrefix?: string;
 }) {
   const STORAGE_KEY = 'sidebar-secondary-open';
   const userToggledRef = useRef(false);
@@ -185,7 +188,7 @@ export function SharedSidebar({
 
         <nav className="flex-1 space-y-1.5 mt-2 overflow-y-auto no-scrollbar">
           {primaryItems.map((item) => (
-            <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} />
+            <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} linkHrefPrefix={linkHrefPrefix} />
           ))}
 
           {hasSecondary ? (
@@ -221,7 +224,7 @@ export function SharedSidebar({
                     className="overflow-hidden space-y-1.5"
                   >
                     {secondaryItems.map((item) => (
-                      <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} />
+                      <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} linkHrefPrefix={linkHrefPrefix} />
                     ))}
                   </motion.div>
                 ) : null}
@@ -247,26 +250,26 @@ function NavButton({
   isOpen,
   isActiveAction,
   onNavigateAction,
+  linkHrefPrefix,
 }: {
   item: SharedNavItem;
   isOpen: boolean;
   isActiveAction: (path: string) => boolean;
   onNavigateAction: (path: string) => void;
+  linkHrefPrefix?: string;
 }) {
   const active = isActiveAction(item.path);
-  return (
-    <button
-      onClick={() => onNavigateAction(item.path)}
-      className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative
-        ${
-          active
-            ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-[0_2px_8px_var(--os-sidebar-active-shadow,rgba(17,24,39,0.12))] font-bold'
-            : 'text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)]'
-        }
-        ${!isOpen ? 'justify-center px-0 aspect-square' : ''}`}
-      aria-label={item.label}
-      type="button"
-    >
+
+  const sharedClassName = `w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative
+    ${
+      active
+        ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-[0_2px_8px_var(--os-sidebar-active-shadow,rgba(17,24,39,0.12))] font-bold'
+        : 'text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)]'
+    }
+    ${!isOpen ? 'justify-center px-0 aspect-square' : ''}`;
+
+  const innerContent = (
+    <>
       {active ? (
         <motion.div
           layoutId="activeTab"
@@ -289,6 +292,35 @@ function NavButton({
       </span>
 
       {isOpen ? <span className="relative z-10">{item.label}</span> : null}
+    </>
+  );
+
+  const resolvedHref = linkHrefPrefix
+    ? `${linkHrefPrefix}${item.path === '/' ? '' : item.path}`
+    : undefined;
+
+  if (resolvedHref) {
+    return (
+      <Link
+        href={resolvedHref}
+        prefetch={true}
+        onClick={() => onNavigateAction(item.path)}
+        className={sharedClassName}
+        aria-label={item.label}
+      >
+        {innerContent}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => onNavigateAction(item.path)}
+      className={sharedClassName}
+      aria-label={item.label}
+      type="button"
+    >
+      {innerContent}
     </button>
   );
 }

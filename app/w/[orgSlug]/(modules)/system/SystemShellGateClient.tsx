@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bell, CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users } from 'lucide-react';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
@@ -109,6 +109,16 @@ function SystemShellGateClientCore({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isPlusFanOpen, setIsPlusFanOpen] = useState(false);
   const [isCalendarPlusOpen, setIsCalendarPlusOpen] = useState(false);
+  const [, startTransition] = useTransition();
+
+  // Prefetch all nav routes on mount for instant navigation
+  useEffect(() => {
+    const items = NAV_ITEMS;
+    items.forEach((item) => {
+      const href = `${basePath}${item.id === 'workspace' ? '' : `/${item.id}`}`;
+      router.prefetch(href);
+    });
+  }, [basePath, router]);
 
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
   if (!shouldWrapWithShell) {
@@ -169,13 +179,21 @@ function SystemShellGateClientCore({
     return currentPath === href || currentPath.startsWith(`${href}/`);
   };
 
-  const onNavigateAction = (path: string) => {
-    const href = `${basePath}${path === '/' ? '' : path}`;
-    router.push(href);
+  // Side-effects-only callback for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = useCallback((path: string) => {
     setIsMobileMenuOpen(false);
     setIsPlusFanOpen(false);
     setIsCalendarPlusOpen(false);
-  };
+  }, []);
+
+  // Full navigation callback for programmatic nav (MobileBottomNav, etc.)
+  const onNavigateAction = useCallback((path: string) => {
+    const href = `${basePath}${path === '/' ? '' : path}`;
+    startTransition(() => router.push(href));
+    setIsMobileMenuOpen(false);
+    setIsPlusFanOpen(false);
+    setIsCalendarPlusOpen(false);
+  }, [basePath, router, startTransition]);
 
   const dispatchSystemEvent = (type: string) => {
     if (typeof window === 'undefined') return;
@@ -234,7 +252,7 @@ function SystemShellGateClientCore({
 
   const notificationsSlot = (
     <button
-      onClick={() => router.push(`${basePath}/notifications`)}
+      onClick={() => startTransition(() => router.push(`${basePath}/notifications`))}
       className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
       aria-label="התראות"
       type="button"
@@ -260,7 +278,7 @@ function SystemShellGateClientCore({
                     badgeModuleKey: 'system',
                   }}
                   brandSubtitle={moduleTitle}
-                  onBrandClickAction={() => router.push('/workspaces')}
+                  onBrandClickAction={() => startTransition(() => router.push('/workspaces'))}
                   topSlot={
                     <div className="flex flex-col gap-2">
                       <BusinessSwitcher currentTenantName={String(initialOrganization?.name || moduleTitle)} />
@@ -270,7 +288,8 @@ function SystemShellGateClientCore({
                   navItems={navItems}
                   primaryNavPaths={primaryNavPaths}
                   isActiveAction={isActiveAction}
-                  onNavigateAction={onNavigateAction}
+                  onNavigateAction={onSidebarItemClick}
+                  linkHrefPrefix={basePath}
                   bottomSlot={
                     <OSAppSwitcher
                       compact={true}
@@ -352,7 +371,7 @@ function SystemShellGateClientCore({
                       brandSubtitle={moduleTitle}
                       onBrandClickAction={() => {
                         setIsMobileMenuOpen(false);
-                        router.push('/workspaces');
+                        startTransition(() => router.push('/workspaces'));
                       }}
                       topSlot={
                         <div className="flex flex-col gap-2">
@@ -363,7 +382,8 @@ function SystemShellGateClientCore({
                       navItems={navItems}
                       primaryNavPaths={primaryNavPaths}
                       isActiveAction={isActiveAction}
-                      onNavigateAction={onNavigateAction}
+                      onNavigateAction={onSidebarItemClick}
+                      linkHrefPrefix={basePath}
                       bottomSlot={<OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug} currentModule="system" />}
                       showCollapseControls={false}
                       containerClassName="fixed inset-y-0 right-0 z-[110] flex flex-col w-full max-w-[320px] p-4 md:hidden"
