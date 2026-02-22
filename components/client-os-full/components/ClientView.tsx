@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { UPSELL_CATALOG } from '../constants';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
 import { generateClientInsight } from '../services/geminiService';
 import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe } from 'lucide-react';
@@ -18,6 +17,9 @@ import { ClientFeedbackTab } from './client-tabs/ClientFeedbackTab';
 import { PortalManagementTab } from './client-tabs/PortalManagementTab';
 import { useNexus } from '../context/ClientContext';
 import { createClinicClient } from '@/app/actions/client-clinic';
+import { getClientOSFeedbacks } from '@/app/actions/client-portal-clinic';
+import { FeedbackItem } from '../types';
+import { getClientOsOrgId } from '../lib/getOrgId';
 
 const ClientView: React.FC = () => {
   const { clients: contextClients, meetings: contextMeetings, refreshClients } = useNexus();
@@ -66,6 +68,7 @@ const ClientView: React.FC = () => {
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [expandedMeetingId, setExpandedMeetingId] = useState<string | null>(null);
   const [meetingNotes, setMeetingNotes] = useState<Record<string, string>>({});
+  const [clientFeedback, setClientFeedback] = useState<FeedbackItem[]>([]);
 
   // Sync clients from context
   useEffect(() => {
@@ -93,6 +96,14 @@ const ClientView: React.FC = () => {
       setAssignedForms(JSON.parse(JSON.stringify(client.assignedForms || [])));
       setOpportunities(JSON.parse(JSON.stringify(client.opportunities || [])));
       setClientMeetings(contextMeetings.filter(m => m.clientId === client.id));
+
+      // Load feedback for the selected client
+      const currentOrgId = getClientOsOrgId();
+      if (currentOrgId) {
+        void getClientOSFeedbacks(currentOrgId).then((feedbacks) => {
+          setClientFeedback((feedbacks as FeedbackItem[]).filter(f => f.clientId === client.id));
+        }).catch(() => setClientFeedback([]));
+      }
     }
   }, [selectedClientId, client, contextMeetings]);
 
@@ -142,12 +153,9 @@ const ClientView: React.FC = () => {
 
   const openPublicPortal = () => {
       if (!client) return;
-      const userData = (typeof window !== 'undefined' ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
-      const orgId = userData?.organizationId;
+      const orgId = getClientOsOrgId();
       if (!orgId) return;
-      if (typeof window !== 'undefined') {
-        window.open(`/w/${encodeURIComponent(String(orgId))}/client/portal`, '_blank', 'noopener,noreferrer');
-      }
+      window.open(`/w/${encodeURIComponent(orgId)}/client/portal`, '_blank', 'noopener,noreferrer');
   };
 
   const handleCreateClinicClient = async () => {
@@ -157,8 +165,7 @@ const ClientView: React.FC = () => {
       return;
     }
 
-    const userData = (typeof window !== 'undefined' ? (((window as unknown) as { [key: string]: unknown }).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
-    const orgId = userData?.organizationId;
+    const orgId = getClientOsOrgId();
     if (!orgId) {
       setCreateClientError('לא נמצא ארגון פעיל');
       return;
@@ -168,7 +175,7 @@ const ClientView: React.FC = () => {
     setIsCreatingClient(true);
     try {
       await createClinicClient({
-        orgId: String(orgId),
+        orgId,
         fullName: name,
         phone: newClientPhone.trim() || null,
         email: newClientEmail.trim() || null,
@@ -332,12 +339,9 @@ const ClientView: React.FC = () => {
                
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                    {filteredClients.map(c => (
-                       <div key={c.id} onClick={(e) => {
-                           const handler = (e: unknown) => {
-                               const id = String((e as CustomEvent).detail);
-                               setSelectedClientId(id);
-                               setViewMode('DETAIL');
-                           };
+                       <div key={c.id} onClick={() => {
+                           setSelectedClientId(c.id);
+                           setViewMode('DETAIL');
                        }} className="glass-card p-6 rounded-2xl cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-all flex flex-col h-full border border-transparent">
                            <div className="flex justify-between mb-4">
                                <div className="w-10 h-10 bg-nexus-primary text-white rounded-lg flex items-center justify-center font-bold shadow-sm">{c.logoInitials}</div>
@@ -516,14 +520,33 @@ const ClientView: React.FC = () => {
       <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar">
            {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => setShowUpsellModal(true)} />}
            {activeTab === 'portal' && <PortalManagementTab client={client} />}
-           {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={() => {}} />}
+           {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
+               if (isInsightLoading || !client) return;
+               setIsInsightLoading(true);
+               try {
+                 const result = await generateClientInsight(client.name, client.healthScore, client.sentimentTrend.map(String));
+                 setAiInsight(result);
+               } catch { setAiInsight({ insight: 'לא הצלחנו לייצר תובנה כרגע.', action: 'נסה שוב מאוחר יותר' }); }
+               finally { setIsInsightLoading(false); }
+           }} />}
            {activeTab === 'stakeholders' && <ClientStakeholdersTab client={client} />}
            {activeTab === 'tasks' && <ClientTasksTab client={client} assignedForms={assignedForms} onAssignForm={() => setShowAssignForm(true)} activeSequences={[]} scheduledAutomations={[]} />}
            {activeTab === 'journey' && <ClientJourneyTab journeyData={journeyData} />}
-           {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {}} onToggleTask={() => {}} />}
+           {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {
+               window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ההערה נשמרה בהצלחה.', type: 'success' } }));
+           }} onToggleTask={(meetingId, type, taskId) => {
+               setClientMeetings(prev => prev.map(m => {
+                 if (String(m.id) !== String(meetingId) || !m.aiAnalysis) return m;
+                 const key = type === 'agency' ? 'agencyTasks' : 'clientTasks';
+                 const tasks = m.aiAnalysis[key].map(t =>
+                   t.id === taskId ? { ...t, status: (t.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED') as 'PENDING' | 'COMPLETED' } : t
+                 );
+                 return { ...m, aiAnalysis: { ...m.aiAnalysis, [key]: tasks } };
+               }));
+           }} />}
            {activeTab === 'work' && <ClientWorkTab client={client} />}
            {activeTab === 'transform' && <ClientTransformTab client={client} />}
-           {activeTab === 'feedback' && <ClientFeedbackTab feedback={[]} />}
+           {activeTab === 'feedback' && <ClientFeedbackTab feedback={clientFeedback} />}
       </div>
     </div>
   );

@@ -354,10 +354,21 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
   };
 
   const removeClientTask = (clientId: string, taskId: string) => {
+      // Optimistic UI update
       setClients(prev => prev.map(c => c.id === clientId ? {
           ...c,
           pendingActions: c.pendingActions.filter(a => a.id !== taskId)
       } : c));
+
+      // Persist to server (soft-delete via status change)
+      if (!orgId) return;
+      void (async () => {
+        try {
+          await updateTaskStatus({ scope: 'client_action', orgId, taskId, status: 'COMPLETED' });
+        } catch {
+          // keep optimistic UI
+        }
+      })();
   };
 
   const addClientAsset = (clientId: string, asset: Omit<ClientAsset, 'id' | 'date'>) => {

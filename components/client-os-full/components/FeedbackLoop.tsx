@@ -100,7 +100,7 @@ const FeedbackLoop: React.FC = () => {
                 className={`w-10 h-6 rounded-full p-1 transition-colors ${automationEnabled ? 'bg-nexus-primary' : 'bg-gray-300'}`}
                 type="button"
              >
-                 <div className={`w-4 h-4 bg-white rounded-full transition-transform ${automationEnabled ? 'translate-x-0' : '-translate-x-4'}`}></div>
+                 <div className={`w-4 h-4 bg-white rounded-full transition-transform ${automationEnabled ? '-translate-x-4' : 'translate-x-0'}`}></div>
              </button>
         </div>
       </header>
