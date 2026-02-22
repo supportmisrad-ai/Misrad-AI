@@ -71,6 +71,19 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return `${year}-${month}-${day}`;
   };
 
+  const hebrewDateFormatter = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'long' });
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const getHebrewDate = (d: Date): string => {
+    if (!hebrewDateFormatter) return '';
+    try { return hebrewDateFormatter.format(d); } catch { return ''; }
+  };
+
   const dayNames = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
   const weekStart = startOfWeek();
   const DAYS = Array.from({ length: 5 }, (_, idx) => {
@@ -79,6 +92,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return {
       name: dayNames[d.getDay()] || '',
       date: String(d.getDate()),
+      hebrewDate: getHebrewDate(d),
       iso: toISODate(d),
     };
   });
@@ -158,11 +172,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     const dateStr = toISODate(dateObj);
                     const dayEvents = displayEvents.filter(e => e.date === dateStr);
                     const isToday = dateStr === toISODate(new Date());
+                    const heb = getHebrewDate(dateObj);
 
                     return (
                         <div key={i} className="bg-white p-2 relative group hover:bg-slate-50/50 transition-colors flex flex-col gap-1 min-h-[80px]">
-                            <div className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold mb-1 ${isToday ? 'bg-black text-white' : 'text-slate-700'}`}>
-                                {day}
+                            <div className="flex items-center gap-1">
+                              <div className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold ${isToday ? 'bg-black text-white' : 'text-slate-700'}`}>
+                                  {day}
+                              </div>
+                              {heb ? <span className="text-[8px] text-slate-400 font-medium truncate">{heb}</span> : null}
                             </div>
                             
                             <div className="flex-1 w-full space-y-1 overflow-y-auto custom-scrollbar">
@@ -287,6 +305,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     <div className={`text-2xl font-bold ${index === 3 ? 'text-white bg-black w-10 h-10 rounded-full flex items-center justify-center mx-auto shadow-lg' : 'text-slate-800'}`}>
                                         {day.date}
                                     </div>
+                                    {day.hebrewDate ? <div className="text-[9px] text-slate-400 font-medium mt-0.5">{day.hebrewDate}</div> : null}
                                 </div>
                                 <div className={`flex-1 p-3 space-y-3 relative transition-colors ${index === 3 ? 'bg-rose-50/5' : 'group-hover/col:bg-slate-50/20'}`}>
                                     {/* Minimalist Time Lines */}

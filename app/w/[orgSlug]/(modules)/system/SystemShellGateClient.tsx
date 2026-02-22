@@ -277,7 +277,7 @@ function SystemShellGateClientCore({
                   }
                 />
 
-                <main className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
+                <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative z-10">
                   <SharedHeader
                     title={moduleTitle}
                     subtitle={screenTitle}
@@ -298,8 +298,16 @@ function SystemShellGateClientCore({
                         <Menu size={18} />
                       </button>
                     }
-                    onOpenCommandPaletteAction={undefined}
-                    onOpenSupportAction={undefined}
+                    onOpenCommandPaletteAction={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('os:open-search'));
+                      }
+                    }}
+                    onOpenSupportAction={() => {
+                      if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('os:open-support'));
+                      }
+                    }}
                     actionsSlot={<ModuleHelpVideos moduleKey="system" />}
                     switcherSlot={<WorkspaceSwitcher />}
                     notificationsSlot={notificationsSlot}

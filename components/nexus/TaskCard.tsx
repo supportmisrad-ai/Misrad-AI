@@ -72,6 +72,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
   
   return (
     <motion.div 
+      draggable
+      onDragStart={(e) => {
+        const de = e as unknown as React.DragEvent;
+        if (de.dataTransfer) {
+          de.dataTransfer.setData('taskId', task.id);
+          de.dataTransfer.effectAllowed = 'move';
+        }
+      }}
       {...(!isMobile && { whileHover: { y: -4, scale: 1.01, transition: { duration: 0.2 } } })}
       onClick={(e) => {
           // Don't open if clicking on buttons

@@ -235,7 +235,7 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
             onClick={() => onCall()}
             disabled={!dialNumber}
             className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl text-white transition-all transform hover:scale-105 active:scale-95 ${
-              dialNumber ? 'bg-emerald-50 hover:bg-emerald-600 shadow-emerald-200' : 'bg-slate-200 cursor-not-allowed'
+              dialNumber ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200' : 'bg-slate-200 cursor-not-allowed'
             }`}
           >
             <Phone size={32} fill="currentColor" />

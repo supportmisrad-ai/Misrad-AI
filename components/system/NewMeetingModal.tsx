@@ -407,6 +407,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                 מעקב לאחר פגישה
                             </h4>
                             <div 
+                                dir="ltr"
                                 onClick={() => setPostMeeting({...postMeeting, enabled: !postMeeting.enabled})}
                                 className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${postMeeting.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
                             >

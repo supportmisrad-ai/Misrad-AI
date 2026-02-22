@@ -1,13 +1,15 @@
-import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
-
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+import { getSystemLeadsPage } from '@/app/actions/system-leads';
+import SystemSettingsClient from './SystemSettingsClient';
 
 export default async function SystemSettingsPage({
   params,
 }: {
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  await params;
+  const { orgSlug } = await params;
 
-  return <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />;
+  const leadsRes = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+  const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
+
+  return <SystemSettingsClient orgSlug={orgSlug} initialLeads={initialLeads} />;
 }

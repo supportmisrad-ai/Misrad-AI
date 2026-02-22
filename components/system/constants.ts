@@ -38,9 +38,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'ניהול מערכת',
     items: [
-      { id: 'reports', label: 'דוחות', icon: BarChart3 },
-      { id: 'analytics', label: 'אנליטיקס', icon: Cpu },
-      { id: 'notifications', label: 'התראות', icon: Bell },
+      { id: 'analytics', label: 'דוחות ונתונים', icon: BarChart3 },
       { id: 'settings', label: 'הגדרות', icon: Settings },
     ]
   }

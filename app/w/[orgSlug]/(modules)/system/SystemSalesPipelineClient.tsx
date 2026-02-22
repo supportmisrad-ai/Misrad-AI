@@ -415,6 +415,7 @@ export default function SystemSalesPipelineClient({
       }
 
       setLeads((prev) => prev.map((l) => (String(l.id) === leadId ? res.lead : l)));
+      addToast('עודכן', 'success');
     } catch (e: unknown) {
       setLeads(prevSnapshot);
       addToast(getErrorMessage(e) || 'שגיאה בעדכון ליד', 'error');
@@ -757,8 +758,8 @@ export default function SystemSalesPipelineClient({
           <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <div className="text-lg font-black text-slate-900">ניהול שלבי פייפליין</div>
-                <div className="text-xs font-bold text-slate-500">נשמר ב-DB ומשפיע מיידית על לוח ה-Kanban</div>
+                <div className="text-lg font-black text-slate-900">ניהול שלבי מכירה</div>
+                <div className="text-xs font-bold text-slate-500">השלבים משפיעים מיידית על לוח הלידים</div>
               </div>
               <button
                 type="button"
@@ -773,14 +774,13 @@ export default function SystemSalesPipelineClient({
               <input
                 value={newStageKey}
                 onChange={(e) => setNewStageKey(e.target.value)}
-                placeholder="key (למשל: qualified)"
+                placeholder="מזהה (למשל: מתעניין)"
                 className="md:col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                dir="ltr"
               />
               <input
                 value={newStageLabel}
                 onChange={(e) => setNewStageLabel(e.target.value)}
-                placeholder="שם שלב"
+                placeholder="שם שלב (למשל: מתעניין)"
                 className="md:col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
               />
               <button
@@ -800,8 +800,8 @@ export default function SystemSalesPipelineClient({
                 .map((s) => (
                 <div key={String(s.id)} className="border border-slate-200 rounded-2xl p-3 bg-white">
                   <div className="flex flex-col md:flex-row md:items-center gap-2">
-                    <div className="text-[11px] font-black text-slate-500 md:w-40" dir="ltr">
-                      {String(s.key)}
+                    <div className="text-[11px] font-black text-slate-500 md:w-40">
+                      {String(s.label || s.key)}
                     </div>
                     <input
                       defaultValue={String(s.label || '')}
@@ -822,7 +822,7 @@ export default function SystemSalesPipelineClient({
                       onBlur={(e) => void handleUpdateStage(String(s.id), { accent: e.target.value || null })}
                       className="w-40 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
                       dir="ltr"
-                      placeholder="accent"
+                      placeholder="צבע"
                     />
                     <button
                       type="button"

@@ -79,17 +79,20 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
 
   const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
 
-  const myLeads = isAgent && user
+  const myLeads = useMemo(() => isAgent && user
     ? leads.filter(l => l.assignedAgentId === user.id || !l.assignedAgentId) 
-    : leads;
+    : leads, [leads, isAgent, user]);
 
-  const hitListLeads = myLeads.filter(l => (l.isHot || l.score > 70) && l.status !== 'won' && l.status !== 'lost');
+  const hitListLeads = useMemo(() => myLeads.filter(l => (l.isHot || l.score > 70) && l.status !== 'won' && l.status !== 'lost'), [myLeads]);
 
-  const myTasks = tasks.filter(t => 
+  const myTasks = useMemo(() => {
+    const todayMs = new Date().setHours(0,0,0,0);
+    return tasks.filter(t => 
       t.status !== 'done' && 
       (user && (t.assigneeId === user.id || t.assigneeId === 'current')) &&
-      new Date(t.dueDate).setHours(0,0,0,0) <= new Date().setHours(0,0,0,0)
-  );
+      new Date(t.dueDate).setHours(0,0,0,0) <= todayMs
+    );
+  }, [tasks, user]);
 
   const velocityList: VelocityItem[] = useMemo(() => {
       return [
@@ -99,12 +102,12 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
        .sort((a, b) => b.score - a.score);
   }, [hitListLeads, myTasks, completedTaskIds]);
 
-  const nextMeeting = events
-    .filter(e => {
-        const today = new Date().toISOString().split('T')[0];
-        return e.date >= today;
-    })
-    .sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+  const nextMeeting = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return events
+      .filter(e => e.date >= today)
+      .sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+  }, [events]);
 
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const myWonDeals = user ? leads.filter(l => l.status === 'won' && l.assignedAgentId === user.id).length : 0;

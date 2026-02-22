@@ -146,6 +146,7 @@ export default function SystemWorkspaceClient({
     }
 
     setLeadsDto((prev) => prev.map((l) => (String(l.id) === String(res.lead.id) ? res.lead : l)));
+    addToast('עודכן', 'success');
   };
 
   const handleAddEvent = async (event: CalendarEvent) => {

@@ -138,6 +138,28 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
                             <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-full px-6 py-4 text-sm focus:ring-4 focus:ring-primary/10 focus:bg-white outline-none transition-all shadow-sm" placeholder="דוא&quot;ל" dir="ltr" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                         </div>
                     </div>
+                    <div className="space-y-3">
+                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                            <Globe size={18} className="text-slate-400" />
+                            מקור הליד
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {['פייסבוק', 'אינסטגרם', 'גוגל', 'הפניה', 'אתר', 'וואטסאפ', 'טלפוני', 'אחר'].map((src) => (
+                                <button
+                                    key={src}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, source: src })}
+                                    className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+                                        formData.source === src
+                                            ? 'bg-slate-900 border-slate-900 text-white shadow-md'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                                    }`}
+                                >
+                                    {src}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="bg-rose-50/50 border border-rose-100 p-6 rounded-[32px] flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:bg-rose-50" onClick={() => setFormData({...formData, isHot: !formData.isHot})}>
@@ -150,7 +172,7 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
                             <div className="text-xs text-slate-500 font-medium">המערכת תתעדף אותו אוטומטית</div>
                         </div>
                     </div>
-                    <div className={`w-14 h-8 rounded-full p-1 transition-colors ${formData.isHot ? 'bg-primary' : 'bg-slate-300'}`}>
+                    <div dir="ltr" className={`w-14 h-8 rounded-full p-1 transition-colors ${formData.isHot ? 'bg-emerald-500' : 'bg-slate-300'}`}>
                         <div className={`w-6 h-6 rounded-full bg-white shadow-sm transform transition-transform ${formData.isHot ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </div>
                 </div>
