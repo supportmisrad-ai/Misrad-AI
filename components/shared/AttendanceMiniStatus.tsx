@@ -6,10 +6,8 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
-import { getNexusMe, listNexusTimeEntries } from '@/app/actions/nexus';
-import { punchOut } from '@/app/actions/attendance';
+import { getActiveShift, punchOut } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
-import type { TimeEntry } from '@/types/team';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -41,53 +39,45 @@ export default function AttendanceMiniStatus() {
   const [hasNexus, setHasNexus] = useState<boolean | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const now = useSecondTicker(Boolean(startTime));
   const loadInFlightRef = React.useRef(false);
 
+  // Single effect: load entitlements + active shift in PARALLEL
   useEffect(() => {
-    const loadEntitlements = async () => {
-      if (!orgSlug) {
-        setHasNexus(null);
-        return;
-      }
-      if (!isClerkLoaded || !isSignedIn) {
-        setHasNexus(null);
-        return;
-      }
+    if (!orgSlug || !isClerkLoaded || !isSignedIn) return;
+    let cancelled = false;
+
+    (async () => {
       try {
-        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store' });
-        if (!res.ok) {
-          setHasNexus(false);
-          return;
+        // Run entitlements check + active shift query in parallel
+        const [entRes, shiftRes] = await Promise.all([
+          fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store' })
+            .then(r => r.ok ? r.json().catch(() => ({})) : {})
+            .catch(() => ({})),
+          getActiveShift(orgSlug).catch(() => ({ activeShift: null })),
+        ]);
+        if (cancelled) return;
+
+        const nexus = Boolean((entRes as Record<string, unknown>)?.entitlements && typeof (entRes as Record<string, unknown>).entitlements === 'object' && ((entRes as Record<string, Record<string, unknown>>).entitlements)?.nexus);
+        setHasNexus(nexus);
+
+        const shift = (shiftRes as { activeShift: { id: string; startTime: string } | null })?.activeShift;
+        if (shift?.id && shift?.startTime) {
+          setEntryId(shift.id);
+          setStartTime(shift.startTime);
         }
-        const data = await res.json().catch(() => ({}));
-        setHasNexus(Boolean(data?.entitlements?.nexus));
       } catch {
         setHasNexus(false);
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
-    };
+    })();
 
-    loadEntitlements();
-  }, [isClerkLoaded, isSignedIn, orgSlug]);
-
-  useEffect(() => {
-    const loadMe = async () => {
-      if (!orgSlug) return;
-      if (!isClerkLoaded || !isSignedIn) return;
-      try {
-        const data = await getNexusMe({ orgId: orgSlug });
-        const id = data?.user?.id ? String(data.user.id) : null;
-        if (id) setUserId(id);
-      } catch {
-        // ignore
-      }
-    };
-
-    loadMe();
+    return () => { cancelled = true; };
   }, [isClerkLoaded, isSignedIn, orgSlug]);
 
   const broadcast = useCallback(
@@ -111,23 +101,10 @@ export default function AttendanceMiniStatus() {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     loadInFlightRef.current = true;
     try {
-      const dateFrom = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const dateTo = new Date().toISOString().split('T')[0];
-      const data = await listNexusTimeEntries({
-        orgId: orgSlug,
-        userId: userId || undefined,
-        dateFrom,
-        dateTo,
-        page: 1,
-        pageSize: 200,
-      });
-      const list: TimeEntry[] = Array.isArray(data?.timeEntries) ? data.timeEntries : [];
-      const active = list
-        .filter((entry: TimeEntry) => !entry.endTime)
-        .sort((a: TimeEntry, b: TimeEntry) => new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime())[0];
-
-      if (active?.id && active?.startTime) {
-        const next = { entryId: active.id, startTime: new Date(active.startTime).toISOString() };
+      const data = await getActiveShift(orgSlug);
+      const shift = data?.activeShift;
+      if (shift?.id && shift?.startTime) {
+        const next = { entryId: shift.id, startTime: shift.startTime };
         setEntryId(next.entryId);
         setStartTime(next.startTime);
         broadcast({ orgSlug, entryId: next.entryId, startTime: next.startTime });
@@ -141,7 +118,7 @@ export default function AttendanceMiniStatus() {
     } finally {
       loadInFlightRef.current = false;
     }
-  }, [broadcast, isClerkLoaded, isSignedIn, orgSlug, userId]);
+  }, [broadcast, isClerkLoaded, isSignedIn, orgSlug]);
 
   useEffect(() => {
     if (!orgSlug) return;
@@ -169,21 +146,12 @@ export default function AttendanceMiniStatus() {
     };
   }, [orgSlug]);
 
+  // Periodic refresh every 30s (after initial load)
   useEffect(() => {
-    if (!orgSlug) return;
-    if (!isClerkLoaded || !isSignedIn) return;
-    loadActiveShift();
+    if (!orgSlug || !isClerkLoaded || !isSignedIn || !loaded) return;
     const interval = window.setInterval(loadActiveShift, 30_000);
     return () => window.clearInterval(interval);
-  }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
-
-  useEffect(() => {
-    if (!orgSlug) return;
-    if (!isClerkLoaded || !isSignedIn) return;
-    if (!startTime) return;
-    if (entryId) return;
-    loadActiveShift();
-  }, [entryId, isClerkLoaded, isSignedIn, loadActiveShift, orgSlug, startTime]);
+  }, [isClerkLoaded, isSignedIn, loadActiveShift, loaded, orgSlug]);
 
   const clockOutQuick = useCallback(() => {
     if (!entryId || !orgSlug) return;
