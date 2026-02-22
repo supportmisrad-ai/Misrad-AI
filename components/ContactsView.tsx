@@ -5,6 +5,7 @@ import { STAGES } from './system/constants';
 import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
 import useLocalStorage from './system/hooks/useLocalStorage';
 import { useToast } from './system/contexts/ToastContext';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface ContactsViewProps {
   leads: Lead[];
@@ -113,15 +114,11 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
         <div className="h-auto w-px bg-slate-200 mx-2 hidden md:block"></div>
         <div className="flex gap-2">
             <div className="relative w-full md:min-w-[200px]">
-                <select 
-                    className="w-full h-full pl-4 pr-10 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-600 focus:outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors border border-transparent focus:border-indigo-200 focus:bg-white"
+                <CustomSelect
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(String(e.target.value))}
-                >
-                    <option value="all">כל הסטטוסים</option>
-                    {STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
-                </select>
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                    onChange={(val) => setStatusFilter(String(val))}
+                    options={[{ value: 'all', label: 'כל הסטטוסים' }, ...STAGES.map(stage => ({ value: stage.id, label: stage.label }))]}
+                />
             </div>
         </div>
       </div>

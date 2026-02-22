@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle, Pencil, Banknote, Ticket, TimerReset } from 'lucide-react';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AddBusinessClientModal from '@/components/admin/AddBusinessClientModal';
@@ -16,6 +17,46 @@ import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
 import { getBusinessClients, deleteBusinessClient, removeContactFromClient } from '@/app/actions/business-clients';
+
+type BusinessContact = {
+  id?: string;
+  user_id: string;
+  is_primary?: boolean;
+  is_billing_contact?: boolean;
+  is_technical_contact?: boolean;
+  title?: string | null;
+  role?: string;
+  department?: string | null;
+  user?: {
+    id?: string;
+    full_name?: string | null;
+    email?: string | null;
+    avatar_url?: string | null;
+  };
+  [key: string]: unknown;
+};
+
+type BusinessOrg = {
+  id: string;
+  name?: string;
+  slug?: string | null;
+  subscription_plan?: string | null;
+  subscription_status?: string | null;
+  billing_cycle?: string | null;
+  seats_allowed?: number | null;
+  active_users_count?: number | null;
+  billing_email?: string | null;
+  payment_method_id?: string | null;
+  mrr?: number | null;
+  arr?: number | null;
+  next_billing_date?: string | Date | null;
+  trial_start_date?: string | Date | null;
+  trial_days?: number | null;
+  trial_extended_days?: number | null;
+  trial_end_date?: string | Date | null;
+  created_at?: Date | null;
+  [key: string]: unknown;
+};
 
 type BusinessClient = {
   id: string;
@@ -31,8 +72,9 @@ type BusinessClient = {
   status: string;
   lifecycle_stage: string;
   created_at: Date;
-  contacts: any[];
-  organizations: any[];
+  contacts: BusinessContact[];
+  organizations: BusinessOrg[];
+  [key: string]: unknown;
 };
 
 export default function BusinessClientsClient() {
@@ -46,14 +88,14 @@ export default function BusinessClientsClient() {
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   
   // Billing modals
-  const [selectedOrgForBilling, setSelectedOrgForBilling] = useState<any | null>(null);
-  const [selectedOrgForCoupon, setSelectedOrgForCoupon] = useState<any | null>(null);
-  const [selectedOrgForTrial, setSelectedOrgForTrial] = useState<any | null>(null);
+  const [selectedOrgForBilling, setSelectedOrgForBilling] = useState<BusinessOrg | null>(null);
+  const [selectedOrgForCoupon, setSelectedOrgForCoupon] = useState<BusinessOrg | null>(null);
+  const [selectedOrgForTrial, setSelectedOrgForTrial] = useState<BusinessOrg | null>(null);
   
   // Edit modals
   const [selectedClientForEdit, setSelectedClientForEdit] = useState<BusinessClient | null>(null);
-  const [selectedOrgForEdit, setSelectedOrgForEdit] = useState<any | null>(null);
-  const [selectedContactForEdit, setSelectedContactForEdit] = useState<{ contact: any; clientId: string; clientName: string } | null>(null);
+  const [selectedOrgForEdit, setSelectedOrgForEdit] = useState<BusinessOrg | null>(null);
+  const [selectedContactForEdit, setSelectedContactForEdit] = useState<{ contact: BusinessContact; clientId: string; clientName: string } | null>(null);
 
   // Delete client confirmation
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
@@ -133,32 +175,30 @@ export default function BusinessClientsClient() {
 
   return (
     <div className="space-y-6 pb-8" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">לקוחות עסקיים</h1>
-          <p className="text-sm text-slate-600">
-            ניהול חברות וארגונים עסקיים (B2B)
-          </p>
-        </div>
-        <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
-          <Plus className="w-4 h-4 ml-2" />
-          הוסף לקוח עסקי
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="לקוחות עסקיים"
+        subtitle="ניהול חברות וארגונים עסקיים (B2B)"
+        icon={Building2}
+        actions={
+          <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
+            <Plus className="w-4 h-4" />
+            הוסף לקוח עסקי
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
             <Input
               type="text"
               placeholder="חיפוש לפי שם חברה, מייל, ח.פ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-10 h-11 text-right"
+              className="pr-10 h-11 text-right"
               dir="rtl"
             />
           </div>
@@ -183,8 +223,8 @@ export default function BusinessClientsClient() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">סה״כ לקוחות</p>
@@ -196,7 +236,7 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">אנשי קשר</p>
@@ -210,7 +250,7 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">ארגונים</p>
@@ -224,7 +264,7 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
               <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">פעילים</p>
@@ -242,7 +282,7 @@ export default function BusinessClientsClient() {
       {/* Clients List */}
       <div className="space-y-4">
         {clients.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-12 text-center">
+          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
             <div className="max-w-sm mx-auto">
               <div className="p-4 bg-slate-50 rounded-full w-fit mx-auto mb-4">
                 <Building2 className="w-16 h-16 text-slate-400" />
@@ -261,7 +301,7 @@ export default function BusinessClientsClient() {
             const primary = primaryContact(client);
 
             return (
-              <div key={client.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={client.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
                 {/* Client Header */}
                 <div
                   className="p-5 sm:p-6 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -331,7 +371,8 @@ export default function BusinessClientsClient() {
                         }}
                         className="text-xs h-8"
                       >
-                        ✏️ ערוך
+                        <Pencil className="w-3.5 h-3.5" />
+                        ערוך
                       </Button>
                       <Button
                         size="sm"
@@ -419,7 +460,7 @@ export default function BusinessClientsClient() {
                             <p className="text-sm text-slate-400">אין אנשי קשר</p>
                           ) : (
                             <div className="space-y-2">
-                              {client.contacts.map((contact: any) => (
+                              {client.contacts.map((contact: BusinessContact) => (
                                 <div key={contact.user_id} className="flex items-center gap-2 p-2 bg-white border border-slate-100 rounded-lg">
                                   <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
                                     <Users className="w-4 h-4 text-slate-400" />
@@ -510,33 +551,36 @@ export default function BusinessClientsClient() {
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedOrgForEdit(org);
+                                      setSelectedOrgForEdit(o as BusinessOrg);
                                     }}
                                     className="text-xs"
                                   >
-                                    ✏️ ערוך
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    ערוך
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedOrgForBilling(org);
+                                      setSelectedOrgForBilling(o as BusinessOrg);
                                     }}
                                     className="text-xs"
                                   >
-                                    💰 חיובים
+                                    <Banknote className="w-3.5 h-3.5" />
+                                    חיובים
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedOrgForCoupon(org);
+                                      setSelectedOrgForCoupon(o as BusinessOrg);
                                     }}
                                     className="text-xs"
                                   >
-                                    🎟️ קופון
+                                    <Ticket className="w-3.5 h-3.5" />
+                                    קופון
                                   </Button>
                                   {o.subscription_status === 'trial' && (
                                     <Button
@@ -544,11 +588,12 @@ export default function BusinessClientsClient() {
                                       variant="outline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setSelectedOrgForTrial(org);
+                                        setSelectedOrgForTrial(o as BusinessOrg);
                                       }}
                                       className="text-xs"
                                     >
-                                      ⏱️ הארכה
+                                      <TimerReset className="w-3.5 h-3.5" />
+                                      הארכה
                                     </Button>
                                   )}
                                 </div>
@@ -606,7 +651,7 @@ export default function BusinessClientsClient() {
         <ManageBillingModal
           isOpen={true}
           organizationId={selectedOrgForBilling.id}
-          organizationName={selectedOrgForBilling.name}
+          organizationName={selectedOrgForBilling.name || ''}
           currentBilling={{
             subscription_plan: selectedOrgForBilling.subscription_plan,
             billing_cycle: selectedOrgForBilling.billing_cycle,
@@ -630,7 +675,7 @@ export default function BusinessClientsClient() {
         <ApplyCouponModal
           isOpen={true}
           organizationId={selectedOrgForCoupon.id}
-          organizationName={selectedOrgForCoupon.name}
+          organizationName={selectedOrgForCoupon.name || ''}
           currentMRR={Number(selectedOrgForCoupon.mrr || 0)}
           onClose={() => setSelectedOrgForCoupon(null)}
           onSuccess={() => {
@@ -644,12 +689,12 @@ export default function BusinessClientsClient() {
         <ExtendTrialModal
           isOpen={true}
           organizationId={selectedOrgForTrial.id}
-          organizationName={selectedOrgForTrial.name}
+          organizationName={selectedOrgForTrial.name || ''}
           currentTrial={{
-            trial_start_date: selectedOrgForTrial.trial_start_date,
+            trial_start_date: selectedOrgForTrial.trial_start_date instanceof Date ? selectedOrgForTrial.trial_start_date : selectedOrgForTrial.trial_start_date ? new Date(selectedOrgForTrial.trial_start_date) : undefined,
             trial_days: selectedOrgForTrial.trial_days,
             trial_extended_days: selectedOrgForTrial.trial_extended_days,
-            trial_end_date: selectedOrgForTrial.trial_end_date,
+            trial_end_date: selectedOrgForTrial.trial_end_date instanceof Date ? selectedOrgForTrial.trial_end_date : selectedOrgForTrial.trial_end_date ? new Date(selectedOrgForTrial.trial_end_date) : undefined,
           }}
           onClose={() => setSelectedOrgForTrial(null)}
           onSuccess={() => {
@@ -662,7 +707,7 @@ export default function BusinessClientsClient() {
       {/* Delete Client Confirmation Modal */}
       {deletingClientId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" dir="rtl">
-          <div className="bg-white rounded-xl shadow-xl p-6 mx-4 w-full max-w-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-6 mx-4 w-full max-w-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -710,7 +755,7 @@ export default function BusinessClientsClient() {
       {selectedOrgForEdit && (
         <EditOrganizationModal
           isOpen={true}
-          organization={selectedOrgForEdit}
+          organization={{ ...selectedOrgForEdit, name: selectedOrgForEdit.name || '' }}
           onClose={() => setSelectedOrgForEdit(null)}
           onSuccess={() => {
             setSelectedOrgForEdit(null);
@@ -724,7 +769,7 @@ export default function BusinessClientsClient() {
           isOpen={true}
           clientId={selectedContactForEdit.clientId}
           clientName={selectedContactForEdit.clientName}
-          contact={selectedContactForEdit.contact}
+          contact={{ ...selectedContactForEdit.contact, role: selectedContactForEdit.contact.role ?? '', title: selectedContactForEdit.contact.title ?? null, department: selectedContactForEdit.contact.department ?? null, is_primary: Boolean(selectedContactForEdit.contact.is_primary), is_billing_contact: Boolean(selectedContactForEdit.contact.is_billing_contact), is_technical_contact: Boolean(selectedContactForEdit.contact.is_technical_contact), user: { full_name: selectedContactForEdit.contact.user?.full_name ?? null, email: selectedContactForEdit.contact.user?.email ?? null } }}
           onClose={() => setSelectedContactForEdit(null)}
           onSuccess={() => {
             setSelectedContactForEdit(null);

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { prisma } from '@/lib/services/operations/db';
 import { getUnknownErrorMessage, logOperationsError, normalizeAddress } from '@/lib/services/operations/shared';
-import type { OperationsProjectOption, OperationsProjectsData } from '@/lib/services/operations/types';
+import type { OperationsProjectOption, OperationsProjectsData, OperationsProjectDetail } from '@/lib/services/operations/types';
 
 export async function resolveOperationsClientNamesByCanonicalId(
   canonicalClientIds: string[]
@@ -113,6 +113,125 @@ export async function getOperationsProjectOptionsForOrganizationId(params: {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הפרויקטים',
     };
+  }
+}
+
+export async function getOperationsProjectByIdForOrganizationId(params: {
+  organizationId: string;
+  id: string;
+}): Promise<{ success: boolean; data?: OperationsProjectDetail; error?: string }> {
+  try {
+    const id = String(params.id || '').trim();
+    if (!id) return { success: false, error: 'חסר מזהה פרויקט' };
+
+    const project = await prisma.operationsProject.findFirst({
+      where: { id, organizationId: params.organizationId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        canonicalClientId: true,
+        installationAddress: true,
+        source: true,
+        sourceRefId: true,
+        createdAt: true,
+        updatedAt: true,
+        workOrders: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
+      },
+    });
+
+    if (!project) return { success: false, error: 'פרויקט לא נמצא' };
+
+    const clientNameById = project.canonicalClientId
+      ? await resolveOperationsClientNamesByCanonicalId([project.canonicalClientId])
+      : new Map<string, string>();
+
+    const data: OperationsProjectDetail = {
+      id: project.id,
+      title: project.title,
+      status: project.status,
+      canonicalClientId: project.canonicalClientId,
+      clientName: project.canonicalClientId ? clientNameById.get(project.canonicalClientId) ?? null : null,
+      installationAddress: project.installationAddress,
+      source: project.source,
+      sourceRefId: project.sourceRefId,
+      createdAt: project.createdAt.toISOString(),
+      updatedAt: project.updatedAt.toISOString(),
+      workOrders: project.workOrders.map((wo) => ({
+        id: wo.id,
+        title: wo.title,
+        status: wo.status,
+        priority: String(wo.priority ?? 'NORMAL'),
+        createdAt: wo.createdAt.toISOString(),
+      })),
+    };
+
+    return { success: true, data };
+  } catch (e: unknown) {
+    logOperationsError('[operations] getOperationsProjectById failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הפרויקט' };
+  }
+}
+
+export async function updateOperationsProjectForOrganizationId(params: {
+  organizationId: string;
+  id: string;
+  title?: string;
+  status?: string;
+  canonicalClientId?: string | null;
+  installationAddress?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const id = String(params.id || '').trim();
+    if (!id) return { success: false, error: 'חסר מזהה פרויקט' };
+
+    const existing = await prisma.operationsProject.findFirst({
+      where: { id, organizationId: params.organizationId },
+      select: { id: true },
+    });
+    if (!existing) return { success: false, error: 'פרויקט לא נמצא' };
+
+    const data: Record<string, unknown> = {};
+    if (params.title !== undefined) {
+      const title = String(params.title).trim();
+      if (!title) return { success: false, error: 'חובה להזין שם פרויקט' };
+      data.title = title;
+    }
+    if (params.status !== undefined) {
+      data.status = params.status;
+    }
+    if (params.canonicalClientId !== undefined) {
+      data.canonicalClientId = params.canonicalClientId || null;
+    }
+    if (params.installationAddress !== undefined) {
+      const addr = params.installationAddress ? String(params.installationAddress).trim() : null;
+      data.installationAddress = addr;
+      data.addressNormalized = addr ? normalizeAddress(addr) : null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return { success: true };
+    }
+
+    await prisma.operationsProject.update({
+      where: { id },
+      data,
+    });
+
+    return { success: true };
+  } catch (e: unknown) {
+    logOperationsError('[operations] updateOperationsProject failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון הפרויקט' };
   }
 }
 

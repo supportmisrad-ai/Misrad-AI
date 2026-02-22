@@ -58,3 +58,82 @@ export async function createOperationsItemForOrganizationId(params: {
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
   }
 }
+
+export async function updateOperationsItemForOrganizationId(params: {
+  organizationId: string;
+  itemId: string;
+  name?: string;
+  sku?: string | null;
+  unit?: string | null;
+  minLevel?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const itemId = String(params.itemId || '').trim();
+    if (!itemId) return { success: false, error: 'חסר מזהה פריט' };
+
+    const item = await prisma.operationsItem.findFirst({
+      where: { id: itemId, organizationId: params.organizationId },
+      select: { id: true },
+    });
+    if (!item) return { success: false, error: 'פריט לא נמצא' };
+
+    const data: Record<string, unknown> = {};
+    if (params.name !== undefined) {
+      const name = String(params.name || '').trim();
+      if (!name) return { success: false, error: 'חובה להזין שם פריט' };
+      data.name = name;
+    }
+    if (params.sku !== undefined) data.sku = params.sku ? String(params.sku).trim() : null;
+    if (params.unit !== undefined) data.unit = params.unit ? String(params.unit).trim() : null;
+
+    if (Object.keys(data).length > 0) {
+      await prisma.operationsItem.update({ where: { id: itemId }, data });
+    }
+
+    if (params.minLevel !== undefined && Number.isFinite(params.minLevel)) {
+      await prisma.operationsInventory.updateMany({
+        where: { organizationId: params.organizationId, itemId },
+        data: { minLevel: params.minLevel },
+      });
+    }
+
+    return { success: true };
+  } catch (e: unknown) {
+    logOperationsError('[operations] updateOperationsItem failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון פריט' };
+  }
+}
+
+export async function deleteOperationsItemForOrganizationId(params: {
+  organizationId: string;
+  itemId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const itemId = String(params.itemId || '').trim();
+    if (!itemId) return { success: false, error: 'חסר מזהה פריט' };
+
+    const item = await prisma.operationsItem.findFirst({
+      where: { id: itemId, organizationId: params.organizationId },
+      select: { id: true },
+    });
+    if (!item) return { success: false, error: 'פריט לא נמצא' };
+
+    await prisma.operationsInventory.deleteMany({
+      where: { organizationId: params.organizationId, itemId },
+    });
+
+    await orgExec(
+      prisma,
+      params.organizationId,
+      `DELETE FROM operations_stock_balances WHERE organization_id = $1::uuid AND item_id = $2::uuid`,
+      [params.organizationId, itemId]
+    );
+
+    await prisma.operationsItem.delete({ where: { id: itemId } });
+
+    return { success: true };
+  } catch (e: unknown) {
+    logOperationsError('[operations] deleteOperationsItem failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת פריט' };
+  }
+}

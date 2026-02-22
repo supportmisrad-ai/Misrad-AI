@@ -456,7 +456,11 @@ async function getOperationsWorkOrdersDataForOrganizationId(params: {
       return Number.isNaN(d.getTime()) ? null : d.toISOString();
     };
 
+    const totalRows = (rows || []).length;
     const data: OperationsWorkOrdersData = {
+      totalCount: totalRows,
+      page: 1,
+      limit: totalRows || 25,
       workOrders: (rows || []).map((r) => {
         const obj = asObject(r) ?? {};
         const assignedId = obj.assigned_technician_id ? String(obj.assigned_technician_id) : '';

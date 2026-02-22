@@ -22,6 +22,7 @@ const PACKAGE_OPTIONS: { key: PackageType; label: string; emoji: string }[] = [
   { key: 'the_authority', label: 'שיווק ומיתוג', emoji: '🎨' },
   { key: 'the_operator', label: 'תפעול ושטח', emoji: '🔧' },
   { key: 'the_empire', label: 'הכל כלול', emoji: '👑' },
+  { key: 'the_mentor', label: 'מנטור', emoji: '🧠' },
 ];
 
 type CreateOrganizationOrInviteOwnerResult = Awaited<ReturnType<typeof createOrganizationOrInviteOwner>>;

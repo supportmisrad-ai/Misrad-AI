@@ -47,6 +47,7 @@ async function requireWorkspaceAccessForOrgId(orgId: string) {
   return requireWorkspaceAccessByOrgSlugApi(normalized);
 }
 
+/** @deprecated Prefer listNexusTasks with orgId. Kept for system module callers that only have orgSlug. */
 export async function listNexusTasksByOrgSlug(params: {
   orgSlug: string;
   taskId?: string;
@@ -57,36 +58,26 @@ export async function listNexusTasksByOrgSlug(params: {
   pageSize?: number;
 }): Promise<{ tasks: Task[]; page: number; pageSize: number; hasMore: boolean }> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return listNexusTasksInternal({
-    orgId: workspace.id,
-    taskId: params.taskId,
-    assigneeId: params.assigneeId,
-    status: params.status,
-    leadId: params.leadId,
-    page: params.page,
-    pageSize: params.pageSize,
-  });
+  return listNexusTasks({ ...params, orgId: workspace.id });
 }
 
+/** @deprecated Prefer createNexusTask with orgId. */
 export async function createNexusTaskByOrgSlug(params: {
   orgSlug: string;
   input: Omit<Task, 'id'> & { leadId?: string | null };
 }): Promise<Task> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const result = await createNexusTaskInternal({ orgId: workspace.id, input: params.input });
-  revalidatePath('/', 'layout');
-  return result;
+  return createNexusTask({ orgId: workspace.id, input: params.input });
 }
 
+/** @deprecated Prefer updateNexusTask with orgId. */
 export async function updateNexusTaskByOrgSlug(params: {
   orgSlug: string;
   taskId: string;
   updates: Partial<Task>;
 }): Promise<Task> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const result = await updateNexusTaskInternal({ orgId: workspace.id, taskId: params.taskId, updates: params.updates });
-  revalidatePath('/', 'layout');
-  return result;
+  return updateNexusTask({ orgId: workspace.id, taskId: params.taskId, updates: params.updates });
 }
 
 export async function listNexusTasks(params: {

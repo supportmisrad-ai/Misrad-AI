@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { ConfirmDeleteButton } from '@/components/operations/ConfirmDeleteButton';
 import {
   createOperationsBuilding,
   createOperationsCallCategory,
@@ -213,10 +214,7 @@ export default async function OperationsSettingsPage({
                       ) : null}
                     </div>
                   </div>
-                  <form action={deleteCategoryAction}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={c.id} action={deleteCategoryAction} className={btnDelCls} confirmMessage={`האם למחוק את הקטגוריה "${c.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין קטגוריות</div>}
             </div>
@@ -245,10 +243,7 @@ export default async function OperationsSettingsPage({
                       {[b.address, b.floors ? `${b.floors} קומות` : null].filter(Boolean).join(' · ') || 'ללא פרטים נוספים'}
                     </div>
                   </div>
-                  <form action={deleteBuildingAction}>
-                    <input type="hidden" name="id" value={b.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={b.id} action={deleteBuildingAction} className={btnDelCls} confirmMessage={`האם למחוק את המבנה "${b.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין מבנים</div>}
             </div>
@@ -270,10 +265,7 @@ export default async function OperationsSettingsPage({
                     <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: d.color || '#94a3b8' }} />
                     <div className="text-sm font-black text-slate-900 truncate">{d.name}</div>
                   </div>
-                  <form action={deleteDepartmentAction}>
-                    <input type="hidden" name="id" value={d.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={d.id} action={deleteDepartmentAction} className={btnDelCls} confirmMessage={`האם למחוק את המחלקה "${d.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין מחלקות</div>}
             </div>
@@ -300,10 +292,7 @@ export default async function OperationsSettingsPage({
               {locations.length ? locations.map((l) => (
                 <div key={l.id} className={rowCls}>
                   <div className="text-sm font-black text-slate-900 truncate">{l.name}</div>
-                  <form action={deleteLocationAction}>
-                    <input type="hidden" name="id" value={l.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={l.id} action={deleteLocationAction} className={btnDelCls} confirmMessage={`האם למחוק את המחסן "${l.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין מחסנים</div>}
             </div>
@@ -320,10 +309,7 @@ export default async function OperationsSettingsPage({
               {vehicles.length ? vehicles.map((v) => (
                 <div key={v.id} className={rowCls}>
                   <div className="text-sm font-black text-slate-900 truncate">{v.name}</div>
-                  <form action={deleteVehicleAction}>
-                    <input type="hidden" name="id" value={v.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={v.id} action={deleteVehicleAction} className={btnDelCls} confirmMessage={`האם למחוק את הרכב "${v.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין רכבים</div>}
             </div>
@@ -340,10 +326,7 @@ export default async function OperationsSettingsPage({
               {types.length ? types.map((t) => (
                 <div key={t.id} className={rowCls}>
                   <div className="text-sm font-black text-slate-900 truncate">{t.name}</div>
-                  <form action={deleteTypeAction}>
-                    <input type="hidden" name="id" value={t.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton id={t.id} action={deleteTypeAction} className={btnDelCls} confirmMessage={`האם למחוק את סוג הקריאה "${t.name}"?`} />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין סוגי קריאות</div>}
             </div>

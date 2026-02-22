@@ -27,6 +27,7 @@ import { BillingSettings } from '../components/me/BillingSettings';
 import { Avatar } from '../components/Avatar';
 import { LeaveRequestModal } from '../components/nexus/team/LeaveRequestModal';
 import { EventRequestModal } from '../components/nexus/team/EventRequestModal';
+import { MeSettingsGrid, MeAttendancePanel } from './me';
 
 type MeModuleCard = {
   title: string;
@@ -894,217 +895,20 @@ export const MeView: React.FC<{
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
           {hasNexusEntitlement ? (
-          <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-                  
-                  {/* Left: Info & Timer */}
-                  <div className="flex-1 text-center md:text-right w-full">
-                      <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2 mb-2">
-                          <Clock size={20} className="text-blue-600" />
-                          שעון נוכחות
-                          {activeShift && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full animate-pulse border border-green-200">פעיל</span>}
-                      </h3>
-                      
-                      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 mb-6">
-                          <div className="font-mono text-4xl md:text-5xl font-black text-gray-900 tracking-tight tabular-nums">
-                              {elapsed}
-                          </div>
-                      </div>
-                      
-                      {/* Integrated Stats Row */}
-                      <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-8 border-t border-gray-100 pt-6 w-full">
-                          <div className="flex items-center gap-3">
-                              <div className="p-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl text-blue-600 border border-blue-100"><Timer size={18} /></div>
-                              <div className="text-right">
-                                  <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide mb-0.5">סה״כ היום</div>
-                                  <div className="font-black text-gray-900 text-base tracking-tight">{totalTodayLabel}</div>
-                              </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                              <div className="p-2 bg-gray-50 rounded-xl text-gray-500"><MapPinned size={18} /></div>
-                              <div className="text-right">
-                                  {(() => {
-                                      // Hidden: demo-like "מיקום" until backed by real data.
-                                      return null;
-                                  })()}
-                              </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                              <div className="p-2 bg-gray-50 rounded-xl text-gray-500"><SquareActivity size={18} /></div>
-                              <div className="text-right">
-                                  <div className="text-[10px] text-gray-600 font-bold uppercase tracking-wide">פעילות אחרונה</div>
-                                  <div className="font-bold text-gray-900 text-sm">{String(lastActivityLabel ?? '').replace('כניסה ב-', '').replace('יציאה ב-', '')}</div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-
-                  {/* Right: Hold Button */}
-                  <div className="shrink-0 relative">
-                       <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl transform scale-150 pointer-events-none"></div>
-                       <HoldButton 
-                          isActive={!!activeShift} 
-                          onComplete={activeShift ? clockOut : clockIn} 
-                          label={activeShift ? 'יציאה' : 'כניסה'} 
-                          size="normal"
-                      />
-                  </div>
-              </div>
-
-              {/* Tabs: History & Leave Requests */}
-              <div className="border-t border-gray-100 bg-gray-50/30">
-                  <div className="flex border-b border-gray-200">
-                  <button 
-                          onClick={() => setShowHistory(true)}
-                          className={`flex-1 p-3 text-xs font-bold transition-colors ${
-                              showHistory 
-                                  ? 'text-gray-900 border-b-2 border-gray-900 bg-white' 
-                                  : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                  >
-                          היסטוריית נוכחות
-                  </button>
-                  <button 
-                          onClick={() => setShowHistory(false)}
-                          className={`flex-1 p-3 text-xs font-bold transition-colors ${
-                              !showHistory 
-                                  ? 'text-gray-900 border-b-2 border-gray-900 bg-white' 
-                                  : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                      >
-                          בקשות חופש
-                  </button>
-                  </div>
-                  
-                  <AnimatePresence mode="wait">
-                      {showHistory ? (
-                          <motion.div
-                              key="history"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                          >
-                              <div className="p-4 overflow-x-auto">
-                                  <table className="w-full text-sm text-right">
-                                      <thead className="text-gray-600 font-bold text-[10px] uppercase tracking-wider border-b border-gray-200/50">
-                                          <tr>
-                                              <th className="px-4 py-2">תאריך</th>
-                                              <th className="px-4 py-2">כניסה</th>
-                                              <th className="px-4 py-2">מיקום כניסה</th>
-                                              <th className="px-4 py-2">יציאה</th>
-                                              <th className="px-4 py-2">מיקום יציאה</th>
-                                              <th className="px-4 py-2">סה״כ</th>
-                                          </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-gray-100">
-                                          {myHistory.slice(0, 5).map((entry: TimeEntry) => (
-                                              (() => {
-                                                  const startMapUrl = getMapUrl(entry?.startLat, entry?.startLng);
-                                                  const endMapUrl = getMapUrl(entry?.endLat, entry?.endLng);
-                                                  return (
-                                              <tr key={entry.id} className="text-gray-600 hover:bg-white transition-colors">
-                                                  <td className="px-4 py-3 font-bold text-gray-900">{formatDate(entry.startTime)}</td>
-                                                  <td className="px-4 py-3 font-mono text-xs">{formatTime(entry.startTime)}</td>
-                                                  <td className="px-4 py-3 text-xs">
-                                                      {startMapUrl ? (
-                                                          <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                              <MapPin size={14} /> הצג
-                                                          </a>
-                                                      ) : (
-                                                          <span className="text-gray-400">-</span>
-                                                      )}
-                                                  </td>
-                                                  <td className="px-4 py-3 font-mono text-xs">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
-                                                  <td className="px-4 py-3 text-xs">
-                                                      {endMapUrl ? (
-                                                          <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
-                                                              <MapPin size={14} /> הצג
-                                                          </a>
-                                                      ) : (
-                                                          <span className="text-gray-400">-</span>
-                                                      )}
-                                                  </td>
-                                                  <td className="px-4 py-3 font-bold">{entry.durationMinutes ? `${Math.floor(entry.durationMinutes / 60)}:${(entry.durationMinutes % 60).toString().padStart(2, '0')}` : '-'}</td>
-                                              </tr>
-                                                  );
-                                              })()
-                                          ))}
-                                          {myHistory.length === 0 && (
-                                              <tr><td colSpan={6} className="p-6 text-center text-gray-600 text-xs">אין נתונים להצגה</td></tr>
-                                          )}
-                                      </tbody>
-                                  </table>
-                              </div>
-                          </motion.div>
-                      ) : (
-                          <motion.div
-                              key="leave-requests"
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                          >
-                              <div className="p-4">
-                                  {isLoadingLeaveRequests ? (
-                                      <div className="text-center py-8 text-gray-400 text-sm">טוען...</div>
-                                  ) : myLeaveRequests.length === 0 ? (
-                                      <div className="text-center py-8">
-                                          <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
-                                          <p className="text-gray-600 text-sm mb-4">אין בקשות חופש</p>
-                          <button
-                              onClick={() => setShowLeaveRequestModal(true)}
-                                              className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors"
-                          >
-                              בקש חופש
-                          </button>
-                      </div>
-                      ) : (
-                                      <div className="space-y-3">
-                              {myLeaveRequests.slice(0, 3).map((req) => (
-                                              <div key={req.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 transition-colors">
-                                                  <div className="flex items-center justify-between mb-2">
-                                                      <div className="flex items-center gap-2 flex-wrap">
-                                                          <CalendarDays size={16} className="text-blue-600" />
-                                                          <span className="text-sm font-bold text-gray-900">
-                                                              {new Date(req.start_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
-                                                              {req.end_date && req.end_date !== req.start_date && ` - ${new Date(req.end_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`}
-                                                          </span>
-                                                          {req.metadata?.isUrgent && (
-                                                              <span className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1">
-                                                                  <CircleAlert size={12} />
-                                                                  דחוף
-                                                              </span>
-                                                          )}
-                                          </div>
-                                                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                                                          req.status === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                                          req.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                                          'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                                      }`}>
-                                                          {req.status === 'approved' ? 'אושר' : req.status === 'rejected' ? 'נדחה' : 'ממתין'}
-                                      </span>
-                                                  </div>
-                                                  {req.reason && (
-                                                      <p className="text-xs text-gray-600 mt-1">{req.reason}</p>
-                                                  )}
-                                  </div>
-                              ))}
-                                          <button
-                                              onClick={() => setShowLeaveRequestModal(true)}
-                                              className="w-full bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors mt-3"
-                                          >
-                                              בקש חופש
-                                          </button>
-                          </div>
-                      )}
-                              </div>
-                          </motion.div>
-                      )}
-                  </AnimatePresence>
-                  </div>
-              </div>
-
+              <MeAttendancePanel
+                  activeShift={activeShift}
+                  elapsed={elapsed}
+                  totalTodayLabel={totalTodayLabel}
+                  lastActivityLabel={lastActivityLabel}
+                  myHistory={myHistory}
+                  showHistory={showHistory}
+                  setShowHistory={setShowHistory}
+                  myLeaveRequests={myLeaveRequests}
+                  isLoadingLeaveRequests={isLoadingLeaveRequests}
+                  onClockIn={clockIn}
+                  onClockOut={clockOut}
+                  onRequestLeave={() => setShowLeaveRequestModal(true)}
+              />
           ) : null}
 
           {/* Team Events Section */}
@@ -1173,81 +977,18 @@ export const MeView: React.FC<{
           </div>
 
           {/* Settings Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
-              <button 
-                onClick={openProfileEditor}
-                className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                aria-label="פתח הגדרות פרטים אישיים"
-              >
-                  <div className="absolute top-0 right-0 w-1 h-full bg-blue-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                      <UserIcon size={18} className="md:w-6 md:h-6" />
-                  </div>
-                  <h3 className="text-[10px] md:text-lg font-bold text-gray-900">פרטים אישיים</h3>
-                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">ערוך את פרטי הפרופיל, תמונה ופרטי קשר.</p>
-              </button>
-
-              <button 
-                onClick={() => setActiveSettingModal('notifications')}
-                className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                aria-label="פתח הגדרות התראות ועדכונים"
-              >
-                  <div className="absolute top-0 right-0 w-1 h-full bg-purple-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-50 text-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                      <Bell size={18} className="md:w-6 md:h-6" />
-                  </div>
-                  <h3 className="text-[10px] md:text-lg font-bold text-gray-900">התראות ועדכונים</h3>
-                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">נהל את אופן קבלת ההודעות מהמערכת.</p>
-              </button>
-
-              <button 
-                onClick={() => setActiveSettingModal('security')}
-                className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                aria-label="פתח הגדרות אבטחה ופרטיות"
-              >
-                  <div className="absolute top-0 right-0 w-1 h-full bg-orange-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-50 text-orange-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                      <Shield size={18} className="md:w-6 md:h-6" />
-                  </div>
-                  <h3 className="text-[10px] md:text-lg font-bold text-gray-900">אבטחה ופרטיות</h3>
-                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">שינוי סיסמה, אימות דו-שלבי וניהול גישות.</p>
-              </button>
-
-              <button 
-                onClick={() => setActiveSettingModal('billing')}
-                className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                aria-label="פתח הגדרות חיוב ומנויים"
-              >
-                  <div className="absolute top-0 right-0 w-1 h-full bg-green-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-green-50 text-green-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                      <CreditCard size={18} className="md:w-6 md:h-6" />
-                  </div>
-                  <h3 className="text-[10px] md:text-lg font-bold text-gray-900">חיוב ומנויים</h3>
-                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">צפה בחשבוניות, שדרג חבילה ועדכן אמצעי תשלום.</p>
-              </button>
-
-              {/* Hidden Admin Access Card - Only for Super Admin - Moved to end */}
-              {currentUser.isSuperAdmin && (
-                  <button 
-                    onClick={() => {
-                      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
-                      if (orgSlug) {
-                        const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-                        router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
-                      }
-                    }}
-                    className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 md:p-6 rounded-xl md:rounded-2xl border-2 border-indigo-200/50 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                    title="גישה למנהל-על (נסתר)"
-                  >
-                      <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                          <Shield size={18} className="md:w-6 md:h-6" />
-                      </div>
-                      <h3 className="text-[10px] md:text-lg font-bold text-gray-900">ניהול-על</h3>
-                      <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">גישה למסך ניהול המערכת (SaaS Admin)</p>
-                  </button>
-              )}
-          </div>
+          <MeSettingsGrid
+              isSuperAdmin={!!currentUser.isSuperAdmin}
+              onOpenSetting={(modal) => setActiveSettingModal(modal)}
+              onOpenProfileEditor={openProfileEditor}
+              onNavigateAdmin={() => {
+                  const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+                  if (orgSlug) {
+                      const returnTo = `${window.location.pathname}${window.location.search || ''}`;
+                      router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
+                  }
+              }}
+          />
 
           {resolvedModuleCards.length ? (
             <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-6">

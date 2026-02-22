@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath } from '@/lib/os/modules/registry';
 import { OS_MODULES } from '@/types/os-modules';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type WorkspaceItem = {
   id: string;
@@ -79,11 +80,10 @@ export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
   }
 
   return (
-    <select
-      className={`h-9 px-3 rounded-full bg-white/60 border border-white/50 text-sm font-bold text-slate-800 outline-none ${className}`}
+    <CustomSelect
       value={current}
-      onChange={(e) => {
-        const nextOrg = e.target.value;
+      onChange={(val) => {
+        const nextOrg = val;
         const target = workspaces.find((w) => w.slug === nextOrg);
         if (!target) return;
 
@@ -103,12 +103,7 @@ export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
 
         router.push(`/w/${encodeURIComponent(nextOrg)}/lobby`);
       }}
-    >
-      {workspaces.map((w) => (
-        <option key={w.id} value={w.slug}>
-          {w.name}
-        </option>
-      ))}
-    </select>
+      options={workspaces.map((w) => ({ value: w.slug, label: w.name }))}
+    />
   );
 }

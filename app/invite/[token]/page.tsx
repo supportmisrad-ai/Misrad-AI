@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useParams, useRouter } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time errors
@@ -494,21 +495,21 @@ export default function InvitePage() {
                                 טלפון מנכ"ל
                             </label>
                             <div className="flex gap-2">
-                                <select
+                                <CustomSelect
                                     value={formData.ceoPhoneCountry}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, ceoPhoneCountry: e.target.value }))}
-                                    className="px-3 py-3 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
-                                >
-                                    <option value="+972">🇮🇱 +972</option>
-                                    <option value="+1">🇺🇸 +1</option>
-                                    <option value="+44">🇬🇧 +44</option>
-                                    <option value="+49">🇩🇪 +49</option>
-                                    <option value="+33">🇫🇷 +33</option>
-                                    <option value="+39">🇮🇹 +39</option>
-                                    <option value="+34">🇪🇸 +34</option>
-                                    <option value="+971">🇦🇪 +971</option>
-                                    <option value="+966">🇸🇦 +966</option>
-                                </select>
+                                    onChange={(val) => setFormData(prev => ({ ...prev, ceoPhoneCountry: val }))}
+                                    options={[
+                                        { value: '+972', label: '🇮🇱 +972' },
+                                        { value: '+1', label: '🇺🇸 +1' },
+                                        { value: '+44', label: '🇬🇧 +44' },
+                                        { value: '+49', label: '🇩🇪 +49' },
+                                        { value: '+33', label: '🇫🇷 +33' },
+                                        { value: '+39', label: '🇮🇹 +39' },
+                                        { value: '+34', label: '🇪🇸 +34' },
+                                        { value: '+971', label: '🇦🇪 +971' },
+                                        { value: '+966', label: '🇸🇦 +966' },
+                                    ]}
+                                />
                             <input
                                 type="tel"
                                 value={formData.ceoPhone}

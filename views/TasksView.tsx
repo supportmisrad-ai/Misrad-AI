@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
 import { isTenantAdminRole } from '@/lib/constants/roles';
+import { TasksStatusSheet, TasksBoardView } from './tasks';
 
 // Map string names to components for templates
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -591,78 +592,13 @@ export const TasksView: React.FC = () => {
     <div className="w-full h-full md:h-[calc(100vh-10rem)] flex flex-col overflow-hidden min-h-0" style={{ touchAction: 'pan-y' }}>
 
       {/* Mobile Status Bottom Sheet */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {isTaskStatusSheetOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm"
-                style={{ zIndex: 1000 }}
-                onClick={() => {
-                  setIsTaskStatusSheetOpen(false);
-                  setTaskStatusSheetTaskId(null);
-                }}
-              />
-              <motion.div
-                initial={{ y: 24, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 24, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                className="fixed left-0 right-0 bottom-0 bg-white rounded-t-3xl border border-gray-200 shadow-2xl overflow-hidden"
-                style={{ zIndex: 1001 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex items-center justify-between">
-                  <div className="text-right">
-                    <div className="text-xs font-black text-gray-900">שינוי שלב</div>
-                    <div className="text-[11px] text-gray-500 font-medium truncate max-w-[260px]">{taskForStatusSheet?.title || ''}</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTaskStatusSheetOpen(false);
-                      setTaskStatusSheetTaskId(null);
-                    }}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
-                    aria-label="סגור"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <div className="max-h-[60vh] overflow-y-auto p-2">
-                  {orderedStages.map((stage: WorkflowStage) => {
-                    const selected = taskForStatusSheet?.status === stage.id;
-                    return (
-                      <button
-                        key={stage.id}
-                        type="button"
-                        onClick={async () => {
-                          if (!taskStatusSheetTaskId) return;
-                          await handleStatusUpdate(taskStatusSheetTaskId, stage.id);
-                          setIsTaskStatusSheetOpen(false);
-                          setTaskStatusSheetTaskId(null);
-                        }}
-                        className={`w-full flex items-center justify-between gap-3 px-3 py-3 rounded-2xl transition-colors ${selected ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-700'}`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${String(stage.color || '').includes('bg-') ? String(stage.color).split(' ')[0] : 'bg-gray-300'}`} />
-                          <span className="text-sm font-bold truncate">{stage.name}</span>
-                        </div>
-                        {selected ? <Check size={16} className="shrink-0" /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      <TasksStatusSheet
+        isOpen={isTaskStatusSheetOpen}
+        taskForStatusSheet={taskForStatusSheet || null}
+        orderedStages={orderedStages}
+        onClose={() => { setIsTaskStatusSheetOpen(false); setTaskStatusSheetTaskId(null); }}
+        onStatusUpdate={handleStatusUpdate}
+      />
       
       <div className="pt-6 pb-4 md:border-b md:border-gray-100 shrink-0">
         <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-4">
@@ -1190,90 +1126,21 @@ export const TasksView: React.FC = () => {
                     </div>
                 </div>
             ) : (
-                <div className="h-full overflow-x-auto overflow-y-hidden pb-4">
-                    <div className="flex h-full min-w-max gap-3 px-4">
-                        {columns.map(col => {
-                            // Don't show "Done" in Focus mode
-                            if (isFocusMode && col.id === 'Done') return null;
-
-                            const columnTasks = getTasksForColumn(col.id);
-                            const isDragTarget = dragOverColumnId === col.id;
-                            
-                            return (
-                                <div 
-                                    key={col.id} 
-                                    className={`w-[260px] min-w-[260px] flex flex-col h-full rounded-2xl transition-all duration-300 ${
-                                        isDragTarget ? 'bg-blue-50/60 ring-2 ring-blue-100' : 'bg-gray-50/40'
-                                    }`}
-                                    onDragOver={(e) => handleDragOver(e, col.id)}
-                                    onDragLeave={handleDragLeave}
-                                    onDrop={(e) => handleDrop(e, col.id)}
-                                >
-                                    {/* Minimalist Header */}
-                                    <div className="p-4 flex items-center justify-between shrink-0">
-                                        <div className="flex items-center gap-2">
-                                            {col.avatar ? (
-                                                <Avatar src={col.avatar} name={col.title} size="sm" className="border border-white shadow-sm" />
-                                            ) : (
-                                                <div className={`w-2 h-2 rounded-full ${'color' in col && typeof col.color === 'string' && col.color.includes('bg-') ? col.color.split(' ')[0] : 'bg-gray-400'}`}></div>
-                                            )}
-                                            
-                                            <h3 className="text-sm font-bold text-gray-900 truncate max-w-[120px]" title={col.title}>{col.title}</h3>
-                                            <span className="text-[10px] text-gray-400 font-medium bg-white px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
-                                                {columnTasks.length}
-                                            </span>
-                                        </div>
-                                        <button 
-                                            onClick={() => {
-                                                // Smart create defaults based on column
-                                                const defaults: TaskCreationDefaults = { priority: Priority.MEDIUM };
-                                                
-                                                if (groupBy === 'status') defaults.status = col.id;
-                                                if (groupBy === 'priority') defaults.priority = col.id as Priority;
-                                                if (groupBy === 'assignee' && col.id !== 'unassigned') defaults.assigneeId = col.id;
-                                                if (groupBy === 'client' && col.id !== 'no-client') defaults.clientId = col.id;
-                                                
-                                                openCreateTask(defaults);
-                                            }}
-                                            className="text-gray-400 hover:text-black p-1.5 rounded-lg hover:bg-white transition-colors"
-                                        >
-                                            <Plus size={16} />
-                                        </button>
-                                    </div>
-
-                                    {/* Infinite Drop Zone with Padding to prevent clipping */}
-                                    <div className="flex-1 overflow-y-auto px-2 pb-20 pt-2 space-y-3 no-scrollbar h-full min-h-[150px] relative">
-                                        {columnTasks.map((task) => (
-                                            <TaskCard 
-                                                key={task.id}
-                                                task={task} 
-                                                users={users} 
-                                                onClick={() => {
-                                                    openTask(task.id);
-                                                }}
-                                                toggleTimer={handleToggleTimer}
-                                            />
-                                        ))}
-                                        
-                                        {/* Drop Zone Visual Cue - fills empty space */}
-                                        <div className={`flex-1 min-h-[100px] transition-all rounded-xl border-2 border-dashed ${isDragTarget ? 'border-blue-300 bg-blue-50/20' : 'border-transparent'}`}>
-                                            {columnTasks.length === 0 && !isDragTarget && (
-                                                <div className="h-full flex items-center justify-center text-gray-300 text-xs font-medium">
-                                                    ריק
-                                                </div>
-                                            )}
-                                            {isDragTarget && columnTasks.length === 0 && (
-                                                <div className="h-full flex items-center justify-center text-blue-400 text-xs font-medium">
-                                                    שחרר כאן
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                <TasksBoardView
+                    columns={columns}
+                    getTasksForColumn={getTasksForColumn}
+                    users={users}
+                    groupBy={groupBy}
+                    isFocusMode={isFocusMode}
+                    dragOverColumnId={dragOverColumnId}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onOpenTask={(id) => openTask(id)}
+                    onToggleTimer={handleToggleTimer}
+                    onCreateTask={(defaults) => openCreateTask(defaults)}
+                    defaultPriority={Priority.MEDIUM}
+                />
             )}
         </div>
       </div>

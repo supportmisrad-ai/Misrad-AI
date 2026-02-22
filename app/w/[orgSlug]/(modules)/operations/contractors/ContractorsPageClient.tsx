@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Users, Package } from 'lucide-react';
 import ContractorPortalLinkCopy from '@/components/operations/ContractorPortalLinkCopy';
 import type { OperationsSupplierRow } from '@/app/actions/operations';
@@ -34,6 +35,7 @@ export default function ContractorsPageClient({
   deleteSupplierAction,
 }: ContractorsPageClientProps) {
   const [activeTab, setActiveTab] = useState<'contractors' | 'suppliers'>(initialTab || 'contractors');
+  const [ttl, setTtl] = useState('72');
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -102,12 +104,19 @@ export default function ContractorsPageClient({
               <div className={sectionTitleCls}>צור קישור חדש לקבלן</div>
               <form action={createTokenAction} className="mt-3 flex flex-wrap gap-2">
                 <input name="label" placeholder="שם הקבלן (לזיהוי)" className={inputCls} />
-                <select name="ttl" defaultValue="72" className={`${inputCls} max-w-[160px]`}>
-                  <option value="24">24 שעות</option>
-                  <option value="72">3 ימים</option>
-                  <option value="168">שבוע</option>
-                  <option value="720">חודש</option>
-                </select>
+                <input type="hidden" name="ttl" value={ttl} />
+                <div className="max-w-[160px]">
+                  <CustomSelect
+                    value={ttl}
+                    onChange={(val) => setTtl(val)}
+                    options={[
+                      { value: '24', label: '24 שעות' },
+                      { value: '72', label: '3 ימים' },
+                      { value: '168', label: 'שבוע' },
+                      { value: '720', label: 'חודש' },
+                    ]}
+                  />
+                </div>
                 <button type="submit" className={btnAddCls}>צור קישור</button>
               </form>
             </div>

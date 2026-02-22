@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { RefreshCw, Save } from 'lucide-react';
+import { Download, RefreshCw, Save } from 'lucide-react';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,8 @@ export default function AdminGlobalDownloadsPageClient() {
   };
 
   return (
+    <div className="space-y-6 pb-24" dir="rtl">
+      <AdminPageHeader title="לינקים להורדה" subtitle="ניהול לינקי הורדה לאפליקציות" icon={Download} />
     <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -106,6 +109,7 @@ export default function AdminGlobalDownloadsPageClient() {
           <div className="text-[11px] font-bold text-slate-500">השאר ריק כדי להסיר לינק (fallback ל-ENV אם קיים).</div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useData } from '../context/DataContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield, LayoutGrid, Lock, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
@@ -1011,21 +1012,15 @@ export const SaaSAdminView: React.FC = () => {
 
                                                 <div className="min-w-[260px]">
                                                     <label className="block text-xs font-bold text-slate-600 mb-2">בחר טננט</label>
-                                                    <select
+                                                    <CustomSelect
                                                         value={selectedSocialTenantId}
-                                                        onChange={(e) => setSelectedSocialTenantId(e.target.value)}
-                                                        className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200/60 transition-all appearance-none cursor-pointer"
-                                                    >
-                                                        {socialTenantOptions.length === 0 ? (
-                                                            <option value="">אין טננטים</option>
-                                                        ) : (
-                                                            socialTenantOptions.map((t: Tenant) => (
-                                                                <option key={t.id} value={String(t.id)}>
-                                                                    {t.name || t.subdomain || t.id}
-                                                                </option>
-                                                            ))
-                                                        )}
-                                                    </select>
+                                                        onChange={(val) => setSelectedSocialTenantId(val)}
+                                                        placeholder="אין טננטים"
+                                                        options={socialTenantOptions.map((t: Tenant) => ({
+                                                            value: String(t.id),
+                                                            label: t.name || t.subdomain || String(t.id),
+                                                        }))}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>

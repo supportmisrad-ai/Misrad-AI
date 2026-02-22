@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { DataProvider } from '@/context/DataContext';
 import { Layout } from '@/components/Layout';
 import { ScreenGuard } from '@/components/ScreenGuard';
 import { AdminGuard } from '@/components/AdminGuard';
-import { SystemLayout } from '@/components/system/SystemLayout';
 import { DashboardView } from '@/views/DashboardView';
 import { TasksView } from '@/views/TasksView';
 import { CalendarView } from '@/views/CalendarView';
@@ -20,9 +20,6 @@ import { MeView } from '@/views/MeView';
 import { RecycleBinView } from '@/views/RecycleBinView';
 import { IntelligenceView } from '@/views/IntelligenceView';
 import { ModuleGuard } from '@/components/ModuleGuard';
-import { SalesDashboard } from '@/views/SalesDashboard';
-import { SalesPipeline } from '@/views/SalesPipeline';
-import { SalesTargets } from '@/views/SalesTargets';
 import { getNexusBasePath } from '@/lib/os/nexus-routing';
 import type { OrganizationProfile, User } from '@/types';
 
@@ -82,14 +79,6 @@ export function NexusWorkspaceApp({
           </Layout>
         );
       case '/team':
-        return (
-          <Layout>
-            <ScreenGuard id="team">
-              <TeamView />
-            </ScreenGuard>
-          </Layout>
-        );
-      case '/users':
         return (
           <Layout>
             <ScreenGuard id="team">
@@ -164,42 +153,47 @@ export function NexusWorkspaceApp({
             </div>
           </AdminGuard>
         );
-      case '/sales':
-        return (
-          <SystemLayout>
-            <SalesDashboard />
-          </SystemLayout>
-        );
-      case '/sales/pipeline':
-        return (
-          <SystemLayout>
-            <SalesPipeline />
-          </SystemLayout>
-        );
-      case '/sales/targets':
-        return (
-          <SystemLayout>
-            <SalesTargets />
-          </SystemLayout>
-        );
       default:
         return (
           <Layout>
-            <ScreenGuard id="dashboard">
-              <DashboardView
-                initialOwnerDashboard={initialOwnerDashboard}
-                initialOnboardingTemplateKey={initialOnboardingTemplateKey}
-                initialBillingItems={initialBillingItems}
-              />
-            </ScreenGuard>
+            <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center p-6" dir="rtl">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                <span className="text-4xl">🔍</span>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2">העמוד לא נמצא</h2>
+              <p className="text-slate-500 mb-6 max-w-xs">הנתיב שחיפשת לא קיים במערכת.</p>
+              <button
+                onClick={() => {
+                  const p = pathname || '';
+                  const b = getNexusBasePath(p);
+                  window.location.href = b || '/';
+                }}
+                className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
+              >
+                חזרה ללוח הבקרה
+              </button>
+            </div>
           </Layout>
         );
     }
   };
 
+  const content = useMemo(() => render(), [relative, initialOwnerDashboard, initialOnboardingTemplateKey, initialBillingItems]);
+
   return (
     <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-      {render()}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={relative}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15, ease: 'easeInOut' }}
+          className="flex-1 min-h-0"
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>
     </DataProvider>
   );
 }

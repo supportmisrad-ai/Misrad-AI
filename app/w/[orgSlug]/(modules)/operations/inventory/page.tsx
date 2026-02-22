@@ -1,6 +1,8 @@
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 import { createOperationsItem, getOperationsInventoryData } from '@/app/actions/operations';
+import { ExportInventoryCsvButton } from '@/components/operations/ExportButtons';
+import { InventoryItemActions } from '@/components/operations/InventoryItemActions';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
 import { redirect } from 'next/navigation';
 
@@ -114,6 +116,7 @@ export default async function OperationsInventoryPage({
                 <div className="text-sm font-black text-slate-900">פריטי מלאי</div>
                 <div className="text-xs text-slate-500 mt-1">סך הכל {filteredItems.length} פריטים</div>
               </div>
+              <ExportInventoryCsvButton items={filteredItems} />
             </div>
 
             <form id="ops-inventory-search-form" method="get" className="mt-4 flex items-center gap-2">
@@ -152,8 +155,11 @@ export default async function OperationsInventoryPage({
                           <div className="text-sm font-black text-slate-900 truncate">{i.itemName}</div>
                           <div className="text-xs text-slate-500 mt-1">מק&quot;ט: {i.sku ? i.sku : '—'}</div>
                         </div>
-                        <div className={low ? 'text-sm font-black text-rose-700' : 'text-sm font-black text-slate-700'}>
-                          {i.onHand}
+                        <div className="flex items-center gap-2">
+                          <div className={low ? 'text-sm font-black text-rose-700' : 'text-sm font-black text-slate-700'}>
+                            {i.onHand}
+                          </div>
+                          <InventoryItemActions item={i} orgSlug={orgSlug} />
                         </div>
                       </div>
 
@@ -176,6 +182,7 @@ export default async function OperationsInventoryPage({
                     <th className="pb-3 font-bold">מק&quot;ט</th>
                     <th className="pb-3 font-bold">כמות במלאי</th>
                     <th className="pb-3 font-bold">כמות מינימום</th>
+                    <th className="pb-3 font-bold w-20">פעולות</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,12 +204,13 @@ export default async function OperationsInventoryPage({
                             {i.onHand}
                           </td>
                           <td className="py-3 text-slate-600">{i.minLevel}</td>
+                          <td className="py-3"><InventoryItemActions item={i} orgSlug={orgSlug} /></td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr className="border-t border-slate-100">
-                      <td className="py-6 text-sm text-slate-500" colSpan={4}>
+                      <td className="py-6 text-sm text-slate-500" colSpan={5}>
                         אין פריטים להצגה
                       </td>
                     </tr>

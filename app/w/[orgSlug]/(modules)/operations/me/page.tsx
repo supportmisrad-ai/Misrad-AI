@@ -3,6 +3,7 @@ import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { MeView } from '@/views/MeView';
+import { FormCustomSelect } from '@/components/FormCustomSelect';
 import Link from 'next/link';
 import {
   getOperationsInventoryData,
@@ -139,18 +140,12 @@ export default async function OperationsMePage({
             <div className="text-xs font-black text-slate-700">הרכב הפעיל שלי</div>
             <form action={setActiveVehicleAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
-                <select
+                <FormCustomSelect
                   name="vehicleId"
                   defaultValue={activeVehicleId ? String(activeVehicleId) : ''}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
-                >
-                  <option value="">לא משויך</option>
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="לא משויך"
+                  options={vehicles.map((v) => ({ value: v.id, label: v.name }))}
+                />
                 {!vehiclesRes.success ? (
                   <div className="mt-2 text-xs font-bold text-rose-700">{vehiclesRes.error}</div>
                 ) : null}

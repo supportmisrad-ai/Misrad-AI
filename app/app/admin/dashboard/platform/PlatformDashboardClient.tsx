@@ -74,6 +74,13 @@ export default function PlatformDashboardClient() {
         icon={Server}
       />
 
+      {/* Disclaimer */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+        <div className="text-sm font-bold text-amber-800">
+          ⚠️ הנתונים בדף זה הם לצורכי הדגמה בלבד. חבר שירות ניטור (Vercel Analytics / Datadog) לקבלת נתונים אמיתיים.
+        </div>
+      </div>
+
       {/* System Status */}
       <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl border border-green-200 p-6">
         <div className="flex items-center gap-3 mb-4">

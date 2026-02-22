@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type TechnicianOption = { id: string; label: string };
 type Suggestion = { technicianId: string; technicianName: string; reason: string };
@@ -63,19 +64,12 @@ export default function TechnicianSelector({
   return (
     <div className="space-y-2">
       <label htmlFor="assignedTechnicianId" className="block text-xs font-semibold text-slate-500 mb-1.5">טכנאי מוקצה</label>
-      <select
-        id="assignedTechnicianId"
-        name="assignedTechnicianId"
+      <CustomSelect
         value={selectedId}
-        onChange={(e) => { setSelectedId(e.target.value); setAccepted(false); }}
-        className="appearance-none w-full h-11 rounded-xl bg-white bg-no-repeat border border-slate-200/80 pl-10 pr-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundSize: '16px 16px', backgroundPosition: 'left 12px center' }}
-      >
-        <option value="">ללא שיוך</option>
-        {technicians.map((t) => (
-          <option key={t.id} value={t.id}>{t.label}</option>
-        ))}
-      </select>
+        onChange={(val) => { setSelectedId(val); setAccepted(false); }}
+        placeholder="ללא שיוך"
+        options={technicians.map((t) => ({ value: t.id, label: t.label }))}
+      />
 
       {/* AI Suggestion */}
       <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-3">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { 
     Layout, CircleCheckBig, Clock, FileText, CreditCard, 
     MessageSquare, Download, ChevronRight, Bell, Shield, 
@@ -244,13 +245,17 @@ const ClientPortalView: React.FC<ClientPortalProps> = ({ client, onExit }) => {
                             <form onSubmit={submitTicket} className="p-8 space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">נושא הפנייה</label>
-                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm focus:ring-4 focus:ring-primary/5 transition-all outline-none">
-                                        <option>בעיה טכנית במערכת</option>
-                                        <option>בקשה לשינוי בלו"ז</option>
-                                        <option>הערה לגבי איכות השירות</option>
-                                        <option>שאלה בנושא תשלומים</option>
-                                        <option>אחר</option>
-                                    </select>
+                                    <CustomSelect
+                                        value="בעיה טכנית במערכת"
+                                        onChange={() => {}}
+                                        options={[
+                                            { value: 'בעיה טכנית במערכת', label: 'בעיה טכנית במערכת' },
+                                            { value: 'בקשה לשינוי בלו"ז', label: 'בקשה לשינוי בלו"ז' },
+                                            { value: 'הערה לגבי איכות השירות', label: 'הערה לגבי איכות השירות' },
+                                            { value: 'שאלה בנושא תשלומים', label: 'שאלה בנושא תשלומים' },
+                                            { value: 'אחר', label: 'אחר' },
+                                        ]}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">פירוט הבקשה</label>

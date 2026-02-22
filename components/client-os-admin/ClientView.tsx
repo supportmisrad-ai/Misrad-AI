@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { MOCK_MEETINGS, MOCK_FEEDBACK } from '@/components/client-portal/constants';
 import {
   AssignedForm,
@@ -327,18 +328,18 @@ const ClientView: React.FC = () => {
             <div className="p-8 space-y-6">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase block mb-2">סיבת עזיבה עיקרית</label>
-                <select
+                <CustomSelect
                   value={churnReason}
-                  onChange={(e) => setChurnReason(e.target.value)}
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500"
-                >
-                  <option value="">בחר סיבה...</option>
-                  <option value="מחיר">יקר מדי / חוסר תקציב</option>
-                  <option value="ביצועים">חוסר שביעות רצון מהתוצאות</option>
-                  <option value="יחסים">קשר אישי לקוי</option>
-                  <option value="מעבר פנימי">הפסיקו את הפעילות כליל</option>
-                  <option value="מתחרה">עברו למתחרה</option>
-                </select>
+                  onChange={(val) => setChurnReason(val)}
+                  placeholder="בחר סיבה..."
+                  options={[
+                    { value: 'מחיר', label: 'יקר מדי / חוסר תקציב' },
+                    { value: 'ביצועים', label: 'חוסר שביעות רצון מהתוצאות' },
+                    { value: 'יחסים', label: 'קשר אישי לקוי' },
+                    { value: 'מעבר פנימי', label: 'הפסיקו את הפעילות כליל' },
+                    { value: 'מתחרה', label: 'עברו למתחרה' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase block mb-2">הערות לסיום</label>

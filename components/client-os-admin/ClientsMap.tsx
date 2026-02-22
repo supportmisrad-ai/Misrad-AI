@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import type { Client } from '@/components/client-portal/types';
 import { ClientStatus } from '@/components/client-portal/types';
+import { CustomSelect } from '@/components/CustomSelect';
 
 export function ClientsMap({
   clients,
@@ -45,15 +46,15 @@ export function ClientsMap({
             </div>
 
             <div className="flex-1 sm:flex-none sm:w-44">
-              <select
+              <CustomSelect
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'ALL' | 'ACTIVE' | 'PENDING')}
-                className="w-full py-2.5 px-3 bg-white/50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 outline-none focus:border-nexus-primary/30"
-              >
-                <option value="ALL">כל הסטטוסים</option>
-                <option value="ACTIVE">פעיל</option>
-                <option value="PENDING">בהמתנה</option>
-              </select>
+                onChange={(val) => setStatus(val as 'ALL' | 'ACTIVE' | 'PENDING')}
+                options={[
+                  { value: 'ALL', label: 'כל הסטטוסים' },
+                  { value: 'ACTIVE', label: 'פעיל' },
+                  { value: 'PENDING', label: 'בהמתנה' },
+                ]}
+              />
             </div>
           </div>
         </div>

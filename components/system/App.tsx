@@ -14,7 +14,7 @@ import FocusModeView from './FocusModeView';
 const FinanceView = () => <div className="p-8 text-center text-slate-500">מודול Finance עבר לנתיב /w/[org]/finance</div>;
 import NotificationsView from './NotificationsView';
 import LeadsHub from './LeadsHub';
-import HeadquartersView from '../nexus/HeadquartersView';
+import HeadquartersView from '../HeadquartersView';
 import WorkspaceHub from './WorkspaceHub';
 import OperationsHub from './OperationsHub';
 import SystemHub from './SystemHub';
@@ -332,7 +332,7 @@ const SystemOSApp = () => {
                               {activeTab === 'finance' && <FinanceView />}
                               {activeTab === 'operations' && <OperationsHub students={storedStudents} leads={leads} onUpdateStudent={(s) => setStoredStudents(p => p.map(i => i.id === s.id ? s : i))} />}
                               {activeTab === 'reports' && <ReportsView leads={leads} campaigns={storedCampaigns} tasks={tasks} />}
-                              {activeTab === 'headquarters' && <HeadquartersView onAddTask={(t) => setStoredTasks(p => [t, ...p])} leads={leads} />}
+                              {activeTab === 'headquarters' && <HeadquartersView onAddTask={(t: Task) => setStoredTasks(p => [t, ...p])} leads={leads} />}
                               {activeTab === 'system' && <SystemHub logs={webhookLogs} leads={leads} agents={INITIAL_AGENTS} />}
                               {activeTab === 'personal_area' && <PersonalAreaView leads={leads} tasks={tasks} />}
                               {activeTab === 'notifications_center' && <NotificationsView />}

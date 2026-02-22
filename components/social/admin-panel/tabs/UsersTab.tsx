@@ -6,6 +6,7 @@ import { UserPlus, Eye, Ban, Gift, Edit } from 'lucide-react';
 import { banUser, grantProAccess } from '@/app/actions/admin-cockpit';
 import { getUserDetails } from '@/app/actions/admin-users';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface UsersTabProps {
   allUsers: Record<string, unknown>[];
@@ -39,16 +40,16 @@ export default function UsersTab({
             <p className="text-sm text-slate-600">שליטה מלאה על כל משתמשי המערכת</p>
           </div>
           <div className="flex gap-4">
-            <select
+            <CustomSelect
               value={userFilter}
-              onChange={(e) => setUserFilter(String(e.target.value) as 'all' | 'active' | 'banned' | 'churned')}
-              className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
-            >
-              <option value="all">הכל</option>
-              <option value="active">פעילים</option>
-              <option value="banned">חסומים</option>
-              <option value="churned">נטשו</option>
-            </select>
+              onChange={(val) => setUserFilter(val as 'all' | 'active' | 'banned' | 'churned')}
+              options={[
+                { value: 'all', label: 'הכל' },
+                { value: 'active', label: 'פעילים' },
+                { value: 'banned', label: 'חסומים' },
+                { value: 'churned', label: 'נטשו' },
+              ]}
+            />
             <input 
               placeholder="חפש משתמש..." 
               value={userSearchQuery}

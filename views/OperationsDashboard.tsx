@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
 import type { OperationsDashboardData } from '@/app/actions/operations';
 import type { OperationsInventoryOption } from '@/app/actions/operations';
+import { WorkOrderStatusChart, WorkOrderPriorityChart, InventoryPieChart } from '@/components/operations/DashboardCharts';
 import { formatWorkOrderStatus, formatProjectStatus, slaLabel } from '@/lib/services/operations/format';
 
 export function OperationsDashboard({
@@ -27,6 +29,7 @@ export function OperationsDashboard({
 }) {
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
+  const [selectedItemId, setSelectedItemId] = useState(initialInventoryOptions?.length ? String(initialInventoryOptions[0].itemId) : '');
   const [showFlash, setShowFlash] = useState(!!flash);
   useEffect(() => {
     if (!flash) return;
@@ -167,6 +170,27 @@ export function OperationsDashboard({
         </div>
       ) : null}
 
+      {/* ──── Charts ──── */}
+      {woStats && (woStats.total > 0 || (inventory && inventory.total > 0)) ? (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {woStats.total > 0 ? (
+            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+              <WorkOrderStatusChart stats={woStats} />
+            </section>
+          ) : null}
+          {woStats.total > 0 ? (
+            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+              <WorkOrderPriorityChart stats={woStats} />
+            </section>
+          ) : null}
+          {inventory && inventory.total > 0 ? (
+            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+              <InventoryPieChart inventory={inventory} />
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* ──── Recent Work Orders + Inventory ──── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
@@ -273,19 +297,15 @@ export function OperationsDashboard({
                 {activeVehicleName ? `רכב: ${activeVehicleName}` : 'אין רכב פעיל'}
               </div>
               <form action={onQuickAddStockAction} className="mt-3 flex gap-2">
-                <select
-                  name="itemId"
-                  required
-                  defaultValue={inventoryOptions.length ? String(inventoryOptions[0].itemId) : ''}
-                  className="appearance-none flex-1 h-10 rounded-lg border border-slate-200/80 bg-white bg-no-repeat pl-8 pr-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundSize: '14px 14px', backgroundPosition: 'left 8px center' }}
-                >
-                  {inventoryOptions.length ? (
-                    inventoryOptions.map((o) => <option key={o.itemId} value={o.itemId}>{o.label}</option>)
-                  ) : (
-                    <option value="">אין פריטים</option>
-                  )}
-                </select>
+                <input type="hidden" name="itemId" value={selectedItemId} />
+                <div className="flex-1">
+                  <CustomSelect
+                    value={selectedItemId}
+                    onChange={(val) => setSelectedItemId(val)}
+                    placeholder="אין פריטים"
+                    options={inventoryOptions.map((o) => ({ value: String(o.itemId), label: o.label }))}
+                  />
+                </div>
                 <input name="qty" type="number" step="0.001" min="0.001" placeholder="כמות" required className="w-20 h-10 rounded-lg border border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100" />
                 <button type="submit" disabled={!activeVehicleName || !inventoryOptions.length} className="h-10 rounded-lg px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed">קלוט</button>
               </form>

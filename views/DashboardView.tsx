@@ -5,17 +5,15 @@ import Link from 'next/link';
 import { useData } from '../context/DataContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, SquareCheck, Sparkles, ChevronRight, Flame, Rocket, Image, Upload, Plus, Mic, type LucideIcon } from 'lucide-react';
+import { Clock, Users, User, Target, Zap, X, Check, Flame, Rocket, Image, SquareCheck, Sparkles, type LucideIcon } from 'lucide-react';
 import { Status, Priority, LeadStatus, User as UserType, type ModuleId } from '../types';
-import { TaskCard } from '../components/nexus/TaskCard';
-import { HoldButton } from '../components/HoldButton';
 import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
-import { Skeleton } from '@/components/ui/skeletons';
-import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { isCeoRole } from '@/lib/constants/roles';
+import { DashboardOnboarding, DashboardOwnerPanel, DashboardQuickActions, DashboardKPIWidgets, DashboardFocusTasks } from './dashboard';
+import type { OnboardingStep } from './dashboard';
 import { listNexusUsers } from '@/app/actions/nexus';
 
 type OwnerDashboardAction = {
@@ -163,33 +161,6 @@ function coerceOwnerDashboardData(value: unknown): OwnerDashboardData | null {
 }
 
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
-
-const TrendChart = ({ data, color }: { data: number[], color: string }) => {
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    const height = 60;
-    
-    const points = data.map((val, i) => {
-        const x = (i / (data.length - 1)) * 100;
-        const y = height - ((val - min) / (max - min || 1)) * height;
-        return `${x},${y}`;
-    }).join(' ');
-
-    return (
-        <div className="relative h-20 w-full overflow-hidden">
-            <svg viewBox={`0 0 100 ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                <path d={`M0,${height} ${points} 100,${height}`} fill={`url(#gradient-${color})`} className="opacity-30" />
-                <path d={`M${String(points ?? '').replace(/ /g, ' L')}`} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" className={color} strokeLinecap="round" strokeLinejoin="round" />
-                <defs>
-                    <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.6" className={color} />
-                        <stop offset="100%" stopColor="currentColor" stopOpacity="0" className={color} />
-                    </linearGradient>
-                </defs>
-            </svg>
-        </div>
-    );
-};
 
 export const DashboardView: React.FC<{
     initialOwnerDashboard?: unknown;
@@ -754,108 +725,11 @@ export const DashboardView: React.FC<{
             {/* ONBOARDING WIDGET - For new users */}
             <AnimatePresence>
                 {isNewUser && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl mb-8"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-20"></div>
-
-                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.3rem] p-8 md:p-10 border border-white/50 overflow-hidden">
-                            {/* Decorative Background Elements */}
-                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
-
-                            <button
-                                type="button"
-                                onClick={dismissOnboarding} 
-                                className="absolute top-6 left-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors z-20"
-                                aria-label="סגור תדריך התחלה"
-                            >
-                                <X size={20} />
-                            </button>
-
-                            <div className="flex flex-col lg:flex-row gap-10 relative z-10">
-                                {/* Left: Hero Section */}
-                                <div className="lg:w-1/3 flex flex-col justify-center">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold w-fit mb-6 shadow-lg shadow-slate-900/20">
-                                        <Rocket size={12} className="text-yellow-400" />
-                                        <span>צעדים ראשונים</span>
-                                    </div>
-                                    
-                                    <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight tracking-tight mb-4">
-                                        ברוכים הבאים ל-<br/>
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">MISRAD AI</span>
-                                    </h2>
-                                    
-                                    <p className="text-slate-500 text-sm leading-relaxed mb-6 max-w-sm">
-                                        המערכת שתעשה לך סדר בראש ובעסק. השלם את הצעדים כדי להתחיל ברגל ימין.
-                                    </p>
-
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                                            <span>התקדמות</span>
-                                            <span>{Math.round(progressPercent)}%</span>
-                                        </div>
-                                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }} 
-                                                animate={{ width: `${progressPercent}%` }} 
-                                                transition={{ duration: 1, ease: "easeOut" }} 
-                                                className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.4)] relative"
-                                            >
-                                                <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>
-                                            </motion.div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right: Steps Grid */}
-                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {onboardingSteps.map((step) => {
-                                        const isDone = step.done;
-                                        return (
-                                            <button 
-                                                key={step.id}
-                                                onClick={step.action}
-                                                disabled={isDone}
-                                                className={`relative group flex flex-col p-5 rounded-3xl border text-right transition-all duration-300 overflow-hidden ${
-                                                    isDone 
-                                                    ? 'bg-slate-50 border-slate-200 opacity-60' 
-                                                    : 'bg-white border-slate-200/70 shadow-lg shadow-slate-200/50 hover:border-indigo-200 hover:bg-indigo-50/30 hover:shadow-xl hover:-translate-y-1'
-                                                }`}
-                                            >
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                                                        isDone 
-                                                        ? 'bg-green-100 text-green-600' 
-                                                        : 'bg-slate-50 text-slate-700 group-hover:bg-indigo-50 group-hover:text-indigo-600'
-                                                    }`}>
-                                                        {isDone ? <Check size={20} strokeWidth={3} /> : <step.icon size={22} />}
-                                                    </div>
-                                                    {!isDone && (
-                                                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                                            <ChevronRight size={16} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="mt-auto">
-                                                    <h3 className={`font-bold text-base mb-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
-                                                        {step.label}
-                                                    </h3>
-                                                    <p className={`text-xs ${isDone ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                        {step.subLabel}
-                                                    </p>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
+                    <DashboardOnboarding
+                        steps={onboardingSteps}
+                        progressPercent={progressPercent}
+                        onDismiss={dismissOnboarding}
+                    />
                 )}
             </AnimatePresence>
 
@@ -882,490 +756,75 @@ export const DashboardView: React.FC<{
 
             {/* ===== SECTION 2: OWNER DASHBOARD (Only for CEO/Owners) ===== */}
             {ownerDashboard && showOwnerDashboard && isOwnerOrCeo && (
-                <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl" data-owner-dashboard>
-                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-slate-200 overflow-hidden">
-                        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
-
-                        <div className="relative z-10 flex flex-col gap-8">
-                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                                <div>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold w-fit shadow-lg shadow-slate-900/20">
-                                        <Rocket size={12} className="text-yellow-400" />
-                                        <span>תמונת מצב</span>
-                                    </div>
-                                    <h2 className="mt-4 text-2xl md:text-3xl font-black text-slate-900">תמונת מצב לבעלים</h2>
-                                    <p className="mt-2 text-sm text-slate-500">מבט אחד על מה שקורה בעסק – לפי ההרשאות שלך</p>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <button
-                                        onClick={() => {
-                                            setShowOwnerDashboard(false);
-                                            setIsFocusMode(false);
-                                        }}
-                                        className="h-11 w-11 inline-flex items-center justify-center rounded-xl border bg-white/70 hover:bg-white border-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
-                                        aria-label="סגור תמונת מצב"
-                                        title="סגור"
-                                    >
-                                        <X size={18} />
-                                    </button>
-
-                                    <button
-                                        onClick={() => setIsFocusMode((v) => !v)}
-                                        className={`h-11 px-4 rounded-xl border text-sm font-bold flex items-center gap-2 transition-colors ${isFocusMode ? 'bg-slate-900 text-white border-transparent shadow-lg shadow-slate-900/20' : 'bg-white/70 hover:bg-white border-slate-200 text-slate-700'}`}
-                                        aria-label="מצב מיקוד"
-                                    >
-                                        <Zap size={16} />
-                                        {isFocusMode ? 'יציאה' : 'מצב מיקוד'}
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
-                                            if (!orgSlug) return;
-                                            if (isPilotLoading) return;
-                                            setIsPilotLoading(true);
-                                            fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/owner-dashboard`, { cache: 'no-store' })
-                                                .then((r) => (r.ok ? r.json() : null))
-                                                .then((data) => {
-                                                    if (data) {
-                                                        setOwnerDashboard(data);
-                                                        setPilotErrorCount(0);
-                                                    }
-                                                })
-                                                .catch(() => setPilotErrorCount((c) => c + 1))
-                                                .finally(() => setIsPilotLoading(false));
-                                        }}
-                                        className="h-11 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-sm font-bold flex items-center gap-2 text-slate-700 transition-colors"
-                                        aria-label="רענן תא טייס"
-                                    >
-                                        {isPilotLoading ? <Skeleton className="w-4 h-4 rounded-full" /> : <RefreshCw size={16} />}
-                                        רענן
-                                    </button>
-                                </div>
-                            </div>
-
-                            {!isFocusMode && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {ownerDashboard?.kpis?.nexus && (
-                                        <div className="ui-card p-5 transform-none hover:transform-none">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs text-slate-500 font-bold">Nexus</div>
-                                                <SquareCheck size={18} className="text-[#3730A3]" />
-                                            </div>
-                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.nexus.tasksOpen ?? 0}</div>
-                                            <div className="mt-1 text-xs text-slate-500">משימות פתוחות</div>
-                                            <div className="mt-3 text-xs text-[#3730A3] font-bold">דחופות: {ownerDashboard.kpis.nexus.tasksUrgent ?? 0}</div>
-                                        </div>
-                                    )}
-
-                                    {ownerDashboard?.kpis?.system && (
-                                        <div className="ui-card p-5 transform-none hover:transform-none">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs text-slate-500 font-bold">System</div>
-                                                <Target size={18} className="text-[#3730A3]" />
-                                            </div>
-                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.system.leadsTotal ?? 0}</div>
-                                            <div className="mt-1 text-xs text-slate-500">לידים</div>
-                                            <div className="mt-3 text-xs text-[#3730A3] font-bold">חמים: {ownerDashboard.kpis.system.leadsHot ?? 0}</div>
-                                        </div>
-                                    )}
-
-                                    {ownerDashboard?.kpis?.social && (
-                                        <div className="ui-card p-5 transform-none hover:transform-none">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs text-slate-500 font-bold">Social</div>
-                                                <Sparkles size={18} className="text-[#3730A3]" />
-                                            </div>
-                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.social.postsTotal ?? 0}</div>
-                                            <div className="mt-1 text-xs text-slate-500">פוסטים</div>
-                                            <div className="mt-3 text-xs text-slate-500">מתוזמנים: {ownerDashboard.kpis.social.postsScheduled ?? 0}</div>
-                                        </div>
-                                    )}
-
-                                    {ownerDashboard?.kpis?.finance && (
-                                        <div className="ui-card p-5 transform-none hover:transform-none">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-xs text-slate-500 font-bold">Finance</div>
-                                                <DollarSign size={18} className="text-[#3730A3]" />
-                                            </div>
-                                            {isLockedFinance(ownerDashboard.kpis.finance) ? (
-                                                <>
-                                                    <div className="mt-3 text-2xl font-black">נעול</div>
-                                                    <div className="mt-1 text-xs text-slate-500">אין הרשאת צפייה פיננסית</div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.finance.totalHours ?? 0}</div>
-                                                    <div className="mt-1 text-xs text-slate-500">שעות עבודה (Time Entries)</div>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="ui-card p-5 transform-none hover:transform-none">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <div className="text-sm font-black">מה דחוף עכשיו</div>
-                                        <div className="text-xs text-slate-500 mt-0.5">הפעולות הכי דחופות בכל המודולים</div>
-                                    </div>
-                                    <Zap size={18} className="text-[#3730A3]" />
-                                </div>
-
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {(ownerDashboard?.nextActions || [])
-                                        .filter((a) => (isFocusMode ? a.source === 'nexus' : true))
-                                        .slice(0, 6)
-                                        .map((a) => {
-                                            const content = (
-                                                <>
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <div className="text-xs text-slate-500 font-bold">{String(a.source || '').toUpperCase()}</div>
-                                                        <div className={`text-[10px] font-black px-2 py-1 rounded-full border ${a.priority === 'urgent' ? 'bg-[#3730A3]/5 border-[#3730A3]/20 text-[#3730A3]' : a.priority === 'high' ? 'bg-[#3730A3]/5 border-[#3730A3]/20 text-[#3730A3]' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                                                            {a.priority === 'urgent' ? 'דחוף' : a.priority === 'high' ? 'גבוה' : 'רגיל'}
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-2 font-bold text-slate-900">{a.title}</div>
-                                                    {a.subtitle && <div className="mt-1 text-xs text-slate-500">{a.subtitle}</div>}
-                                                </>
-                                            );
-
-                                            if (a.href) {
-                                                return (
-                                                    <Link
-                                                        key={a.id}
-                                                        href={a.href}
-                                                        className="text-right ui-card p-4 transition-colors block transform-none hover:transform-none"
-                                                    >
-                                                        {content}
-                                                    </Link>
-                                                );
-                                            }
-
-                                            return (
-                                                <div key={a.id} className="text-right ui-card p-4 transform-none hover:transform-none">
-                                                    {content}
-                                                </div>
-                                            );
-                                        })}
-
-                                    {(ownerDashboard?.nextActions || []).filter((a) => (isFocusMode ? a.source === 'nexus' : true)).length === 0 && (
-                                        <div className="text-sm text-slate-500">אין פעולות דחופות כרגע</div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <DashboardOwnerPanel
+                    ownerDashboard={ownerDashboard}
+                    isFocusMode={isFocusMode}
+                    isPilotLoading={isPilotLoading}
+                    onClose={() => { setShowOwnerDashboard(false); setIsFocusMode(false); }}
+                    onToggleFocusMode={() => setIsFocusMode((v) => !v)}
+                    onRefresh={() => {
+                        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+                        if (!orgSlug || isPilotLoading) return;
+                        setIsPilotLoading(true);
+                        fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/owner-dashboard`, { cache: 'no-store' })
+                            .then((r) => (r.ok ? r.json() : null))
+                            .then((data) => { if (data) { setOwnerDashboard(data); setPilotErrorCount(0); } })
+                            .catch(() => setPilotErrorCount((c) => c + 1))
+                            .finally(() => setIsPilotLoading(false));
+                    }}
+                />
             )}
 
-            {(() => {
-                // Hidden for now (visual noise cleanup): "גבייה" + "הסבר"
-                return null;
-            })()}
-
             {/* ===== SECTION 3: QUICK ACTIONS ===== */}
-            <div className="mt-4">
-                <div className="w-full max-w-none mx-auto px-2">
-                    <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
-                        <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 border border-slate-200 overflow-hidden">
-                            {/* Decorative Background Elements */}
-                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
-                            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
-
-                            <div className="relative z-10">
-                                <div className="flex items-center justify-between gap-4 mb-6">
-                                    <div className="text-right">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold w-fit mb-3 shadow-lg shadow-slate-900/20">
-                                            <Zap size={12} className="text-yellow-400" />
-                                            <span>פעולות מהירות</span>
-                                        </div>
-                                        <div className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">מה תרצה לעשות?</div>
-                                        <p className="text-slate-500 text-sm mt-1">גישה מהירה לפעולות הנפוצות ביותר</p>
-                                    </div>
-                                </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
-                            <button
-                                id="create-task-btn"
-                                onClick={() => openCreateTask()}
-                                type="button"
-                                className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                aria-label="משימה חדשה"
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative mr-auto">
-                                    <Plus size={18} />
-                                    <span
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (typeof window !== 'undefined') {
-                                                window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
-                                            }
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key !== 'Enter' && e.key !== ' ') return;
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (typeof window !== 'undefined') {
-                                                window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
-                                            }
-                                        }}
-                                        className="absolute -bottom-1 -left-1 w-6 h-6 rounded-xl bg-white text-slate-900 border border-slate-200 flex items-center justify-center shadow-sm"
-                                        aria-label="הקלטת משימה"
-                                    >
-                                        <Mic size={12} />
-                                    </span>
-                                </div>
-                                <div className="font-black text-sm text-slate-900">משימה חדשה</div>
-                                <div className="mt-1 text-[10px] font-bold text-slate-500">התחלה מהירה</div>
-                            </button>
-
-                            <button
-                                onClick={() => navigate('/team?newEmployee=1')}
-                                type="button"
-                                className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                aria-label="עובד חדש"
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                    <Users size={18} />
-                                </div>
-                                <div className="font-black text-sm text-slate-900">עובד חדש</div>
-                                <div className="mt-1 text-[10px] font-bold text-slate-500">הזמנה / הוספה</div>
-                            </button>
-
-                            {/* Morning Briefing - always show in quick actions */}
-                            {isHomeDashboard.current && (
-                                <button
-                                    onClick={() => setShowMorningBrief(true)}
-                                    type="button"
-                                    className="group relative rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                    aria-label="תדריך בוקר"
-                                >
-                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                        <Sun size={18} />
-                                    </div>
-                                    <div className="font-black text-sm text-slate-900">תדריך בוקר</div>
-                                    <div className="mt-1 text-[10px] font-bold text-slate-500">מיקוד להיום</div>
-                                    {!isSynced && (
-                                        <span className="absolute top-3 left-3 flex h-2.5 w-2.5" aria-hidden>
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                                        </span>
-                                    )}
-                                </button>
-                            )}
-
-                            {showExtraQuickActions && (
-                                <>
-                                    <button
-                                        onClick={() => navigate('/tasks')}
-                                        type="button"
-                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                        aria-label="משימות"
-                                    >
-                                        <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-700 flex items-center justify-center border border-yellow-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                            <Zap size={18} />
-                                        </div>
-                                        <div className="font-black text-sm text-slate-900">משימות</div>
-                                        <div className="mt-1 text-[10px] font-bold text-slate-500">לכל המשימות</div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setIsEditingGoals(true)}
-                                        type="button"
-                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                        aria-label="יעדים חודשיים"
-                                    >
-                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                            <Target size={18} />
-                                        </div>
-                                        <div className="font-black text-sm text-slate-900">יעדים חודשיים</div>
-                                        <div className="mt-1 text-[10px] font-bold text-slate-500">עדכון מהיר</div>
-                                    </button>
-
-                                    <button
-                                        onClick={() => {
-                                            if (typeof document === 'undefined') return;
-                                            const el = document.querySelector('[data-focus-today]');
-                                            if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        }}
-                                        type="button"
-                                        className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
-                                        aria-label="המיקוד להיום"
-                                    >
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center border border-slate-200 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                            <Compass size={18} />
-                                        </div>
-                                        <div className="font-black text-sm text-slate-900">המיקוד להיום</div>
-                                        <div className="mt-1 text-[10px] font-bold text-slate-500">לראות מה חשוב</div>
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <DashboardQuickActions
+                onCreateTask={() => openCreateTask()}
+                onInviteEmployee={() => navigate('/team?newEmployee=1')}
+                onMorningBrief={() => setShowMorningBrief(true)}
+                onEditGoals={() => setIsEditingGoals(true)}
+                onScrollToFocus={() => {
+                    if (typeof document === 'undefined') return;
+                    const el = document.querySelector('[data-focus-today]');
+                    if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                onNavigateTasks={() => navigate('/tasks')}
+                isHomeDashboard={isHomeDashboard.current}
+                isSynced={isSynced}
+                showExtraQuickActions={showExtraQuickActions}
+            />
 
             {/* ===== SECTION 4: KPI WIDGETS ===== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                {/* 1. Time Clock Widget - Glass */}
-                <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${activeShift ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
-                    {activeShift && (
-                        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-green-500/20 rounded-full blur-[80px] animate-pulse"></div>
-                    )}
-                    <div className="relative z-10 flex flex-col justify-between h-full min-h-[240px]">
-                        <div className="flex justify-between items-start">
-                            <div className={`p-3.5 rounded-2xl ${activeShift ? 'bg-white/10 text-green-400' : 'bg-white text-gray-900 shadow-sm'}`}>
-                                <Clock size={28} />
-                            </div>
-                            {activeShift && <span className="bg-green-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-green-500/40 border border-white/20">משמרת פעילה</span>}
-                        </div>
-                        <div className="mt-6 text-center">
-                            {activeShift ? (
-                                <>
-                                    <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-1 drop-shadow-lg">{elapsed}</div>
-                                    <div className="text-xs font-bold text-white/50 mb-1">כניסה: {new Date(activeShift.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</div>
-                                    <div className="flex justify-center mt-6"><HoldButton isActive={true} onComplete={clockOut} label="יציאה" size="small" /></div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="text-4xl font-bold tracking-tight text-gray-300 mb-6">00:00:00</div>
-                                    <div className="flex justify-center"><HoldButton isActive={false} onComplete={clockIn} label="כניסה" size="small" /></div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <DashboardKPIWidgets
+                activeShift={activeShift}
+                elapsed={elapsed}
+                onClockIn={clockIn}
+                onClockOut={clockOut}
+                canViewFinancials={canViewFinancials}
+                totalRevenue={totalRevenue}
+                revenueGoal={revenueGoal}
+                revenueHistory={revenueHistory}
+                growth={growth}
+                formatCurrency={formatCurrency}
+                onEditGoals={() => { setTempGoals(monthlyGoals); setIsEditingGoals(true); }}
+                myCompletedTasksThisMonth={myCompletedTasksThisMonth}
+                myPersonalTarget={myPersonalTarget}
+                myProgressPercentage={myProgressPercentage}
+                teamEnabled={organization.enabledModules.includes('team')}
+                completionRate={completionRate}
+                completedTasksCount={completedTasksCount}
+                totalTasksCount={totalTasksCount}
+                taskProgress={taskProgress}
+                users={users}
+                onNavigateTeam={() => navigate('/team')}
+            />
 
-                {/* 2. Business Health - Glass */}
-                <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] flex flex-col justify-between h-full min-h-[240px] relative group overflow-hidden hover:shadow-2xl hover:bg-white/80 transition-all duration-500">
-                    {canViewFinancials ? (
-                        <>
-                            <div className="flex items-center justify-between mb-4 z-10 relative">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm"><TrendingUp size={28} /></div>
-                                    <div><h3 className="font-bold text-gray-900 text-lg">הכנסות</h3><p className="text-xs text-blue-600 font-bold flex items-center gap-1"><RefreshCw size={10} /> Live</p></div>
-                                </div>
-                                <button onClick={() => { setTempGoals(monthlyGoals); setIsEditingGoals(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" aria-label="ערוך יעדים חודשיים"><Edit2 size={18} /></button>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="flex items-end justify-between mb-6">
-                                    <div>
-                                        <div className="text-4xl font-black text-gray-900 tracking-tight">{formatCurrency(totalRevenue)}</div>
-                                        <div className={`text-xs font-bold flex items-center gap-1 mt-1 ${growth >= 0 ? 'text-green-600' : 'text-red-500'}`}>{growth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(Math.round(growth))}% צמיחה</div>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">יעד</div>
-                                        <div className="text-sm font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-lg inline-block">{formatCurrency(revenueGoal)}</div>
-                                    </div>
-                                </div>
-                                <div className="-mx-4 -mb-4 opacity-50 group-hover:opacity-100 transition-opacity"><TrendChart data={revenueHistory} color="text-blue-500" /></div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-4 mb-6 z-10 relative">
-                                <div className="p-3.5 bg-orange-50 text-orange-600 rounded-2xl shadow-sm"><Target size={28} /></div>
-                                <div><h3 className="font-bold text-gray-900 text-lg">יעדים אישיים</h3><p className="text-sm text-gray-500">החודש הזה</p></div>
-                            </div>
-                            <div className="flex-1 flex flex-col justify-center">
-                                <div className="mb-6">
-                                    <div className="flex justify-between text-sm font-bold mb-3"><span className="text-gray-700">ביצוע משימות</span><span className="text-gray-900">{myCompletedTasksThisMonth} / {myPersonalTarget}</span></div>
-                                    <div className="w-full bg-gray-100 h-4 rounded-full overflow-hidden relative shadow-inner">
-                                        <motion.div initial={{ width: 0 }} animate={{ width: `${myProgressPercentage}%` }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }} className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full shadow-lg" />
-                                    </div>
-                                </div>
-                                {myProgressPercentage >= 100 ? (
-                                    <div className="flex items-center gap-2 text-sm font-bold text-green-700 bg-green-50 p-3 rounded-2xl animate-pulse shadow-sm border border-green-100"><Trophy size={16} /> עמדת ביעד החודשי!</div>
-                                ) : (
-                                    <div className="flex items-center gap-2 text-sm font-bold text-blue-700 bg-blue-50 p-3 rounded-2xl shadow-sm border border-blue-100"><ThumbsUp size={16} /> קצב מצוין!</div>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* 3. Team Widget - Glass (Only if Team module enabled) */}
-                {organization.enabledModules.includes('team') && (
-                <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] flex flex-col h-full min-h-[240px] hidden lg:flex hover:shadow-2xl hover:bg-white/80 transition-all duration-500">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3.5 bg-purple-50 text-purple-600 rounded-2xl shadow-sm"><Users size={28} /></div>
-                            <div><h3 className="font-bold text-gray-900 text-lg">הצוות</h3><p className="text-sm text-gray-500">{Math.round(completionRate)}% מהמשימות</p></div>
-                        </div>
-                        <button onClick={() => navigate('/team')} className="text-gray-300 hover:text-black transition-colors p-2 hover:bg-gray-100 rounded-xl" aria-label="עבור לצוות"><ArrowRight size={24} /></button>
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                        <div className="mb-6">
-                            <div className="flex justify-between text-xs font-bold mb-2"><span className="text-gray-500 uppercase tracking-wider">סטטוס חודשי</span><span className="text-gray-900">{completedTasksCount} / {totalTasksCount}</span></div>
-                            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden shadow-inner">
-                                <motion.div initial={{ width: 0 }} animate={{ width: `${taskProgress}%` }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full shadow-lg" />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex -space-x-3 space-x-reverse">
-                                {users.filter((u) => u.online).slice(0, 3).map((u) => (
-                                    <img key={u.id} src={u.avatar} className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-green-400 shadow-md object-cover" />
-                                ))}
-                            </div>
-                            {users.filter((u) => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter((u) => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
-                        </div>
-                    </div>
-                </div>
-                )}
-            </div>
-
-            {(() => {
-                // moved above (visual cleanup + ordering)
-                return null;
-            })()}
-
-            <div
-                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mt-8 mb-6 px-2"
-                data-focus-today
-            >
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2 md:gap-3 flex-wrap">
-                    <Zap size={20} className="md:w-6 md:h-6 text-yellow-500 fill-yellow-500 drop-shadow-sm" /> המיקוד להיום
-                    {!isSynced && (
-                        <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap">(אוטומטי)</span>
-                    )}
-                </h2>
-
-                <button
-                    onClick={() => navigate('/tasks')}
-                    type="button"
-                    className="h-11 w-full md:w-auto px-6 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
-                    aria-label="לכל המשימות"
-                >
-                    לכל המשימות
-                </button>
-            </div>
-
-            <div className="space-y-4">
-                {focusTasks.length > 0 ? (
-                    focusTasks.map((task) => (
-                        <div key={task.id} className="relative">
-                            {task.isFocus && (
-                                <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-400 rounded-r-lg shadow-sm"></div>
-                            )}
-                            <TaskCard task={task} users={users} onClick={() => openTask(task.id)} />
-                        </div>
-                    ))
-                ) : (
-                    <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-12 text-center border border-dashed border-gray-300">
-                        <Trophy size={64} className="mx-auto text-yellow-400 mb-4 drop-shadow-md" />
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">סיימת את המיקוד להיום!</h3>
-                        <p className="text-gray-500">קח משימה חדשה מהמאגר או צא להפסקה.</p>
-                    </div>
-                )}
-            </div>
+            {/* ===== SECTION 5: FOCUS TASKS ===== */}
+            <DashboardFocusTasks
+                focusTasks={focusTasks}
+                users={users}
+                isSynced={isSynced}
+                onOpenTask={(id) => openTask(id)}
+                onNavigateTasks={() => navigate('/tasks')}
+            />
         </div>
         );
 };

@@ -68,6 +68,8 @@ import {
   addOperationsStockToActiveVehicleForOrganizationId,
   consumeOperationsInventoryForWorkOrderForOrganizationId,
   createOperationsItemForOrganizationId,
+  updateOperationsItemForOrganizationId,
+  deleteOperationsItemForOrganizationId,
   getOperationsInventoryDataForOrganizationId,
   getOperationsInventoryOptionsForHolderForOrganizationId,
   getOperationsInventoryOptionsForOrganizationId,
@@ -1664,5 +1666,114 @@ export async function deleteOperationsSupplier(params: {
   } catch (e: unknown) {
     logger.error('operations', 'deleteOperationsSupplier failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת ספק' };
+  }
+}
+
+// ──── Inventory Item Update / Delete ────
+
+export async function updateOperationsItem(params: {
+  orgSlug: string;
+  itemId: string;
+  name?: string;
+  sku?: string | null;
+  unit?: string | null;
+  minLevel?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await updateOperationsItemForOrganizationId({
+          organizationId,
+          itemId: params.itemId,
+          name: params.name,
+          sku: params.sku,
+          unit: params.unit,
+          minLevel: params.minLevel,
+        }),
+      { source: 'server_actions_operations', reason: 'updateOperationsItem' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'updateOperationsItem failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון פריט' };
+  }
+}
+
+export async function deleteOperationsItem(params: {
+  orgSlug: string;
+  itemId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await deleteOperationsItemForOrganizationId({
+          organizationId,
+          itemId: params.itemId,
+        }),
+      { source: 'server_actions_operations', reason: 'deleteOperationsItem' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'deleteOperationsItem failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת פריט' };
+  }
+}
+
+// ──── Work Order Update ────
+
+export async function updateOperationsWorkOrder(params: {
+  orgSlug: string;
+  id: string;
+  title?: string;
+  description?: string | null;
+  priority?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        const id = String(params.id || '').trim();
+        if (!id) return { success: false, error: 'חסר מזהה קריאה' };
+
+        const wo = await import('@/lib/services/operations/db').then((m) => m.prisma).then((p) =>
+          p.operationsWorkOrder.findFirst({
+            where: { id, organizationId },
+            select: { id: true },
+          })
+        );
+        if (!wo) return { success: false, error: 'קריאה לא נמצאה' };
+
+        const data: Record<string, unknown> = {};
+        if (params.title !== undefined) {
+          const title = String(params.title || '').trim();
+          if (!title) return { success: false, error: 'חובה להזין כותרת' };
+          data.title = title;
+        }
+        if (params.description !== undefined) {
+          data.description = params.description ? String(params.description).trim() : null;
+        }
+        if (params.priority !== undefined) {
+          const p = String(params.priority).trim();
+          if (!['NORMAL', 'HIGH', 'URGENT', 'CRITICAL'].includes(p)) {
+            return { success: false, error: 'עדיפות לא חוקית' };
+          }
+          data.priority = p;
+        }
+
+        if (Object.keys(data).length > 0) {
+          const { prisma: db } = await import('@/lib/services/operations/db');
+          await db.operationsWorkOrder.updateMany({
+            where: { id, organizationId },
+            data,
+          });
+        }
+
+        return { success: true };
+      },
+      { source: 'server_actions_operations', reason: 'updateOperationsWorkOrder' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'updateOperationsWorkOrder failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון קריאה' };
   }
 }

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Client } from '../../types';
 import { Briefcase, Image, FolderOpen, FileText, Download, Plus, X } from 'lucide-react';
 import { useNexus } from '../../context/ClientContext';
@@ -72,17 +73,17 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">סוג</label>
-                                <select
+                                <CustomSelect
                                     value={newProject.type}
-                                    onChange={(e) => setNewProject((p) => ({ ...p, type: e.target.value as 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV' }))}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
-                                >
-                                    <option value="CAMPAIGN">CAMPAIGN</option>
-                                    <option value="REPORT">REPORT</option>
-                                    <option value="DESIGN">DESIGN</option>
-                                    <option value="STRATEGY">STRATEGY</option>
-                                    <option value="DEV">DEV</option>
-                                </select>
+                                    onChange={(val) => setNewProject((p) => ({ ...p, type: val as 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV' }))}
+                                    options={[
+                                        { value: 'CAMPAIGN', label: 'CAMPAIGN' },
+                                        { value: 'REPORT', label: 'REPORT' },
+                                        { value: 'DESIGN', label: 'DESIGN' },
+                                        { value: 'STRATEGY', label: 'STRATEGY' },
+                                        { value: 'DEV', label: 'DEV' },
+                                    ]}
+                                />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">תמונה (URL)</label>

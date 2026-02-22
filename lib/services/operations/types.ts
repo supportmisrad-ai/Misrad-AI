@@ -53,6 +53,26 @@ export type OperationsProjectsData = {
   }>;
 };
 
+export type OperationsProjectDetail = {
+  id: string;
+  title: string;
+  status: string;
+  canonicalClientId: string | null;
+  clientName: string | null;
+  installationAddress: string | null;
+  source: string | null;
+  sourceRefId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  workOrders: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    createdAt: string;
+  }>;
+};
+
 export type OperationsInventoryData = {
   items: Array<{
     id: string;
@@ -163,6 +183,9 @@ export type OperationsHolderStockRow = {
 
 export type OperationsWorkOrdersData = {
   workOrders: OperationsWorkOrderRow[];
+  totalCount: number;
+  page: number;
+  limit: number;
 };
 
 export type OperationsInventoryOption = {

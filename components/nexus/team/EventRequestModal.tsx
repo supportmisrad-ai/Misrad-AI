@@ -14,6 +14,7 @@ import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 import { CustomDatePicker } from '../../CustomDatePicker';
 
 let showHebrewDatesPreference = true;
@@ -167,19 +168,18 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
                         <label className="block text-sm font-bold text-gray-700 mb-2">
                             סוג אירוע *
                         </label>
-                        <select
+                        <CustomSelect
                             value={formData.eventType}
-                            onChange={(e) => setFormData({ ...formData, eventType: e.target.value as TeamEventType })}
-                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:border-gray-300"
-                            required
-                        >
-                            <option value="training">הדרכה</option>
-                            <option value="fun_day">יום כיף</option>
-                            <option value="group_meeting">פגישה קבוצתית</option>
-                            <option value="enrichment">העשרה</option>
-                            <option value="company_event">אירוע חברה</option>
-                            <option value="other">אחר</option>
-                        </select>
+                            onChange={(val) => setFormData({ ...formData, eventType: val as TeamEventType })}
+                            options={[
+                                { value: 'training', label: 'הדרכה' },
+                                { value: 'fun_day', label: 'יום כיף' },
+                                { value: 'group_meeting', label: 'פגישה קבוצתית' },
+                                { value: 'enrichment', label: 'העשרה' },
+                                { value: 'company_event', label: 'אירוע חברה' },
+                                { value: 'other', label: 'אחר' },
+                            ]}
+                        />
                     </div>
 
                     {/* Dates */}

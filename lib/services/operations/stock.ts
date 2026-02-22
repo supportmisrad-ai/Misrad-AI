@@ -910,7 +910,11 @@ async function getOperationsInventoryDataForOrganizationId(params: {
   }
 }
 
-export { createOperationsItemForOrganizationId } from '@/lib/services/operations/stock/items';
+export {
+  createOperationsItemForOrganizationId,
+  updateOperationsItemForOrganizationId,
+  deleteOperationsItemForOrganizationId,
+} from '@/lib/services/operations/stock/items';
 export {
   getOperationsStockSourceOptionsAutoForOrganizationId,
   getOperationsStockSourceOptionsForOrganizationId,

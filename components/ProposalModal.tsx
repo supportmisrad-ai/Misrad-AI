@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Lead } from '../types';
 import { 
     X, FileText, Send, Check, Plus, Trash2, Smartphone, 
@@ -227,15 +228,15 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">תוקף הצעה</label>
-                                    <select 
-                                        value={validDays} 
-                                        onChange={(e) => setValidDays(Number(e.target.value))}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none"
-                                    >
-                                        <option value={3}>3 ימים (דחוף)</option>
-                                        <option value={7}>7 ימים (רגיל)</option>
-                                        <option value={30}>30 ימים</option>
-                                    </select>
+                                    <CustomSelect
+                                        value={String(validDays)}
+                                        onChange={(val) => setValidDays(Number(val))}
+                                        options={[
+                                            { value: '3', label: '3 ימים (דחוף)' },
+                                            { value: '7', label: '7 ימים (רגיל)' },
+                                            { value: '30', label: '30 ימים' },
+                                        ]}
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-slate-400 uppercase mb-1 block">מטבע</label>

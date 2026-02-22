@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useData } from '../../context/DataContext';
 import { Phone, Save, CircleCheckBig, CircleAlert } from 'lucide-react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Skeleton } from '@/components/ui/skeletons';
 
 // Zod schema for form validation
@@ -198,12 +199,13 @@ export const TelephonyConfigForm: React.FC = () => {
                     <label className="block text-sm font-bold text-gray-900 mb-2">
                         ספק טלפוניה
                     </label>
-                    <select
-                        {...register('provider')}
-                        className="w-full bg-white border border-gray-300 rounded-xl p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                        <option value="voicenter">Voicenter</option>
-                    </select>
+                    <CustomSelect
+                        value={provider || 'voicenter'}
+                        onChange={(val) => setValue('provider', val as 'voicenter')}
+                        options={[
+                            { value: 'voicenter', label: 'Voicenter' },
+                        ]}
+                    />
                     {errors.provider && (
                         <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
                             <CircleAlert className="w-3 h-3" />

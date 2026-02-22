@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Rocket, Check, Trash2, Edit2, X, PartyPopper } from 'lucide-react';
@@ -166,11 +167,15 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <input value={formUpdate.version} onChange={e => setFormUpdate({...formUpdate, version: e.target.value})} placeholder="גרסה (למשל v2.5.0)" className="w-full p-3 border rounded-xl" />
-                                    <select value={formUpdate.type} onChange={e => setFormUpdate({...formUpdate, type: e.target.value as 'minor' | 'major' | 'patch' })} className="w-full p-3 border rounded-xl bg-white">
-                                        <option value="major">Major (פיצ׳ר גדול)</option>
-                                        <option value="minor">Minor (שיפורים)</option>
-                                        <option value="patch">Patch (תיקונים)</option>
-                                    </select>
+                                    <CustomSelect
+                                        value={formUpdate.type}
+                                        onChange={(val) => setFormUpdate({...formUpdate, type: val as 'minor' | 'major' | 'patch' })}
+                                        options={[
+                                            { value: 'major', label: 'Major (פיצ׳ר גדול)' },
+                                            { value: 'minor', label: 'Minor (שיפורים)' },
+                                            { value: 'patch', label: 'Patch (תיקונים)' },
+                                        ]}
+                                    />
                                 </div>
                                 <input value={formUpdate.title} onChange={e => setFormUpdate({...formUpdate, title: e.target.value})} placeholder="כותרת העדכון" className="w-full p-3 border rounded-xl" />
                                 <textarea value={formUpdate.features} onChange={e => setFormUpdate({...formUpdate, features: e.target.value})} placeholder="רשימת שינויים (כל שורה היא סעיף)" className="w-full p-3 border rounded-xl h-32" />

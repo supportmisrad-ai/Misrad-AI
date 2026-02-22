@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import CalendarView from '@/components/system/system.os/components/CalendarView';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
 import type { Lead, CalendarEvent } from '@/components/system/types';
@@ -208,18 +209,12 @@ export default function SystemCalendarClient({
             <div className="p-5 space-y-4">
               <div className="space-y-1">
                 <div className="text-[11px] font-black text-slate-500">ליד</div>
-                <select
+                <CustomSelect
                   value={newEventLeadId}
-                  onChange={(e) => setNewEventLeadId(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                >
-                  <option value="">בחר ליד</option>
-                  {leads.map((l) => (
-                    <option key={String(l.id)} value={String(l.id)}>
-                      {String(l.name || '')}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setNewEventLeadId(val)}
+                  placeholder="בחר ליד"
+                  options={leads.map((l) => ({ value: String(l.id), label: String(l.name || '') }))}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

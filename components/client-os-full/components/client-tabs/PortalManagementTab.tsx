@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Client, SuccessGoal, ClientAction } from '../../types';
 import { useNexus } from '../../context/ClientContext';
 import { 
@@ -217,16 +218,16 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
                                 />
                             </div>
                             <div className="flex gap-2">
-                                <select 
-                                    className="flex-1 text-[10px] font-bold bg-gray-50 p-2.5 rounded-xl outline-none border border-gray-100"
+                                <CustomSelect
                                     value={newTask.type}
-                                    onChange={e => setNewTask({...newTask, type: e.target.value as 'APPROVAL' | 'UPLOAD' | 'SIGNATURE' | 'FORM'})}
-                                >
-                                    <option value="APPROVAL">אישור תוצר</option>
-                                    <option value="UPLOAD">העלאת קובץ</option>
-                                    <option value="SIGNATURE">חתימה</option>
-                                    <option value="FORM">מילוי שאלון</option>
-                                </select>
+                                    onChange={(val) => setNewTask({...newTask, type: val as 'APPROVAL' | 'UPLOAD' | 'SIGNATURE' | 'FORM'})}
+                                    options={[
+                                        { value: 'APPROVAL', label: 'אישור תוצר' },
+                                        { value: 'UPLOAD', label: 'העלאת קובץ' },
+                                        { value: 'SIGNATURE', label: 'חתימה' },
+                                        { value: 'FORM', label: 'מילוי שאלון' },
+                                    ]}
+                                />
                                 <button 
                                     onClick={() => setNewTask({...newTask, isBlocking: !newTask.isBlocking})}
                                     className={`px-4 py-1 rounded-xl text-[10px] font-bold border transition-all ${newTask.isBlocking ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'bg-gray-50 text-gray-400 border-gray-200'}`}

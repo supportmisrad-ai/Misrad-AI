@@ -53,7 +53,7 @@ export default async function OperationsProjectsPage({
                   return (
                     <Link
                       key={p.id}
-                      href={`${base}/work-orders?projectId=${encodeURIComponent(p.id)}`}
+                      href={`${base}/projects/${encodeURIComponent(p.id)}`}
                       className="block rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -94,7 +94,7 @@ export default async function OperationsProjectsPage({
                       return (
                         <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/50 transition-colors">
                           <td className="py-3">
-                            <Link href={`${base}/work-orders?projectId=${encodeURIComponent(p.id)}`} className="font-bold text-slate-900 hover:text-sky-700 transition-colors">
+                            <Link href={`${base}/projects/${encodeURIComponent(p.id)}`} className="font-bold text-slate-900 hover:text-sky-700 transition-colors">
                               {p.title}
                             </Link>
                           </td>

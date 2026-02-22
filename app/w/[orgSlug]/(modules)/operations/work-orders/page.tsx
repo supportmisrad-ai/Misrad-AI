@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 
+import { ExportWorkOrdersCsvButton } from '@/components/operations/ExportButtons';
 import { getOperationsProjectOptions, getOperationsWorkOrdersData, bulkUpdateOperationsWorkOrderStatus } from '@/app/actions/operations';
 import { Select } from '@/components/ui/select';
 import WorkOrdersSmartSortClient from '@/components/operations/WorkOrdersSmartSortClient';
@@ -99,12 +100,15 @@ export default async function OperationsWorkOrdersPage({
               <div className="text-xs text-slate-400 mt-0.5">סך הכל {totalCount} קריאות</div>
             </div>
 
-            <Link
-              href={`${base}/work-orders/new`}
-              className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
-            >
-              קריאה חדשה
-            </Link>
+            <div className="flex items-center gap-2">
+              <ExportWorkOrdersCsvButton workOrders={workOrders} />
+              <Link
+                href={`${base}/work-orders/new`}
+                className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
+              >
+                קריאה חדשה
+              </Link>
+            </div>
           </div>
         </div>
 
