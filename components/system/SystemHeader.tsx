@@ -51,8 +51,8 @@ export function SystemHeader({
   }, []);
 
   const headerClassName = isScrolled
-    ? 'bg-transparent backdrop-blur-xl border-b border-white/30 transition-colors duration-200'
-    : 'bg-transparent transition-colors duration-200';
+    ? 'bg-white md:bg-transparent md:backdrop-blur-xl border-b border-gray-200 md:border-white/30 transition-colors duration-200'
+    : 'bg-white md:bg-transparent transition-colors duration-200';
 
   const profileSlot = (
     <div className="relative hidden md:block">

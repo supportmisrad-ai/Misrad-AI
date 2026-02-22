@@ -206,8 +206,8 @@ export default function Header() {
   }, [hasMounted]);
 
   const headerClassName = isScrolled
-    ? 'bg-white/55 backdrop-blur-xl border-b border-white/40 transition-colors duration-200'
-    : 'bg-white/30 backdrop-blur-xl border-b border-transparent transition-colors duration-200';
+    ? 'bg-white md:bg-white/55 md:backdrop-blur-xl border-b border-gray-200 md:border-white/40 transition-colors duration-200'
+    : 'bg-white md:bg-white/30 md:backdrop-blur-xl border-b border-transparent transition-colors duration-200';
 
   const switcherSlot = (
     <div className="flex items-center gap-2">

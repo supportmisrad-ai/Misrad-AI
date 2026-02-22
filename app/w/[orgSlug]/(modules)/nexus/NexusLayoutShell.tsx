@@ -36,7 +36,7 @@ export default async function NexusLayoutShell({
 
   const workspace = bootstrap.workspace;
 
-  // Fetch profile avatar + resolve logo in parallel (Phase 2 of shell)
+  // Fetch profile avatar after we have clerk ID
   let profileRow: unknown = null;
   try {
     if (clerk?.id) {

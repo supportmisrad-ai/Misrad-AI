@@ -74,6 +74,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                             uiPreferences: { profileCompleted: true },
                         },
                     });
+
                     if (!res.success) {
                         addToast(res.error || 'שגיאה בעדכון תמונת פרופיל', 'error');
                         return;

@@ -329,7 +329,7 @@ export async function upsertMyProfile(params: {
           if (!bootProfile?.id) {
             return createErrorResponse('Failed', 'שגיאה ביצירת פרופיל');
           }
-          profileRow = { id: bootProfile.id, email: bootProfile.email };
+          profileRow = { id: bootProfile.id, email: bootProfile.email, uiPreferences: bootProfile.ui_preferences ?? null };
         }
 
         const profileId = String(profileRow.id);

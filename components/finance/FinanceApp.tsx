@@ -451,7 +451,7 @@ const FinanceOSApp: React.FC<{
           profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
           profileSlot={undefined}
-          className="bg-transparent"
+          className="bg-white md:bg-transparent"
         />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative" id="main-scroll-container">
