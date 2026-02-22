@@ -815,7 +815,7 @@ async function POSTHandler(req: Request) {
     async function fetchMemoryHits(): Promise<Array<{ docKey: string; chunkIndex: number; similarity: number; content: string; metadata: unknown }>> {
       try {
         if (!lastUser.trim()) return [];
-        const hits = await ai.semanticSearch({ featureKey: `${featureKey}.semantic_search`, organizationId, userId: clerkUserId, query: lastUser, moduleId: memoryModuleId, matchCount: 6, similarityThreshold: 0.2 });
+        const hits = await ai.semanticSearch({ featureKey: `${featureKey}.semantic_search`, organizationId: organizationId ?? undefined, userId: clerkUserId ?? undefined, query: lastUser, moduleId: memoryModuleId ?? undefined, matchCount: 6, similarityThreshold: 0.2 });
         return (hits || []).map((h) => ({ docKey: h.docKey, chunkIndex: h.chunkIndex, similarity: h.similarity, content: clampText(String(h.content || ''), 450), metadata: h.metadata ?? null }));
       } catch { return []; }
     }
