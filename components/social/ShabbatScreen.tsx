@@ -45,7 +45,7 @@ function FloatingStars() {
 function ShabbatTableIllustration() {
   return (
     <svg
-      viewBox="0 0 920 420"
+      viewBox="0 0 800 400"
       className="w-full h-auto"
       role="img"
       aria-label="שולחן שבת עם חלות, נרות, גביע ויין"
@@ -53,86 +53,183 @@ function ShabbatTableIllustration() {
       <defs>
         <linearGradient id="s2-gold" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#F6E6B4" />
-          <stop offset="0.45" stopColor="#D4AF37" />
+          <stop offset="0.5" stopColor="#D4AF37" />
           <stop offset="1" stopColor="#FFF4CC" />
         </linearGradient>
-        <linearGradient id="s2-velvet" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#0B1022" />
-          <stop offset="0.6" stopColor="#151B34" />
-          <stop offset="1" stopColor="#090D1B" />
+        <linearGradient id="s2-goldV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFF4CC" />
+          <stop offset="1" stopColor="#C5982E" />
         </linearGradient>
-        <radialGradient id="s2-candleGlow" cx="50%" cy="35%" r="70%">
-          <stop offset="0" stopColor="#FFD78A" stopOpacity="1" />
-          <stop offset="0.35" stopColor="#FFD78A" stopOpacity="0.55" />
+        <linearGradient id="s2-cloth" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#F8F4EE" />
+          <stop offset="1" stopColor="#E8DFD0" />
+        </linearGradient>
+        <linearGradient id="s2-candle" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFFDF5" />
+          <stop offset="0.3" stopColor="#FBF5E8" />
+          <stop offset="1" stopColor="#EDE4D0" />
+        </linearGradient>
+        <linearGradient id="s2-wine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#4A0E1B" />
+          <stop offset="0.5" stopColor="#6B1525" />
+          <stop offset="1" stopColor="#3D0A15" />
+        </linearGradient>
+        <linearGradient id="s2-wineBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#1A1A2E" />
+          <stop offset="0.5" stopColor="#16213E" />
+          <stop offset="1" stopColor="#0F0F23" />
+        </linearGradient>
+        <linearGradient id="s2-challah" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#E8A942" />
+          <stop offset="0.4" stopColor="#C98B3E" />
+          <stop offset="1" stopColor="#A06A28" />
+        </linearGradient>
+        <linearGradient id="s2-cup" x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor="#F6E6B4" />
+          <stop offset="0.3" stopColor="#D4AF37" />
+          <stop offset="0.7" stopColor="#C5982E" />
+          <stop offset="1" stopColor="#E8D48A" />
+        </linearGradient>
+        <radialGradient id="s2-glow1" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#FFD78A" stopOpacity="0.9" />
+          <stop offset="0.4" stopColor="#FFD78A" stopOpacity="0.3" />
           <stop offset="1" stopColor="#FFD78A" stopOpacity="0" />
         </radialGradient>
-        <radialGradient id="s2-candleGlow2" cx="50%" cy="20%" r="80%">
-          <stop offset="0" stopColor="#FFBA42" stopOpacity="0.4" />
+        <radialGradient id="s2-glow2" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stopColor="#FFBA42" stopOpacity="0.6" />
           <stop offset="1" stopColor="#FFBA42" stopOpacity="0" />
         </radialGradient>
-        <filter id="s2-softShadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="6" result="blur" />
-          <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0" />
+        <filter id="s2-shadow" x="-10%" y="-10%" width="120%" height="130%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0" />
         </filter>
-        <filter id="s2-flameGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="glow" />
-          <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
+        <filter id="s2-fglow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.5" result="g" />
+          <feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
 
-      <path d="M80 290 C 180 250, 320 240, 460 250 C 600 260, 720 250, 840 290 L 840 360 C 700 405, 220 405, 80 360 Z" fill="url(#s2-velvet)" />
-      <path d="M120 298 C 210 270, 320 262, 460 270 C 600 278, 705 270, 800 298" stroke="url(#s2-gold)" strokeWidth="3" opacity="0.8" fill="none" />
+      {/* === TABLECLOTH === */}
+      <ellipse cx="400" cy="320" rx="340" ry="55" fill="#0D1225" opacity="0.6" />
+      <ellipse cx="400" cy="310" rx="330" ry="50" fill="#111835" />
+      <path d="M70 300 Q 400 230 730 300 L 720 340 Q 400 390 80 340 Z" fill="url(#s2-cloth)" opacity="0.12" />
+      <ellipse cx="400" cy="300" rx="310" ry="38" fill="none" stroke="url(#s2-gold)" strokeWidth="2" opacity="0.5" />
+      <ellipse cx="400" cy="300" rx="290" ry="32" fill="none" stroke="url(#s2-gold)" strokeWidth="1" opacity="0.2" />
 
-      <circle cx="330" cy="130" r="90" fill="url(#s2-candleGlow2)" />
-      <circle cx="390" cy="130" r="90" fill="url(#s2-candleGlow2)" />
-      <circle cx="330" cy="150" r="70" fill="url(#s2-candleGlow)">
-        <animate attributeName="r" values="68;72;68" dur="2.5s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.9;1;0.9" dur="2.5s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="390" cy="150" r="70" fill="url(#s2-candleGlow)">
-        <animate attributeName="r" values="70;66;70" dur="3s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="1;0.85;1" dur="3s" repeatCount="indefinite" />
-      </circle>
+      {/* === WINE BOTTLE (left) === */}
+      <g filter="url(#s2-shadow)" transform="translate(145,0)">
+        <rect x="42" y="115" width="16" height="50" rx="4" fill="url(#s2-wineBody)" />
+        <rect x="44" y="108" width="12" height="12" rx="3" fill="url(#s2-gold)" />
+        <path d="M34 165 C 34 158 42 155 42 155 L 42 165 Q 30 180 28 220 Q 26 260 50 290 Q 74 260 72 220 Q 70 180 58 165 L 58 155 C 58 155 66 158 66 165" fill="url(#s2-wineBody)" />
+        <path d="M36 200 Q 34 240 50 278 Q 66 240 64 200 Q 56 190 50 190 Q 44 190 36 200" fill="url(#s2-wine)" opacity="0.7" />
+        <rect x="36" y="225" width="28" height="32" rx="3" fill="#F6E6B4" opacity="0.25" />
+        <rect x="40" y="232" width="20" height="3" rx="1" fill="#D4AF37" opacity="0.4" />
+        <rect x="42" y="238" width="16" height="2" rx="1" fill="#D4AF37" opacity="0.3" />
+        <rect x="44" y="243" width="12" height="2" rx="1" fill="#D4AF37" opacity="0.2" />
+        <path d="M42 170 Q 40 200 42 260" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.15" strokeLinecap="round" />
+      </g>
 
-      <g filter="url(#s2-softShadow)">
-        <rect x="320" y="170" width="18" height="92" rx="9" fill="#F7F0E4" />
-        <rect x="380" y="170" width="18" height="92" rx="9" fill="#F7F0E4" />
-        <g filter="url(#s2-flameGlow)">
-          <path d="M329 166 C 326 156, 332 149, 337 142 C 344 151, 346 160, 339 168 Z" fill="#FFCF6A">
-            <animate attributeName="d" values="M329 166 C 326 156, 332 149, 337 142 C 344 151, 346 160, 339 168 Z;M329 166 C 325 154, 331 146, 337 138 C 345 149, 348 161, 339 168 Z;M329 166 C 326 156, 332 149, 337 142 C 344 151, 346 160, 339 168 Z" dur="1.8s" repeatCount="indefinite" />
+      {/* === LEFT CANDLE with holder === */}
+      <g transform="translate(280,0)">
+        <ellipse cx="50" cy="290" rx="24" ry="6" fill="url(#s2-goldV)" opacity="0.8" />
+        <rect x="34" y="278" width="32" height="14" rx="4" fill="url(#s2-cup)" />
+        <rect x="40" y="268" width="20" height="14" rx="3" fill="url(#s2-cup)" />
+        <ellipse cx="50" cy="270" rx="12" ry="4" fill="url(#s2-gold)" opacity="0.6" />
+        <rect x="42" y="155" width="16" height="118" rx="8" fill="url(#s2-candle)" />
+        <path d="M44 160 L 44 268" stroke="#FFFFFF" strokeWidth="1" opacity="0.2" />
+        <circle cx="50" cy="120" r="80" fill="url(#s2-glow2)" opacity="0.5">
+          <animate attributeName="r" values="78;84;78" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="50" cy="130" r="40" fill="url(#s2-glow1)">
+          <animate attributeName="r" values="38;42;38" dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.85;1;0.85" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+        <g filter="url(#s2-fglow)">
+          <path d="M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z" fill="#FFD966" opacity="0.95">
+            <animate attributeName="d" values="M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z;M50 152 C 43 140 43 126 50 114 C 57 126 57 140 50 152 Z;M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z" dur="1.5s" repeatCount="indefinite" />
           </path>
-          <path d="M389 166 C 386 156, 392 149, 397 142 C 404 151, 406 160, 399 168 Z" fill="#FFCF6A">
-            <animate attributeName="d" values="M389 166 C 386 156, 392 149, 397 142 C 404 151, 406 160, 399 168 Z;M389 166 C 385 153, 391 145, 397 137 C 405 148, 408 162, 399 168 Z;M389 166 C 386 156, 392 149, 397 142 C 404 151, 406 160, 399 168 Z" dur="2.2s" repeatCount="indefinite" />
+          <path d="M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z" fill="#FFF3C4" opacity="0.9">
+            <animate attributeName="d" values="M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z;M50 150 C 46 142 46 133 50 124 C 54 133 54 142 50 150 Z;M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z" dur="1.8s" repeatCount="indefinite" />
           </path>
         </g>
-        <path d="M329 170 C 329 162, 334 156, 337 152" stroke="#FFDFA0" strokeWidth="2" opacity="0.7" />
-        <path d="M389 170 C 389 162, 394 156, 397 152" stroke="#FFDFA0" strokeWidth="2" opacity="0.7" />
       </g>
 
-      <g filter="url(#s2-softShadow)">
-        <ellipse cx="520" cy="250" rx="120" ry="40" fill="#2B1D12" opacity="0.35" />
-        <path d="M420 240 C 450 200, 520 192, 560 210 C 600 228, 620 260, 595 285 C 565 314, 458 310, 430 278 C 412 256, 404 256, 420 240 Z" fill="#C98B3E" />
-        <path d="M450 246 C 468 222, 510 216, 536 228 C 560 240, 574 262, 558 278 C 542 294, 476 292, 458 274" fill="none" stroke="#F2D18C" strokeWidth="6" opacity="0.55" strokeLinecap="round" />
-        <path d="M470 252 C 484 236, 510 232, 528 240 C 546 248, 554 262, 545 272" fill="none" stroke="#8B5A25" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
+      {/* === RIGHT CANDLE with holder === */}
+      <g transform="translate(420,0)">
+        <ellipse cx="50" cy="290" rx="24" ry="6" fill="url(#s2-goldV)" opacity="0.8" />
+        <rect x="34" y="278" width="32" height="14" rx="4" fill="url(#s2-cup)" />
+        <rect x="40" y="268" width="20" height="14" rx="3" fill="url(#s2-cup)" />
+        <ellipse cx="50" cy="270" rx="12" ry="4" fill="url(#s2-gold)" opacity="0.6" />
+        <rect x="42" y="155" width="16" height="118" rx="8" fill="url(#s2-candle)" />
+        <path d="M44 160 L 44 268" stroke="#FFFFFF" strokeWidth="1" opacity="0.2" />
+        <circle cx="50" cy="120" r="80" fill="url(#s2-glow2)" opacity="0.5">
+          <animate attributeName="r" values="82;76;82" dur="3.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="50" cy="130" r="40" fill="url(#s2-glow1)">
+          <animate attributeName="r" values="42;36;42" dur="2.8s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.8;1" dur="2.8s" repeatCount="indefinite" />
+        </circle>
+        <g filter="url(#s2-fglow)">
+          <path d="M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z" fill="#FFD966" opacity="0.95">
+            <animate attributeName="d" values="M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z;M50 152 C 42 138 43 124 50 112 C 57 124 58 138 50 152 Z;M50 152 C 44 142 44 130 50 118 C 56 130 56 142 50 152 Z" dur="2s" repeatCount="indefinite" />
+          </path>
+          <path d="M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z" fill="#FFF3C4" opacity="0.9">
+            <animate attributeName="d" values="M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z;M50 150 C 45 141 45 131 50 122 C 55 131 55 141 50 150 Z;M50 150 C 47 144 47 136 50 128 C 53 136 53 144 50 150 Z" dur="2.3s" repeatCount="indefinite" />
+          </path>
+        </g>
       </g>
 
-      <g filter="url(#s2-softShadow)">
-        <path d="M650 190 C 650 165, 700 165, 700 190 L 690 250 C 686 270, 664 270, 660 250 Z" fill="url(#s2-gold)" />
-        <path d="M662 252 C 660 290, 690 290, 688 252" fill="url(#s2-gold)" opacity="0.9" />
-        <rect x="655" y="290" width="40" height="10" rx="5" fill="url(#s2-gold)" opacity="0.9" />
-        <path d="M660 205 C 665 195, 685 195, 690 205" stroke="#FFF5D8" strokeWidth="3" opacity="0.8" />
+      {/* === CHALLAH (center) === */}
+      <g filter="url(#s2-shadow)" transform="translate(340, 248)">
+        <ellipse cx="60" cy="42" rx="65" ry="14" fill="#000" opacity="0.15" />
+        <path d="M-10 38 Q 60 22 130 38 Q 125 48 60 50 Q -5 48 -10 38" fill="#F8F5EF" opacity="0.4" />
+        <ellipse cx="60" cy="28" rx="58" ry="22" fill="url(#s2-challah)" />
+        <path d="M10 24 Q 25 14 40 24 Q 55 34 70 24 Q 85 14 100 24" fill="none" stroke="#E8A942" strokeWidth="5" opacity="0.6" strokeLinecap="round" />
+        <path d="M10 30 Q 25 20 40 30 Q 55 40 70 30 Q 85 20 100 30" fill="none" stroke="#B8862D" strokeWidth="4" opacity="0.5" strokeLinecap="round" />
+        <path d="M15 18 Q 30 10 45 18 Q 60 26 75 18 Q 90 10 105 18" fill="none" stroke="#F2D18C" strokeWidth="3" opacity="0.4" strokeLinecap="round" />
+        <circle cx="30" cy="18" r="1.5" fill="#F6E6B4" opacity="0.6" />
+        <circle cx="50" cy="15" r="1.2" fill="#F6E6B4" opacity="0.5" />
+        <circle cx="70" cy="17" r="1.5" fill="#F6E6B4" opacity="0.55" />
+        <circle cx="88" cy="20" r="1.3" fill="#F6E6B4" opacity="0.5" />
+        <circle cx="42" cy="22" r="1" fill="#F6E6B4" opacity="0.4" />
+        <circle cx="78" cy="22" r="1.2" fill="#F6E6B4" opacity="0.45" />
+        <ellipse cx="55" cy="18" rx="30" ry="8" fill="#FFFFFF" opacity="0.08" />
       </g>
 
-      <g filter="url(#s2-softShadow)">
-        <path d="M240 150 C 240 132, 270 132, 270 150 L 270 175 C 270 182, 265 188, 260 190 C 255 188, 240 182, 240 175 Z" fill="#1E293B" />
-        <path d="M248 190 C 230 212, 232 265, 260 300 C 288 265, 290 212, 272 190 Z" fill="#0B1022" />
-        <path d="M248 210 C 244 240, 248 262, 260 284 C 272 262, 276 240, 272 210" fill="#6B0F1A" opacity="0.9" />
-        <path d="M250 234 C 246 252, 250 266, 260 280" stroke="#B91C1C" strokeWidth="3" opacity="0.35" />
-        <rect x="244" y="156" width="22" height="10" rx="5" fill="url(#s2-gold)" />
+      {/* === KIDDUSH CUP (right) === */}
+      <g filter="url(#s2-shadow)" transform="translate(565,0)">
+        <ellipse cx="50" cy="296" rx="28" ry="7" fill="url(#s2-goldV)" />
+        <rect x="30" y="288" width="40" height="10" rx="5" fill="url(#s2-cup)" />
+        <rect x="44" y="248" width="12" height="42" rx="4" fill="url(#s2-cup)" />
+        <ellipse cx="50" cy="250" rx="8" ry="3" fill="url(#s2-gold)" opacity="0.5" />
+        <path d="M24 195 C 24 170 76 170 76 195 L 72 248 C 68 256 32 256 28 248 Z" fill="url(#s2-cup)" />
+        <path d="M30 200 C 30 188 70 188 70 200 L 68 235 C 65 240 35 240 32 235 Z" fill="#5C1020" opacity="0.7" />
+        <ellipse cx="50" cy="200" rx="20" ry="8" fill="#7D1A2E" opacity="0.5" />
+        <path d="M28 210 L 72 210" stroke="#F6E6B4" strokeWidth="1.5" opacity="0.35" />
+        <path d="M30 220 L 70 220" stroke="#F6E6B4" strokeWidth="1" opacity="0.25" />
+        <path d="M34 180 Q 32 210 34 240" stroke="#FFFFFF" strokeWidth="2" opacity="0.15" strokeLinecap="round" />
+        <g transform="translate(42, 215) scale(0.8)" opacity="0.3">
+          <polygon points="8,0 16,14 0,14" fill="none" stroke="#F6E6B4" strokeWidth="1.2" />
+          <polygon points="8,16 0,2 16,2" fill="none" stroke="#F6E6B4" strokeWidth="1.2" />
+        </g>
       </g>
 
-      <path d="M160 90 C 220 40, 310 45, 360 88 C 395 118, 430 120, 460 104 C 490 120, 525 118, 560 88 C 610 45, 700 40, 760 90" stroke="url(#s2-gold)" strokeWidth="4" opacity="0.55" fill="none" strokeLinecap="round" />
-      <path d="M460 80 C 444 86, 436 98, 440 112 C 452 108, 460 98, 460 80 Z" fill="url(#s2-gold)" opacity="0.65" />
+      {/* === Decorative sparkles === */}
+      <circle cx="220" cy="180" r="2" fill="#D4AF37" opacity="0.5">
+        <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="580" cy="160" r="1.5" fill="#D4AF37" opacity="0.4">
+        <animate attributeName="opacity" values="0.2;0.6;0.2" dur="4s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="680" cy="200" r="2" fill="#D4AF37" opacity="0.45">
+        <animate attributeName="opacity" values="0.25;0.65;0.25" dur="3.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="130" cy="220" r="1.5" fill="#D4AF37" opacity="0.35">
+        <animate attributeName="opacity" values="0.2;0.55;0.2" dur="5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="400" cy="80" r="2.5" fill="#F6E6B4" opacity="0.3">
+        <animate attributeName="opacity" values="0.15;0.5;0.15" dur="4.5s" repeatCount="indefinite" />
+      </circle>
     </svg>
   );
 }
