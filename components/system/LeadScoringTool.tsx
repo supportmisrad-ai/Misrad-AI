@@ -23,12 +23,20 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
   const calculateAIVerdict = async () => {
     setIsAnalyzing(true);
     try {
-      // Note: GoogleGenAI integration would go here
-      // For now, we'll use a simulated response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const simulatedVerdict = `הליד נראה מבטיח עם ציון ${lead.score}. ${lead.isHot ? 'זהו ליד חם שדורש טיפול מיידי.' : 'מומלץ לעקוב אחריו באופן קבוע.'}`;
-      setVerdict(simulatedVerdict);
+      // Build verdict from actual lead data — no AI hallucination possible
+      const parts: string[] = [];
+      parts.push(`ציון ליד: ${lead.score}/100.`);
+
+      if (lead.isHot) parts.push('ליד חם — דורש טיפול מיידי.');
+      if (lead.source) parts.push(`מקור: ${lead.source} (ציון מקור: ${scoringBreakdown.source}).`);
+      if (lead.activities.length > 0) parts.push(`${lead.activities.length} אינטראקציות תועדו (ציון: ${scoringBreakdown.interaction}).`);
+      if (lead.value > 0) parts.push(`ערך עסקה: ₪${lead.value.toLocaleString('he-IL')} (בשלות: ${scoringBreakdown.budget}).`);
+
+      if (lead.score >= 80) parts.push('המלצה: קבע פגישה / שלח הצעת מחיר.');
+      else if (lead.score >= 50) parts.push('המלצה: תעדוף בינוני — המשך מעקב.');
+      else parts.push('המלצה: טיפוח לטווח ארוך.');
+
+      setVerdict(parts.join(' '));
     } catch (error) {
       console.error("Scoring analysis failed:", error);
       setVerdict("שגיאה בניתוח הנתונים.");
