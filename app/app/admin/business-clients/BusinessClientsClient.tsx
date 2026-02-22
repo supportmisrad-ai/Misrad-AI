@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle, Pencil, Banknote, Ticket, TimerReset } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2 } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal'
 import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, deleteBusinessClient, removeContactFromClient } from '@/app/actions/business-clients';
+import { getBusinessClients, deleteBusinessClient, removeContactFromClient, syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -80,6 +80,7 @@ type BusinessClient = {
 export default function BusinessClientsClient() {
   const [clients, setClients] = useState<BusinessClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
@@ -100,6 +101,8 @@ export default function BusinessClientsClient() {
   // Delete client confirmation
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadClients();
@@ -107,6 +110,7 @@ export default function BusinessClientsClient() {
 
   const loadClients = async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await getBusinessClients({
         search: searchTerm || undefined,
@@ -115,9 +119,12 @@ export default function BusinessClientsClient() {
 
       if (result.ok && result.clients) {
         setClients(result.clients);
+      } else if (!result.ok && 'error' in result) {
+        setError(String(result.error));
       }
-    } catch (error) {
-      console.error('Failed to load clients:', error);
+    } catch (err) {
+      console.error('Failed to load clients:', err);
+      setError('שגיאה בטעינת לקוחות עסקיים');
     } finally {
       setLoading(false);
     }
@@ -125,6 +132,25 @@ export default function BusinessClientsClient() {
 
   const handleSearch = () => {
     loadClients();
+  };
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      const result = await syncOrganizationsToBusinessClients();
+      if (result.ok) {
+        setSyncMessage(`נוצרו ${result.created} לקוחות עסקיים חדשים, קושרו ${result.linked} ארגונים`);
+        await loadClients();
+      } else if ('error' in result) {
+        setError(String(result.error));
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+      setError('שגיאה בסנכרון');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddClientSuccess = () => {
@@ -180,12 +206,40 @@ export default function BusinessClientsClient() {
         subtitle="ניהול חברות וארגונים עסקיים (B2B)"
         icon={Building2}
         actions={
-          <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
-            <Plus className="w-4 h-4" />
-            הוסף לקוח עסקי
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={handleSync} variant="outline" disabled={isSyncing} className="w-full sm:w-auto shadow-sm">
+              {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              סנכרן מארגונים
+            </Button>
+            <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
+              <Plus className="w-4 h-4" />
+              הוסף לקוח עסקי
+            </Button>
+          </div>
         }
       />
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+          <p className="text-sm text-red-800 flex-1">{error}</p>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-600 hover:bg-red-100">
+            סגור
+          </Button>
+        </div>
+      )}
+
+      {/* Sync Success Message */}
+      {syncMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 text-green-600 shrink-0" />
+          <p className="text-sm text-green-800 flex-1">{syncMessage}</p>
+          <Button variant="ghost" size="sm" onClick={() => setSyncMessage(null)} className="text-green-600 hover:bg-green-100">
+            סגור
+          </Button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
@@ -288,11 +342,21 @@ export default function BusinessClientsClient() {
                 <Building2 className="w-16 h-16 text-slate-400" />
               </div>
               <h3 className="text-xl font-black text-slate-900 mb-2">אין לקוחות עסקיים</h3>
-              <p className="text-slate-600 mb-6">התחל על ידי יצירת לקוח עסקי ראשון</p>
-              <Button onClick={() => setIsAddClientModalOpen(true)} size="lg">
-                <Plus className="w-5 h-5 ml-2" />
-                הוסף לקוח עסקי
-              </Button>
+              <p className="text-slate-600 mb-4">אם יש לך כבר ארגונים במערכת, לחץ על סנכרון כדי לייבא אותם כלקוחות עסקיים.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={handleSync} size="lg" disabled={isSyncing}>
+                  {isSyncing ? (
+                    <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-5 h-5 ml-2" />
+                  )}
+                  {isSyncing ? 'מסנכרן...' : 'סנכרן מארגונים קיימים'}
+                </Button>
+                <Button onClick={() => setIsAddClientModalOpen(true)} size="lg" variant="outline">
+                  <Plus className="w-5 h-5 ml-2" />
+                  הוסף לקוח עסקי ידנית
+                </Button>
+              </div>
             </div>
           </div>
         ) : (

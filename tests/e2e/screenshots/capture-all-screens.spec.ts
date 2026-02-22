@@ -142,8 +142,7 @@ const ALL_SCREENS: ScreenDef[] = [
   { folder: '06-operations', name: '05-new-work-order', path: w('/operations/work-orders/new') },
   { folder: '06-operations', name: '06-contractors', path: w('/operations/contractors') },
   { folder: '06-operations', name: '07-inventory', path: w('/operations/inventory') },
-  { folder: '06-operations', name: '08-attendance-reports', path: w('/operations/attendance-reports') },
-  { folder: '06-operations', name: '09-settings', path: w('/operations/settings') },
+  { folder: '06-operations', name: '08-settings', path: w('/operations/settings') },
   { folder: '06-operations', name: '10-me', path: w('/operations/me') },
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -163,6 +162,7 @@ const ALL_SCREENS: ScreenDef[] = [
   { folder: '07-nexus', name: '12-sales-targets', path: w('/nexus/sales/targets'), clientRouted: true },
   { folder: '07-nexus', name: '13-settings', path: w('/nexus/settings'), clientRouted: true },
   { folder: '07-nexus', name: '14-me', path: w('/nexus/me'), clientRouted: true },
+  { folder: '07-nexus', name: '15-attendance-reports', path: w('/nexus/attendance-reports'), clientRouted: true },
 
   // ══════════════════════════════════════════════════════════════════════════
   // 08-account — Account / Personal Area

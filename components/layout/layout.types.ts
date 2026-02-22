@@ -1,5 +1,5 @@
 import { NavItem } from '../../types';
-import { Home, CheckSquare, Calendar, Briefcase, Users, PieChart, FolderOpen, Trash2, Settings, Atom } from 'lucide-react';
+import { Home, CheckSquare, Calendar, Briefcase, Users, PieChart, FolderOpen, Trash2, Settings, Atom, ClipboardList } from 'lucide-react';
 
 // Updated with module links and screen IDs
 export const NAV_ITEMS: NavItem[] = [
@@ -8,6 +8,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'אירועים', path: '/calendar', icon: Calendar, screenId: 'calendar' }, 
   { label: 'לקוחות', path: '/clients', icon: Briefcase, moduleId: 'crm', screenId: 'clients' }, 
   { label: 'ניהול צוות', path: '/team', icon: Users, moduleId: 'team', screenId: 'team' },
+  { label: 'דוחות נוכחות', path: '/attendance-reports', icon: ClipboardList, screenId: 'attendance-reports' },
   { label: 'דוחות ומדדים', path: '/reports', icon: PieChart, moduleId: 'finance', screenId: 'reports' }, 
   { label: 'נכסים ותיקיות', path: '/assets', icon: FolderOpen, screenId: 'assets' },
   { label: 'סל מיחזור', path: '/trash', icon: Trash2, screenId: 'trash' },
@@ -26,6 +27,7 @@ export const getMobileGridStyles = (path: string, isActive: boolean) => {
         case '/clients': return 'bg-emerald-50 text-emerald-600';
         case '/calendar': return 'bg-red-50 text-red-600';
         case '/team': return 'bg-purple-50 text-purple-600';
+        case '/attendance-reports': return 'bg-sky-50 text-sky-600';
         case '/reports': return 'bg-indigo-50 text-indigo-600';
         case '/assets': return 'bg-teal-50 text-teal-600';
         case '/trash': return 'bg-rose-50 text-rose-600';

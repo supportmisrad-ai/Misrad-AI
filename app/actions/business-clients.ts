@@ -241,7 +241,20 @@ export async function getBusinessClients(filters?: {
                 id: true,
                 name: true,
                 slug: true,
+                subscription_plan: true,
                 subscription_status: true,
+                billing_cycle: true,
+                seats_allowed: true,
+                active_users_count: true,
+                billing_email: true,
+                payment_method_id: true,
+                mrr: true,
+                arr: true,
+                next_billing_date: true,
+                trial_start_date: true,
+                trial_days: true,
+                trial_extended_days: true,
+                trial_end_date: true,
                 created_at: true,
               },
             },
@@ -252,7 +265,17 @@ export async function getBusinessClients(filters?: {
 
     revalidatePath('/', 'layout');
 
-    return { ok: true, clients };
+    // Serialize Decimal fields to plain numbers for client transport
+    const serialized = clients.map((c) => ({
+      ...c,
+      organizations: c.organizations.map((o) => ({
+        ...o,
+        mrr: o.mrr != null ? Number(o.mrr) : null,
+        arr: o.arr != null ? Number(o.arr) : null,
+      })),
+    }));
+
+    return { ok: true, clients: serialized };
   } catch (error) {
     logger.error('getBusinessClients', 'Error:', error);
     return { ok: false, error: 'שגיאה בטעינת לקוחות עסקיים' };
@@ -803,5 +826,140 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
   } catch (error) {
     logger.error('searchUsersForContact', 'Error:', error);
     return { ok: false, error: 'שגיאה בחיפוש משתמשים' };
+  }
+}
+
+// ============================================================
+// Sync Organizations → Business Clients
+// ============================================================
+
+export async function syncOrganizationsToBusinessClients(): Promise<
+  { ok: true; created: number; linked: number } | { ok: false; error: string }
+> {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.syncOrganizationsToBusinessClients',
+        reason: 'global_admin_sync_orgs_to_biz_clients',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // Find all organizations that don't have a business client linked
+        const unlinkedOrgs = await prisma.organization.findMany({
+          where: { client_id: null },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            owner_id: true,
+            subscription_plan: true,
+            subscription_status: true,
+            billing_email: true,
+            billing_cycle: true,
+            seats_allowed: true,
+            active_users_count: true,
+            mrr: true,
+            arr: true,
+            created_at: true,
+            owner: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { created_at: 'asc' },
+        });
+
+        if (unlinkedOrgs.length === 0) {
+          return { ok: true as const, created: 0, linked: 0 };
+        }
+
+        // Group organizations by owner_id so the same owner gets one BusinessClient
+        const byOwner = new Map<string, typeof unlinkedOrgs>();
+        for (const org of unlinkedOrgs) {
+          const key = org.owner_id;
+          if (!byOwner.has(key)) byOwner.set(key, []);
+          byOwner.get(key)!.push(org);
+        }
+
+        let created = 0;
+        let linked = 0;
+
+        for (const [, ownerOrgs] of byOwner) {
+          const firstOrg = ownerOrgs[0];
+          const ownerEmail = firstOrg.owner?.email || '';
+          const ownerName = firstOrg.owner?.full_name || firstOrg.name;
+
+          // Check if a BusinessClient with this email already exists
+          let bizClient = ownerEmail
+            ? await prisma.businessClient.findUnique({
+                where: { primary_email: ownerEmail.toLowerCase() },
+                select: { id: true },
+              })
+            : null;
+
+          if (!bizClient) {
+            // Create a new BusinessClient from the first org's data
+            bizClient = await prisma.businessClient.create({
+              data: {
+                company_name: ownerName,
+                primary_email: (ownerEmail || `org-${firstOrg.id}@placeholder.local`).toLowerCase(),
+                status: 'active',
+                lifecycle_stage: 'customer',
+              },
+              select: { id: true },
+            });
+            created++;
+          }
+
+          // Link the owner as a contact if they have a user record
+          if (firstOrg.owner?.id) {
+            const existingContact = await prisma.businessClientContact.findUnique({
+              where: {
+                client_id_user_id: {
+                  client_id: bizClient.id,
+                  user_id: firstOrg.owner.id,
+                },
+              },
+              select: { id: true },
+            });
+
+            if (!existingContact) {
+              await prisma.businessClientContact.create({
+                data: {
+                  client_id: bizClient.id,
+                  user_id: firstOrg.owner.id,
+                  role: 'owner',
+                  is_primary: true,
+                },
+              });
+            }
+          }
+
+          // Link all owner's orgs to this BusinessClient
+          for (const org of ownerOrgs) {
+            await prisma.organization.update({
+              where: { id: org.id },
+              data: { client_id: bizClient.id },
+            });
+            linked++;
+          }
+        }
+
+        revalidatePath('/', 'layout');
+
+        return { ok: true as const, created, linked };
+      }
+    );
+  } catch (error) {
+    logger.error('syncOrganizationsToBusinessClients', 'Error:', error);
+    return { ok: false, error: 'שגיאה בסנכרון ארגונים ללקוחות עסקיים' };
   }
 }

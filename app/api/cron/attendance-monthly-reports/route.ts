@@ -303,7 +303,7 @@ async function generateAndSendReports(request: NextRequest): Promise<Response> {
               const baseUrl = getBaseUrl();
               const pdfUrl = `${baseUrl}/api/attendance-report-pdf/${report.id}?orgSlug=${encodeURIComponent(org.slug || org.id)}`;
               const reportsPageUrl = org.slug
-                ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/nexus/attendance-reports`
                 : pdfUrl;
 
               const minutesToHHMM = (min: number) => {
@@ -370,7 +370,7 @@ async function generateAndSendReports(request: NextRequest): Promise<Response> {
                   title: `דוח נוכחות ${monthName} ${targetYear}`,
                   body: `הדוח החודשי שלך מוכן — ${totalPresenceDays} ימי נוכחות`,
                   url: org.slug
-                    ? `/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                    ? `/w/${encodeURIComponent(org.slug)}/nexus/attendance-reports`
                     : '/me',
                   tag: `attendance-report-${targetYear}-${targetMonth}`,
                   category: 'system',
@@ -421,7 +421,7 @@ async function generateAndSendReports(request: NextRequest): Promise<Response> {
 
                 const baseUrl = getBaseUrl();
                 const reportsPageUrl = org.slug
-                  ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                  ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/nexus/attendance-reports`
                   : baseUrl;
 
                 // Build summary table rows
@@ -494,7 +494,7 @@ async function generateAndSendReports(request: NextRequest): Promise<Response> {
                       title: `סיכום נוכחות ${monthName} ${targetYear}`,
                       body: `${allOrgReports.length} דוחות עובדים מוכנים — סה"כ ${fmtHHMM(totalPayable)} שעות`,
                       url: org.slug
-                        ? `/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                        ? `/w/${encodeURIComponent(org.slug)}/nexus/attendance-reports`
                         : '/me',
                       tag: `attendance-summary-${targetYear}-${targetMonth}`,
                       category: 'system',

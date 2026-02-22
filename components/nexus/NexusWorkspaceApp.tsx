@@ -19,6 +19,7 @@ import { SettingsView } from '@/views/SettingsView';
 import { MeView } from '@/views/MeView';
 import { RecycleBinView } from '@/views/RecycleBinView';
 import { IntelligenceView } from '@/views/IntelligenceView';
+import { AttendanceReportsView } from '@/views/AttendanceReportsView';
 import { ModuleGuard } from '@/components/ModuleGuard';
 import { getNexusBasePath } from '@/lib/os/nexus-routing';
 import type { OrganizationProfile, User } from '@/types';
@@ -122,6 +123,14 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <MeView />
+          </Layout>
+        );
+      case '/attendance-reports':
+        return (
+          <Layout>
+            <ScreenGuard id="attendance-reports">
+              <AttendanceReportsView />
+            </ScreenGuard>
           </Layout>
         );
       case '/brain':

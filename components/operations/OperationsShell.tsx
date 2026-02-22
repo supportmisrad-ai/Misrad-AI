@@ -2,7 +2,7 @@
 
 import React, { useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { SquareMousePointer, Briefcase, ClipboardList, FileText, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
+import { SquareMousePointer, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -86,14 +86,13 @@ export default function OperationsShell({
       { label: 'פרויקטים', path: '/projects', icon: Briefcase, separatorBefore: true },
       { label: 'מלאי', path: '/inventory', icon: Package },
       { label: 'ספקים וקבלנים', path: '/contractors', icon: Users },
-      { label: 'דוחות נוכחות', path: '/attendance-reports', icon: FileText, separatorBefore: true },
-      { label: 'הגדרות', path: '/settings', icon: Settings },
+      { label: 'הגדרות', path: '/settings', icon: Settings, separatorBefore: true },
     ],
     []
   );
 
   const primaryNavPaths = React.useMemo(
-    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors', '/attendance-reports'],
+    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors'],
     []
   );
 

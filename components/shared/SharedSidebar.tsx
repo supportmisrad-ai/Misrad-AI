@@ -12,6 +12,8 @@ export type SharedNavItem = {
   path: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   separatorBefore?: boolean;
+  sectionLabel?: string;
+  sectionContainerClass?: string;
 };
 
 export function SharedSidebar({
@@ -187,9 +189,7 @@ export function SharedSidebar({
         </div>
 
         <nav className="flex-1 space-y-1.5 mt-2 overflow-y-auto no-scrollbar">
-          {primaryItems.map((item) => (
-            <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} linkHrefPrefix={linkHrefPrefix} />
-          ))}
+          {renderNavGroup(primaryItems, isOpen, isActiveAction, onNavigateAction, linkHrefPrefix)}
 
           {hasSecondary ? (
             <>
@@ -223,9 +223,7 @@ export function SharedSidebar({
                     transition={{ duration: 0.2, ease: 'easeInOut' }}
                     className="overflow-hidden space-y-1.5"
                   >
-                    {secondaryItems.map((item) => (
-                      <NavButton key={item.path} item={item} isOpen={isOpen} isActiveAction={isActiveAction} onNavigateAction={onNavigateAction} linkHrefPrefix={linkHrefPrefix} />
-                    ))}
+                    {renderNavGroup(secondaryItems, isOpen, isActiveAction, onNavigateAction, linkHrefPrefix)}
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -243,6 +241,94 @@ export function SharedSidebar({
       </div>
     </aside>
   );
+}
+
+function renderNavGroup(
+  items: SharedNavItem[],
+  isOpen: boolean,
+  isActiveAction: (path: string) => boolean,
+  onNavigateAction: (path: string) => void,
+  linkHrefPrefix?: string
+): React.ReactNode[] {
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < items.length) {
+    const item = items[i];
+
+    // Separator line
+    if (item.separatorBefore) {
+      elements.push(
+        <div
+          key={`sep-${item.path}`}
+          className="shrink-0 h-px bg-gradient-to-r from-transparent via-[color:var(--os-sidebar-divider,rgba(209,213,219,0.30))] to-transparent mx-2 my-2"
+        />
+      );
+    }
+
+    // Section container: collect consecutive items sharing the same sectionContainerClass
+    if (item.sectionContainerClass) {
+      const containerClass = item.sectionContainerClass;
+      const label = item.sectionLabel;
+      const group: SharedNavItem[] = [item];
+      let j = i + 1;
+      while (j < items.length && !items[j].separatorBefore && !items[j].sectionContainerClass) {
+        group.push(items[j]);
+        j++;
+      }
+
+      elements.push(
+        <div key={`section-${item.path}`} className={containerClass}>
+          {label && isOpen ? (
+            <div className="px-2.5 pt-1.5 pb-1">
+              <span className="text-[10px] font-black text-[color:var(--os-sidebar-section-label,#9ca3af)] uppercase tracking-widest">
+                {label}
+              </span>
+            </div>
+          ) : null}
+          <div className="space-y-1">
+            {group.map((gi) => (
+              <NavButton
+                key={gi.path}
+                item={gi}
+                isOpen={isOpen}
+                isActiveAction={isActiveAction}
+                onNavigateAction={onNavigateAction}
+                linkHrefPrefix={linkHrefPrefix}
+              />
+            ))}
+          </div>
+        </div>
+      );
+      i = j;
+      continue;
+    }
+
+    // Standalone section label (no container)
+    if (item.sectionLabel && isOpen) {
+      elements.push(
+        <div key={`label-${item.path}`} className="px-3 pt-3 pb-1">
+          <span className="text-[10px] font-black text-[color:var(--os-sidebar-text-muted,#9ca3af)] uppercase tracking-widest">
+            {item.sectionLabel}
+          </span>
+        </div>
+      );
+    }
+
+    elements.push(
+      <NavButton
+        key={item.path}
+        item={item}
+        isOpen={isOpen}
+        isActiveAction={isActiveAction}
+        onNavigateAction={onNavigateAction}
+        linkHrefPrefix={linkHrefPrefix}
+      />
+    );
+    i++;
+  }
+
+  return elements;
 }
 
 function NavButton({

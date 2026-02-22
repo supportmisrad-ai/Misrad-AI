@@ -40,7 +40,7 @@ const result = rows.map((r, i) => {
     Delay: r[5] || 0,
     DelayType: 0,
     notification: false,
-    not_numbers: [],
+    not_numbers: [''],
     not_message: '',
     files: [],
     contains: containsVal,
