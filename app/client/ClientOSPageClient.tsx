@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, SquareActivity, DollarSign, Clock, Zap, Globe, CalendarDays, CircleUser, Video, Calendar, Sparkles, Shield, Star, Briefcase, Play } from 'lucide-react';
+import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, SquareActivity, DollarSign, Clock, Zap, Globe, CalendarDays, CircleUser, Video, Calendar, Sparkles, Shield, Star, Briefcase, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { ClientOSDemo } from '@/components/landing/demos/ClientOSDemo';
@@ -257,78 +257,6 @@ export default function ClientOSPage() {
         </div>
       </section>
 
-      {/* What's NOT Included - Strategic Positioning */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">מה <span className="text-slate-500">לא</span> כלול ב{getModuleLabelHe('client')}?</h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              {getModuleLabelHe('client')} מתמקדת בביצוע. היא לא מערכת ניהול ארגונית.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            {[
-              {
-                title: 'אין שעון נוכחות',
-                desc: `${getModuleLabelHe('client')} לא עוקבת אחר נוכחות עובדים. זה לא חלק מהמטרה שלה.`,
-                icon: Users
-              },
-              {
-                title: 'אין חישובי שכר',
-                desc: `אין חישוב משכורות או עמלות. ${getModuleLabelHe('client')} מתמקדת בלקוחות, לא בניהול HR.`,
-                icon: TrendingUp
-              },
-              {
-                title: 'אין ניהול עומסים',
-                desc: 'אין ראייה רוחבית של כל המשימות. כל עובד רואה רק את שלו.',
-                icon: Target
-              }
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto mb-4">
-                  <item.icon size={24} className="text-slate-500" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-600">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Upgrade Path */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-sm">
-            <div className="flex items-start gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-[#C5A572]/10 border border-[#C5A572]/25 flex items-center justify-center shrink-0">
-                <Medal size={32} className="text-[#C5A572]" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">רוצה ניהול ארגוני מלא?</h3>
-                <p className="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
-                  זה הזמן להפוך את העסק שלך למערכת מתקדמת. <strong className="text-[#C5A572]">Misrad AI</strong> כולל את כל מה שצריך לניהול עסק אמיתי.
-                  <strong className="text-slate-900">אתה חייב את ה-{getModuleLabelHe('nexus')}.</strong>
-                </p>
-                <p className="text-base text-slate-600 mb-6 leading-relaxed">
-                  <strong className="text-slate-900">{getModuleLabelHe('client')}</strong> - כל עובד מקבל את הכלים שלו. <strong className="text-[#C5A572]">{getModuleLabelHe('nexus')}</strong> - זה מה שאתה צריך כדי לנהל את כל העסק.
-                </p>
-                <button
-                  onClick={() => router.push('/pricing')}
-                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-xl font-bold transition-all flex items-center gap-2 text-sm sm:text-base"
-                >
-                  גלה את {getModuleLabelHe('nexus')} <ArrowRight size={18} className="rotate-180" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features Grid */}
       <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
@@ -384,75 +312,6 @@ export default function ClientOSPage() {
                 <p className="text-slate-600">{feature.desc}</p>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Growth & Clarity Section */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">
-              זה לא רק חיסכון בזמן.<br/>
-              <span className="text-[#C5A572]">זה צמיחה.</span>
-            </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              {getModuleLabelHe('client')} עוזרת לך להגדיל את העסק, להבין אותו לעומק, ולא לפחד להביא עוד עובדים.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {[
-              {
-                title: 'הגדלת העסק',
-                desc: 'כשיש לך סדר בניהול לקוחות, אתה יכול להגדיל את העסק בלי לפחד. אתה רואה בדיוק מה קורה, מי עושה מה, ואיפה יש בעיות.',
-                icon: TrendingUp,
-                highlight: 'סדר = צמיחה'
-              },
-              {
-                title: 'אין פחד מגיוס',
-                desc: 'כשיש לך סדר, אתה לא מפחד להביא עוד מנהלי תיקים. אתה יודע בדיוק איך לנהל אותם, כמה לשלם להם, ומי עושה מה.',
-                icon: Users,
-                highlight: 'סדר = ביטחון'
-              },
-              {
-                title: 'סדר ובהירות',
-                desc: 'כל הלקוחות והמידע במקום אחד. אין בלגן, אין כפילויות, אין מידע אבוד. אתה יודע בדיוק מה קורה בכל רגע.',
-                icon: Target,
-                highlight: 'מידע = שליטה'
-              },
-              {
-                title: 'מיקוד ודיוק',
-                desc: 'אתה מתמקד במה שחשוב - שמירה על לקוחות. המערכת מנהלת את השאר. אין הסחות דעת, אין בזבוז זמן, רק עבודה יעילה.',
-                icon: Zap,
-                highlight: 'מיקוד = תוצאות'
-              }
-            ].map((benefit, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#C5A572]/30 transition-all shadow-sm"
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#C5A572]/10 border border-[#C5A572]/20 flex items-center justify-center mb-4">
-                  <benefit.icon size={24} className="text-[#C5A572]" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{benefit.title}</h3>
-                <p className="text-sm text-slate-600 leading-relaxed mb-3">{benefit.desc}</p>
-                <div className="text-xs font-bold text-[#C5A572]">{benefit.highlight}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-            <p className="text-slate-700 text-lg mb-2">
-              <strong className="text-slate-900">אל תפחד להגדיל את העסק.</strong> <strong className="text-[#C5A572]">יש לך סדר.</strong>
-            </p>
-            <p className="text-sm text-slate-600">
-              רוצה להביא עוד מנהלי תיקים? אין בעיה. {getModuleLabelHe('client')} יראה לך בדיוק איך לנהל אותם. <strong className="text-slate-900">סדר ובהירות. מיקוד ודיוק.</strong>
-            </p>
           </div>
         </div>
       </section>

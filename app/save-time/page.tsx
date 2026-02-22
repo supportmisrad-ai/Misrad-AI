@@ -145,6 +145,60 @@ export default function SaveTimeHubPage() {
                 </div>
               </Link>
             </div>
+
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Link
+                href="/client"
+                className="group relative rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-amber-50 via-white to-yellow-50">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-black text-slate-500">מסלול · לקוחות</div>
+                      <div className="mt-2 text-2xl font-black text-slate-900">פורטל לקוח</div>
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-amber-600 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                      <ClipboardList size={24} />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="text-slate-700 font-black text-lg">&quot;הלקוח <span className="bg-amber-100 px-1.5 py-0.5 rounded-lg">רואה הכל</span> בעצמו&quot;</div>
+                  <div className="mt-3 text-slate-600 leading-relaxed">
+                    פורטל שבו הלקוח רואה משימות, קבצים ופגישות. פחות שיחות ״מה הסטטוס?״ — יותר שקט נפשי.
+                  </div>
+                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-amber-600 group-hover:text-amber-700">
+                    לצפייה במסלול <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                href="/the-authority"
+                className="group relative rounded-3xl bg-white border border-slate-200 shadow-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-purple-50 via-white to-indigo-50">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-black text-slate-500">מסלול · שיווק</div>
+                      <div className="mt-2 text-2xl font-black text-slate-900">תוכן ← לקוח</div>
+                    </div>
+                    <div className="w-14 h-14 rounded-2xl bg-purple-600 flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                      <Sparkles size={24} />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="text-slate-700 font-black text-lg">&quot;מעוקב ← <span className="bg-purple-100 px-1.5 py-0.5 rounded-lg">ליד</span> ← לקוח משלם&quot;</div>
+                  <div className="mt-3 text-slate-600 leading-relaxed">
+                    מהפוסט ברשת ועד סגירת העסקה. ניהול קמפיינים, Hashtags חכמים, ותיק לקוח מחובר לשיווק.
+                  </div>
+                  <div className="mt-6 inline-flex items-center gap-2 text-sm font-black text-purple-600 group-hover:text-purple-700">
+                    לצפייה במסלול <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Link>
+            </div>
           </div>
         </section>
 
