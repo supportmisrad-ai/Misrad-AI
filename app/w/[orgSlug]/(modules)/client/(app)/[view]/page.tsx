@@ -11,9 +11,9 @@ import MeetingAnalyzer from '@/components/client-os-full/components/MeetingAnaly
 export default async function ClientViewPage({
   params,
 }: {
-  params: { view: string };
+  params: Promise<{ view: string }>;
 }) {
-  const { view } = params;
+  const { view } = await params;
   const viewKey = String(view || '').trim();
 
   if (viewKey === 'cycles') return <CyclesManager />;
