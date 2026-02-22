@@ -103,7 +103,32 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
                         ))}
                     </div>
                     <button 
-                        onClick={() => addToast('מייצא דוח מסכם...', 'success')}
+                        onClick={() => {
+                            if (!leads.length) { addToast('אין נתונים לייצוא', 'error'); return; }
+                            if (typeof document === 'undefined') return;
+                            const headers = ['שם', 'מקור', 'סטטוס', 'ערך', 'תאריך'];
+                            const rows = leads.map(l => {
+                                const rec = l as unknown as Record<string, unknown>;
+                                return [
+                                    String(rec.name ?? ''),
+                                    String(l.source ?? ''),
+                                    String(l.status ?? ''),
+                                    String(rec.value ?? '0'),
+                                    String(rec.createdAt ?? rec.date ?? ''),
+                                ];
+                            });
+                            const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+                            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.setAttribute('download', `sales_report_${new Date().toISOString().split('T')[0]}.csv`);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            URL.revokeObjectURL(url);
+                            addToast('הדוח ירד למחשב בהצלחה', 'success');
+                        }}
                         className="bg-primary text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-primary-dark transition-all flex items-center gap-2"
                     >
                         <DownloadCloud size={18} />

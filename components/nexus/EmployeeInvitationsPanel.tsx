@@ -61,7 +61,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
         hourlyRate: '',
         monthlySalary: '',
         commissionPct: '',
-        startDate: '',
+        startDate: new Date().toISOString().split('T')[0],
         notes: '',
         expiresInDays: 30
     });
@@ -143,7 +143,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                 hourlyRate: '',
                 monthlySalary: '',
                 commissionPct: '',
-                startDate: '',
+                startDate: new Date().toISOString().split('T')[0],
                 notes: '',
                 expiresInDays: 30
             });
@@ -569,6 +569,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                                         value={formData.startDate || ''}
                                         onChange={(val) => setFormData({ ...formData, startDate: val })}
                                         placeholder="בחר תאריך התחלה"
+                                        minDate={new Date().toISOString().split('T')[0]}
                                         showHebrewDate={true}
                                         className="w-full"
                                     />

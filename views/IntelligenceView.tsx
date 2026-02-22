@@ -164,7 +164,7 @@ export const IntelligenceView: React.FC = () => {
         if (typeof document === 'undefined') return; // SSR guard
         
         const element = document.createElement("a");
-        const file = new Blob([JSON.stringify(report, null, 2)], {type: 'text/plain'});
+        const file = new Blob([JSON.stringify(report, null, 2)], {type: 'application/json'});
         element.href = URL.createObjectURL(file);
         element.download = `Nexus_Report_${new Date().toISOString()}.json`;
         document.body.appendChild(element);

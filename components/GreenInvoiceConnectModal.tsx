@@ -138,7 +138,7 @@ export const GreenInvoiceConnectModal: React.FC<GreenInvoiceConnectModalProps> =
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
                             <p className="text-xs text-blue-800">
                                 <strong>איפה למצוא את מפתח ה-API?</strong><br />
-                                התחבר לחשבון מורנינג → הגדרות → API → צור מפתח חדש
+                                התחבר לחשבון מורנינג ← הגדרות ← API ← צור מפתח חדש
                             </p>
                         </div>
                     </div>

@@ -5,7 +5,7 @@ import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Status, User, RoleDefinition } from '../types';
-import { Settings, UserPlus, Trophy, X, Shield, Building2, Users, Lock, Calendar, CalendarDays, BarChart3, RefreshCw } from 'lucide-react';
+import { UserPlus, Trophy, X, Shield, Building2, Users, Lock, Calendar, CalendarDays, BarChart3, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWorkspaceOrgSlugFromPathname, useNexusNavigation, useNexusSoloMode } from '@/lib/os/nexus-routing';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
@@ -704,15 +704,6 @@ export const TeamView: React.FC = () => {
 
               {/* Actions Row */}
               <div className="flex gap-2 w-full">
-              <button
-                onClick={() => navigate('/settings?tab=team')}
-                  className="bg-white border border-gray-200 text-gray-600 active:text-black active:border-gray-300 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-sm flex items-center gap-1.5 md:gap-2 transition-all shrink-0 flex-1 md:flex-none justify-center active:scale-95"
-                title="הגדרות צוות"
-              >
-                  <Settings size={14} className="md:w-[18px] md:h-[18px]" />
-                <span className="hidden sm:inline">הגדרות</span>
-              </button>
-
               {canManageTeam && (
                 <button
                   onClick={openAddModal}

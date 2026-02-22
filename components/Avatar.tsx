@@ -59,18 +59,23 @@ export function Avatar({
                             ? 'rounded-3xl'
                             : 'rounded-full';
 
-    const effectiveSrc = mounted ? src : undefined;
+    const [imgError, setImgError] = useState(false);
 
-    if (!effectiveSrc || effectiveSrc.trim() === '') {
-        return (
-            <div 
-                className={`${sizeClass} bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className} ${roundedClass}`}
-                aria-label={alt || name || 'User avatar'}
-                suppressHydrationWarning
-            >
-                {initials}
-            </div>
-        );
+    const raw = mounted ? src : undefined;
+    const effectiveSrc = raw && !String(raw).startsWith('sb://') ? String(raw).trim() : '';
+
+    const fallback = (
+        <div 
+            className={`${sizeClass} bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className} ${roundedClass}`}
+            aria-label={alt || name || 'User avatar'}
+            suppressHydrationWarning
+        >
+            {initials}
+        </div>
+    );
+
+    if (!effectiveSrc || imgError) {
+        return fallback;
     }
 
     return (
@@ -78,6 +83,7 @@ export function Avatar({
             src={effectiveSrc} 
             alt={alt || name || 'User avatar'} 
             className={`${sizeClass} object-cover ${className} ${roundedClass}`}
+            onError={() => setImgError(true)}
         />
     );
 };

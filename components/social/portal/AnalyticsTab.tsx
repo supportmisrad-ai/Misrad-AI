@@ -57,20 +57,17 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ client, posts }) => {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        // Create download link
-        const link = document.createElement('a');
-        link.href = data.pdfUrl;
-        link.download = data.filename || 'report.pdf';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const html = await response.text();
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
       } else {
-        alert('שגיאה ביצירת PDF');
+        alert('שגיאה ביצירת דוח');
       }
     } catch (error) {
-      console.error('PDF generation error:', error);
-      alert('שגיאה ביצירת PDF');
+      console.error('Report generation error:', error);
+      alert('שגיאה ביצירת דוח');
     } finally {
       setIsExporting(false);
     }

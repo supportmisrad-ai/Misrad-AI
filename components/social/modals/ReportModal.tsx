@@ -42,20 +42,17 @@ export default function ReportModal() {
                   });
                   
                   if (response.ok) {
-                    const data = await response.json();
-                    // Create download link
-                    const link = document.createElement('a');
-                    link.href = data.pdfUrl;
-                    link.download = data.filename || 'report.pdf';
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
+                    const html = await response.text();
+                    const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
                   } else {
-                    alert('שגיאה ביצירת PDF');
+                    alert('שגיאה ביצירת דוח');
                   }
                 } catch (error) {
-                  console.error('PDF generation error:', error);
-                  alert('שגיאה ביצירת PDF');
+                  console.error('Report generation error:', error);
+                  alert('שגיאה ביצירת דוח');
                 } finally {
                   setIsDownloading(false);
                 }
@@ -63,7 +60,7 @@ export default function ReportModal() {
               disabled={isDownloading}
               className="flex items-center gap-2 bg-slate-100 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
             >
-              {isDownloading ? <>מכין קובץ...</> : <>הורד PDF <Download size={18}/></>}
+              {isDownloading ? <>מכין דוח...</> : <>הדפס / שמור PDF <Download size={18}/></>}
             </button>
             <button onClick={() => setIsReportModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-xl"><X size={24}/></button>
           </div>

@@ -14,8 +14,9 @@ import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomDatePicker } from '../../CustomDatePicker';
 
-let showHebrewDatesPreference = false;
+let showHebrewDatesPreference = true;
 
 interface EventRequestModalProps {
     event?: TeamEvent | null;
@@ -36,8 +37,10 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
         title: event?.title || '',
         description: event?.description || '',
         eventType: (event?.eventType || 'group_meeting') as TeamEventType,
-        startDate: event?.startDate ? new Date(event.startDate).toISOString().slice(0, 16) : '',
-        endDate: event?.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '',
+        startDate: event?.startDate ? new Date(event.startDate).toISOString().slice(0, 10) : '',
+        startTime: event?.startDate ? new Date(event.startDate).toTimeString().slice(0, 5) : '09:00',
+        endDate: event?.endDate ? new Date(event.endDate).toISOString().slice(0, 10) : '',
+        endTime: event?.endDate ? new Date(event.endDate).toTimeString().slice(0, 5) : '10:00',
         allDay: event?.allDay || false,
         location: event?.location || '',
         requiredAttendees: event?.requiredAttendees || [],
@@ -59,16 +62,19 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
         }
         
         if (!formData.startDate) {
-            addToast('נא למלא תאריך ושעה התחלה', 'error');
+            addToast('נא למלא תאריך התחלה', 'error');
             return;
         }
         
         if (!formData.endDate) {
-            addToast('נא למלא תאריך ושעה סיום', 'error');
+            addToast('נא למלא תאריך סיום', 'error');
             return;
         }
+
+        const startDateTime = new Date(`${formData.startDate}T${formData.startTime || '09:00'}`);
+        const endDateTime = new Date(`${formData.endDate}T${formData.endTime || '10:00'}`);
         
-        if (new Date(formData.startDate) > new Date(formData.endDate)) {
+        if (startDateTime > endDateTime) {
             addToast('תאריך סיום חייב להיות אחרי תאריך התחלה', 'error');
             return;
         }
@@ -86,8 +92,8 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
                 headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({
                     ...formData,
-                    startDate: new Date(formData.startDate).toISOString(),
-                    endDate: new Date(formData.endDate).toISOString()
+                    startDate: startDateTime.toISOString(),
+                    endDate: endDateTime.toISOString()
                 })
             });
 
@@ -176,6 +182,64 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
                         </select>
                     </div>
 
+                    {/* Dates */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                תאריך התחלה *
+                            </label>
+                            <CustomDatePicker
+                                value={formData.startDate}
+                                onChange={(val) => setFormData({ ...formData, startDate: val })}
+                                placeholder="בחר תאריך התחלה"
+                                showHebrewDate={showHebrewDates}
+                                minDate={new Date().toISOString().slice(0, 10)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                שעת התחלה *
+                            </label>
+                            <div className="relative">
+                                <Clock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                <input
+                                    type="time"
+                                    value={formData.startTime}
+                                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                    className="w-full h-11 px-4 py-2.5 pr-10 border border-gray-200 rounded-xl bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all cursor-pointer hover:border-gray-300"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                תאריך סיום *
+                            </label>
+                            <CustomDatePicker
+                                value={formData.endDate}
+                                onChange={(val) => setFormData({ ...formData, endDate: val })}
+                                placeholder="בחר תאריך סיום"
+                                showHebrewDate={showHebrewDates}
+                                minDate={formData.startDate || new Date().toISOString().slice(0, 10)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                שעת סיום *
+                            </label>
+                            <div className="relative">
+                                <Clock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+                                <input
+                                    type="time"
+                                    value={formData.endTime}
+                                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                    className="w-full h-11 px-4 py-2.5 pr-10 border border-gray-200 rounded-xl bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-black focus:border-black transition-all cursor-pointer hover:border-gray-300"
+                                    required
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Hebrew Dates Toggle */}
                     <div className="flex items-center gap-2">
                         <input
@@ -188,50 +252,6 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
                         <label htmlFor="showHebrewDates" className="text-sm text-gray-700">
                             הצג תאריכים עבריים
                         </label>
-                    </div>
-
-                    {/* Dates */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">
-                                תאריך ושעה התחלה *
-                            </label>
-                            <div className="relative">
-                                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-                                <input
-                                    type="datetime-local"
-                                    value={formData.startDate}
-                                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                    className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer hover:border-gray-300"
-                                    required
-                                />
-                            </div>
-                            {showHebrewDates && formData.startDate && (
-                                <p className="text-xs text-purple-600 mt-1 font-bold">
-                                    עברי: {formatHebrewDate(new Date(formData.startDate), { includeYear: true })}
-                                </p>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">
-                                תאריך ושעה סיום *
-                            </label>
-                            <div className="relative">
-                                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
-                                <input
-                                    type="datetime-local"
-                                    value={formData.endDate}
-                                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all cursor-pointer hover:border-gray-300"
-                                    required
-                                />
-                            </div>
-                            {showHebrewDates && formData.endDate && (
-                                <p className="text-xs text-purple-600 mt-1 font-bold">
-                                    עברי: {formatHebrewDate(new Date(formData.endDate), { includeYear: true })}
-                                </p>
-                            )}
-                        </div>
                     </div>
 
                     {/* All Day */}

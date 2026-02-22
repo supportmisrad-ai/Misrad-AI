@@ -37,6 +37,34 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
   }, [leads, searchTerm, statusFilter, viewMode]);
 
   const handleExport = () => {
+      if (filteredLeads.length === 0) {
+          addToast('אין נתונים לייצוא', 'error');
+          return;
+      }
+      if (typeof document === 'undefined') return;
+
+      const headers = ['שם', 'טלפון', 'אימייל', 'מקור', 'סטטוס'];
+      const rows = filteredLeads.map(lead => {
+          const rec = lead as unknown as Record<string, unknown>;
+          return [
+              String(rec.name ?? ''),
+              String(rec.phone ?? ''),
+              String(rec.email ?? ''),
+              String(rec.source ?? ''),
+              String(lead.status ?? ''),
+          ];
+      });
+
+      const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `contacts_export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
       addToast('רשימת אנשי הקשר יוצאה לקובץ CSV', 'success');
   };
 

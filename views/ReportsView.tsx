@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import { CustomSelect } from '../components/CustomSelect';
 import { BarChart3, Clock, CircleCheckBig, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, SquareActivity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw, MapPin } from 'lucide-react';
+import { Avatar } from '../components/Avatar';
 import { Status, TimeEntry, User } from '../types';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TimeEntryModal } from '../components/nexus/TimeEntryModal';
@@ -729,7 +730,7 @@ export const ReportsView: React.FC = () => {
                                                     <div className="flex items-center gap-2 md:gap-4">
                                                         <span className="text-xs font-bold text-gray-300 w-3 md:w-4">{index + 1}</span>
                                                         <div className="relative">
-                                                            <img src={stat.user.avatar} alt={stat.user.name} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-100 object-cover group-hover:scale-105 transition-transform shadow-sm" />
+                                                            <Avatar src={stat.user.avatar} alt={stat.user.name} name={stat.user.name} size="md" className="border border-gray-100 group-hover:scale-105 transition-transform shadow-sm" />
                                                             {index === 0 && overviewStats.length > 1 && (
                                                                 <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white">
                                                                     <TrendingUp size={10} className="text-white" />
@@ -789,7 +790,7 @@ export const ReportsView: React.FC = () => {
                                         <div className="flex items-center gap-3">
                                             <span className="text-xs font-bold text-gray-300 w-4">{index + 1}</span>
                                             <div className="relative">
-                                                <img src={stat.user.avatar} alt={stat.user.name} className="w-10 h-10 rounded-full border border-gray-100 object-cover shadow-sm" />
+                                                <Avatar src={stat.user.avatar} alt={stat.user.name} name={stat.user.name} size="lg" className="border border-gray-100 shadow-sm" />
                                                 {index === 0 && overviewStats.length > 1 && (
                                                     <div className="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white">
                                                         <TrendingUp size={10} className="text-white" />
@@ -913,7 +914,7 @@ export const ReportsView: React.FC = () => {
                                                 <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                                     <td className="px-3 md:px-6 py-3 md:py-4">
                                                         <div className="flex items-center gap-2 md:gap-3 font-bold text-gray-900">
-                                                            <img src={user?.avatar} className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border border-gray-100 shrink-0" />
+                                                            <Avatar src={user?.avatar} name={user?.name} size="sm" className="border border-gray-100 shrink-0" />
                                                             <span className="text-sm md:text-base truncate">{user?.name}</span>
                                                         </div>
                                                     </td>
@@ -1003,7 +1004,7 @@ export const ReportsView: React.FC = () => {
                                     return (
                                         <div key={entry.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
                                             <div className="flex items-center gap-3">
-                                                <img src={user?.avatar} className="w-10 h-10 rounded-full object-cover border border-gray-100 shrink-0" />
+                                                <Avatar src={user?.avatar} name={user?.name} size="lg" className="border border-gray-100 shrink-0" />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="font-bold text-gray-900 text-base truncate">{user?.name}</div>
                                                     <div className="text-xs text-gray-500">{formatDate(entry.date)}</div>
@@ -1108,7 +1109,7 @@ export const ReportsView: React.FC = () => {
                             {financeData.map(data => (
                                 <div key={data.user.id} className="bg-white p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between hover:border-gray-300 transition-all">
                                     <div className="flex items-center gap-3 md:gap-4 mb-4">
-                                        <img src={data.user.avatar} alt={data.user.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-gray-100 shrink-0" />
+                                        <Avatar src={data.user.avatar} alt={data.user.name} name={data.user.name} size="lg" className="border border-gray-100 shrink-0" />
                                         <div className="min-w-0 flex-1">
                                             <h4 className="font-bold text-gray-900 text-sm md:text-base truncate">{data.user.name}</h4>
                                             <p className="text-xs text-gray-500 truncate">
