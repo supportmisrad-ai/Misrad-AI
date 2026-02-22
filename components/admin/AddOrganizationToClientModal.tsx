@@ -137,14 +137,14 @@ export default function AddOrganizationToClientModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Building2 className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">יצירת ארגון</h2>
-              <p className="text-sm text-gray-500">{clientName}</p>
+              <h2 className="text-xl font-bold text-slate-900">יצירת ארגון</h2>
+              <p className="text-sm text-slate-500">{clientName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
@@ -163,7 +163,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Basic Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               פרטי ארגון
             </div>
             
@@ -178,7 +178,7 @@ export default function AddOrganizationToClientModal({
                 disabled={isPending || !primaryContactUserId}
                 className="mt-1"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 הארגון ישויך ללקוח העסקי "{clientName}"
               </p>
             </div>
@@ -205,7 +205,7 @@ export default function AddOrganizationToClientModal({
                   יצירה אוטומטית
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 אם ריק, המערכת תייצר אוטומטית
               </p>
             </div>
@@ -213,7 +213,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Subscription & Billing */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               חבילה ומנויים
             </div>
             
@@ -261,7 +261,7 @@ export default function AddOrganizationToClientModal({
                   disabled={isPending || !primaryContactUserId}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">כמה משתמשים מותרים</p>
+                <p className="text-xs text-slate-500 mt-1">כמה משתמשים מותרים</p>
               </div>
 
               <div>
@@ -276,7 +276,7 @@ export default function AddOrganizationToClientModal({
                   disabled={isPending || !primaryContactUserId}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">ברירת מחדל: 7 ימים</p>
+                <p className="text-xs text-slate-500 mt-1">ברירת מחדל: 7 ימים</p>
               </div>
             </div>
 
@@ -291,7 +291,7 @@ export default function AddOrganizationToClientModal({
                 disabled={isPending || !primaryContactUserId}
                 className="mt-1"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 הזן קוד קופון להנחה
               </p>
             </div>
@@ -299,7 +299,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Modules */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               מודולים פעילים
             </div>
             
@@ -368,7 +368,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Settings */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               הגדרות נוספות
             </div>
             
@@ -398,7 +398,7 @@ export default function AddOrganizationToClientModal({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
               {error}
             </div>
           )}

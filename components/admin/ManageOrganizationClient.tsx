@@ -101,7 +101,7 @@ const PLANS = [
 const ROLES = [
   { value: 'owner', label: 'בעלים', color: 'bg-purple-100 text-purple-800' },
   { value: 'admin', label: 'מנהל', color: 'bg-blue-100 text-blue-800' },
-  { value: 'team_member', label: 'חבר צוות', color: 'bg-gray-100 text-gray-800' },
+  { value: 'team_member', label: 'חבר צוות', color: 'bg-slate-100 text-slate-800' },
 ];
 
 export default function ManageOrganizationClient({ initialData }: { initialData: OrganizationData }) {
@@ -471,7 +471,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
       </AnimatePresence>
 
       {/* Organization Header */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
         <div className="flex items-start gap-4">
           {initialData.logo ? (
             <img src={initialData.logo} alt={initialData.name} className="w-16 h-16 rounded-xl object-cover" />
@@ -481,10 +481,10 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-black text-gray-900 truncate">{initialData.name}</h2>
-            <p className="text-sm text-gray-600 mt-1">/{initialData.slug}</p>
+            <h2 className="text-2xl font-black text-slate-900 truncate">{initialData.name}</h2>
+            <p className="text-sm text-slate-600 mt-1">/{initialData.slug}</p>
             {initialData.business_client && (
-              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-gray-600">
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-600">
                 <span className="flex items-center gap-1">
                   <Building2 className="w-3.5 h-3.5" />
                   {initialData.business_client.company_name}
@@ -500,7 +500,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="flex overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -512,7 +512,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 className={`flex-1 min-w-[120px] px-4 py-4 flex items-center justify-center gap-2 text-sm font-bold transition-all border-b-2 ${
                   isActive
                     ? 'border-blue-600 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -554,7 +554,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                     placeholder="my-organization"
                     className="mt-2 font-mono"
                   />
-                  <p className="text-xs text-gray-500 mt-1">ישמש לכתובת URL: /{settingsData.slug}</p>
+                  <p className="text-xs text-slate-500 mt-1">ישמש לכתובת URL: /{settingsData.slug}</p>
                 </div>
 
                 <div>
@@ -566,7 +566,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                     placeholder="https://example.com/logo.png"
                     className="mt-2"
                   />
-                  <p className="text-xs text-gray-500 mt-1">URL ללוגו של הארגון</p>
+                  <p className="text-xs text-slate-500 mt-1">URL ללוגו של הארגון</p>
                 </div>
 
                 <Button onClick={handleSaveSettings} disabled={saving} className="w-full sm:w-auto">
@@ -701,12 +701,12 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       placeholder="499"
                       className="mt-2"
                     />
-                    <p className="text-xs text-gray-500 mt-1">מחיר חודשי בשקלים</p>
+                    <p className="text-xs text-slate-500 mt-1">מחיר חודשי בשקלים</p>
                   </div>
                 )}
 
                 <div className="space-y-4 pt-4 border-t">
-                  <h4 className="font-bold text-gray-900">מודולים פעילים</h4>
+                  <h4 className="font-bold text-slate-900">מודולים פעילים</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                       { key: 'has_nexus', label: '📋 Nexus (משימות)', color: 'blue' },
@@ -717,7 +717,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                     ].map((module) => (
                       <label
                         key={module.key}
-                        className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer"
                       >
                         <Checkbox
                           checked={packageData[module.key as keyof typeof packageData] as boolean}
@@ -725,7 +725,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             setPackageData({ ...packageData, [module.key]: checked })
                           }
                         />
-                        <span className="text-sm font-medium text-gray-900">{module.label}</span>
+                        <span className="text-sm font-medium text-slate-900">{module.label}</span>
                       </label>
                     ))}
                   </div>
@@ -767,7 +767,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-gray-900">
+                  <h4 className="font-bold text-slate-900">
                     משתמשים ({initialData.organizationUsers.length})
                   </h4>
                   <Button size="sm" variant="outline" disabled>
@@ -780,11 +780,11 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   {initialData.organizationUsers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
+                      className="flex items-center gap-4 p-4 border border-slate-200 rounded-lg hover:shadow-sm transition-shadow"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-900 truncate">{user.full_name || 'ללא שם'}</p>
-                        <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                        <p className="font-bold text-slate-900 truncate">{user.full_name || 'ללא שם'}</p>
+                        <p className="text-sm text-slate-600 truncate">{user.email}</p>
                       </div>
 
                       <CustomSelect
@@ -826,7 +826,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                 {/* Company Info */}
                 <div className="space-y-4">
-                  <h4 className="font-bold text-gray-900 text-lg">פרטי חברה</h4>
+                  <h4 className="font-bold text-slate-900 text-lg">פרטי חברה</h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -866,7 +866,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                 {/* Address */}
                 <div className="space-y-4 pt-6 border-t">
-                  <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                  <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
                     כתובת
                   </h4>
@@ -920,7 +920,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                 {/* Contact Details */}
                 <div className="space-y-4 pt-6 border-t">
-                  <h4 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                  <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                     <Phone className="w-5 h-5" />
                     פרטי קשר
                   </h4>
@@ -1012,7 +1012,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                         />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-black text-gray-900 mb-1">סטטוס תקופת ניסיון</h4>
+                        <h4 className="font-black text-slate-900 mb-1">סטטוס תקופת ניסיון</h4>
                         <p
                           className={`text-2xl font-black mb-2 ${
                             trialStatus.isActive ? 'text-green-600' : 'text-red-600'
@@ -1022,7 +1022,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             ? `${trialStatus.daysRemaining} ימים נותרו`
                             : 'תקופת הניסיון הסתיימה'}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-600">
                           סיום: {trialStatus.endDate} | סה״כ: {trialStatus.totalDays} ימים
                         </p>
                       </div>
@@ -1034,12 +1034,12 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* MRR */}
                   <div className="p-6 bg-blue-50 border border-blue-200 rounded-xl">
-                    <h4 className="font-black text-gray-900 mb-2">הכנסה חודשית (MRR)</h4>
+                    <h4 className="font-black text-slate-900 mb-2">הכנסה חודשית (MRR)</h4>
                     <p className="text-3xl font-black text-blue-600">
                       ₪{parseFloat(initialData.mrr || '0').toFixed(0)}
                     </p>
                     {initialData.discount_percent && (
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-slate-600 mt-1">
                         הנחה פעילה: {initialData.discount_percent}%
                       </p>
                     )}
@@ -1052,10 +1052,10 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
                   }`}>
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-black text-gray-900">יתרה</h4>
+                      <h4 className="font-black text-slate-900">יתרה</h4>
                       <button
                         onClick={() => setShowBalanceAdjustment(!showBalanceAdjustment)}
-                        className="text-xs font-bold text-gray-600 hover:text-gray-900 underline"
+                        className="text-xs font-bold text-slate-600 hover:text-slate-900 underline"
                       >
                         {showBalanceAdjustment ? 'ביטול' : 'עדכון ידני'}
                       </button>
@@ -1065,7 +1065,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                     }`}>
                       ₪{parseFloat(initialData.balance || '0').toFixed(2)}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-slate-600 mt-1">
                       {parseFloat(initialData.balance || '0') >= 0 ? '✅ זכות' : '⚠️ חוב'}
                     </p>
                   </div>
@@ -1083,8 +1083,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       <div className="flex items-center gap-3 mb-3">
                         <CircleAlert className="w-6 h-6 text-yellow-600" />
                         <div>
-                          <h4 className="font-black text-gray-900">עדכון יתרה ידני</h4>
-                          <p className="text-sm text-gray-600">למקרי תשלום במזומן / ביט / תיקון ידני</p>
+                          <h4 className="font-black text-slate-900">עדכון יתרה ידני</h4>
+                          <p className="text-sm text-slate-600">למקרי תשלום במזומן / ביט / תיקון ידני</p>
                         </div>
                       </div>
 
@@ -1101,7 +1101,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             className="mt-2"
                             disabled={adjustingBalance}
                           />
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className="text-xs text-slate-600 mt-1">
                             חיובי להוספה, שלילי לניכוי
                           </p>
                         </div>
@@ -1171,8 +1171,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 </AnimatePresence>
 
                 {/* Extend Trial */}
-                <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl space-y-4">
-                  <h4 className="font-black text-gray-900">הארכת תקופת ניסיון</h4>
+                <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                  <h4 className="font-black text-slate-900">הארכת תקופת ניסיון</h4>
                   <div className="flex items-end gap-3">
                     <div className="flex-1">
                       <Label htmlFor="extend_days">ימים להוספה</Label>
@@ -1198,17 +1198,17 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                 {/* Subscription Status */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">סטטוס מנוי</p>
-                    <p className="font-bold text-gray-900">
+                  <div className="p-4 bg-white border border-slate-200 rounded-lg">
+                    <p className="text-xs text-slate-600 mb-1">סטטוס מנוי</p>
+                    <p className="font-bold text-slate-900">
                       {initialData.subscription_status === 'trial' && '🔄 ניסיון'}
                       {initialData.subscription_status === 'active' && '✅ פעיל'}
                       {initialData.subscription_status === 'cancelled' && '❌ מבוטל'}
                     </p>
                   </div>
-                  <div className="p-4 bg-white border border-gray-200 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">מקומות מאושרים</p>
-                    <p className="font-bold text-gray-900">{initialData.seats_allowed}</p>
+                  <div className="p-4 bg-white border border-slate-200 rounded-lg">
+                    <p className="text-xs text-slate-600 mb-1">מקומות מאושרים</p>
+                    <p className="font-bold text-slate-900">{initialData.seats_allowed}</p>
                   </div>
                 </div>
 
@@ -1219,8 +1219,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       <CreditCard className="w-6 h-6 text-green-600" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-black text-gray-900 mb-2">יצירת קישור לתשלום</h4>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <h4 className="font-black text-slate-900 mb-2">יצירת קישור לתשלום</h4>
+                      <p className="text-sm text-slate-600 mb-4">
                         צור קישור תשלום דרך Morning (חשבונית ירוקה) וש לח ללקוח
                       </p>
                       <Button
@@ -1251,7 +1251,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                           type="text"
                           readOnly
                           value={paymentLink}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded font-mono"
+                          className="flex-1 px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded font-mono"
                           onClick={(e) => e.currentTarget.select()}
                         />
                         <Button
@@ -1277,9 +1277,9 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 </div>
 
                 {/* Invoice Creation + History */}
-                <div className="p-6 bg-white border border-gray-200 rounded-xl space-y-4">
+                <div className="p-6 bg-white border border-slate-200 rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-black text-gray-900 flex items-center gap-2">
+                    <h4 className="font-black text-slate-900 flex items-center gap-2">
                       <CreditCard className="w-5 h-5 text-blue-600" />
                       חשבוניות ({invoices.length})
                     </h4>
@@ -1320,7 +1320,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   )}
 
                   {invoicesLoaded && invoices.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
+                    <div className="text-center py-8 text-slate-400">
                       <p className="font-medium">אין חשבוניות עדיין</p>
                       <p className="text-sm mt-1">לחץ "צור חשבונית" ליצירה ושליחה אוטומטית</p>
                     </div>
@@ -1329,28 +1329,28 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   {invoices.length > 0 && (
                     <div className="space-y-2 max-h-80 overflow-y-auto">
                       {invoices.map((inv) => (
-                        <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm">
+                        <div key={inv.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors text-sm">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className={`w-2 h-2 rounded-full shrink-0 ${
                               inv.status === 'paid' ? 'bg-green-500' :
                               inv.status === 'pending' ? 'bg-amber-500' :
-                              inv.status === 'overdue' ? 'bg-red-500' : 'bg-gray-400'
+                              inv.status === 'overdue' ? 'bg-red-500' : 'bg-slate-400'
                             }`} />
                             <div className="min-w-0">
-                              <p className="font-bold text-gray-900">#{inv.invoiceNumber}</p>
-                              {inv.description && <p className="text-xs text-gray-500 truncate">{inv.description}</p>}
+                              <p className="font-bold text-slate-900">#{inv.invoiceNumber}</p>
+                              {inv.description && <p className="text-xs text-slate-500 truncate">{inv.description}</p>}
                             </div>
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
-                            <span className="font-black text-gray-900">₪{inv.amount.toLocaleString()}</span>
+                            <span className="font-black text-slate-900">₪{inv.amount.toLocaleString()}</span>
                             <span className={`px-2 py-0.5 text-xs font-bold rounded-lg ${
                               inv.status === 'paid' ? 'bg-green-100 text-green-700' :
                               inv.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                              inv.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                              inv.status === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
                             }`}>
                               {inv.status === 'paid' ? 'שולם' : inv.status === 'pending' ? 'ממתין' : inv.status === 'overdue' ? 'באיחור' : inv.status}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-slate-400">
                               {new Date(inv.createdAt).toLocaleDateString('he-IL')}
                             </span>
                             {inv.emailSent && <span title="מייל נשלח"><Mail className="w-3.5 h-3.5 text-green-500" /></span>}

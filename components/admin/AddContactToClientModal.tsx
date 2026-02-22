@@ -145,14 +145,14 @@ export default function AddContactToClientModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <UserPlus className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">הוספת איש קשר</h2>
-              <p className="text-sm text-gray-500">{clientName}</p>
+              <h2 className="text-xl font-bold text-slate-900">הוספת איש קשר</h2>
+              <p className="text-sm text-slate-500">{clientName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
@@ -163,12 +163,12 @@ export default function AddContactToClientModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Search User */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               חיפוש משתמש
             </div>
             
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input
                 type="text"
                 placeholder="חפש לפי שם או מייל..."
@@ -183,26 +183,26 @@ export default function AddContactToClientModal({
             </div>
 
             {searchResults.length > 0 && (
-              <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+              <div className="border border-slate-200 rounded-lg max-h-64 overflow-y-auto">
                 {searchResults.map((user) => (
                   <button
                     key={user.id}
                     type="button"
                     onClick={() => setSelectedUserId(user.id)}
-                    className={`w-full p-3 flex items-center gap-3 hover:bg-gray-50 border-b last:border-b-0 ${
+                    className={`w-full p-3 flex items-center gap-3 hover:bg-slate-50 border-b last:border-b-0 ${
                       selectedUserId === user.id ? 'bg-blue-50' : ''
                     }`}
                   >
                     {user.avatar_url ? (
                       <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <UserPlus className="w-5 h-5 text-gray-400" />
+                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                        <UserPlus className="w-5 h-5 text-slate-400" />
                       </div>
                     )}
                     <div className="flex-1 text-right">
-                      <p className="font-medium text-gray-900">{user.full_name || 'ללא שם'}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="font-medium text-slate-900">{user.full_name || 'ללא שם'}</p>
+                      <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
                     {selectedUserId === user.id && (
                       <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
@@ -217,7 +217,7 @@ export default function AddContactToClientModal({
             )}
 
             {searchTerm.trim().length >= 2 && searchResults.length === 0 && !isSearching && (
-              <p className="text-sm text-gray-500 text-center py-4">לא נמצאו משתמשים</p>
+              <p className="text-sm text-slate-500 text-center py-4">לא נמצאו משתמשים</p>
             )}
           </div>
 
@@ -234,8 +234,8 @@ export default function AddContactToClientModal({
                   </div>
                 )}
                 <div>
-                  <p className="font-medium text-gray-900">{selectedUser.full_name}</p>
-                  <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                  <p className="font-medium text-slate-900">{selectedUser.full_name}</p>
+                  <p className="text-sm text-slate-600">{selectedUser.email}</p>
                 </div>
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function AddContactToClientModal({
           {selectedUser && (
             <>
               <div className="space-y-4">
-                <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+                <div className="text-sm font-semibold text-slate-700 border-b pb-2">
                   פרטי איש קשר
                 </div>
                 
@@ -295,7 +295,7 @@ export default function AddContactToClientModal({
 
               {/* Flags */}
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+                <div className="text-sm font-semibold text-slate-700 border-b pb-2">
                   הגדרות נוספות
                 </div>
                 

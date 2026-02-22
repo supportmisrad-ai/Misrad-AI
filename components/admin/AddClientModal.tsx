@@ -86,17 +86,17 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-lg bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <UserPlus className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">הזמנת לקוח חדש</h2>
-              <p className="text-sm text-gray-500">שליחת לינק הרשמה ייחודי</p>
+              <h2 className="text-xl font-bold text-slate-900">הזמנת לקוח חדש</h2>
+              <p className="text-sm text-slate-500">שליחת לינק הרשמה ייחודי</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending} className="text-gray-400 hover:text-gray-600">
+          <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending} className="text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -116,12 +116,12 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
             </div>
 
             <div>
-              <Label className="text-sm font-semibold text-gray-700 mb-2 block">לינק הרשמה אישי</Label>
+              <Label className="text-sm font-semibold text-slate-700 mb-2 block">לינק הרשמה אישי</Label>
               <div className="flex gap-2">
                 <Input
                   value={signupUrl}
                   readOnly
-                  className="text-xs font-mono bg-gray-50 text-gray-600"
+                  className="text-xs font-mono bg-slate-50 text-slate-600"
                   dir="ltr"
                 />
                 <Button type="button" variant="outline" size="sm" onClick={handleCopy} className="shrink-0 gap-1.5">
@@ -129,7 +129,7 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }: AddClient
                   {copied ? 'הועתק!' : 'העתק'}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-slate-500 mt-2">
                 הלקוח יכול להירשם עם גוגל או סיסמה — הארגון שלו ייווצר אוטומטית.
               </p>
             </div>

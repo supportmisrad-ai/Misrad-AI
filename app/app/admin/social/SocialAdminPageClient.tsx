@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { LayoutGrid, Plug, Rocket, SlidersHorizontal, Lightbulb, Zap, Users } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -140,21 +141,15 @@ export default function SocialAdminPageClient() {
           showTenantSelector ? (
             <div className="w-full sm:w-[320px]">
               <label className="block text-xs font-black text-slate-600 mb-2">בחר משתמש</label>
-              <select
+              <CustomSelect
                 value={selectedTenantId}
-                onChange={(e) => setSelectedTenantId(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/60"
-              >
-                {tenantOptions.length === 0 ? (
-                  <option value="">אין משתמשים</option>
-                ) : (
-                  tenantOptions.map((t) => (
-                    <option key={t.id} value={String(t.id)}>
-                      {t.name || t.subdomain || t.id}
-                    </option>
-                  ))
-                )}
-              </select>
+                onChange={(val) => setSelectedTenantId(val)}
+                placeholder="אין משתמשים"
+                options={tenantOptions.map((t) => ({
+                  value: String(t.id),
+                  label: t.name || t.subdomain || String(t.id),
+                }))}
+              />
             </div>
           ) : null
         }

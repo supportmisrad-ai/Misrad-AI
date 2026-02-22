@@ -12,8 +12,8 @@ export default async function SetupCustomerPage() {
     <div className="space-y-6" dir="rtl">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">הקמת לקוח חדש</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">הקמת לקוח חדש</h1>
+        <p className="text-slate-600">
           Wizard מקיף להקמת לקוח עסקי, ארגון, חבילת מנוי ומנהל מערכת בפעולה אחת
         </p>
       </div>

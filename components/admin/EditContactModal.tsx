@@ -88,14 +88,14 @@ export default function EditContactModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" dir="rtl">
       <div className="relative w-full max-w-lg bg-white rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <UserCog className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">עריכת איש קשר</h2>
-              <p className="text-sm text-gray-500">{displayName} • {clientName}</p>
+              <h2 className="text-lg font-bold text-slate-900">עריכת איש קשר</h2>
+              <p className="text-sm text-slate-500">{displayName} • {clientName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} disabled={isPending}>
@@ -147,7 +147,7 @@ export default function EditContactModal({
           </div>
 
           <div className="space-y-3 pt-1">
-            <p className="text-sm font-semibold text-gray-700 border-b pb-2">הגדרות</p>
+            <p className="text-sm font-semibold text-slate-700 border-b pb-2">הגדרות</p>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="ec-primary"
@@ -178,12 +178,12 @@ export default function EditContactModal({
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
               {error}
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button type="submit" disabled={isPending} className="flex-1">
               {isPending ? (
                 <>

@@ -100,14 +100,14 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Building2 className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">עריכת ארגון</h2>
-              <p className="text-sm text-gray-500">{organization.name}</p>
+              <h2 className="text-xl font-bold text-slate-900">עריכת ארגון</h2>
+              <p className="text-sm text-slate-500">{organization.name}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
@@ -118,7 +118,7 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">פרטי ארגון</div>
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">פרטי ארגון</div>
             <div>
               <Label htmlFor="orgName">שם ארגון *</Label>
               <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} disabled={isPending} className="mt-1" />
@@ -126,13 +126,13 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
             <div>
               <Label htmlFor="orgSlug">Slug (מזהה ייחודי)</Label>
               <Input id="orgSlug" value={orgSlug} onChange={(e) => setOrgSlug(e.target.value)} disabled={isPending} className="mt-1" />
-              <p className="text-xs text-gray-500 mt-1">אזהרה: שינוי slug יכול לשבור קישורים קיימים</p>
+              <p className="text-xs text-slate-500 mt-1">אזהרה: שינוי slug יכול לשבור קישורים קיימים</p>
             </div>
           </div>
 
           {/* Modules */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">מודולים פעילים</div>
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">מודולים פעילים</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <Checkbox id="hasNexus" checked={hasNexus} onCheckedChange={(checked) => setHasNexus(checked as boolean)} disabled={isPending} />
@@ -159,21 +159,21 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
 
           {/* Settings */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">הגדרות</div>
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">הגדרות</div>
             <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <Checkbox id="isShabatProtected" checked={isShabatProtected} onCheckedChange={(checked) => setIsShabatProtected(checked as boolean)} disabled={isPending} className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="isShabatProtected" className="cursor-pointer font-medium">🕎 החרגת שבת</Label>
-                <p className="text-xs text-blue-700 mt-1">חסימת פעולות במערכת בשבת ומועדים</p>
+                <p className="text-xs text-slate-700 mt-1">חסימת פעולות במערכת בשבת ומועדים</p>
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">{error}</div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button type="submit" disabled={isPending} className="flex-1">
               {isPending ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />שומר...</>) : (<><Building2 className="w-4 h-4 mr-2" />שמור שינויים</>)}
             </Button>

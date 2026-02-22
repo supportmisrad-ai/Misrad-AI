@@ -249,8 +249,8 @@ export default function SetupCustomerWizard() {
             <Check className="w-12 h-12 text-green-600" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-gray-900">הלקוח הוקם בהצלחה!</h2>
-            <p className="text-gray-600">מעביר אותך לדף לקוחות עסקיים...</p>
+            <h2 className="text-3xl font-black text-slate-900">הלקוח הוקם בהצלחה!</h2>
+            <p className="text-slate-600">מעביר אותך לדף לקוחות עסקיים...</p>
           </div>
         </motion.div>
       </div>
@@ -260,7 +260,7 @@ export default function SetupCustomerWizard() {
   return (
     <div className="space-y-8" dir="rtl">
       {/* Stepper */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between">
           {STEPS.map((step, index) => {
             const Icon = step.icon;
@@ -276,7 +276,7 @@ export default function SetupCustomerWizard() {
                         ? 'bg-green-600 text-white'
                         : isActive
                         ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                        : 'bg-gray-100 text-gray-400'
+                        : 'bg-slate-100 text-slate-400'
                     }`}
                   >
                     {isCompleted ? <Check className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
@@ -284,20 +284,20 @@ export default function SetupCustomerWizard() {
                   <div className="text-center">
                     <div
                       className={`text-sm font-bold ${
-                        isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-500'
+                        isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-slate-500'
                       }`}
                     >
                       {step.title}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{step.description}</div>
+                    <div className="text-xs text-slate-500 mt-1">{step.description}</div>
                   </div>
                 </div>
 
                 {index < STEPS.length - 1 && (
-                  <div className="flex-1 h-0.5 bg-gray-200 mx-4 relative top-[-30px]">
+                  <div className="flex-1 h-0.5 bg-slate-200 mx-4 relative top-[-30px]">
                     <div
                       className={`h-full transition-all ${
-                        currentStep > step.id ? 'bg-green-600' : 'bg-gray-200'
+                        currentStep > step.id ? 'bg-green-600' : 'bg-slate-200'
                       }`}
                       style={{ width: currentStep > step.id ? '100%' : '0%' }}
                     />
@@ -317,14 +317,14 @@ export default function SetupCustomerWizard() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
-          className="bg-white border border-gray-200 rounded-xl shadow-sm p-8"
+          className="bg-white border border-slate-200 rounded-xl shadow-sm p-8"
         >
           {/* Step 1: Business Client */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-gray-900">פרטי הלקוח המשלם</h2>
-                <p className="text-gray-600">מידע על החברה או הארגון העסקי</p>
+                <h2 className="text-2xl font-black text-slate-900">פרטי הלקוח המשלם</h2>
+                <p className="text-slate-600">מידע על החברה או הארגון העסקי</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -470,8 +470,8 @@ export default function SetupCustomerWizard() {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-gray-900">הגדרות ארגון</h2>
-                <p className="text-gray-600">שם וסלאג לארגון שיתחבר ללקוח העסקי</p>
+                <h2 className="text-2xl font-black text-slate-900">הגדרות ארגון</h2>
+                <p className="text-slate-600">שם וסלאג לארגון שיתחבר ללקוח העסקי</p>
               </div>
 
               <div className="space-y-6 max-w-2xl">
@@ -485,7 +485,7 @@ export default function SetupCustomerWizard() {
                     className="mt-2"
                     dir="rtl"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     הארגון ישויך ללקוח העסקי "{data.businessClient.company_name || '...'}"
                   </p>
                 </div>
@@ -511,7 +511,7 @@ export default function SetupCustomerWizard() {
                       יצירה אוטומטית
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     אם ריק, המערכת תייצר slug ייחודי אוטומטית
                   </p>
                 </div>
@@ -535,8 +535,8 @@ export default function SetupCustomerWizard() {
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-gray-900">חבילה ומודולים</h2>
-                <p className="text-gray-600">בחר את תכנית המנוי והמודולים הפעילים</p>
+                <h2 className="text-2xl font-black text-slate-900">חבילה ומודולים</h2>
+                <p className="text-slate-600">בחר את תכנית המנוי והמודולים הפעילים</p>
               </div>
 
               <div className="space-y-6">
@@ -552,13 +552,13 @@ export default function SetupCustomerWizard() {
                         className={`p-4 border-2 rounded-xl text-right transition-all ${
                           data.package.subscription_plan === plan.value
                             ? 'border-blue-600 bg-blue-50 shadow-md'
-                            : 'border-gray-200 hover:border-gray-300'
+                            : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        <div className="text-lg font-bold text-gray-900">{plan.label}</div>
+                        <div className="text-lg font-bold text-slate-900">{plan.label}</div>
                         <div className="text-2xl font-black text-blue-600 mt-2">{plan.price}</div>
-                        <div className="text-xs text-gray-500 mt-1">{plan.description}</div>
-                        <div className="text-sm text-gray-600 mt-2 font-medium">{plan.seats} מקומות</div>
+                        <div className="text-xs text-slate-500 mt-1">{plan.description}</div>
+                        <div className="text-sm text-slate-600 mt-2 font-medium">{plan.seats} מקומות</div>
                       </button>
                     ))}
                   </div>
@@ -605,7 +605,7 @@ export default function SetupCustomerWizard() {
                         placeholder="499"
                         className="mt-2"
                       />
-                      <p className="text-xs text-gray-500 mt-1">מחיר חודשי בשקלים</p>
+                      <p className="text-xs text-slate-500 mt-1">מחיר חודשי בשקלים</p>
                     </div>
                   )}
 
@@ -625,7 +625,7 @@ export default function SetupCustomerWizard() {
                 <div>
                   <Label className="text-base font-bold">מודולים פעילים</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg">
                       <Checkbox
                         id="has_nexus"
                         checked={data.package.has_nexus}
@@ -633,11 +633,11 @@ export default function SetupCustomerWizard() {
                       />
                       <Label htmlFor="has_nexus" className="cursor-pointer flex-1">
                         <div className="font-bold">✅ Nexus</div>
-                        <div className="text-xs text-gray-600">ניהול צוות ומשימות</div>
+                        <div className="text-xs text-slate-600">ניהול צוות ומשימות</div>
                       </Label>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg">
                       <Checkbox
                         id="has_social"
                         checked={data.package.has_social}
@@ -645,11 +645,11 @@ export default function SetupCustomerWizard() {
                       />
                       <Label htmlFor="has_social" className="cursor-pointer flex-1">
                         <div className="font-bold">📱 Social Media</div>
-                        <div className="text-xs text-gray-600">ניהול תוכן ברשתות</div>
+                        <div className="text-xs text-slate-600">ניהול תוכן ברשתות</div>
                       </Label>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg">
                       <Checkbox
                         id="has_finance"
                         checked={data.package.has_finance}
@@ -657,11 +657,11 @@ export default function SetupCustomerWizard() {
                       />
                       <Label htmlFor="has_finance" className="cursor-pointer flex-1">
                         <div className="font-bold">💰 Finance</div>
-                        <div className="text-xs text-gray-600">כספים וחשבוניות</div>
+                        <div className="text-xs text-slate-600">כספים וחשבוניות</div>
                       </Label>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg">
                       <Checkbox
                         id="has_client"
                         checked={data.package.has_client}
@@ -669,11 +669,11 @@ export default function SetupCustomerWizard() {
                       />
                       <Label htmlFor="has_client" className="cursor-pointer flex-1">
                         <div className="font-bold">👥 Client</div>
-                        <div className="text-xs text-gray-600">ניהול לקוחות</div>
+                        <div className="text-xs text-slate-600">ניהול לקוחות</div>
                       </Label>
                     </div>
 
-                    <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg">
                       <Checkbox
                         id="has_operations"
                         checked={data.package.has_operations}
@@ -681,7 +681,7 @@ export default function SetupCustomerWizard() {
                       />
                       <Label htmlFor="has_operations" className="cursor-pointer flex-1">
                         <div className="font-bold">⚙️ Operations</div>
-                        <div className="text-xs text-gray-600">תפעול ושטח</div>
+                        <div className="text-xs text-slate-600">תפעול ושטח</div>
                       </Label>
                     </div>
                   </div>
@@ -709,8 +709,8 @@ export default function SetupCustomerWizard() {
           {currentStep === 4 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-gray-900">מנהל מערכת</h2>
-                <p className="text-gray-600">פרטי המשתמש שיהיה בעלים של הארגון</p>
+                <h2 className="text-2xl font-black text-slate-900">מנהל מערכת</h2>
+                <p className="text-slate-600">פרטי המשתמש שיהיה בעלים של הארגון</p>
               </div>
 
               <div className="space-y-6 max-w-2xl">
@@ -737,7 +737,7 @@ export default function SetupCustomerWizard() {
                     className="mt-2"
                     dir="ltr"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     המשתמש יקבל הזמנה להצטרף למערכת במייל הזה
                   </p>
                 </div>

@@ -126,11 +126,11 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
     <div className="bg-white rounded-2xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
             <DollarSign className="text-green-600" size={28} />
             חיוב - {organizationName}
           </h2>
-          <p className="text-sm text-gray-500 mt-1">ניהול חיוב דרך Morning (חשבונית ירוקה)</p>
+          <p className="text-sm text-slate-500 mt-1">ניהול חיוב דרך Morning (חשבונית ירוקה)</p>
         </div>
         {billingInfo && getStatusBadge()}
       </div>
@@ -139,7 +139,7 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex items-start gap-3"
+          className="bg-red-50 border border-slate-200 rounded-xl p-4 mb-4 flex items-start gap-3"
         >
           <CircleAlert className="text-red-600 flex-shrink-0" size={20} />
           <div>
@@ -174,12 +174,12 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
           {/* Billing Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
-              <p className="text-sm text-gray-600 font-bold mb-1">MRR (חודשי)</p>
+              <p className="text-sm text-slate-600 font-bold mb-1">MRR (חודשי)</p>
               <p className="text-3xl font-bold text-green-700">₪{billingInfo.mrr.toFixed(2)}</p>
             </div>
 
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
-              <p className="text-sm text-gray-600 font-bold mb-1">מחזור חיוב</p>
+              <p className="text-sm text-slate-600 font-bold mb-1">מחזור חיוב</p>
               <p className="text-2xl font-bold text-blue-700">
                 {billingInfo.billingCycle === 'monthly'
                   ? 'חודשי'
@@ -190,7 +190,7 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
-              <p className="text-sm text-gray-600 font-bold mb-1">ימים עד חיוב הבא</p>
+              <p className="text-sm text-slate-600 font-bold mb-1">ימים עד חיוב הבא</p>
               <p className="text-2xl font-bold text-purple-700">
                 {billingStatus?.daysUntilNextBilling !== null
                   ? `${billingStatus.daysUntilNextBilling} ימים`
@@ -200,22 +200,22 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
           </div>
 
           {/* Details */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+          <div className="bg-slate-50 rounded-xl p-4 space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-600 font-bold text-sm">אימייל לחיוב:</span>
-              <span className="text-gray-900 font-mono text-sm">{billingInfo.billingEmail || 'לא מוגדר'}</span>
+              <span className="text-slate-600 font-bold text-sm">אימייל לחיוב:</span>
+              <span className="text-slate-900 font-mono text-sm">{billingInfo.billingEmail || 'לא מוגדר'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 font-bold text-sm">תאריך חיוב הבא:</span>
-              <span className="text-gray-900 font-mono text-sm">
+              <span className="text-slate-600 font-bold text-sm">תאריך חיוב הבא:</span>
+              <span className="text-slate-900 font-mono text-sm">
                 {billingInfo.nextBillingDate
                   ? new Date(billingInfo.nextBillingDate).toLocaleDateString('he-IL')
                   : 'לא מוגדר'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 font-bold text-sm">מזהה ארגון:</span>
-              <span className="text-gray-900 font-mono text-xs">{billingInfo.id}</span>
+              <span className="text-slate-600 font-bold text-sm">מזהה ארגון:</span>
+              <span className="text-slate-900 font-mono text-xs">{billingInfo.id}</span>
             </div>
           </div>
 
@@ -224,7 +224,7 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
             <button
               onClick={handleCreateInvoice}
               disabled={loading || !billingInfo.billingEmail || billingInfo.mrr <= 0}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               <FileText size={20} />
               צור חשבונית
@@ -233,7 +233,7 @@ export const OrganizationBillingPanel: React.FC<OrganizationBillingPanelProps> =
             <button
               onClick={loadBillingInfo}
               disabled={loading}
-              className="bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-gray-700 font-bold py-3 px-6 rounded-xl transition-colors"
+              className="bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 disabled:cursor-not-allowed text-slate-700 font-bold py-3 px-6 rounded-xl transition-colors"
             >
               רענן
             </button>

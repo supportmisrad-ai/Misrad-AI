@@ -131,14 +131,14 @@ export default function ApplyCouponModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-100 rounded-lg">
               <Tag className="w-5 h-5 text-orange-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">החלת קופון</h2>
-              <p className="text-sm text-gray-500">{organizationName}</p>
+              <h2 className="text-xl font-bold text-slate-900">החלת קופון</h2>
+              <p className="text-sm text-slate-500">{organizationName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending || isValidating}>
@@ -150,7 +150,7 @@ export default function ApplyCouponModal({
         <div className="p-6 space-y-6">
           {/* Coupon Input */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               קוד קופון
             </div>
             
@@ -199,12 +199,12 @@ export default function ApplyCouponModal({
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-700">קוד:</span>
+                      <span className="text-slate-700">קוד:</span>
                       <span className="font-mono font-medium">{validatedCoupon.code}</span>
                     </div>
                     
                     <div className="flex justify-between">
-                      <span className="text-gray-700">הנחה:</span>
+                      <span className="text-slate-700">הנחה:</span>
                       <span className="font-medium text-green-700">
                         {validatedCoupon.discount_type === 'percentage' && validatedCoupon.discount_percent
                           ? `${validatedCoupon.discount_percent}%`
@@ -216,7 +216,7 @@ export default function ApplyCouponModal({
 
                     {validatedCoupon.ends_at && (
                       <div className="flex justify-between">
-                        <span className="text-gray-700">תוקף עד:</span>
+                        <span className="text-slate-700">תוקף עד:</span>
                         <span className="font-medium">
                           {new Date(validatedCoupon.ends_at).toLocaleDateString('he-IL')}
                         </span>
@@ -225,7 +225,7 @@ export default function ApplyCouponModal({
 
                     {validatedCoupon.max_redemptions_total && (
                       <div className="flex justify-between">
-                        <span className="text-gray-700">שימושים:</span>
+                        <span className="text-slate-700">שימושים:</span>
                         <span className="font-medium">
                           {validatedCoupon.current_redemptions} / {validatedCoupon.max_redemptions_total}
                         </span>
@@ -244,7 +244,7 @@ export default function ApplyCouponModal({
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-700">MRR נוכחי:</span>
+                  <span className="text-slate-700">MRR נוכחי:</span>
                   <span className="font-medium">₪{currentMRR.toFixed(2)}</span>
                 </div>
                 
@@ -254,7 +254,7 @@ export default function ApplyCouponModal({
                 </div>
                 
                 <div className="flex justify-between border-t border-blue-300 pt-2 mt-2">
-                  <span className="font-semibold text-gray-900">MRR חדש:</span>
+                  <span className="font-semibold text-slate-900">MRR חדש:</span>
                   <span className="font-bold text-blue-900">₪{newMRR.toFixed(2)}</span>
                 </div>
 
@@ -275,7 +275,7 @@ export default function ApplyCouponModal({
 
           {/* Info */}
           {!validatedCoupon && !error && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-600">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600">
               הזן קוד קופון ולחץ "בדוק" כדי לראות את פרטי ההנחה
             </div>
           )}

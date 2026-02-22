@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DollarSign,
@@ -23,6 +24,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminToolbar from '@/components/admin/AdminToolbar';
 import { getBillingEvents } from '@/app/actions/app-billing';
 
 type BillingEvent = {
@@ -42,7 +45,7 @@ const EVENT_TYPE_LABELS: Record<string, { label: string; icon: React.ElementType
   webhook_document_paid: { label: 'Webhook: תשלום', icon: CreditCard, color: 'text-green-600' },
   webhook_payment_failed: { label: 'Webhook: כשל', icon: CircleAlert, color: 'text-red-600' },
   webhook_signature_failed: { label: 'Webhook: חתימה שגויה', icon: CircleAlert, color: 'text-orange-600' },
-  webhook_unknown: { label: 'Webhook: לא ידוע', icon: CircleAlert, color: 'text-gray-600' },
+  webhook_unknown: { label: 'Webhook: לא ידוע', icon: CircleAlert, color: 'text-slate-600' },
 };
 
 const getEventTypeInfo = (eventType: string) => {
@@ -50,7 +53,7 @@ const getEventTypeInfo = (eventType: string) => {
     EVENT_TYPE_LABELS[eventType] || {
       label: eventType,
       icon: FileText,
-      color: 'text-gray-600',
+      color: 'text-slate-600',
     }
   );
 };
@@ -107,55 +110,48 @@ export default function BillingManagementClient() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-green-600" />
-            ניהול גבייה
-          </h1>
-          <p className="text-gray-600 mt-1">מעקב אחר אירועי חיוב ותשלומים</p>
-        </div>
-        <Button onClick={loadEvents} disabled={loading} variant="outline">
-          <RefreshCw className={`w-4 h-4 ml-2 ${loading ? 'animate-spin' : ''}`} />
-          רענן
-        </Button>
-      </div>
+      <AdminPageHeader title="ניהול גבייה" subtitle="מעקב אחר אירועי חיוב ותשלומים" icon={DollarSign} />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <p className="text-sm text-gray-600 mb-1">סה״כ אירועים</p>
-          <p className="text-2xl font-black text-gray-900">{events.length}</p>
+      <AdminToolbar
+        actions={
+          <Button onClick={loadEvents} disabled={loading} variant="outline">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            רענן
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+          <div className="text-xs font-black text-slate-500">סה״כ אירועים</div>
+          <div className="text-2xl font-black text-slate-900 mt-1">{events.length}</div>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
-          <p className="text-sm text-gray-600 mb-1">תשלומים הצליחו</p>
-          <p className="text-2xl font-black text-green-700">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4">
+          <div className="text-xs font-black text-slate-500">תשלומים הצליחו</div>
+          <div className="text-2xl font-black text-green-700 mt-1">
             {events.filter((e) => e.eventType === 'payment_successful').length}
-          </p>
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl p-4">
-          <p className="text-sm text-gray-600 mb-1">תשלומים נכשלו</p>
-          <p className="text-2xl font-black text-red-700">
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-2xl p-4">
+          <div className="text-xs font-black text-slate-500">תשלומים נכשלו</div>
+          <div className="text-2xl font-black text-red-700 mt-1">
             {events.filter((e) => e.eventType === 'payment_failed').length}
-          </p>
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-slate-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm text-gray-600 mb-1">Webhooks</p>
-          <p className="text-2xl font-black text-blue-700">
+        <div className="bg-gradient-to-br from-blue-50 to-slate-50 border border-blue-200 rounded-2xl p-4">
+          <div className="text-xs font-black text-slate-500">Webhooks</div>
+          <div className="text-2xl font-black text-blue-700 mt-1">
             {events.filter((e) => e.eventType.startsWith('webhook_')).length}
-          </p>
+          </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Search */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">חיפוש</label>
+            <label className="block text-xs font-black text-slate-600 mb-2">חיפוש</label>
             <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 type="text"
                 placeholder="חפש לפי ארגון, סוג אירוע, או ID..."
@@ -165,45 +161,41 @@ export default function BillingManagementClient() {
               />
             </div>
           </div>
-
-          {/* Filter by Type */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">סנן לפי סוג</label>
-            <select
+            <label className="block text-xs font-black text-slate-600 mb-2">סנן לפי סוג</label>
+            <CustomSelect
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">כל האירועים ({events.length})</option>
-              {uniqueEventTypes.map((type) => (
-                <option key={type} value={type}>
-                  {getEventTypeInfo(type).label} ({events.filter((e) => e.eventType === type).length})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFilterType(val)}
+              options={[
+                { value: 'all', label: `כל האירועים (${events.length})` },
+                ...uniqueEventTypes.map((type) => ({
+                  value: type,
+                  label: `${getEventTypeInfo(type).label} (${events.filter((e) => e.eventType === type).length})`,
+                })),
+              ]}
+            />
           </div>
         </div>
       </div>
 
-      {/* Events List */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="font-black text-gray-900">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
+          <div className="text-sm font-black text-slate-900">
             אירועים אחרונים ({filteredEvents.length})
-          </h3>
+          </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-12">
-            <CircleAlert className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">לא נמצאו אירועים</p>
+            <CircleAlert className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm font-bold text-slate-600">לא נמצאו אירועים</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-slate-100">
             <AnimatePresence>
               {filteredEvents.map((event) => {
                 const eventInfo = getEventTypeInfo(event.eventType);
@@ -215,49 +207,46 @@ export default function BillingManagementClient() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="p-4 hover:bg-gray-50 transition-colors"
+                    className="p-4 hover:bg-slate-50 transition-colors"
                   >
                     <div className="flex items-start gap-4">
                       {/* Icon */}
                       <div className="shrink-0 mt-1">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center">
                           <Icon className={`w-5 h-5 ${eventInfo.color}`} />
                         </div>
                       </div>
 
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4 mb-2">
                           <div>
-                            <p className="font-bold text-gray-900">{eventInfo.label}</p>
+                            <p className="font-bold text-slate-900">{eventInfo.label}</p>
                             {event.organizationName && (
-                              <p className="text-sm text-gray-600">{event.organizationName}</p>
+                              <p className="text-sm text-slate-600">{event.organizationName}</p>
                             )}
                           </div>
                           {event.amount > 0 && (
                             <div className="text-left shrink-0">
-                              <p className="text-lg font-black text-gray-900">
+                              <p className="text-lg font-black text-slate-900">
                                 ₪{event.amount.toFixed(0)}
                               </p>
-                              <p className="text-xs text-gray-500">{event.currency}</p>
+                              <p className="text-xs text-slate-500">{event.currency}</p>
                             </div>
                           )}
                         </div>
 
-                        {/* Metadata */}
                         {event.metadata && typeof event.metadata === 'object' ? (
                           <details className="mt-2">
-                            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                            <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-700">
                               פרטים נוספים
                             </summary>
-                            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto">
+                            <pre className="mt-2 p-2 bg-slate-50 rounded-xl text-xs overflow-x-auto border border-slate-200">
                               {JSON.stringify(event.metadata, null, 2)}
                             </pre>
                           </details>
                         ) : null}
 
-                        {/* Footer */}
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5" />
                             {new Date(event.createdAt).toLocaleString('he-IL')}

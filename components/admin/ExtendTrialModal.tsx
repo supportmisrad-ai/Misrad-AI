@@ -114,14 +114,14 @@ export default function ExtendTrialModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Clock className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">הארכת תקופת ניסיון</h2>
-              <p className="text-sm text-gray-500">{organizationName}</p>
+              <h2 className="text-xl font-bold text-slate-900">הארכת תקופת ניסיון</h2>
+              <p className="text-sm text-slate-500">{organizationName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
@@ -132,17 +132,17 @@ export default function ExtendTrialModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Current Trial Info */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">מצב ניסיון נוכחי</h3>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <h3 className="font-semibold text-slate-900 mb-3">מצב ניסיון נוכחי</h3>
             
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-700">תאריך התחלה:</span>
+                <span className="text-slate-700">תאריך התחלה:</span>
                 <span className="font-medium">{formatDate(currentTrial.trial_start_date)}</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-700">ימי ניסיון בסיס:</span>
+                <span className="text-slate-700">ימי ניסיון בסיס:</span>
                 <span className="font-medium">{baseDays} ימים</span>
               </div>
               
@@ -153,13 +153,13 @@ export default function ExtendTrialModal({
                 </div>
               )}
               
-              <div className="flex justify-between border-t border-gray-300 pt-2 mt-2">
-                <span className="font-semibold text-gray-900">סה״כ ימים:</span>
+              <div className="flex justify-between border-t border-slate-300 pt-2 mt-2">
+                <span className="font-semibold text-slate-900">סה״כ ימים:</span>
                 <span className="font-bold">{totalCurrentDays} ימים</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-gray-700">תאריך סיום נוכחי:</span>
+                <span className="text-slate-700">תאריך סיום נוכחי:</span>
                 <span className="font-medium">{formatDate(currentTrial.trial_end_date)}</span>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function ExtendTrialModal({
 
           {/* Extension Input */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               הארכה חדשה
             </div>
             
@@ -183,7 +183,7 @@ export default function ExtendTrialModal({
                 disabled={isPending}
                 className="mt-1"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 כמה ימי ניסיון להוסיף (1-365)
               </p>
             </div>
@@ -216,9 +216,9 @@ export default function ExtendTrialModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 disabled={isPending}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 תיעוד פנימי למעקב
               </p>
             </div>
@@ -233,12 +233,12 @@ export default function ExtendTrialModal({
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-700">הארכה:</span>
+                    <span className="text-slate-700">הארכה:</span>
                     <span className="font-medium text-purple-600">+{additionalDays} ימים</span>
                   </div>
                   
                   <div className="flex justify-between border-t border-purple-300 pt-2 mt-2">
-                    <span className="font-semibold text-gray-900">סה״כ ימי ניסיון:</span>
+                    <span className="font-semibold text-slate-900">סה״כ ימי ניסיון:</span>
                     <span className="font-bold text-purple-900">{newTotalDays} ימים</span>
                   </div>
                   

@@ -134,14 +134,14 @@ export default function ManageBillingModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="relative w-full max-w-3xl bg-white rounded-lg shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <DollarSign className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">ניהול חיובים</h2>
-              <p className="text-sm text-gray-500">{organizationName}</p>
+              <h2 className="text-xl font-bold text-slate-900">ניהול חיובים</h2>
+              <p className="text-sm text-slate-500">{organizationName}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleClose} disabled={isPending}>
@@ -153,7 +153,7 @@ export default function ManageBillingModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Subscription Plan */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               חבילת מנוי
             </div>
             
@@ -197,7 +197,7 @@ export default function ManageBillingModal({
               />
               {currentBilling.active_users_count != null && (
                 <div className="mt-2">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-slate-600">
                     בשימוש כרגע: <span className="font-semibold">{currentBilling.active_users_count}</span> משתמשים
                   </p>
                   {currentBilling.active_users_count > seatsAllowed && (
@@ -212,7 +212,7 @@ export default function ManageBillingModal({
                   )}
                 </div>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 כמה משתמשים יכולים לגשת למערכת
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function ManageBillingModal({
 
           {/* Billing Contact */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-gray-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
               פרטי חיוב
             </div>
             
@@ -236,7 +236,7 @@ export default function ManageBillingModal({
                   disabled={isPending}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   כתובת המייל לקבלת חשבוניות
                 </p>
               </div>
@@ -252,7 +252,7 @@ export default function ManageBillingModal({
                   disabled={isPending}
                   className="mt-1"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   מזהה אמצעי תשלום (Stripe/Gateway)
                 </p>
               </div>
@@ -264,17 +264,17 @@ export default function ManageBillingModal({
             <h3 className="font-semibold text-blue-900 mb-3">סיכום מחירים</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-700">חבילה:</span>
+                <span className="text-slate-700">חבילה:</span>
                 <span className="font-medium">
                   {subscriptionPlan ? PLANS.find(p => p.value === subscriptionPlan)?.label : 'לא נבחר'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">מקומות:</span>
+                <span className="text-slate-700">מקומות:</span>
                 <span className="font-medium">{seatsAllowed} משתמשים</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">מחזור:</span>
+                <span className="text-slate-700">מחזור:</span>
                 <span className="font-medium">
                   {billingCycle === 'monthly' ? 'חודשי' : 'שנתי'}
                   {billingCycle === 'yearly' && <span className="text-green-600 mr-2">(חסכון 15%)</span>}
@@ -282,11 +282,11 @@ export default function ManageBillingModal({
               </div>
               <div className="border-t border-blue-300 pt-2 mt-2">
                 <div className="flex justify-between text-base">
-                  <span className="font-semibold text-gray-900">MRR (חודשי):</span>
+                  <span className="font-semibold text-slate-900">MRR (חודשי):</span>
                   <span className="font-bold text-blue-900">₪{estimatedMRR.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-base mt-1">
-                  <span className="font-semibold text-gray-900">ARR (שנתי):</span>
+                  <span className="font-semibold text-slate-900">ARR (שנתי):</span>
                   <span className="font-bold text-blue-900">₪{estimatedARR.toFixed(2)}</span>
                 </div>
               </div>
@@ -295,15 +295,15 @@ export default function ManageBillingModal({
 
           {/* Current vs New */}
           {currentBilling.mrr && currentBilling.mrr > 0 && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">השוואה</h4>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <h4 className="font-semibold text-slate-900 mb-2">השוואה</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-600">MRR נוכחי:</p>
+                  <p className="text-slate-600">MRR נוכחי:</p>
                   <p className="font-medium">₪{Number(currentBilling.mrr).toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">MRR חדש:</p>
+                  <p className="text-slate-600">MRR חדש:</p>
                   <p className="font-medium text-blue-600">₪{estimatedMRR.toFixed(2)}</p>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function ManageBillingModal({
 
           {/* Next Billing */}
           {currentBilling.next_billing_date && (
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-slate-600">
               <strong>חיוב הבא:</strong>{' '}
               {new Date(currentBilling.next_billing_date).toLocaleDateString('he-IL')}
             </div>

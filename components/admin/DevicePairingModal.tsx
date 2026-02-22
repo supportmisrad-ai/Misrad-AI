@@ -63,28 +63,28 @@ export default function DevicePairingModal(props: {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-bold text-base md:text-lg mb-2">צמד מכשיר</h3>
-            <p className="text-xs text-gray-500 mb-4">בטאבלט פתחו /kiosk-login והזינו כאן את הקוד.</p>
+            <p className="text-xs text-slate-500 mb-4">בטאבלט פתחו /kiosk-login והזינו כאן את הקוד.</p>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">קוד</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">קוד</label>
                 <input
                   value={pairingCode}
                   onChange={(e) => setPairingCode(e.target.value)}
                   placeholder="ABC-123"
-                  className="w-full p-2.5 md:p-3 border border-gray-200 rounded-xl outline-none transition-all focus:border-black dir-ltr text-left text-sm"
+                  className="w-full p-2.5 md:p-3 border border-slate-200 rounded-xl outline-none transition-all focus:border-black dir-ltr text-left text-sm"
                 />
               </div>
 
               <div className="relative z-20">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">עובד</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">עובד</label>
                 <CustomSelect
                   value={pairingUserId}
                   onChange={(val) => setPairingUserId(String(val || ''))}
                   options={props.users.map((u) => ({
                     value: u.id,
                     label: `${u.name}${u.role ? ` (${u.role})` : ''}`,
-                    icon: <Users size={14} className="text-gray-400" />,
+                    icon: <Users size={14} className="text-slate-400" />,
                   }))}
                   placeholder="בחר עובד"
                   className="w-full"
@@ -92,17 +92,17 @@ export default function DevicePairingModal(props: {
               </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
               <button
                 onClick={props.onClose}
-                className="px-4 py-2.5 text-gray-500 hover:bg-gray-100 rounded-lg text-sm font-bold w-full sm:w-auto"
+                className="px-4 py-2.5 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold w-full sm:w-auto"
                 disabled={isSubmitting}
               >
                 ביטול
               </button>
               <button
                 onClick={handleApprove}
-                className="px-4 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 text-sm font-bold w-full sm:w-auto"
+                className="px-4 py-2.5 bg-black text-white rounded-lg hover:bg-slate-800 text-sm font-bold w-full sm:w-auto"
                 disabled={isSubmitting}
               >
                 אשר צימוד

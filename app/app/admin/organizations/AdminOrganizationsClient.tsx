@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useTransition } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building2, Copy, Plus, X, Check, Settings } from 'lucide-react';
@@ -334,18 +335,13 @@ export default function AdminOrganizationsClient(props: {
 
               <div>
                 <label className="block text-xs font-black text-slate-600 mb-2">קישור ללקוח עסקי (אופציונלי)</label>
-                <select
+                <CustomSelect
                   value={businessClientId}
-                  onChange={(e) => setBusinessClientId(e.target.value)}
+                  onChange={(val) => setBusinessClientId(val)}
                   disabled={isPending}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm text-right"
-                  dir="rtl"
-                >
-                  <option value="">— ללא קישור ללקוח עסקי —</option>
-                  {businessClients.map((bc) => (
-                    <option key={bc.id} value={bc.id}>{bc.company_name}</option>
-                  ))}
-                </select>
+                  placeholder="— ללא קישור ללקוח עסקי —"
+                  options={businessClients.map((bc) => ({ value: bc.id, label: bc.company_name }))}
+                />
               </div>
 
               <div>

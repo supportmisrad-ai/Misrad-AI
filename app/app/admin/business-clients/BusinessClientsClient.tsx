@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,8 +136,8 @@ export default function BusinessClientsClient() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">לקוחות עסקיים</h1>
-          <p className="text-sm text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">לקוחות עסקיים</h1>
+          <p className="text-sm text-slate-600">
             ניהול חברות וארגונים עסקיים (B2B)
           </p>
         </div>
@@ -147,10 +148,10 @@ export default function BusinessClientsClient() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
             <Input
               type="text"
               placeholder="חיפוש לפי שם חברה, מייל, ח.פ..."
@@ -161,20 +162,19 @@ export default function BusinessClientsClient() {
               dir="rtl"
             />
           </div>
-          <select
+          <CustomSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
+            onChange={(val) => {
+              setStatusFilter(val);
               setTimeout(loadClients, 100);
             }}
-            className="px-4 py-2.5 border border-gray-300 rounded-lg text-right h-11 bg-white font-medium text-sm"
-            dir="rtl"
-          >
-            <option value="">כל הסטטוסים</option>
-            <option value="active">פעיל</option>
-            <option value="inactive">לא פעיל</option>
-            <option value="suspended">מושעה</option>
-          </select>
+            placeholder="כל הסטטוסים"
+            options={[
+              { value: 'active', label: 'פעיל' },
+              { value: 'inactive', label: 'לא פעיל' },
+              { value: 'suspended', label: 'מושעה' },
+            ]}
+          />
           <Button onClick={handleSearch} variant="outline" className="h-11">
             <Filter className="w-4 h-4 ml-2" />
             חפש
@@ -184,11 +184,11 @@ export default function BusinessClientsClient() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">סה״כ לקוחות</p>
-              <p className="text-2xl sm:text-3xl font-black text-gray-900">{clients.length}</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">סה״כ לקוחות</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">{clients.length}</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-xl shrink-0">
               <Building2 className="w-6 h-6 text-blue-600" />
@@ -196,11 +196,11 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">אנשי קשר</p>
-              <p className="text-2xl sm:text-3xl font-black text-gray-900">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">אנשי קשר</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">
                 {clients.reduce((sum, c) => sum + c.contacts.length, 0)}
               </p>
             </div>
@@ -210,11 +210,11 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">ארגונים</p>
-              <p className="text-2xl sm:text-3xl font-black text-gray-900">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">ארגונים</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">
                 {clients.reduce((sum, c) => sum + c.organizations.length, 0)}
               </p>
             </div>
@@ -224,11 +224,11 @@ export default function BusinessClientsClient() {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">פעילים</p>
-              <p className="text-2xl sm:text-3xl font-black text-gray-900">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">פעילים</p>
+              <p className="text-2xl sm:text-3xl font-black text-slate-900">
                 {clients.filter((c) => c.status === 'active').length}
               </p>
             </div>
@@ -242,13 +242,13 @@ export default function BusinessClientsClient() {
       {/* Clients List */}
       <div className="space-y-4">
         {clients.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-12 text-center">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-12 text-center">
             <div className="max-w-sm mx-auto">
-              <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
-                <Building2 className="w-16 h-16 text-gray-400" />
+              <div className="p-4 bg-slate-50 rounded-full w-fit mx-auto mb-4">
+                <Building2 className="w-16 h-16 text-slate-400" />
               </div>
-              <h3 className="text-xl font-black text-gray-900 mb-2">אין לקוחות עסקיים</h3>
-              <p className="text-gray-600 mb-6">התחל על ידי יצירת לקוח עסקי ראשון</p>
+              <h3 className="text-xl font-black text-slate-900 mb-2">אין לקוחות עסקיים</h3>
+              <p className="text-slate-600 mb-6">התחל על ידי יצירת לקוח עסקי ראשון</p>
               <Button onClick={() => setIsAddClientModalOpen(true)} size="lg">
                 <Plus className="w-5 h-5 ml-2" />
                 הוסף לקוח עסקי
@@ -261,10 +261,10 @@ export default function BusinessClientsClient() {
             const primary = primaryContact(client);
 
             return (
-              <div key={client.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div key={client.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                 {/* Client Header */}
                 <div
-                  className="p-5 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-5 sm:p-6 cursor-pointer hover:bg-slate-50 transition-colors"
                   onClick={() => toggleExpand(client.id)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -273,15 +273,15 @@ export default function BusinessClientsClient() {
                         <div className="p-2 bg-blue-50 rounded-lg">
                           <Building2 className="w-6 h-6 text-blue-600" />
                         </div>
-                        <h3 className="text-xl font-black text-gray-900">{client.company_name}</h3>
+                        <h3 className="text-xl font-black text-slate-900">{client.company_name}</h3>
                         {client.company_name_en && (
-                          <span className="text-sm text-gray-500">({client.company_name_en})</span>
+                          <span className="text-sm text-slate-500">({client.company_name_en})</span>
                         )}
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${
                             client.status === 'active'
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
+                              : 'bg-slate-100 text-slate-800'
                           }`}
                         >
                           {client.status === 'active' ? 'פעיל' : 'לא פעיל'}
@@ -290,26 +290,26 @@ export default function BusinessClientsClient() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 text-sm">
                         {client.business_number && (
-                          <div className="flex items-center gap-2 text-gray-600">
+                          <div className="flex items-center gap-2 text-slate-600">
                             <span className="font-medium">ח.פ/עוסק:</span>
                             <span>{client.business_number}</span>
                           </div>
                         )}
                         {client.industry && (
-                          <div className="flex items-center gap-2 text-gray-600">
+                          <div className="flex items-center gap-2 text-slate-600">
                             <span className="font-medium">תחום:</span>
                             <span>{client.industry}</span>
                           </div>
                         )}
                         {client.company_size && (
-                          <div className="flex items-center gap-2 text-gray-600">
+                          <div className="flex items-center gap-2 text-slate-600">
                             <span className="font-medium">גודל:</span>
                             <span>{client.company_size} עובדים</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500">
+                      <div className="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-3 text-xs sm:text-sm text-slate-500">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4" />
                           <span>{client.contacts.length} אנשי קשר</span>
@@ -376,15 +376,15 @@ export default function BusinessClientsClient() {
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 p-4 sm:p-6 bg-gray-50">
+                  <div className="border-t border-slate-200 p-4 sm:p-6 bg-slate-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                       {/* Contact Info */}
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">פרטי התקשרות</h4>
+                        <h4 className="font-semibold text-slate-900 mb-3">פרטי התקשרות</h4>
                         <div className="space-y-2 text-sm">
                           {client.primary_email && (
                             <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-gray-400" />
+                              <Mail className="w-4 h-4 text-slate-400" />
                               <a href={`mailto:${client.primary_email}`} className="text-blue-600 hover:underline">
                                 {client.primary_email}
                               </a>
@@ -392,13 +392,13 @@ export default function BusinessClientsClient() {
                           )}
                           {client.phone && (
                             <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4 text-gray-400" />
+                              <Phone className="w-4 h-4 text-slate-400" />
                               <span>{client.phone}</span>
                             </div>
                           )}
                           {client.website && (
                             <div className="flex items-center gap-2">
-                              <Globe className="w-4 h-4 text-gray-400" />
+                              <Globe className="w-4 h-4 text-slate-400" />
                               <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                                 {client.website}
                               </a>
@@ -406,32 +406,32 @@ export default function BusinessClientsClient() {
                           )}
                           {client.address_city && (
                             <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-gray-400" />
+                              <MapPin className="w-4 h-4 text-slate-400" />
                               <span>{client.address_city}</span>
                             </div>
                           )}
                         </div>
 
                         {/* All Contacts List */}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <h5 className="font-medium text-gray-900 mb-2">אנשי קשר ({client.contacts.length})</h5>
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <h5 className="font-medium text-slate-900 mb-2">אנשי קשר ({client.contacts.length})</h5>
                           {client.contacts.length === 0 ? (
-                            <p className="text-sm text-gray-400">אין אנשי קשר</p>
+                            <p className="text-sm text-slate-400">אין אנשי קשר</p>
                           ) : (
                             <div className="space-y-2">
                               {client.contacts.map((contact: any) => (
-                                <div key={contact.user_id} className="flex items-center gap-2 p-2 bg-white border border-gray-100 rounded-lg">
-                                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                                    <Users className="w-4 h-4 text-gray-400" />
+                                <div key={contact.user_id} className="flex items-center gap-2 p-2 bg-white border border-slate-100 rounded-lg">
+                                  <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
+                                    <Users className="w-4 h-4 text-slate-400" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 truncate">{contact.user?.full_name || 'ללא שם'}</p>
-                                    <p className="text-xs text-gray-500 truncate">{contact.user?.email}</p>
+                                    <p className="text-sm font-medium text-slate-900 truncate">{contact.user?.full_name || 'ללא שם'}</p>
+                                    <p className="text-xs text-slate-500 truncate">{contact.user?.email}</p>
                                     <div className="flex gap-1 mt-0.5 flex-wrap">
                                       {contact.is_primary && <span className="px-1 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">ראשי</span>}
                                       {contact.is_billing_contact && <span className="px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">חיובים</span>}
                                       {contact.is_technical_contact && <span className="px-1 py-0.5 text-xs bg-purple-100 text-purple-700 rounded">טכני</span>}
-                                      {contact.title && <span className="text-xs text-gray-400">{contact.title}</span>}
+                                      {contact.title && <span className="text-xs text-slate-400">{contact.title}</span>}
                                     </div>
                                   </div>
                                   <div className="flex gap-1 shrink-0">
@@ -471,19 +471,19 @@ export default function BusinessClientsClient() {
 
                       {/* Organizations */}
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">ארגונים ({client.organizations.length})</h4>
+                        <h4 className="font-semibold text-slate-900 mb-3">ארגונים ({client.organizations.length})</h4>
                         {client.organizations.length === 0 ? (
-                          <p className="text-sm text-gray-500">אין ארגונים</p>
+                          <p className="text-sm text-slate-500">אין ארגונים</p>
                         ) : (
                           <div className="space-y-3">
                             {client.organizations.map((org: unknown) => {
                               const o = asObject(org) ?? {};
                               return (
-                              <div key={String(o.id || '')} className="bg-white border border-gray-200 rounded-lg p-4">
+                              <div key={String(o.id || '')} className="bg-white border border-slate-200 rounded-lg p-4">
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{String(o.name || '')}</p>
-                                    <p className="text-xs text-gray-500">{String(o.slug || '')}</p>
+                                    <p className="font-medium text-slate-900">{String(o.name || '')}</p>
+                                    <p className="text-xs text-slate-500">{String(o.slug || '')}</p>
                                     {Boolean(o.subscription_plan) && (
                                       <p className="text-xs text-blue-600 mt-1">
                                         {String(o.subscription_plan || '').toUpperCase()} • {Number(o.seats_allowed) || 5} מקומות
@@ -496,7 +496,7 @@ export default function BusinessClientsClient() {
                                         ? 'bg-green-100 text-green-800'
                                         : o.subscription_status === 'trial'
                                         ? 'bg-blue-100 text-blue-800'
-                                        : 'bg-gray-100 text-gray-800'
+                                        : 'bg-slate-100 text-slate-800'
                                     }`}
                                   >
                                     {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
@@ -667,9 +667,9 @@ export default function BusinessClientsClient() {
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">מחיקת לקוח עסקי</h3>
+              <h3 className="text-lg font-bold text-slate-900">מחיקת לקוח עסקי</h3>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-slate-600 mb-6">
               האם אתה בטוח שברצונך למחוק לקוח זה? הפעולה ניתנת לביטול על ידי תמיכה.
             </p>
             <div className="flex gap-3">
