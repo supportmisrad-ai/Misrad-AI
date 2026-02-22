@@ -1,21 +1,107 @@
 'use client';
 
-import React from 'react';
-import { BarChart3, Clock, Users, ShieldAlert } from 'lucide-react';
+import React, { useMemo, useCallback } from 'react';
+import { BarChart3, Clock, Users, ShieldAlert, ChevronRight, ChevronLeft, Download } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 import type { FinanceExpensesData, FinanceExpensesUserRow } from '@/lib/services/finance-service';
+
+const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+
+function exportExpensesCSV(expenses: FinanceExpensesData) {
+  const BOM = '\uFEFF';
+  const header = ['עובד', 'שעות', 'כניסות', 'עלות מוערכת'];
+  const rows = expenses.users.map((u) => [
+    String(u.user?.name || '—'),
+    Number(u.totalHours || 0).toFixed(1),
+    String(Number(u.entriesCount || 0)),
+    String(Math.round(Number(u.estimatedCost || 0))),
+  ]);
+  rows.push(['', '', '', '']);
+  rows.push(['עלות עבודה', '', '', String(Math.round(expenses.totalLaborCost || 0))]);
+  rows.push(['הוצאות ישירות', '', '', String(Math.round(expenses.totalDirectExpenses || 0))]);
+  rows.push(['סה״כ', '', '', String(Math.round(expenses.totalExpenses || 0))]);
+  const csv = BOM + [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function formatCurrency(value: number): string {
   return `₪${Math.round(value).toLocaleString('he-IL')}`;
 }
 
-export default function FinanceExpensesClient(props: { expenses: FinanceExpensesData | null }) {
+export default function FinanceExpensesClient(props: { expenses: FinanceExpensesData | null; initialFrom?: string; initialTo?: string }) {
   const expenses = props.expenses;
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const currentFrom = useMemo(() => {
+    if (props.initialFrom) return new Date(props.initialFrom);
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  }, [props.initialFrom]);
+
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return currentFrom.getFullYear() === now.getFullYear() && currentFrom.getMonth() === now.getMonth();
+  }, [currentFrom]);
+
+  const navigateMonth = useCallback((delta: number) => {
+    const d = new Date(currentFrom.getFullYear(), currentFrom.getMonth() + delta, 1);
+    const end = delta > 0 && d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear()
+      ? new Date()
+      : new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    router.push(`${pathname}?from=${d.toISOString().split('T')[0]}&to=${end.toISOString().split('T')[0]}`);
+  }, [currentFrom, pathname, router]);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900">הוצאות</h2>
-        <p className="text-sm font-bold text-slate-500 mt-1">עלות עבודה והוצאות ישירות של הארגון</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900">הוצאות</h2>
+          <p className="text-xs font-bold text-slate-500 mt-1">
+            {MONTH_NAMES_HE[currentFrom.getMonth()]} {currentFrom.getFullYear()} · עלות עבודה והוצאות ישירות
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {expenses && expenses.users.length > 0 && (
+            <button
+              onClick={() => exportExpensesCSV(expenses)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-50 transition-colors"
+            >
+              <Download size={14} />
+              ייצוא CSV
+            </button>
+          )}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigateMonth(-1)}
+              className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 text-slate-500 hover:text-slate-900 transition-all"
+              title="חודש קודם"
+            >
+              <ChevronRight size={18} />
+            </button>
+            <button
+              onClick={() => navigateMonth(1)}
+              disabled={isCurrentMonth}
+              className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 text-slate-500 hover:text-slate-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              title="חודש הבא"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            {!isCurrentMonth && (
+              <button
+                onClick={() => router.push(pathname)}
+                className="mr-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black hover:bg-emerald-100 transition-colors"
+              >
+                החודש הנוכחי
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {!expenses ? (

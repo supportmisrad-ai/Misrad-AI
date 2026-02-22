@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { TrendingUp, DollarSign, FileText, CircleAlert, Wallet, Users, BarChart3 } from 'lucide-react';
+import React, { useMemo, useCallback } from 'react';
+import { TrendingUp, DollarSign, FileText, CircleAlert, Wallet, Users, BarChart3, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 
 type ChartPoint = {
   date: string;
@@ -33,7 +34,11 @@ function formatCurrency(value: number): string {
   return `₪${Math.round(value).toLocaleString('he-IL')}`;
 }
 
-const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialFinanceOverview }) => {
+const MONTH_NAMES_HE = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+
+const OverviewView: React.FC<{ initialFinanceOverview?: unknown; initialFrom?: string; initialTo?: string }> = ({ initialFinanceOverview, initialFrom, initialTo }) => {
+  const router = useRouter();
+  const pathname = usePathname();
   const data = initialFinanceOverview as OverviewData | null | undefined;
   const totalRevenue = Number(data?.totalRevenue || 0);
   const totalCost = Number(data?.totalCost || 0);
@@ -44,6 +49,24 @@ const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialF
   const users = Array.isArray(data?.users) ? data.users : [];
 
   const hasData = totalRevenue > 0 || totalCost > 0 || chart.length > 0 || users.length > 0;
+
+  const currentFrom = useMemo(() => {
+    if (initialFrom) return new Date(initialFrom);
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  }, [initialFrom]);
+
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return currentFrom.getFullYear() === now.getFullYear() && currentFrom.getMonth() === now.getMonth();
+  }, [currentFrom]);
+
+  const navigateMonth = useCallback((delta: number) => {
+    const d = new Date(currentFrom.getFullYear(), currentFrom.getMonth() + delta, 1);
+    const end = delta > 0 && d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear()
+      ? new Date()
+      : new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    router.push(`${pathname}?from=${d.toISOString().split('T')[0]}&to=${end.toISOString().split('T')[0]}`);
+  }, [currentFrom, pathname, router]);
 
   const chartMax = useMemo(() => {
     if (!chart.length) return 1;
@@ -56,6 +79,41 @@ const OverviewView: React.FC<{ initialFinanceOverview?: unknown }> = ({ initialF
 
   return (
     <div className="space-y-6">
+      {/* Month Picker */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900">סקירה כספית</h2>
+          <p className="text-xs font-bold text-slate-500 mt-1">
+            {MONTH_NAMES_HE[currentFrom.getMonth()]} {currentFrom.getFullYear()}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigateMonth(-1)}
+            className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 text-slate-500 hover:text-slate-900 transition-all"
+            title="חודש קודם"
+          >
+            <ChevronRight size={18} />
+          </button>
+          <button
+            onClick={() => navigateMonth(1)}
+            disabled={isCurrentMonth}
+            className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 text-slate-500 hover:text-slate-900 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            title="חודש הבא"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          {!isCurrentMonth && (
+            <button
+              onClick={() => router.push(pathname)}
+              className="mr-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black hover:bg-emerald-100 transition-colors"
+            >
+              החודש הנוכחי
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
