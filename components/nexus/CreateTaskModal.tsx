@@ -133,6 +133,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     const [dueTimeError, setDueTimeError] = useState('');
     const titleInputRef = useRef<HTMLInputElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
+
+    const enableAiTimeEstimate = false;
     const tagInputRef = useRef<HTMLInputElement>(null);
     const tagDropdownRef = useRef<HTMLDivElement>(null);
     const clientButtonRef = useRef<HTMLButtonElement>(null);
@@ -841,23 +843,25 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                             {manualHours || manualMinutes ? `${manualHours || 0}:${(manualMinutes || '0').padStart(2, '0')}` : 'הערכת זמן'}
                                         </span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleAiEstimate}
-                                        disabled={aiEstimating}
-                                        title={!description.trim() ? 'יש להזין תיאור משימה קודם' : 'הערכת זמן בעזרת AI'}
-                                        className={`h-12 w-12 flex items-center justify-center rounded-2xl border-2 transition-all ${
-                                            aiEstimating
-                                            ? 'bg-purple-50 border-purple-300 text-purple-500'
-                                            : 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 text-purple-600 hover:border-purple-400 hover:shadow-md hover:shadow-purple-100'
-                                        }`}
-                                    >
-                                        {aiEstimating ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
-                                    </button>
+                                    {enableAiTimeEstimate && (
+                                        <button
+                                            type="button"
+                                            onClick={handleAiEstimate}
+                                            disabled={aiEstimating}
+                                            title={!description.trim() ? 'יש להזין תיאור משימה קודם' : 'הערכת זמן בעזרת AI'}
+                                            className={`h-12 w-12 flex items-center justify-center rounded-2xl border-2 transition-all ${
+                                                aiEstimating
+                                                ? 'bg-purple-50 border-purple-300 text-purple-500'
+                                                : 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200 text-purple-600 hover:border-purple-400 hover:shadow-md hover:shadow-purple-100'
+                                            }`}
+                                        >
+                                            {aiEstimating ? <Loader2 size={18} className="animate-spin" /> : <Wand2 size={18} />}
+                                        </button>
+                                    )}
                                 </div>
                                 {/* AI Estimate Result Popover */}
                                 <AnimatePresence>
-                                    {aiEstimateResult && (
+                                    {enableAiTimeEstimate && aiEstimateResult && (
                                         <motion.div
                                             initial={{ opacity: 0, y: -6, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
