@@ -358,7 +358,7 @@ export const TimeClockView: React.FC = () => {
                                 return (
                                     <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4 flex items-center gap-3 font-bold text-gray-900">
-                                            <img src={user?.avatar} className="w-8 h-8 rounded-full border border-gray-100" />
+                                            <img src={user?.avatar} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
                                             {user?.name}
                                         </td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">

@@ -284,7 +284,7 @@ export const RequestsTab: React.FC = () => {
                                         <>
                                             <div className="w-px h-3 bg-gray-200"></div>
                                             <div className="flex items-center gap-1.5 text-gray-600 font-medium bg-gray-50 px-2 py-1 rounded-md">
-                                                <img src={creator.avatar} alt={creator.name} className="w-4 h-4 rounded-full" />
+                                                <img src={creator.avatar} alt={creator.name} className="w-4 h-4 rounded-full object-cover" />
                                                 {creator.name}
                                             </div>
                                         </>

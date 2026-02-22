@@ -201,7 +201,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                                     <div className="flex-shrink-0 mt-1">
                                         {notification.type === 'mention' ? (
                                             notification.actorAvatar ? (
-                                                <img src={notification.actorAvatar} className="w-8 h-8 rounded-full border border-white shadow-sm" />
+                                                <img src={notification.actorAvatar} className="w-8 h-8 rounded-full object-cover border border-white shadow-sm" />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center border border-white shadow-sm">
                                                     <User size={14} />

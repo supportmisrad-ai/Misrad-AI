@@ -141,7 +141,7 @@ export const SalesTargets: React.FC = () => {
                                 
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="relative">
-                                        <img src={user.avatar} className="w-14 h-14 rounded-full border-2 border-slate-700" />
+                                        <img src={user.avatar} className="w-14 h-14 rounded-full object-cover border-2 border-slate-700" />
                                         {user.role.includes('מנכ') && <div className="absolute -top-1 -right-1 bg-slate-900 rounded-full p-0.5"><Crown size={14} className="text-yellow-500 fill-yellow-500" /></div>}
                                     </div>
                                     <div>

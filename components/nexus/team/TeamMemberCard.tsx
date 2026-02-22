@@ -48,7 +48,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             <div className="p-4 md:p-5 flex items-start justify-between border-b border-gray-50 relative">
                 <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                     <div className="relative shrink-0">
-                        <img src={user.avatar} alt={user.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-100" />
+                        <img src={user.avatar} alt={user.name} className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-gray-100" />
                         <div className={`absolute -bottom-0.5 -right-0.5 md:-bottom-1 md:-right-1 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-white flex items-center justify-center ${user.online ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         
                         {/* Gamification Badge: Fire Streak */}

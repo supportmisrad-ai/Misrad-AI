@@ -1233,7 +1233,7 @@ export const TasksView: React.FC = () => {
                                     <div className="p-4 flex items-center justify-between shrink-0">
                                         <div className="flex items-center gap-2">
                                             {col.avatar ? (
-                                                <img src={col.avatar} className="w-6 h-6 rounded-full border border-white shadow-sm" />
+                                                <img src={col.avatar} className="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
                                             ) : (
                                                 <div className={`w-2 h-2 rounded-full ${'color' in col && typeof col.color === 'string' && col.color.includes('bg-') ? col.color.split(' ')[0] : 'bg-gray-400'}`}></div>
                                             )}

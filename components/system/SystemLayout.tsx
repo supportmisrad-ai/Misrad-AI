@@ -84,7 +84,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
             {/* User Profile */}
             <div className="mt-auto border-t border-slate-800 pt-4 px-2">
                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full border border-slate-700" suppressHydrationWarning />
+                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-700" suppressHydrationWarning />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate" suppressHydrationWarning>{currentUser.name}</p>
                         <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>
@@ -187,7 +187,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                             </nav>
                             <div className="border-t border-slate-800 p-4 space-y-3">
                                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full border border-slate-700" />
+                                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-700" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
                                         <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>

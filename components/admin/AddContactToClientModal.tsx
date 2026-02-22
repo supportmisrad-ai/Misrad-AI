@@ -193,7 +193,7 @@ export default function AddContactToClientModal({
                     }`}
                   >
                     {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                      <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                         <UserPlus className="w-5 h-5 text-gray-400" />
@@ -226,7 +226,7 @@ export default function AddContactToClientModal({
               <p className="text-sm font-medium text-blue-900 mb-2">משתמש נבחר:</p>
               <div className="flex items-center gap-3">
                 {selectedUser.avatar_url ? (
-                  <img src={selectedUser.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                  <img src={selectedUser.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center">
                     <UserPlus className="w-5 h-5 text-blue-600" />

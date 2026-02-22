@@ -148,7 +148,7 @@ export const TaskCompletionModal: React.FC = () => {
                                     return (
                                         <div key={userId} className="flex items-center justify-between gap-3 bg-white p-2 rounded-lg border border-gray-200">
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <img src={user?.avatar} className="w-8 h-8 rounded-full border border-gray-100" />
+                                                <img src={user?.avatar} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
                                                 <span className="text-sm font-bold text-gray-700 truncate">{user?.name}</span>
                                             </div>
                                             <div className="flex items-center gap-2">

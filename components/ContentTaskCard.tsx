@@ -76,7 +76,7 @@ export const ContentTaskCard: React.FC<ContentTaskCardProps> = ({ task, users, o
                 <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between text-xs text-gray-500">
                     <div className="flex items-center gap-2">
                         {assignedUser ? (
-                            <img src={assignedUser.avatar} className="w-5 h-5 rounded-full border border-gray-200" title={assignedUser.name} />
+                            <img src={assignedUser.avatar} className="w-5 h-5 rounded-full object-cover border border-gray-200" title={assignedUser.name} />
                         ) : (
                             <div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200" />
                         )}

@@ -291,7 +291,7 @@ export const DepartmentsTab: React.FC = () => {
                                             <span className="text-xs font-bold text-gray-600 uppercase">מנהל מחלקה:</span>
                                             {deptManager ? (
                                                 <div className="flex items-center gap-2">
-                                                    <img src={deptManager.avatar} alt={deptManager.name} className="w-5 h-5 rounded-full" />
+                                                    <img src={deptManager.avatar} alt={deptManager.name} className="w-5 h-5 rounded-full object-cover" />
                                                     <span className="text-sm font-bold text-gray-900">{deptManager.name}</span>
                                                     <span className="text-xs text-gray-500">({deptManager.role})</span>
                                                 </div>
@@ -398,7 +398,7 @@ const DepartmentManagerSelect: React.FC<DepartmentManagerSelectProps> = ({ depar
                                     }}
                                     className="w-full text-right px-3 py-2 text-xs font-bold text-gray-900 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-2"
                                 >
-                                    <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full" />
+                                    <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full object-cover" />
                                     <span>{user.name}</span>
                                     {user.managedDepartment && user.managedDepartment !== department && (
                                         <span className="text-[10px] text-orange-500">(מנהל מחלקה אחרת)</span>
@@ -709,7 +709,7 @@ export const AuditTab: React.FC = () => {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
                                         {log.actorAvatar ? (
-                                            <img src={log.actorAvatar} className="w-6 h-6 rounded-full border border-gray-100" />
+                                            <img src={log.actorAvatar} className="w-6 h-6 rounded-full object-cover border border-gray-100" />
                                         ) : (
                                             <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">S</div>
                                         )}
@@ -750,7 +750,7 @@ export const AuditTab: React.FC = () => {
                             <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
                                     {log.actorAvatar ? (
-                                        <img src={log.actorAvatar} className="w-8 h-8 rounded-full border border-gray-100 shrink-0" />
+                                        <img src={log.actorAvatar} className="w-8 h-8 rounded-full object-cover border border-gray-100 shrink-0" />
                                     ) : (
                                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">S</div>
                                     )}
