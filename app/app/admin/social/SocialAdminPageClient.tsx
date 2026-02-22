@@ -139,14 +139,14 @@ export default function SocialAdminPageClient() {
         filters={
           showTenantSelector ? (
             <div className="w-full sm:w-[320px]">
-              <label className="block text-xs font-black text-slate-600 mb-2">בחר חשבון SaaS</label>
+              <label className="block text-xs font-black text-slate-600 mb-2">בחר משתמש</label>
               <select
                 value={selectedTenantId}
                 onChange={(e) => setSelectedTenantId(e.target.value)}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200/60"
               >
                 {tenantOptions.length === 0 ? (
-                  <option value="">אין חשבונות SaaS</option>
+                  <option value="">אין משתמשים</option>
                 ) : (
                   tenantOptions.map((t) => (
                     <option key={t.id} value={String(t.id)}>

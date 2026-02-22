@@ -126,8 +126,6 @@ export async function getLiveKPIs(): Promise<{
     const errors: unknown[] = [];
     const securityAlerts: unknown[] = [];
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse({
       usersRegisteredToday,
       usersRegisteredThisWeek,
@@ -732,7 +730,6 @@ export async function getFeatureFlags(): Promise<{
       });
     }
     // If table doesn't exist, return defaults
-    revalidatePath('/', 'layout');
     return createSuccessResponse({
       maintenanceMode: false,
       aiEnabled: true,

@@ -62,12 +62,13 @@ function isSalesPathname(pathname: string): boolean {
   if (p === '/sign-up' || p.startsWith('/sign-up/')) return false;
   if (p === '/sign-out' || p.startsWith('/sign-out/')) return false;
   if (p === '/reset-password' || p.startsWith('/reset-password/')) return false;
+  if (p === '/shabbat' || p.startsWith('/shabbat/')) return false;
   return true;
 }
 
 function shouldLoadWidgets(pathname: string): boolean {
   const p = String(pathname || '/').toLowerCase();
-  // Load widgets on all pages except auth/admin pages
+  // Load widgets on all pages except auth/admin/shabbat pages
   if (p.startsWith('/w/')) return false; // workspace pages
   if (p === '/admin' || p.startsWith('/admin/')) return false;
   if (p === '/app/admin' || p.startsWith('/app/admin/')) return false;
@@ -77,6 +78,7 @@ function shouldLoadWidgets(pathname: string): boolean {
   if (p === '/sign-up' || p.startsWith('/sign-up/')) return false;
   if (p === '/sign-out' || p.startsWith('/sign-out/')) return false;
   if (p === '/reset-password' || p.startsWith('/reset-password/')) return false;
+  if (p === '/shabbat' || p.startsWith('/shabbat/')) return false;
   return true;
 }
 

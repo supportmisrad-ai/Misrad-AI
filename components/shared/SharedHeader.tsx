@@ -143,10 +143,9 @@ export function SharedHeader({
         {notificationsSlot ?? (
           <button
             id="notification-trigger"
-            disabled
-            className="relative w-10 h-10 inline-flex items-center justify-center rounded-full text-gray-400 opacity-70 cursor-not-allowed"
+            className="relative w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
             aria-label="התראות"
-            title="אין התראות"
+            title="התראות"
             type="button"
           >
             <Bell size={18} />

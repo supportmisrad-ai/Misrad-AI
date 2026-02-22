@@ -295,7 +295,7 @@ export default function PlatformDashboardClient() {
           </a>
 
           <a 
-            href="/app/admin/settings"
+            href="/app/admin/global/feature-flags"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
             <Server className="w-5 h-5 text-purple-600" />
@@ -306,7 +306,7 @@ export default function PlatformDashboardClient() {
           </a>
 
           <a 
-            href="/app/admin/monitoring"
+            href="/app/admin/global/control"
             className="flex items-center gap-3 p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
           >
             <Zap className="w-5 h-5 text-yellow-600" />

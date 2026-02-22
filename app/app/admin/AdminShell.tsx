@@ -444,7 +444,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => router.refresh()}
+                  onClick={() => { router.refresh(); window.location.reload(); }}
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"

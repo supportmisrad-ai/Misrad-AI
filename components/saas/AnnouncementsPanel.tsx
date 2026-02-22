@@ -174,7 +174,7 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
                 <div className="flex items-center justify-between">
                     <div>
                         <h3 className="text-xl font-black text-slate-900 mb-1">הודעות מערכת</h3>
-                        <p className="text-sm text-slate-600">שליחת הודעות לכל המשתמשים או רק למשתמשים רוכשים</p>
+                        <p className="text-sm text-slate-600">שליחת הודעות לכל המשתמשים או רק ללקוחות</p>
                     </div>
                     <Button onClick={() => handleOpenModal()}>
                         <Plus size={16} /> הודעה חדשה
@@ -214,7 +214,7 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Shield size={12} className="inline mr-1" /> משתמשים רוכשים בלבד
+                                                    <Shield size={12} className="inline mr-1" /> לקוחות בלבד
                                                 </>
                                             )}
                                         </span>
@@ -332,8 +332,8 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
                                                 }`}
                                             >
                                                 <Shield size={20} className="mx-auto mb-2" />
-                                                <div className="font-bold text-sm">משתמשים רוכשים</div>
-                                                <div className="text-xs mt-1 opacity-75">רק Super Admins</div>
+                                                <div className="font-bold text-sm">לקוחות</div>
+                                                <div className="text-xs mt-1 opacity-75">לקוחות רוכשים בלבד</div>
                                             </Button>
                                         </div>
                                     </div>

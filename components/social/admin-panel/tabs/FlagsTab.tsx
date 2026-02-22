@@ -175,10 +175,15 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                 type="checkbox"
                 checked={Boolean((featureFlags as Record<string, unknown>)?.maintenanceMode) || false}
                 onChange={async (e) => {
-                  const result = await updateFeatureFlags({ maintenanceMode: e.target.checked });
+                  const next = e.target.checked;
+                  setFeatureFlags({ ...featureFlags, maintenanceMode: next });
+                  const result = await updateFeatureFlags({ maintenanceMode: next });
                   if (result.success) {
-                    addToast(e.target.checked ? 'מצב תחזוקה הופעל' : 'מצב תחזוקה בוטל', 'success');
+                    addToast(next ? 'מצב תחזוקה הופעל' : 'מצב תחזוקה בוטל', 'success');
                     onRefresh();
+                  } else {
+                    setFeatureFlags({ ...featureFlags, maintenanceMode: !next });
+                    addToast('שגיאה בעדכון מצב תחזוקה', 'error');
                   }
                 }}
                 className="sr-only peer"

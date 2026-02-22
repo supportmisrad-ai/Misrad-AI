@@ -162,12 +162,12 @@ export default function UsersTab({
                         </Button>
                       )}
                       <Button
-                        onClick={() => setUserFilter(userFilter as 'all' | 'active' | 'banned' | 'churned')}
+                        onClick={() => onEditUser(String(user.id))}
                         variant="outline"
                         size="icon"
                         className="h-9 w-9 bg-slate-100 text-slate-600 border-slate-100 hover:bg-indigo-500 hover:text-white" 
-                        title="ערוך פרופיל"
-                        aria-label="ערוך פרופיל"
+                        title="ערוך משתמש"
+                        aria-label="ערוך משתמש"
                       >
                         <Edit size={16}/>
                       </Button>

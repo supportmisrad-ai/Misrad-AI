@@ -78,7 +78,8 @@ export function Avatar({
             className={`${sizeClass} object-cover ${className} ${roundedClass}`}
             onError={() => setImgError(true)}
             loading="eager"
-            decoding="async"
+            decoding="sync"
+            fetchPriority="high"
             suppressHydrationWarning
         />
     );

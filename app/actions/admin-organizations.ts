@@ -95,8 +95,6 @@ async function requireSuperAdmin(): Promise<{ success: true } | { success: false
     return { success: false, error: 'אין הרשאה (נדרש Super Admin)' };
   }
 
-  revalidatePath('/', 'layout');
-
   return { success: true };
 }
 
@@ -292,8 +290,6 @@ export async function getOrganizations(params?: {
           client_id: o.client_id ?? null,
           businessClientName: o.client_id ? (businessClientNameById[o.client_id] ?? null) : null,
         }));
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse(enriched);
       } catch (error) {
