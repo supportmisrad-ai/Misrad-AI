@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Calendar, MessageCircle, MessageSquareQuote, Download } from 'lucide-react';
+import { Calendar, MessageCircle, MessageSquareQuote, Download, UserCircle } from 'lucide-react';
 import { Client, Meeting } from '../../types';
 
 interface PortalConciergeProps {
@@ -8,7 +8,31 @@ interface PortalConciergeProps {
   clientMeetings: Meeting[];
 }
 
+const toast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+  window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message, type } }));
+};
+
 export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, clientMeetings }) => {
+  const pmName = client.mainContact || 'מנהל הפרויקט';
+  const pmInitials = pmName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join('');
+
+  const handleScheduleMeeting = () => {
+    toast('תיאום פגישה חדשה — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+  };
+
+  const handleScheduleCall = () => {
+    toast('תיאום שיחה בלו"ז — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+  };
+
+  const handleWhatsApp = () => {
+    toast('שליחת וואטסאפ — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+  };
+
   return (
     <div className="animate-slide-up space-y-12 max-w-5xl mx-auto">
       <header className="flex justify-between items-end">
@@ -16,7 +40,10 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
           <h2 className="text-4xl font-display font-bold text-slate-900">מי מטפל בי?</h2>
           <p className="text-slate-500 mt-2 text-lg">הקשר האישי שלך מול הצוות שלנו.</p>
         </div>
-        <button className="hidden md:flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg">
+        <button
+          onClick={handleScheduleMeeting}
+          className="hidden md:flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg"
+        >
           <Calendar size={18} /> תאם פגישה חדשה
         </button>
       </header>
@@ -25,17 +52,23 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
         <div className="lg:col-span-5">
           <div className="bg-white border border-slate-200 rounded-[48px] p-10 shadow-sm text-center relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-2 bg-nexus-accent"></div>
-            <div className="w-32 h-32 rounded-[40px] bg-slate-900 mx-auto mb-8 overflow-hidden border-4 border-slate-50 shadow-2xl transition-transform duration-500 group-hover:scale-105">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" className="w-full h-full object-cover" alt="PM" />
+            <div className="w-32 h-32 rounded-[40px] bg-slate-900 mx-auto mb-8 overflow-hidden border-4 border-slate-50 shadow-2xl transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
+              <span className="text-4xl font-black text-white">{pmInitials}</span>
             </div>
-            <h3 className="text-3xl font-bold text-slate-900">יוסי כהן</h3>
+            <h3 className="text-3xl font-bold text-slate-900">{pmName}</h3>
             <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 mb-10">מנהל הפרויקט האישי שלך</p>
             
             <div className="space-y-4">
-              <button className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-xl">
+              <button
+                onClick={handleScheduleCall}
+                className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-xl"
+              >
                 <Calendar size={20} /> תאם שיחה בלו"ז
               </button>
-              <button className="w-full py-5 bg-green-500 text-white rounded-3xl font-bold text-sm hover:bg-green-600 flex items-center justify-center gap-3 shadow-lg shadow-green-500/20">
+              <button
+                onClick={handleWhatsApp}
+                className="w-full py-5 bg-green-500 text-white rounded-3xl font-bold text-sm hover:bg-green-600 flex items-center justify-center gap-3 shadow-lg shadow-green-500/20"
+              >
                 <MessageCircle size={20} /> שלח הודעת וואטסאפ
               </button>
             </div>

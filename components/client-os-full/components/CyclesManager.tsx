@@ -81,6 +81,22 @@ const CyclesManager: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {cycles.length === 0 && (
+                        <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                                <Layers size={28} className="text-gray-300" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">אין מחזורים עדיין</h3>
+                            <p className="text-sm text-gray-500 mb-6 max-w-sm">צרו מחזור חדש כדי לקבץ לקוחות, לנהל משימות משותפות ולעקוב אחרי התקדמות.</p>
+                            <button
+                                onClick={handleCreateCycle}
+                                className="px-6 py-3 bg-nexus-primary text-white rounded-xl font-bold flex items-center gap-2 hover:bg-nexus-accent transition-all shadow-lg shadow-nexus-primary/20"
+                                type="button"
+                            >
+                                <Plus size={18} /> צור מחזור ראשון
+                            </button>
+                        </div>
+                    )}
                     {cycles.filter(c => c.name.includes(searchTerm)).map(cycle => (
                         <div 
                             key={cycle.id}
@@ -188,7 +204,7 @@ const CyclesManager: React.FC = () => {
                             <div className="w-12 h-12 bg-nexus-accent/20 rounded-xl flex items-center justify-center text-nexus-accent mb-4">
                                 <Sparkles size={24} />
                             </div>
-                            <h4 className="font-bold mb-2">Cycle AI Architect</h4>
+                            <h4 className="font-bold mb-2">אדריכל AI למחזורים</h4>
                             <p className="text-xs text-white/60 mb-6 leading-relaxed">תנו ל-AI שלנו לנסח הודעת פתיחה מרגשת לכל חברי המחזור או לסכם עבורכם מי עומד ביעדים.</p>
                             <GlowButton className="w-full py-2 text-xs">נסח הודעת ברוכים הבאים</GlowButton>
                         </div>

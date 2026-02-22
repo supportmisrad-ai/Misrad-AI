@@ -179,7 +179,7 @@ export async function getClientsLite(
     const list: ClientLite[] = (data as ClientLiteRow[]).map((row) => {
       const md = asRecord(row.metadata);
       const companyName = safeString(md.companyName, safeString(md.name, safeString(row.fullName, '')));
-      const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(String(row.id))}`);
+      const avatar = safeString(md.avatar, '');
       const postingRhythm = safeString(md.postingRhythm, '3 פעמים בשבוע');
       const onboardingStatus = optionalString(md.onboardingStatus);
       const status = optionalString(md.status);
@@ -264,7 +264,7 @@ function mapClientClientsRowToSocialClient(row: ClientClientsRow): Client {
   const md = asRecord(row.metadata);
   const name = safeString(md.name, row.full_name);
   const companyName = safeString(md.companyName, name || row.full_name);
-  const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(row.id)}`);
+  const avatar = safeString(md.avatar, '');
 
   const plan = (md.plan as PricingPlan | undefined) ?? undefined;
   const monthlyFee = md.monthlyFee != null ? safeNumber(md.monthlyFee) : undefined;

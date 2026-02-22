@@ -67,8 +67,6 @@ async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; 
   const user = await getAuthenticatedUser();
   if (!user.isSuperAdmin) return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
 
-  revalidatePath('/', 'layout');
-
   return { ok: true };
 }
 
@@ -263,8 +261,6 @@ export async function getBusinessClients(filters?: {
         })
     );
 
-    revalidatePath('/', 'layout');
-
     // Serialize Decimal fields to plain numbers for client transport
     const serialized = clients.map((c) => ({
       ...c,
@@ -342,8 +338,6 @@ export async function getBusinessClient(clientId: string) {
     if (!client) {
       return { ok: false, error: 'לקוח עסקי לא נמצא' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, client };
   } catch (error) {
@@ -771,7 +765,6 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
     if (!guard.ok) return guard;
 
     if (!searchTerm.trim()) {
-      revalidatePath('/', 'layout');
       return { ok: true, users: [] };
     }
 
@@ -819,8 +812,6 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
           take: 10,
         })
     );
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, users };
   } catch (error) {

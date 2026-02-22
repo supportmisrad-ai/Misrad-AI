@@ -170,7 +170,7 @@ export async function createNexusUser(params: { orgId: string; input: Omit<User,
       department: body.department ?? null,
       avatar:
         body.avatar ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(String(body.name))}&background=random&color=fff`,
+        '',
       online: false,
       capacity: Number(body.capacity ?? 0),
       email: String(body.email),

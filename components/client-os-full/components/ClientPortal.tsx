@@ -118,7 +118,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
       setIsSubmittingMood(false);
       setMoodSubmitted(true);
       window.dispatchEvent(new CustomEvent('nexus-toast', { 
-        detail: { message: 'תודה על השיתוף! הפידבק שלך הגיע אלינו.', type: 'success' } 
+        detail: { message: 'תודה על השיתוף! העדכון שלך נרשם.', type: 'success' } 
       }));
     }, 1000);
   };
@@ -172,13 +172,9 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ clientId, onBack }) => {
   };
   
   const handleSimulatePayment = () => {
-    setIsPaying(true);
-    setTimeout(() => {
-      setIsPaying(false);
-      window.dispatchEvent(new CustomEvent('nexus-toast', { 
-        detail: { message: 'התשלום בוצע בהצלחה! תודה רבה.', type: 'success' } 
-      }));
-    }, 2000);
+    window.dispatchEvent(new CustomEvent('nexus-toast', { 
+      detail: { message: 'תשלום מקוון טרם חובר. פנה למנהל החשבון שלך לביצוע תשלום.', type: 'info' } 
+    }));
   };
 
   const renderActiveScreen = () => {

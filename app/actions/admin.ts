@@ -82,8 +82,6 @@ export async function getAdminClients(params?: {
       };
     });
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(clients);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת לקוחות');
@@ -161,8 +159,6 @@ export async function getSystemMetrics(): Promise<{
         overdue: overdueTrend,
       },
     };
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(metrics);
   } catch (error) {
@@ -392,8 +388,6 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: A
       },
     ];
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(healthStatus);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בבדיקת תקינות ממשקים');
@@ -431,13 +425,10 @@ export async function getSecurityAuditLog(params?: {
       timestamp: log.completed_at ? new Date(log.completed_at).toISOString() : null,
     }));
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(fallbackLogs);
   } catch (error) {
     logger.error('getSecurityAuditLog', 'Error:', error);
     // Return empty array instead of mock data
-    revalidatePath('/', 'layout');
     return createSuccessResponse([]);
   }
 }

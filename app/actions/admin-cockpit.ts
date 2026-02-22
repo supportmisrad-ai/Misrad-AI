@@ -286,7 +286,7 @@ export async function getAllUsers(): Promise<{
                 name: fullName,
                 email: normalizedEmail,
                 role: 'account_manager',
-                avatar: typeof clerkObj.imageUrl === 'string' && clerkObj.imageUrl ? clerkObj.imageUrl : `https://i.pravatar.cc/150?u=${email}`,
+                avatar: typeof clerkObj.imageUrl === 'string' && clerkObj.imageUrl ? clerkObj.imageUrl : '',
                 createdAt,
               } satisfies Prisma.NexusUserCreateInput,
             });
@@ -337,8 +337,6 @@ export async function getAllUsers(): Promise<{
         };
       })
     );
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(usersWithActivity);
   } catch (error: unknown) {
@@ -450,8 +448,6 @@ export async function getDeletedItems(): Promise<{
         };
       }),
     ].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(deletedItems);
   } catch (error: unknown) {
@@ -935,8 +931,6 @@ export async function getSystemEmailSettings(): Promise<{
     const supportEmail = String(supportEmailRaw ?? '').trim() || null;
     const migrationEmail = String(migrationEmailRaw ?? '').trim() || null;
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse({
       supportEmail,
       migrationEmail,
@@ -957,7 +951,6 @@ export async function getSystemEmailSettings(): Promise<{
     }
     const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
-    revalidatePath('/', 'layout');
     return createSuccessResponse({
       supportEmail: supportEmailFallback || null,
       migrationEmail: migrationEmailFallback || null,
@@ -1085,7 +1078,6 @@ export async function getModuleIcons(): Promise<{
         out[k] = v;
       }
     }
-    revalidatePath('/', 'layout');
     return createSuccessResponse(out);
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -1101,7 +1093,6 @@ export async function getModuleIcons(): Promise<{
         error,
       });
     }
-    revalidatePath('/', 'layout');
     return createSuccessResponse({});
   }
 }

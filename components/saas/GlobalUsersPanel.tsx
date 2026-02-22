@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CircleCheckBig, CircleX, Shield } from 'lucide-react';
 import { Toast, User, Tenant } from '../../types';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
-import Image from 'next/image';
+import { Avatar } from '@/components/Avatar';
 import { getAdminUsersPage } from '@/app/actions/admin-users';
 import { deleteAdminUser } from '@/app/actions/admin-users';
 import { CustomSelect } from '@/components/CustomSelect';
@@ -265,13 +265,13 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                             <div key={user.id} className="bg-white/80 border border-slate-200 rounded-2xl p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <Image
-                                            unoptimized
-                                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`}
-                                            width={44}
-                                            height={44}
-                                            className="w-11 h-11 rounded-xl bg-white border border-slate-200 object-cover"
+                                        <Avatar
+                                            src={user.avatar || null}
+                                            name={user.name}
                                             alt={user.name}
+                                            size="lg"
+                                            rounded="xl"
+                                            className="border border-slate-200"
                                         />
                                         <div className="min-w-0">
                                             <div className="font-black text-slate-900 truncate">{user.name}</div>
@@ -354,13 +354,13 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                                     <tr key={user.id} className="hover:bg-slate-50/80 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <Image
-                                                    unoptimized
-                                                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`}
-                                                    width={40}
-                                                    height={40}
-                                                    className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 object-cover"
+                                                <Avatar
+                                                    src={user.avatar || null}
+                                                    name={user.name}
                                                     alt={user.name}
+                                                    size="lg"
+                                                    rounded="xl"
+                                                    className="border border-slate-200"
                                                 />
                                                 <div>
                                                     <div className="font-bold text-slate-900">{user.name}</div>

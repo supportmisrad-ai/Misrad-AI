@@ -180,7 +180,7 @@ export default function AddClientModal() {
       id: optimisticId,
       organizationId: '',
       portalToken: '',
-      avatar: logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=1e293b&color=fff&bold=true&size=64`,
+      avatar: logo || '',
       ...clientPayload,
     };
     setClients(prev => [...prev, optimisticClient]);

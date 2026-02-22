@@ -37,8 +37,8 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
         <div className="flex items-center gap-3 mb-12">
           <OSModuleSquircleIcon moduleKey="client" boxSize={40} iconSize={18} className="shadow-none" />
           <div>
-            <h1 className="font-display font-bold text-lg text-slate-900 leading-none">Nexus</h1>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">מערכת לקוחות</span>
+            <h1 className="font-display font-bold text-lg text-slate-900 leading-none">פורטל לקוח</h1>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MISRAD AI</span>
           </div>
         </div>
 

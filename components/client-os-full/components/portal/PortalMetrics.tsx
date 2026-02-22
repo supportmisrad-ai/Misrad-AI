@@ -47,7 +47,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
             </div>
             <div className="text-left">
               <span className="text-4xl font-black text-slate-900 tracking-tighter">{performanceHistory.length ? `${growthPct >= 0 ? '+' : ''}${growthPct}%` : '—'}</span>
-              <span className="text-[10px] font-bold text-green-500 uppercase block">Growth Score</span>
+              <span className="text-[10px] font-bold text-green-500 uppercase block">ציון צמיחה</span>
             </div>
           </div>
           

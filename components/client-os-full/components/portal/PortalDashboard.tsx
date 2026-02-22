@@ -41,7 +41,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2 text-nexus-accent mb-2">
             <Sparkles size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Portal Access Active</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">גישה לפורטל פעילה</span>
           </div>
           <h2 className="text-4xl font-display font-bold text-slate-900 tracking-tight">היי {client.mainContact.split(' ')[0]}, מה קורה?</h2>
           <p className="text-slate-500 text-lg mt-2 font-medium">יש לנו {pendingTasks.length} משימות שמחכות לך.</p>

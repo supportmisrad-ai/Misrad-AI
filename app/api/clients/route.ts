@@ -314,7 +314,7 @@ async function POSTHandler(request: NextRequest) {
         const clientData: Omit<Client, 'id'> = {
             name,
             companyName,
-            avatar: getString(bodyObj, 'avatar') || `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=random&color=fff`,
+            avatar: getString(bodyObj, 'avatar') || '',
             package: getString(bodyObj, 'package') || 'Unknown',
             status: coerceClientStatus(bodyObj['status']),
             contactPerson: getString(bodyObj, 'contactPerson'),

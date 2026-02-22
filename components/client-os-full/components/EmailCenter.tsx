@@ -294,6 +294,15 @@ export const EmailCenter: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
+                    {filteredEmails.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                                <Mail size={24} className="text-gray-300" />
+                            </div>
+                            <h4 className="text-sm font-bold text-gray-900 mb-1">תיבת הדואר ריקה</h4>
+                            <p className="text-xs text-gray-500">אין הודעות עדיין. הודעות חדשות יופיעו כאן.</p>
+                        </div>
+                    )}
                     {filteredEmails.map(email => (
                         <div 
                             key={email.id}
@@ -369,7 +378,7 @@ export const EmailCenter: React.FC = () => {
                             
                             <div className="flex items-center gap-4">
                                 <img 
-                                    src={selectedEmail.avatarUrl || `https://ui-avatars.com/api/?name=${selectedEmail.sender}`} 
+                                    src={selectedEmail.avatarUrl || ''} 
                                     className="w-12 h-12 rounded-full border-2 border-white shadow-sm"
                                     alt={selectedEmail.sender}
                                 />

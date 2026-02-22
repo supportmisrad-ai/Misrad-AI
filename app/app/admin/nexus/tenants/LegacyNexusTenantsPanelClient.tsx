@@ -190,7 +190,7 @@ export default function LegacyNexusTenantsPanelClient(props: {
           mrr,
           status: 'Provisioning',
           modules: tenantModules,
-          logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(String(tenantData.name || ''))}&background=6366f1&color=fff`,
+          logo: '',
         }),
       });
 

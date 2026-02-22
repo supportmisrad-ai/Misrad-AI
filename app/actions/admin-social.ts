@@ -65,7 +65,6 @@ async function requireSuperAdminOrFail(): Promise<SuperAdminCheckResult> {
   }
   const userId = String(authCheck.userId ?? authCheck.data?.userId ?? '').trim();
   if (!userId) return { success: false, error: 'נדרשת התחברות' };
-  revalidatePath('/', 'layout');
   return { success: true, userId };
 }
 
@@ -208,7 +207,6 @@ export async function getTeam(tenantId: string): Promise<{ success: boolean; dat
 
     const organizationId = await resolveOrganizationIdFromTenantKey(tenantId);
     if (!organizationId) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse([]);
     }
 
@@ -266,8 +264,6 @@ export async function getTeam(tenantId: string): Promise<{ success: boolean; dat
       };
     });
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(mapped);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת צוות');
@@ -317,7 +313,6 @@ export async function getSocialAutomation(
 
     const flags = getJsonObject(row?.system_flags);
     const automation = normalizeAutomation(flags.socialAutomation);
-    revalidatePath('/', 'layout');
     return createSuccessResponse(automation);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת אוטומציות');
@@ -567,7 +562,6 @@ export async function getSocialQuotas(
 
     const flags = getJsonObject(row?.system_flags);
     const quotas = normalizeQuotas(flags.socialQuotas);
-    revalidatePath('/', 'layout');
     return createSuccessResponse(quotas);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת מכסות');
@@ -646,7 +640,6 @@ export async function getSocialIntegrations(
 
     const organizationId = await resolveOrganizationIdFromTenantKey(tenantId);
     if (!organizationId) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse([
         { provider: 'facebook', label: 'Facebook', connected: false, tokenExpiresAt: null, connectedAt: null },
         { provider: 'instagram', label: 'Instagram', connected: false, tokenExpiresAt: null, connectedAt: null },
@@ -661,7 +654,6 @@ export async function getSocialIntegrations(
 
     const userIds = (socialUsers || []).map((u) => String(u.id)).filter(Boolean);
     if (userIds.length === 0) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse([
         { provider: 'facebook', label: 'Facebook', connected: false, tokenExpiresAt: null, connectedAt: null },
         { provider: 'instagram', label: 'Instagram', connected: false, tokenExpiresAt: null, connectedAt: null },
@@ -711,8 +703,6 @@ export async function getSocialIntegrations(
       toRow('whatsapp', 'WhatsApp'),
     ];
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(result);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת אינטגרציות');
@@ -739,7 +729,6 @@ export async function disconnectSocialIntegration(
 
     const userIds = (socialUsers || []).map((u) => String(u?.id || '')).filter(Boolean);
     if (userIds.length === 0) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse({ deleted: 0 });
     }
 
@@ -750,6 +739,8 @@ export async function disconnectSocialIntegration(
         integration_name: { contains: providerLike, mode: 'insensitive' },
       },
     });
+
+    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ deleted: Number(deleted.count || 0) });
   } catch (error) {

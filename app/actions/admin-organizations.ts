@@ -348,8 +348,6 @@ export async function getOrganizationMembersLite(params: {
           }
         );
 
-        revalidatePath('/', 'layout');
-
         return createSuccessResponse(rows || []);
       } catch (error) {
         return createErrorResponse(error, 'שגיאה בטעינת משתמשי ארגון');
@@ -398,8 +396,6 @@ export async function getUsersLite(params?: {
             );
           }
         );
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse(data || []);
       } catch (error) {

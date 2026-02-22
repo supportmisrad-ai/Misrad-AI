@@ -442,7 +442,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
             email: newClientEmail.trim() || '',
             phone: newClientPhone.trim() || '',
             status: 'Active',
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName.trim())}&background=7c3aed&color=fff&bold=true&size=64`,
+            avatar: '',
             package: '',
             joinedAt: new Date().toISOString()
         };

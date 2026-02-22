@@ -56,7 +56,7 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 'bold' }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                         <Radar
-                            name="Client Health"
+                            name="בריאות לקוח"
                             dataKey="A"
                             stroke="#0F172A"
                             strokeWidth={3}
@@ -130,7 +130,13 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                                         <span className="text-[10px] text-red-600">ציון נמוך</span>
                                     </div>
                                 </div>
-                                <button className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:text-nexus-primary hover:border-nexus-primary transition-colors">
+                                <button
+                                    onClick={() => {
+                                        onGenerateInsight();
+                                        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: `מנתח את הנושא "${item.subject}" ומחפש המלצות לשיפור...`, type: 'info' } }));
+                                    }}
+                                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:text-nexus-primary hover:border-nexus-primary transition-colors"
+                                >
                                     איך מתקנים?
                                 </button>
                             </div>

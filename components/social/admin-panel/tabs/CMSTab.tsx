@@ -404,7 +404,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
               </h4>
               <textarea
                 defaultValue={JSON.stringify(getContentValue('landing', 'testimonials') || [
-                  { name: 'לירון אביב', role: 'בעלים, AVIV Digital', quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע.', avatar: 'https://i.pravatar.cc/150?u=liron' },
+                  { name: 'לירון אביב', role: 'בעלים, AVIV Digital', quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע.', avatar: '' },
                 ], null, 2)}
                 onBlur={async (e) => {
                   try {

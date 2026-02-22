@@ -60,7 +60,7 @@ async function POSTHandler(request: NextRequest) {
             phone: '050-0000000',
             package: 'Basic',
             status: 'Active',
-            avatar: 'https://ui-avatars.com/api/?name=Test&background=6366f1&color=fff',
+            avatar: '',
             joinedAt: new Date(),
             source: 'health_check'
         } satisfies NexusClientCreateData;

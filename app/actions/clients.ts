@@ -184,7 +184,7 @@ function mapClientClientToSocialClient(row: {
 
   const companyName = safeString(md.companyName, safeString(md.name, safeString(row.fullName, '')));
   const name = safeString(md.name, companyName || row.fullName);
-  const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(String(row.id))}`);
+  const avatar = safeString(md.avatar, '');
 
   const portalToken = safeString(md.portalToken, safeString(md.portal_token, ''));
 
@@ -228,8 +228,8 @@ function mapClientClientToSocialClient(row: {
   };
 }
 
-function getDefaultAvatarForClientId(clientId: string): string {
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(String(clientId))}`;
+function getDefaultAvatarForClientId(_clientId: string): string {
+  return '';
 }
 
 async function resolveClientAvatarMaybe(client: Client, organizationId: string): Promise<Client> {

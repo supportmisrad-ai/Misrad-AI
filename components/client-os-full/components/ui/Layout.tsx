@@ -160,7 +160,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     { id: 'feedback', icon: MessageSquareQuote, label: 'משובים' },
     { id: 'intelligence', icon: Cpu, label: 'פענוח' },
     { id: 'analyzer', icon: Sparkles, label: 'ניתוח' },
-    { id: 'settings', icon: Settings, label: 'הגדרות' },
   ];
 
   const navItems = ALL_NAV_ITEMS.filter((item) => featureFlags[item.id] !== false);

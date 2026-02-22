@@ -15,7 +15,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
       <header>
         <div className="flex items-center gap-2 text-nexus-accent mb-2">
           <Wallet size={18} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Financial Portal</span>
+          <span className="text-[10px] font-black uppercase tracking-widest">פורטל פיננסי</span>
         </div>
         <h2 className="text-4xl font-display font-bold text-slate-900">פיננסים והסכמים</h2>
         <p className="text-slate-500 mt-2 text-lg">ניהול חשבונות, תשלומים וחוזים במקום אחד.</p>

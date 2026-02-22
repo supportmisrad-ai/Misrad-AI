@@ -105,10 +105,10 @@ export default function BusinessClientsClient() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    loadClients();
+    loadClients(true);
   }, []);
 
-  const loadClients = async () => {
+  const loadClients = async (autoSync = false) => {
     setLoading(true);
     setError(null);
     try {
@@ -118,7 +118,24 @@ export default function BusinessClientsClient() {
       });
 
       if (result.ok && result.clients) {
-        setClients(result.clients);
+        // Auto-sync on first load if table is empty
+        if (result.clients.length === 0 && autoSync) {
+          setIsSyncing(true);
+          const syncResult = await syncOrganizationsToBusinessClients();
+          setIsSyncing(false);
+          if (syncResult.ok && (syncResult.created > 0 || syncResult.linked > 0)) {
+            setSyncMessage(`נוצרו ${syncResult.created} לקוחות עסקיים חדשים, קושרו ${syncResult.linked} ארגונים`);
+            // Re-fetch after sync
+            const refreshed = await getBusinessClients({});
+            if (refreshed.ok && refreshed.clients) {
+              setClients(refreshed.clients);
+            }
+          } else {
+            setClients(result.clients);
+          }
+        } else {
+          setClients(result.clients);
+        }
       } else if (!result.ok && 'error' in result) {
         setError(String(result.error));
       }
@@ -127,6 +144,7 @@ export default function BusinessClientsClient() {
       setError('שגיאה בטעינת לקוחות עסקיים');
     } finally {
       setLoading(false);
+      setIsSyncing(false);
     }
   };
 

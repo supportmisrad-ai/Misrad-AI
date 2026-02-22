@@ -15,8 +15,6 @@ async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; 
   const user = await getAuthenticatedUser();
   if (!user.isSuperAdmin) return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
 
-  revalidatePath('/', 'layout');
-
   return { ok: true };
 }
 
@@ -54,8 +52,6 @@ export async function getOrganizationDetails(organizationId: string) {
     if (!organization) {
       return { ok: false, error: 'ארגון לא נמצא' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, organization };
   } catch (error) {

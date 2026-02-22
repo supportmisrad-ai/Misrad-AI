@@ -578,7 +578,7 @@ export function useSecureAPI() {
                     mrr,
                     status: 'Provisioning',
                     modules: ['crm', 'finance', 'content', 'ai', 'team'],
-                    logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(tenantData.name)}&background=6366f1&color=fff`
+                    logo: ''
                 }),
             });
             

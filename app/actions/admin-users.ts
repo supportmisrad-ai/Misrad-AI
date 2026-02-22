@@ -56,7 +56,6 @@ async function requireSuperAdminOrFail(): Promise<{ success: true; userId: strin
   if (!isSuperAdmin) {
     return { success: false, error: createErrorResponse('Forbidden', 'אין הרשאה').error || 'אין הרשאה' };
   }
-  revalidatePath('/', 'layout');
   return { success: true, userId: String(authCheck.userId || '') };
 }
 
@@ -130,8 +129,6 @@ export async function getAdminUsersPage(params?: {
             avatar: null,
           };
         });
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse({ items, total: total || 0 });
       } catch (error) {

@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
 import { generateClientInsight } from '../services/geminiService';
 import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe } from 'lucide-react';
-import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
+
 import { ClientPulseTab } from './client-tabs/ClientPulseTab';
 import { ClientStrategyTab } from './client-tabs/ClientStrategyTab';
 import { ClientTasksTab } from './client-tabs/ClientTasksTab';
@@ -245,7 +245,6 @@ const ClientView: React.FC = () => {
                                </button>
                            )}
                          </div>
-                         <RoomSwitcher />
                        </div>
 
                        <button
@@ -523,7 +522,9 @@ const ClientView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar">
-           {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => setShowUpsellModal(true)} />}
+           {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
+               window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת הצעת צמיחה — הפיצ׳ר בפיתוח.', type: 'info' } }));
+           }} />}
            {activeTab === 'portal' && <PortalManagementTab client={client} />}
            {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
                if (isInsightLoading || !client) return;

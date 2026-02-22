@@ -75,35 +75,68 @@ export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
     return null;
   }
 
-  if (!current || workspaces.length <= 1) {
+  if (!current || workspaces.length === 0) {
     return null;
   }
 
+  const renderOrgIcon = (ws: WorkspaceItem) => {
+    if (ws.logo) {
+      return (
+        <img
+          src={ws.logo}
+          alt=""
+          className="w-5 h-5 rounded-md object-cover flex-shrink-0"
+        />
+      );
+    }
+    const initials = ws.name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('');
+    return (
+      <span className="w-5 h-5 rounded-md bg-gray-200 text-gray-600 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+        {initials}
+      </span>
+    );
+  };
+
   return (
-    <CustomSelect
-      value={current}
-      onChange={(val) => {
-        const nextOrg = val;
-        const target = workspaces.find((w) => w.slug === nextOrg);
-        if (!target) return;
+    <div className={className}>
+      {workspaces.length > 1 && (
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent mb-2" />
+      )}
+      <CustomSelect
+        value={current}
+        onChange={(val) => {
+          const nextOrg = val;
+          const target = workspaces.find((w) => w.slug === nextOrg);
+          if (!target) return;
 
-        const currentModule = routeInfo.module;
-        const rest = routeInfo.rest;
+          const currentModule = routeInfo.module;
+          const rest = routeInfo.rest;
 
-        if (currentModule && target.entitlements[currentModule]) {
-          router.push(`${buildWorkspaceModulePath(nextOrg, currentModule)}${rest}`);
-          return;
-        }
+          if (currentModule && target.entitlements[currentModule]) {
+            router.push(`${buildWorkspaceModulePath(nextOrg, currentModule)}${rest}`);
+            return;
+          }
 
-        const first = getFirstAllowedModule(target.entitlements);
-        if (first) {
-          router.push(buildWorkspaceModulePath(nextOrg, first));
-          return;
-        }
+          const first = getFirstAllowedModule(target.entitlements);
+          if (first) {
+            router.push(buildWorkspaceModulePath(nextOrg, first));
+            return;
+          }
 
-        router.push(`/w/${encodeURIComponent(nextOrg)}/lobby`);
-      }}
-      options={workspaces.map((w) => ({ value: w.slug, label: w.name }))}
-    />
+          router.push(`/w/${encodeURIComponent(nextOrg)}/lobby`);
+        }}
+        options={workspaces.map((w) => ({
+          value: w.slug,
+          label: w.name,
+          icon: renderOrgIcon(w),
+        }))}
+        disabled={workspaces.length <= 1}
+      />
+    </div>
   );
 }

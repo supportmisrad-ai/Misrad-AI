@@ -203,7 +203,7 @@ export const ClientsView: React.FC = () => {
         const newClient: Omit<Client, 'id'> = {
             name: newClientName,
             companyName: newClientName,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName)}&background=random&color=fff`,
+            avatar: '',
             package: newPackage,
             status: 'Onboarding',
             contactPerson: newContactPerson || 'לא הוגדר',

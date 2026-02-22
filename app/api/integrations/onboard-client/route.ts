@@ -445,7 +445,7 @@ async function POSTHandler(request: NextRequest) {
             phone: normalizedPhone,
             package: normalizedPlan,
             status: 'Onboarding', // Start in onboarding status
-            avatar: companyLogo || `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=6366f1&color=fff`,
+            avatar: companyLogo || '',
             joinedAt: new Date().toISOString(),
             source: 'integration' // Mark as created via integration
         };

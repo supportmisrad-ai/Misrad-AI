@@ -58,7 +58,7 @@ export const ClientStakeholdersTab: React.FC<ClientStakeholdersTabProps> = ({ cl
             </div>
             <div className="px-6 pb-6 relative">
               <div className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-sm -mt-8 mb-3 overflow-hidden">
-                <img src={sh.avatarUrl || `https://ui-avatars.com/api/?name=${sh.name}`} alt={sh.name} className="w-full h-full object-cover" />
+                <img src={sh.avatarUrl || ''} alt={sh.name} className="w-full h-full object-cover" />
               </div>
 
               <h4 className="font-bold text-gray-900 text-lg">{sh.name}</h4>

@@ -77,11 +77,11 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                                     value={newProject.type}
                                     onChange={(val) => setNewProject((p) => ({ ...p, type: val as 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV' }))}
                                     options={[
-                                        { value: 'CAMPAIGN', label: 'CAMPAIGN' },
-                                        { value: 'REPORT', label: 'REPORT' },
-                                        { value: 'DESIGN', label: 'DESIGN' },
-                                        { value: 'STRATEGY', label: 'STRATEGY' },
-                                        { value: 'DEV', label: 'DEV' },
+                                        { value: 'CAMPAIGN', label: 'קמפיין' },
+                                        { value: 'REPORT', label: 'דו״ח' },
+                                        { value: 'DESIGN', label: 'עיצוב' },
+                                        { value: 'STRATEGY', label: 'אסטרטגיה' },
+                                        { value: 'DEV', label: 'פיתוח' },
                                     ]}
                                 />
                             </div>

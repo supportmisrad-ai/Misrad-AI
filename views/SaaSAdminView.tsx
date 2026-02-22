@@ -279,7 +279,7 @@ export const SaaSAdminView: React.FC = () => {
                     mrr,
                     status: 'Provisioning',
                     modules: tenantModules,
-                    logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(tenantData.name)}&background=6366f1&color=fff`
+                    logo: ''
                 }),
             });
 

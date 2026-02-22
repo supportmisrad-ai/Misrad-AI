@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, Shield, DollarSign, Cpu, Bell, Building2, Key, Info, GitMerge, TriangleAlert, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload } from 'lucide-react';
+import { Save, Shield, Cpu, Bell, Building2, Key, Info, GitMerge, TriangleAlert, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload, Coins } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { GlassCard } from './ui/GlassCard';
 import { CustomSelect } from '@/components/CustomSelect';
@@ -54,18 +54,6 @@ const Settings: React.FC = () => {
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">איך קוראים לעסק</label>
                   <input type="text" defaultValue="" className="w-full bg-white border border-gray-200 rounded-xl p-3 text-gray-900 focus:border-nexus-primary focus:outline-none transition-colors" />
                </div>
-               <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">באיזה כסף עובדים</label>
-                  <CustomSelect
-                    value={currency}
-                    onChange={(val) => setCurrency(val)}
-                    options={[
-                      { value: 'דולר ($)', label: 'דולר ($)' },
-                      { value: 'שקל (₪)', label: 'שקל (₪)' },
-                      { value: 'אירו (€)', label: 'אירו (€)' },
-                    ]}
-                  />
-               </div>
             </div>
 
             <div className="pt-6 border-t border-gray-100">
@@ -107,10 +95,10 @@ const Settings: React.FC = () => {
             <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-warning/10 text-signal-warning border border-signal-warning/20">
-                     <DollarSign size={24} />
+                     <Coins size={24} />
                   </div>
                   <div>
-                     <h4 className="text-lg font-medium text-gray-900">כמה עולה לנו שעה?</h4>
+                     <h4 className="text-lg font-medium text-gray-900">כמה עולה לנו שעה? (₪)</h4>
                      <p className="text-sm text-gray-500 mt-1 max-w-lg">
                         כדי לחשב רווח אמיתי, אנחנו צריכים לדעת כמה עולה שעת עבודה של עובד (כולל הכל).
                      </p>
@@ -119,7 +107,7 @@ const Settings: React.FC = () => {
                
                <div className="flex items-center gap-4">
                   <div className="relative w-40">
-                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₪</span>
                      <input 
                         type="number" 
                         value={hourlyCost}
@@ -175,7 +163,21 @@ const Settings: React.FC = () => {
                           <h3 className="text-xl font-display font-semibold text-gray-900 mb-1">החנות שלנו</h3>
                           <p className="text-sm text-gray-500">מה אנחנו מוכרים ללקוחות.</p>
                       </div>
-                      <button className="flex items-center gap-2 px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-colors shadow-lg shadow-nexus-primary/20">
+                      <button
+                          onClick={() => {
+                              const newItem = {
+                                  id: `svc-${Date.now()}`,
+                                  title: 'שירות חדש',
+                                  description: 'תיאור השירות',
+                                  price: 0,
+                                  category: 'ADDON' as const,
+                                  isPopular: false,
+                              };
+                              setCatalog(prev => [newItem, ...prev]);
+                              window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'שירות חדש נוסף. ערוך את הפרטים.', type: 'success' } }));
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-colors shadow-lg shadow-nexus-primary/20"
+                      >
                           <ListPlus size={16} /> הוסף שירות
                       </button>
                   </div>
@@ -342,7 +344,7 @@ const Settings: React.FC = () => {
                onClick={() => setActiveTab('financials')}
                className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium whitespace-nowrap ${activeTab === 'financials' ? 'bg-white border border-gray-200 text-nexus-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
             >
-               <DollarSign size={18} /> המספרים
+               <Coins size={18} /> המספרים
             </button>
             <button 
                onClick={() => setActiveTab('catalog')}

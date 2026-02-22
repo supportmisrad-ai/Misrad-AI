@@ -21,7 +21,10 @@ export const ClientStrategyTab: React.FC<ClientStrategyTabProps> = ({ client, op
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Target size={20} className="text-nexus-accent"/> יעדים ומדדי הצלחה
                 </h3>
-                <button className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:border-nexus-primary transition-colors flex items-center gap-2">
+                <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת יעד חדש — הפיצ׳ר בפיתוח.', type: 'info' } }))}
+                    className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:border-nexus-primary transition-colors flex items-center gap-2"
+                >
                     <Plus size={14} /> הוסף יעד חדש
                 </button>
             </div>
