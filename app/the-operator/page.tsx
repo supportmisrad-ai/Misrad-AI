@@ -38,6 +38,8 @@ export default async function TheOperatorLandingPage() {
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
       videoTitle="סרטון הסבר · תפעול ושטח"
+      price={349}
+      priceNote="Operations + Nexus · 5 משתמשים"
     />
   );
 }

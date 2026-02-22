@@ -32,6 +32,8 @@ export default function PackageLandingPage({
   videoUrl,
   videoTitle = 'סרטון הדגמה',
   variant = 'default',
+  price,
+  priceNote,
 }: {
   badge: string;
   title: string;
@@ -46,6 +48,8 @@ export default function PackageLandingPage({
   videoUrl: string | null;
   videoTitle?: string;
   variant?: 'default' | 'tactical';
+  price?: number;
+  priceNote?: string;
 }) {
   const isTactical = variant === 'tactical';
 
@@ -97,6 +101,14 @@ export default function PackageLandingPage({
             </h1>
 
             <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">{subtitle}</p>
+
+            {price && (
+              <div className="mt-6 inline-flex items-baseline gap-2 bg-white border-2 border-slate-200 rounded-2xl px-6 py-4 shadow-lg">
+                <span className="text-4xl sm:text-5xl font-black text-slate-900">₪{price}</span>
+                <span className="text-sm font-bold text-slate-500">/חודש</span>
+                {priceNote && <span className="text-xs text-slate-400 mr-2">{priceNote}</span>}
+              </div>
+            )}
 
             <div className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">

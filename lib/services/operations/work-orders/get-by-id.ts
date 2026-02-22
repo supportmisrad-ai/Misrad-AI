@@ -112,15 +112,25 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
     if (!row?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
     const assignedTechnicianId = row.assigned_technician_id ? String(row.assigned_technician_id) : null;
-    let technicianLabel: string | null = null;
-    if (assignedTechnicianId) {
-      const tech = await prisma.profile.findFirst({
-        where: { id: assignedTechnicianId, organizationId: params.organizationId },
-        select: { id: true, fullName: true, email: true },
-      });
-      technicianLabel = tech?.id ? String(tech.fullName || tech.email || tech.id) : null;
-    }
+    const ttlSeconds = 60 * 60;
 
+    // Phase 2a: Technician label + signature URL signing — independent, run in parallel
+    const [techResult, completionSignatureUrlResolved] = await Promise.all([
+      assignedTechnicianId
+        ? prisma.profile.findFirst({
+            where: { id: assignedTechnicianId, organizationId: params.organizationId },
+            select: { id: true, fullName: true, email: true },
+          })
+        : Promise.resolve(null),
+      resolveStorageUrlMaybe(
+        row.completion_signature_url ? String(row.completion_signature_url) : null,
+        ttlSeconds,
+        { organizationId: params.organizationId, orgSlug: params.orgSlug || null }
+      ),
+    ]);
+    const technicianLabel = techResult?.id ? String(techResult.fullName || techResult.email || techResult.id) : null;
+
+    // Phase 2b: Stock source holder resolution (may write to DB if missing)
     const stockSourceHolderIdRaw = row.stock_source_holder_id ? String(row.stock_source_holder_id) : null;
     let stockSourceHolderId: string | null = stockSourceHolderIdRaw;
     if (!stockSourceHolderId) {
@@ -148,13 +158,6 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
     const stockSourceLabel = stockSourceHolderId
       ? await resolveOperationsStockHolderLabel({ organizationId: params.organizationId, holderId: stockSourceHolderId })
       : null;
-
-    const ttlSeconds = 60 * 60;
-    const completionSignatureUrlResolved = await resolveStorageUrlMaybe(
-      row.completion_signature_url ? String(row.completion_signature_url) : null,
-      ttlSeconds,
-      { organizationId: params.organizationId, orgSlug: params.orgSlug || null }
-    );
 
     return {
       success: true,

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { findUserGlobalByEmail } from '@/lib/db';
@@ -279,7 +280,7 @@ export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
   return resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
 }
 
-export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceId: string) {
+export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceId: string) {
   const clerk = await currentUser();
   const clerkUserId = clerk?.id || null;
   if (!clerkUserId) {
@@ -360,7 +361,7 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
     organizationId: workspaceId,
     tenantId: workspaceId,
   };
-}
+});
 
 export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) {
   const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeaderValue);

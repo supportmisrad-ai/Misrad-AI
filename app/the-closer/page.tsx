@@ -34,6 +34,8 @@ export default async function TheCloserLandingPage() {
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
       videoTitle="סרטון הדגמה · מכירות"
+      price={249}
+      priceNote="System + Nexus · משתמש אחד"
     />
   );
 }

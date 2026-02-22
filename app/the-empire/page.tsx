@@ -34,6 +34,8 @@ export default async function TheEmpireLandingPage() {
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
       videoTitle="סרטון הדגמה · הכל כלול"
+      price={499}
+      priceNote="כל 6 המודולים · 5 משתמשים כלולים"
     />
   );
 }

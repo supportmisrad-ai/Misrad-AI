@@ -15,7 +15,7 @@ export default async function DashboardPage({
     where: { module_id: 'social', category: 'scripts' },
     select: { id: true, category: true, title: true, content: true, module_id: true },
     orderBy: [{ category: 'asc' }, { title: 'asc' }],
-  });
+  }).catch(() => []);
 
   return <Dashboard orgSlug={orgSlug} initialScripts={initialScripts} />;
 }

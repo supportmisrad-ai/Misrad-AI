@@ -276,6 +276,41 @@ export default function OperationsMarketingPage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section className="py-16 sm:py-20 bg-slate-50 border-t border-slate-200">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+              כמה זה עולה?
+            </h2>
+            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+              מודול Operations זמין במודול בודד או כחלק מחבילת תפעול ושטח.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
+                <div className="text-xs font-bold text-slate-500 mb-1">מודול בודד</div>
+                <div className="text-2xl font-black text-slate-900">₪149<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+                <div className="text-[10px] text-slate-500 mt-1">Operations בלבד</div>
+              </div>
+              <div className="bg-white border-2 border-amber-200 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
+                <div className="text-xs font-bold text-amber-700 mb-1">חבילת תפעול ושטח</div>
+                <div className="text-2xl font-black text-amber-800">₪349<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+                <div className="text-[10px] text-slate-500 mt-1">Operations + Nexus · 5 משתמשים</div>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
+                <div className="text-xs font-bold text-slate-500 mb-1">הכל כלול</div>
+                <div className="text-2xl font-black text-slate-900">₪499<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+                <div className="text-[10px] text-slate-500 mt-1">6 מודולים + 5 משתמשים</div>
+              </div>
+            </div>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all"
+            >
+              ראה את כל החבילות
+            </Link>
+          </div>
+        </section>
+
         <TestimonialsSection />
 
         <SalesFaq variant="default" />

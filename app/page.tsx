@@ -62,16 +62,12 @@ export default async function RootPage() {
 
       <main className="flex-1">
         <LandingHeroSection />
-        <LandingDeviceMockups />
         <LandingModulesSection />
         <UnifiedBusinessSection />
         <KillerFeaturesBox id="features" />
         <AiManagementSection />
         <LandingPricingCTA />
-        <LandingValueProps />
-        <ModularitySimplicitySection />
         <TestimonialsSection />
-        <PartnersLogosSection />
         <SalesFaq variant="default" />
       </main>
       <Footer />

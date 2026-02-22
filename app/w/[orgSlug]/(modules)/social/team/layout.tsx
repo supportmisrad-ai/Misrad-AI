@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
@@ -6,15 +6,13 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
-export default async function SocialTeamLayout({
+async function TeamAccessGate({
+  orgSlug,
   children,
-  params,
 }: {
+  orgSlug: string;
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
-
   // Run workspace access and feature flags in parallel
   const [workspace, systemFlags] = await Promise.all([
     requireWorkspaceAccessByOrgSlugUi(orgSlug),
@@ -38,4 +36,22 @@ export default async function SocialTeamLayout({
   }
 
   return <>{children}</>;
+}
+
+export default async function SocialTeamLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+}) {
+  const { orgSlug } = await params;
+
+  return (
+    <Suspense fallback={null}>
+      <TeamAccessGate orgSlug={orgSlug}>
+        {children}
+      </TeamAccessGate>
+    </Suspense>
+  );
 }

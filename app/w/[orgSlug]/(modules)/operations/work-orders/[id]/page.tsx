@@ -73,7 +73,19 @@ export default async function OperationsWorkOrderDetailsPage({
   const emptyStockSourcesRes: StockSourcesRes = { success: true, data: [] };
   const emptyInventoryOptionsRes: InventoryOptionsRes = { success: true, data: [] };
 
-  const res = await getOperationsWorkOrderById({ orgSlug, id });
+  // Phase 1: Fire work order fetch, auth, and all non-w-dependent tab data in parallel
+  // (Previously these were 3 sequential phases — now 1 parallel batch)
+  const [res, authResult, technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, messagesRes] = await Promise.all([
+    getOperationsWorkOrderById({ orgSlug, id }),
+    auth(),
+    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve(emptyTechnicianOptionsRes),
+    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyMaterialsRes),
+    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyAttachmentsRes),
+    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyCheckinsRes),
+    tab === 'materials' ? getOperationsStockSourceOptions({ orgSlug }) : Promise.resolve(emptyStockSourcesRes),
+    tab === 'chat' ? getOperationsCallMessages({ orgSlug, workOrderId: id }) : Promise.resolve({ success: true, data: [] as Awaited<ReturnType<typeof getOperationsCallMessages>>['data'] }),
+  ]);
+
   if (!res.success || !res.data) {
     return (
       <div className="mx-auto w-full max-w-3xl">
@@ -96,22 +108,14 @@ export default async function OperationsWorkOrderDetailsPage({
   }
 
   const w = res.data;
+  const { userId: clerkUserId } = authResult;
 
-  const [technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, inventoryOptionsRes, messagesRes] = await Promise.all([
-    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve(emptyTechnicianOptionsRes),
-    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyMaterialsRes),
-    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyAttachmentsRes),
-    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyCheckinsRes),
-    tab === 'materials' ? getOperationsStockSourceOptions({ orgSlug }) : Promise.resolve(emptyStockSourcesRes),
-    tab === 'materials'
-      ? w.stockSourceHolderId
-        ? getOperationsInventoryOptionsForHolder({ orgSlug, holderId: w.stockSourceHolderId })
-        : getOperationsInventoryOptions({ orgSlug })
-      : Promise.resolve(emptyInventoryOptionsRes),
-    tab === 'chat' ? getOperationsCallMessages({ orgSlug, workOrderId: id }) : Promise.resolve({ success: true, data: [] as Awaited<ReturnType<typeof getOperationsCallMessages>>['data'] }),
-  ]);
-
-  const { userId: clerkUserId } = await auth();
+  // Phase 2: Only the inventory options fetch depends on w.stockSourceHolderId
+  const inventoryOptionsRes: InventoryOptionsRes = tab === 'materials'
+    ? w.stockSourceHolderId
+      ? await getOperationsInventoryOptionsForHolder({ orgSlug, holderId: w.stockSourceHolderId })
+      : await getOperationsInventoryOptions({ orgSlug })
+    : emptyInventoryOptionsRes;
   const chatMessages = messagesRes.success ? (messagesRes.data ?? []) : [];
 
   const statusBadge = formatWorkOrderStatus(w.status);

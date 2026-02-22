@@ -245,15 +245,17 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                     </div>
 
                     <div className="hidden md:flex items-center gap-8 bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-slate-200/70 shadow-lg shadow-slate-200/50">
-                        <div className="relative"
+                        <div
+                            className="relative"
                             onMouseEnter={() => setIsModulesOpen(true)}
                             onMouseLeave={() => setIsModulesOpen(false)}
                         >
                             <button className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1">
-                                מודולים <ChevronDown size={14} className={`transition-transform ${isModulesOpen ? 'rotate-180' : ''}`} />
+                                מודולים
+                                <ChevronDown size={14} className={`transition-transform ${isModulesOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {isModulesOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden z-50">
+                                <div className="absolute top-full right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden z-50 py-1">
                                     {[
                                         { label: 'ניהול מכירות ולידים', href: '/system' },
                                         { label: 'ניהול משימות וצוות', href: '/nexus' },
@@ -265,28 +267,22 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                         <button
                                             key={item.href}
                                             onClick={() => { setIsModulesOpen(false); router.push(item.href); }}
+                                            className="w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
                                 </div>
-                                עזרה ונגישות
-                            </div>
+                            )}
                         </div>
+                        <button onClick={() => router.push('/pricing')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</button>
+                        <button onClick={() => router.push('/contact')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">צור קשר</button>
+                    </div>
 
-                        {/* תמיכה */}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsFabOpen(false);
-                                router.push('/support');
-                            }}
-                            className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-transparent transition-all text-right group"
-                        >
-                            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:bg-emerald-700 transition-colors">
-                                <LifeBuoy size={18} />
-                            </div>
-                            <div>
-                                <div className="font-bold text-slate-900 text-sm">תמיכה</div>
-                                <div className="text-xs text-slate-500">פתיחת קריאת שירות</div>
-                            </div>
-                        </button>
+                    <div className="hidden md:flex items-center gap-4">
+                        {isSignedIn ? (
+                            <button
+                                onClick={() => router.push('/me')}
                                 className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/20"
                             >
                                 <User size={16} />

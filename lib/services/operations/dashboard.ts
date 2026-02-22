@@ -75,7 +75,26 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
       new Set(recentProjects.map((p) => p.canonicalClientId).filter(Boolean))
     ) as string[];
 
-    const clientNameById = await resolveOperationsClientNamesByCanonicalId(canonicalClientIds);
+    // Resolve technician IDs from recent work orders (computed synchronously)
+    const techIds = (recentWoRows || [])
+      .map((r) => asObject(r)?.assigned_technician_id)
+      .filter(Boolean)
+      .map(String);
+    const uniqueTechIds = [...new Set(techIds)];
+
+    // Phase 2: Resolve client names + technician names in parallel (previously sequential!)
+    const [clientNameById, techRows] = await Promise.all([
+      resolveOperationsClientNamesByCanonicalId(canonicalClientIds),
+      uniqueTechIds.length
+        ? prisma.profile.findMany({
+            where: { id: { in: uniqueTechIds }, organizationId: params.organizationId },
+            select: { id: true, fullName: true, email: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const techLabelMap = new Map<string, string>();
+    for (const t of techRows) techLabelMap.set(t.id, String(t.fullName || t.email || t.id));
 
     let ok = 0;
     let low = 0;
@@ -103,21 +122,6 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
       priorityUrgent: Number(statsRow.priority_urgent ?? 0),
       priorityCritical: Number(statsRow.priority_critical ?? 0),
     };
-
-    // Resolve technician names for recent work orders
-    const techIds = (recentWoRows || [])
-      .map((r) => asObject(r)?.assigned_technician_id)
-      .filter(Boolean)
-      .map(String);
-    const uniqueTechIds = [...new Set(techIds)];
-    const techLabelMap = new Map<string, string>();
-    if (uniqueTechIds.length) {
-      const techs = await prisma.profile.findMany({
-        where: { id: { in: uniqueTechIds }, organizationId: params.organizationId },
-        select: { id: true, fullName: true, email: true },
-      });
-      for (const t of techs) techLabelMap.set(t.id, String(t.fullName || t.email || t.id));
-    }
 
     const recentWorkOrders = (recentWoRows || []).map((r) => {
       const obj = asObject(r) ?? {};

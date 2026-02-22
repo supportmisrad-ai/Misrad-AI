@@ -34,6 +34,8 @@ export default async function TheAuthorityLandingPage() {
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
       videoTitle="סרטון הדגמה · שיווק"
+      price={349}
+      priceNote="Social + Client + Nexus · 5 משתמשים"
     />
   );
 }

@@ -60,54 +60,57 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
       whereSql += ` AND (wo.title ILIKE $${idx}::text OR wo.reporter_name ILIKE $${idx}::text)`;
     }
 
-    const rows = await orgQuery<unknown[]>(
-      prisma,
-      params.organizationId,
-      `
-        SELECT
-          wo.id::text as id,
-          wo.title as title,
-          wo.status as status,
-          COALESCE(wo.priority, 'NORMAL') as priority,
-          wo.project_id::text as project_id,
-          p.title as project_title,
-          wo.assigned_technician_id::text as assigned_technician_id,
-          wo.installation_lat as installation_lat,
-          wo.installation_lng as installation_lng,
-          wo.category_id::text as category_id,
-          cat.name as category_name,
-          wo.department_id::text as department_id,
-          wo.building_id::text as building_id,
-          bld.name as building_name,
-          wo.floor as floor,
-          wo.unit as unit,
-          wo.reporter_name as reporter_name,
-          wo.reporter_phone as reporter_phone,
-          wo.sla_deadline as sla_deadline,
-          wo.completed_at as completed_at,
-          wo.created_at as created_at
-        FROM operations_work_orders wo
-        LEFT JOIN operations_projects p
-          ON p.id = wo.project_id
-        LEFT JOIN operations_call_categories cat
-          ON cat.id = wo.category_id
-        LEFT JOIN operations_buildings bld
-          ON bld.id = wo.building_id
-        WHERE ${whereSql}
-        ORDER BY wo.created_at DESC
-        LIMIT $${idx + 1}::int OFFSET $${idx + 2}::int
-      `,
-      [...values, pageLimit, offset]
-    );
-
-    const countRows = await orgQuery<unknown[]>(
-      prisma,
-      params.organizationId,
-      `SELECT COUNT(*)::int as total FROM operations_work_orders wo WHERE ${whereSql}`,
-      values
-    );
+    // Phase 1: Run data query and count query in parallel (previously sequential!)
+    const [rows, countRows] = await Promise.all([
+      orgQuery<unknown[]>(
+        prisma,
+        params.organizationId,
+        `
+          SELECT
+            wo.id::text as id,
+            wo.title as title,
+            wo.status as status,
+            COALESCE(wo.priority, 'NORMAL') as priority,
+            wo.project_id::text as project_id,
+            p.title as project_title,
+            wo.assigned_technician_id::text as assigned_technician_id,
+            wo.installation_lat as installation_lat,
+            wo.installation_lng as installation_lng,
+            wo.category_id::text as category_id,
+            cat.name as category_name,
+            wo.department_id::text as department_id,
+            wo.building_id::text as building_id,
+            bld.name as building_name,
+            wo.floor as floor,
+            wo.unit as unit,
+            wo.reporter_name as reporter_name,
+            wo.reporter_phone as reporter_phone,
+            wo.sla_deadline as sla_deadline,
+            wo.completed_at as completed_at,
+            wo.created_at as created_at
+          FROM operations_work_orders wo
+          LEFT JOIN operations_projects p
+            ON p.id = wo.project_id
+          LEFT JOIN operations_call_categories cat
+            ON cat.id = wo.category_id
+          LEFT JOIN operations_buildings bld
+            ON bld.id = wo.building_id
+          WHERE ${whereSql}
+          ORDER BY wo.created_at DESC
+          LIMIT $${idx + 1}::int OFFSET $${idx + 2}::int
+        `,
+        [...values, pageLimit, offset]
+      ),
+      orgQuery<unknown[]>(
+        prisma,
+        params.organizationId,
+        `SELECT COUNT(*)::int as total FROM operations_work_orders wo WHERE ${whereSql}`,
+        values
+      ),
+    ]);
     const totalCount = Number(asObject((countRows || [])[0])?.total ?? 0);
 
+    // Phase 2: Resolve technician names (depends on rows from Phase 1)
     const technicianIds = Array.from(
       new Set(
         (rows || [])

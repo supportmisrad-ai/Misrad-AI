@@ -64,6 +64,49 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+
+        {/* Story Section */}
+        <section className="py-16 sm:py-20 bg-slate-50 border-y border-slate-200">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-6">הסיפור שלנו</h2>
+            <div className="space-y-4 text-slate-700 leading-relaxed">
+              <p>
+                <strong className="text-slate-900">MISRAD AI</strong> נולד מתוך תסכול אמיתי. בעלי עסקים בישראל משלמים ל-4-5 תוכנות שונות כדי לנהל את העסק — CRM, ניהול משימות, שיווק, חשבוניות, ותפעול. המידע מפוזר, לא מסתנכרן, ועולה הון.
+              </p>
+              <p>
+                החלטנו לבנות מערכת אחת שמרכזת הכל. <strong className="text-slate-900">6 מודולים שמדברים אחד עם השני</strong> — מהליד הראשון ועד החשבונית האחרונה. עם AI שעוזר לקבל החלטות, לא רק להציג נתונים.
+              </p>
+              <p>
+                המערכת בנויה בישראל, בעברית מלאה, עם תמיכה בלוח שנה עברי, מצב שבת, ושליטה קולית בעברית. <strong className="text-slate-900">זה לא תרגום של מוצר אמריקאי</strong> — זה מוצר שנבנה מהיסוד עבור השוק הישראלי.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Numbers Section */}
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-8 text-center">במספרים</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                <div className="text-3xl font-black text-indigo-700">6</div>
+                <div className="text-sm text-slate-600 mt-1">מודולים מובנים</div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                <div className="text-3xl font-black text-indigo-700">100%</div>
+                <div className="text-sm text-slate-600 mt-1">עברית מלאה</div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                <div className="text-3xl font-black text-indigo-700">AI</div>
+                <div className="text-sm text-slate-600 mt-1">מובנה בכל מודול</div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                <div className="text-3xl font-black text-indigo-700">₪149</div>
+                <div className="text-sm text-slate-600 mt-1">מתחיל מ-</div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
     </div>
