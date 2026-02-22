@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tenant, Product, ModuleId } from '../../types';
+import { Tenant, SaasPlan, ModuleId } from '../../types';
 import { Building2, Mail, Globe2, Package, Server, X, Sparkles, Phone, Users, Languages, Calendar, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 interface AddTenantModalProps {
     onClose: () => void;
     onAdd: (tenant: Omit<Tenant, 'id' | 'joinedAt' | 'logo' | 'status' | 'usersCount' | 'mrr'> & { modules?: ModuleId[] }, mrr: number) => void;
-    products: Product[];
+    products: SaasPlan[];
 }
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, products }) => {
@@ -39,9 +39,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
         const activationDate = (form.elements.namedItem('activationDate') as HTMLInputElement)?.value || undefined;
         const notes = (form.elements.namedItem('notes') as HTMLTextAreaElement)?.value || undefined;
         
-        const selectedProduct = products.find(p => p.name === selectedPlan);
-        const mrr = selectedProduct ? selectedProduct.price : 0;
-        const defaultModules = selectedProduct?.modules || ['crm', 'team'];
+        const matchedPlan = products.find(p => p.name === selectedPlan);
+        const mrr = matchedPlan ? matchedPlan.price : 0;
+        const defaultModules = matchedPlan?.modules || ['crm', 'team'];
 
         onAdd({ 
             name, 

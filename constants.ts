@@ -122,69 +122,8 @@ export const DEFAULT_WORKFLOW: WorkflowStage[] = [
     { id: 'Done', name: 'בוצע', color: 'bg-green-100 text-green-800 border-green-300' },
 ];
 
-// Translated Product Names with Features
-export const DEFAULT_PRODUCTS: Product[] = [
-    {
-        id: 'prod_system_single',
-        name: 'System · מודול בודד',
-        price: 149,
-        color: 'bg-rose-600 text-white',
-        modules: ['crm'],
-        maxUsers: 1,
-        maxStorageGB: 5,
-        features: ['מודול בודד', 'משתמש אחד', 'לידים ומכירות']
-    },
-    {
-        id: 'prod_client_single',
-        name: 'Client · מודול בודד',
-        price: 149,
-        color: 'bg-amber-500 text-slate-900',
-        modules: ['team'],
-        maxUsers: 1,
-        maxStorageGB: 5,
-        features: ['מודול בודד', 'משתמש אחד', 'ניהול לקוחות']
-    },
-    {
-        id: 'prod_social_single',
-        name: 'Social · מודול בודד',
-        price: 149,
-        color: 'bg-blue-600 text-white',
-        modules: ['content'],
-        maxUsers: 1,
-        maxStorageGB: 5,
-        features: ['מודול בודד', 'משתמש אחד', 'סושיאל']
-    },
-    {
-        id: 'prod_nexus_single',
-        name: 'Nexus · מודול בודד',
-        price: 149,
-        color: 'bg-slate-900 text-white',
-        modules: ['crm', 'team'],
-        maxUsers: 1,
-        maxStorageGB: 5,
-        features: ['מודול בודד', 'משתמש אחד', 'ניהול עסק']
-    },
-    {
-        id: 'prod_combo',
-        name: 'Combo · 2 מודולים',
-        price: 249,
-        color: 'bg-indigo-600 text-white',
-        modules: ['crm', 'team'],
-        maxUsers: 1,
-        maxStorageGB: 10,
-        features: ['בחר 2 מודולים מתוך 4', 'כניסה אחת', 'סנכרון בין מודולים']
-    },
-    {
-        id: 'prod_full_office',
-        name: 'משרד מלא · 4 מודולים',
-        price: 349,
-        color: 'bg-indigo-600 text-white',
-        modules: ['crm', 'team', 'content', 'finance', 'ai', 'assets'],
-        maxUsers: 5,
-        maxStorageGB: 100,
-        features: ['4 מודולים', 'כולל 5 משתמשים', '+₪39 לכל מושב נוסף']
-    },
-];
+// Empty default — each organization defines its own product/service catalog
+export const DEFAULT_PRODUCTS: Product[] = [];
 
 
 

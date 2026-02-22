@@ -302,30 +302,29 @@ export interface WorkflowStage {
     color: string;
 }
 
+export type ProductUnit = 'unit' | 'hour' | 'session' | 'month' | 'project' | 'package';
+
 export interface Product {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    unit?: ProductUnit;
+    category?: string;
+    sku?: string;
+    color: string;
+    isActive?: boolean;
+}
+
+export interface SaasPlan {
     id: string;
     name: string;
     price: number;
     color: string;
-    modules: ModuleId[]; // Which modules/features this plan includes
-    maxUsers?: number; // Maximum users allowed
-    maxStorageGB?: number; // Storage limit (GB)
-    maxClients?: number; // Maximum clients/companies
-    maxTasks?: number; // Maximum tasks per month
-    maxLeads?: number; // Maximum leads per month
-    maxApiCalls?: number; // Maximum API calls per month
-    maxIntegrations?: number; // Maximum external integrations
-    maxDepartments?: number; // Maximum departments
-    maxCustomFields?: number; // Maximum custom fields
-    allowCustomBranding?: boolean; // Allow custom logo/colors
-    allowApiAccess?: boolean; // Allow API access
-    allowWebhooks?: boolean; // Allow webhook integrations
-    allowExport?: boolean; // Allow data export
-    allowAdvancedReports?: boolean; // Allow advanced reporting
-    allowAiFeatures?: boolean; // Allow AI features (separate from AI module)
-    allowPrioritySupport?: boolean; // Priority support access
-    features?: string[]; // Additional feature descriptions
-    limits?: Record<string, number | boolean>; // Flexible custom limits
+    modules: ModuleId[];
+    maxUsers?: number;
+    maxStorageGB?: number;
+    features?: string[];
 }
 
 export interface Notification {

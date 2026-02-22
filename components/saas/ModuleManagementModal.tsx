@@ -3,14 +3,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { Product, Tenant, ModuleId } from '../../types';
+import { SaasPlan, Tenant, ModuleId } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { Button } from '@/components/ui/button';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 interface ModuleManagementModalProps {
     tenant: Tenant;
-    products?: Product[];
+    products?: SaasPlan[];
     onClose: () => void;
     onToggle: (moduleId: ModuleId) => void;
     onSetModules?: (modules: ModuleId[]) => void;
@@ -21,7 +21,7 @@ export const ModuleManagementModal: React.FC<ModuleManagementModalProps> = ({ te
     const planDefaults = (() => {
         const list = Array.isArray(products) ? products : [];
         const match = list.find((p) => String(p?.name || '') === String(tenant.plan || ''));
-        return Array.isArray(match?.modules) ? (match!.modules as ModuleId[]) : [];
+        return Array.isArray(match?.modules) ? match!.modules : [];
     })();
 
     const currentModules = Array.isArray(tenant.modules) ? (tenant.modules as ModuleId[]) : [];

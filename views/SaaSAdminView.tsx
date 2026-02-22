@@ -5,7 +5,7 @@ import { CustomSelect } from '@/components/CustomSelect';
 import { useData } from '../context/DataContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield, LayoutGrid, Lock, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
-import { Tenant, GeneratedReport, ModuleId, SystemScreenStatus, Product } from '../types';
+import { Tenant, GeneratedReport, ModuleId, SystemScreenStatus, SaasPlan } from '../types';
 import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
@@ -259,9 +259,9 @@ export const SaaSAdminView: React.FC = () => {
             // Get modules from plan if not provided, or use default
             let tenantModules: ModuleId[] = tenantData.modules || ['crm', 'team'];
             if (!tenantData.modules) {
-                const selectedProduct = products.find((p: Product) => p.name === tenantData.plan);
-                if (selectedProduct?.modules) {
-                    tenantModules = selectedProduct.modules;
+                const selectedPlan = (products as unknown as SaasPlan[]).find((p) => p.name === tenantData.plan);
+                if (selectedPlan?.modules) {
+                    tenantModules = selectedPlan.modules;
                 }
             }
 
@@ -481,7 +481,7 @@ export const SaaSAdminView: React.FC = () => {
                 {isModuleModalOpen && editingTenant && (
                     <ModuleManagementModal 
                         tenant={editingTenant} 
-                        products={products}
+                        products={products as unknown as SaasPlan[]}
                         onClose={() => setIsModuleModalOpen(false)} 
                         onToggle={toggleTenantModule} 
                         onSetModules={setTenantModules}
@@ -500,7 +500,7 @@ export const SaaSAdminView: React.FC = () => {
                     <AddTenantModal 
                         onClose={() => setIsAddTenantOpen(false)}
                         onAdd={handleAddTenant}
-                        products={products}
+                        products={products as unknown as SaasPlan[]}
                     />
                 )}
             </AnimatePresence>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import type { Tenant, ModuleId, Product } from '@/types';
+import type { Tenant, ModuleId, SaasPlan } from '@/types';
 import { useData } from '@/context/DataContext';
 import { TenantsPanel } from '@/components/saas/TenantsPanel';
 import { AddTenantModal } from '@/components/saas/AddTenantModal';
@@ -172,9 +172,9 @@ export default function LegacyNexusTenantsPanelClient(props: {
     try {
       let tenantModules: ModuleId[] = Array.isArray(tenantData.modules) ? tenantData.modules : ['crm', 'team'];
       if (!tenantData.modules) {
-        const selectedProduct = (Array.isArray(products) ? products : []).find((p: Product) => p.name === tenantData.plan);
-        if (Array.isArray(selectedProduct?.modules) && selectedProduct.modules.length > 0) {
-          tenantModules = selectedProduct.modules;
+        const matchedPlan = (Array.isArray(products) ? products : [] as SaasPlan[]).find((p) => p.name === tenantData.plan) as SaasPlan | undefined;
+        if (Array.isArray(matchedPlan?.modules) && matchedPlan.modules.length > 0) {
+          tenantModules = matchedPlan.modules;
         }
       }
 
@@ -322,7 +322,7 @@ export default function LegacyNexusTenantsPanelClient(props: {
         {isModuleModalOpen && editingTenant ? (
           <ModuleManagementModal
             tenant={editingTenant}
-            products={Array.isArray(products) ? products : []}
+            products={Array.isArray(products) ? products as unknown as SaasPlan[] : []}
             onClose={() => setIsModuleModalOpen(false)}
             onToggle={toggleTenantModule}
             onSetModules={setTenantModules}
@@ -330,7 +330,7 @@ export default function LegacyNexusTenantsPanelClient(props: {
         ) : null}
 
         {isAddTenantOpen ? (
-          <AddTenantModal onClose={() => setIsAddTenantOpen(false)} onAdd={handleAddTenant} products={Array.isArray(products) ? products : []} />
+          <AddTenantModal onClose={() => setIsAddTenantOpen(false)} onAdd={handleAddTenant} products={Array.isArray(products) ? products as unknown as SaasPlan[] : []} />
         ) : null}
       </AnimatePresence>
 

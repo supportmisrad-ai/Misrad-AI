@@ -21,12 +21,7 @@ export interface Tenant {
   updatedAt?: string;
 }
 
-export interface Product {
-  name: string;
-  modules?: ModuleId[];
-  price?: number;
-  features?: string[];
-}
+export type { Product } from '../types';
 
 export interface SupportTicket {
   id: string;

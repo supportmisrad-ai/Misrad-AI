@@ -1,15 +1,19 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Search, Command, ArrowRight, User, LayoutGrid, Calculator, Calendar, Sparkles, TrendingUp, CircleAlert, CircleCheckBig, Link, Copy, Send } from 'lucide-react';
+import { Search, ArrowRight, User, LayoutGrid, Sparkles, Link, Copy, Send } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Lead } from './types';
 import { NAV_ITEMS, QUICK_ASSETS } from './constants';
 import { useToast } from './contexts/ToastContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
-import { ChatSources } from '@/components/command-palette/ChatSources';
 import { getSemanticStarters } from '@/components/command-palette/semanticStarters';
+import { CommandPaletteHeader } from '@/components/command-palette/CommandPaletteHeader';
+import { CommandPaletteChat } from '@/components/command-palette/CommandPaletteChat';
+import type { CommandPaletteMode } from '@/components/command-palette/command-palette.types';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
+import { asObject } from '@/lib/shared/unknown';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -21,61 +25,69 @@ interface CommandPaletteProps {
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onSelectLead, leads }) => {
   const { addToast } = useToast();
+  const [mode, setMode] = useState<CommandPaletteMode>('search');
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null!);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
   const pathname = usePathname();
   const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug, [pathname]);
 
-  const { messages, isLoading: isThinking, error, sendText, clear } = useAIModuleChat({
+  const moduleDef = getModuleDefinition('system');
+  const moduleAccent = moduleDef.theme.accent;
+  const moduleGradient = `linear-gradient(135deg, ${moduleDef.theme.accent} 0%, #881337 100%)`;
+
+  const { messages, isLoading: isThinking, error, sendText } = useAIModuleChat({
     moduleOverride: 'system',
     orgSlugOverride: orgSlug,
   });
 
-  const lastAssistant = useMemo(() => {
-    const list = Array.isArray(messages) ? messages : [];
-    return [...list].reverse().find((m) => m.role === 'assistant') || null;
-  }, [messages]);
-
-  const aiResponse = lastAssistant
-    ? {
-        type: error ? 'error' : 'success',
-        text: String(lastAssistant.content || ''),
-        sources: Array.isArray(lastAssistant.sources) ? lastAssistant.sources : [],
+  const extractMessageText = (message: unknown): string => {
+    const obj = asObject(message);
+    if (!obj) return '';
+    if (typeof obj.content === 'string') return obj.content;
+    const parts = obj.parts;
+    if (Array.isArray(parts)) {
+      let text = '';
+      for (const part of parts) {
+        const pObj = asObject(part);
+        if (pObj?.type === 'text' && typeof pObj.text === 'string') text += pObj.text;
+        else if (typeof part === 'string') text += part;
       }
-    : null;
+      return text;
+    }
+    if (typeof obj.text === 'string') return obj.text;
+    return '';
+  };
 
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-        setQuery('');
-        clear();
+    if (!isOpen) {
+      setMode('search');
+      setQuery('');
     }
   }, [isOpen]);
 
-  // AI Brain Logic
   useEffect(() => {
-      if (query.length < 3) {
-          return;
-      }
+    if (isOpen) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, mode]);
 
-      const debounceTimer = setTimeout(async () => {
-          // Heuristic to detect natural language questions vs simple search
-          const lowerQ = query.toLowerCase();
-          const isQuestion = lowerQ.includes('?') || lowerQ.split(' ').length > 3 || 
-                             ['what', 'how', 'who', 'where', 'when', 'why', 'status', 'money', 'revenue', 'leads', 'מה', 'איך', 'כמה', 'מי', 'מתי', 'למה', 'מצב'].some(w => lowerQ.startsWith(w) || lowerQ.includes(w));
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    }
+  }, [messages, isThinking]);
 
-          if (isQuestion) {
-              sendText(query);
-          }
-      }, 800);
-
-      return () => clearTimeout(debounceTimer);
-  }, [query, sendText]);
+  useEffect(() => {
+    if (mode === 'chat' && inputRef.current instanceof HTMLTextAreaElement) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [query, mode]);
 
   if (!isOpen) return null;
 
-  // Filter Logic
   const filteredNav = NAV_ITEMS.filter(item => 
     item.label.toLowerCase().includes(query.toLowerCase())
   ).slice(0, 3);
@@ -90,242 +102,206 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
     asset.label.toLowerCase().includes(query.toLowerCase())
   );
 
-  const handleSelectNav = (id: string) => {
-      onNavigate(id);
-      onClose();
-  };
-
-  const handleSelectLead = (lead: Lead) => {
-      onSelectLead(lead);
-      onClose();
-  };
-
+  const handleSelectNav = (id: string) => { onNavigate(id); onClose(); };
+  const handleSelectLead = (lead: Lead) => { onSelectLead(lead); onClose(); };
   const handleCopyAsset = (value: string, type: string) => {
-      navigator.clipboard.writeText(value);
-      addToast(`${type === 'link' ? 'קישור' : 'תוכן'} הועתק ללוח`, 'success');
-      onClose();
+    navigator.clipboard.writeText(value);
+    addToast(`${type === 'link' ? 'קישור' : 'תוכן'} הועתק ללוח`, 'success');
+    onClose();
+  };
+  const handleWhatsappAsset = (value: string) => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(value)}`, '_blank');
+    onClose();
   };
 
-  const handleWhatsappAsset = (value: string) => {
-      window.open(`https://wa.me/?text=${encodeURIComponent(value)}`, '_blank');
+  const handleSendMessage = () => {
+    if (query.trim().length >= 1 && !isThinking) {
+      sendText(query);
+      setQuery('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
       onClose();
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (mode === 'chat') handleSendMessage();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] transition-all duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center px-3 sm:px-4 transition-all duration-300" onClick={onClose} style={{ paddingTop: '6vh' }}>
       <div 
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/20 animate-scale-in transform transition-all"
+        className={`w-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-slate-200/60 animate-scale-in transform transition-all ${
+          mode === 'chat' ? 'max-w-3xl h-[80vh] flex flex-col' : 'max-w-lg'
+        }`}
         onClick={e => e.stopPropagation()}
+        dir="rtl"
       >
-        <div className="flex items-center gap-4 p-5 border-b border-slate-100 bg-white relative">
-            <Search className={`transition-colors ${isThinking ? 'text-rose-600 animate-pulse' : 'text-slate-400'}`} size={24} />
-            <input 
-                ref={inputRef}
-                type="text" 
-                placeholder="שאל את Misrad AI או חפש..."
-                className="flex-1 bg-transparent text-xl focus:outline-none text-slate-800 placeholder:text-slate-300 font-medium h-10"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-            />
-            <div className="flex items-center gap-2">
-                {isThinking && (
-                    <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce"></span>
-                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
-                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
-                    </div>
-                )}
-                <div className="hidden md:flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500 uppercase border border-slate-200">
-                    <span className="text-xs">ESC</span>
-                </div>
-            </div>
-        </div>
-        
-        <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-2 bg-slate-50/50">
+        <CommandPaletteHeader
+          mode={mode}
+          onModeChange={setMode}
+          onClose={onClose}
+          inputRef={inputRef}
+          moduleGradient={moduleGradient}
+          moduleAccent={moduleAccent}
+        />
 
-            <div className="px-2 pt-2">
-              <div className="flex flex-wrap gap-2">
-                {getSemanticStarters('system').map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => {
-                      sendText(s.text);
-                      setQuery('');
-                    }}
-                    disabled={isThinking}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 border border-slate-200/60 text-slate-700 text-xs font-bold hover:bg-white hover:border-rose-200/60 hover:text-slate-900 transition-all"
-                  >
-                    <Sparkles size={14} className="text-rose-600" />
-                    {s.text}
-                  </button>
-                ))}
+        {mode === 'chat' ? (
+          <CommandPaletteChat
+            query={query}
+            setQuery={setQuery}
+            messages={messages}
+            isThinking={isThinking}
+            error={error}
+            messagesEndRef={messagesEndRef}
+            inputRef={inputRef as React.RefObject<HTMLTextAreaElement>}
+            extractMessageText={extractMessageText}
+            handleSendMessage={handleSendMessage}
+            sendText={sendText}
+            starters={getSemanticStarters('system')}
+            onKeyDown={handleKeyDown}
+            moduleGradient={moduleGradient}
+            moduleAccent={moduleAccent}
+            moduleKey="system"
+            orgSlug={orgSlug}
+          />
+        ) : (
+          <>
+            <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-slate-100 shrink-0">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} style={isThinking ? { color: moduleAccent } : undefined} />
+                <input 
+                  ref={inputRef as React.RefObject<HTMLInputElement>}
+                  type="text" 
+                  placeholder="חפש ליד, פעולה או מודול..."
+                  className="w-full pr-9 pl-3 py-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-sm focus:outline-none focus:border-slate-300 focus:ring-1 focus:ring-slate-200/60 text-slate-800 placeholder:text-slate-400 font-medium transition-all"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
               </div>
             </div>
-            
-            {/* AI ANSWER */}
-            {aiResponse && (
-                <div className="mb-4 mx-2 mt-2 animate-slide-down">
-                    <div className="bg-slate-900 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl"></div>
-                        <div className="relative z-10 flex gap-3">
-                            <div className="p-2 bg-rose-600 rounded-lg h-fit shadow-md shadow-rose-900/20">
-                                <Sparkles size={18} className="text-yellow-300" />
-                            </div>
-                            <div>
-                                <div className="text-[10px] font-bold text-rose-300 uppercase tracking-wider mb-1">Misrad AI</div>
-                                <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
-                                {Array.isArray(aiResponse.sources) && aiResponse.sources.length ? (
-                                  <ChatSources sources={aiResponse.sources} />
-                                ) : null}
-                            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto custom-scrollbar p-2 bg-white">
+              {filteredAssets.length > 0 && (
+                <div className="mb-1">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Link size={10} /> נכסים מהירים
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredAssets.map(asset => (
+                      <div key={asset.id} className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between group transition-colors">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-1.5 bg-slate-100 rounded-lg" style={{ color: moduleAccent }}><Link size={14} /></div>
+                          <span className="font-bold text-sm text-slate-700">{asset.label}</span>
                         </div>
-                    </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <button onClick={() => handleCopyAsset(asset.value, asset.type)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600" title="העתק"><Copy size={14} /></button>
+                          <button onClick={() => handleWhatsappAsset(asset.value)} className="p-1.5 hover:bg-emerald-50 rounded-lg text-emerald-500 hover:text-emerald-600" title="שלח בווצאפ"><Send size={14} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-            )}
+              )}
 
-            {/* Quick Assets */}
-            {filteredAssets.length > 0 && (
-                <div className="mb-2">
-                    <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <Link size={10} /> נכסים מהירים (Quick Assets)
-                    </div>
-                    <div className="space-y-1">
-                        {filteredAssets.map(asset => (
-                            <div 
-                                key={asset.id}
-                                className="w-full text-right px-4 py-3 rounded-xl bg-white hover:shadow-sm border border-transparent hover:border-slate-200 flex items-center justify-between group transition-all"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg shadow-sm">
-                                        <Link size={16} />
-                                    </div>
-                                    <span className="font-bold text-slate-700">{asset.label}</span>
-                                </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                    <button 
-                                        onClick={() => handleCopyAsset(asset.value, asset.type)}
-                                        className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
-                                        title="העתק"
-                                    >
-                                        <Copy size={14} />
-                                    </button>
-                                    <button 
-                                        onClick={() => handleWhatsappAsset(asset.value)}
-                                        className="p-1.5 hover:bg-emerald-50 rounded text-emerald-500 hover:text-emerald-700"
-                                        title="שלח בווצאפ"
-                                    >
-                                        <Send size={14} />
-                                    </button>
-                                </div>
+              {filteredNav.length > 0 && (
+                <div className="mb-1">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <LayoutGrid size={10} /> ניווט מהיר
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredNav.map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <button key={item.id} onClick={() => handleSelectNav(item.id)} className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between group transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-1.5 bg-slate-50 border border-slate-200/60 text-slate-500 rounded-lg group-hover:text-white transition-all" onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = moduleAccent; (e.currentTarget as HTMLElement).style.borderColor = 'transparent'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = ''; (e.currentTarget as HTMLElement).style.borderColor = ''; }}>
+                              {Icon && <Icon size={15} />}
                             </div>
-                        ))}
-                    </div>
+                            <span className="font-bold text-sm text-slate-700 group-hover:text-slate-900">{item.label}</span>
+                          </div>
+                          <ArrowRight size={14} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-all" style={{ color: moduleAccent }} />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-            )}
+              )}
 
-            {/* Quick Navigation */}
-            {filteredNav.length > 0 && (
-                <div className="mb-2">
-                    <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <LayoutGrid size={10} /> ניווט מהיר
-                    </div>
-                    <div className="space-y-1">
-                        {filteredNav.map(item => {
-                            const Icon = item.icon;
-                            return (
-                                <button 
-                                    key={item.id}
-                                    onClick={() => handleSelectNav(item.id)}
-                                    className="w-full text-right px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200 flex items-center justify-between group transition-all"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg group-hover:bg-rose-50 group-hover:border-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
-                                            {Icon && <Icon size={16} />}
-                                        </div>
-                                        <span className="font-bold text-slate-700 group-hover:text-slate-900">{item.label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform group-hover:-translate-x-1">
-                                        <span className="text-[10px] font-bold text-slate-300 uppercase">עבור</span>
-                                        <ArrowRight size={14} className="text-rose-600" />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Leads */}
-            {filteredLeads.length > 0 && (
+              {filteredLeads.length > 0 && (
                 <div>
-                     <div className="px-4 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mt-2">
-                        <User size={10} /> לקוחות ולידים
-                     </div>
-                     <div className="space-y-1">
-                        {filteredLeads.map(lead => (
-                            <button 
-                                key={lead.id}
-                                onClick={() => handleSelectLead(lead)}
-                                className="w-full text-right px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200 flex items-center justify-between group transition-all"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border transition-colors shadow-sm ${
-                                        lead.status === 'won' 
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                        : 'bg-white text-slate-500 border-slate-200 group-hover:border-rose-200 group-hover:text-rose-700'
-                                    }`}>
-                                        {lead.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-slate-800 text-sm group-hover:text-rose-700">{lead.name}</div>
-                                        <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                                            <span>{lead.company || 'לקוח פרטי'}</span>
-                                            {lead.isHot && <span className="text-amber-500">🔥</span>}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xs font-mono font-bold text-slate-600 group-hover:text-slate-900">
-                                        ₪{lead.value.toLocaleString()}
-                                    </div>
-                                    <div className={`text-[10px] font-bold ${lead.status === 'won' ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                        {lead.status}
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                     </div>
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <User size={10} /> לקוחות ולידים
+                  </div>
+                  <div className="space-y-0.5">
+                    {filteredLeads.map(lead => (
+                      <button key={lead.id} onClick={() => handleSelectLead(lead)} className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between group transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border transition-colors ${
+                            lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200 group-hover:border-slate-300'
+                          }`}>{lead.name.charAt(0)}</div>
+                          <div>
+                            <div className="font-bold text-slate-800 text-sm">{lead.name}</div>
+                            <div className="text-xs text-slate-400 flex items-center gap-1.5">
+                              <span>{lead.company || 'לקוח פרטי'}</span>
+                              {lead.isHot && <span className="text-amber-500">🔥</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs font-mono font-bold text-slate-600 group-hover:text-slate-800">₪{lead.value.toLocaleString()}</div>
+                          <div className={`text-[10px] font-bold ${lead.status === 'won' ? 'text-emerald-600' : 'text-slate-400'}`}>{lead.status}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-            )}
+              )}
 
-            {query === '' && (
-                <div className="p-12 text-center text-slate-400 opacity-60">
-                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-200">
-                        <Command size={32} />
-                    </div>
-                    <p className="text-sm font-medium">מה תרצה לעשות היום?</p>
-                    <p className="text-xs mt-1">חפש ליד, נווט לעמוד, או שאל שאלה.</p>
+              {query === '' && (
+                <div className="py-6 px-4 text-center text-slate-400">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-slate-200/60" style={{ background: moduleGradient }}>
+                    <Sparkles size={24} className="text-white" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-600 mb-1">חיפוש חכם במודול System</p>
+                  <p className="text-xs text-slate-400 mb-4">חפש ליד, נווט, או עבור לצ&apos;אט AI.</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {getSemanticStarters('system').slice(0, 3).map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => { setMode('chat'); setTimeout(() => sendText(s.text), 200); }}
+                        className="px-3 py-1.5 bg-white rounded-lg text-[11px] font-bold border transition-all hover:shadow-sm"
+                        style={{ color: moduleAccent, borderColor: moduleAccent + '40' }}
+                      >
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-            )}
-            
-            {query !== '' && filteredNav.length === 0 && filteredLeads.length === 0 && filteredAssets.length === 0 && !aiResponse && !isThinking && (
-                 <div className="p-8 text-center text-slate-400">
-                    <p className="text-sm font-medium">לא נמצאו תוצאות עבור "{query}"</p>
+              )}
+              
+              {query !== '' && filteredNav.length === 0 && filteredLeads.length === 0 && filteredAssets.length === 0 && !isThinking && (
+                <div className="py-6 px-4 text-center text-slate-400">
+                  <p className="text-sm font-medium mb-1">לא נמצאו תוצאות עבור &quot;{query}&quot;</p>
+                  <p className="text-xs text-slate-400">נסה לחפש משהו אחר או עבור לצ&apos;אט AI</p>
                 </div>
-            )}
+              )}
+            </div>
 
-        </div>
-        
-        <div className="p-3 bg-white border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 px-6">
-             <div className="flex gap-4">
-                 <span className="flex items-center gap-1"><kbd className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-sans font-bold text-slate-500">↵</kbd> לבחירה</span>
-                 <span className="flex items-center gap-1"><kbd className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-sans font-bold text-slate-500">↑↓</kbd> לניווט</span>
-             </div>
-             <div className="flex items-center gap-1 text-rose-600 font-bold">
-                 <Sparkles size={10} /> Misrad AI Active
-             </div>
-        </div>
+            <div className="px-3 py-2 bg-slate-50/80 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 shrink-0">
+              <div className="flex gap-3">
+                <span className="flex items-center gap-1"><kbd className="bg-white border border-slate-200 rounded px-1 py-0.5 font-sans font-bold text-slate-500 text-[9px]">↵</kbd> לבחירה</span>
+                <span className="flex items-center gap-1"><kbd className="bg-white border border-slate-200 rounded px-1 py-0.5 font-sans font-bold text-slate-500 text-[9px]">esc</kbd> לסגירה</span>
+              </div>
+              <div className="flex items-center gap-1 font-bold" style={{ color: moduleAccent }}>
+                <Search size={9} /> System
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

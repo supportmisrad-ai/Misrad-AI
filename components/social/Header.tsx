@@ -30,6 +30,7 @@ const titles: Record<string, string> = {
   profile: 'פרופיל אישי',
   team: 'צוות',
   collection: 'גבייה',
+  'content-bank': 'בנק תכנים',
   'agency-insights': 'תובנות',
   'admin-panel': 'ניהול מערכת',
 };
@@ -50,6 +51,7 @@ const getViewFromPath = (pathname: string): string => {
     '/analytics': 'analytics',
     '/team': 'team',
     '/collection': 'collection',
+    '/content-bank': 'content-bank',
     '/agency-insights': 'agency-insights',
     '/admin': 'admin-panel',
     '/settings': 'settings',

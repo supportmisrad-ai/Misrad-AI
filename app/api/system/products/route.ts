@@ -9,7 +9,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
-import type { ModuleId, Product } from '@/types';
+import type { Product, ProductUnit } from '@/types';
 import { DEFAULT_PRODUCTS } from '@/constants';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -20,17 +20,7 @@ function orgProductsKey(orgId: string): string {
   return `products_catalog_v1:${orgId}`;
 }
 
-function isModuleId(value: unknown): value is ModuleId {
-  return (
-    value === 'crm' ||
-    value === 'finance' ||
-    value === 'ai' ||
-    value === 'team' ||
-    value === 'content' ||
-    value === 'assets' ||
-    value === 'operations'
-  );
-}
+const VALID_UNITS = new Set<ProductUnit>(['unit', 'hour', 'session', 'month', 'project', 'package']);
 
 function coerceProducts(value: unknown): Product[] | null {
   if (!Array.isArray(value)) return null;
@@ -43,21 +33,23 @@ function coerceProducts(value: unknown): Product[] | null {
     const id = typeof obj.id === 'string' ? obj.id : String(obj.id ?? '');
     const name = typeof obj.name === 'string' ? obj.name : String(obj.name ?? '');
     const price = Number(obj.price ?? 0);
-    const color = typeof obj.color === 'string' ? obj.color : String(obj.color ?? '');
+    const color = typeof obj.color === 'string' ? obj.color : 'bg-blue-600';
 
-    const modulesRaw = obj.modules;
-    const modules = Array.isArray(modulesRaw)
-      ? (modulesRaw as unknown[]).map((x) => String(x)).filter(isModuleId)
-      : [];
+    if (!id || !name || !Number.isFinite(price)) continue;
 
-    if (!id || !name || !Number.isFinite(price) || !color || modules.length === 0) continue;
+    const unitRaw = typeof obj.unit === 'string' ? obj.unit : 'unit';
+    const unit: ProductUnit = VALID_UNITS.has(unitRaw as ProductUnit) ? (unitRaw as ProductUnit) : 'unit';
 
     products.push({
       id,
       name,
+      description: typeof obj.description === 'string' ? obj.description : undefined,
       price,
+      unit,
+      category: typeof obj.category === 'string' ? obj.category : undefined,
+      sku: typeof obj.sku === 'string' ? obj.sku : undefined,
       color,
-      modules,
+      isActive: typeof obj.isActive === 'boolean' ? obj.isActive : true,
     });
   }
 

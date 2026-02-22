@@ -123,6 +123,7 @@ export default function SocialFrame({
     profile: 'פרופיל אישי',
     team: 'צוות',
     collection: 'גבייה',
+    'content-bank': 'בנק תכנים',
     'agency-insights': 'תובנות',
     'admin-panel': 'ניהול מערכת',
   };
@@ -141,6 +142,7 @@ export default function SocialFrame({
       '/analytics': 'analytics',
       '/team': 'team',
       '/collection': 'collection',
+      '/content-bank': 'content-bank',
       '/agency-insights': 'agency-insights',
       '/admin': 'admin-panel',
       '/settings': 'settings',
@@ -237,6 +239,7 @@ export default function SocialFrame({
       { id: 'calendar', label: 'אירועים', view: 'calendar', icon: 'Calendar' },
       { id: 'inbox', label: 'הודעות', view: 'inbox', icon: 'MessageSquare' },
       { id: 'workspace', label: 'סביבת עבודה', view: 'workspace', icon: 'LayoutGrid', requiresClient: true },
+      { id: 'content-bank', label: 'בנק תכנים', view: 'content-bank', icon: 'Database' },
       { id: 'machine', label: 'פוסט בקליק ✨', view: 'machine', icon: 'Sparkles' },
       { id: 'campaigns', label: 'קמפיינים', view: 'campaigns', icon: 'Megaphone' },
       { id: 'analytics', label: 'אנליטיקה', view: 'analytics', icon: 'BarChart3' },
@@ -258,6 +261,7 @@ export default function SocialFrame({
       machine: '/machine',
       campaigns: '/campaigns',
       analytics: '/analytics',
+      'content-bank': '/content-bank',
       team: '/team',
       collection: '/collection',
       'agency-insights': '/agency-insights',
@@ -404,7 +408,7 @@ export default function SocialFrame({
               {/* כללי */}
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">כללי</div>
               <div className="grid grid-cols-4 gap-4">
-                {menuItems.filter(i => ['dashboard','all-clients','calendar','inbox'].includes(i.id)).map((item) => {
+                {menuItems.filter(i => ['dashboard','all-clients','calendar','inbox','content-bank'].includes(i.id)).map((item) => {
                   const isActiveItem = currentView === item.view;
                   const IconComponent = iconMap[item.icon] || Icons.Home;
                   return (
