@@ -34,7 +34,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'dialer', label: 'חייגן', icon: PhoneCall },
     ]
   },
-  // NOTE: quotes/finance/products removed — no pages exist yet. Re-add when implemented.
+  {
+    title: 'כלים',
+    items: [
+      { id: 'forms', label: 'טפסים', icon: FileInput },
+      { id: 'automations', label: 'אוטומציות', icon: Zap },
+      { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
+      { id: 'partners', label: 'שותפים', icon: Users },
+    ]
+  },
   {
     title: 'ניהול מערכת',
     items: [

@@ -14,7 +14,7 @@ function R(rule, response, o = {}) {
     0, '0|0', '', '', o.pos||'0|0'
   ];
 }
-function SEP(pos) { return R('------------------------------', ' ', { pos }); }
+function SEP(pos) { return R('----------------------------------------------------------', ' ', { pos }); }
 
 function L({ h, d, f, btn, secs }) {
   const lines = [`header:\`${h||''}\`\\`, `description:\`${d||''}\`\\`,
@@ -26,7 +26,7 @@ function L({ h, d, f, btn, secs }) {
     }
     lines.push('>', '(/list)');
   }
-  return lines.join('\n');
+  return lines.join('\n') + '\n\n';
 }
 
 const WH_SIGNUP  = 'https://hook.eu1.make.com/REPLACE_SIGNUP_WEBHOOK';

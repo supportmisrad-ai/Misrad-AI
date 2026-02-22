@@ -50,7 +50,7 @@ const result = rows.map((r, i) => {
     followAfterDelay: reminder > 0 ? reminder : -1,
     followAfterDelayType: reminder > 0 ? remType : -1,
     Cooldown: r[9] || 0,
-    _Date: new Date().toISOString(),
+    _Date: new Date().toISOString().split('.')[0],
     Color: 'White',
     CustomColor: false,
     IsGif: false,
@@ -77,7 +77,8 @@ const result = rows.map((r, i) => {
 const outDir = path.join(__dirname, '..', 'bot');
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 const outFile = path.join(outDir, 'Rules_2.rules');
-fs.writeFileSync(outFile, JSON.stringify(result), 'utf8');
+const BOM = '\uFEFF';
+fs.writeFileSync(outFile, BOM + JSON.stringify(result), 'utf8');
 console.log(`✅ Rules file created: ${outFile}`);
 console.log(`   Total rules: ${result.length}`);
 console.log(`   Number mapping entries: ${Object.keys(numMap).length}`);
