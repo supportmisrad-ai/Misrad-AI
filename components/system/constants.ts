@@ -41,6 +41,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'automations', label: 'אוטומציות', icon: Zap },
       { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
       { id: 'partners', label: 'שותפים', icon: Users },
+      { id: 'teams', label: 'צוותי מכירות', icon: Network },
+      { id: 'field_map', label: 'צוותי שטח', icon: Map },
     ]
   },
   {

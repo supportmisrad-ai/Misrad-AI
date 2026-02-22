@@ -38,6 +38,8 @@ const SHELL_TABS = new Set([
   'automations',
   'call_analyzer',
   'partners',
+  'teams',
+  'field_map',
 ]);
 
 type ShellUser = {
