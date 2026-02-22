@@ -144,24 +144,14 @@ export const TasksView: React.FC = () => {
   }, [tasksQuery.data, replaceContextTasks]);
 
   // Sync with context tasks when they change (for immediate updates)
+  // Use a ref to track last-known context identity and avoid redundant updates
+  const lastContextRef = useRef(contextTasks);
   useEffect(() => {
-      if (contextTasks && contextTasks.length > 0) {
-          // Update local state with context tasks, preserving any local changes
-          setTasks(prev => {
-              // Merge: use context tasks as base, but keep local timer states if they differ
-              const merged = contextTasks.map((contextTask: Task) => {
-                  const localTask = prev.find(t => t.id === contextTask.id);
-                  // If local task has timer running, preserve it (optimistic update)
-                  if (localTask && localTask.isTimerRunning !== contextTask.isTimerRunning) {
-                      // Keep local state if it was recently updated (within last 2 seconds)
-                      return localTask;
-                  }
-                  return contextTask;
-              });
-              return merged;
-          });
-          setCachedTasks(contextTasks);
-      }
+      if (!contextTasks || contextTasks.length === 0) return;
+      if (contextTasks === lastContextRef.current) return;
+      lastContextRef.current = contextTasks;
+      setTasks(contextTasks);
+      setCachedTasks(contextTasks);
   }, [contextTasks]);
 
   // Sync local list with global task events (TaskDetailModal uses DataContext actions)
@@ -215,54 +205,38 @@ export const TasksView: React.FC = () => {
       };
   }, []);
 
-  // Load tasks from server actions with cache (initial load only)
+  // Load tasks on mount / orgSlug change (one-time, NOT on every contextTasks change)
+  const replaceContextRef = useRef(replaceContextTasks);
+  replaceContextRef.current = replaceContextTasks;
   useEffect(() => {
-      // STEP 2: Show context tasks immediately (from DataContext) - CRITICAL for instant display
-      if (contextTasks && contextTasks.length > 0) {
+      if (!orgSlug) return;
+      // Show context tasks immediately while we fetch fresh data
+      if (contextTasks && contextTasks.length > 0 && tasksRef.current.length === 0) {
           setTasks(contextTasks);
           setCachedTasks(contextTasks);
       }
-      
+      let cancelled = false;
       const loadTasks = async () => {
-          if (!orgSlug) return;
-          // Don't show loading spinner if we already have tasks
-          if (tasksRef.current.length === 0) {
-              setIsRefreshing(true);
-          }
+          if (tasksRef.current.length === 0) setIsRefreshing(true);
           try {
               const res = await refetchTasks();
+              if (cancelled) return;
               const newTasks = res.data?.tasks || [];
-              // Only update if we got new tasks or if we had no tasks before
               if (newTasks.length > 0 || tasksRef.current.length === 0) {
                   setTasks(newTasks);
                   setCachedTasks(newTasks);
-                  if (typeof replaceContextTasks === 'function') {
-                      replaceContextTasks(newTasks);
-                  }
+                  replaceContextRef.current?.(newTasks);
               }
           } catch (error) {
               console.error('Failed to load tasks:', error);
-              // Keep existing tasks on error
-              if (tasksRef.current.length === 0 && contextTasks && contextTasks.length > 0) {
-                  setTasks(contextTasks);
-              }
           } finally {
-              setIsRefreshing(false);
+              if (!cancelled) setIsRefreshing(false);
           }
       };
-      
-      // Always load in background to refresh, but show cached/contextTasks immediately
-      // Use setTimeout to ensure UI renders first
-      const timeoutId = setTimeout(() => {
-          loadTasks();
-      }, 100);
-      
-      // Polling is now handled by React Query refetchInterval (30s)
-      
-      return () => {
-          clearTimeout(timeoutId);
-      };
-  }, [orgSlug, contextTasks, refetchTasks, replaceContextTasks]);
+      const timeoutId = setTimeout(loadTasks, 100);
+      return () => { cancelled = true; clearTimeout(timeoutId); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgSlug]);
 
 
   // Wrapper for updateTask that updates local state and calls API
@@ -1226,6 +1200,7 @@ export const TasksView: React.FC = () => {
                                 task={task} 
                                 users={users} 
                                 onClick={() => openTask(task.id)}
+                                toggleTimer={handleToggleTimer}
                             />
                         )) : (
                             <div className="p-10 text-center text-gray-400">

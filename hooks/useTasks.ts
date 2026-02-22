@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Notification, Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
 import { DEFAULT_WORKFLOW } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -828,9 +828,9 @@ export const useTasks = (
     };
     const closeTask = () => setOpenedTaskId(null);
 
-    const replaceTasks = (next: Task[]) => {
+    const replaceTasks = useCallback((next: Task[]) => {
         setTasks(Array.isArray(next) ? next : []);
-    };
+    }, []);
 
     return {
         tasks, trashTasks, workflowStages, templates, 

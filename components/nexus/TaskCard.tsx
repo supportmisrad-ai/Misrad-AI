@@ -147,7 +147,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
           delete element._touchStartY;
           delete element._touchStartTime;
       }}
-      className={`group bg-white/70 backdrop-blur-lg p-4 rounded-[1.5rem] border shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all cursor-pointer relative overflow-hidden ${
+      className={`group bg-white/70 backdrop-blur-lg p-4 rounded-[1.5rem] border shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all cursor-pointer relative ${
           task.isTimerRunning ? 'border-green-400 ring-2 ring-green-100' : 
           isPendingApproval ? 'border-orange-300 ring-2 ring-orange-50 bg-orange-50/30' :
           'border-white/60 hover:border-white/80'
@@ -161,7 +161,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
       )}
 
       {/* Subtle Shine Effect on Hover */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-500"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-500 rounded-[1.5rem] overflow-hidden"></div>
 
       <div className="flex justify-between items-start mb-3 relative z-10">
         <div className="flex gap-2 items-center">

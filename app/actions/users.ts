@@ -43,6 +43,23 @@ function serializeUnknownError(error: unknown) {
         out[key] = `[unreadable: ${getUnknownErrorMessage(e) ?? 'unknown'}]`;
       }
     }
+    // Fallback: if own properties produced nothing, try String / JSON
+    if (Object.keys(out).length === 0) {
+      const str = String(error);
+      if (str && str !== '[object Object]') {
+        out._string = str;
+      }
+      try {
+        const json = JSON.stringify(error);
+        if (json && json !== '{}') {
+          out._json = json;
+        }
+      } catch { /* ignore */ }
+      if (Object.keys(out).length === 0) {
+        out._type = Object.prototype.toString.call(error);
+        out._proto = error?.constructor?.name ?? 'unknown';
+      }
+    }
     return out;
   }
 

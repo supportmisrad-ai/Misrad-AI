@@ -145,9 +145,38 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick }) => {
         <div className="flex items-center gap-[-8px] min-w-[24px] w-16 justify-end pl-2">
             {assignedUsers.length > 0 ? (
                 <div className="flex -space-x-2 space-x-reverse">
-                    {assignedUsers.slice(0, 3).map(u => (
-                        <img key={u.id} src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full border-2 border-white ring-1 ring-gray-100 shadow-sm" />
-                    ))}
+                    {assignedUsers.slice(0, 3).map(u => {
+                        const avatarUrl = u.avatar;
+                        const initials = u.name?.split(' ').map(n => n.charAt(0)).join('').toUpperCase().substring(0, 2) || '?';
+                        return avatarUrl ? (
+                            <img
+                                key={u.id}
+                                src={avatarUrl}
+                                alt={u.name}
+                                className="w-8 h-8 rounded-full border-2 border-white ring-1 ring-gray-100 shadow-sm object-cover"
+                                title={u.name}
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                        const fallback = document.createElement('div');
+                                        fallback.className = 'w-8 h-8 rounded-full border-2 border-white ring-1 ring-gray-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm';
+                                        fallback.title = u.name || '';
+                                        fallback.textContent = initials;
+                                        parent.replaceChild(fallback, target);
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <div
+                                key={u.id}
+                                className="w-8 h-8 rounded-full border-2 border-white ring-1 ring-gray-100 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                                title={u.name}
+                            >
+                                {initials}
+                            </div>
+                        );
+                    })}
                     {assignedUsers.length > 3 && (
                         <div className="w-8 h-8 rounded-full bg-gray-50 border-2 border-white flex items-center justify-center text-[10px] text-gray-500 font-bold">
                             +{assignedUsers.length - 3}

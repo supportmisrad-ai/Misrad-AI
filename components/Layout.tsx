@@ -70,10 +70,6 @@ export const Layout = ({ children }: LayoutProps) => {
         if (!query.has('from')) query.set('from', from);
       }
 
-      if (rawPath === '/me' && workspaceSystemIdentity?.needsProfileCompletion && !query.has('edit')) {
-        query.set('edit', 'profile');
-      }
-
       const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
 
       if (finalPath === '/operations') {
@@ -87,7 +83,7 @@ export const Layout = ({ children }: LayoutProps) => {
       const target = toNexusPath(basePath, finalPath);
       router.push(target);
     },
-    [basePath, pathname, router, workspaceSystemIdentity?.needsProfileCompletion]
+    [basePath, pathname, router]
   );
 
   const allowMorningBrief = useMemo(() => {
