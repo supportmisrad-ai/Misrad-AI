@@ -209,6 +209,91 @@ export const OrganizationTab: React.FC = () => {
                 isHardDelete={false}
             />
 
+            {/* Name Change Request Modal */}
+            <AnimatePresence>
+                {isNameChangeModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => !isSubmittingNameChange && setIsNameChangeModalOpen(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white p-6 rounded-3xl w-full max-w-md shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {nameChangeSuccess ? (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle size={32} className="text-green-600" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-gray-900 mb-2">הבקשה נשלחה בהצלחה!</h3>
+                                    <p className="text-sm text-gray-500 mb-6">הצוות שלנו יבדוק את הבקשה ויעדכן אותך בהקדם.</p>
+                                    <button
+                                        onClick={() => setIsNameChangeModalOpen(false)}
+                                        className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors text-sm"
+                                    >
+                                        סגור
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between mb-5">
+                                        <h3 className="text-lg font-black text-gray-900">בקשה לשינוי שם ארגון</h3>
+                                        <button onClick={() => setIsNameChangeModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">שם נוכחי</label>
+                                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600">{organization.name}</div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5">שם חדש מבוקש</label>
+                                            <input
+                                                type="text"
+                                                value={requestedName}
+                                                onChange={e => setRequestedName(e.target.value)}
+                                                placeholder="הזן את השם החדש..."
+                                                className="w-full p-3 bg-white border border-gray-200 rounded-xl outline-none focus:border-black transition-colors font-medium text-sm"
+                                                autoFocus
+                                                dir="auto"
+                                            />
+                                        </div>
+
+                                        <p className="text-xs text-gray-400 leading-relaxed">
+                                            הבקשה תישלח לצוות MISRAD AI לבדיקה ואישור. לאחר אישור השם יעודכן אוטומטית.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            onClick={() => setIsNameChangeModalOpen(false)}
+                                            disabled={isSubmittingNameChange}
+                                            className="px-5 py-2.5 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm"
+                                        >
+                                            ביטול
+                                        </button>
+                                        <button
+                                            onClick={submitNameChangeRequest}
+                                            disabled={isSubmittingNameChange || !requestedName.trim() || requestedName.trim() === organization.name}
+                                            className="bg-black text-white px-6 py-2.5 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isSubmittingNameChange ? (
+                                                <><Loader2 size={14} className="animate-spin" /> שולח...</>
+                                            ) : (
+                                                <><Send size={14} className="rotate-180" /> שלח בקשה</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">פרופיל ארגון</h2>

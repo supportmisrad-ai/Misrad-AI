@@ -6,6 +6,7 @@ import { Task, Priority } from '../types';
 import { useData } from '../context/DataContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../constants';
 import { Timer, Check, X, Search } from 'lucide-react';
+import { Avatar } from './Avatar';
 
 interface TaskDetailPopoversProps {
     task: Task;
@@ -174,7 +175,7 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
                                         isAssigned ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-700'
                                     }`}
                                 >
-                                    <img src={u.avatar} className={`w-8 h-8 rounded-full object-cover border ${isAssigned ? 'border-white/20' : 'border-gray-100'}`} />
+                                    <Avatar src={u.avatar} name={u.name} size="md" className={`border ${isAssigned ? 'border-white/20' : 'border-gray-100'}`} />
                                     <div className="text-right flex-1 min-w-0">
                                         <div className="text-xs font-bold truncate">{u.name}</div>
                                         <div className={`text-[10px] truncate ${isAssigned ? 'text-gray-400' : 'text-gray-400'}`}>{u.role}</div>

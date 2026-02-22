@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Priority, Task, Status, TaskCreationDefaults, User, Template, Client, WorkflowStage } from '../types';
+import { Avatar } from '../components/Avatar';
 import { useData } from '../context/DataContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
@@ -1233,7 +1234,7 @@ export const TasksView: React.FC = () => {
                                     <div className="p-4 flex items-center justify-between shrink-0">
                                         <div className="flex items-center gap-2">
                                             {col.avatar ? (
-                                                <img src={col.avatar} className="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
+                                                <Avatar src={col.avatar} name={col.title} size="sm" className="border border-white shadow-sm" />
                                             ) : (
                                                 <div className={`w-2 h-2 rounded-full ${'color' in col && typeof col.color === 'string' && col.color.includes('bg-') ? col.color.split(' ')[0] : 'bg-gray-400'}`}></div>
                                             )}

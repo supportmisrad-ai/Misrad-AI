@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Kanban, Trophy, ArrowRight, Target, LogOut, Bell, Menu, X } from 'lucide-react';
+import { Avatar } from '../Avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../../context/DataContext';
 import { Notification } from '../../types';
@@ -84,7 +85,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
             {/* User Profile */}
             <div className="mt-auto border-t border-slate-800 pt-4 px-2">
                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-700" suppressHydrationWarning />
+                    <Avatar src={currentUser.avatar} name={currentUser.name} size="md" className="border border-slate-700" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate" suppressHydrationWarning>{currentUser.name}</p>
                         <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>
@@ -187,7 +188,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                             </nav>
                             <div className="border-t border-slate-800 p-4 space-y-3">
                                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-700" />
+                                    <Avatar src={currentUser.avatar} name={currentUser.name} size="md" className="border border-slate-700" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
                                         <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>

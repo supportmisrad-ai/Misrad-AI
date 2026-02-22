@@ -5,6 +5,7 @@ import { useSecureAPI } from '../../hooks/useSecureAPI';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Edit2, Trash2, Lock, Shield, DollarSign, TrendingUp, Users, Building2, Crown, Smartphone } from 'lucide-react';
+import { Avatar } from '../Avatar';
 import { User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { CustomSelect } from '../CustomSelect';
@@ -323,7 +324,7 @@ export const TeamTab: React.FC = () => {
                             return (
                                 <tr key={user.id} className="hover:bg-gray-50/50">
                                     <td className="px-6 py-4 flex items-center gap-3">
-                                        <img src={user.avatar} className="w-8 h-8 rounded-full object-cover bg-gray-200" />
+                                        <Avatar src={user.avatar} name={user.name} size="md" />
                                         <div className="flex flex-col">
                                         <span className="font-bold text-gray-900">{user.name}</span>
                                             {user.managedDepartment && (
@@ -444,7 +445,7 @@ export const TeamTab: React.FC = () => {
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <img src={user.avatar} className="w-12 h-12 rounded-full object-cover bg-gray-200 shrink-0 border border-gray-100" alt={user.name} />
+                                        <Avatar src={user.avatar} name={user.name} size="lg" className="shrink-0 border border-gray-100" />
                                         <div className="min-w-0 flex-1">
                                             <div className="font-black text-gray-900 text-base truncate">{user.name}</div>
                                             <div className="text-sm text-gray-600 truncate">{user.role}</div>

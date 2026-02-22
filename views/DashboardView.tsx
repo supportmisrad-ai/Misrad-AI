@@ -487,7 +487,7 @@ export const DashboardView: React.FC<{
             subLabel: 'הוסף טלפון ופרטים',
             done: !!currentUser.phone && currentUser.phone.length > 0,
             icon: User,
-            action: () => navigate('/me?edit=profile'),
+            action: () => navigate('/me?edit=profile&from=onboarding'),
             color: 'text-blue-600 bg-blue-50',
         },
         {
@@ -496,7 +496,7 @@ export const DashboardView: React.FC<{
             subLabel: 'העלה לוגו לסביבת העבודה',
             done: Boolean(organization.logo && organization.logo.length > 0),
             icon: Image,
-            action: () => navigate('/settings?tab=branding'),
+            action: () => navigate('/settings?tab=organization'),
             color: 'text-pink-600 bg-pink-50',
         },
         {

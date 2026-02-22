@@ -2,6 +2,7 @@
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Kanban, Trophy, ArrowRight, Zap, Target, LogOut, Bell } from 'lucide-react';
+import { Avatar } from '../components/Avatar';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
@@ -67,7 +68,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
             {/* User Profile */}
             <div className="mt-auto border-t border-slate-800 pt-4 px-2">
                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-700" suppressHydrationWarning />
+                    <Avatar src={currentUser.avatar} name={currentUser.name} size="md" className="border border-slate-700" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate" suppressHydrationWarning>{currentUser.name}</p>
                         <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">ביצועי שיא</p>

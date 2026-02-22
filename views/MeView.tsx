@@ -387,6 +387,7 @@ export const MeView: React.FC<{
   const streak = currentUser.streakDays || 0;
 
   const didOpenProfileFromUrlRef = useRef(false);
+  const openedFromOnboardingRef = useRef(false);
 
   // Check if we should open profile edit modal from URL
   useEffect(() => {
@@ -399,6 +400,7 @@ export const MeView: React.FC<{
       if (didOpenProfileFromUrlRef.current) return;
       didOpenProfileFromUrlRef.current = true;
       if (openProfile) {
+          openedFromOnboardingRef.current = searchParams?.get('from') === 'onboarding';
           setActiveSettingModal('personal');
           // Clean up URL after opening modal
           if (typeof window !== 'undefined') {
@@ -554,11 +556,16 @@ export const MeView: React.FC<{
   };
 
   const closeModal = () => {
+      const wasFromOnboarding = openedFromOnboardingRef.current;
+      openedFromOnboardingRef.current = false;
       setActiveSettingModal(null);
       if (typeof window === 'undefined') return;
       const shouldClear = new URLSearchParams(window.location.search).get('edit') === 'profile' || window.location.hash === '#edit-profile';
       if (shouldClear) {
           navigate('/me', { replace: true });
+      }
+      if (wasFromOnboarding) {
+          navigate('/', { replace: true });
       }
   };
 

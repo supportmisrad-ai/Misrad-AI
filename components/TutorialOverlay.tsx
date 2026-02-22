@@ -183,6 +183,7 @@ export const TutorialOverlay: React.FC = () => {
                 left: '50%', 
                 transform: 'translate(-50%, -50%)', 
                 position: 'fixed',
+                zIndex: 10002,
                 width: mobile ? `${finalWidth}px` : undefined,
                 maxWidth: `${finalWidth}px`
             };

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Briefcase, SquareActivity, TriangleAlert, AlignStartVertical, Timer, Sparkles, Plus, Info, Wand2, Loader2 } from 'lucide-react';
+import { Avatar } from '../Avatar';
 import { useData } from '../../context/DataContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
@@ -645,7 +646,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                 >
                                     {selectedAssignee ? (
                                         <>
-                                            <img src={selectedAssignee.avatar} alt={selectedAssignee.name} className="w-6 h-6 rounded-full border-2 border-gray-100" />
+                                            <Avatar src={selectedAssignee.avatar} name={selectedAssignee.name} size="sm" className="border-2 border-gray-100" />
                                             <span className="flex-1 text-right">{selectedAssignee.name}</span>
                                         </>
                                     ) : (
@@ -1056,7 +1057,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                 onClick={() => { setClientId(c.id); setActivePopover('none'); }}
                                 className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 transition-colors"
                             >
-                                <img src={c.avatar} alt={c.companyName} className="w-8 h-8 rounded-lg border border-gray-100" />
+                                <Avatar src={c.avatar} name={c.companyName} size="md" rounded="lg" className="border border-gray-100" />
                                 <span className={`text-xs font-bold truncate ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
                                 {clientId === c.id && <Check size={14} className="mr-auto text-purple-600" />}
                             </button>
@@ -1131,7 +1132,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     onClick={() => { setAssigneeId(u.id); setActivePopover('none'); }}
                                     className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${assigneeId === u.id ? 'bg-gray-50 text-gray-900' : 'hover:bg-gray-50'}`}
                                 >
-                                    <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
+                                    <Avatar src={u.avatar} name={u.name} size="md" className="border border-gray-100" />
                                     <div className="text-right flex-1 min-w-0">
                                         <div className="font-bold text-xs truncate">{u.name}</div>
                                         <div className="text-[10px] opacity-70 truncate">{u.role}</div>
@@ -1183,7 +1184,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     onClick={() => { setClientId(c.id); setActivePopover('none'); }}
                                     className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${clientId === c.id ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                                 >
-                                    <img src={c.avatar} alt={c.companyName} className="w-8 h-8 rounded-lg border border-gray-100" />
+                                    <Avatar src={c.avatar} name={c.companyName} size="md" rounded="lg" className="border border-gray-100" />
                                     <span className={`text-xs font-bold truncate flex-1 text-right ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
                                     {clientId === c.id && <Check size={14} className="text-purple-600 shrink-0" />}
                                 </button>

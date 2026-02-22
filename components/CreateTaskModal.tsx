@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, SquareActivity, TriangleAlert, AlignStartVertical, Timer } from 'lucide-react';
+import { Avatar } from './Avatar';
 import { useData } from '../context/DataContext';
 import { Client, Priority, Status, Task, User, WorkflowStage } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -368,7 +369,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             >
                                 {selectedAssignee ? (
                                     <>
-                                        <img src={selectedAssignee.avatar} className="w-5 h-5 rounded-full border border-gray-100" />
+                                        <Avatar src={selectedAssignee.avatar} name={selectedAssignee.name} size="xs" className="border border-gray-100" />
                                         {selectedAssignee.name}
                                     </>
                                 ) : (
@@ -403,7 +404,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                     onClick={() => { setAssigneeId(u.id); setActivePopover('none'); }}
                                                     className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${assigneeId === u.id ? 'bg-blue-50 text-blue-800' : 'hover:bg-gray-50'}`}
                                                 >
-                                                    <img src={u.avatar} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
+                                                    <Avatar src={u.avatar} name={u.name} size="md" className="border border-gray-100" />
                                                     <div className="text-right flex-1">
                                                         <div className="font-bold text-xs">{u.name}</div>
                                                         <div className="text-[10px] opacity-70">{u.role}</div>
@@ -455,7 +456,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                     onClick={() => { setClientId(c.id); setActivePopover('none'); }}
                                                     className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-purple-50 transition-colors"
                                                 >
-                                                    <img src={c.avatar} className="w-8 h-8 rounded-lg border border-gray-100" />
+                                                    <Avatar src={c.avatar} name={c.companyName} size="md" rounded="lg" className="border border-gray-100" />
                                                     <span className={`text-xs font-bold truncate ${clientId === c.id ? 'text-purple-700' : 'text-gray-700'}`}>{c.companyName}</span>
                                                     {clientId === c.id && <Check size={14} className="mr-auto text-purple-600" />}
                                                 </button>

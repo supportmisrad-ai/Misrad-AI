@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { Clock, History, MapPin, CheckCircle2, Users, ArrowRight, Star, CircleAlert, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
+import { Avatar } from '../components/Avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Priority, Status, TimeEntry, User } from '../types';
 import { PRIORITY_LABELS } from '../constants';
@@ -276,7 +277,7 @@ export const TimeClockView: React.FC = () => {
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="relative">
-                                            <img src={user.avatar} className="w-12 h-12 rounded-full border border-gray-100 object-cover" />
+                                            <Avatar src={user.avatar} name={user.name} size="lg" className="border border-gray-100" />
                                             <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${userActiveShift ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                                         </div>
                                         <div>
@@ -358,7 +359,7 @@ export const TimeClockView: React.FC = () => {
                                 return (
                                     <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4 flex items-center gap-3 font-bold text-gray-900">
-                                            <img src={user?.avatar} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
+                                            <Avatar src={user?.avatar} name={user?.name} size="md" className="border border-gray-100" />
                                             {user?.name}
                                         </td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">
