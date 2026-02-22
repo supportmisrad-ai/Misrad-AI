@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { encodeWorkspaceOrgSlug, parseWorkspaceRoute, joinPath } from '@/lib/os/social-routing';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -33,10 +33,10 @@ export function useNexusNavigation() {
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);
 
-  const navigate = (subPath: string) => {
+  const navigate = useCallback((subPath: string) => {
     const target = toNexusPath(basePath, subPath);
     router.push(target);
-  };
+  }, [basePath, router]);
 
   return { basePath, navigate, pathname };
 }

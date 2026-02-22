@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useLayoutEffect } from 'react';
+import React, { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { ArrowLeft, Check, Compass, X } from 'lucide-react';
@@ -65,9 +65,9 @@ const STEPS = [
 ];
 
 const TOOLTIP_WIDTH = 320;
-const TOOLTIP_WIDTH_MOBILE = 240; // Further reduced for smaller mobile screens
+const TOOLTIP_WIDTH_MOBILE = 300;
 const GAP = 16;
-const MOBILE_PADDING = 20; // Extra padding on mobile for safety
+const MOBILE_PADDING = 12;
 
 export const TutorialOverlay: React.FC = () => {
     const { isTutorialActive, endTutorial } = useData();
@@ -96,11 +96,16 @@ export const TutorialOverlay: React.FC = () => {
         };
     }, []);
 
-    // Start tour -> go to dashboard
+    // Start tour -> go to dashboard (run only once when tutorial starts)
+    const hasInitializedRef = useRef(false);
     useEffect(() => {
-        if (isTutorialActive) {
+        if (isTutorialActive && !hasInitializedRef.current) {
+            hasInitializedRef.current = true;
             navigate('/');
             setCurrentStep(0);
+        }
+        if (!isTutorialActive) {
+            hasInitializedRef.current = false;
         }
     }, [isTutorialActive, navigate]);
 
@@ -379,14 +384,13 @@ export const TutorialOverlay: React.FC = () => {
                 className={`bg-white rounded-3xl shadow-xl ${isMobile ? 'p-4' : 'p-6'} flex flex-col items-start gap-4 border border-gray-100 custom-scrollbar`}
                 style={{
                     ...tooltipStyle,
-                    // Ensure it doesn't overflow on mobile
                     boxSizing: 'border-box',
-                    // Override maxWidth/maxHeight on mobile to ensure it fits - force smaller values
                     ...(isMobile && {
                         maxWidth: `calc(100vw - ${MOBILE_PADDING * 2}px)`,
                         maxHeight: `calc(100vh - ${MOBILE_PADDING * 2}px)`,
-                        // Ensure width doesn't exceed viewport
-                        width: tooltipStyle.width ? `min(${tooltipStyle.width}, calc(100vw - ${MOBILE_PADDING * 2}px))` : `calc(100vw - ${MOBILE_PADDING * 2}px)`
+                        width: `min(${TOOLTIP_WIDTH_MOBILE}px, calc(100vw - ${MOBILE_PADDING * 2}px))`,
+                        left: '50%',
+                        transform: targetRect ? `translateX(-50%)` : 'translate(-50%, -50%)',
                     })
                 }}
             >

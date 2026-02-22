@@ -204,7 +204,7 @@ export const SettingsView: React.FC = () => {
     <div className="flex flex-col lg:flex-row w-full max-w-7xl mx-auto relative lg:h-[calc(100vh-8rem)] lg:overflow-hidden">
       
       {/* Mobile Header and Sidebar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-2 bg-white/90 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 w-full shrink-0">
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 w-full shrink-0">
           <div className="flex items-center gap-2">
               <div className={`p-1.5 rounded-lg ${activeTab === 'organization' ? 'bg-gray-100 text-gray-900' : `${(activeTabDetails?.color || '').replace('text-', 'bg-').replace('600', '100').replace('500', '100')} ${activeTabDetails?.color || ''}`}`}>
                   {activeTabDetails && <activeTabDetails.icon size={18} />}
