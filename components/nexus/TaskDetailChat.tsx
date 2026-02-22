@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Task, User } from '../../types';
-import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
+import { Send, Paperclip, Mic, MessageSquare, Play, Pause, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 import { usePathname } from 'next/navigation';
@@ -39,8 +39,10 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isRecordingComment, setIsRecordingComment] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const audioElRef = useRef<HTMLAudioElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -105,12 +107,15 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                 throw new Error(data.error || 'Upload failed');
             }
 
-            // Create attachment with Supabase URL
+            // Create attachment with display URL (signed) and stable ref for DB
+            const displayUrl = String(data?.signedUrl || data?.url || '').trim();
+            const stableRef = String(data?.ref || '').trim();
             const attachment = {
                 name: file.name,
                 type,
                 senderId: String(currentUser && typeof currentUser === 'object' && 'id' in currentUser ? (currentUser as { id?: string }).id : ''),
-                url: String((data as Record<string, unknown>)?.id || data?.url || '') // Prefer stable sb:// reference for DB
+                url: displayUrl || stableRef,
+                ref: stableRef || undefined
             };
 
             // Add message with attachment
@@ -155,6 +160,30 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
         setOpenMenuId(null);
     };
 
+    // --- Audio Playback ---
+    const toggleAudioPlayback = (msgId: string, audioUrl: string) => {
+        if (playingAudioId === msgId) {
+            // Stop current playback
+            if (audioElRef.current) {
+                audioElRef.current.pause();
+                audioElRef.current = null;
+            }
+            setPlayingAudioId(null);
+            return;
+        }
+        // Stop any existing playback
+        if (audioElRef.current) {
+            audioElRef.current.pause();
+            audioElRef.current = null;
+        }
+        const audio = new Audio(audioUrl);
+        audio.onended = () => { setPlayingAudioId(null); audioElRef.current = null; };
+        audio.onerror = () => { setPlayingAudioId(null); audioElRef.current = null; };
+        audioElRef.current = audio;
+        setPlayingAudioId(msgId);
+        audio.play().catch(() => { setPlayingAudioId(null); audioElRef.current = null; });
+    };
+
     // --- Recording Logic ---
     const startRecording = async () => {
         try {
@@ -197,30 +226,61 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                     if (transcribeInFlightRef.current) return;
                     transcribeInFlightRef.current = true;
 
-                    const formData = new FormData();
-                    formData.append('file', audioBlob, 'recording.webm');
+                    // Upload audio to storage + transcribe in parallel
+                    const uploadForm = new FormData();
+                    uploadForm.append('file', new File([audioBlob], `voice-${Date.now()}.webm`, { type: 'audio/webm' }));
+                    uploadForm.append('bucket', 'attachments');
+                    uploadForm.append('folder', 'tasks');
+                    if (orgSlug) uploadForm.append('orgSlug', String(orgSlug));
+                    if (currentUser?.id) uploadForm.append('userId', String(currentUser.id));
 
-                    const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/ai/transcribe`, {
-                        method: 'POST',
-                        body: formData,
-                    });
+                    const transcribeForm = new FormData();
+                    transcribeForm.append('file', audioBlob, 'recording.webm');
 
-                    const json = await res.json().catch(() => null as unknown);
-                    if (!res.ok || !json?.success) {
-                        throw new Error(String(json?.error || 'Transcription failed'));
+                    const [uploadRes, transcribeRes] = await Promise.allSettled([
+                        fetch('/api/storage/upload', { method: 'POST', body: uploadForm }),
+                        fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/ai/transcribe`, { method: 'POST', body: transcribeForm }),
+                    ]);
+
+                    // Get audio URL from upload
+                    let audioUrl = '';
+                    let audioRef = '';
+                    if (uploadRes.status === 'fulfilled' && uploadRes.value.ok) {
+                        const uploadData = await uploadRes.value.json().catch(() => null);
+                        audioUrl = String(uploadData?.signedUrl || uploadData?.url || '').trim();
+                        audioRef = String(uploadData?.ref || '').trim();
                     }
 
-                    const transcriptText = String(json?.data?.transcriptText || '').trim();
-                    if (transcriptText) {
-                        setMessageText(prev => prev + (prev ? ' ' : '') + transcriptText);
+                    // Get transcript
+                    let transcriptText = '';
+                    if (transcribeRes.status === 'fulfilled' && transcribeRes.value.ok) {
+                        const json = await transcribeRes.value.json().catch(() => null as unknown);
+                        if (json?.success) {
+                            transcriptText = String(json?.data?.transcriptText || '').trim();
+                        }
+                    }
+
+                    // Send as voice message with audio attachment
+                    const voiceText = transcriptText
+                        ? `🎤 ${transcriptText}`
+                        : '🎤 [הודעה קולית - תמלול לא זמין]';
+
+                    if (audioUrl || audioRef) {
+                        const attachment = {
+                            name: 'הקלטה קולית',
+                            type: 'file' as const,
+                            url: audioUrl || audioRef,
+                            ref: audioRef || undefined,
+                        };
+                        addMessage(task.id, voiceText, attachment, 'user', task);
                     } else {
-                        setMessageText(prev => prev + (prev ? ' ' : '') + '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]');
+                        addMessage(task.id, voiceText, undefined, 'user', task);
                     }
 
                     setIsTranscribing(false);
                 } catch (e) {
-                    console.error("Transcription failed", e);
-                    setMessageText(prev => prev + (prev ? ' ' : '') + '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]');
+                    console.error("Voice message failed", e);
+                    addMessage(task.id, '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]', undefined, 'user', task);
                     setIsTranscribing(false);
                 } finally {
                     transcribeInFlightRef.current = false;
@@ -351,14 +411,31 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                                             )}
 
                                             {isVoice ? (
-                                                <div className="flex items-center gap-2 py-1">
-                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors text-gray-600">
-                                                        <Play size={14} fill="currentColor" />
+                                                <div>
+                                                    <div className="flex items-center gap-2 py-1">
+                                                        {msg.attachment?.url && !String(msg.attachment.url).startsWith('sb://') ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleAudioPlayback(msg.id, msg.attachment!.url)}
+                                                                className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
+                                                                    playingAudioId === msg.id ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                }`}
+                                                            >
+                                                                {playingAudioId === msg.id ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                                                <Play size={14} fill="currentColor" />
+                                                            </div>
+                                                        )}
+                                                        <div className="h-1 bg-gray-200 rounded-full w-32 overflow-hidden">
+                                                            <div className={`h-full rounded-full transition-all ${playingAudioId === msg.id ? 'w-2/3 bg-green-500' : 'w-1/3 bg-gray-400'}`}></div>
+                                                        </div>
+                                                        <Mic size={14} className="opacity-40" />
                                                     </div>
-                                                    <div className="h-1 bg-gray-200 rounded-full w-32 overflow-hidden">
-                                                        <div className="h-full w-1/3 bg-gray-400 rounded-full"></div>
-                                                    </div>
-                                                    <Mic size={14} className="opacity-40" />
+                                                    {msg.text.replace(/^🎤\s*/, '').trim() && (
+                                                        <span className="whitespace-pre-wrap block text-[12px] text-gray-500 mt-1 select-text">{msg.text.replace(/^🎤\s*/, '')}</span>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 msg.text && <span className="whitespace-pre-wrap block text-[13.5px] select-text">{msg.text}</span>

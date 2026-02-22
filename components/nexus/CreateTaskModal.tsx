@@ -106,7 +106,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<Priority>(Priority.MEDIUM);
     const [status, setStatus] = useState<string>(Status.TODO);
-    const [assigneeId, setAssigneeId] = useState<string>('');
+    const [assigneeId, setAssigneeId] = useState<string>(currentUser?.id ?? '');
     const [clientId, setClientId] = useState<string>('');
     const [tag, setTag] = useState('');
     const [dueDate, setDueDate] = useState('');
@@ -980,13 +980,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                         margin: 'auto',
                         width: clientPopoverPosition?.width || Math.min(280, typeof window !== 'undefined' ? window.innerWidth - 32 : 280),
                         maxWidth: 'calc(100vw - 32px)',
-                        maxHeight: '85vh',
+                        maxHeight: '50vh',
                         zIndex: 99999
                     }}
-                    className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                    className="property-popover bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col"
                 >
-                    <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">שיוך ללקוח</div>
-                    <div className="p-2 space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+                    <div className="p-3 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">שיוך ללקוח</div>
+                    <div className="p-2 space-y-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                         <button 
                             onClick={() => { setClientId(''); setActivePopover('none'); }}
                             className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 text-gray-500 text-xs font-medium"

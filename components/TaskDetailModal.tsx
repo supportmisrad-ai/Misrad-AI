@@ -97,7 +97,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/#/guest/${task.id}`;
+    const url = `${window.location.origin}/guest/${task.id}`;
     navigator.clipboard.writeText(url);
     setShowShareTooltip(true);
     setTimeout(() => setShowShareTooltip(false), 2000);

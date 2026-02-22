@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Task } from '../types';
-import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Loader2, Copy } from 'lucide-react';
+import { Send, Paperclip, Mic, MessageSquare, Play, Pause, X, Check, Trash2, Edit2, ChevronDown, FileText, Download, Loader2, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -38,8 +38,10 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isRecordingComment, setIsRecordingComment] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const audioElRef = useRef<HTMLAudioElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -65,7 +67,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (!messageText.trim()) return;
-        addMessage(task.id, messageText);
+        addMessage(task.id, messageText, undefined, 'user', task);
         setMessageText('');
     };
 
@@ -75,7 +77,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             const url = URL.createObjectURL(file);
             const type = (file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file') as 'image' | 'video' | 'file';
             const attachment = { name: file.name, type, url };
-            addMessage(task.id, '', attachment);
+            addMessage(task.id, '', attachment, 'user', task);
         }
     };
 
@@ -87,7 +89,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
     const handleSaveEditMessage = (msgId: string) => {
         if (editText.trim()) {
-            updateMessage(task.id, msgId, editText);
+            updateMessage(task.id, msgId, editText, task);
         }
         setEditingMessageId(null);
         setEditText('');
@@ -95,7 +97,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
     const handleDeleteMessage = (msgId: string) => {
         if(window.confirm('האם למחוק את ההודעה?')) {
-            deleteMessage(task.id, msgId);
+            deleteMessage(task.id, msgId, task);
         }
         setOpenMenuId(null);
     };
@@ -103,6 +105,22 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const handleCopyMessage = (text: string) => {
         navigator.clipboard.writeText(text);
         setOpenMenuId(null);
+    };
+
+    // --- Audio Playback ---
+    const toggleAudioPlayback = (msgId: string, audioUrl: string) => {
+        if (playingAudioId === msgId) {
+            if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current = null; }
+            setPlayingAudioId(null);
+            return;
+        }
+        if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current = null; }
+        const audio = new Audio(audioUrl);
+        audio.onended = () => { setPlayingAudioId(null); audioElRef.current = null; };
+        audio.onerror = () => { setPlayingAudioId(null); audioElRef.current = null; };
+        audioElRef.current = audio;
+        setPlayingAudioId(msgId);
+        audio.play().catch(() => { setPlayingAudioId(null); audioElRef.current = null; });
     };
 
     // --- Recording Logic ---
@@ -299,14 +317,31 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                                             )}
 
                                             {isVoice ? (
-                                                <div className="flex items-center gap-2 py-1">
-                                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-300 transition-colors text-gray-600">
-                                                        <Play size={14} fill="currentColor" />
+                                                <div>
+                                                    <div className="flex items-center gap-2 py-1">
+                                                        {msg.attachment?.url && !String(msg.attachment.url).startsWith('sb://') ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleAudioPlayback(msg.id, msg.attachment!.url)}
+                                                                className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
+                                                                    playingAudioId === msg.id ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                }`}
+                                                            >
+                                                                {playingAudioId === msg.id ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                                                                <Play size={14} fill="currentColor" />
+                                                            </div>
+                                                        )}
+                                                        <div className="h-1 bg-gray-200 rounded-full w-32 overflow-hidden">
+                                                            <div className={`h-full rounded-full transition-all ${playingAudioId === msg.id ? 'w-2/3 bg-green-500' : 'w-1/3 bg-gray-400'}`}></div>
+                                                        </div>
+                                                        <Mic size={14} className="opacity-40" />
                                                     </div>
-                                                    <div className="h-1 bg-gray-200 rounded-full w-32 overflow-hidden">
-                                                        <div className="h-full w-1/3 bg-gray-400 rounded-full"></div>
-                                                    </div>
-                                                    <Mic size={14} className="opacity-40" />
+                                                    {msg.text.replace(/^🎤\s*/, '').trim() && (
+                                                        <span className="whitespace-pre-wrap block text-[12px] text-gray-500 mt-1 select-text">{msg.text.replace(/^🎤\s*/, '')}</span>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 msg.text && <span className="whitespace-pre-wrap block text-[13.5px] select-text">{msg.text}</span>

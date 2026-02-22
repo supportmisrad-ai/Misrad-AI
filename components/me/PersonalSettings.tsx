@@ -59,8 +59,9 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 }
 
                 const data = await response.json().catch(() => null);
-                const avatarUrl = String(data?.ref || data?.url || '').trim();
-                if (!avatarUrl) {
+                const storageRef = String(data?.ref || '').trim();
+                const displayUrl = String(data?.signedUrl || data?.url || '').trim();
+                if (!storageRef && !displayUrl) {
                     throw new Error('שגיאה בהעלאת תמונה (חסר URL).');
                 }
 
@@ -81,7 +82,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     const res = await upsertMyProfile({
                         orgSlug,
                         updates: {
-                            avatarUrl,
+                            avatarUrl: storageRef || displayUrl,
                             uiPreferences,
                         },
                     });
@@ -91,7 +92,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     }
                 }
 
-                updateUser(currentUser.id, { avatar: avatarUrl });
+                updateUser(currentUser.id, { avatar: displayUrl || storageRef });
                 addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
             } catch (err: unknown) {
                 addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בעדכון תמונת פרופיל', 'error');

@@ -15,7 +15,7 @@ export const SupportModal: React.FC = () => {
     const [ticketId, setTicketId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
+    const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('https://chat.whatsapp.com/HFXCfswDSUwIS4Hx9fEfbY');
 
     const setCategory = (category: string) => setSupportDraft((prev) => ({ ...prev, category }));
     const setSubject = (subject: string) => setSupportDraft((prev) => ({ ...prev, subject }));
@@ -139,7 +139,7 @@ export const SupportModal: React.FC = () => {
             >
                 <button 
                     onClick={handleClose}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors z-10"
+                    className="absolute top-4 left-4 p-2 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors z-10"
                 >
                     <X size={20} />
                 </button>
@@ -227,7 +227,7 @@ export const SupportModal: React.FC = () => {
                                         </>
                                     ) : (
                                         <>
-                                    שלח פנייה <Send size={16} className="rotate-180" />
+                                    שלח פנייה <Send size={16} className="-rotate-90" />
                                         </>
                                     )}
                                 </button>

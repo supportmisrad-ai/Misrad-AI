@@ -104,7 +104,7 @@ export function GlobalSupportModal() {
           >
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors z-10"
+              className="absolute top-4 left-4 p-2 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors z-10"
               type="button"
             >
               <X size={20} />
@@ -190,7 +190,7 @@ export function GlobalSupportModal() {
                         </>
                       ) : (
                         <>
-                          שלח פנייה <Send size={16} className="rotate-180" />
+                          שלח פנייה <Send size={16} className="-rotate-90" />
                         </>
                       )}
                     </button>

@@ -72,11 +72,6 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
         setAssigneeSearch('');
     }, [task.estimatedTime, activePopover]);
 
-    const setExplicitUnassigned = () => {
-        updateTask(task.id, { assigneeIds: [], assigneeId: undefined });
-        onClose();
-    };
-
     const toggleAssignee = (userId: string) => {
         const currentIds = task.assigneeIds || (task.assigneeId ? [task.assigneeId] : []);
         let newIds: string[];
@@ -253,30 +248,6 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
                         </div>
                     </div>
                     <div className="p-1.5 space-y-0.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setExplicitUnassigned();
-                            }}
-                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-gray-50 text-gray-700 ${
-                                isExplicitlyUnassigned ? 'bg-blue-50 text-blue-700' : ''
-                            }`}
-                        >
-                            <div className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50">
-                                <X size={14} />
-                            </div>
-                            <div className="text-right flex-1 min-w-0">
-                                <div className="text-xs font-bold truncate">ללא שיוך</div>
-                                <div className="text-[10px] truncate text-gray-400">השאר את המשימה ללא אחראי</div>
-                            </div>
-                            {isExplicitlyUnassigned && (
-                                <div className="ml-1 text-blue-600">
-                                    <Check size={14} />
-                                </div>
-                            )}
-                        </button>
-
                         {filteredUsers.map((u, index) => {
                             const isAssigned = assignedUsers.some((au) => String(au.id) === String(u.id));
                             return (

@@ -464,63 +464,51 @@ export const useTasks = (
             type,
             attachment
         };
-        
-        // Use taskOverride if provided, otherwise find in tasks array
-        const updatedTask = taskOverride || tasks.find(t => t.id === taskId);
-        if (!updatedTask) {
+        const sourceTask = taskOverride || tasks.find(t => t.id === taskId);
+        if (!sourceTask) {
             console.error('[addMessage] Task not found:', taskId);
             addToast('שגיאה: המשימה לא נמצאה', 'error');
             return;
         }
-        
-        const newMessages = [...updatedTask.messages, newMessage];
-        
-        // Update local state immediately (optimistic update)
+        const prevMessages = sourceTask.messages;
+        const newMessages = [...prevMessages, newMessage];
         setTasks(prev => {
             const existingTask = prev.find(t => t.id === taskId);
             if (existingTask) {
-                // Update existing task in array
-                return prev.map(t => 
-                    t.id === taskId ? { ...t, messages: newMessages } : t
-                );
+                return prev.map(t => t.id === taskId ? { ...t, messages: newMessages } : t);
             } else {
-                // Add task to array if it doesn't exist (e.g., fetched from API)
-                return [...prev, { ...updatedTask, messages: newMessages }];
+                return [...prev, { ...sourceTask, messages: newMessages }];
             }
         });
-
-        // Save to database
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('nexusTaskUpdated', { detail: { taskId, updates: { messages: newMessages } } }));
+        }
         try {
-            await updateTask(taskId, { messages: newMessages });
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) throw new Error('חסר מזהה ארגון');
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { messages: newMessages } });
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('nexusTaskUpdated', { detail: { taskId, updates: updated } }));
+            }
         } catch (error: unknown) {
-            console.error('[addMessage] Failed to save message to database:', error);
-            // Revert optimistic update on error
-            setTasks(prev => {
-                const existingTask = prev.find(t => t.id === taskId);
-                if (existingTask) {
-                    return prev.map(t => 
-                        t.id === taskId ? { ...t, messages: updatedTask.messages } : t
-                    );
-                } else {
-                    // Remove task if it was just added
-                    return prev.filter(t => t.id !== taskId);
-                }
-            });
-            addToast('שגיאה בשמירת ההודעה', 'error');
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, messages: prevMessages } : t));
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('nexusTaskUpdated', { detail: { taskId, updates: { messages: prevMessages } } }));
+            }
+            addToast(getErrorMessage(error) || 'שגיאה בשמירת ההודעה', 'error');
             return;
         }
-
         if (type === 'user') {
-            const recipients = new Set([...(updatedTask.assigneeIds || []), updatedTask.creatorId]);
+            const recipients = new Set([...(sourceTask.assigneeIds || []), sourceTask.creatorId]);
             recipients.delete(currentUser.id);
             recipients.delete(undefined);
-
             recipients.forEach(uid => {
                 if (uid) {
                     addNotification({
                         recipientId: uid,
                         type: 'mention',
-                        text: `תגובה חדשה במשימה: ${updatedTask.title}`,
+                        text: `תגובה חדשה במשימה: ${sourceTask.title}`,
                         actorName: currentUser.name,
                         actorAvatar: currentUser.avatar,
                         taskId: taskId
@@ -531,96 +519,58 @@ export const useTasks = (
     };
 
     const updateMessage = async (taskId: string, messageId: string, text: string, taskOverride?: Task) => {
-        // Use taskOverride if provided, otherwise find in tasks array
-        const task = taskOverride || tasks.find(t => t.id === taskId);
-        if (!task) {
+        const sourceTask = taskOverride || tasks.find(t => t.id === taskId);
+        if (!sourceTask) {
             console.error('[updateMessage] Task not found:', taskId);
             addToast('שגיאה: המשימה לא נמצאה', 'error');
             return;
         }
-        
-        const updatedMessages = task.messages.map(m => m.id === messageId ? { ...m, text } : m);
-        
-        // Update local state immediately (optimistic update)
+        const prevMessages = sourceTask.messages;
+        const updatedMessages = prevMessages.map(m => m.id === messageId ? { ...m, text } : m);
         setTasks(prev => {
             const existingTask = prev.find(t => t.id === taskId);
             if (existingTask) {
-                return prev.map(t => 
-                    t.id === taskId ? { 
-                        ...t, 
-                        messages: updatedMessages
-                    } : t
-                );
+                return prev.map(t => t.id === taskId ? { ...t, messages: updatedMessages } : t);
             } else {
-                // Add task to array if it doesn't exist
-                return [...prev, { ...task, messages: updatedMessages }];
+                return [...prev, { ...sourceTask, messages: updatedMessages }];
             }
         });
-        
-        // Save to database
         try {
-            await updateTask(taskId, { messages: updatedMessages });
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) throw new Error('חסר מזהה ארגון');
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { messages: updatedMessages } });
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
         } catch (error: unknown) {
-            console.error('[updateMessage] Failed to save message update to database:', error);
-            // Revert optimistic update on error
-            setTasks(prev => {
-                const existingTask = prev.find(t => t.id === taskId);
-                if (existingTask) {
-                    return prev.map(t => 
-                        t.id === taskId ? { ...t, messages: task.messages } : t
-                    );
-                } else {
-                    return prev.filter(t => t.id !== taskId);
-                }
-            });
-            addToast('שגיאה בעדכון ההודעה', 'error');
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, messages: prevMessages } : t));
+            addToast(getErrorMessage(error) || 'שגיאה בעדכון ההודעה', 'error');
         }
     };
 
     const deleteMessage = async (taskId: string, messageId: string, taskOverride?: Task) => {
-        // Use taskOverride if provided, otherwise find in tasks array
-        const task = taskOverride || tasks.find(t => t.id === taskId);
-        if (!task) {
+        const sourceTask = taskOverride || tasks.find(t => t.id === taskId);
+        if (!sourceTask) {
             console.error('[deleteMessage] Task not found:', taskId);
             addToast('שגיאה: המשימה לא נמצאה', 'error');
             return;
         }
-        
-        const updatedMessages = task.messages.filter(m => m.id !== messageId);
-        
-        // Update local state immediately (optimistic update)
+        const prevMessages = sourceTask.messages;
+        const updatedMessages = prevMessages.filter(m => m.id !== messageId);
         setTasks(prev => {
             const existingTask = prev.find(t => t.id === taskId);
             if (existingTask) {
-                return prev.map(t => 
-                    t.id === taskId ? { 
-                        ...t, 
-                        messages: updatedMessages
-                    } : t
-                );
+                return prev.map(t => t.id === taskId ? { ...t, messages: updatedMessages } : t);
             } else {
-                // Add task to array if it doesn't exist
-                return [...prev, { ...task, messages: updatedMessages }];
+                return [...prev, { ...sourceTask, messages: updatedMessages }];
             }
         });
-        
-        // Save to database
         try {
-            await updateTask(taskId, { messages: updatedMessages });
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) throw new Error('חסר מזהה ארגון');
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { messages: updatedMessages } });
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
         } catch (error: unknown) {
-            console.error('[deleteMessage] Failed to delete message from database:', error);
-            // Revert optimistic update on error
-            setTasks(prev => {
-                const existingTask = prev.find(t => t.id === taskId);
-                if (existingTask) {
-                    return prev.map(t => 
-                        t.id === taskId ? { ...t, messages: task.messages } : t
-                    );
-                } else {
-                    return prev.filter(t => t.id !== taskId);
-                }
-            });
-            addToast('שגיאה במחיקת ההודעה', 'error');
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, messages: prevMessages } : t));
+            addToast(getErrorMessage(error) || 'שגיאה במחיקת ההודעה', 'error');
         }
     };
 
@@ -632,10 +582,9 @@ export const useTasks = (
             createdAt: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
             type: 'guest' as const
         };
-        setTasks(prev => prev.map(t => 
+        setTasks(prev => prev.map(t =>
             t.id === taskId ? { ...t, messages: [...t.messages, newMessage] } : t
         ));
-        
         const task = tasks.find(t => t.id === taskId);
         if (task && task.assigneeIds) {
             task.assigneeIds.forEach(uid => {
@@ -652,7 +601,6 @@ export const useTasks = (
     const approveTaskByGuest = (taskId: string) => {
         updateTask(taskId, { approvalStatus: 'approved' });
         addMessage(taskId, '✅ המשימה אושרה על ידי הלקוח/אורח', undefined, 'system');
-        
         const task = tasks.find(t => t.id === taskId);
         if (task && task.assigneeIds) {
             task.assigneeIds.forEach(uid => {

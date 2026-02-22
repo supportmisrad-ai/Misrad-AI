@@ -22,6 +22,7 @@ const isPublicRoute = createRouteMatcher([
   "/app/trial-expired",
   "/invite/(.*)",
   "/employee-invite/(.*)",
+  "/guest/(.*)",
   "/portal/ops/(.*)",
   "/connect/offer/(.*)",
   "/marketplace/offer/(.*)",
