@@ -718,9 +718,6 @@ export const useAuth = (
         if (id === currentUser.id) {
             setCurrentUser(prev => ({ ...prev, ...updates }));
         }
-        if (Object.keys(updates).length > 0) {
-             addToast('פרטי המשתמש עודכנו', 'success');
-        }
     };
 
     const removeUser = (id: string) => {

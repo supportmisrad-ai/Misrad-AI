@@ -7,6 +7,7 @@ import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, Tag, Bug, Zap
 import { FeatureRequest, FeatureRequestType, Priority, ChangeRequest, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const RequestsTab: React.FC = () => {
     const { 
@@ -35,7 +36,10 @@ export const RequestsTab: React.FC = () => {
     const loadFeatureRequests = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/features');
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/features', {
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+            });
             if (!response.ok) {
                 throw new Error('שגיאה בטעינת בקשות פיצ\'רים');
             }
@@ -61,10 +65,12 @@ export const RequestsTab: React.FC = () => {
         setError(null);
 
         try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/features', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     title: reqTitle.trim(),
@@ -112,10 +118,12 @@ export const RequestsTab: React.FC = () => {
 
     const handleVote = async (requestId: string, hasVoted: boolean) => {
         try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/features/${requestId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     vote: !hasVoted // Toggle vote

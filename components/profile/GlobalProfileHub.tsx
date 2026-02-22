@@ -638,7 +638,13 @@ export default function GlobalProfileHub({
 
   // IMPORTANT: Embedded module screens depend on module-specific providers.
   // To prevent runtime crashes, we only mount them inside their native module layout.
-  if (entitlements?.social && currentModule === 'social') {
+  // Optimistic: show sections while entitlements are loading (null) so they appear immediately.
+  const hasSocial = entitlements === null || Boolean(entitlements?.social);
+  const hasSystem = entitlements === null || Boolean(entitlements?.system);
+  const hasFinance = entitlements === null || Boolean(entitlements?.finance);
+  const hasClient = entitlements === null || Boolean(entitlements?.client);
+
+  if (hasSocial && currentModule === 'social') {
     sections.push({
       id: 'social',
       label: 'הגדרות סושיאל',
@@ -646,7 +652,7 @@ export default function GlobalProfileHub({
       icon: Cog,
       content: <EmbeddedSocialSettings />,
     });
-  } else if (entitlements?.social) {
+  } else if (hasSocial) {
     sections.push({
       id: 'social',
       label: 'הגדרות סושיאל',
@@ -657,7 +663,7 @@ export default function GlobalProfileHub({
   }
 
   const canRenderSystemSettings = currentModule === 'system' || currentModule === 'social' || currentModule === 'finance';
-  if (entitlements?.system && canRenderSystemSettings) {
+  if (hasSystem && canRenderSystemSettings) {
     sections.push({
       id: 'system',
       label: 'הגדרות מערכת',
@@ -665,7 +671,7 @@ export default function GlobalProfileHub({
       icon: Cog,
       content: <EmbeddedSystemSettings />,
     });
-  } else if (entitlements?.system) {
+  } else if (hasSystem) {
     sections.push({
       id: 'system',
       label: 'הגדרות מערכת',
@@ -675,7 +681,7 @@ export default function GlobalProfileHub({
     });
   }
 
-  if (entitlements?.finance) {
+  if (hasFinance) {
     sections.push({
       id: 'finance',
       label: 'פיננסים',
@@ -690,7 +696,7 @@ export default function GlobalProfileHub({
     });
   }
 
-  if (entitlements?.client) {
+  if (hasClient) {
     sections.push({
       id: 'client',
       label: 'לקוחות',

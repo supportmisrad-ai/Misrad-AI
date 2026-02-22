@@ -3,6 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { getNexusDashboardBootstrapCached } from '@/lib/services/nexus-service';
 import { asObject } from '@/lib/shared/unknown';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { findProfileRowByOrgAndClerkUserId } from '@/lib/services/nexus-profiles-service';
 import type { ModuleId, OrganizationProfile } from '@/types';
 import NexusModuleClient from './NexusModuleClient';
 
@@ -34,9 +35,33 @@ export default async function NexusLayoutShell({
   ]);
 
   const workspace = bootstrap.workspace;
-  const signedLogo = workspace.logo
-    ? await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
-    : '';
+
+  // Fetch profile avatar + resolve logo in parallel (Phase 2 of shell)
+  let profileRow: unknown = null;
+  try {
+    if (clerk?.id) {
+      profileRow = await findProfileRowByOrgAndClerkUserId({
+        organizationId: workspace.id,
+        clerkUserId: clerk.id,
+      });
+    }
+  } catch {
+    // best-effort — fall back to Clerk image
+  }
+
+  const profileObj = asObject(profileRow) ?? {};
+  const rawProfileAvatar = typeof profileObj.avatarUrl === 'string' ? profileObj.avatarUrl : '';
+  const rawProfileName = typeof profileObj.fullName === 'string' ? profileObj.fullName : '';
+
+  // Resolve sb:// refs for logo and avatar in parallel
+  const [signedLogo, signedAvatar] = await Promise.all([
+    workspace.logo
+      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
+      : Promise.resolve(''),
+    rawProfileAvatar.startsWith('sb://')
+      ? resolveStorageUrlMaybeServiceRole(rawProfileAvatar, 60 * 60, { organizationId: workspace.id })
+      : Promise.resolve(rawProfileAvatar || null),
+  ]);
 
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);
@@ -52,9 +77,9 @@ export default async function NexusLayoutShell({
 
   const initialCurrentUser = {
     id: clerk?.id || '',
-    name: clerk?.fullName ?? clerk?.username ?? '',
+    name: rawProfileName || clerk?.fullName ?? clerk?.username ?? '',
     role: normalizedRole || 'עובד',
-    avatar: clerk?.imageUrl || '',
+    avatar: signedAvatar || clerk?.imageUrl || '',
     online: true,
     capacity: 0,
     email: clerk?.primaryEmailAddress?.emailAddress || '',

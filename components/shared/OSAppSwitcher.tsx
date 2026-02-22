@@ -282,11 +282,10 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   }, []);
 
   if (mode === 'inlineGrid') {
-    const effectiveEntitlements = hasMounted ? entitlements : null;
-    const isReady = Boolean(effectiveEntitlements);
+    const entitlementsLoaded = entitlements !== null;
     const modulesToRender = hideLockedModules
-      ? isReady
-        ? visibleModules.filter((k) => k === 'nexus' ? true : Boolean(effectiveEntitlements?.[k]))
+      ? entitlementsLoaded
+        ? visibleModules.filter((k) => k === 'nexus' ? true : Boolean(entitlements?.[k]))
         : []
       : visibleModules;
 
@@ -295,7 +294,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${compact ? 'gap-2 md:gap-3' : 'gap-3 md:gap-4'}`}>
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
-            const enabled = key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
+            const enabled = key === 'nexus' ? true : (!entitlementsLoaded || Boolean(entitlements?.[key]));
 
             return (
               <button
@@ -303,14 +302,13 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 type="button"
                 onClick={() => {
                   if (!orgSlug) return;
-                  if (!isReady && key !== 'nexus') return;
                   if (enabled) {
                     navigateTo(orgSlug, key);
                     return;
                   }
                   setLocked(key);
                 }}
-                disabled={!orgSlug || (!isReady && key !== 'nexus')}
+                disabled={!orgSlug}
                 className={`group relative w-full rounded-3xl border border-white/70 backdrop-blur transition-all overflow-hidden text-center
                   ${enabled ? 'bg-white/70' : 'bg-slate-50/80'}
                   ${compact ? 'h-28 p-3' : 'h-32 p-4'}
@@ -329,12 +327,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
 
                 <div className="relative flex flex-col items-center justify-center h-full">
                   <div className="relative flex items-center justify-center mx-auto mb-3">
-                    <OSModuleSquircleIcon moduleKey={key} boxSize={56} iconSize={20} disabled={!enabled} />
+                    <OSModuleSquircleIcon moduleKey={key} boxSize={56} iconSize={20} disabled={entitlementsLoaded && !enabled} />
                   </div>
 
                   <div className={`text-sm font-black leading-none ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>
                     {def?.label || key}
-                    {!enabled ? <Lock size={12} className="inline-block mr-2 align-[-2px] text-slate-400" /> : null}
+                    {entitlementsLoaded && !enabled ? <Lock size={12} className="inline-block mr-2 align-[-2px] text-slate-400" /> : null}
                   </div>
                 </div>
               </button>

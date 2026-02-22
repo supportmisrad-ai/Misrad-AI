@@ -271,7 +271,6 @@ export async function getMyProfile(params: { orgSlug: string }): Promise<{
     const existingObj = asObject(existing.data) ?? {};
     const existingProfile = (existingObj.profile as ProfileRecord | null) ?? null;
     if (existingProfile?.id) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse({ profile: existingProfile });
     }
 
@@ -307,15 +306,34 @@ export async function upsertMyProfile(params: {
       return createErrorResponse('Not authenticated', 'נדרשת התחברות');
     }
 
-    const ensured = await getMyProfile({ orgSlug: params.orgSlug });
-    const profileId = ensured.success ? ensured.data?.profile?.id : null;
-    if (!ensured.success || !profileId) {
-      return createErrorResponse(ensured.error || 'Failed to load profile', ensured.error || 'שגיאה בטעינת פרופיל');
-    }
-
     return await withWorkspaceTenantContext(
       params.orgSlug,
       async ({ organizationId }) => {
+        // Ensure profile exists — use direct DB lookup (not getMyProfile) to avoid redundant calls
+        let profileRow = await prisma.profile.findFirst({
+          where: {
+            organizationId: String(organizationId),
+            clerkUserId: String(clerkUserId),
+          },
+          select: { id: true, email: true },
+        });
+
+        // Bootstrap profile if it doesn't exist yet
+        if (!profileRow) {
+          const boot = await bootstrapProfile({ orgSlug: params.orgSlug, clerkUserId });
+          if (!boot.success) {
+            return createErrorResponse(boot.error || 'Failed to create profile', boot.error || 'שגיאה ביצירת פרופיל');
+          }
+          const bootObj = asObject(boot.data) ?? {};
+          const bootProfile = bootObj.profile as ProfileRecord | undefined;
+          if (!bootProfile?.id) {
+            return createErrorResponse('Failed', 'שגיאה ביצירת פרופיל');
+          }
+          profileRow = { id: bootProfile.id, email: bootProfile.email };
+        }
+
+        const profileId = String(profileRow.id);
+
         const patch: Record<string, unknown> = {};
         if (typeof params.updates.fullName !== 'undefined') patch.fullName = params.updates.fullName;
         if (typeof params.updates.role !== 'undefined') patch.role = params.updates.role;
@@ -326,13 +344,30 @@ export async function upsertMyProfile(params: {
         if (typeof params.updates.twoFactorEnabled !== 'undefined') patch.twoFactorEnabled = params.updates.twoFactorEnabled;
         if (typeof params.updates.notificationPreferences !== 'undefined')
           patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
-        if (typeof params.updates.uiPreferences !== 'undefined') patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
+        if (typeof params.updates.uiPreferences !== 'undefined') {
+          // Merge uiPreferences with existing values instead of replacing
+          try {
+            const existing = await prisma.profile.findFirst({
+              where: { id: profileId, organizationId: String(organizationId) },
+              select: { uiPreferences: true },
+            });
+            const existingPrefs = existing?.uiPreferences && typeof existing.uiPreferences === 'object' && !Array.isArray(existing.uiPreferences)
+              ? existing.uiPreferences as Record<string, unknown>
+              : {};
+            const incoming = params.updates.uiPreferences && typeof params.updates.uiPreferences === 'object' && !Array.isArray(params.updates.uiPreferences)
+              ? params.updates.uiPreferences as Record<string, unknown>
+              : {};
+            patch.uiPreferences = normalizeJson({ ...existingPrefs, ...incoming });
+          } catch {
+            patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
+          }
+        }
         if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
         if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
 
         const updatedCount = await prisma.profile.updateMany({
           where: {
-            id: String(profileId),
+            id: profileId,
             organizationId: String(organizationId),
             clerkUserId: String(clerkUserId),
           },
@@ -345,11 +380,7 @@ export async function upsertMyProfile(params: {
         // Keep nexusUser.avatar in sync when avatar is changed in profile
         if (typeof params.updates.avatarUrl !== 'undefined') {
           try {
-            const profileForEmail = await prisma.profile.findFirst({
-              where: { id: String(profileId), organizationId: String(organizationId) },
-              select: { email: true },
-            });
-            const email = typeof profileForEmail?.email === 'string' ? profileForEmail.email : null;
+            const email = typeof profileRow.email === 'string' ? profileRow.email : null;
             if (email) {
               await prisma.nexusUser.updateMany({
                 where: { email, organizationId: String(organizationId) },
@@ -363,7 +394,7 @@ export async function upsertMyProfile(params: {
 
         const updated = await prisma.profile.findFirst({
           where: {
-            id: String(profileId),
+            id: profileId,
             organizationId: String(organizationId),
             clerkUserId: String(clerkUserId),
           },
@@ -372,6 +403,7 @@ export async function upsertMyProfile(params: {
           return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
         }
 
+        revalidatePath('/', 'layout');
         return createSuccessResponse({ profile: toProfileRecord(updated) });
       },
       { source: 'server_actions_profiles', reason: 'upsertMyProfile' }

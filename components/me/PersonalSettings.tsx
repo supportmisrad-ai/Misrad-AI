@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import { getMyProfile, upsertMyProfile } from '@/app/actions/profiles';
+import { upsertMyProfile } from '@/app/actions/profiles';
 
 interface PersonalSettingsProps {
     onClose: () => void;
@@ -67,24 +67,11 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 }
 
                 if (orgSlug) {
-                    let uiPreferences: unknown = { profileCompleted: true };
-                    try {
-                        const current = await getMyProfile({ orgSlug });
-                        const currentData = current.success ? (current as Record<string, unknown>).data as Record<string, unknown> | undefined : null;
-                        const p = currentData?.profile as Record<string, unknown> | undefined;
-                        const existing = p?.ui_preferences;
-                        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
-                            uiPreferences = { ...existing, profileCompleted: true };
-                        }
-                    } catch {
-                        // best-effort
-                    }
-
                     const res = await upsertMyProfile({
                         orgSlug,
                         updates: {
                             avatarUrl: storageRef || displayUrl,
-                            uiPreferences,
+                            uiPreferences: { profileCompleted: true },
                         },
                     });
                     if (!res.success) {
@@ -146,19 +133,6 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
         if (orgSlug) {
-            let uiPreferences: unknown = { profileCompleted: true };
-            try {
-                const current = await getMyProfile({ orgSlug });
-                const currentData2 = current.success ? (current as Record<string, unknown>).data as Record<string, unknown> | undefined : null;
-                const p2 = currentData2?.profile as Record<string, unknown> | undefined;
-                const existing = p2?.ui_preferences;
-                if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
-                    uiPreferences = { ...existing, profileCompleted: true };
-                }
-            } catch {
-                // best-effort
-            }
-
             const res = await upsertMyProfile({
                 orgSlug,
                 updates: {
@@ -166,7 +140,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     phone: cleanedPhone || null,
                     location: form.location || null,
                     bio: form.bio || null,
-                    uiPreferences,
+                    uiPreferences: { profileCompleted: true },
                 },
             });
 
