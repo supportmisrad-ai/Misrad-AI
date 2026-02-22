@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/send-trial-warnings",
       "schedule": "0 9,17 * * *"
+    },
+    {
+      "path": "/api/cron/attendance-monthly-reports",
+      "schedule": "0 6 1 * *"
     }
   ],
   "buildCommand": "npm run build",

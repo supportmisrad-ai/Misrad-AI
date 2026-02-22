@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Boxes, ClipboardCheck, Clock, Home, MessageSquareText } from 'lucide-react';
 import { getActiveShift, punchIn, punchOut } from '@/app/actions/attendance';
+import { getDailySummary } from '@/app/actions/attendance-reports';
 import { asObjectLoose as asObject } from '@/lib/shared/unknown';
 
 type WorkspaceApiItem = { id: string; slug: string; name: string };
@@ -33,6 +34,7 @@ function KioskHomePageInner() {
   const [activeShift, setActiveShift] = useState<null | { id: string; startTime: string }>(null);
   const [attendanceMessage, setAttendanceMessage] = useState<string>('');
   const [isAttendanceBusy, setIsAttendanceBusy] = useState(false);
+  const [dailySummary, setDailySummary] = useState<{ totalHoursFormatted: string; totalMinutes: number; entries: Array<{ startTime: string; endTime: string | null; durationMinutes: number }> } | null>(null);
 
   const getLocation = useCallback(async (): Promise<{ lat: number; lng: number; accuracy: number; city?: string }> => {
     if (typeof window === 'undefined') {
@@ -147,6 +149,11 @@ function KioskHomePageInner() {
     if (!orgSlug) return;
     refreshShift(orgSlug);
   }, [orgSlug, refreshShift]);
+
+  useEffect(() => {
+    if (!orgSlug || !isAttendanceOpen) return;
+    getDailySummary(orgSlug).then(setDailySummary).catch(() => setDailySummary(null));
+  }, [orgSlug, isAttendanceOpen, activeShift]);
 
   if (!isLoaded) {
     return null;
@@ -379,6 +386,33 @@ function KioskHomePageInner() {
               {attendanceMessage ? (
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white/80">
                   {attendanceMessage}
+                </div>
+              ) : null}
+
+              {dailySummary ? (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-black text-white/80">סיכום יומי</div>
+                    <div className="text-lg font-black text-emerald-400 tabular-nums">{dailySummary.totalHoursFormatted}</div>
+                  </div>
+                  {dailySummary.entries.length > 0 ? (
+                    <div className="space-y-1">
+                      {dailySummary.entries.map((entry, idx) => {
+                        const start = new Date(entry.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+                        const end = entry.endTime ? new Date(entry.endTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : 'פעיל';
+                        const h = Math.floor(entry.durationMinutes / 60);
+                        const m = entry.durationMinutes % 60;
+                        return (
+                          <div key={idx} className="flex items-center justify-between text-xs text-white/60">
+                            <span>{start} — {end}</span>
+                            <span className="tabular-nums font-bold">{String(h).padStart(2, '0')}:{String(m).padStart(2, '0')}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-white/40">אין רשומות להיום</div>
+                  )}
                 </div>
               ) : null}
             </motion.div>

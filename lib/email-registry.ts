@@ -615,6 +615,17 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
         trigger: 'Admin מפרסם גרסה קריטית',
     },
     {
+        id: 'attendance_monthly_report',
+        label: 'דוח נוכחות חודשי',
+        category: 'system',
+        audience: 'user',
+        canUnsubscribe: true,
+        preferenceKey: 'system_reports',
+        description: 'דוח נוכחות חודשי מפורט עם שעות נוספות — נשלח ב-1 לכל חודש',
+        implemented: true,
+        trigger: 'Cron — 1 בחודש',
+    },
+    {
         id: 'system_admin_org_created',
         label: 'אדמין — ארגון חדש במערכת',
         category: 'system',

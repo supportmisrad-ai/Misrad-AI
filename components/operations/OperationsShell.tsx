@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { SquareMousePointer, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
+import { SquareMousePointer, Briefcase, ClipboardList, FileText, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -35,6 +35,7 @@ function buildTitle(pathname: string, basePath: string): string {
   if (relative === '/contractors') return 'ספקים וקבלנים';
   if (relative === '/inventory') return 'מלאי';
   if (relative.startsWith('/inventory/')) return 'מלאי';
+  if (relative === '/attendance-reports') return 'דוחות נוכחות';
   if (relative === '/me') return 'הפרופיל שלי';
   if (relative === '/settings') return 'הגדרות';
 
@@ -84,13 +85,14 @@ export default function OperationsShell({
       { label: 'פרויקטים', path: '/projects', icon: Briefcase, separatorBefore: true },
       { label: 'מלאי', path: '/inventory', icon: Package },
       { label: 'ספקים וקבלנים', path: '/contractors', icon: Users },
-      { label: 'הגדרות', path: '/settings', icon: Settings, separatorBefore: true },
+      { label: 'דוחות נוכחות', path: '/attendance-reports', icon: FileText, separatorBefore: true },
+      { label: 'הגדרות', path: '/settings', icon: Settings },
     ],
     []
   );
 
   const primaryNavPaths = React.useMemo(
-    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors'],
+    () => ['/', '/projects', '/work-orders', '/inventory', '/contractors', '/attendance-reports'],
     []
   );
 

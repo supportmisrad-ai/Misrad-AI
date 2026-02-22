@@ -2384,6 +2384,67 @@ model NexusTimeEntry {
   @@map("nexus_time_entries")
 }
 
+model AttendanceMonthlyReport {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId        String       @map("organization_id") @db.Uuid
+  userId                String       @map("user_id") @db.Uuid
+  year                  Int
+  month                 Int
+  employeeName          String       @map("employee_name")
+  employeeNumber        String?      @map("employee_number")
+  department            String?
+  standardDailyHours    Decimal      @default(9) @map("standard_daily_hours") @db.Decimal(5, 2)
+  totalPresenceDays     Int          @default(0) @map("total_presence_days")
+  totalStandardDays     Int          @default(0) @map("total_standard_days")
+  totalPresenceMinutes  Int          @default(0) @map("total_presence_minutes")
+  totalStandardMinutes  Int          @default(0) @map("total_standard_minutes")
+  totalBreakMinutes     Int          @default(0) @map("total_break_minutes")
+  paidBreakMinutes      Int          @default(0) @map("paid_break_minutes")
+  totalPayableMinutes   Int          @default(0) @map("total_payable_minutes")
+  regularMinutes        Int          @default(0) @map("regular_minutes")
+  overtime100Minutes    Int          @default(0) @map("overtime_100_minutes")
+  overtime125Minutes    Int          @default(0) @map("overtime_125_minutes")
+  overtime150Minutes    Int          @default(0) @map("overtime_150_minutes")
+  overtime175Minutes    Int          @default(0) @map("overtime_175_minutes")
+  overtime200Minutes    Int          @default(0) @map("overtime_200_minutes")
+  absenceMinutes        Int          @default(0) @map("absence_minutes")
+  dailyBreakdown        Json?        @map("daily_breakdown")
+  events                Json?
+  pdfUrl                String?      @map("pdf_url")
+  sentAt                DateTime?    @map("sent_at") @db.Timestamptz(6)
+  sentViaEmail          Boolean      @default(false) @map("sent_via_email")
+  sentViaPush           Boolean      @default(false) @map("sent_via_push")
+  createdAt             DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization          Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, userId, year, month], map: "attendance_monthly_reports_org_user_period_key")
+  @@index([organizationId], map: "idx_attendance_monthly_reports_org")
+  @@index([userId], map: "idx_attendance_monthly_reports_user")
+  @@index([year, month], map: "idx_attendance_monthly_reports_period")
+  @@map("attendance_monthly_reports")
+}
+
+model AttendanceSalaryConfig {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId        String       @map("organization_id") @db.Uuid
+  standardDailyHours    Decimal      @default(9) @map("standard_daily_hours") @db.Decimal(5, 2)
+  breakMinutesPerDay    Int          @default(24) @map("break_minutes_per_day")
+  paidBreak             Boolean      @default(true) @map("paid_break")
+  overtime125After      Int          @default(0) @map("overtime_125_after")
+  overtime150After      Int          @default(120) @map("overtime_150_after")
+  overtime175After      Int          @default(0) @map("overtime_175_after")
+  overtime200After      Int          @default(180) @map("overtime_200_after")
+  weeklyOvertimeEnabled Boolean      @default(false) @map("weekly_overtime_enabled")
+  weeklyStandardHours   Int          @default(43) @map("weekly_standard_hours")
+  createdAt             DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization          Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId], map: "attendance_salary_config_org_key")
+  @@map("attendance_salary_configs")
+}
+
 model NexusUser {
   id                      String    @id(map: "nexus_users_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId          String?   @map("organization_id") @db.Uuid
@@ -3011,6 +3072,8 @@ model Organization {
   system_portal_approvals                                              SystemPortalApproval[]
   system_portal_tasks                                                  SystemPortalTask[]
   system_support_tickets                                               SystemSupportTicket[]
+  attendanceMonthlyReports                                             AttendanceMonthlyReport[]
+  attendanceSalaryConfig                                               AttendanceSalaryConfig?
   @@index([owner_id])
   @@index([partnerId])
   @@map("organizations")
