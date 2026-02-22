@@ -185,72 +185,76 @@ export default function AttendanceMiniStatus() {
     loadActiveShift();
   }, [entryId, isClerkLoaded, isSignedIn, loadActiveShift, orgSlug, startTime]);
 
-  const clockOutQuick = useCallback(async () => {
+  const clockOutQuick = useCallback(() => {
     if (!entryId || !orgSlug) return;
 
+    // Snapshot for rollback
+    const prevEntryId = entryId;
+    const prevStartTime = startTime;
+
+    // INSTANT: Update UI immediately — don't wait for GPS
     setIsBusy(true);
     setErrorMessage(null);
+    setEntryId(null);
+    setStartTime(null);
+    broadcast({ orgSlug, entryId: null, startTime: null });
 
-    try {
-      // CRITICAL: Get GPS location FIRST before any UI changes
-      if (typeof window === 'undefined') throw new Error('המיקום אינו זמין');
-      if (!('geolocation' in navigator)) throw new Error('הדפדפן אינו תומך במיקום GPS');
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 8000,
-          maximumAge: 30000,
-        });
-      }).catch((error: unknown) => {
-        const err = error as { code?: number };
-        if (err?.code === 1) {
-          throw new Error('נדרשת הרשאת מיקום. אנא אפשר גישה למיקום בהגדרות הדפדפן.');
-        } else if (err?.code === 2) {
-          throw new Error('לא ניתן לקבל את המיקום. ודא שה-GPS מופעל.');
-        } else if (err?.code === 3) {
-          throw new Error('פג הזמן בקבלת המיקום. אנא נסה שוב.');
-        } else {
-          throw new Error('שגיאה בקבלת המיקום. ודא שהמיקום מופעל.');
-        }
-      });
-
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-
-      // Reverse geocoding - race with 3s timeout so it doesn't block
-      let city: string | undefined;
+    // BACKGROUND: GPS → API → rollback on failure
+    void (async () => {
       try {
-        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
-        const geocodeRes = await Promise.race([
-          fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-        ]);
-        if (geocodeRes.ok) {
-          const geocodeData = await geocodeRes.json();
-          city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+        let lat = 0, lng = 0, accuracy = 0;
+        let city: string | undefined;
+
+        if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 30000,
+              });
+            });
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+            accuracy = position.coords.accuracy;
+
+            // Reverse geocoding — short timeout, non-blocking
+            try {
+              const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
+              const geocodeRes = await Promise.race([
+                fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+                new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+              ]);
+              if (geocodeRes.ok) {
+                const geocodeData = await geocodeRes.json();
+                city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+              }
+            } catch {
+              // Geocoding failure is non-critical
+            }
+          } catch {
+            // GPS failure — proceed without location (lat/lng stay 0)
+          }
         }
-      } catch {
-        // Silently fail geocoding - not critical
+
+        const res = await punchOut(orgSlug, undefined, { lat, lng, accuracy, city });
+
+        if (res?.noActiveShift) {
+          // Already closed — UI is already correct, nothing to do
+        }
+
+        void loadActiveShift();
+      } catch (e: unknown) {
+        // ROLLBACK — restore previous state
+        setEntryId(prevEntryId);
+        setStartTime(prevStartTime);
+        broadcast({ orgSlug, entryId: prevEntryId, startTime: prevStartTime });
+        const msg = String(e instanceof Error ? e.message : e);
+        setErrorMessage(msg || 'שגיאה ביציאה');
+      } finally {
+        setIsBusy(false);
       }
-
-      // Call API and wait for success
-      await punchOut(orgSlug, undefined, { lat, lng, accuracy, city });
-
-      // Update UI ONLY after successful API response
-      setEntryId(null);
-      setStartTime(null);
-      broadcast({ orgSlug, entryId: null, startTime: null });
-
-      // Refresh shift data
-      void loadActiveShift();
-    } catch (e: unknown) {
-      const msg = String(e instanceof Error ? e.message : e);
-      setErrorMessage(msg || 'שגיאה ביציאה');
-    } finally {
-      setIsBusy(false);
-    }
+    })();
   }, [broadcast, entryId, startTime, loadActiveShift, orgSlug]);
 
   if (!orgSlug) return null;

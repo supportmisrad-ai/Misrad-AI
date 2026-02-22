@@ -5,14 +5,17 @@ import { Building2, Upload, Loader2, X, Image, Trash2, Lock } from 'lucide-react
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { usePathname } from 'next/navigation';
 import { getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
+import { saveWorkspaceLogo } from '@/app/actions/workspace-branding';
 
 export const OrganizationTab: React.FC = () => {
     const { organization, updateOrganization, addToast, users } = useData();
     const logoInputRef = useRef<HTMLInputElement>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const pathname = usePathname();
-    const [canManageBranding, setCanManageBranding] = useState<boolean>(false);
-    const [isLoadingAccess, setIsLoadingAccess] = useState<boolean>(true);
+    const [canManageBranding, setCanManageBranding] = useState<boolean>(true);
+    const [isLoadingAccess, setIsLoadingAccess] = useState<boolean>(false);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
     const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const { isSoloMode, setSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
 
@@ -42,33 +45,78 @@ export const OrganizationTab: React.FC = () => {
         loadAccess();
     }, [pathname]);
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!canManageBranding) {
             addToast('רק הבעלים יכול לעדכן מיתוג ארגוני (שם/לוגו).', 'error');
             return;
         }
         const file = e.target.files?.[0];
-        if (file) {
-            // Basic validation
-            if (file.size > 5 * 1024 * 1024) {
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                addToast(`הקובץ גדול מדי (${fileSizeMB}MB). מקסימום מותר: 5MB. אנא בחר קובץ קטן יותר.`, 'error');
-                return;
+        if (!file || !orgSlug) return;
+
+        // Basic validation
+        if (file.size > 5 * 1024 * 1024) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            addToast(`הקובץ גדול מדי (${fileSizeMB}MB). מקסימום מותר: 5MB. אנא בחר קובץ קטן יותר.`, 'error');
+            return;
+        }
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG, SVG או WebP)', 'error');
+            return;
+        }
+
+        setIsUploading(true);
+        setUploadProgress(10);
+
+        try {
+            // Show instant preview via data URL while uploading
+            const previewUrl = URL.createObjectURL(file);
+            updateOrganization({ logo: previewUrl });
+            setUploadProgress(30);
+
+            // Upload to Supabase storage
+            const form = new FormData();
+            form.append('file', file);
+            form.append('bucket', 'attachments');
+            form.append('folder', 'org-logos');
+            form.append('orgSlug', orgSlug);
+
+            const uploadRes = await fetch('/api/storage/upload', { method: 'POST', body: form });
+            setUploadProgress(70);
+
+            if (!uploadRes.ok) {
+                const err = await uploadRes.json().catch(() => ({}));
+                throw new Error((err as Record<string, string>)?.error || 'שגיאה בהעלאת הקובץ');
             }
-            
-            // Check file type
-            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG, SVG או WebP)', 'error');
-                return;
+
+            const uploaded = await uploadRes.json().catch(() => null) as Record<string, string> | null;
+            const logoRef = String(uploaded?.ref || uploaded?.url || '').trim();
+            if (!logoRef) throw new Error('לא התקבל URL לאחר ההעלאה');
+            setUploadProgress(85);
+
+            // Save to database
+            const saveRes = await saveWorkspaceLogo({ orgSlug, logoRef });
+            if (!saveRes.ok) {
+                throw new Error('error' in saveRes ? saveRes.error : 'שגיאה בשמירה');
             }
-            
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                updateOrganization({ logo: reader.result as string });
-                addToast('לוגו הארגון עודכן בהצלחה', 'success');
-            };
-            reader.readAsDataURL(file);
+
+            // Update local state with the signed URL for display
+            const signedUrl = String(uploaded?.signedUrl || uploaded?.url || logoRef);
+            updateOrganization({ logo: signedUrl });
+            setUploadProgress(100);
+            addToast('לוגו הארגון עודכן ונשמר בהצלחה', 'success');
+
+            URL.revokeObjectURL(previewUrl);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'שגיאה בהעלאת לוגו';
+            addToast(msg, 'error');
+            // Revert preview on failure
+            updateOrganization({ logo: organization.logo });
+        } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
+            if (logoInputRef.current) logoInputRef.current.value = '';
         }
     };
 
@@ -82,16 +130,22 @@ export const OrganizationTab: React.FC = () => {
         setIsDeleteModalOpen(true);
     };
 
-    const confirmRemoveLogo = () => {
-        updateOrganization({ logo: '' });
-        
-        // Reset file input so same file can be selected again if needed
-        if (logoInputRef.current) {
-            logoInputRef.current.value = '';
-        }
-        
-        addToast('הלוגו הוסר', 'info');
+    const confirmRemoveLogo = async () => {
+        if (!orgSlug) return;
         setIsDeleteModalOpen(false);
+
+        try {
+            updateOrganization({ logo: '' });
+            const res = await saveWorkspaceLogo({ orgSlug, logoRef: null });
+            if (!res.ok) {
+                throw new Error('error' in res ? res.error : 'שגיאה בהסרת הלוגו');
+            }
+            if (logoInputRef.current) logoInputRef.current.value = '';
+            addToast('הלוגו הוסר ונשמר', 'info');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'שגיאה בהסרת הלוגו';
+            addToast(msg, 'error');
+        }
     };
 
     const handleOrgNameChange = () => {
@@ -99,6 +153,7 @@ export const OrganizationTab: React.FC = () => {
     };
 
     const triggerUpload = () => {
+        if (isUploading) return;
         if (!canManageBranding) {
             addToast('רק הבעלים יכול לעדכן לוגו ארגוני.', 'error');
             return;
@@ -132,13 +187,22 @@ export const OrganizationTab: React.FC = () => {
                     {/* Logo Section */}
                     <div className="flex flex-col items-center gap-5">
                         <div className="relative">
-                            <div className="w-32 h-32 rounded-3xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden shadow-inner">
+                            <div className="w-32 h-32 rounded-3xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden shadow-inner relative">
                                 {organization.logo ? (
                                     <img src={organization.logo} alt="Organization Logo" className="w-full h-full object-contain p-4" suppressHydrationWarning />
                                 ) : (
                                     <div className="text-gray-500 flex flex-col items-center gap-2">
                                         <Image size={32} />
                                         <span className="text-[10px] font-bold">אין לוגו</span>
+                                    </div>
+                                )}
+                                {isUploading && (
+                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 rounded-3xl">
+                                        <Loader2 size={24} className="animate-spin text-black" />
+                                        <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div className="h-full bg-black rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                        </div>
+                                        <span className="text-[9px] font-bold text-gray-600">מעלה...</span>
                                     </div>
                                 )}
                             </div>
@@ -158,19 +222,19 @@ export const OrganizationTab: React.FC = () => {
                             <button 
                                 type="button"
                                 onClick={triggerUpload}
-                                disabled={!canManageBranding || isLoadingAccess}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 ${!canManageBranding || isLoadingAccess ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+                                disabled={!canManageBranding || isLoadingAccess || isUploading}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 ${!canManageBranding || isLoadingAccess || isUploading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
                             >
-                                <Upload size={14} />
-                                {organization.logo ? 'החלף לוגו' : 'העלאת לוגו'}
+                                {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                {isUploading ? 'מעלה...' : organization.logo ? 'החלף לוגו' : 'העלאת לוגו'}
                             </button>
                             
                             {organization.logo && (
                                 <button 
                                     type="button"
                                     onClick={handleRemoveLogoClick}
-                                    disabled={!canManageBranding || isLoadingAccess}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border active:scale-95 ${!canManageBranding || isLoadingAccess ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100 cursor-pointer'}`}
+                                    disabled={!canManageBranding || isLoadingAccess || isUploading}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border active:scale-95 ${!canManageBranding || isLoadingAccess || isUploading ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100 border-red-100 cursor-pointer'}`}
                                 >
                                     <Trash2 size={14} />
                                     הסר
