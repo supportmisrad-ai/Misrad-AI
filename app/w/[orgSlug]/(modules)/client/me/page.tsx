@@ -25,27 +25,35 @@ export default async function ClientMePage({
 }) {
   const { orgSlug } = await params;
 
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  // Phase 1: all independent I/O in parallel
+  const [workspace, clerkUserId, clerkUser, userInfo, initialCurrentUser] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    getCurrentUserId(),
+    currentUser(),
+    getCurrentUserInfo(),
+    resolveWorkspaceCurrentUserForUi(orgSlug),
+  ]);
 
-  const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client/me`)}`);
   }
 
-  const clerkUser = await currentUser();
-  const userInfo = await getCurrentUserInfo();
+  const organizationId = String(workspace?.id || '');
 
-  const fallbackUser = userInfo.success
-    ? {
-        organization_id: userInfo.organizationId ?? null,
-        role: userInfo.role ?? null,
-      }
-    : null;
+  // Phase 2: DB lookups that depend on clerkUserId / organizationId — run in parallel
+  const [user, org] = await Promise.all([
+    prisma.organizationUser.findFirst({
+      where: { clerk_user_id: clerkUserId },
+      select: { organization_id: true, role: true },
+    }),
+    prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, name: true, logo: true, has_client: true },
+    }),
+  ]);
 
-  const user = await prisma.organizationUser.findFirst({
-    where: { clerk_user_id: clerkUserId },
-    select: { organization_id: true, role: true },
-  });
+  // Phase 3: logo signing (needs org.logo)
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(org?.logo ?? null, 60 * 60, { organizationId });
 
   const clerkObj = asObject(clerkUser) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);
@@ -61,25 +69,15 @@ export default async function ClientMePage({
   const safeRoleFromClerk =
     typeof normalizedRoleFromClerk === 'string' && KNOWN_ROLES.has(normalizedRoleFromClerk) ? normalizedRoleFromClerk : null;
 
+  const fallbackUser = userInfo.success
+    ? { organization_id: userInfo.organizationId ?? null, role: userInfo.role ?? null }
+    : null;
+
   const role = (fallbackUser?.role ?? safeRoleFromClerk ?? user?.role ?? null) as string | null;
   const isAdmin = role === 'admin' || role === 'super_admin' || role === 'owner';
 
-  const organizationId = String(workspace?.id || '');
-  let organization:
-    | {
-        id: string;
-        name: string;
-        logo?: string | null;
-        has_client?: boolean | null;
-      }
-    | null = null;
-
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { id: true, name: true, logo: true, has_client: true },
-  });
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(org?.logo ?? null, 60 * 60, { organizationId });
-  organization = org ? { ...org, logo: signedLogo } : null;
+  const organization: { id: string; name: string; logo?: string | null; has_client?: boolean | null } | null =
+    org ? { ...org, logo: signedLogo } : null;
 
   const hasClient = organization?.has_client === true;
   const canAccess = hasClient || isAdmin;
@@ -101,8 +99,6 @@ export default async function ClientMePage({
     organization,
     identity,
   };
-
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
   const initialOrganization = organization
     ? {
         name: organization.name,

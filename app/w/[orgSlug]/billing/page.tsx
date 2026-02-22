@@ -20,9 +20,11 @@ export default async function BillingPage({
 }) {
   const { orgSlug } = await params;
 
-  await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const billingResult = await getMyBillingData(orgSlug);
+  // Both are independent — billing data only needs orgSlug, not workspace.id
+  const [, billingResult] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    getMyBillingData(orgSlug),
+  ]);
   const billingData = billingResult.success && billingResult.data ? billingResult.data : null;
 
   return <BillingPortalClient billingData={billingData} orgSlug={orgSlug} />;

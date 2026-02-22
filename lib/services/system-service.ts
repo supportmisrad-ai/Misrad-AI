@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
@@ -60,3 +61,6 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
 
   return { initialCurrentUser: resolvedCurrentUser, initialOrganization };
 }
+
+/** Cached version — deduplicates across layout shell + page within the same request */
+export const getSystemBootstrapCached = cache(getSystemBootstrap);

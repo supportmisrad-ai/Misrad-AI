@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSystemBootstrap } from '@/lib/services/system-service';
+import { getSystemBootstrapCached } from '@/lib/services/system-service';
 import SystemShellGateClient from './SystemShellGateClient';
 
 /**
@@ -14,7 +14,7 @@ export default async function SystemLayoutShell({
   orgSlug: string;
   children: React.ReactNode;
 }) {
-  const bootstrap = await getSystemBootstrap(orgSlug);
+  const bootstrap = await getSystemBootstrapCached(orgSlug);
   const { initialCurrentUser, initialOrganization } = bootstrap;
 
   return (

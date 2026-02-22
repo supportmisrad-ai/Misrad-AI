@@ -1,4 +1,4 @@
-import { getSystemBootstrap } from '@/lib/services/system-service';
+import { getSystemBootstrapCached } from '@/lib/services/system-service';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
 
@@ -10,7 +10,7 @@ export default async function SystemMePage({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  const { initialCurrentUser, initialOrganization } = await getSystemBootstrap(orgSlug);
+  const { initialCurrentUser, initialOrganization } = await getSystemBootstrapCached(orgSlug);
 
   const normalizedCurrentUser = initialCurrentUser
     ? {

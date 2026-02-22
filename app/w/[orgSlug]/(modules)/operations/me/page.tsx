@@ -28,14 +28,19 @@ export default async function OperationsMePage({
 }) {
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
-  const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+
+  // Parallelize user resolution and logo signing — both only need workspace.id
+  const [user, signedLogo] = await Promise.all([
+    resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
+    workspace.logo
+      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
+      : Promise.resolve(''),
+  ]);
 
   const initialCurrentUser = {
     ...user,
     phone: user.phone ?? undefined,
   };
-
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
 
   const initialOrganization = {
     ...workspace,
