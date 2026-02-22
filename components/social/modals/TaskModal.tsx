@@ -315,10 +315,10 @@ export default function TaskModal() {
                 <AnimatePresence>
                   {openDropdown === 'priority' && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200 z-[300]"
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200 z-[300]"
                     >
                       {(['low', 'medium', 'high'] as const).map(p => (
                         <button
@@ -360,10 +360,10 @@ export default function TaskModal() {
                 <AnimatePresence>
                   {openDropdown === 'type' && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200 z-[300] max-h-60 overflow-y-auto"
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-2xl border border-slate-200 z-[300] max-h-60 overflow-y-auto"
                     >
                       {([
                         { value: 'general', label: 'כללי' },

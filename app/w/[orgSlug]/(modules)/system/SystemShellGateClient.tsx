@@ -511,11 +511,11 @@ function SystemShellGateClientCore({
                       onClick: () => onNavigateAction('/tasks'),
                     },
                     {
-                      id: 'calendar',
-                      label: 'אירועים',
-                      icon: CalendarDays,
-                      active: isActiveAction('/calendar'),
-                      onClick: () => onNavigateAction('/calendar'),
+                      id: 'menu',
+                      label: 'עוד',
+                      icon: Menu,
+                      active: isMobileMenuOpen,
+                      onClick: () => setIsMobileMenuOpen(true),
                     },
                   ]}
                   onPlusClickAction={handlePlusClick}

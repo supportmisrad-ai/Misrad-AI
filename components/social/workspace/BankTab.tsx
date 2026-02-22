@@ -32,9 +32,12 @@ const BankTab: React.FC<BankTabProps> = ({ client, ideas, onDeleteIdea, onAddIde
             <p className="text-sm font-black text-slate-400 mb-2">אין קבצים בספרייה</p>
             <p className="text-xs font-bold text-slate-300">העלה קבצים כדי להתחיל</p>
             </div>
-          <button className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 hover:border-blue-400 hover:text-blue-500 transition-all gap-2">
+          <button
+            onClick={() => onAddIdea('', client.id)}
+            className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 hover:border-blue-400 hover:text-blue-500 transition-all gap-2"
+          >
             <Upload size={32} />
-            <span className="text-[10px] font-black uppercase">העלאת קובץ</span>
+            <span className="text-[10px] font-black uppercase">בקרוב</span>
           </button>
         </div>
       </div>

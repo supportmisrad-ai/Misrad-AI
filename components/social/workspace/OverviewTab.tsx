@@ -6,6 +6,7 @@ import { LayoutGrid, Clock, Image, Eye, Link as LinkIcon, Unlink, RefreshCw, Squ
 import { Client, SocialPost, ClientRequest, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS, PLATFORM_COLORS } from '../SocialIcons';
 import { syncGoogleCalendar } from '@/app/actions/integrations';
+import { updateClientForWorkspace } from '@/app/actions/clients';
 import { useApp } from '@/contexts/AppContext';
 
 interface OverviewTabProps {
@@ -18,10 +19,10 @@ interface OverviewTabProps {
 }
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEditPost, onEnterPortal, setActiveTab }) => {
+  const { orgSlug, addToast } = useApp();
   const [isSyncing, setIsSyncing] = useState(false);
   const [internalNote, setInternalNote] = useState(client.internalNotes || '');
   const [isSavingNote, setIsSavingNote] = useState(false);
-  const { addToast } = useApp();
 
   const handleGlobalSync = async () => {
     setIsSyncing(true);
@@ -40,11 +41,26 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
   };
 
   const saveInternalNote = () => {
-    setIsSavingNote(true);
-    setTimeout(() => {
-      setIsSavingNote(false);
-      // Logic for saving note to DB would go here
-    }, 800);
+    void (async () => {
+      setIsSavingNote(true);
+      try {
+        const resolvedOrgSlug = String(orgSlug || '').trim();
+        if (!resolvedOrgSlug || !client.id) {
+          addToast('חסר ארגון או לקוח פעיל', 'error');
+          return;
+        }
+        const res = await updateClientForWorkspace(resolvedOrgSlug, client.id, { internalNotes: internalNote });
+        if (res.success) {
+          addToast('הפתק נשמר בהצלחה');
+        } else {
+          addToast(res.error || 'שגיאה בשמירת הפתק', 'error');
+        }
+      } catch {
+        addToast('שגיאה בשמירת הפתק', 'error');
+      } finally {
+        setIsSavingNote(false);
+      }
+    })();
   };
 
   return (
@@ -78,7 +94,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
                         <span className="text-xs font-black capitalize">{p}</span>
                         <div className="flex items-center gap-1.5">
                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                           <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">Live Connection</span>
+                           <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">חיבור פעיל</span>
                         </div>
                      </div>
                      
@@ -89,7 +105,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
                   </div>
                 ) : null;
               })}
-              <button className="p-6 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-300 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/30 transition-all group">
+              <button
+                 onClick={() => addToast('חיבור רשתות חדשות יהיה זמין בקרוב', 'info')}
+                 className="p-6 border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-300 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/30 transition-all group"
+              >
                  <div className="w-12 h-12 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center group-hover:border-blue-400 transition-all">
                     <LinkIcon size={24}/>
                  </div>

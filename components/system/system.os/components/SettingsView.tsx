@@ -22,7 +22,7 @@ interface SettingsViewProps {
 type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications';
 
 const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
-  const { canAccess, user } = useAuth();
+  const { canAccess, user, isSuperAdmin, isTenantAdmin } = useAuth();
   const { addToast } = useToast();
   const { brandName, brandLogo, setBrandName, setBrandLogo } = useBrand();
   
@@ -60,7 +60,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   };
 
   const Toggle = ({ checked }: { checked: boolean }) => (
-      <div className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 ${checked ? 'bg-primary' : 'bg-slate-200'}`}>
+      <div className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 ${checked ? 'bg-primary' : 'bg-slate-200'}`} dir="ltr">
           <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}></div>
       </div>
   );
@@ -93,6 +93,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   ).filter((tab) => tab.allowed);
 
   const userRole = user?.role;
+  const hasFullAccess = isSuperAdmin || isTenantAdmin || (userRole as unknown as string) === 'admin';
 
   return (
     <div className="p-4 md:p-8 max-w-[1920px] mx-auto animate-fade-in pb-20 h-full flex flex-col">
@@ -105,10 +106,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                 הגדרות מערכת
             </h2>
         </div>
-        {userRole && userRole !== 'admin' && (
+        {userRole && !hasFullAccess && (
              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                  <Shield size={16} />
-                 גישה מוגבלת ({userRole === 'agent' ? 'סוכן' : 'צופה'})
+                 גישה מוגבלת ({(userRole as unknown as string) === 'agent' ? 'סוכן' : 'צופה'})
              </div>
         )}
       </div>

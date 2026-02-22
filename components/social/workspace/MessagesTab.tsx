@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Phone, MoreVertical, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Conversation } from '@/types/social';
 
 interface MessagesTabProps {
@@ -19,8 +19,7 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ conversations, onSendMessage 
       <div className="flex items-center justify-between mb-8 border-b border-slate-200 pb-6">
         <h3 className="text-2xl font-black">הודעות מהפורטל</h3>
         <div className="flex items-center gap-4">
-          <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900"><Phone size={20}/></button>
-          <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-900"><MoreVertical size={20}/></button>
+          <span className="text-xs font-bold text-slate-300">שיחה עם הלקוח דרך הפורטל</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-6 no-scrollbar">

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CircleCheck, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Pin, MessageSquare, Briefcase, DollarSign, Clock, TriangleAlert, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPlatform, Client } from '@/types/social';
+import { SocialPlatform, SocialPost, Client } from '@/types/social';
 import { getBusinessAuditAction } from '@/app/actions/ai-actions';
 import { Avatar } from '@/components/Avatar';
 
@@ -44,7 +44,41 @@ export default function Analytics() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState<SocialPlatform>('instagram');
-  const [chartData, setChartData] = useState([40, 60, 45, 90, 65, 80, 50, 70, 85, 40, 55, 75]);
+  // Helper to safely read optional numeric metrics that may exist on DB-returned posts
+  const getNum = (post: SocialPost, key: string): number => {
+    const val = (post as unknown as Record<string, unknown>)[key];
+    return typeof val === 'number' ? val : 0;
+  };
+
+  // Compute real metrics from posts data
+  const totalPosts = posts.length;
+  const publishedPosts = posts.filter(p => p.status === 'published');
+  const totalEngagement = publishedPosts.reduce((sum, p) => sum + getNum(p, 'engagement'), 0);
+  const totalReach = publishedPosts.reduce((sum, p) => sum + getNum(p, 'reach'), 0);
+  const totalClicks = publishedPosts.reduce((sum, p) => sum + getNum(p, 'clicks'), 0);
+  const growthRate = publishedPosts.length > 0 ? ((publishedPosts.length / Math.max(totalPosts, 1)) * 100) : 0;
+  const hasData = publishedPosts.length > 0;
+
+  // Build chart data from real posts (last 12 periods)
+  const [chartData] = useState(() => {
+    if (publishedPosts.length === 0) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // Group posts by approximate period
+    const bins = new Array(12).fill(0);
+    publishedPosts.forEach((p, i) => {
+      const bin = Math.floor((i / publishedPosts.length) * 12);
+      bins[Math.min(bin, 11)] += getNum(p, 'engagement');
+    });
+    const maxVal = Math.max(...bins, 1);
+    return bins.map(v => Math.round((v / maxVal) * 100));
+  });
+
+  // Compute platform distribution from real posts
+  const platformCounts: Record<string, number> = {};
+  publishedPosts.forEach(p => {
+    const platforms = Array.isArray(p.platforms) ? p.platforms : [];
+    platforms.forEach(pl => { platformCounts[pl] = (platformCounts[pl] || 0) + 1; });
+  });
+  const totalPlatformPosts = Object.values(platformCounts).reduce((a, b) => a + b, 0) || 1;
   const [audits, setAudits] = useState<Record<string, string>>({});
   const [isLoadingAudit, setIsLoadingAudit] = useState<string | null>(null);
 
@@ -77,19 +111,24 @@ export default function Analytics() {
 
   const changePeriod = (p: string) => {
     setPeriod(p);
-    setChartData(prev => [...prev].sort(() => Math.random() - 0.5));
     setIsPeriodMenuOpen(false);
     addToast(`הנתונים עודכנו עבור: ${p}`);
   };
 
   const renderSocialView = () => (
     <div className="flex flex-col gap-8 animate-in fade-in">
+      {!hasData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-8 text-center">
+          <p className="text-amber-800 font-bold text-lg">אין נתונים להצגה</p>
+          <p className="text-amber-600 text-sm mt-2">פרסם תכנים כדי לראות סטטיסטיקות אמיתיות כאן</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: 'חשיפה כוללת', value: '452.1K', trend: '+12%', icon: Users, color: 'blue' },
-          { label: 'מעורבות', value: '18.4K', trend: '+5%', icon: Share2, color: 'purple' },
-          { label: 'קליקים', value: '5,230', trend: '-2%', icon: MousePointer2, color: 'orange' },
-          { label: 'שיעור צמיחה', value: '4.2%', trend: '+0.8%', icon: TrendingUp, color: 'green' },
+          { label: 'חשיפה כוללת', value: totalReach > 1000 ? `${(totalReach / 1000).toFixed(1)}K` : String(totalReach), trend: hasData ? `${publishedPosts.length} פוסטים` : '—', icon: Users, color: 'blue' },
+          { label: 'מעורבות', value: totalEngagement > 1000 ? `${(totalEngagement / 1000).toFixed(1)}K` : String(totalEngagement), trend: hasData ? `ממוצע ${Math.round(totalEngagement / publishedPosts.length)}` : '—', icon: Share2, color: 'purple' },
+          { label: 'קליקים', value: totalClicks.toLocaleString(), trend: hasData ? `${((totalClicks / Math.max(totalReach, 1)) * 100).toFixed(1)}% CTR` : '—', icon: MousePointer2, color: 'orange' },
+          { label: 'שיעור פרסום', value: `${growthRate.toFixed(1)}%`, trend: `${publishedPosts.length}/${totalPosts}`, icon: TrendingUp, color: 'green' },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -98,7 +137,7 @@ export default function Analytics() {
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${stat.color === 'blue' ? 'bg-blue-50 text-blue-600' : stat.color === 'purple' ? 'bg-purple-50 text-purple-600' : stat.color === 'orange' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'}`}>
                     <Icon size={28} />
                   </div>
-                  <span className={`text-xs font-black px-3 py-1.5 rounded-xl ${stat.trend.startsWith('+') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{stat.trend}</span>
+                  <span className="text-xs font-black px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600">{stat.trend}</span>
                </div>
                <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p><p className="text-4xl font-black mt-1">{stat.value}</p></div>
             </div>
@@ -122,7 +161,8 @@ export default function Analytics() {
               {['facebook', 'instagram', 'tiktok', 'linkedin', 'google', 'whatsapp'].map((p, i) => {
                 const Icon = PLATFORM_ICONS[p as SocialPlatform];
                 const color = PLATFORM_COLORS[p as SocialPlatform];
-                const value = Math.floor(Math.random() * 40) + 10;
+                const count = platformCounts[p] || 0;
+                const value = Math.round((count / totalPlatformPosts) * 100);
                 return Icon ? (
                   <div key={i} className="flex flex-col gap-3">
                      <div className="flex justify-between items-center text-base font-black">
@@ -130,7 +170,7 @@ export default function Analytics() {
                            <Icon size={18} className={color}/>
                            <span className="text-slate-800 capitalize">{p}</span>
                         </div>
-                        <span className="text-blue-600 font-black">{value}%</span>
+                        <span className="text-blue-600 font-black">{count > 0 ? `${value}%` : '—'}</span>
                      </div>
                      <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner">
                         <motion.div initial={{ width: 0 }} animate={{ width: `${value}%` }} className={`h-full ${(color || '').replace('text-', 'bg-')} rounded-full`} />
@@ -243,13 +283,24 @@ export default function Analytics() {
                </div>
             </div>
             <div className="flex flex-col items-center justify-center bg-white/5 rounded-[40px] p-10 border border-white/5">
-               <p className="text-sm font-black text-blue-400 uppercase tracking-widest mb-2">רווחיות משרד ממוצעת</p>
-               <p className="text-7xl font-black mb-2">₪412</p>
-               <p className="text-sm font-bold text-slate-400">שכר שעתי אפקטיבי (נטו)</p>
-               <div className="mt-10 w-full h-4 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-[72%] rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
-               </div>
-               <p className="mt-4 text-[10px] font-black text-slate-500">72% מהיעד החודשי (₪570/שעה)</p>
+               {(() => {
+                 const avgRate = clients.length > 0
+                   ? Math.round(clients.reduce((sum, c) => sum + ((c.monthlyFee || 0) / Math.max(c.businessMetrics.timeSpentMinutes / 60, 1)), 0) / clients.length)
+                   : 0;
+                 const goalRate = 570;
+                 const pct = Math.min(100, Math.round((avgRate / goalRate) * 100));
+                 return (
+                   <>
+                     <p className="text-sm font-black text-blue-400 uppercase tracking-widest mb-2">רווחיות משרד ממוצעת</p>
+                     <p className="text-7xl font-black mb-2">{clients.length > 0 ? `\u20AA${avgRate}` : '\u2014'}</p>
+                     <p className="text-sm font-bold text-slate-400">שכר שעתי אפקטיבי (נטו)</p>
+                     <div className="mt-10 w-full h-4 bg-white/10 rounded-full overflow-hidden">
+                       <div className={`h-full bg-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)]`} style={{ width: `${pct}%` }} />
+                     </div>
+                     <p className="mt-4 text-[10px] font-black text-slate-500">{pct}% מהיעד החודשי (\u20AA{goalRate}/שעה)</p>
+                   </>
+                 );
+               })()}
             </div>
          </div>
          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[120px] opacity-20"></div>
@@ -321,7 +372,38 @@ export default function Analytics() {
                    <button onClick={() => setIsDetailModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-2xl"><X size={28}/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-10 flex flex-col gap-10">
-                   {/* Modal content... */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     {['facebook', 'instagram', 'tiktok', 'linkedin', 'google', 'whatsapp'].map(p => {
+                       const Icon = PLATFORM_ICONS[p as SocialPlatform];
+                       const color = PLATFORM_COLORS[p as SocialPlatform];
+                       const count = platformCounts[p] || 0;
+                       const pct = Math.round((count / totalPlatformPosts) * 100);
+                       return Icon ? (
+                         <div key={p} className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex flex-col gap-4">
+                           <div className="flex items-center gap-3">
+                             <Icon size={24} className={color}/>
+                             <span className="text-lg font-black capitalize">{p}</span>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                             <div>
+                               <p className="text-[10px] font-black text-slate-400 uppercase">פוסטים</p>
+                               <p className="text-2xl font-black">{count}</p>
+                             </div>
+                             <div>
+                               <p className="text-[10px] font-black text-slate-400 uppercase">נתח רלטיבי</p>
+                               <p className="text-2xl font-black">{count > 0 ? `${pct}%` : '\u2014'}</p>
+                             </div>
+                           </div>
+                           <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                             <div className={`h-full ${(color || '').replace('text-', 'bg-')} rounded-full`} style={{ width: `${pct}%` }} />
+                           </div>
+                         </div>
+                       ) : null;
+                     })}
+                   </div>
+                   {!hasData && (
+                     <div className="text-center py-12 text-slate-400 font-bold">אין נתונים להצגה. פרסם תכנים כדי לראות פירוט.</div>
+                   )}
                 </div>
              </motion.div>
           </div>

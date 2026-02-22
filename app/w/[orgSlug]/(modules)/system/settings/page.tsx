@@ -1,4 +1,3 @@
-import { getSystemLeadsPage } from '@/app/actions/system-leads';
 import SystemSettingsClient from './SystemSettingsClient';
 
 export default async function SystemSettingsPage({
@@ -8,8 +7,5 @@ export default async function SystemSettingsPage({
 }) {
   const { orgSlug } = await params;
 
-  const leadsRes = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
-  const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
-
-  return <SystemSettingsClient orgSlug={orgSlug} initialLeads={initialLeads} />;
+  return <SystemSettingsClient orgSlug={orgSlug} initialLeads={[]} />;
 }

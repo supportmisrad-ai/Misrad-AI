@@ -70,7 +70,7 @@ async function assertClientInOrganization(params: { clientId: string; organizati
   });
 
   if (!row?.id) {
-    throw new Error('Forbidden');
+    throw new Error('אין גישה');
   }
 }
 
@@ -84,11 +84,11 @@ async function assertClientRequestInOrganization(params: { requestId: string; or
   });
 
   if (!row?.id) {
-    throw new Error('Forbidden');
+    throw new Error('אין גישה');
   }
 
   const clientId = String(row.client_id ?? '').trim();
-  if (!clientId) throw new Error('Forbidden');
+  if (!clientId) throw new Error('אין גישה');
   return { clientId };
 }
 
@@ -102,11 +102,11 @@ async function assertManagerRequestInOrganization(params: { requestId: string; o
   });
 
   if (!row?.id) {
-    throw new Error('Forbidden');
+    throw new Error('אין גישה');
   }
 
   const clientId = String(row.client_id ?? '').trim();
-  if (!clientId) throw new Error('Forbidden');
+  if (!clientId) throw new Error('אין גישה');
   return { clientId };
 }
 
@@ -122,7 +122,7 @@ export async function getClientRequests(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה' };
     }
 
     const rows = await prisma.socialMediaClientRequest.findMany({
@@ -200,7 +200,7 @@ export async function getManagerRequests(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה' };
     }
 
     const rows = await prisma.socialMediaManagerRequest.findMany({
@@ -257,7 +257,7 @@ export async function createClientRequest(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(requestData.orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה' };
     }
 
     await assertClientInOrganization({ clientId: requestData.clientId, organizationId });
@@ -357,7 +357,7 @@ export async function createManagerRequest(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(requestData.orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה' };
     }
 
     await assertClientInOrganization({ clientId: requestData.clientId, organizationId });
@@ -416,7 +416,7 @@ export async function approveClientRequest(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה לארגון' };
     }
 
     const scoped = await assertClientRequestInOrganization({ requestId, organizationId });
@@ -476,7 +476,7 @@ export async function rejectClientRequest(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה לארגון' };
     }
 
     const scoped = await assertClientRequestInOrganization({ requestId, organizationId });
@@ -534,7 +534,7 @@ export async function updateManagerRequest(
     try {
       organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
     } catch {
-      return { success: false, error: 'Forbidden' };
+      return { success: false, error: 'אין הרשאה לארגון' };
     }
 
     const scoped = await assertManagerRequestInOrganization({ requestId, organizationId });

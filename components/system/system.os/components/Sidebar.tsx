@@ -143,7 +143,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout: _logout, mo
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-900 truncate">{safeUserName}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' ? 'הבוס' : user.role === 'agent' ? 'סוכן' : 'צופה'}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{(() => { const r = String(user.role || ''); if (r === 'admin' || r === 'מנכ״ל' || r === 'SUPER_ADMIN') return 'הבוס'; if (r === 'agent' || r === 'סוכן') return 'סוכן'; return r || 'משתמש'; })()}</p>
             </div>
          </div>
       </div>

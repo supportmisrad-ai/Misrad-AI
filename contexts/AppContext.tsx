@@ -307,10 +307,35 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [marketplaceAddons, setMarketplaceAddons] = useState<AgencyServiceConfig[]>(MARKETPLACE_ADDONS);
   
   const [activeDraft, setActiveDraft] = useState<AIOpportunity | null>(null);
-  const [activeClientId, setActiveClientId] = useState<string | null>(null);
+  const [activeClientId, setActiveClientId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const key = effectiveOrgSlug ? `social_activeClientId_${effectiveOrgSlug}` : 'social_activeClientId';
+      return localStorage.getItem(key) || null;
+    } catch { return null; }
+  });
   const [activeCheckout, setActiveCheckout] = useState<{ order: PaymentOrder; client: Client } | null>(null);
   const [editingTask, setEditingTask] = useState<SocialTask | null>(null);
   
+  // Persist activeClientId to localStorage when it changes
+  useEffect(() => {
+    try {
+      const key = effectiveOrgSlug ? `social_activeClientId_${effectiveOrgSlug}` : 'social_activeClientId';
+      if (activeClientId) {
+        localStorage.setItem(key, activeClientId);
+      } else {
+        localStorage.removeItem(key);
+      }
+    } catch { /* SSR/privacy guard */ }
+  }, [activeClientId, effectiveOrgSlug]);
+
+  // Auto-select first client if none selected and clients are loaded
+  useEffect(() => {
+    if (!activeClientId && clients.length > 0) {
+      setActiveClientId(clients[0].id);
+    }
+  }, [activeClientId, clients]);
+
   const activeClient = clients.find(c => c.id === activeClientId);
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {

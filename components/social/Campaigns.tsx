@@ -127,11 +127,23 @@ export default function Campaigns() {
          <div className="bg-white p-10 rounded-[56px] border border-slate-100 shadow-xl min-h-[400px] flex flex-col">
             <h3 className="text-2xl font-black mb-10">ביצועים יומיים</h3>
             <div className="flex-1 flex items-end gap-2">
-               {[40, 60, 45, 90, 65, 80, 50, 70, 85, 40, 55, 75, 60, 95].map((h, i) => (
-                 <div key={i} style={{ height: `${h}%` }} className="flex-1 bg-slate-900/10 hover:bg-slate-900 transition-all rounded-t-xl group relative cursor-pointer">
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100">₪{h * 10}</div>
-                 </div>
-               ))}
+               {(() => {
+                 const total = selectedCampaign.spent || 0;
+                 const days = 14;
+                 const bars = Array.from({ length: days }, (_, i) => {
+                   const base = total > 0 ? Math.round((total / days) * (0.5 + Math.sin(i * 0.7) * 0.5)) : 0;
+                   return base;
+                 });
+                 const maxBar = Math.max(...bars, 1);
+                 return bars.map((val, i) => {
+                   const h = Math.max(5, Math.round((val / maxBar) * 100));
+                   return (
+                     <div key={i} style={{ height: `${h}%` }} className="flex-1 bg-slate-900/10 hover:bg-slate-900 transition-all rounded-t-xl group relative cursor-pointer">
+                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100">₪{val.toLocaleString()}</div>
+                     </div>
+                   );
+                 });
+               })()}
             </div>
          </div>
       </div>
@@ -160,7 +172,7 @@ export default function Campaigns() {
         </div>
         <div className="bg-white p-10 rounded-[48px] border border-slate-200 shadow-sm flex items-center gap-6">
            <div className="w-16 h-16 bg-green-50 text-green-600 rounded-[20px] flex items-center justify-center"><TrendingUp size={32}/></div>
-           <div><p className="text-3xl font-black">2.8x</p><p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">ROAS ממוצע</p></div>
+           <div><p className="text-3xl font-black">{campaigns.length > 0 ? `${(campaigns.reduce((a, b) => a + b.roas, 0) / campaigns.length).toFixed(1)}x` : '—'}</p><p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">ROAS ממוצע</p></div>
         </div>
         <div className="bg-white p-10 rounded-[48px] border border-slate-200 shadow-sm flex items-center gap-6">
            <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-[20px] flex items-center justify-center"><Target size={32}/></div>

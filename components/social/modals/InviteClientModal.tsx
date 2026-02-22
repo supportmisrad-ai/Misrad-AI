@@ -13,9 +13,9 @@ import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 const PLANS = [
-  { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
-  { id: 'pro' as PricingPlan, name: 'Professional', price: 2990, desc: '3 פוסטים + AI אקטיבי' },
-  { id: 'agency' as PricingPlan, name: 'Agency', price: 5490, desc: 'ניהול מלא + קמפיין' },
+  { id: 'starter' as PricingPlan, name: 'בסיסי', price: 1490, desc: '2 פוסטים בשבוע' },
+  { id: 'pro' as PricingPlan, name: 'מקצועי', price: 2990, desc: '3 פוסטים + AI אקטיבי' },
+  { id: 'agency' as PricingPlan, name: 'ניהול מלא', price: 5490, desc: 'ניהול מלא + קמפיין' },
 ];
 
 export default function InviteClientModal() {
