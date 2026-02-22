@@ -162,18 +162,41 @@ export function AiWidget() {
           }),
         });
 
-        const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
         if (!res.ok) {
-          throw new Error(String(data?.error || `Chat failed (${res.status})`));
+          const errData = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+          throw new Error(String(errData?.error || `Chat failed (${res.status})`));
         }
 
-        const assistantMsg: ChatMessage = {
-          id: makeId('assistant'),
-          role: 'assistant',
-          content: String(data?.text || ''),
-        };
+        const contentType = res.headers.get('content-type') || '';
 
-        setMessages((prev) => [...prev, assistantMsg]);
+        if (contentType.includes('text/plain') && res.body) {
+          const assistantId = makeId('assistant');
+          const assistantMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '' };
+          setMessages((prev) => [...prev, assistantMsg]);
+          setIsLoading(false);
+
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulated = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            accumulated += decoder.decode(value, { stream: true });
+            const snapshot = accumulated;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+            );
+          }
+        } else {
+          const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+          const assistantMsg: ChatMessage = {
+            id: makeId('assistant'),
+            role: 'assistant',
+            content: String(data?.text || ''),
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
       } catch (e: unknown) {
         setError(String(e instanceof Error ? e.message : e || 'שגיאה בשליחת ההודעה'));
       } finally {

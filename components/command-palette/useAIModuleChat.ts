@@ -104,29 +104,58 @@ export function useAIModuleChat(opts?: {
           }),
         });
 
-        const data: unknown = await res.json().catch(() => ({}));
-        const obj = asObject(data) ?? {};
-
         if (!res.ok) {
-          const msg = typeof obj.error === 'string' ? obj.error : `Chat failed (${res.status})`;
+          const errData: unknown = await res.json().catch(() => ({}));
+          const errObj = asObject(errData) ?? {};
+          const msg = typeof errObj.error === 'string' ? errObj.error : `Chat failed (${res.status})`;
           throw new Error(String(msg));
         }
 
-        const sourcesRaw = obj.memory;
-        const sources = Array.isArray(sourcesRaw)
-          ? sourcesRaw
-              .map(coerceChatSource)
-              .filter((v): v is ChatSource => Boolean(v))
-          : [];
+        const contentType = res.headers.get('content-type') || '';
 
-        const assistantMsg: AIModuleChatMessage = {
-          id: makeId('assistant'),
-          role: 'assistant',
-          content: typeof obj.text === 'string' ? obj.text : String(obj.text || ''),
-          sources,
-        };
+        if (contentType.includes('text/plain') && res.body) {
+          const assistantId = makeId('assistant');
+          const assistantMsg: AIModuleChatMessage = {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+          setIsLoading(false);
 
-        setMessages((prev) => [...prev, assistantMsg]);
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulated = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            accumulated += decoder.decode(value, { stream: true });
+            const snapshot = accumulated;
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: snapshot } : m))
+            );
+          }
+        } else {
+          const data: unknown = await res.json().catch(() => ({}));
+          const obj = asObject(data) ?? {};
+
+          const sourcesRaw = obj.memory;
+          const sources = Array.isArray(sourcesRaw)
+            ? sourcesRaw
+                .map(coerceChatSource)
+                .filter((v): v is ChatSource => Boolean(v))
+            : [];
+
+          const assistantMsg: AIModuleChatMessage = {
+            id: makeId('assistant'),
+            role: 'assistant',
+            content: typeof obj.text === 'string' ? obj.text : String(obj.text || ''),
+            sources,
+          };
+
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
       } catch (e: unknown) {
         setError(e);
       } finally {

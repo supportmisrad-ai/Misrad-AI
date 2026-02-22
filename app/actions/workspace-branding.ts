@@ -58,6 +58,13 @@ export async function saveWorkspaceLogo(params: {
       },
     );
 
+    // DEBUG: verify logo was saved (temporary — remove after fix)
+    const verify = await prisma.organization.findUnique({
+      where: { id: workspace.id },
+      select: { logo: true },
+    });
+    console.log('[saveWorkspaceLogo] saved logoRef:', params.logoRef, '| DB now has:', verify?.logo);
+
     revalidatePath('/', 'layout');
     return { ok: true };
   } catch (error: unknown) {

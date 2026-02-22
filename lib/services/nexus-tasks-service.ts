@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext, withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 type NexusTaskRow = Prisma.NexusTaskGetPayload<Prisma.NexusTaskDefaultArgs>;
 
@@ -79,10 +80,29 @@ export async function deleteNexusTaskRowsById(params: {
 export async function findNexusTaskByShareToken(
   shareToken: string,
 ): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
-  return prisma.nexusTask.findUnique({
-    where: { shareToken },
-    include: { organization: { select: { name: true, logo: true } } },
-  }) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>;
+  return withTenantIsolationContext(
+    {
+      source: 'guest_task_share',
+      reason: 'public_guest_task_lookup_by_share_token',
+      organizationId: '',
+      suppressReporting: true,
+    },
+    async () =>
+      prisma.nexusTask.findUnique(
+        withPrismaTenantIsolationOverride(
+          {
+            where: { shareToken },
+            include: { organization: { select: { name: true, logo: true } } },
+          },
+          {
+            source: 'guest_task_share',
+            reason: 'public_guest_task_lookup_by_share_token',
+            organizationId: '',
+            suppressReporting: true,
+          }
+        )
+      ) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>
+  );
 }
 
 /**
@@ -92,10 +112,29 @@ export async function findNexusTaskByShareToken(
 export async function findNexusTaskByIdPublic(
   taskId: string,
 ): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
-  return prisma.nexusTask.findFirst({
-    where: { id: taskId, isPrivate: false },
-    include: { organization: { select: { name: true, logo: true } } },
-  }) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>;
+  return withTenantIsolationContext(
+    {
+      source: 'guest_task_share',
+      reason: 'public_guest_task_lookup_by_id_backward_compat',
+      organizationId: '',
+      suppressReporting: true,
+    },
+    async () =>
+      prisma.nexusTask.findFirst(
+        withPrismaTenantIsolationOverride(
+          {
+            where: { id: taskId, isPrivate: false },
+            include: { organization: { select: { name: true, logo: true } } },
+          },
+          {
+            source: 'guest_task_share',
+            reason: 'public_guest_task_lookup_by_id_backward_compat',
+            organizationId: '',
+            suppressReporting: true,
+          }
+        )
+      ) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>
+  );
 }
 
 /**

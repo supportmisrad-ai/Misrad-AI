@@ -157,8 +157,41 @@ function getDefaultBasePrompt(featureKey: string): string {
   return DEFAULT_BASE_PROMPT_GENERIC;
 }
 
+type CacheEntry<T> = { value: T; expiresAt: number };
+
+const CACHE_TTL = {
+  FEATURE_SETTINGS: 60_000,
+  PROVIDER_KEY: 300_000,
+  MODEL_DISPLAY_NAME: 300_000,
+  AI_DNA: 60_000,
+} as const;
+
+const CACHE_MAX_SIZE = 200;
+
+function ttlGet<T>(cache: Map<string, CacheEntry<T>>, key: string): T | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function ttlSet<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T, ttlMs: number): void {
+  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
+  if (cache.size > CACHE_MAX_SIZE) {
+    const first = cache.keys().next().value;
+    if (first) cache.delete(first);
+  }
+}
+
 export class AIService {
   private static instance: AIService | null = null;
+  private static _featureSettingsCache = new Map<string, CacheEntry<LoadedFeatureSettings>>();
+  private static _providerKeyCache = new Map<string, CacheEntry<string>>();
+  private static _modelDisplayNameCache = new Map<string, CacheEntry<string | null>>();
+  private static _aiDnaCache = new Map<string, CacheEntry<Record<string, unknown>>>();
 
   static getInstance(): AIService {
     if (!AIService.instance) AIService.instance = new AIService();
@@ -293,7 +326,7 @@ export class AIService {
         });
       }
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: embeddingFeatureKey,
@@ -319,7 +352,7 @@ export class AIService {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
       const message = getErrorMessage(err);
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: embeddingFeatureKey,
@@ -386,7 +419,7 @@ export class AIService {
 
       const parsed = JSON.parse(primary.text || '{}');
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -444,7 +477,7 @@ export class AIService {
 
           const parsed = JSON.parse(fallback.text || '{}');
 
-          await this.logUsage({
+          this.logUsage({
             organizationId: ctx.organizationId,
             userId: ctx.userId,
             featureKey: params.featureKey,
@@ -488,7 +521,7 @@ export class AIService {
         model: modelUsed,
       });
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -563,7 +596,7 @@ export class AIService {
 
       const parsed = JSON.parse(out.text || '{}');
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -599,7 +632,7 @@ export class AIService {
 
       const message = getErrorMessage(err);
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -657,7 +690,7 @@ export class AIService {
         model: modelUsed,
       });
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -712,7 +745,7 @@ export class AIService {
             model: modelUsed,
           });
 
-          await this.logUsage({
+          this.logUsage({
             organizationId: ctx.organizationId,
             userId: ctx.userId,
             featureKey: params.featureKey,
@@ -756,7 +789,7 @@ export class AIService {
         model: modelUsed,
       });
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -805,7 +838,7 @@ export class AIService {
         providerUsed = 'deepgram';
         modelUsed = feature.settings.primary_model;
 
-        await this.logUsage({
+        this.logUsage({
           organizationId: ctx.organizationId,
           userId: ctx.userId,
           featureKey: params.featureKey,
@@ -836,7 +869,7 @@ export class AIService {
         providerUsed = 'google';
         modelUsed = feature.settings.primary_model;
 
-        await this.logUsage({
+        this.logUsage({
           organizationId: ctx.organizationId,
           userId: ctx.userId,
           featureKey: params.featureKey,
@@ -858,7 +891,7 @@ export class AIService {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
       const message = getErrorMessage(err);
-      await this.logUsage({
+      this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
@@ -908,6 +941,10 @@ export class AIService {
   }
 
   private async loadFeatureSettings(params: { organizationId: string; featureKey: string }): Promise<LoadedFeatureSettings> {
+    const cacheKey = `${params.organizationId}:${params.featureKey}`;
+    const cached = ttlGet(AIService._featureSettingsCache, cacheKey);
+    if (cached) return cached;
+
     const orgRow = await prisma.ai_feature_settings.findFirst({
       where: { organization_id: params.organizationId, feature_key: params.featureKey, enabled: true },
     });
@@ -984,17 +1021,29 @@ export class AIService {
       model: settings.primary_model,
     });
 
-    return { settings, modelDisplayName };
+    const result = { settings, modelDisplayName };
+    ttlSet(AIService._featureSettingsCache, cacheKey, result, CACHE_TTL.FEATURE_SETTINGS);
+    return result;
   }
 
   private async loadOrganizationAiDna(params: { organizationId: string }): Promise<Record<string, unknown>> {
+    const cacheKey = params.organizationId;
+    const cached = ttlGet(AIService._aiDnaCache, cacheKey);
+    if (cached) return cached;
+
     const row = await prisma.organization_settings
       .findUnique({ where: { organization_id: params.organizationId }, select: { ai_dna: true } })
       .catch(() => null);
 
     const aiDna = row?.ai_dna;
-    if (!aiDna || typeof aiDna !== 'object' || Array.isArray(aiDna)) return {};
-    return aiDna as Record<string, unknown>;
+    if (!aiDna || typeof aiDna !== 'object' || Array.isArray(aiDna)) {
+      const empty = {} as Record<string, unknown>;
+      ttlSet(AIService._aiDnaCache, cacheKey, empty, CACHE_TTL.AI_DNA);
+      return empty;
+    }
+    const result = aiDna as Record<string, unknown>;
+    ttlSet(AIService._aiDnaCache, cacheKey, result, CACHE_TTL.AI_DNA);
+    return result;
   }
 
   private pickRelevantDna(params: {
@@ -1078,13 +1127,20 @@ export class AIService {
   }
 
   private async getModelDisplayName(params: { organizationId: string; provider: AIProviderName; model: string }): Promise<string | null> {
+    const cacheKey = `${params.organizationId}:${params.provider}:${params.model}`;
+    const cached = ttlGet(AIService._modelDisplayNameCache, cacheKey);
+    if (cached !== undefined) return cached;
+
     const orgRow = await prisma.ai_model_aliases.findFirst({
       where: { organization_id: params.organizationId, provider: params.provider, model: params.model },
       select: { display_name: true },
     });
 
     const orgName = orgRow?.display_name ? String(orgRow.display_name) : null;
-    if (orgName) return orgName;
+    if (orgName) {
+      ttlSet(AIService._modelDisplayNameCache, cacheKey, orgName, CACHE_TTL.MODEL_DISPLAY_NAME);
+      return orgName;
+    }
 
     const globalRow = await prisma.ai_model_aliases.findFirst({
       where: { organization_id: null, provider: params.provider, model: params.model },
@@ -1092,6 +1148,7 @@ export class AIService {
     });
 
     const globalName = globalRow?.display_name ? String(globalRow.display_name) : null;
+    ttlSet(AIService._modelDisplayNameCache, cacheKey, globalName, CACHE_TTL.MODEL_DISPLAY_NAME);
     return globalName;
   }
 
@@ -1129,13 +1186,21 @@ export class AIService {
   }
 
   private async getProviderKey(params: { provider: AIProviderName; organizationId: string }): Promise<string> {
+    const cacheKey = `${params.organizationId}:${params.provider}`;
+    const cached = ttlGet(AIService._providerKeyCache, cacheKey);
+    if (cached) return cached;
+
     const orgKeyRow = await prisma.ai_provider_keys.findFirst({
       where: { provider: params.provider, organization_id: params.organizationId, enabled: true },
       select: { api_key: true },
     });
 
     const orgKey = orgKeyRow?.api_key ? String(orgKeyRow.api_key) : null;
-    if (orgKey) return this.decryptKeyOrPlaintext(orgKey);
+    if (orgKey) {
+      const decrypted = await this.decryptKeyOrPlaintext(orgKey);
+      ttlSet(AIService._providerKeyCache, cacheKey, decrypted, CACHE_TTL.PROVIDER_KEY);
+      return decrypted;
+    }
 
     const globalKeyRow = await prisma.ai_provider_keys.findFirst({
       where: { provider: params.provider, organization_id: null, enabled: true },
@@ -1144,7 +1209,11 @@ export class AIService {
 
     const globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
 
-    if (globalKey) return this.decryptKeyOrPlaintext(globalKey);
+    if (globalKey) {
+      const decrypted = await this.decryptKeyOrPlaintext(globalKey);
+      ttlSet(AIService._providerKeyCache, cacheKey, decrypted, CACHE_TTL.PROVIDER_KEY);
+      return decrypted;
+    }
 
     if (params.provider === 'google') {
       const envKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -1271,7 +1340,7 @@ export class AIService {
       const openai = new OpenAIProvider(apiKey);
       const out = await openai.embedText({ model: modelUsed, input: String(params.input || ''), timeoutMs: feature.settings.timeout_ms });
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: params.organizationId,
         userId: params.userId,
         featureKey: embeddingFeatureKey,
@@ -1291,7 +1360,7 @@ export class AIService {
 
       const message = getErrorMessage(err);
 
-      await this.logUsage({
+      this.logUsage({
         organizationId: params.organizationId,
         userId: params.userId,
         featureKey: embeddingFeatureKey,
@@ -1505,7 +1574,7 @@ export class AIService {
     throw new AIProviderError({ provider: params.provider, message: 'Provider not implemented yet' });
   }
 
-  private async logUsage(params: {
+  private logUsage(params: {
     organizationId: string;
     userId: string;
     featureKey: string;
@@ -1518,7 +1587,7 @@ export class AIService {
     status: 'success' | 'error';
     errorMessage?: string;
     meta?: Record<string, unknown>;
-  }): Promise<void> {
+  }): void {
     type AIUsageLogsCreateData = Parameters<typeof prisma.ai_usage_logs.create>[0]['data'];
     const data: AIUsageLogsCreateData = {
       organization_id: params.organizationId,
@@ -1534,9 +1603,7 @@ export class AIService {
       error_message: params.errorMessage || null,
       meta: params.meta ? (params.meta as Prisma.InputJsonValue) : undefined,
     };
-    await prisma.ai_usage_logs.create({
-      data,
-    });
+    prisma.ai_usage_logs.create({ data }).catch(() => null);
   }
 
   private mergeSystemInstruction(custom?: string): string {

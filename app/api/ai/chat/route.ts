@@ -682,49 +682,16 @@ async function POSTHandler(req: Request) {
 
     const { workspaceId: organizationId } = await getWorkspaceOrThrow(req);
 
-    const userRateLimit = await enforceRateLimit({
-      namespace: 'ai.chat.user.user_min',
-      key: `${organizationId}:${clerkUserId}`,
-      limit: 15,
-      windowMs: 60_000,
-      label: 'user-min',
-    });
-    if (!userRateLimit.ok) {
-      return jsonError('Rate limit exceeded', 429, userRateLimit.headers);
-    }
-
-    const userDayRateLimit = await enforceRateLimit({
-      namespace: 'ai.chat.user.user_day',
-      key: `${organizationId}:${clerkUserId}`,
-      limit: 500,
-      windowMs: 24 * 60 * 60_000,
-      label: 'user-day',
-    });
-    if (!userDayRateLimit.ok) {
-      return jsonError('Rate limit exceeded', 429, { ...userRateLimit.headers, ...userDayRateLimit.headers });
-    }
-
-    const orgRateLimit = await enforceRateLimit({
-      namespace: 'ai.chat.org.org_10m',
-      key: String(organizationId),
-      limit: 120,
-      windowMs: 10 * 60_000,
-      label: 'org-10m',
-    });
-    if (!orgRateLimit.ok) {
-      return jsonError('Rate limit exceeded', 429, orgRateLimit.headers);
-    }
-
-    const orgDayRateLimit = await enforceRateLimit({
-      namespace: 'ai.chat.org.org_day',
-      key: String(organizationId),
-      limit: 5000,
-      windowMs: 24 * 60 * 60_000,
-      label: 'org-day',
-    });
-    if (!orgDayRateLimit.ok) {
-      return jsonError('Rate limit exceeded', 429, { ...orgRateLimit.headers, ...orgDayRateLimit.headers });
-    }
+    const [userRateLimit, userDayRateLimit, orgRateLimit, orgDayRateLimit] = await Promise.all([
+      enforceRateLimit({ namespace: 'ai.chat.user.user_min', key: `${organizationId}:${clerkUserId}`, limit: 15, windowMs: 60_000, label: 'user-min' }),
+      enforceRateLimit({ namespace: 'ai.chat.user.user_day', key: `${organizationId}:${clerkUserId}`, limit: 500, windowMs: 24 * 60 * 60_000, label: 'user-day' }),
+      enforceRateLimit({ namespace: 'ai.chat.org.org_10m', key: String(organizationId), limit: 120, windowMs: 10 * 60_000, label: 'org-10m' }),
+      enforceRateLimit({ namespace: 'ai.chat.org.org_day', key: String(organizationId), limit: 5000, windowMs: 24 * 60 * 60_000, label: 'org-day' }),
+    ]);
+    if (!userRateLimit.ok) return jsonError('Rate limit exceeded', 429, userRateLimit.headers);
+    if (!userDayRateLimit.ok) return jsonError('Rate limit exceeded', 429, { ...userRateLimit.headers, ...userDayRateLimit.headers });
+    if (!orgRateLimit.ok) return jsonError('Rate limit exceeded', 429, orgRateLimit.headers);
+    if (!orgDayRateLimit.ok) return jsonError('Rate limit exceeded', 429, { ...orgRateLimit.headers, ...orgDayRateLimit.headers });
 
     const safeMessages: ChatMessage[] = safeIncomingMessages;
 
@@ -782,297 +749,143 @@ async function POSTHandler(req: Request) {
 
     const memoryModuleId = normalizeModuleId(moduleName);
 
-    const computePromise = withLoadIsolation({
-      organizationId,
-      task: async (): Promise<CachedChatResponse> => {
-        let moduleSnapshotText = '';
-        try {
-          if (memoryModuleId === 'system') {
-            const hottest = await prisma.systemLead.findFirst({
-              where: { organizationId },
-              orderBy: [{ isHot: 'desc' }, { score: 'desc' }, { updatedAt: 'desc' }],
-              select: { id: true, name: true, status: true, score: true, updatedAt: true },
-            });
-            moduleSnapshotText = safeJsonStringify({
-              hottestLead: hottest
-                ? {
-                    id: hottest.id,
-                    name: hottest.name,
-                    status: hottest.status,
-                    score: hottest.score ?? null,
-                    updatedAt: hottest.updatedAt ? new Date(hottest.updatedAt).toISOString() : null,
-                  }
-                : null,
-            }, 2500);
-          } else if (memoryModuleId === 'client') {
-            const analyses = await prisma.misradMeetingAnalysisResult.findMany({
-              where: { organization_id: organizationId },
-              orderBy: { created_at: 'desc' },
-              take: 6,
-              select: { meeting_id: true, rating: true, created_at: true, meeting: { select: { title: true } }, client: { select: { name: true } } },
-            });
-
-            let lastCommitment: {
-              meetingId: string;
-              clientName: string | null;
-              meetingTitle: string | null;
-              createdAt: string;
-              who: string;
-              what: string;
-              due: string;
-            } | null = null;
-            for (const a of analyses) {
-              const commitments = parseCommitments(a.rating ?? {});
-              if (commitments.length) {
-                const c = commitments[0];
-                lastCommitment = {
-                  meetingId: String(a.meeting_id),
-                  clientName: a.client?.name ? String(a.client.name) : null,
-                  meetingTitle: a.meeting?.title ? String(a.meeting.title) : null,
-                  createdAt: new Date(a.created_at).toISOString(),
-                  who: c.who,
-                  what: c.what,
-                  due: c.due,
-                };
-                break;
-              }
+    async function fetchModuleSnapshot(): Promise<string> {
+      try {
+        if (memoryModuleId === 'system') {
+          const hottest = await prisma.systemLead.findFirst({
+            where: { organizationId },
+            orderBy: [{ isHot: 'desc' }, { score: 'desc' }, { updatedAt: 'desc' }],
+            select: { id: true, name: true, status: true, score: true, updatedAt: true },
+          });
+          return safeJsonStringify({
+            hottestLead: hottest
+              ? { id: hottest.id, name: hottest.name, status: hottest.status, score: hottest.score ?? null, updatedAt: hottest.updatedAt ? new Date(hottest.updatedAt).toISOString() : null }
+              : null,
+          }, 2500);
+        } else if (memoryModuleId === 'client') {
+          const analyses = await prisma.misradMeetingAnalysisResult.findMany({
+            where: { organization_id: organizationId },
+            orderBy: { created_at: 'desc' },
+            take: 6,
+            select: { meeting_id: true, rating: true, created_at: true, meeting: { select: { title: true } }, client: { select: { name: true } } },
+          });
+          for (const a of analyses) {
+            const commitments = parseCommitments(a.rating ?? {});
+            if (commitments.length) {
+              const c = commitments[0];
+              return safeJsonStringify({ lastCommitment: { meetingId: String(a.meeting_id), clientName: a.client?.name ? String(a.client.name) : null, meetingTitle: a.meeting?.title ? String(a.meeting.title) : null, createdAt: new Date(a.created_at).toISOString(), who: c.who, what: c.what, due: c.due } }, 2500);
             }
+          }
+          return safeJsonStringify({ lastCommitment: null }, 2500);
+        } else if (memoryModuleId === 'finance') {
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          const startDateStr = startOfMonth.toISOString().slice(0, 10);
+          const nextDateStr = startOfNextMonth.toISOString().slice(0, 10);
 
-            moduleSnapshotText = safeJsonStringify({ lastCommitment }, 2500);
-          } else if (memoryModuleId === 'finance') {
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-            const weightedPipelineRows = await queryRawOrgScoped<Array<{ weighted_pipeline: unknown }>>(prisma, {
-              organizationId,
-              reason: 'ai_chat_finance_weighted_pipeline',
-              query: `
-                SELECT
-                  COALESCE(
-                    SUM(
-                      (COALESCE(l.value, 0)::numeric)
-                      * GREATEST(0, LEAST(1, (COALESCE(l.score, 0)::numeric / 100.0)))
-                    ),
-                    0
-                  ) AS weighted_pipeline
-                FROM system_leads l
-                WHERE l.organization_id = $1::uuid
-                  AND lower(COALESCE(l.status, '')) NOT IN ('won', 'lost')
-              `,
+          const [wpRows, siRows, miAgg, biAgg] = await Promise.all([
+            queryRawOrgScoped<Array<{ weighted_pipeline: unknown }>>(prisma, {
+              organizationId, reason: 'ai_chat_finance_weighted_pipeline',
+              query: `SELECT COALESCE(SUM((COALESCE(l.value,0)::numeric)*GREATEST(0,LEAST(1,(COALESCE(l.score,0)::numeric/100.0)))),0) AS weighted_pipeline FROM system_leads l WHERE l.organization_id=$1::uuid AND lower(COALESCE(l.status,'')) NOT IN ('won','lost')`,
               values: [organizationId],
-            });
-
-            const weightedPipelineRaw = Array.isArray(weightedPipelineRows) ? weightedPipelineRows[0]?.weighted_pipeline : 0;
-            const weightedPipeline = Math.round(Number(weightedPipelineRaw || 0) * 100) / 100;
-
-            const systemInvoicesOpenRows = await queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
-              organizationId,
-              reason: 'ai_chat_finance_system_invoices_open_sum',
-              query: `
-                SELECT
-                  COALESCE(SUM(i.amount::numeric), 0) AS open_sum
-                FROM system_invoices i
-                JOIN system_leads l ON l.id = i.lead_id
-                WHERE l.organization_id = $1::uuid
-                  AND i.date >= $2::timestamptz
-                  AND i.date < $3::timestamptz
-                  AND (
-                    COALESCE(i.status, '') = ''
-                    OR NOT (
-                      lower(i.status) LIKE '%paid%'
-                      OR lower(i.status) LIKE '%settled%'
-                      OR lower(i.status) LIKE '%complete%'
-                      OR lower(i.status) LIKE '%void%'
-                      OR lower(i.status) LIKE '%cancel%'
-                    )
-                  )
-              `,
+            }),
+            queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
+              organizationId, reason: 'ai_chat_finance_system_invoices_open_sum',
+              query: `SELECT COALESCE(SUM(i.amount::numeric),0) AS open_sum FROM system_invoices i JOIN system_leads l ON l.id=i.lead_id WHERE l.organization_id=$1::uuid AND i.date>=$2::timestamptz AND i.date<$3::timestamptz AND (COALESCE(i.status,'')='' OR NOT (lower(i.status) LIKE '%paid%' OR lower(i.status) LIKE '%settled%' OR lower(i.status) LIKE '%complete%' OR lower(i.status) LIKE '%void%' OR lower(i.status) LIKE '%cancel%'))`,
               values: [organizationId, startOfMonth, startOfNextMonth],
-            });
+            }),
+            prisma.misradInvoice.aggregate({ where: { organization_id: organizationId, status: { not: MisradInvoiceStatus.PAID }, dueDate: { gte: startDateStr, lt: nextDateStr } }, _sum: { amount: true } }),
+            prisma.nexusBillingItem.aggregate({ where: { organization_id: organizationId, cadence: 'monthly' }, _sum: { amount: true } }),
+          ]);
 
-            const systemInvoicesOpenRaw = Array.isArray(systemInvoicesOpenRows) ? systemInvoicesOpenRows[0]?.open_sum : 0;
-            const systemInvoicesOpen = Math.round(Number(systemInvoicesOpenRaw || 0) * 100) / 100;
+          const weightedPipeline = Math.round(Number(Array.isArray(wpRows) ? wpRows[0]?.weighted_pipeline : 0 || 0) * 100) / 100;
+          const systemInvoicesOpen = Math.round(Number(Array.isArray(siRows) ? siRows[0]?.open_sum : 0 || 0) * 100) / 100;
+          const misradInvoicesOpenThisMonth = Number(miAgg._sum?.amount || 0);
+          const rm = biAgg._sum?.amount;
+          const rmNum = rm == null ? 0 : rm instanceof Prisma.Decimal ? rm.toNumber() : Number(rm);
+          const recurringMonthly = Math.round((Number.isFinite(rmNum) ? rmNum : 0) * 100) / 100;
 
-            const startDateStr = startOfMonth.toISOString().slice(0, 10);
-            const nextDateStr = startOfNextMonth.toISOString().slice(0, 10);
-            const misradInvoicesAgg = await prisma.misradInvoice.aggregate({
-              where: {
-                organization_id: organizationId,
-                status: { not: MisradInvoiceStatus.PAID },
-                dueDate: { gte: startDateStr, lt: nextDateStr },
-              },
-              _sum: { amount: true },
-            });
-
-            const misradInvoicesOpenThisMonth = Number(misradInvoicesAgg._sum?.amount || 0);
-
-            let recurringMonthly = 0;
-            const billingAgg = await prisma.nexusBillingItem.aggregate({
-              where: { organization_id: organizationId, cadence: 'monthly' },
-              _sum: { amount: true },
-            });
-
-            const rm = billingAgg._sum?.amount;
-            const rmNum = rm == null ? 0 : rm instanceof Prisma.Decimal ? rm.toNumber() : Number(rm);
-            recurringMonthly = Math.round((Number.isFinite(rmNum) ? rmNum : 0) * 100) / 100;
-
-            const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;
-            moduleSnapshotText = safeJsonStringify(
-              {
-                expectedMonthlyRevenue,
-                breakdown: {
-                  weightedPipeline,
-                  systemInvoicesOpenThisMonth: systemInvoicesOpen,
-                  misradInvoicesOpenThisMonth,
-                  recurringMonthly,
-                },
-              },
-              2500
-            );
-          }
-        } catch {
-          moduleSnapshotText = '';
+          return safeJsonStringify({ expectedMonthlyRevenue: Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100, breakdown: { weightedPipeline, systemInvoicesOpenThisMonth: systemInvoicesOpen, misradInvoicesOpenThisMonth, recurringMonthly } }, 2500);
         }
+      } catch { /* non-critical */ }
+      return '';
+    }
 
-        let memoryHits: Array<{ docKey: string; chunkIndex: number; similarity: number; content: string; metadata: unknown }> = [];
-        try {
-          if (lastUser.trim()) {
-            const hits = await ai.semanticSearch({
-              featureKey: `${featureKey}.semantic_search`,
-              organizationId,
-              userId: clerkUserId,
-              query: lastUser,
-              moduleId: memoryModuleId,
-              matchCount: 6,
-              similarityThreshold: 0.2,
-            });
-            memoryHits = (hits || []).map((h) => ({
-              docKey: h.docKey,
-              chunkIndex: h.chunkIndex,
-              similarity: h.similarity,
-              content: clampText(String(h.content || ''), 450),
-              metadata: h.metadata ?? null,
-            }));
-          }
-        } catch {
-          memoryHits = [];
-        }
+    async function fetchMemoryHits(): Promise<Array<{ docKey: string; chunkIndex: number; similarity: number; content: string; metadata: unknown }>> {
+      try {
+        if (!lastUser.trim()) return [];
+        const hits = await ai.semanticSearch({ featureKey: `${featureKey}.semantic_search`, organizationId, userId: clerkUserId, query: lastUser, moduleId: memoryModuleId, matchCount: 6, similarityThreshold: 0.2 });
+        return (hits || []).map((h) => ({ docKey: h.docKey, chunkIndex: h.chunkIndex, similarity: h.similarity, content: clampText(String(h.content || ''), 450), metadata: h.metadata ?? null }));
+      } catch { return []; }
+    }
+
+    async function fetchHelpVideo(): Promise<string> {
+      try {
+        if (!normalizedPathname) return '';
+        const hv = await getHelpVideoSuggestion({ organizationId, pathname: normalizedPathname, moduleKey: moduleName });
+        return hv?.videoUrl ? `מדריך וידאו מומלץ למסך הזה: ${hv.title}${hv.duration ? ` (${hv.duration})` : ''} - ${hv.videoUrl}` : '';
+      } catch { return ''; }
+    }
+
+    const streamResponse = await withLoadIsolation({
+      organizationId,
+      task: async () => {
+        const [moduleSnapshotText, memoryHits, helpVideoText, techDocs, salesDocsKnowledge] = await Promise.all([
+          fetchModuleSnapshot(),
+          fetchMemoryHits(),
+          fetchHelpVideo(),
+          loadTechDocsSnippet().catch(() => ''),
+          loadSalesDocsSnippet().catch(() => ''),
+        ]);
 
         const memoryText = memoryHits.length
-          ? memoryHits
-              .map((h, i) => `#${i + 1} (${h.similarity.toFixed(3)}) ${h.docKey}\n${h.content}`)
-              .join('\n\n')
+          ? memoryHits.map((h, i) => `#${i + 1} (${h.similarity.toFixed(3)}) ${h.docKey}\n${h.content}`).join('\n\n')
           : '(none)';
-
-        let helpVideoText = '';
-        try {
-          if (normalizedPathname) {
-            const hv = await getHelpVideoSuggestion({ organizationId, pathname: normalizedPathname, moduleKey: moduleName });
-            if (hv?.videoUrl) {
-              helpVideoText = `מדריך וידאו מומלץ למסך הזה: ${hv.title}${hv.duration ? ` (${hv.duration})` : ''} - ${hv.videoUrl}`;
-            }
-          }
-        } catch {
-          helpVideoText = '';
-        }
-
-        let techDocs = '';
-        try {
-          techDocs = clampText(await loadTechDocsSnippet(), 3500);
-        } catch {
-          techDocs = '';
-        }
-
-        let salesDocsKnowledge = '';
-        try {
-          salesDocsKnowledge = clampText(await loadSalesDocsSnippet(), 8000);
-        } catch {
-          salesDocsKnowledge = '';
-        }
 
         const systemInstruction = [
           'אתה "שרה מהתמיכה".',
           'אתה מומחה תמיכה טכנית. עזור למשתמש לבצע פעולות בתוך המערכת.',
           'השתמש במידע על המודולים ובלינקים למדריכים. היה סבלני ושירותי.',
           helpVideoText ? `מדריכים רלוונטיים:\n${helpVideoText}` : '',
-          techDocs ? `תיעוד טכני פנימי (קטע):\n${techDocs}` : '',
-          salesDocsKnowledge ? `מידע על מודולים ויכולות המערכת:\n${salesDocsKnowledge}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n\n');
+          clampText(techDocs, 3500) ? `תיעוד טכני פנימי (קטע):\n${clampText(techDocs, 3500)}` : '',
+          clampText(salesDocsKnowledge, 8000) ? `מידע על מודולים ויכולות המערכת:\n${clampText(salesDocsKnowledge, 8000)}` : '',
+        ].filter(Boolean).join('\n\n');
 
-        const request = `מודול: ${clampText(moduleName, 60)}
+        const request = `מודול: ${clampText(moduleName, 60)}\n\nUI Snapshot (me-insights):\n${clampText(moduleSnapshotText || '(none)', 2500)}\n\nOrganizational Memory (pgvector):\n${clampText(memoryText, 3500)}\n\nContext (JSON):\n${clampText(contextText || '{}', 5000)}\n\nHistory:\n${clampText(historyText || '(empty)', 7000)}\n\nUser message:\n${clampText(lastUser, 5000)}`;
 
-UI Snapshot (me-insights):
-${clampText(moduleSnapshotText || '(none)', 2500)}
+        logAuditEvent('ai.query', featureKey, { details: { organizationId, module: moduleName, hasContext: Boolean(context), memoryHits: memoryHits.length } }).catch(() => null);
 
-Organizational Memory (pgvector):
-${clampText(memoryText, 3500)}
-
-Context (JSON):
-${clampText(contextText || '{}', 5000)}
-
-History:
-${clampText(historyText || '(empty)', 7000)}
-
-User message:
-${clampText(lastUser, 5000)}`;
-
-        await logAuditEvent('ai.query', featureKey, {
-          details: {
-            organizationId,
-            module: moduleName,
-            hasContext: Boolean(context),
-            memoryHits: memoryHits.length,
-          },
-        });
-
-        const out = await ai.generateText({
+        const out = await ai.streamText({
           featureKey,
           organizationId,
           userId: clerkUserId,
           prompt: request,
           systemInstruction: clampText(systemInstruction, 6000),
-          meta: {
-            module: moduleName,
-            toneOverride: body.toneOverride,
-          },
+          meta: { module: moduleName, toneOverride: body.toneOverride },
         });
 
-        return {
-          text: out.text || '',
-          provider: out.provider,
-          model: out.model,
-          chargedCents: out.chargedCents,
-          memory: memoryHits.map((h) => ({
-            docKey: h.docKey,
-            similarity: h.similarity,
-            chunkIndex: h.chunkIndex,
-            content: h.content,
-            metadata: h.metadata ?? null,
-          })),
-        } as CachedChatResponse;
+        return out;
       },
     });
 
-    inflightByKey.set(cacheKey, computePromise);
-    try {
-      const resp = await computePromise;
-      cacheSet(cacheKey, resp);
-      return apiSuccess(resp, {
-        headers: {
-          ...earlyRateLimit.headers,
-          ...userRateLimit.headers,
-          ...userDayRateLimit.headers,
-          ...orgRateLimit.headers,
-          ...orgDayRateLimit.headers,
-          'X-Misrad-Cache': 'MISS',
-        },
-      });
-    } finally {
-      inflightByKey.delete(cacheKey);
-    }
+    const combinedHeaders = {
+      ...earlyRateLimit.headers,
+      ...userRateLimit.headers,
+      ...userDayRateLimit.headers,
+      ...orgRateLimit.headers,
+      ...orgDayRateLimit.headers,
+    };
+
+    return new Response(streamResponse.stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-AI-Provider': String(streamResponse.provider || ''),
+        'X-AI-Model': String(streamResponse.model || ''),
+        ...combinedHeaders,
+      },
+    });
   } catch (e: unknown) {
     const status = getErrorStatus(e);
     const name = getErrorName(e);

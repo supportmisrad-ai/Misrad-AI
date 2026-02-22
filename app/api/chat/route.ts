@@ -299,60 +299,19 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     const featureKey = ctx ? 'social.chat' : 'ai.chat';
     const moduleName = ctx ? 'social' : 'global';
 
-    const userRateLimit = await enforceRateLimit({
-      namespace: 'chat.api.user_min',
-      key: `${workspaceId}:${clerkUserId}`,
-      limit: 15,
-      windowMs: 60_000,
-      label: 'user-min',
-    });
-    if (!userRateLimit.ok) {
-      return NextResponse.json(
-        { error: userRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
-        { status: userRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers } }
-      );
-    }
+    const [userRateLimit, userDayRateLimit, orgRateLimit, orgDayRateLimit] = await Promise.all([
+      enforceRateLimit({ namespace: 'chat.api.user_min', key: `${workspaceId}:${clerkUserId}`, limit: 15, windowMs: 60_000, label: 'user-min' }),
+      enforceRateLimit({ namespace: 'chat.api.user_day', key: `${workspaceId}:${clerkUserId}`, limit: 500, windowMs: 24 * 60 * 60_000, label: 'user-day' }),
+      enforceRateLimit({ namespace: 'chat.api.org_10m', key: String(workspaceId), limit: 120, windowMs: 10 * 60_000, label: 'org-10m' }),
+      enforceRateLimit({ namespace: 'chat.api.org_day', key: String(workspaceId), limit: 5000, windowMs: 24 * 60 * 60_000, label: 'org-day' }),
+    ]);
 
-    const userDayRateLimit = await enforceRateLimit({
-      namespace: 'chat.api.user_day',
-      key: `${workspaceId}:${clerkUserId}`,
-      limit: 500,
-      windowMs: 24 * 60 * 60_000,
-      label: 'user-day',
-    });
-    if (!userDayRateLimit.ok) {
-      return NextResponse.json(
-        { error: userDayRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
-        { status: userDayRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers } }
-      );
-    }
-
-    const orgRateLimit = await enforceRateLimit({
-      namespace: 'chat.api.org_10m',
-      key: String(workspaceId),
-      limit: 120,
-      windowMs: 10 * 60_000,
-      label: 'org-10m',
-    });
-    if (!orgRateLimit.ok) {
-      return NextResponse.json(
-        { error: orgRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
-        { status: orgRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers } }
-      );
-    }
-
-    const orgDayRateLimit = await enforceRateLimit({
-      namespace: 'chat.api.org_day',
-      key: String(workspaceId),
-      limit: 5000,
-      windowMs: 24 * 60 * 60_000,
-      label: 'org-day',
-    });
-    if (!orgDayRateLimit.ok) {
-      return NextResponse.json(
-        { error: orgDayRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
-        { status: orgDayRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers, ...orgDayRateLimit.headers } }
-      );
+    const rlFailed = [userRateLimit, userDayRateLimit, orgRateLimit, orgDayRateLimit].find((r) => !r.ok);
+    if (rlFailed) {
+      const allHeaders = { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers, ...orgDayRateLimit.headers };
+      const status = rlFailed.reason === 'unavailable' ? 503 : 429;
+      const msg = rlFailed.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded';
+      return NextResponse.json({ error: msg }, { status, headers: allHeaders });
     }
 
     const cacheKey = stableHash(

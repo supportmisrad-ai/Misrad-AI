@@ -194,6 +194,105 @@ function streamTextResponse(text: string): Response {
   });
 }
 
+function streamOpenAIResponse(params: {
+  apiKey: string;
+  model: string;
+  systemInstruction: string;
+  prompt: string;
+  temperature?: number;
+  maxTokens?: number;
+  timeoutMs?: number;
+  postProcess?: (text: string) => string;
+}): Response {
+  const ac = new AbortController();
+  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 25000);
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${params.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: params.model,
+            messages: [
+              { role: 'system', content: params.systemInstruction },
+              { role: 'user', content: params.prompt },
+            ],
+            temperature: params.temperature ?? 0.3,
+            max_tokens: params.maxTokens ?? 600,
+            stream: true,
+          }),
+          signal: ac.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          const txt = await res.text().catch(() => '');
+          controller.enqueue(encoder.encode(`שגיאה בשרת AI (${res.status}). נסה שוב.`));
+          controller.close();
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        const reader = res.body.getReader();
+        let accumulated = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value, { stream: true });
+          const lines = text.split('\n').filter((line) => line.trim() !== '');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') break;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  if (params.postProcess) {
+                    accumulated += content;
+                  } else {
+                    controller.enqueue(encoder.encode(content));
+                  }
+                }
+              } catch {
+                // skip malformed
+              }
+            }
+          }
+        }
+
+        if (params.postProcess && accumulated) {
+          controller.enqueue(encoder.encode(params.postProcess(accumulated)));
+        }
+
+        clearTimeout(timeout);
+        controller.close();
+      } catch (err: unknown) {
+        clearTimeout(timeout);
+        const isAbort = err instanceof Error && err.name === 'AbortError';
+        controller.enqueue(encoder.encode(isAbort ? 'הבקשה לקחה יותר מדי זמן. נסה שוב.' : 'שגיאה בשרת AI. נסה שוב.'));
+        controller.close();
+      }
+    },
+    cancel() {
+      clearTimeout(timeout);
+      ac.abort();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+
 function ensureSalesCTA(text: string): string {
   const out = String(text || '').trim();
   if (!out) return out;
@@ -616,44 +715,25 @@ async function POSTHandler(req: Request) {
         `- אם מוכן: "הירשם עכשיו|/login?mode=sign-up;;דבר עם מכירות|/contact;;שאלות נוספות|יש לי עוד שאלה"`,
       ].join('\n');
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+      return streamOpenAIResponse({
+        apiKey,
+        model: 'gpt-4o-mini',
+        systemInstruction,
+        prompt,
+        temperature: 0.7,
+        maxTokens: 500,
+        timeoutMs: 25000,
+        postProcess: (raw) => {
+          const actions = extractDynamicActions(raw);
+          let cleaned = stripActionsTag(raw);
+          if (actions.length === 0) {
+            cleaned = ensureSalesCTA(cleaned);
+          } else {
+            cleaned = cleaned + '\n\n' + JSON.stringify({ quickActions: actions.map(a => a.label) });
+          }
+          return cleaned;
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemInstruction },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 500,
-        }),
       });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        return apiError(`OpenAI error (${res.status}): ${txt}`, { status: 502 });
-      }
-
-      const json: unknown = await res.json();
-      let text = extractOpenAiText(json);
-      
-      // חלץ כפתורים דינמיים
-      const actions = extractDynamicActions(text);
-      text = stripActionsTag(text);
-      
-      // אם אין כפתורים, הוסף ברירת מחדל
-      if (actions.length === 0) {
-        text = ensureSalesCTA(text);
-      } else {
-        // הוסף כפתורים בפורמט JSON בסוף
-        text = text + '\n\n' + JSON.stringify({ quickActions: actions.map(a => a.label) });
-      }
-      
-      return streamTextResponse(text);
     }
 
     await getAuthenticatedUser();
@@ -732,31 +812,15 @@ async function POSTHandler(req: Request) {
 
     const prompt = `עמוד נוכחי: ${pathname}\nמודול: ${moduleKey || 'unknown'}\n\nHistory:\n${history || '(empty)'}\n\nUser message:\n${lastUser}`;
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemInstruction },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.2,
-      }),
+    return streamOpenAIResponse({
+      apiKey,
+      model: 'gpt-4o-mini',
+      systemInstruction,
+      prompt,
+      temperature: 0.2,
+      maxTokens: 600,
+      timeoutMs: 25000,
     });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      return apiError(`OpenAI error (${res.status}): ${txt}`, { status: 502 });
-    }
-
-    const json: unknown = await res.json();
-    const text = extractOpenAiText(json);
-
-    return streamTextResponse(text);
   } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Chat failed' });
   }
