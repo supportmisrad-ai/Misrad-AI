@@ -34,16 +34,40 @@ export default async function SystemMePage({
         basePathOverride={basePathOverride}
         moduleCards={[
           {
+            title: 'לוח בקרה',
+            subtitle: 'חזרה לדף הבית',
+            href: basePathOverride,
+            iconId: 'layout_dashboard',
+          },
+          {
             title: 'לידים',
             subtitle: 'צינור מכירות וניהול פניות',
-            href: `${basePathOverride}/sales_leads`,
+            href: `${basePathOverride}/sales_pipeline`,
             iconId: 'target',
           },
           {
-            title: 'לוח בקרה',
-            subtitle: 'חזרה לדף הבית',
-            href: `${basePathOverride}/workspace`,
-            iconId: 'trending_up',
+            title: 'משימות',
+            subtitle: 'ניהול משימות ומעקב',
+            href: `${basePathOverride}/tasks`,
+            iconId: 'square_check',
+          },
+          {
+            title: 'אירועים',
+            subtitle: 'לוח שנה ופגישות',
+            href: `${basePathOverride}/calendar`,
+            iconId: 'calendar_days',
+          },
+          {
+            title: 'חייגן',
+            subtitle: 'תקשורת עם לידים',
+            href: `${basePathOverride}/dialer`,
+            iconId: 'phone_call',
+          },
+          {
+            title: 'דוחות',
+            subtitle: 'ניתוח ביצועים ומדדים',
+            href: `${basePathOverride}/reports`,
+            iconId: 'bar_chart_3',
           },
         ]}
       />

@@ -50,27 +50,7 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
 export const QUICK_ASSETS: Array<{ id: string; label: string; value: string; type: 'link' | 'text' }> = [];
 
-const subMinutes = (minutes: number) => {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - minutes);
-  return d;
-};
-
-const subDays = (days: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() - days);
-    return d;
-  };
-
-const addDays = (days: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d;
-  };
-
-export const INITIAL_LEADS: Lead[] = [
-  
-];
+export const INITIAL_LEADS: Lead[] = [];
 
 export const INITIAL_AGENTS: FieldAgent[] = [
   

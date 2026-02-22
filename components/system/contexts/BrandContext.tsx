@@ -16,7 +16,7 @@ export const BrandProvider: React.FC<{
   initialBrandName?: string;
   initialBrandLogo?: string | null;
 }> = ({ children, initialBrandName, initialBrandLogo }) => {
-  const [brandName, setBrandName] = useState(initialBrandName || 'system.OS');
+  const [brandName, setBrandName] = useState(initialBrandName || 'System');
   const [brandLogo, setBrandLogo] = useState<string | null>(
     typeof initialBrandLogo === 'string' ? initialBrandLogo : null
   );
@@ -32,7 +32,7 @@ export const BrandProvider: React.FC<{
 
   useEffect(() => {
     if (initialBrandName && isProbablyTokenOrId(initialBrandName)) {
-      setBrandName('system.OS');
+      setBrandName('System');
     }
   }, [initialBrandName]);
 

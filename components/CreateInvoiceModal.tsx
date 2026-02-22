@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, Plus, Trash2, Download, Send, Palette, Image, Check, Type } from 'lucide-react';
 import type { PackageType } from '@/lib/billing/pricing';
@@ -56,6 +57,31 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Integration guard: check if Green Invoice is connected
+    const [integrationStatus, setIntegrationStatus] = useState<'checking' | 'connected' | 'not_connected'>('checking');
+
+    useEffect(() => {
+        if (!isOpen) {
+            setIntegrationStatus('checking');
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/integrations/green-invoice/status', {
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : {},
+                });
+                if (cancelled) return;
+                if (!res.ok) { setIntegrationStatus('not_connected'); return; }
+                const data = await res.json() as { connected?: boolean };
+                setIntegrationStatus(data.connected ? 'connected' : 'not_connected');
+            } catch {
+                if (!cancelled) setIntegrationStatus('not_connected');
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [isOpen, orgSlug]);
 
     const [isPaywallOpen, setIsPaywallOpen] = useState(false);
     const [paywallTitle, setPaywallTitle] = useState('');
@@ -136,6 +162,56 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     };
 
     if (!isOpen) return null;
+
+    // GUARD: Block invoice creation if integration is not connected
+    if (integrationStatus !== 'connected') {
+        return (
+            <AnimatePresence>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 p-8 text-center"
+                    >
+                        {integrationStatus === 'checking' ? (
+                            <>
+                                <Skeleton className="w-14 h-14 rounded-2xl mx-auto mb-4" />
+                                <Skeleton className="w-48 h-6 mx-auto mb-2" />
+                                <Skeleton className="w-64 h-4 mx-auto" />
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <FileText size={28} className="text-red-600" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">אינטגרציה לא מחוברת</h3>
+                                <p className="text-sm text-gray-500 mb-1">
+                                    כדי להפיק חשבוניות, יש לחבר קודם את חשבון חשבונית ירוקה (Green Invoice)
+                                </p>
+                                <p className="text-xs text-gray-400 mb-6">
+                                    ניתן לחבר דרך הגדרות → אינטגרציות במודול הפיננסי
+                                </p>
+                                <button
+                                    onClick={onClose}
+                                    className="px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+                                >
+                                    הבנתי
+                                </button>
+                            </>
+                        )}
+                    </motion.div>
+                </div>
+            </AnimatePresence>
+        );
+    }
 
     const presetColors = [
         { name: 'ירוק', primary: '#10B981', secondary: '#059669' },
@@ -391,18 +467,18 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                             <Type size={16} />
                                             גופן
                                         </label>
-                                        <select
+                                        <CustomSelect
                                             value={fontFamily}
-                                            onChange={(e) => setFontFamily(e.target.value)}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
-                                        >
-                                            <option value="Arial">Arial</option>
-                                            <option value="Helvetica">Helvetica</option>
-                                            <option value="Times New Roman">Times New Roman</option>
-                                            <option value="Courier New">Courier New</option>
-                                            <option value="Verdana">Verdana</option>
-                                            <option value="Georgia">Georgia</option>
-                                        </select>
+                                            onChange={(val) => setFontFamily(val)}
+                                            options={[
+                                                { value: 'Arial', label: 'Arial' },
+                                                { value: 'Helvetica', label: 'Helvetica' },
+                                                { value: 'Times New Roman', label: 'Times New Roman' },
+                                                { value: 'Courier New', label: 'Courier New' },
+                                                { value: 'Verdana', label: 'Verdana' },
+                                                { value: 'Georgia', label: 'Georgia' },
+                                            ]}
+                                        />
                                     </div>
 
                                     {/* Header & Footer Text */}

@@ -306,8 +306,8 @@ export async function processPayment(
           captureActionException(e, { action: 'processPayment', stage: 'update_client_metadata', clientId: String(order.client_id) });
         }
 
-        // Create invoice
-        await createInvoice(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
+        // Create internal payment record (NOT a tax invoice — just a DB record for payment tracking)
+        await createPaymentRecord(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
 
         revalidatePath('/', 'layout');
 
@@ -322,9 +322,12 @@ export async function processPayment(
 }
 
 /**
- * Create invoice after payment
+ * Create internal payment record after payment.
+ * WARNING: This is NOT a tax invoice / חשבונית מס. This only creates a local DB record
+ * for payment tracking purposes. Actual tax invoices must go through Green Invoice
+ * integration (CreateInvoiceModal → /api/integrations/green-invoice/create).
  */
-async function createInvoice(
+async function createPaymentRecord(
   clientId: string,
   amount: number,
   description: string,

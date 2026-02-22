@@ -361,8 +361,6 @@ export default function SystemOSLandingPage() {
         </div>
       </section>
 
-      <SalesFaq variant="system" />
-
       {/* CTA Section */}
       <section className="py-20 px-6 bg-white">
         <div className="max-w-4xl mx-auto text-center">

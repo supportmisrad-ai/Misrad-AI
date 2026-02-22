@@ -95,6 +95,23 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        // 2.1 GUARD: Verify Green Invoice integration is physically connected
+        const activeIntegration = await prisma.misradIntegration.findFirst({
+            where: {
+                tenant_id: String(workspaceId),
+                user_id: String(dbUserId),
+                service_type: 'green_invoice',
+                is_active: true,
+            },
+            select: { id: true, access_token: true },
+        });
+        if (!activeIntegration?.access_token) {
+            return NextResponse.json(
+                { error: 'אינטגרציה לחשבונית ירוקה לא מחוברת. יש לחבר את החשבון דרך הגדרות → אינטגרציות.', code: 'INTEGRATION_NOT_CONNECTED' },
+                { status: 403 }
+            );
+        }
+
         // 2.5 Paywall: Trial invoice limit (total)
         // Rule: In trial, allow up to 2 invoices total. Block the 3rd.
         let isTrial = false;

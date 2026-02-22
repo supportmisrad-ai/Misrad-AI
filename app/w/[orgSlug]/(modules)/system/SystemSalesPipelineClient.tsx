@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
@@ -526,18 +527,6 @@ export default function SystemSalesPipelineClient({
           <div className="text-2xl md:text-3xl font-black text-slate-900 truncate">לידים</div>
         </div>
 
-      {hasMore ? (
-        <div className="pt-3 flex justify-center">
-          <button
-            type="button"
-            onClick={() => void handleLoadMore()}
-            disabled={isLoadingMore}
-            className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:bg-slate-50 disabled:opacity-60"
-          >
-            {isLoadingMore ? 'טוען...' : 'טען עוד'}
-          </button>
-        </div>
-      ) : null}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -575,50 +564,48 @@ export default function SystemSalesPipelineClient({
             className="w-full md:w-[320px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
           />
 
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              const v = String(e.target.value || '');
-              if (v === 'all') {
-                setStatusFilter('all');
-                return;
-              }
-              setStatusFilter(v);
-            }}
-            className="w-full md:w-[220px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
-          >
-            <option value="all">כל הסטטוסים</option>
-            {stagesForUi.map((s) => (
-              <option key={String(s.id)} value={String(s.key)}>
-                {String(s.label)}
-              </option>
-            ))}
-          </select>
+          <div className="w-full md:w-[220px]">
+            <CustomSelect
+              value={statusFilter}
+              onChange={(val) => {
+                if (val === 'all') {
+                  setStatusFilter('all');
+                  return;
+                }
+                setStatusFilter(val);
+              }}
+              options={[
+                { value: 'all', label: 'כל הסטטוסים' },
+                ...stagesForUi.map((s) => ({ value: String(s.key), label: String(s.label) })),
+              ]}
+            />
+          </div>
 
-          <select
-            value={sortKey}
-            onChange={(e) => {
-              const v = String(e.target.value || '');
-              if (
-                v === 'created_desc' ||
-                v === 'created_asc' ||
-                v === 'value_desc' ||
-                v === 'value_asc' ||
-                v === 'name_asc' ||
-                v === 'name_desc'
-              ) {
-                setSortKey(v);
-              }
-            }}
-            className="w-full md:w-[240px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
-          >
-            <option value="created_desc">חדש ביותר</option>
-            <option value="created_asc">ישן ביותר</option>
-            <option value="value_desc">שווי גבוה</option>
-            <option value="value_asc">שווי נמוך</option>
-            <option value="name_asc">שם (א-ת)</option>
-            <option value="name_desc">שם (ת-א)</option>
-          </select>
+          <div className="w-full md:w-[240px]">
+            <CustomSelect
+              value={sortKey}
+              onChange={(val) => {
+                if (
+                  val === 'created_desc' ||
+                  val === 'created_asc' ||
+                  val === 'value_desc' ||
+                  val === 'value_asc' ||
+                  val === 'name_asc' ||
+                  val === 'name_desc'
+                ) {
+                  setSortKey(val);
+                }
+              }}
+              options={[
+                { value: 'created_desc', label: 'חדש ביותר' },
+                { value: 'created_asc', label: 'ישן ביותר' },
+                { value: 'value_desc', label: 'שווי גבוה' },
+                { value: 'value_asc', label: 'שווי נמוך' },
+                { value: 'name_asc', label: 'שם (א-ת)' },
+                { value: 'name_desc', label: 'שם (ת-א)' },
+              ]}
+            />
+          </div>
 
           <button
             type="button"
@@ -700,20 +687,13 @@ export default function SystemSalesPipelineClient({
                     </div>
                     <div className="col-span-2 text-sm font-mono font-black text-slate-800">₪{Number(lead.value || 0).toLocaleString()}</div>
                     <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
-                      <select
+                      <CustomSelect
                         value={lead.status}
-                        onChange={(e) => {
-                          const v = String(e.target.value || '');
-                          void handleStatusChange(String(lead.id), v);
+                        onChange={(val) => {
+                          void handleStatusChange(String(lead.id), val);
                         }}
-                        className="w-full bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-black"
-                      >
-                        {stagesForUi.map((s) => (
-                          <option key={String(s.id)} value={String(s.key)}>
-                            {String(s.label)}
-                          </option>
-                        ))}
-                      </select>
+                        options={stagesForUi.map((s) => ({ value: String(s.key), label: String(s.label) }))}
+                      />
                     </div>
                   </div>
                 ))}
@@ -726,6 +706,19 @@ export default function SystemSalesPipelineClient({
           </div>
         )}
       </div>
+
+      {hasMore ? (
+        <div className="pt-3 pb-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void handleLoadMore()}
+            disabled={isLoadingMore}
+            className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:bg-slate-50 disabled:opacity-60"
+          >
+            {isLoadingMore ? 'טוען...' : 'טען עוד'}
+          </button>
+        </div>
+      ) : null}
 
       {selectedLead ? (
         <LeadModal

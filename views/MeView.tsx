@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, SquareActivity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CircleCheck, CircleX, Lock, CircleAlert, Target } from 'lucide-react';
+import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, SquareActivity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CircleCheck, CircleX, Lock, CircleAlert, Target, LayoutDashboard, SquareCheck, PhoneCall, BarChart3 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClerk } from '@clerk/nextjs';
@@ -32,7 +32,7 @@ type MeModuleCard = {
   title: string;
   subtitle?: string | null;
   href: string;
-  iconId?: 'settings' | 'target' | 'trending_up' | 'user';
+  iconId?: 'settings' | 'target' | 'trending_up' | 'user' | 'layout_dashboard' | 'square_check' | 'calendar_days' | 'phone_call' | 'bar_chart_3';
 };
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -159,6 +159,16 @@ export const MeView: React.FC<{
         return TrendingUp;
       case 'user':
         return UserIcon;
+      case 'layout_dashboard':
+        return LayoutDashboard;
+      case 'square_check':
+        return SquareCheck;
+      case 'calendar_days':
+        return CalendarDays;
+      case 'phone_call':
+        return PhoneCall;
+      case 'bar_chart_3':
+        return BarChart3;
       default:
         return null;
     }

@@ -51,7 +51,7 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
           .map((a) => `${a.type}: ${a.content}`)
           .join('\n');
 
-        const prompt = `אתה עוזר מכירות מקצועי עבור System.OS.
+        const prompt = `אתה עוזר מכירות מקצועי עבור MISRAD AI.
           שם ליד: ${activeLead.name}
           הקשר: סטטוס ${activeLead.status}, שווי משוער ₪${(activeLead as Record<string, unknown>).value}.
           היסטוריה אחרונה:
