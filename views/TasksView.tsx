@@ -206,36 +206,15 @@ export const TasksView: React.FC = () => {
       };
   }, []);
 
-  // Load tasks on mount / orgSlug change (one-time, NOT on every contextTasks change)
+  // Show context tasks immediately while useQuery loads fresh data
   const replaceContextRef = useRef(replaceContextTasks);
   replaceContextRef.current = replaceContextTasks;
   useEffect(() => {
       if (!orgSlug) return;
-      // Show context tasks immediately while we fetch fresh data
       if (contextTasks && contextTasks.length > 0 && tasksRef.current.length === 0) {
           setTasks(contextTasks);
           setCachedTasks(contextTasks);
       }
-      let cancelled = false;
-      const loadTasks = async () => {
-          if (tasksRef.current.length === 0) setIsRefreshing(true);
-          try {
-              const res = await refetchTasks();
-              if (cancelled) return;
-              const newTasks = res.data?.tasks || [];
-              if (newTasks.length > 0 || tasksRef.current.length === 0) {
-                  setTasks(newTasks);
-                  setCachedTasks(newTasks);
-                  replaceContextRef.current?.(newTasks);
-              }
-          } catch (error) {
-              console.error('Failed to load tasks:', error);
-          } finally {
-              if (!cancelled) setIsRefreshing(false);
-          }
-      };
-      const timeoutId = setTimeout(loadTasks, 100);
-      return () => { cancelled = true; clearTimeout(timeoutId); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgSlug]);
 

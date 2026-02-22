@@ -56,9 +56,12 @@ export async function listNexusTasks(params: {
     const dbUser = asObject(resolved.user) ?? {};
     const dbUserId = String(dbUser.id ?? '').trim();
 
-    await metrics.step('auth.requirePermission.view_crm', () => requirePermission('view_crm'));
-
-    const isManager = await metrics.step('auth.hasPermission.manage_team', () => hasPermission('manage_team'));
+    const [, isManager] = await metrics.step('auth.parallel_permissions', () =>
+      Promise.all([
+        requirePermission('view_crm'),
+        hasPermission('manage_team'),
+      ])
+    );
 
     const where: Omit<Prisma.NexusTaskWhereInput, 'organizationId'> = {};
 
@@ -93,9 +96,12 @@ export async function listNexusTasks(params: {
     extra.rowsCount = rows.length;
 
     const baseTasks = trimmed.map((row) => toTaskDto(row));
-    const tasks = await metrics.step('storage.resolveTaskAttachments', () =>
-      resolveNexusTasksAttachmentsForResponse(baseTasks, { organizationId: workspace.id, orgSlug: workspace.slug })
-    );
+    // Skip expensive attachment URL signing for list views (no single taskId)
+    const tasks = taskId
+      ? await metrics.step('storage.resolveTaskAttachments', () =>
+          resolveNexusTasksAttachmentsForResponse(baseTasks, { organizationId: workspace.id, orgSlug: workspace.slug })
+        )
+      : baseTasks;
     extra.tasksCount = tasks.length;
 
     logAuditEvent('data.read', 'task', { success: true }).catch(() => null);

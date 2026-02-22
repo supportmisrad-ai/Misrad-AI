@@ -71,3 +71,46 @@ export async function deleteNexusTaskRowsById(params: {
     },
   });
 }
+
+/**
+ * Find a task by its public share token (no org scoping needed — token is unique).
+ * Returns null if not found or if the task is private.
+ */
+export async function findNexusTaskByShareToken(
+  shareToken: string,
+): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
+  return prisma.nexusTask.findUnique({
+    where: { shareToken },
+    include: { organization: { select: { name: true, logo: true } } },
+  }) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>;
+}
+
+/**
+ * Find a task by its internal ID without org scoping (for backward-compatible guest links).
+ * Returns null if not found or if the task is private.
+ */
+export async function findNexusTaskByIdPublic(
+  taskId: string,
+): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
+  return prisma.nexusTask.findFirst({
+    where: { id: taskId, isPrivate: false },
+    include: { organization: { select: { name: true, logo: true } } },
+  }) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>;
+}
+
+/**
+ * Set the share token on a task. Used when generating a share link.
+ */
+export async function setNexusTaskShareToken(params: {
+  organizationId: string;
+  taskId: string;
+  shareToken: string;
+}): Promise<{ count: number }> {
+  return prisma.nexusTask.updateMany({
+    where: {
+      id: params.taskId,
+      organizationId: params.organizationId,
+    },
+    data: { shareToken: params.shareToken },
+  });
+}

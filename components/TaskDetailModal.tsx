@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { Task } from '../types';
 import { useData } from '../context/DataContext';
-import { X, Check, Lock, Layout, StickyNote, Trash2, Clock, Paperclip, TriangleAlert, Zap, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Check, Lock, Layout, StickyNote, Trash2, Clock, Paperclip, TriangleAlert, Zap, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { generateTaskShareLink } from '@/app/actions/guest';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { TaskDetailChat } from './TaskDetailChat';
@@ -96,12 +98,33 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       setActivePopover(type);
   };
 
-  const handleShare = () => {
-    const url = `${window.location.origin}/guest/${task.id}`;
-    navigator.clipboard.writeText(url);
-    setShowShareTooltip(true);
-    setTimeout(() => setShowShareTooltip(false), 2000);
-  };
+  const [isGeneratingShare, setIsGeneratingShare] = useState(false);
+  const routeParams = useParams();
+  const orgSlug = typeof routeParams?.orgSlug === 'string' ? routeParams.orgSlug : '';
+
+  const handleShare = useCallback(async () => {
+    if (isGeneratingShare) return;
+    setIsGeneratingShare(true);
+    try {
+      if (orgSlug) {
+        const result = await generateTaskShareLink({ orgSlug, taskId: task.id });
+        const url = `${window.location.origin}${result.shareUrl}`;
+        await navigator.clipboard.writeText(url);
+      } else {
+        const url = `${window.location.origin}/guest/${task.id}`;
+        await navigator.clipboard.writeText(url);
+      }
+      setShowShareTooltip(true);
+      setTimeout(() => setShowShareTooltip(false), 2000);
+    } catch {
+      const url = `${window.location.origin}/guest/${task.id}`;
+      await navigator.clipboard.writeText(url);
+      setShowShareTooltip(true);
+      setTimeout(() => setShowShareTooltip(false), 2000);
+    } finally {
+      setIsGeneratingShare(false);
+    }
+  }, [isGeneratingShare, orgSlug, task.id]);
 
   const openSnoozeModal = () => {
       setSnoozeDate('');
@@ -360,7 +383,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
                         >
                             <Trash2 size={16} /> מחק
                         </button>
-                        {!task.isPrivate && <button onClick={handleShare} className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-100 py-3 rounded-xl transition-colors text-xs font-bold relative border border-blue-100">{showShareTooltip ? 'הלינק הועתק!' : <><div className="rotate-45"><Paperclip size={16} /></div> שיתוף</>}</button>}
+                        {!task.isPrivate && <button onClick={handleShare} disabled={isGeneratingShare} className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-100 py-3 rounded-xl transition-colors text-xs font-bold relative border border-blue-100 disabled:opacity-60">{showShareTooltip ? 'הלינק הועתק!' : isGeneratingShare ? <Loader2 size={16} className="animate-spin" /> : <><div className="rotate-45"><Paperclip size={16} /></div> שיתוף</>}</button>}
                     </div>
                 </div>
             </div>

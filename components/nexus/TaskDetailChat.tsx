@@ -29,6 +29,38 @@ const getAvatarColor = (name: string) => {
     return colors[Math.abs(hash) % colors.length];
 };
 
+const URL_REGEX = /https?:\/\/[^\s<>"')\]]+/g;
+
+const renderLinkedText = (text: string) => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    const regex = new RegExp(URL_REGEX.source, 'g');
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(text.slice(lastIndex, match.index));
+        }
+        const url = match[0];
+        parts.push(
+            <a
+                key={match.index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline break-all hover:text-blue-800"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {url}
+            </a>
+        );
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        parts.push(text.slice(lastIndex));
+    }
+    return parts.length > 0 ? parts : text;
+};
+
 export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab }) => {
     const { currentUser, users, addMessage, updateMessage, deleteMessage } = useData();
     const pathname = usePathname();
@@ -62,7 +94,19 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
     // Ensure messages is always an array
     const messages = Array.isArray(task.messages) ? task.messages : [];
-    
+
+    // Close message menu on outside tap (important for mobile where no hover-out exists)
+    useEffect(() => {
+        if (!openMenuId) return;
+        const handler = (e: MouseEvent | TouchEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.closest('.message-menu-trigger') || target.closest('[data-message-menu]')) return;
+            setOpenMenuId(null);
+        };
+        document.addEventListener('pointerdown', handler);
+        return () => document.removeEventListener('pointerdown', handler);
+    }, [openMenuId]);
+
     useEffect(() => {
         if (activeTab === 'chat' || window.innerWidth > 768) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -434,17 +478,17 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                                                         <Mic size={14} className="opacity-40" />
                                                     </div>
                                                     {msg.text.replace(/^🎤\s*/, '').trim() && (
-                                                        <span className="whitespace-pre-wrap block text-[12px] text-gray-500 mt-1 select-text">{msg.text.replace(/^🎤\s*/, '')}</span>
+                                                        <span className="whitespace-pre-wrap block text-[12px] text-gray-500 mt-1 select-text">{renderLinkedText(msg.text.replace(/^🎤\s*/, ''))}</span>
                                                     )}
                                                 </div>
                                             ) : (
-                                                msg.text && <span className="whitespace-pre-wrap block text-[13.5px] select-text">{msg.text}</span>
+                                                msg.text && <span className="whitespace-pre-wrap block text-[13.5px] select-text">{renderLinkedText(msg.text)}</span>
                                             )}
                                             
-                                            <div className={`absolute -top-1 -right-2 opacity-0 group-hover:opacity-100 transition-opacity ${isOpen ? 'opacity-100' : ''} z-10`}>
+                                            <div className={`absolute -top-1 -right-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity ${isOpen ? '!opacity-100' : ''} z-10`}>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); setOpenMenuId(isOpen ? null : msg.id); }}
-                                                    className="message-menu-trigger w-6 h-6 flex items-center justify-center bg-gray-50/50 backdrop-blur-sm rounded-full hover:bg-white shadow-sm text-gray-500 hover:text-gray-800 transition-all"
+                                                    className="message-menu-trigger w-7 h-7 md:w-6 md:h-6 flex items-center justify-center bg-white/80 md:bg-gray-50/50 backdrop-blur-sm rounded-full hover:bg-white shadow-sm text-gray-500 hover:text-gray-800 transition-all"
                                                 >
                                                     <ChevronDown size={14} />
                                                 </button>
@@ -461,6 +505,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                                 <AnimatePresence>
                                     {isOpen && !isEditing && (
                                         <motion.div 
+                                            data-message-menu
                                             initial={{ opacity: 0, scale: 0.9, y: -10 }}
                                             animate={{ opacity: 1, scale: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.9, y: -10 }}

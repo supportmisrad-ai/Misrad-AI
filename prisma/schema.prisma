@@ -2304,10 +2304,12 @@ model NexusTask {
   isFocus           Boolean              @default(false) @map("is_focus")
   completionDetails Json?                @map("completion_details")
   department        String?
+  shareToken        String?              @unique @map("share_token")
   updatedAt         DateTime             @updatedAt @map("updated_at")
   organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([assigneeId], map: "idx_nexus_tasks_assignee_id")
+  @@index([shareToken], map: "idx_nexus_tasks_share_token")
   @@index([clientId], map: "idx_nexus_tasks_client_id")
   @@index([createdAt], map: "idx_nexus_tasks_created_at")
   @@index([dueDate], map: "idx_nexus_tasks_due_date")
