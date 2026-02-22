@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
@@ -75,6 +75,7 @@ export default function SocialFrame({
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
   const { roomName, gradient, roomIconName } = useRoomBranding();
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
@@ -107,7 +108,7 @@ export default function SocialFrame({
   };
 
   const navigate = (suffix: string) => {
-    router.push(joinPath(basePath, suffix));
+    startTransition(() => router.push(joinPath(basePath, suffix)));
   };
 
   const titles: Record<string, string> = {
@@ -291,9 +292,21 @@ export default function SocialFrame({
     return (pathname || '') === full || (pathname || '').startsWith(`${full}/`);
   };
 
+  // Side-effects-only for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = useCallback((_path: string) => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
   const onNavigateAction = (path: string) => {
-    router.push(`${basePath}${path}`);
+    startTransition(() => router.push(`${basePath}${path}`));
   };
+
+  // Prefetch all nav routes on mount
+  useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(`${basePath}${item.path}`);
+    });
+  }, [basePath, navItems, router]);
 
   const handlePlusClick = () => {
     if (isActive('/machine')) {
@@ -318,12 +331,13 @@ export default function SocialFrame({
             badgeModuleKey: 'social',
           }}
           brandSubtitle={moduleTitle}
-          onBrandClickAction={() => onNavigateAction('/dashboard')}
+          onBrandClickAction={() => startTransition(() => router.push(`${basePath}/dashboard`))}
           topSlot={<WorkspaceSwitcher className="w-full" />}
           navItems={navItems}
           primaryNavPaths={primaryNavPaths}
           isActiveAction={isActiveAction}
-          onNavigateAction={onNavigateAction}
+          onNavigateAction={onSidebarItemClick}
+          linkHrefPrefix={basePath}
           bottomSlot={
             <OSAppSwitcher
               compact={true}
@@ -446,14 +460,14 @@ export default function SocialFrame({
                   <div className="flex items-center gap-2.5 mb-3">
                     {activeClient ? (
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-black shadow-md shadow-violet-300/40 shrink-0">
-                        {String((activeClient as Record<string, unknown>).companyName || (activeClient as Record<string, unknown>).name || '?').charAt(0)}
+                        {String(activeClient.companyName || activeClient.name || '?').charAt(0)}
                       </div>
                     ) : null}
                     <div className="flex flex-col min-w-0">
                       <span className="text-[9px] font-black text-violet-500/80 uppercase tracking-widest leading-none">סביבת לקוח</span>
                       {activeClient && (
                         <span className="text-[11px] font-black text-slate-700 truncate leading-snug mt-0.5">
-                          {String((activeClient as Record<string, unknown>).companyName || (activeClient as Record<string, unknown>).name || '')}
+                          {String(activeClient.companyName || activeClient.name || '')}
                         </span>
                       )}
                     </div>

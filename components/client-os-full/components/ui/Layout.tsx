@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useTransition } from 'react';
 import { LayoutDashboard, Users, Settings, Sparkles, Cpu, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '../../types';
@@ -44,6 +44,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const isWorkspaceRoute = Boolean(pathname?.startsWith('/w/'));
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [, startTransition] = useTransition();
   const [workspaceBrand, setWorkspaceBrand] = useState<{ name: string; logoUrl?: string | null }>({
     name: roomName || 'Client',
     logoUrl: null,
@@ -388,7 +389,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           badgeModuleKey: 'client',
         }}
         brandSubtitle={roomName || 'Client'}
-        onBrandClickAction={() => router.push('/workspaces')}
+        onBrandClickAction={() => startTransition(() => router.push('/workspaces'))}
         topSlot={
           <div className="flex flex-col gap-2">
             <BusinessSwitcher currentTenantName={workspaceBrand.name} />

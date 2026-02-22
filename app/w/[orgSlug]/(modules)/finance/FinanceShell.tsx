@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { BarChart, FileText, Menu, Mic, TrendingUp, User as UserIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/components/system/contexts/AuthContext';
@@ -41,6 +41,7 @@ export default function FinanceShell(props: {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+  const [, startTransition] = useTransition();
 
   const basePath = useMemo(() => {
     const info = parseWorkspaceRoute(nextPathname);
@@ -107,12 +108,25 @@ export default function FinanceShell(props: {
     return (nextPathname || '') === href || (nextPathname || '').startsWith(`${href}/`);
   };
 
-  const onNavigateAction = (path: string) => {
-    const href = `${basePath}${path === '/' ? '' : path}`;
-    router.push(href);
+  // Side-effects-only for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = useCallback((path: string) => {
     setIsMobileMenuOpen(false);
     setIsPlusMenuOpen(false);
-  };
+  }, []);
+
+  const onNavigateAction = useCallback((path: string) => {
+    const href = `${basePath}${path === '/' ? '' : path}`;
+    startTransition(() => router.push(href));
+    setIsMobileMenuOpen(false);
+    setIsPlusMenuOpen(false);
+  }, [basePath, router, startTransition]);
+
+  // Prefetch all nav routes on mount
+  useEffect(() => {
+    navItems.forEach((n) => {
+      router.prefetch(n.href);
+    });
+  }, [navItems, router]);
 
   const togglePlusMenu = () => {
     setIsMobileMenuOpen(false);
@@ -153,7 +167,7 @@ export default function FinanceShell(props: {
           badgeModuleKey: 'finance',
         }}
         brandSubtitle={moduleTitle}
-        onBrandClickAction={() => router.push('/workspaces')}
+        onBrandClickAction={() => startTransition(() => router.push('/workspaces'))}
         topSlot={
           <div className="flex flex-col gap-2">
             <BusinessSwitcher currentTenantName={props.initialOrganization?.name || moduleTitle} />
@@ -163,7 +177,8 @@ export default function FinanceShell(props: {
         navItems={viewNavItems}
         primaryNavPaths={viewNavItems.map((n) => n.path)}
         isActiveAction={isActiveAction}
-        onNavigateAction={onNavigateAction}
+        onNavigateAction={onSidebarItemClick}
+        linkHrefPrefix={basePath}
         bottomSlot={<OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug || undefined} currentModule="finance" />}
       />
 
@@ -213,14 +228,14 @@ export default function FinanceShell(props: {
             label: 'סקירה',
             icon: TrendingUp,
             active: activeNavItem?.id === 'overview',
-            onClick: () => router.push(`${basePath}/overview`),
+            onClick: () => startTransition(() => router.push(`${basePath}/overview`)),
           },
           {
             id: 'invoices',
             label: 'חשבוניות',
             icon: FileText,
             active: activeNavItem?.id === 'invoices',
-            onClick: () => router.push(`${basePath}/invoices`),
+            onClick: () => startTransition(() => router.push(`${basePath}/invoices`)),
           },
         ]}
         leftItems={[
@@ -229,7 +244,7 @@ export default function FinanceShell(props: {
             label: 'הוצאות',
             icon: BarChart,
             active: activeNavItem?.id === 'expenses',
-            onClick: () => router.push(`${basePath}/expenses`),
+            onClick: () => startTransition(() => router.push(`${basePath}/expenses`)),
           },
           {
             id: 'menu',

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SquareMousePointer, Briefcase, ClipboardList, FileText, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -74,6 +74,7 @@ export default function OperationsShell({
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isPlusMenuOpen, setIsPlusMenuOpen] = React.useState(false);
+  const [, startTransition] = useTransition();
 
   const screenTitle = React.useMemo(() => buildTitle(pathname, basePath), [basePath, pathname]);
   const moduleTitle = React.useMemo(() => roomName || 'Operations', [roomName]);
@@ -96,6 +97,13 @@ export default function OperationsShell({
     []
   );
 
+  // Prefetch all nav routes on mount
+  React.useEffect(() => {
+    navItems.forEach((item) => {
+      const href = `${basePath}${item.path === '/' ? '' : item.path}`;
+      router.prefetch(href);
+    });
+  }, [basePath, navItems, router]);
 
   const isActiveAction = React.useCallback(
     (path: string) => {
@@ -106,14 +114,23 @@ export default function OperationsShell({
     [basePath, pathname]
   );
 
-  const onNavigateAction = React.useCallback(
-    (path: string) => {
-      const target = `${basePath}${path === '/' ? '' : path}`;
-      router.push(target);
+  // Side-effects-only for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = React.useCallback(
+    (_path: string) => {
       setIsMobileMenuOpen(false);
       setIsPlusMenuOpen(false);
     },
-    [basePath, router]
+    []
+  );
+
+  const onNavigateAction = React.useCallback(
+    (path: string) => {
+      const target = `${basePath}${path === '/' ? '' : path}`;
+      startTransition(() => router.push(target));
+      setIsMobileMenuOpen(false);
+      setIsPlusMenuOpen(false);
+    },
+    [basePath, router, startTransition]
   );
 
   const togglePlusMenu = React.useCallback(() => {
@@ -202,7 +219,7 @@ export default function OperationsShell({
           badgeModuleKey: 'operations',
         }}
         brandSubtitle={'תפעול, מלאי ושטח'}
-        onBrandClickAction={() => router.push(basePath)}
+        onBrandClickAction={() => startTransition(() => router.push(basePath))}
         topSlot={
           <div className="flex flex-col gap-2">
             <BusinessSwitcher currentTenantName={workspace.name} />
@@ -212,7 +229,8 @@ export default function OperationsShell({
         navItems={navItems}
         primaryNavPaths={primaryNavPaths}
         isActiveAction={isActiveAction}
-        onNavigateAction={onNavigateAction}
+        onNavigateAction={onSidebarItemClick}
+        linkHrefPrefix={basePath}
         bottomSlot={
           <OSAppSwitcher
             compact={true}
