@@ -7,7 +7,7 @@ import { upsertCustomerAccountForCurrentOrganization, selectPlanForCurrentOrgani
 import { Input } from '@/components/ui/input';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import type { PackageType } from '@/lib/billing/pricing';
-import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import { getModuleLabel, getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 
 const PLAN_EMOJI: Record<string, string> = {
@@ -30,9 +30,9 @@ const PLAN_ICON: Record<string, React.ReactNode> = {
 
 const PLAN_DESCRIPTION: Record<string, string> = {
   solo: 'מודול אחד לבחירתך',
-  the_closer: 'מכירות + ניהול צוות',
-  the_authority: 'שיווק, מיתוג ולקוחות',
-  the_operator: 'תפעול, שטח וצוות',
+  the_closer: 'מודול SYSTEM (מכירות) + מודול NEXUS (נקסוס) - ניהול וצוות',
+  the_authority: 'מודול SOCIAL (שיווק) + CLIENT (לקוחות) + NEXUS (נקסוס) - מיתוג ולקוחות',
+  the_operator: 'מודול OPERATIONS (תפעול) + NEXUS (נקסוס) - שטח וצוות',
   the_empire: 'כל המודולים כלולים',
   the_mentor: 'כל המודולים + ליווי',
 };
@@ -169,12 +169,12 @@ export default function WorkspaceOnboardingClient(props: {
   const totalSteps = needsPlanSelection ? 4 : 3;
   const currentStepNumber = step === 'plan' ? 2 : (needsPlanSelection ? 3 : 2);
 
-  const soloModuleOptions: { key: OSModuleKey; label: string }[] = [
-    { key: 'nexus', label: 'ניהול וצוות' },
-    { key: 'system', label: 'מכירות' },
-    { key: 'social', label: 'שיווק' },
-    { key: 'client', label: 'לקוחות' },
-    { key: 'operations', label: 'תפעול' },
+  const soloModuleOptions: { key: OSModuleKey; label: string; labelEn: string }[] = [
+    { key: 'nexus', label: 'ניהול וצוות', labelEn: 'NEXUS' },
+    { key: 'system', label: 'מכירות', labelEn: 'SYSTEM' },
+    { key: 'social', label: 'שיווק', labelEn: 'SOCIAL' },
+    { key: 'client', label: 'לקוחות', labelEn: 'CLIENT' },
+    { key: 'operations', label: 'תפעול', labelEn: 'OPERATIONS' },
   ];
 
   return (
@@ -306,11 +306,11 @@ export default function WorkspaceOnboardingClient(props: {
                           <div className="flex flex-wrap gap-1 mt-2">
                             {pkg.modules.map((m) => (
                               <span key={m} className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
-                                {getModuleLabelHe(m)}
+                                {getModuleLabel(m)} ({getModuleLabelHe(m)})
                               </span>
                             ))}
                             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-[10px] font-bold text-amber-600">
-                              + כספים
+                              + Finance (כספים)
                             </span>
                           </div>
                         ) : null}
@@ -350,7 +350,8 @@ export default function WorkspaceOnboardingClient(props: {
                           : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300'
                       }`}
                     >
-                      {opt.label}
+                        <span className="text-[10px] opacity-70">{opt.labelEn}</span>
+                      <span>({opt.label})</span>
                     </button>
                   ))}
                 </div>

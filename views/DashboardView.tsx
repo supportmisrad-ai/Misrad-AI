@@ -487,7 +487,7 @@ export const DashboardView: React.FC<{
             subLabel: 'הוסף טלפון ופרטים',
             done: !!currentUser.phone && currentUser.phone.length > 0,
             icon: User,
-            action: () => navigate('/me'),
+            action: () => navigate('/me?edit=profile'),
             color: 'text-blue-600 bg-blue-50',
         },
         {

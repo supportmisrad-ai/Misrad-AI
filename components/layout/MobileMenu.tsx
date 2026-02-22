@@ -128,30 +128,9 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
               <div className="space-y-6">
-                {/* Calendar & Morning Brief - Full Width */}
-                <div className="grid grid-cols-2 gap-4">
-                  {filteredNavItems
-                    .filter(item => item.path === '/calendar')
-                    .map((item) => {
-                    const isActiveItem = isActive(item.path);
-                    const itemStyle = getMobileGridStyles(item.path, isActiveItem);
-                    return (
-                      <button 
-                        key={item.path}
-                        onClick={() => handleNavClick(item.path)} 
-                        className={`flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 group shadow-md ${
-                          isActiveItem 
-                            ? 'bg-slate-800 text-white shadow-lg shadow-slate-800/30' 
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-gray-200/50'
-                        }`}
-                        aria-label={item.label}
-                      >
-                        <item.icon size={24} strokeWidth={2} />
-                        <span className={`text-sm font-bold ${isActiveItem ? 'text-white' : 'text-gray-700'}`}>{item.label}</span>
-                      </button>
-                    )
-                  })}
-                  {allowMorningBrief ? (
+                {/* Morning Brief - Full Width */}
+                {allowMorningBrief ? (
+                  <div className="grid grid-cols-1 gap-4">
                     <button 
                       onClick={() => { setShowMorningBrief(true); setIsMobileMenuOpen(false); }} 
                       className="relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-md shadow-orange-200/50 group"
@@ -164,22 +143,19 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
                       </span>
                     </button>
-                  ) : null}
-                </div>
+                  </div>
+                ) : null}
 
                 {/* Separator */}
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
+                {allowMorningBrief ? <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div> : null}
 
-                {/* Primary Navigation Items */}
+                {/* Primary Navigation Items (including Calendar) */}
                 <div className="grid grid-cols-4 gap-4">
                   {filteredNavItems
                     .filter(item => {
-                      // Exclude items already in bottom nav bar
                       if (item.path === '/' || item.path === '/tasks') return false;
                       if (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden') return false;
-                      // Exclude items shown elsewhere in this menu
-                      if (item.path === '/calendar') return false; // shown in top grid
-                      if (item.path === '/settings') return false; // shown as full-width button below
+                      if (item.path === '/settings') return false;
                       return true;
                     })
                     .map((item) => {

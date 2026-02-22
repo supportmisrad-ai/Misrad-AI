@@ -249,8 +249,6 @@ export const SettingsView: React.FC = () => {
                       exit={{ opacity: 0, y: '100%' }}
                       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                       className="fixed inset-0 z-[100] bg-white flex flex-col lg:hidden pointer-events-auto"
-                      onClickCapture={(e) => e.stopPropagation()}
-                      onPointerDownCapture={(e) => e.stopPropagation()}
                   >
                       <div className="p-4 flex justify-between items-center border-b border-gray-100 shrink-0">
                           <h2 className="text-lg font-bold text-gray-900">תפריט ניהול</h2>

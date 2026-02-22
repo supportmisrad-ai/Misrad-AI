@@ -2,6 +2,7 @@ import 'server-only';
 
 import { getOwnedTenant, isTenantAdmin } from '@/lib/auth';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 import type { User } from '@/types';
 
@@ -145,12 +146,23 @@ export async function getNexusMe(params: { orgId: string }): Promise<{
   const uiPreferences = normalizeUiPreferences(profileObj.ui_preferences ?? nexusUserObj.uiPreferences);
   const billingInfo = normalizeBillingInfo(profileObj.billing_info ?? nexusUserObj.billingInfo);
 
+  const rawAvatar = String(profileObj.avatar_url ?? nexusUserObj.avatar ?? '');
+  let resolvedAvatar = rawAvatar;
+  if (rawAvatar.startsWith('sb://')) {
+    try {
+      const signed = await resolveStorageUrlMaybeServiceRole(rawAvatar, 60 * 60, { organizationId: resolved.workspace.id });
+      resolvedAvatar = signed ?? rawAvatar;
+    } catch {
+      // keep raw as fallback
+    }
+  }
+
   const canonicalUser: User = {
     id: String(nexusUserObj.id ?? ''),
     name: String(profileObj.full_name ?? nexusUserObj.name ?? ''),
     role: String(profileObj.role ?? nexusUserObj.role ?? resolved.clerkUser.role ?? 'עובד'),
     ...(typeof nexusUserObj.department === 'string' ? { department: nexusUserObj.department } : {}),
-    avatar: String(profileObj.avatar_url ?? nexusUserObj.avatar ?? ''),
+    avatar: resolvedAvatar,
     online: isUserOnlineFromRow(nexusUserObj, now),
     capacity: Number(nexusUserObj.capacity ?? 0),
     email: String(profileObj.email ?? nexusUserObj.email ?? resolved.clerkUser.email ?? ''),

@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Layers, Trash2, Calendar, User, ArrowRight, Save, Clock, FileText, Video, Mail, CircleCheckBig, GripVertical, ChevronRight } from 'lucide-react';
+import { Plus, X, Layers, Trash2, Calendar, User, ArrowRight, Save, Clock, FileText, Video, Mail, CircleCheckBig, GripVertical, ChevronRight, Info } from 'lucide-react';
 import { Template, Priority, TemplateActionType, TemplateCategory } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { CustomSelect } from '../CustomSelect';
@@ -129,7 +129,18 @@ export const TemplatesTab: React.FC = () => {
                 <>
                     <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                         <div>
-                            <h2 className="text-xl font-black text-gray-900">תהליכים</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-xl font-black text-gray-900">תהליכים</h2>
+                                <div className="relative group">
+                                    <button type="button" className="p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" aria-label="מידע על תבניות ותהליכים">
+                                        <Info size={16} />
+                                    </button>
+                                    <div className="absolute right-0 top-full mt-2 w-72 p-4 bg-white rounded-xl shadow-xl border border-gray-200 text-sm text-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                        <p className="font-bold text-gray-900 mb-1">מה זה תבניות ותהליכים?</p>
+                                        <p className="leading-relaxed">תהליך (Playbook) הוא רצף פעולות מוגדר מראש שניתן להפעיל בלחיצה. למשל: קליטת לקוח חדש, הפקת תוכן, או ניהול פרויקט. כל תהליך מכיל משימות, פגישות ואימיילים עם לוחות זמנים ואחראים מוגדרים — כדי שהשיטה של העסק תעבוד אוטומטית.</p>
+                                    </div>
+                                </div>
+                            </div>
                             <p className="text-sm text-gray-500 mt-1">הגדרת "השיטה" של העסק: קליטת לקוח, הפקת תוכן וניהול פרויקטים.</p>
                         </div>
                         <button 

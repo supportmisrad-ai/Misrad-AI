@@ -65,6 +65,7 @@ export const ClientsView: React.FC = () => {
     const [newPhone, setNewPhone] = useState('');
     const [newPackage, setNewPackage] = useState<string>(products[0]?.name || 'Unknown');
     const [newSource, setNewSource] = useState<string>('Other'); // NEW: Source
+    const [customSource, setCustomSource] = useState<string>(''); // Custom source text for "Other"
     const [selectedOnboardingFlow, setSelectedOnboardingFlow] = useState<string>(''); // For template
 
     const [isShaking, setIsShaking] = useState(false);
@@ -210,7 +211,7 @@ export const ClientsView: React.FC = () => {
             phone: newPhone,
             joinedAt: new Date().toISOString(),
             assetsFolderUrl: '#',
-            source: newSource
+            source: newSource === 'Other' && customSource.trim() ? customSource.trim() : newSource
         };
         
         try {
@@ -238,6 +239,7 @@ export const ClientsView: React.FC = () => {
             setNewEmail('');
             setNewPhone('');
             setNewSource('Other');
+            setCustomSource('');
             setSelectedOnboardingFlow('');
             setIsShaking(false);
         } catch (error) {
@@ -333,10 +335,19 @@ export const ClientsView: React.FC = () => {
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">מקור הגעה (פלטפורמה)</label>
                                     <CustomSelect 
                                         value={newSource}
-                                        onChange={(val) => setNewSource(val)}
+                                        onChange={(val) => { setNewSource(val); if (val !== 'Other') setCustomSource(''); }}
                                         options={sources}
                                         icon={<Globe size={14} />}
                                     />
+                                    {newSource === 'Other' && (
+                                        <input
+                                            type="text"
+                                            value={customSource}
+                                            onChange={e => setCustomSource(e.target.value)}
+                                            className="w-full mt-2 p-3 border border-gray-200 rounded-xl focus:border-gray-400 outline-none text-sm"
+                                            placeholder="הזן מקור הגעה..."
+                                        />
+                                    )}
                                 </div>
                                 
                                 {/* Onboarding Flow Selection */}

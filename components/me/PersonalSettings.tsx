@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
-import { Camera } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { getMyProfile, upsertMyProfile } from '@/app/actions/profiles';
@@ -15,6 +15,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
 
+    const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState({
         name: currentUser.name,
         email: currentUser.email || '',
@@ -138,6 +139,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             return;
         }
 
+        setIsSaving(true);
+
         // Clean phone number (remove spaces, dashes, parentheses)
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
@@ -168,6 +171,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
 
             if (!res.success) {
                 addToast(res.error || 'שגיאה בשמירת פרטים', 'error');
+                setIsSaving(false);
                 return;
             }
         }
@@ -178,6 +182,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             location: form.location,
             bio: form.bio
         });
+        setIsSaving(false);
+        addToast('הפרופיל עודכן בהצלחה', 'success');
         onClose();
     };
 
@@ -284,8 +290,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             </div>
             
             <div className="flex justify-end pt-4 border-t border-gray-100">
-                <button onClick={handleSave} className="px-6 py-2.5 rounded-xl bg-black text-white font-bold hover:bg-gray-800 text-sm transition-colors shadow-lg">
-                    שמור שינויים
+                <button onClick={handleSave} disabled={isSaving} className="px-6 py-2.5 rounded-xl bg-black text-white font-bold hover:bg-gray-800 text-sm transition-colors shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
+                    {isSaving ? <><Loader2 size={16} className="animate-spin" />שומר...</> : 'שמור שינויים'}
                 </button>
             </div>
         </div>

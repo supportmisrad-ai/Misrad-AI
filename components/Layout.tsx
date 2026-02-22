@@ -289,7 +289,7 @@ export const Layout = ({ children }: LayoutProps) => {
     setIsPlusMenuOpen(false);
     try {
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('nexus:open-voice-command'));
+        window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
       }
     } catch {
       // ignore
