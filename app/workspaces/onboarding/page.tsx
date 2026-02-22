@@ -73,6 +73,14 @@ export default async function WorkspaceOnboardingPage({
   const { organizationKey, subscriptionPlan } = await getCurrentOrganizationKey();
   const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
 
+  // If the org already has a subscription plan, it's fully provisioned.
+  // Never allow re-onboarding — redirect to workspace immediately.
+  // This prevents authenticated users (e.g. super admin) from accidentally
+  // modifying their existing org via marketing CTAs.
+  if (subscriptionPlan) {
+    redirect(`/w/${encodeURIComponent(organizationKey)}`);
+  }
+
   const existing = accountRes.success ? accountRes.data : null;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
@@ -82,7 +90,7 @@ export default async function WorkspaceOnboardingPage({
   const planFromUrl = String(Array.isArray(planRaw) ? planRaw[0] : planRaw || '').trim();
   const planKey = (planFromUrl && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, planFromUrl))
     ? planFromUrl
-    : (subscriptionPlan && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, subscriptionPlan) ? subscriptionPlan : null);
+    : null;
 
   const hasPlan = Boolean(planKey);
 

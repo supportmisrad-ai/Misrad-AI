@@ -300,7 +300,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     } catch {
       // ignore
     }
-    return '/';
+    // Fall back to /me which resolves to the user's workspace (not homepage)
+    return '/me';
   };
 
   return (

@@ -61,7 +61,9 @@ export default function PricingSection({
 
     const destination = `/workspaces/onboarding?${planParams.toString()}`;
     if (isAuthenticated) {
-      router.push(destination);
+      // Authenticated users already have a workspace — send them there.
+      // The onboarding page itself will redirect provisioned orgs to /w/[slug].
+      router.push('/me');
       return;
     }
     const loginParams = new URLSearchParams();
