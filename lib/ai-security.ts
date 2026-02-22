@@ -7,7 +7,8 @@ import { asObject } from '@/lib/shared/unknown';
 
 import { PermissionId } from '../types';
 import { hasPermission, filterSensitiveData } from './auth';
-import { logAuditEvent } from './audit';
+import { logAuditEvent } from './audit';
+
 
 // Fields that should NEVER be sent to AI
 const SENSITIVE_FIELDS = [
@@ -181,21 +182,32 @@ export async function prepareAIContext(
 }
 
 /**
- * Validate AI response doesn't contain sensitive data
+ * Validate AI response doesn't contain sensitive data.
+ * Uses phrase-level patterns to avoid false positives on legitimate words
+ * like "conversion rate", "bonus points", "credit score", etc.
  */
 export function validateAIResponse(response: unknown): boolean {
     const responseStr = JSON.stringify(response).toLowerCase();
     
-    // Check for sensitive patterns
     const sensitivePatterns = [
-        'salary',
-        'hourly',
-        'rate',
-        'bonus',
-        'credit',
-        'card',
-        'ssn',
-        'password'
+        'monthly_salary',
+        'monthlysalary',
+        'hourly_rate',
+        'hourlyrate',
+        'commission_pct',
+        'commissionpct',
+        'accumulated_bonus',
+        'accumulatedbonus',
+        'credit_card',
+        'creditcard',
+        'card_number',
+        'cardnumber',
+        'social_security',
+        'socialsecurity',
+        'id_number',
+        'idnumber',
+        'bank_account',
+        'bankaccount',
     ];
     
     for (const pattern of sensitivePatterns) {

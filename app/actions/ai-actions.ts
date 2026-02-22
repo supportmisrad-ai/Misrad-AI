@@ -165,6 +165,9 @@ export async function draftAIResponseAction(message: string, context: string): P
   }
 }
 
+// SECURITY NOTE: This action receives aggregated financial data from the client.
+// Only aggregated totals are sent to the AI prompt — never individual salaries.
+// The caller (UI) must ensure only managers with view_financials permission invoke this.
 export async function getGlobalAgencyAuditAction(clients: unknown[], team: unknown[]): Promise<string> {
   try {
     const authCheck = await requireAuth();
@@ -179,6 +182,7 @@ export async function getGlobalAgencyAuditAction(clients: unknown[], team: unkno
       const metrics = asObject(obj?.businessMetrics);
       return sum + getNumberProp(metrics, 'timeSpentMinutes');
     }, 0);
+    // Compute aggregated staff cost — only the total is sent to AI, never individual salaries
     const totalStaffCost = team.reduce<number>((sum, m) => {
       const obj = asObject(m);
       const monthlySalary = getNumberProp(obj, 'monthlySalary');
@@ -192,7 +196,7 @@ export async function getGlobalAgencyAuditAction(clients: unknown[], team: unkno
       נתח את המצב הפיננסי והתפעולי של הסוכנות הבאה:
       
       סה"כ הכנסות חודשיות: ${totalRevenue.toLocaleString()} ₪
-      סה"כ עלויות שכר: ${totalStaffCost.toLocaleString()} ₪
+      סה"כ עלויות שכר (מצטבר): ${totalStaffCost.toLocaleString()} ₪
       רווח נקי: ${netProfit.toLocaleString()} ₪
       סה"כ שעות עבודה: ${Math.round(totalMinutes / 60)} שעות
       מספר לקוחות: ${clients.length}

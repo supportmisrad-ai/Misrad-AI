@@ -29,8 +29,6 @@ export async function POST(req: Request) {
     return await withTenantIsolationContext(
       { source: 'api_ai_feedback', reason: 'save_ai_feedback', suppressReporting: true },
       async () => {
-        // שמירת feedback למסד הנתונים
-        // כרגע רק לוג - אפשר להוסיף פריזמה אחר כך
         if (!IS_PROD) {
           console.log('[AI Feedback]', {
             sessionId,
@@ -41,16 +39,49 @@ export async function POST(req: Request) {
           });
         }
 
-        // TODO: שמירה בפועל למסד נתונים
-        // await prisma.$executeRaw`
-        //   UPDATE ai_chat_sessions 
-        //   SET user_rating = ${rating}, helpful_yn = ${helpful}, user_feedback = ${feedback}
-        //   WHERE session_id = ${sessionId}
-        // `;
+        try {
+          const { executeRawOrgScoped } = await import('@/lib/prisma');
+          const prisma = (await import('@/lib/prisma')).default;
+          const { getCurrentUserId } = await import('@/lib/server/authHelper');
+
+          const clerkUserId = await getCurrentUserId();
+          if (clerkUserId) {
+            const member = await prisma.organizationUser.findUnique({
+              where: { clerk_user_id: String(clerkUserId) },
+              select: { organization_id: true },
+            });
+            const orgId = member?.organization_id ? String(member.organization_id) : null;
+
+            if (orgId) {
+              await executeRawOrgScoped(prisma, {
+                organizationId: orgId,
+                reason: 'ai_feedback_save',
+                query: `
+                  UPDATE ai_chat_sessions
+                  SET user_rating = $2,
+                      helpful_yn = $3,
+                      user_feedback = $4,
+                      updated_at = NOW()
+                  WHERE session_id = $1
+                    AND organization_id = $5
+                `,
+                values: [
+                  sessionId,
+                  rating ?? null,
+                  helpful ?? null,
+                  feedback ? feedback.substring(0, 2000) : null,
+                  orgId,
+                ],
+              });
+            }
+          }
+        } catch (saveErr) {
+          if (!IS_PROD) console.warn('[AI Feedback] DB save failed (non-fatal):', saveErr);
+        }
 
         return NextResponse.json({ 
           success: true,
-          message: 'תודה על המשוב! 💚'
+          message: 'תודה על המשוב!'
         });
       }
     );

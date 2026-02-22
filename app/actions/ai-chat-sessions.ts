@@ -214,8 +214,7 @@ export async function saveChatMessage(sessionId: string, role: 'user' | 'assista
       reason: 'ai_chat_messages_insert',
       query: `
       INSERT INTO ai_chat_messages (session_id, role, content, quick_actions)
-      VALUES ($1, $2, $3, $4)
-      SELECT $1, $2, $3, $4
+      SELECT $1, $2, $3, $4::jsonb
       WHERE EXISTS (
         SELECT 1 FROM ai_chat_sessions s
         WHERE s.session_id = $1
