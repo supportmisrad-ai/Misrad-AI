@@ -43,31 +43,7 @@ import type {
   OperationsWorkOrderAttachmentRow,
   OperationsWorkOrderCheckinRow,
 } from '@/lib/services/operations/types';
-
-function formatStatus(status: string): { label: string; className: string } {
-  switch (status) {
-    case 'NEW':
-      return {
-        label: 'נפתח',
-        className: 'bg-sky-50 text-sky-700 border border-sky-100',
-      };
-    case 'IN_PROGRESS':
-      return {
-        label: 'בטיפול',
-        className: 'bg-amber-50 text-amber-700 border border-amber-100',
-      };
-    case 'DONE':
-      return {
-        label: 'הושלם',
-        className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-      };
-    default:
-      return {
-        label: status,
-        className: 'bg-slate-50 text-slate-700 border border-slate-200',
-      };
-  }
-}
+import { formatWorkOrderStatus } from '@/lib/services/operations/format';
 
 export default async function OperationsWorkOrderDetailsPage({
   params,
@@ -143,7 +119,7 @@ export default async function OperationsWorkOrderDetailsPage({
   const { userId: clerkUserId } = await auth();
   const chatMessages = messagesRes.success ? (messagesRes.data ?? []) : [];
 
-  const statusBadge = formatStatus(w.status);
+  const statusBadge = formatWorkOrderStatus(w.status);
   const inventoryOptions: OperationsInventoryOption[] = inventoryOptionsRes.success ? (inventoryOptionsRes.data ?? []) : [];
   const materials = materialsRes.success ? (materialsRes.data ?? []) : [];
   const attachments: OperationsWorkOrderAttachmentRow[] = attachmentsRes.success ? (attachmentsRes.data ?? []) : [];
@@ -339,7 +315,7 @@ export default async function OperationsWorkOrderDetailsPage({
         <div className="p-5 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${statusBadge.className}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${statusBadge.cls}`}>
                 {statusBadge.label}
               </span>
               {w.priority && w.priority !== 'NORMAL' ? (

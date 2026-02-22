@@ -66,7 +66,7 @@ export default async function OperationsInventoryPage({
         </div>
       ) : null}
 
-      <section className="mb-6 bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
+      <section className="mb-6 bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100">
           <div className="text-sm font-black text-slate-900">הוספת פריט חדש</div>
           <div className="text-xs text-slate-500 mt-1">לאחר יצירה הפריט יופיע ברשימת המלאי ובבחירות של קליטת מלאי.</div>
@@ -78,27 +78,27 @@ export default async function OperationsInventoryPage({
                 name="name"
                 required
                 placeholder={'שם פריט'}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
               />
             </div>
             <div>
               <input
                 name="sku"
                 placeholder={'מק"ט (אופציונלי)'}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
               />
             </div>
             <div>
               <input
                 name="unit"
                 placeholder={'יחידה (אופציונלי)'}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                className="w-full h-11 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
               />
             </div>
             <div className="md:col-span-4">
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors"
               >
                 צור פריט
               </button>
@@ -107,7 +107,7 @@ export default async function OperationsInventoryPage({
         </div>
       </section>
 
-      <section className="bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
+      <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100">
             <div className="flex items-center justify-between">
               <div>
@@ -121,12 +121,12 @@ export default async function OperationsInventoryPage({
                 name="q"
                 defaultValue={q}
                 placeholder={'חיפוש לפי שם/מק"ט'}
-                className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                className="flex-1 h-11 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 hover:shadow focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
               />
               <VisionIdentifyFillSearch formId="ops-inventory-search-form" inputName="q" orgSlug={orgSlug} />
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center justify-center rounded-2xl h-11 px-5 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors"
               >
                 חפש
               </button>

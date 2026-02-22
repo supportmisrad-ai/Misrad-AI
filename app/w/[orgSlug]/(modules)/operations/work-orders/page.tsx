@@ -9,31 +9,6 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import type { OperationsWorkOrderStatus } from '@/lib/services/operations/types';
 
-function formatStatus(status: string): { label: string; className: string } {
-  switch (status) {
-    case 'NEW':
-      return {
-        label: 'נפתח',
-        className: 'bg-sky-50 text-sky-700 border border-sky-100',
-      };
-    case 'IN_PROGRESS':
-      return {
-        label: 'בטיפול',
-        className: 'bg-amber-50 text-amber-700 border border-amber-100',
-      };
-    case 'DONE':
-      return {
-        label: 'הושלם',
-        className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-      };
-    default:
-      return {
-        label: status,
-        className: 'bg-slate-50 text-slate-700 border border-slate-200',
-      };
-  }
-}
-
 export default async function OperationsWorkOrdersPage({
   params,
   searchParams,

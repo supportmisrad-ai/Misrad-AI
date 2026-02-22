@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { getOperationsProjectsData } from '@/app/actions/operations';
+import { formatProjectStatus } from '@/lib/services/operations/format';
 
 function formatDate(dateIso: string): string {
   try {
@@ -10,16 +11,6 @@ function formatDate(dateIso: string): string {
     return new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(date);
   } catch {
     return dateIso;
-  }
-}
-
-function formatProjectStatus(status: string): { label: string; cls: string } {
-  switch (status) {
-    case 'ACTIVE': return { label: 'פעיל', cls: 'bg-sky-50 text-sky-700 border border-sky-100' };
-    case 'COMPLETED': return { label: 'הושלם', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
-    case 'ON_HOLD': return { label: 'מוקפא', cls: 'bg-amber-50 text-amber-700 border border-amber-100' };
-    case 'CANCELLED': return { label: 'בוטל', cls: 'bg-slate-50 text-slate-500 border border-slate-200' };
-    default: return { label: status, cls: 'bg-slate-50 text-slate-700 border border-slate-200' };
   }
 }
 
@@ -54,7 +45,39 @@ export default async function OperationsProjectsPage({
           </div>
 
           <div className="p-5">
-            <div className="overflow-x-auto">
+            {/* ──── Mobile Cards ──── */}
+            <div className="md:hidden space-y-3">
+              {projects.length ? (
+                projects.map((p) => {
+                  const ps = formatProjectStatus(p.status);
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`${base}/work-orders?projectId=${encodeURIComponent(p.id)}`}
+                      className="block rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-black text-slate-900 truncate">{p.title}</div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black ${ps.cls}`}>{ps.label}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+                        {p.clientName ? <span>לקוח: <b>{p.clientName}</b></span> : <span className="text-slate-400">ללא לקוח</span>}
+                        <span className="text-slate-400">{formatDate(p.createdAt)}</span>
+                      </div>
+                    </Link>
+                  );
+                })
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">אין עדיין פרויקטים להצגה</div>
+              )}
+            </div>
+
+            {/* ──── Desktop Table ──── */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-right text-slate-500">

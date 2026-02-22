@@ -118,17 +118,7 @@ export default function AttendanceReportsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 flex items-center gap-3">
-            <FileText size={28} className="text-indigo-600" />
-            דוחות נוכחות חודשיים
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">צפייה, יצירה והורדת דוחות נוכחות מפורטים</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-6xl">
 
       {/* Month Navigation */}
       <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm">
@@ -140,7 +130,7 @@ export default function AttendanceReportsPage() {
         </button>
 
         <div className="flex items-center gap-3">
-          <Calendar size={20} className="text-indigo-600" />
+          <Calendar size={20} className="text-sky-600" />
           <span className="text-lg font-black text-slate-900">{monthLabel}</span>
         </div>
 
@@ -157,7 +147,7 @@ export default function AttendanceReportsPage() {
         <button
           onClick={handleGenerateMy}
           disabled={isGenerating}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-sky-500 text-white font-black text-sm hover:bg-sky-600 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
         >
           {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
           צור דוח שלי
@@ -166,7 +156,7 @@ export default function AttendanceReportsPage() {
         <button
           onClick={handleGenerateAll}
           disabled={isGeneratingAll}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 transition disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
         >
           {isGeneratingAll ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
           צור דוחות לכל העובדים
@@ -175,7 +165,7 @@ export default function AttendanceReportsPage() {
         <button
           onClick={loadReports}
           disabled={isLoading}
-          className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 transition disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 transition disabled:opacity-60"
         >
           <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
           רענן
@@ -183,7 +173,7 @@ export default function AttendanceReportsPage() {
       </div>
 
       {message ? (
-        <div className="mb-6 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-800">
+        <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
           {message}
         </div>
       ) : null}
@@ -191,7 +181,7 @@ export default function AttendanceReportsPage() {
       {/* Reports List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-indigo-600" />
+          <Loader2 size={32} className="animate-spin text-sky-500" />
         </div>
       ) : reports.length === 0 ? (
         <div className="text-center py-20">
@@ -206,7 +196,7 @@ export default function AttendanceReportsPage() {
               key={report.id}
               className={`bg-white rounded-2xl border-2 transition cursor-pointer ${
                 selectedReport?.id === report.id
-                  ? 'border-indigo-400 shadow-md'
+                  ? 'border-sky-400 shadow-md'
                   : 'border-slate-200 hover:border-slate-300 shadow-sm'
               }`}
               onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
@@ -214,8 +204,8 @@ export default function AttendanceReportsPage() {
               {/* Report Card Header */}
               <div className="p-4 md:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <Clock size={20} className="text-indigo-600" />
+                  <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                    <Clock size={20} className="text-sky-600" />
                   </div>
                   <div>
                     <div className="font-black text-slate-900">{report.employeeName}</div>
@@ -233,7 +223,7 @@ export default function AttendanceReportsPage() {
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-400 font-bold">לתשלום</div>
-                    <div className="font-black text-indigo-600 tabular-nums">{minutesToHHMM(report.totalPayableMinutes)}</div>
+                    <div className="font-black text-sky-600 tabular-nums">{minutesToHHMM(report.totalPayableMinutes)}</div>
                   </div>
                   {report.overtime125Minutes + report.overtime150Minutes + report.overtime175Minutes + report.overtime200Minutes > 0 ? (
                     <div className="text-center">
@@ -249,7 +239,7 @@ export default function AttendanceReportsPage() {
                       e.stopPropagation();
                       openPdf(report.id);
                     }}
-                    className="p-2 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition"
+                    className="p-2 rounded-xl bg-sky-50 text-sky-600 hover:bg-sky-100 transition"
                     title="הורד דוח PDF"
                   >
                     <Download size={18} />

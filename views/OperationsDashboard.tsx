@@ -1,42 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 
 import type { OperationsDashboardData } from '@/app/actions/operations';
 import type { OperationsInventoryOption } from '@/app/actions/operations';
-
-function formatStatus(status: string): { label: string; cls: string } {
-  switch (status) {
-    case 'NEW': return { label: 'נפתח', cls: 'bg-sky-50 text-sky-700 border-sky-100' };
-    case 'OPEN': return { label: 'פתוח', cls: 'bg-blue-50 text-blue-700 border-blue-100' };
-    case 'IN_PROGRESS': return { label: 'בטיפול', cls: 'bg-amber-50 text-amber-700 border-amber-100' };
-    case 'DONE': return { label: 'הושלם', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-    default: return { label: status, cls: 'bg-slate-50 text-slate-700 border-slate-200' };
-  }
-}
-
-function formatProjectStatus(status: string): { label: string; cls: string } {
-  switch (status) {
-    case 'ACTIVE': return { label: 'פעיל', cls: 'bg-sky-50 text-sky-700 border border-sky-100' };
-    case 'COMPLETED': return { label: 'הושלם', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
-    case 'ON_HOLD': return { label: 'מוקפא', cls: 'bg-amber-50 text-amber-700 border border-amber-100' };
-    case 'CANCELLED': return { label: 'בוטל', cls: 'bg-slate-50 text-slate-500 border border-slate-200' };
-    default: return { label: status, cls: 'bg-slate-50 text-slate-700 border border-slate-200' };
-  }
-}
-
-function slaLabel(deadline: string | null): { text: string; cls: string } | null {
-  if (!deadline) return null;
-  const diff = new Date(deadline).getTime() - Date.now();
-  if (isNaN(diff)) return null;
-  if (diff <= 0) return { text: 'חריגה', cls: 'text-red-700 font-black' };
-  const hrs = Math.floor(diff / 3600000);
-  if (hrs < 1) return { text: `${Math.floor(diff / 60000)} דק׳`, cls: 'text-orange-700 font-bold' };
-  if (hrs < 24) return { text: `${hrs} שעות`, cls: 'text-amber-700 font-bold' };
-  return { text: `${Math.floor(hrs / 24)} ימים`, cls: 'text-slate-600' };
-}
+import { formatWorkOrderStatus, formatProjectStatus, slaLabel } from '@/lib/services/operations/format';
 
 export function OperationsDashboard({
   orgSlug,
@@ -56,6 +26,14 @@ export function OperationsDashboard({
   flash: string | null;
 }) {
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
+
+  const [showFlash, setShowFlash] = useState(!!flash);
+  useEffect(() => {
+    if (!flash) return;
+    setShowFlash(true);
+    const t = setTimeout(() => setShowFlash(false), 5000);
+    return () => clearTimeout(t);
+  }, [flash]);
 
   const recentProjects = initialData?.recentProjects || [];
   const inventory = initialData?.inventorySummary;
@@ -79,9 +57,12 @@ export function OperationsDashboard({
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      {flash ? (
-        <div className="mb-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 text-sm font-black text-slate-900">
-          {flash}
+      {flash && showFlash ? (
+        <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-bold text-sky-800 flex items-center justify-between animate-in fade-in">
+          <span>{flash}</span>
+          <button type="button" onClick={() => setShowFlash(false)} className="text-sky-400 hover:text-sky-600 transition-colors shrink-0 mr-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
         </div>
       ) : null}
 
@@ -200,7 +181,7 @@ export function OperationsDashboard({
           <div className="p-4 space-y-2">
             {recentWorkOrders.length ? (
               recentWorkOrders.map((wo) => {
-                const st = formatStatus(wo.status);
+                const st = formatWorkOrderStatus(wo.status);
                 const sla = slaLabel(wo.slaDeadline);
                 return (
                   <Link

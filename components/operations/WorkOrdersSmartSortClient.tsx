@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { formatWorkOrderStatus, formatPriority, slaLabel } from '@/lib/services/operations/format';
 
 type WorkOrderRow = {
   id: string;
@@ -20,53 +21,6 @@ type WorkOrderRow = {
   slaDeadline: string | null;
   createdAt: string;
 };
-
-function formatStatus(status: string): { label: string; className: string } {
-  switch (status) {
-    case 'NEW':
-      return { label: 'נפתח', className: 'bg-sky-50 text-sky-700 border border-sky-100' };
-    case 'OPEN':
-      return { label: 'פתוח', className: 'bg-blue-50 text-blue-700 border border-blue-100' };
-    case 'IN_PROGRESS':
-      return { label: 'בטיפול', className: 'bg-amber-50 text-amber-700 border border-amber-100' };
-    case 'DONE':
-      return { label: 'הושלם', className: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
-    default:
-      return { label: status, className: 'bg-slate-50 text-slate-700 border border-slate-200' };
-  }
-}
-
-function formatPriority(priority: string): { label: string; className: string } | null {
-  switch (priority) {
-    case 'HIGH':
-      return { label: 'גבוה', className: 'bg-orange-50 text-orange-700 border border-orange-100' };
-    case 'URGENT':
-      return { label: 'דחוף', className: 'bg-rose-50 text-rose-700 border border-rose-100' };
-    case 'CRITICAL':
-      return { label: 'קריטי', className: 'bg-red-100 text-red-800 border border-red-200' };
-    default:
-      return null;
-  }
-}
-
-function slaInfo(deadline: string | null): { label: string; className: string } | null {
-  if (!deadline) return null;
-  const now = Date.now();
-  const dl = new Date(deadline).getTime();
-  if (isNaN(dl)) return null;
-  const diff = dl - now;
-
-  if (diff <= 0) return { label: 'חריגה מ-SLA', className: 'text-red-700 font-black' };
-
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return { label: `${mins} דק׳ ל-SLA`, className: 'text-orange-700 font-bold' };
-
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return { label: `${hours} שעות ל-SLA`, className: 'text-amber-700 font-bold' };
-
-  const days = Math.floor(hours / 24);
-  return { label: `${days} ימים ל-SLA`, className: 'text-slate-600 font-bold' };
-}
 
 function locationLabel(w: WorkOrderRow): string | null {
   const parts: string[] = [];
@@ -204,9 +158,9 @@ export default function WorkOrdersSmartSortClient({
         <div className="md:hidden space-y-3">
           {sorted.length ? (
             sorted.map((w) => {
-              const statusBadge = formatStatus(w.status);
+              const statusBadge = formatWorkOrderStatus(w.status);
               const priorityBadge = formatPriority(w.priority);
-              const sla = slaInfo(w.slaDeadline);
+              const sla = slaLabel(w.slaDeadline);
               const loc = locationLabel(w);
               return (
                 <Link
@@ -218,8 +172,8 @@ export default function WorkOrdersSmartSortClient({
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-black text-slate-900 truncate">{w.title}</div>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className={`${badgeCls} ${statusBadge.className}`}>{statusBadge.label}</span>
-                        {priorityBadge ? <span className={`${badgeCls} ${priorityBadge.className}`}>{priorityBadge.label}</span> : null}
+                        <span className={`${badgeCls} ${statusBadge.cls}`}>{statusBadge.label}</span>
+                        {priorityBadge ? <span className={`${badgeCls} ${priorityBadge.cls}`}>{priorityBadge.label}</span> : null}
                         {w.categoryName ? <span className={`${badgeCls} bg-violet-50 text-violet-700 border border-violet-100`}>{w.categoryName}</span> : null}
                       </div>
                     </div>
@@ -232,7 +186,7 @@ export default function WorkOrdersSmartSortClient({
                     {w.reporterName ? <span>מדווח: {w.reporterName}</span> : null}
                   </div>
 
-                  {sla ? <div className={`mt-2 text-[11px] ${sla.className}`}>{sla.label}</div> : null}
+                  {sla ? <div className={`mt-2 text-[11px] ${sla.cls}`}>{sla.text}</div> : null}
                 </Link>
               );
             })
@@ -258,9 +212,9 @@ export default function WorkOrdersSmartSortClient({
             <tbody>
               {sorted.length ? (
                 sorted.map((w) => {
-                  const statusBadge = formatStatus(w.status);
+                  const statusBadge = formatWorkOrderStatus(w.status);
                   const priorityBadge = formatPriority(w.priority);
-                  const sla = slaInfo(w.slaDeadline);
+                  const sla = slaLabel(w.slaDeadline);
                   const loc = locationLabel(w);
                   return (
                     <tr key={w.id} className="border-t border-slate-100 hover:bg-slate-50/50">
@@ -271,11 +225,11 @@ export default function WorkOrdersSmartSortClient({
                         </Link>
                       </td>
                       <td className="py-3">
-                        <span className={`${badgeCls} ${statusBadge.className}`}>{statusBadge.label}</span>
+                        <span className={`${badgeCls} ${statusBadge.cls}`}>{statusBadge.label}</span>
                       </td>
                       <td className="py-3">
                         {priorityBadge ? (
-                          <span className={`${badgeCls} ${priorityBadge.className}`}>{priorityBadge.label}</span>
+                          <span className={`${badgeCls} ${priorityBadge.cls}`}>{priorityBadge.label}</span>
                         ) : (
                           <span className="text-slate-400 text-xs">רגיל</span>
                         )}
@@ -283,7 +237,7 @@ export default function WorkOrdersSmartSortClient({
                       <td className="py-3 text-slate-600 text-xs">{w.categoryName || <span className="text-slate-400">—</span>}</td>
                       <td className="py-3 text-slate-600 text-xs max-w-[160px] truncate">{loc || <span className="text-slate-400">—</span>}</td>
                       <td className="py-3 text-slate-600 text-xs">{w.technicianLabel || <span className="text-slate-400">—</span>}</td>
-                      <td className="py-3 text-xs">{sla ? <span className={sla.className}>{sla.label}</span> : <span className="text-slate-400">—</span>}</td>
+                      <td className="py-3 text-xs">{sla ? <span className={sla.cls}>{sla.text}</span> : <span className="text-slate-400">—</span>}</td>
                     </tr>
                   );
                 })
