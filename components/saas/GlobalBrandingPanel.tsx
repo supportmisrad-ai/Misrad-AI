@@ -74,11 +74,6 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
     if (!file) return;
 
     try {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('הקובץ גדול מדי. מקסימום 5MB');
-        return;
-      }
-
       const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         alert('סוג קובץ לא נתמך. PNG / JPG / SVG / WebP');
@@ -87,8 +82,11 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
 
       setIsSaving(true);
 
+      const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+      const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', resizedFile);
       form.append('bucket', 'attachments');
       form.append('folder', 'global-branding');
 

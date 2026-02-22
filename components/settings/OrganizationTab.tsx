@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { motion } from 'framer-motion';
-import { Building2, Upload, Loader2, X, Image, Trash2, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Building2, Upload, Loader2, X, Image, Trash2, Lock, Send, CheckCircle } from 'lucide-react';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { usePathname } from 'next/navigation';
 import { getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
@@ -53,13 +53,6 @@ export const OrganizationTab: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file || !orgSlug) return;
 
-        // Basic validation
-        if (file.size > 5 * 1024 * 1024) {
-            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            addToast(`הקובץ גדול מדי (${fileSizeMB}MB). מקסימום מותר: 5MB. אנא בחר קובץ קטן יותר.`, 'error');
-            return;
-        }
-
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
         if (!validTypes.includes(file.type)) {
             addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG, SVG או WebP)', 'error');
@@ -70,14 +63,17 @@ export const OrganizationTab: React.FC = () => {
         setUploadProgress(10);
 
         try {
+            const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+            const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
             // Show instant preview via data URL while uploading
-            const previewUrl = URL.createObjectURL(file);
+            const previewUrl = URL.createObjectURL(resizedFile);
             updateOrganization({ logo: previewUrl });
             setUploadProgress(30);
 
             // Upload to Supabase storage
             const form = new FormData();
-            form.append('file', file);
+            form.append('file', resizedFile);
             form.append('bucket', 'attachments');
             form.append('folder', 'org-logos');
             form.append('orgSlug', orgSlug);
@@ -148,8 +144,47 @@ export const OrganizationTab: React.FC = () => {
         }
     };
 
+    const [isNameChangeModalOpen, setIsNameChangeModalOpen] = useState(false);
+    const [requestedName, setRequestedName] = useState('');
+    const [isSubmittingNameChange, setIsSubmittingNameChange] = useState(false);
+    const [nameChangeSuccess, setNameChangeSuccess] = useState(false);
+
     const handleOrgNameChange = () => {
-        addToast('לשינוי שם הארגון אנא צור קשר עם התמיכה הטכנית', 'info');
+        setRequestedName('');
+        setNameChangeSuccess(false);
+        setIsNameChangeModalOpen(true);
+    };
+
+    const submitNameChangeRequest = async () => {
+        const trimmed = requestedName.trim();
+        if (!trimmed || trimmed === organization.name) {
+            addToast('יש להזין שם חדש שונה מהשם הנוכחי', 'error');
+            return;
+        }
+        setIsSubmittingNameChange(true);
+        try {
+            const res = await fetch('/api/support', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    category: 'Account',
+                    subject: `בקשה לשינוי שם ארגון: "${organization.name}" → "${trimmed}"`,
+                    message: `בקשה לשינוי שם הארגון מ-"${organization.name}" ל-"${trimmed}".\n\nארגון: ${organization.name}\nSlug: ${orgSlug || 'N/A'}\nשם מבוקש: ${trimmed}`,
+                    priority: 'medium',
+                }),
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error((errData as Record<string, string>)?.error || 'שגיאה בשליחת הבקשה');
+            }
+            setNameChangeSuccess(true);
+            addToast('בקשת שינוי שם נשלחה בהצלחה! נחזור אליך בהקדם.', 'success');
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'שגיאה בשליחת הבקשה';
+            addToast(msg, 'error');
+        } finally {
+            setIsSubmittingNameChange(false);
+        }
     };
 
     const triggerUpload = () => {

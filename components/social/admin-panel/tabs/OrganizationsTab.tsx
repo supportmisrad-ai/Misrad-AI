@@ -313,8 +313,11 @@ export default function OrganizationsTab() {
     try {
       setIsUploadingLogo(true);
 
+      const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+      const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', resizedFile);
       form.append('bucket', 'attachments');
       form.append('folder', 'org-logos');
       const targetSlug = organizations.find((o) => o.id === orgId)?.slug;

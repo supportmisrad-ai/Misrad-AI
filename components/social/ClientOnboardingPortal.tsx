@@ -68,15 +68,13 @@ export default function ClientOnboardingPortal() {
         return;
       }
 
-      if (file.size > 5 * 1024 * 1024) {
-        addToast('הקובץ גדול מדי. מקסימום 5MB', 'error');
-        return;
-      }
-
       setIsUploadingLogo(true);
 
+      const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+      const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', resizedFile);
       form.append('bucket', 'attachments');
       form.append('folder', `client-avatars/${activeClient.id}`);
       if (routeInfo.orgSlug) {

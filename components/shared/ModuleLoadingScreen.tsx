@@ -30,34 +30,29 @@ function ShimmerBlock({ className, style }: { className?: string; style?: React.
   );
 }
 
-/* ─── Full-screen loading (sidebar+header+content) — used only on initial module entry ─── */
+/* ─── Full-screen loading — minimal & clean, used as Suspense fallback in module layouts ─── */
 export function ModuleLoadingScreen({ moduleKey }: { moduleKey?: string }) {
   const c = getColors(moduleKey);
 
   return (
-    <div className="min-h-screen flex" dir="rtl" style={{ backgroundColor: c.bg }}>
-      <style>{shimmerStyle}</style>
-      <div className="hidden md:flex flex-col w-[72px] border-l border-slate-200/60 py-4 items-center gap-3"
-           style={{ backgroundColor: c.sidebar }}>
-        <ShimmerBlock className="rounded-[14px]" style={{ width: 44, height: 44, backgroundColor: c.accentLight }} />
-        <div className="w-8 border-b border-slate-200/60 my-1" />
-        {[1, 2, 3, 4, 5].map(i => (
-          <ShimmerBlock key={i} className="rounded-xl" style={{ width: 38, height: 38, backgroundColor: i === 1 ? c.accentLight : '#E2E8F0' }} />
-        ))}
-      </div>
-      <div className="flex-1 flex flex-col min-h-screen">
-        <div className="h-14 border-b border-slate-200/60 flex items-center justify-between px-4 md:px-6 bg-white/60">
-          <div className="flex items-center gap-3">
-            <ShimmerBlock className="rounded-lg md:hidden" style={{ width: 36, height: 36, backgroundColor: c.accentLight }} />
-            <ShimmerBlock className="rounded-lg" style={{ width: 120, height: 24, backgroundColor: c.accentLight }} />
-          </div>
-          <div className="flex items-center gap-2">
-            <ShimmerBlock className="rounded-full" style={{ width: 32, height: 32, backgroundColor: '#E2E8F0' }} />
-            <ShimmerBlock className="rounded-full" style={{ width: 32, height: 32, backgroundColor: '#E2E8F0' }} />
-          </div>
-        </div>
-        <div className="flex-1 p-4 md:p-6">
-          <DashboardContentSkeleton moduleKey={moduleKey} />
+    <div className="min-h-screen flex items-center justify-center" dir="rtl" style={{ backgroundColor: c.bg }}>
+      <div className="flex flex-col items-center gap-4">
+        <div
+          className="w-10 h-10 rounded-2xl animate-pulse"
+          style={{ backgroundColor: c.accentLight, boxShadow: `0 0 24px ${c.accent}20` }}
+        />
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{
+                backgroundColor: c.accent,
+                opacity: 0.5,
+                animationDelay: `${i * 200}ms`,
+              }}
+            />
+          ))}
         </div>
       </div>
     </div>

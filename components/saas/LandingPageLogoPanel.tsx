@@ -39,22 +39,17 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
         };
     }, []);
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Basic validation
-            if (file.size > 5 * 1024 * 1024) {
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                addToast(`הקובץ גדול מדי (${fileSizeMB}MB). מקסימום מותר: 5MB. אנא בחר קובץ קטן יותר.`, 'error');
-                return;
-            }
-            
-            // Check file type
             const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
             if (!validTypes.includes(file.type)) {
                 addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG, SVG או WebP)', 'error');
                 return;
             }
+
+            const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+            const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
             
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -63,7 +58,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                 saveLogo(logoData, logoText);
                 addToast('לוגו דף הנחיתה עודכן בהצלחה!', 'success');
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(resizedFile);
         }
     };
 

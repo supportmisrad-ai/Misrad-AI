@@ -157,16 +157,9 @@ export default function InvitePage() {
     }, [token]);
 
     // Handle logo upload
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Check file size
-            if (file.size > 5 * 1024 * 1024) {
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                setError(`הקובץ גדול מדי (${fileSizeMB}MB). מקסימום מותר: 5MB. אנא בחר קובץ קטן יותר.`);
-                return;
-            }
-            
             // Check file type
             const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
             if (!validTypes.includes(file.type)) {
@@ -174,15 +167,22 @@ export default function InvitePage() {
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, companyLogo: reader.result as string }));
-                setError(null); // Clear any previous errors
-            };
-            reader.onerror = () => {
-                setError('שגיאה בקריאת הקובץ. אנא נסה שוב.');
-            };
-            reader.readAsDataURL(file);
+            try {
+                const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+                const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setFormData(prev => ({ ...prev, companyLogo: reader.result as string }));
+                    setError(null);
+                };
+                reader.onerror = () => {
+                    setError('שגיאה בקריאת הקובץ. אנא נסה שוב.');
+                };
+                reader.readAsDataURL(resizedFile);
+            } catch {
+                setError('שגיאה בעיבוד התמונה. אנא נסה שוב.');
+            }
         }
     };
 

@@ -30,19 +30,17 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
 
         (async () => {
             try {
-                if (file.size > 5 * 1024 * 1024) {
-                    addToast('הקובץ גדול מדי. מקסימום מותר: 5MB.', 'error');
-                    return;
-                }
-
                 const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
                 if (!validTypes.includes(file.type)) {
                     addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG או WebP)', 'error');
                     return;
                 }
 
+                const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+                const resizedFile = await resizeImageIfNeeded(file, 5 * 1024 * 1024);
+
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('file', resizedFile);
                 formData.append('bucket', 'attachments');
                 formData.append('folder', 'avatars');
                 if (orgSlug) {

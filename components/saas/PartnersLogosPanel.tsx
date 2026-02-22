@@ -59,19 +59,17 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
         addToast('לוגואים עודכנו בהצלחה!', 'success');
     };
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, logoId?: string) => {
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, logoId?: string) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                addToast('הקובץ גדול מדי (מקסימום 2MB)', 'error');
-                return;
-            }
-            
             const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
             if (!validTypes.includes(file.type)) {
                 addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG, SVG או WebP)', 'error');
                 return;
             }
+
+            const { resizeImageIfNeeded } = await import('@/lib/shared/resize-image');
+            const resizedFile = await resizeImageIfNeeded(file, 2 * 1024 * 1024);
             
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -91,7 +89,7 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
                 }
                 addToast('לוגו הועלה בהצלחה!', 'success');
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(resizedFile);
         }
     };
 
