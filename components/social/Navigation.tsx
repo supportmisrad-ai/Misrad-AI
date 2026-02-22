@@ -197,23 +197,70 @@ function NavigationImpl({
           ))}
         </div>
 
-        {/* Client Section */}
+        {/* Client Section — visually distinct card */}
         {hasSelectedClient ? (
-          <>
-            <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
-            {isSidebarOpen && (
-              <div className="px-4 mb-2">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  {selectedClientName ? `לקוח: ${selectedClientName}` : 'לקוח נבחר'}
+          <div className={`my-3 ${isSidebarOpen ? 'mx-0' : 'mx-0'}`}>
+            <div className={`relative rounded-2xl border transition-all duration-300 overflow-hidden ${
+              isSidebarOpen
+                ? 'bg-gradient-to-br from-violet-50/80 via-indigo-50/40 to-purple-50/60 border-violet-200/60 shadow-sm shadow-violet-100/40 p-1'
+                : 'bg-violet-50/60 border-violet-200/50 p-1'
+            }`}>
+              {/* Decorative top accent line */}
+              <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-violet-400/60 to-transparent rounded-full"></div>
+
+              {isSidebarOpen ? (
+                <div className="flex items-center gap-3 px-3 pt-3 pb-2">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-md shadow-violet-300/40 shrink-0">
+                    {selectedClientName ? selectedClientName.charAt(0) : '?'}
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[9px] font-black text-violet-500/80 uppercase tracking-widest leading-none">סביבת לקוח</span>
+                    <span className="text-[13px] font-black text-slate-800 truncate leading-snug mt-0.5">{selectedClientName || 'לקוח נבחר'}</span>
+                  </div>
                 </div>
+              ) : (
+                <div className="flex justify-center py-2">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-black shadow-md shadow-violet-300/40" title={selectedClientName || 'לקוח נבחר'}>
+                    {selectedClientName ? selectedClientName.charAt(0) : '?'}
+                  </div>
+                </div>
+              )}
+
+              <div className={`flex flex-col gap-0.5 ${isSidebarOpen ? 'px-1 pb-1.5 pt-0.5' : 'pb-1'}`}>
+                {clientItems.map((item) => {
+                  const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size?: number }>>)[item.icon] || Icons.Home;
+                  const href = getRouteForView(item.view);
+                  const isActive = hasMounted && Boolean(pathname) && (pathname === href || pathname.startsWith(`${href}/`));
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={href}
+                      scroll={false}
+                      className={`
+                        group relative flex items-center gap-4 p-3 rounded-xl font-black text-sm transition-all duration-200 w-full
+                        ${isActive
+                          ? 'bg-white/90 text-slate-900 shadow-sm border border-violet-200/60'
+                          : 'text-slate-600 hover:bg-white/60 hover:text-slate-800 border border-transparent'}
+                      `}
+                    >
+                      <div className={`${isActive ? 'text-violet-600' : 'text-violet-400 group-hover:text-violet-500'} transition-colors`}>
+                        <IconComponent size={20} />
+                      </div>
+                      {isSidebarOpen && (
+                        <>
+                          <span className="flex-1 text-right">{item.label}</span>
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-r-full" />
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-            )}
-            <div className="flex flex-col gap-1">
-              {clientItems.map((item) => (
-                <NavItem key={item.id} item={item} />
-              ))}
             </div>
-          </>
+          </div>
         ) : null}
 
         {/* Management Items */}

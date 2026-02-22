@@ -439,43 +439,61 @@ export default function SocialFrame({
                 })}
               </div>
 
-              {/* תוכן ויצירה */}
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4"></div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">תוכן ויצירה</div>
-              <div className="grid grid-cols-4 gap-4">
-                {menuItems.filter(i => ['workspace','machine','campaigns','analytics'].includes(i.id)).map((item) => {
-                  const isActiveItem = currentView === item.view;
-                  const IconComponent = iconMap[item.icon] || Icons.Home;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (item.requiresClient && !activeClient) {
-                          openComingSoon();
-                          return;
-                        }
-                        onNavigateAction(getRouteForView(item.view));
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex flex-col items-center gap-2 group"
-                      aria-label={item.label}
-                    >
-                      <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
-                          isActiveItem
-                            ? 'bg-indigo-600 text-white shadow-indigo-600/20 border-indigo-600'
-                            : 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white'
-                        }`}
-                      >
-                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+              {/* סביבת לקוח — visually distinct card */}
+              <div className="my-4">
+                <div className="relative bg-gradient-to-br from-violet-50/90 via-indigo-50/50 to-purple-50/70 rounded-[1.25rem] border border-violet-200/60 shadow-sm shadow-violet-100/30 p-4 overflow-hidden">
+                  <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-violet-400/50 to-transparent rounded-full"></div>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    {activeClient ? (
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-black shadow-md shadow-violet-300/40 shrink-0">
+                        {String((activeClient as Record<string, unknown>).companyName || (activeClient as Record<string, unknown>).name || '?').charAt(0)}
                       </div>
-                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-indigo-700' : 'text-slate-500'}`}>
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                    ) : null}
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9px] font-black text-violet-500/80 uppercase tracking-widest leading-none">סביבת לקוח</span>
+                      {activeClient && (
+                        <span className="text-[11px] font-black text-slate-700 truncate leading-snug mt-0.5">
+                          {String((activeClient as Record<string, unknown>).companyName || (activeClient as Record<string, unknown>).name || '')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {menuItems.filter(i => ['workspace','machine','campaigns','analytics'].includes(i.id)).map((item) => {
+                      const isActiveItem = currentView === item.view;
+                      const IconComponent = iconMap[item.icon] || Icons.Home;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (item.requiresClient && !activeClient) {
+                              openComingSoon();
+                              return;
+                            }
+                            onNavigateAction(getRouteForView(item.view));
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex flex-col items-center gap-2 group"
+                          aria-label={item.label}
+                        >
+                          <div
+                            className={`w-13 h-13 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-sm border ${
+                              isActiveItem
+                                ? 'bg-violet-600 text-white shadow-violet-600/20 border-violet-600'
+                                : 'bg-white/80 text-violet-600 border-violet-100 hover:bg-white hover:shadow-md'
+                            }`}
+                          >
+                            <IconComponent size={21} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          </div>
+                          <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-violet-700' : 'text-slate-500'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* ניהול */}
