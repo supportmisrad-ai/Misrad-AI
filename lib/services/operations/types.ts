@@ -80,6 +80,8 @@ export type OperationsInventoryData = {
     sku: string | null;
     onHand: number;
     minLevel: number;
+    supplierId: string | null;
+    supplierName: string | null;
   }>;
 };
 

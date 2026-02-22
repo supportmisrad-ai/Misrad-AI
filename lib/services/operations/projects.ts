@@ -238,20 +238,16 @@ export async function updateOperationsProjectForOrganizationId(params: {
 export async function createOperationsProjectForOrganizationId(params: {
   organizationId: string;
   title: string;
-  canonicalClientId: string;
+  canonicalClientId?: string;
   installationAddress?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     const title = String(params.title || '').trim();
-    const canonicalClientId = String(params.canonicalClientId || '').trim();
+    const canonicalClientId = String(params.canonicalClientId || '').trim() || null;
     const installationAddress = String(params.installationAddress || '').trim();
 
     if (!title) {
       return { success: false, error: 'חובה להזין שם פרויקט' };
-    }
-
-    if (!canonicalClientId) {
-      return { success: false, error: 'חובה לבחור לקוח' };
     }
 
     const created = await prisma.operationsProject.create({

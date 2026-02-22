@@ -142,10 +142,16 @@ async function buildNexusOwnerDashboardDataForWorkspace(params: {
       ? prisma.clientClient.count({ where: { organizationId: orgId } })
       : Promise.resolve(null),
 
-    // Finance permission (just check permission in parallel; actual query below if allowed)
+    // Finance: permission check + time entry aggregate in parallel (previously sequential!)
     entitlements.finance
-      ? hasPermission('view_financials')
-      : Promise.resolve(false),
+      ? Promise.all([
+          hasPermission('view_financials'),
+          prisma.nexusTimeEntry.aggregate({
+            where: { organizationId: orgId },
+            _sum: { durationMinutes: true },
+          }),
+        ]).then(([canView, agg]) => ({ canView, agg }))
+      : Promise.resolve(null),
   ]);
 
   // Process Nexus results
@@ -208,14 +214,10 @@ async function buildNexusOwnerDashboardDataForWorkspace(params: {
     kpis.client = { clientsTotal: clientResult };
   }
 
-  // Process Finance (permission was checked in parallel; fetch data now if allowed)
-  if (entitlements.finance) {
-    if (financePermResult) {
-      const agg = await prisma.nexusTimeEntry.aggregate({
-        where: { organizationId: orgId },
-        _sum: { durationMinutes: true },
-      });
-      const total = Number(agg._sum?.durationMinutes ?? 0) || 0;
+  // Process Finance (permission + aggregate were already fetched in the parallel batch)
+  if (financePermResult) {
+    if (financePermResult.canView) {
+      const total = Number(financePermResult.agg._sum?.durationMinutes ?? 0) || 0;
       kpis.finance = { totalMinutes: total, totalHours: Math.round((total / 60) * 10) / 10 };
     } else {
       kpis.finance = { locked: true };

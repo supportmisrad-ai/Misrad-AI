@@ -105,11 +105,71 @@ export default function NexusMarketingPage() {
           </div>
         </section>
 
+        {/* Pricing CTA Section */}
+        <section className="py-16 sm:py-20 bg-slate-50 border-y border-slate-200">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+              כמה זה עולה?
+            </h2>
+            <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
+              Nexus כלול בכל החבילות מלבד Solo. מתחיל מ-₪249/חודש בחבילת מכירות.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
+                <div className="text-xs font-bold text-slate-500 mb-1">מודול בודד</div>
+                <div className="text-2xl font-black text-slate-900">₪149<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+              </div>
+              <div className="bg-white border-2 border-indigo-200 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
+                <div className="text-xs font-bold text-indigo-600 mb-1">חבילת מכירות</div>
+                <div className="text-2xl font-black text-indigo-700">₪249<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+                <div className="text-[10px] text-slate-500 mt-1">System + Nexus</div>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
+                <div className="text-xs font-bold text-slate-500 mb-1">הכל כלול</div>
+                <div className="text-2xl font-black text-slate-900">₪499<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+                <div className="text-[10px] text-slate-500 mt-1">6 מודולים + 5 משתמשים</div>
+              </div>
+            </div>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10 hover:bg-slate-800 transition-all"
+            >
+              ראה את כל החבילות
+            </Link>
+          </div>
+        </section>
+
+        {/* ROI Section */}
+        <section className="py-16 sm:py-20 bg-white">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
+              החזר השקעה
+            </h2>
+            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+              Nexus חוסך למנהלים 5-10 שעות בשבוע של מעקב ידני אחרי צוות, משימות ומכירות.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                <div className="text-3xl font-black text-slate-900">5-10</div>
+                <div className="text-sm text-slate-600 mt-1">שעות חיסכון/שבוע</div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                <div className="text-3xl font-black text-indigo-700">₪2,000-6,000</div>
+                <div className="text-sm text-slate-600 mt-1">ערך חודשי מוערך</div>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                <div className="text-3xl font-black text-emerald-700">1,300%+</div>
+                <div className="text-sm text-slate-600 mt-1">החזר השקעה</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Testimonials Section */}
         <TestimonialsSection />
 
         {/* FAQ Section */}
-        <SalesFaq variant="system" />
+        <SalesFaq variant="default" />
       </main>
       <Footer />
       <DemoVideoModal 

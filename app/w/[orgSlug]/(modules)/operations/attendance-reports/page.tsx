@@ -15,8 +15,8 @@ export default async function AttendanceReportsPage({
   let initialReports: Awaited<ReturnType<typeof listMonthlyReports>> = [];
   try {
     initialReports = await listMonthlyReports(orgSlug, { year, month });
-  } catch {
-    // fallback to empty
+  } catch (e) {
+    console.error('[AttendanceReportsPage] listMonthlyReports failed:', e);
   }
 
   return (

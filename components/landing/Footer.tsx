@@ -79,7 +79,7 @@ export const Footer = () => {
                             <Link href="/" className="text-xl font-black text-white tracking-tight hover:text-white/90 transition-colors">
                                 {logoText || 'MISRAD AI'}
                             </Link>
-                            <p className="text-xs text-slate-500 mt-0.5">ניהול קריאות ופרויקטים</p>
+                            <p className="text-xs text-slate-500 mt-0.5">מערכת AI לניהול עסקים</p>
                         </div>
                     </div>
 
@@ -114,7 +114,7 @@ export const Footer = () => {
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/system" className={linkClasses}>ניהול עסק<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/nexus" className={linkClasses}>נקסוס<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/social" className={linkClasses}>סושיאל<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-authority" className={linkClasses}>שיווק ומיתוג<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/client" className={linkClasses}>פורטל לקוחות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/finance-landing" className={linkClasses}>פיננסים<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/operations" className={linkClasses}>תפעול<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
@@ -146,8 +146,8 @@ export const Footer = () => {
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/support" className={linkClasses}>תמיכה<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li>
-                                <a href="https://api.nexus-os.co/docs" target="_blank" rel="noreferrer" className={linkClasses}>
-                                    תיעוד API<ArrowUpRight size={14} className={arrowClasses} />
+                                <a href="https://api.misrad-ai.com/docs" className={linkClasses}>
+                                    מרכז ידע<ArrowUpRight size={14} className={arrowClasses} />
                                 </a>
                             </li>
                             <li><Link href="/security" className={linkClasses}>אבטחת מידע<ArrowUpRight size={14} className={arrowClasses} /></Link></li>

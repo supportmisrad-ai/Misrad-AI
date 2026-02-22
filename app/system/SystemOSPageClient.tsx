@@ -85,13 +85,13 @@ export default function SystemOSLandingPage() {
             className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 text-center shadow-sm"
           >
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight px-2">
-              כלי שלא נוח לך לעבוד איתו - הוא יקשה עליך.
+              לידים נופלים בין הכיסאות? זה לא חייב לקרות.
             </h3>
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-rose-700 mb-4 sm:mb-6 leading-tight px-2">
-              כלי שאתה לומד איתו בשנייה ומדבר בשפה הפשוטה שלך - הוא חלק ממך.
+              כשיש לך מערכת שמתעדכנת על כל ליד - אף אחד לא נשכח.
             </h3>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl mx-auto px-2">
-              <span className="text-rose-700 font-bold">{getModuleLabelHe('system')}</span> - לא עוד כלי מסובך. כלי שאתה מבין מיד. כלי שעובד בשבילך, לא נגדך.
+              <span className="text-rose-700 font-bold">{getModuleLabelHe('system')}</span> - לא עוד אקסל מסובך. כל מנהל מכירות רואה בדיוק איפה כל ליד עומד, מה השלב הבא, ומה צריך לעשות עכשיו.
             </p>
           </motion.div>
         </div>
@@ -106,23 +106,23 @@ export default function SystemOSLandingPage() {
                 <Target size={24} className="sm:w-8 sm:h-8 text-rose-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">משימות אישיות - כל עובד רואה רק את שלו</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">Pipeline מכירות שלם - מליד ועד סגירה</h2>
                 <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-4 leading-relaxed">
-                  <strong className="text-slate-900">{getModuleLabelHe('system')}</strong> מתמקדת בביצוע (Execution). כל עובד רואה רק את הלידים והמשימות שלו, משימות Follow Up פשוטות לביצוע מיידי.
+                  <strong className="text-slate-900">{getModuleLabelHe('system')}</strong> מתמקדת בניהול לידים ומכירות. כל מנהל מכירות רואה את ה-Pipeline שלו בצורה ויזואלית - איפה כל ליד עומד, מה צריך לעשות, וכמה כסף על השולחן.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <Check size={18} className="sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">ניהול לידים</div>
-                      <div className="text-xs sm:text-sm text-slate-600">עקוב אחר לידים, סגור עסקאות, נהל מכירות</div>
+                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">Pipeline ויזואלי</div>
+                      <div className="text-xs sm:text-sm text-slate-600">ראה בדיוק איפה כל עסקה עומדת, AI מנתח סיכויי סגירה</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <Check size={18} className="sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">משימות Follow Up</div>
-                      <div className="text-xs sm:text-sm text-slate-600">התקשר, שלח מייל, עקוב אחר ליד</div>
+                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">חייגן + Follow Up אוטומטי</div>
+                      <div className="text-xs sm:text-sm text-slate-600">חייג מהמערכת, תיעוד שיחות, תזכורות מעקב</div>
                     </div>
                   </div>
                 </div>
@@ -137,12 +137,12 @@ export default function SystemOSLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">
-              חיסכון בזמן.<br/>
-              <span className="text-rose-700">שקט נפשי.</span><br/>
-              <span className="text-slate-600">לכל סוג עסק.</span>
+              סגירת עסקאות.<br/>
+              <span className="text-rose-700">שליטה בלידים.</span><br/>
+              <span className="text-slate-600">AI שעובד בשבילך.</span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              {getModuleLabelHe('system')} חוסכת לך 10-15 שעות שבועיות על ניהול לידים ומכירות. מפרילנסרים ועד חברות גדולות.
+              {getModuleLabelHe('system')} עוזרת לך לסגור יותר עסקאות, לנהל לידים בצורה חכמה, ולא לאבד אף הזדמנות.
             </p>
           </div>
 
@@ -151,27 +151,27 @@ export default function SystemOSLandingPage() {
               <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
                 <Clock size={24} className="text-rose-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">חיסכון בזמן</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">סגירת עסקאות</h3>
               <p className="text-sm text-slate-600">
-                <strong className="text-slate-900">10-15 שעות שבועיות</strong> שאתה חוסך על ניהול לידים, מעקב אחר מכירות, וחיפוש מידע מפוזר.
+                <strong className="text-slate-900">AI מנתח סיכויי סגירה</strong> לכל ליד ומראה לך בדיוק איפה להתמקד, מה השלב הבא, ומה לעשות עכשיו.
               </p>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
               <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
                 <HeartPulse size={24} className="text-rose-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">שקט נפשי</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">שליטה בלידים</h3>
               <p className="text-sm text-slate-600">
-                <strong className="text-slate-900">אין יותר כאב ראש</strong> מלידים אבודים, הזדמנויות שנפספסות, או מידע מפוזר.
+                <strong className="text-slate-900">אין יותר לידים שנופלים</strong> בין הכיסאות. כל ליד מתועד במערכת, עם תזכורות אוטומטיות ל-Follow Up.
               </p>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
               <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
                 <Users size={24} className="text-rose-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">לכל סוג עסק</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">לכל סוג צוות מכירות</h3>
               <p className="text-sm text-slate-600">
-                מפרילנסר עצמאי ועד חברה עם 100+ לידים - <strong className="text-slate-900">כל אחד יכול להרשות לעצמו.</strong>
+                מפרילנסר עצמאי ועד צוות מכירות עם 20+ אנשים - <strong className="text-slate-900">הכל מתחיל ב-₪149/חודש.</strong>
               </p>
             </div>
           </div>
@@ -318,36 +318,36 @@ export default function SystemOSLandingPage() {
                   'תמיכה בעברית'
                 ]}
                 recommended={true}
-                onSelect={() => router.push(`/subscribe/checkout?plan=solo&system=system&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 149 : Math.round(149 * 0.8)}&product=${encodeURIComponent(getModuleLabelHe('system'))}`)}
+                onSelect={() => router.push(`/subscribe/checkout?package=solo&module=system&billing=${billingCycle}&product=${encodeURIComponent(getModuleLabelHe('system'))}`)}
                 billingCycle={billingCycle}
               />
               <PricingCard
-                title="חבילת Combo (2 מודולים)"
-                subtitle="בחר 2 מודולים מתוך 4"
+                title="חבילת מכירות"
+                subtitle="System + Nexus · משתמש אחד"
                 price={billingCycle === 'monthly' ? 249 : Math.round(249 * 0.8)}
                 features={[
-                  'משתמש אחד (ללא ניהול צוות)',
-                  'בחר 2 מודולים מתוך 4',
-                  'כניסה אחת',
+                  getModuleLabelHe('system'),
+                  getModuleLabelHe('nexus'),
+                  'ניהול לידים + ניהול צוות',
                   'סנכרון בין המודולים'
                 ]}
                 recommended={false}
-                onSelect={() => router.push(`/subscribe/checkout?plan=starter&system=bundle_combo&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 249 : Math.round(249 * 0.8)}&product=${encodeURIComponent('חבילת Combo (2 מודולים)')}`)}
+                onSelect={() => router.push(`/subscribe/checkout?package=the_closer&billing=${billingCycle}&product=${encodeURIComponent('חבילת מכירות')}`)}
                 billingCycle={billingCycle}
               />
               <PricingCard
-                title="משרד מלא (4 מודולים)"
+                title="הכל כלול"
                 subtitle="כולל 5 משתמשים · +₪39 לכל מושב נוסף"
-                price={billingCycle === 'monthly' ? 349 : Math.round(349 * 0.8)}
+                price={billingCycle === 'monthly' ? 499 : Math.round(499 * 0.8)}
                 features={[
                   getModuleLabelHe('nexus'),
                   getModuleLabelHe('system'),
                   getModuleLabelHe('social'),
                   getModuleLabelHe('client'),
-                  'סנכרון מלא בין כל המודולים'
+                  'כל המודולים + סנכרון מלא'
                 ]}
                 recommended={false}
-                onSelect={() => router.push(`/subscribe/checkout?plan=starter&system=full_stack&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 349 : Math.round(349 * 0.8)}&seats=5&product=${encodeURIComponent('משרד מלא (4 מודולים)')}`)}
+                onSelect={() => router.push(`/subscribe/checkout?package=the_empire&billing=${billingCycle}&seats=5&product=${encodeURIComponent('הכל כלול')}`)}
                 billingCycle={billingCycle}
               />
             </motion.div>

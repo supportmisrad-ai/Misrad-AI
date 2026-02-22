@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { updateOrganization } from '@/app/actions/admin-organizations';
 import OrgImpersonateButton from '@/app/app/admin/OrgImpersonateButton';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
+import { AdminFadeIn } from '@/components/admin/AdminMotion';
 import type {
   OrgDetailResult,
   OrgDetailRecord,
@@ -169,19 +171,19 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
         </div>
       ) : null}
 
-      <div className="flex items-center gap-3">
-        <Link
-          href="/app/admin/organizations"
-          className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500"
-        >
-          <ArrowRight size={20} />
-        </Link>
+      <AdminBreadcrumbs items={[
+        { label: 'אדמין', href: '/app/admin' },
+        { label: 'ארגונים', href: '/app/admin/organizations' },
+        { label: org.name },
+      ]} />
+
+      <AdminFadeIn>
         <AdminPageHeader
           title={org.name}
           subtitle={org.slug ? `/${org.slug}` : 'ללא כתובת'}
           icon={Building2}
         />
-      </div>
+      </AdminFadeIn>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-white border border-slate-200 rounded-2xl p-4">

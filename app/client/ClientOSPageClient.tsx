@@ -489,7 +489,7 @@ export default function ClientOSPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">עלות Solo:</span>
-                  <span className="text-[#C5A572] font-bold">₪99/חודש</span>
+                  <span className="text-[#C5A572] font-bold">₪149/חודש</span>
                 </div>
               </div>
               <div className="bg-[#C5A572]/10 border border-[#C5A572]/20 rounded-xl p-3 text-center">
@@ -499,7 +499,7 @@ export default function ClientOSPage() {
             </div>
 
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900 mb-4">עסקים קטנים</h3>
+              <h3 className="text-xl font-bold text-slate-900 mb-4">ארגונים וצוותים</h3>
               <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
                   <span className="text-slate-600">חיסכון זמן:</span>
@@ -515,8 +515,8 @@ export default function ClientOSPage() {
                   <span className="text-[#C5A572] font-black text-xl">₪9,000-18,000</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">עלות סטארטר:</span>
-                  <span className="text-[#C5A572] font-bold">₪199/חודש</span>
+                  <span className="text-slate-600">עלות חבילת שיווק ומיתוג:</span>
+                  <span className="text-[#C5A572] font-bold">₪349/חודש</span>
                 </div>
               </div>
               <div className="bg-[#C5A572]/10 border border-[#C5A572]/20 rounded-xl p-3 text-center">
@@ -606,38 +606,39 @@ export default function ClientOSPage() {
                   <span key="roi" className="text-[#C5A572] font-bold">החזר השקעה: חיסכון של 10+ שעות/שבוע = ₪4,000-8,000/חודש</span>
                 ]}
                 recommended={true}
-                onSelect={() => router.push(`/subscribe/checkout?plan=solo&system=client&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 149 : Math.round(149 * 0.8)}&product=${encodeURIComponent(getModuleLabelHe('client'))}`)}
+                onSelect={() => router.push(`/subscribe/checkout?package=solo&module=client&billing=${billingCycle}&product=${encodeURIComponent(getModuleLabelHe('client'))}`)}
                 billingCycle={billingCycle}
               />
               <PricingCard
-                title="חבילת Combo (2 מודולים)"
-                subtitle="בחר 2 מודולים מתוך 4"
-                price={billingCycle === 'monthly' ? 249 : Math.round(249 * 0.8)}
-                accent="gold"
-                features={[
-                  'משתמש אחד (ללא ניהול צוות)',
-                  'בחר 2 מודולים מתוך 4',
-                  'כניסה אחת',
-                  'סנכרון בין המודולים'
-                ]}
-                recommended={false}
-                onSelect={() => router.push(`/subscribe/checkout?plan=starter&system=bundle_combo&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 249 : Math.round(249 * 0.8)}&product=${encodeURIComponent('חבילת Combo (2 מודולים)')}`)}
-                billingCycle={billingCycle}
-              />
-              <PricingCard
-                title="משרד מלא (4 מודולים)"
+                title="חבילת שיווק ומיתוג"
                 subtitle="כולל 5 משתמשים · +₪39 לכל מושב נוסף"
                 price={billingCycle === 'monthly' ? 349 : Math.round(349 * 0.8)}
+                accent="gold"
+                features={[
+                  getModuleLabelHe('social'),
+                  getModuleLabelHe('client'),
+                  getModuleLabelHe('nexus'),
+                  'סנכרון מלא בין המודולים',
+                  '5 משתמשים כלולים'
+                ]}
+                recommended={false}
+                onSelect={() => router.push(`/subscribe/checkout?package=the_authority&billing=${billingCycle}&seats=5&product=${encodeURIComponent('חבילת שיווק ומיתוג')}`)}
+                billingCycle={billingCycle}
+              />
+              <PricingCard
+                title="הכל כלול"
+                subtitle="כולל 5 משתמשים · +₪39 לכל מושב נוסף"
+                price={billingCycle === 'monthly' ? 499 : Math.round(499 * 0.8)}
                 accent="gold"
                 features={[
                   getModuleLabelHe('nexus'),
                   getModuleLabelHe('system'),
                   getModuleLabelHe('social'),
                   getModuleLabelHe('client'),
-                  'סנכרון מלא בין כל המודולים'
+                  'כל המודולים + סנכרון מלא'
                 ]}
                 recommended={false}
-                onSelect={() => router.push(`/subscribe/checkout?plan=starter&system=full_stack&billing=${billingCycle}&amount=${billingCycle === 'monthly' ? 349 : Math.round(349 * 0.8)}&seats=5&product=${encodeURIComponent('משרד מלא (4 מודולים)')}`)}
+                onSelect={() => router.push(`/subscribe/checkout?package=the_empire&billing=${billingCycle}&seats=5&product=${encodeURIComponent('הכל כלול')}`)}
                 billingCycle={billingCycle}
               />
             </motion.div>
@@ -686,9 +687,6 @@ export default function ClientOSPage() {
 
       {/* Testimonials Section */}
       <TestimonialsSection />
-
-      {/* FAQ Section */}
-      <SalesFaq variant="client" />
 
       <Footer />
       

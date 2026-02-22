@@ -1250,7 +1250,7 @@ export async function updateOperationsProject(params: {
 export async function createOperationsProject(params: {
   orgSlug: string;
   title: string;
-  canonicalClientId: string;
+  canonicalClientId?: string;
   installationAddress?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {

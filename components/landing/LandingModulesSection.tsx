@@ -50,7 +50,7 @@ export function LandingModulesSection() {
               desc: 'ניהול תוכן לרשתות, בניית אסטרטגיות שיווק, פוסטים, לוח שידורים, AI, מעקב קמפיינים',
               icon: Share2,
               gradient: 'from-rose-500 to-orange-500',
-              href: '/social'
+              href: '/the-authority'
             },
             {
               name: 'Client - מודול קליינט',
@@ -63,10 +63,10 @@ export function LandingModulesSection() {
             {
               name: 'Finance - מודול פיננס ',
               title: 'אינטגרציה עם החשבוניות',
-              desc: 'חשבוניות, הוצאות, דוחות, אינטגרציותאינטגרציה לחשבונית ירוקה (מורנינג) ועוד, ניהול כספים ותקציבים, אינטגרציה עם שאר המודולים להצעות מחיר וחשבוניות אוטומטיות, ',
+              desc: 'חשבוניות, הוצאות, דוחות, אינטגרציה לחשבונית ירוקה (מורנינג) ועוד, ניהול כספים ותקציבים, אינטגרציה עם שאר המודולים להצעות מחיר וחשבוניות אוטומטיות',
               icon: TrendingUp,
               gradient: 'from-cyan-500 to-blue-500',
-              href: '/finance'
+              href: '/finance-landing'
             },
           ].map((module) => {
             const Icon = module.icon;

@@ -5,6 +5,7 @@ import { ExportInventoryCsvButton } from '@/components/operations/ExportButtons'
 import { InventoryItemActions } from '@/components/operations/InventoryItemActions';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
 import { redirect } from 'next/navigation';
+import { AlertTriangle } from 'lucide-react';
 
 function isLowStock(onHand: number, minLevel: number): boolean {
   if (minLevel <= 0) return false;
@@ -51,6 +52,7 @@ export default async function OperationsInventoryPage({
 
   const res = await getOperationsInventoryData({ orgSlug });
   const items = res.success ? res.data?.items ?? [] : [];
+  const lowStockItems = items.filter((i) => isLowStock(i.onHand, i.minLevel));
   const qLower = q.toLowerCase();
   const filteredItems = qLower
     ? items.filter((i) => {
@@ -65,6 +67,20 @@ export default async function OperationsInventoryPage({
       {flash ? (
         <div className="mb-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 text-sm font-black text-slate-900">
           {flash}
+        </div>
+      ) : null}
+
+      {lowStockItems.length > 0 ? (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <div className="text-sm font-black text-amber-800">התראת מלאי נמוך</div>
+            <div className="text-xs text-amber-700 mt-1">
+              {lowStockItems.length === 1
+                ? `הפריט "${lowStockItems[0].itemName}" מתחת לכמות המינימום (${lowStockItems[0].onHand}/${lowStockItems[0].minLevel})`
+                : `${lowStockItems.length} פריטים מתחת לכמות המינימום: ${lowStockItems.slice(0, 3).map((i) => i.itemName).join(', ')}${lowStockItems.length > 3 ? ` ועוד ${lowStockItems.length - 3}` : ''}`}
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -153,7 +169,8 @@ export default async function OperationsInventoryPage({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-sm font-black text-slate-900 truncate">{i.itemName}</div>
-                          <div className="text-xs text-slate-500 mt-1">מק&quot;ט: {i.sku ? i.sku : '—'}</div>
+                          <div className="text-xs text-slate-500 mt-1">מק"ט: {i.sku ? i.sku : '—'}</div>
+                          {i.supplierName ? <div className="text-xs text-sky-600 mt-0.5">ספק: {i.supplierName}</div> : null}
                         </div>
                         <div className="flex items-center gap-2">
                           <div className={low ? 'text-sm font-black text-rose-700' : 'text-sm font-black text-slate-700'}>
@@ -180,6 +197,7 @@ export default async function OperationsInventoryPage({
                   <tr className="text-right text-slate-500">
                     <th className="pb-3 font-bold">שם פריט</th>
                     <th className="pb-3 font-bold">מק&quot;ט</th>
+                    <th className="pb-3 font-bold">ספק</th>
                     <th className="pb-3 font-bold">כמות במלאי</th>
                     <th className="pb-3 font-bold">כמות מינימום</th>
                     <th className="pb-3 font-bold w-20">פעולות</th>
@@ -200,6 +218,7 @@ export default async function OperationsInventoryPage({
                         >
                           <td className="py-3 font-bold text-slate-900">{i.itemName}</td>
                           <td className="py-3 text-slate-600">{i.sku ? i.sku : <span className="text-slate-400">—</span>}</td>
+                          <td className="py-3 text-slate-600">{i.supplierName ? i.supplierName : <span className="text-slate-400">—</span>}</td>
                           <td className={low ? 'py-3 font-black text-rose-700' : 'py-3 font-black text-slate-700'}>
                             {i.onHand}
                           </td>
@@ -210,7 +229,7 @@ export default async function OperationsInventoryPage({
                     })
                   ) : (
                     <tr className="border-t border-slate-100">
-                      <td className="py-6 text-sm text-slate-500" colSpan={5}>
+                      <td className="py-6 text-sm text-slate-500" colSpan={6}>
                         אין פריטים להצגה
                       </td>
                     </tr>

@@ -29,6 +29,7 @@ export default async function NexusLayoutShell({
   orgSlug: string;
   children: React.ReactNode;
 }) {
+  // Phase 1: Run ALL independent I/O in a single parallel batch
   const [bootstrap, clerk] = await Promise.all([
     getNexusDashboardBootstrapCached({ orgSlug }),
     currentUser(),
@@ -36,32 +37,28 @@ export default async function NexusLayoutShell({
 
   const workspace = bootstrap.workspace;
 
-  // Fetch profile avatar after we have clerk ID
-  let profileRow: unknown = null;
-  try {
-    if (clerk?.id) {
-      profileRow = await findProfileRowByOrgAndClerkUserId({
+  // Phase 2: Profile fetch + logo signing in parallel (both depend on Phase 1 results)
+  const profilePromise = clerk?.id
+    ? findProfileRowByOrgAndClerkUserId({
         organizationId: workspace.id,
         clerkUserId: clerk.id,
-      });
-    }
-  } catch {
-    // best-effort — fall back to Clerk image
-  }
+      }).catch(() => null)
+    : Promise.resolve(null);
+
+  const logoPromise = workspace.logo
+    ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
+    : Promise.resolve('');
+
+  const [profileRow, signedLogo] = await Promise.all([profilePromise, logoPromise]);
 
   const profileObj = asObject(profileRow) ?? {};
   const rawProfileAvatar = typeof profileObj.avatarUrl === 'string' ? profileObj.avatarUrl : '';
   const rawProfileName = typeof profileObj.fullName === 'string' ? profileObj.fullName : '';
 
-  // Resolve sb:// refs for logo and avatar in parallel
-  const [signedLogo, signedAvatar] = await Promise.all([
-    workspace.logo
-      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
-      : Promise.resolve(''),
-    rawProfileAvatar.startsWith('sb://')
-      ? resolveStorageUrlMaybeServiceRole(rawProfileAvatar, 60 * 60, { organizationId: workspace.id })
-      : Promise.resolve(rawProfileAvatar || null),
-  ]);
+  // Avatar signing — fast path if not an sb:// ref
+  const signedAvatar = rawProfileAvatar.startsWith('sb://')
+    ? await resolveStorageUrlMaybeServiceRole(rawProfileAvatar, 60 * 60, { organizationId: workspace.id })
+    : (rawProfileAvatar || null);
 
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);

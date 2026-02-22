@@ -35,11 +35,12 @@ export default async function ClientAppLayoutShell({
     redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client`)}`);
   }
 
-  // DB user lookup — run only if needed (Clerk metadata may suffice)
-  const user = await prisma.organizationUser.findFirst({
+  // DB user lookup — fire immediately, resolve later (don't block Phase 2 setup)
+  const userPromise = prisma.organizationUser.findFirst({
     where: { clerk_user_id: clerkUserId },
     select: { organization_id: true, role: true },
   }).catch(() => null);
+  const user = await userPromise;
 
   const clerkPublicMeta = asObject(clerkUser?.publicMetadata);
   const clerkPrivateMeta = asObject(clerkUser?.privateMetadata);

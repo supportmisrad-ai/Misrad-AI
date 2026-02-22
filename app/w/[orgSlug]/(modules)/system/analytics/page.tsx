@@ -3,14 +3,17 @@ import { getCampaigns } from '@/app/actions/campaigns';
 import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import SystemAnalyticsClient from './SystemAnalyticsClient';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
-
 export default async function SystemAnalyticsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug } = await params;
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
+  const tabRaw = sp.tab;
+  const initialTab = tabRaw === 'reports' ? 'reports' as const : 'analytics' as const;
 
   const [leadsRes, campaignsRes, initialTasks] = await Promise.all([
     getSystemLeadsPage({ orgSlug, pageSize: 200 }),
@@ -22,5 +25,5 @@ export default async function SystemAnalyticsPage({
 
   const initialCampaigns = campaignsRes.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
 
-  return <SystemAnalyticsClient initialLeads={initialLeads} initialCampaigns={initialCampaigns} initialTasks={initialTasks} />;
+  return <SystemAnalyticsClient initialLeads={initialLeads} initialCampaigns={initialCampaigns} initialTasks={initialTasks} initialTab={initialTab} />;
 }

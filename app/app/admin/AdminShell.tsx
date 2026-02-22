@@ -199,6 +199,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const areaNavMap = useMemo<Record<AdminArea, AdminNavItem[]>>(() => ({
     customers: [
       { href: '/app/admin/dashboard/customers', label: 'מבט על לקוחות', icon: LayoutGrid },
+      { href: '/app/admin/customers', label: 'לקוחות וארגונים', icon: Network },
       { href: '/app/admin/setup-customer', label: 'הקמת לקוח', icon: UserPlus },
       { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
       { href: '/app/admin/organizations', label: 'ניהול ארגונים', icon: Network },
@@ -224,11 +225,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
     ],
     content: [
-      { href: '/app/admin/landing/pricing', label: 'דפי נחיתה', icon: Globe },
+      { href: '/app/admin/landing/pricing', label: 'תמחור', icon: Globe },
+      { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Globe },
+      { href: '/app/admin/landing/content', label: 'תוכן נחיתה', icon: Globe },
+      { href: '/app/admin/landing/videos', label: 'סרטונים', icon: Globe },
+      { href: '/app/admin/landing/partners', label: 'שותפים', icon: Globe },
+      { href: '/app/admin/landing/payment-links', label: 'קישורי תשלום', icon: Globe },
       { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: Globe },
       { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: Globe },
+      { href: '/app/admin/global/kb-videos', label: 'סרטוני מאגר ידע', icon: Globe },
       { href: '/app/admin/global/links', label: 'מרכז קישורים', icon: Globe },
-      { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Globe },
+      { href: '/app/admin/global/work-listings', label: 'דרושים', icon: Globe },
     ],
     infra: [
       { href: '/app/admin/dashboard/platform', label: 'מבט על מערכת', icon: LayoutGrid },
@@ -266,7 +273,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       const base = [find('/app/admin/logs')];
       return base.filter((item): item is AdminNavItem => Boolean(item));
     }
-    const areaItems = navItems.slice(0, 3).map((i) => find(i.href));
+    const areaItems = navItems.slice(0, 5).map((i) => find(i.href));
     const base = [find('/app/admin'), ...areaItems];
     return base.filter((item): item is AdminNavItem => Boolean(item));
   }, [adminArea, effectiveNavItems, isAuditServiceRole]);

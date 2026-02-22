@@ -19,7 +19,7 @@ export default async function SocialLayoutShell({
   orgSlug: string;
   children: React.ReactNode;
 }) {
-  // Run ALL independent data fetches in parallel
+  // Phase 1: Run ALL independent data fetches in parallel
   const [workspace, initialCurrentUser, initialSocialData, initialNavigationMenu, systemFlags] = await Promise.all([
     requireWorkspaceAccessByOrgSlugUi(orgSlug),
     resolveWorkspaceCurrentUserForUi(orgSlug),
@@ -28,6 +28,7 @@ export default async function SocialLayoutShell({
     getSystemFeatureFlags(),
   ]);
 
+  // Phase 2: Logo signing (depends on workspace from Phase 1) — fire immediately
   const signedLogo = workspace.logo
     ? await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
     : '';

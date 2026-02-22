@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
-import { Mail, Clock, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Mail, Clock, MessageCircle, ArrowLeft, Phone } from 'lucide-react';
 import ContactFormClient from './ContactFormClient';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -50,6 +50,19 @@ export default function ContactPage() {
                     <div>
                       <div className="text-sm sm:text-base font-bold text-slate-900">זמינות</div>
                       <div className="text-sm sm:text-base text-slate-600 mt-1">א׳-ה׳ 09:00-18:00</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                      <Phone size={18} className="sm:w-5 sm:h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm sm:text-base font-bold text-slate-900">טלפון / WhatsApp</div>
+                      <div className="text-sm sm:text-base text-slate-600 mt-1">
+                        <a href="https://wa.me/972547700700" target="_blank" rel="noreferrer" className="text-emerald-700 hover:text-emerald-800 font-bold underline underline-offset-2">
+                          054-770-0700
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>

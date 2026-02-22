@@ -27,9 +27,9 @@ export default async function OperationsModuleHome({
   const flashRaw = sp.flash;
   const flash = flashRaw ? String(Array.isArray(flashRaw) ? flashRaw[0] : flashRaw) : null;
 
-  // Use the lighter cached version — layout already verified full access
+  // Use the cached version — layout already verified full access
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  // Run user resolution and dashboard data in parallel
+  // Run user resolution, dashboard data, and inventory options in parallel
   const [currentUser, dashboardRes, inventoryOptionsRes] = await Promise.all([
     resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
     getOperationsDashboardData({ orgSlug }),

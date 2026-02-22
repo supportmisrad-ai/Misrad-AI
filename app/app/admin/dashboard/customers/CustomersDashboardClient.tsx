@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
+import { AdminFadeIn } from '@/components/admin/AdminMotion';
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 
 type CustomersDashboardClientProps = {
@@ -101,11 +103,18 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
 
   return (
     <div className="space-y-6 pb-24" dir="rtl">
-      <AdminPageHeader 
-        title="דשבורד לקוחות" 
-        subtitle="מדדי לקוחות, ארגונים ומנויים"
-        icon={Users}
-      />
+      <AdminBreadcrumbs items={[
+        { label: 'אדמין', href: '/app/admin' },
+        { label: 'לקוחות' },
+      ]} />
+
+      <AdminFadeIn>
+        <AdminPageHeader 
+          title="דשבורד לקוחות" 
+          subtitle="מדדי לקוחות, ארגונים ומנויים"
+          icon={Users}
+        />
+      </AdminFadeIn>
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

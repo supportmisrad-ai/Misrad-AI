@@ -1,5 +1,5 @@
 import React from 'react';
-import { enforceModuleAccessOrRedirect } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import OperationsShell from '@/components/operations/OperationsShell';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
@@ -16,8 +16,8 @@ export default async function OperationsLayoutShell({
   orgSlug: string;
   children: React.ReactNode;
 }) {
-  // enforceModuleAccessOrRedirect returns workspace info
-  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
+  // Use the cached workspace access (parent layout already verified via workspace layout)
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   // Run user resolution and logo signing in parallel (both need workspace.id)
   const [user, signedLogo] = await Promise.all([

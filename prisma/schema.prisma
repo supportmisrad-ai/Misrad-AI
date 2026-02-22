@@ -2585,6 +2585,21 @@ model OperationsSupplier {
   @@map("operations_suppliers")
 }
 
+model OperationsContractorToken {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  tokenHash       String       @map("token_hash")
+  contractorLabel String?      @map("contractor_label")
+  expiresAt       DateTime     @map("expires_at") @db.Timestamptz(6)
+  revokedAt       DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tokenHash], map: "idx_operations_contractor_tokens_hash")
+  @@index([organizationId], map: "idx_operations_contractor_tokens_org")
+  @@map("operations_contractor_tokens")
+}
+
 model OperationsWorkOrder {
   id                      String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId          String                    @map("organization_id") @db.Uuid
@@ -3045,6 +3060,7 @@ model Organization {
   operationsItems                  OperationsItem[]
   operationsProjects               OperationsProject[]
   operationsSuppliers              OperationsSupplier[]
+  operationsContractorTokens       OperationsContractorToken[]
   operationsWorkOrders             OperationsWorkOrder[]
   operationsBuildings              OperationsBuilding[]
   operationsCallCategories         OperationsCallCategory[]

@@ -70,15 +70,14 @@ export default async function OperationsNewProjectPage({
 
             <div>
               <label htmlFor="canonicalClientId" className="block text-xs font-black text-slate-700">
-                לקוח
+                לקוח <span className="text-slate-400 font-medium">(אופציונלי)</span>
               </label>
               <div className="mt-2">
                 <FormCustomSelect
                   name="canonicalClientId"
                   id="canonicalClientId"
-                  required
                   defaultValue=""
-                  placeholder={clientOptions.length ? 'בחר לקוח…' : 'אין לקוחות זמינים'}
+                  placeholder={clientOptions.length ? 'ללא לקוח (אופציונלי)' : 'אין לקוחות זמינים'}
                   options={clientOptions.map((opt) => ({ value: opt.id, label: opt.label }))}
                 />
               </div>

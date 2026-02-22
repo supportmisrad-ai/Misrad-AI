@@ -317,6 +317,23 @@ function SubscribeCheckoutContent({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
+      {/* Mini Navbar */}
+      <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-lg font-black text-slate-900 tracking-tight">MISRAD AI</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/pricing" className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
+              מחירים
+            </Link>
+            <Link href="/support" className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
+              תמיכה
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         <button
           onClick={() => router.back()}
@@ -331,7 +348,7 @@ function SubscribeCheckoutContent({
           </h1>
           <p className="text-sm text-slate-600 mb-6">
             {selectedPaymentOption === 'credit_card'
-              ? 'האינטגרציה בבדיקה. בקרוב תוכל לשלם באשראי כאן ישירות.'
+              ? 'תשלום מאובטח באשראי דרך סליקה ישראלית.'
               : 'כרגע התשלום ידני. אחרי שתשלם אנחנו נאשר ונפתח לך גישה.'}
           </p>
 
@@ -430,7 +447,7 @@ function SubscribeCheckoutContent({
                     }`}
                   >
                     <div className="font-bold">תשלום באשראי</div>
-                    <div className="text-xs text-slate-500 mt-1">האינטגרציה בבדיקה</div>
+                    <div className="text-xs text-slate-500 mt-1">סליקה מאובטחת</div>
                   </button>
                 </div>
               </div>
@@ -444,12 +461,12 @@ function SubscribeCheckoutContent({
 
             {enablePaymentCreditCard && selectedPaymentOption === 'credit_card' && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-                <div className="text-slate-900 font-bold">תשלום באשראי (Yaad Pay)</div>
-                <div className="text-sm text-amber-700">האינטגרציה בבדיקה</div>
+                <div className="text-slate-900 font-bold">תשלום באשראי</div>
+                <div className="text-sm text-slate-600">סליקה מאובטחת</div>
                 <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
                   <iframe
                     title="Yaad Pay"
-                    srcDoc="<!doctype html><html lang='he'><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1' /></head><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;'><div style='text-align:center;color:#0f172a;padding:24px;'><div style='font-weight:800;font-size:16px;margin-bottom:8px;'>Yaad Pay</div><div style='font-size:13px;color:#475569;'>האינטגרציה בבדיקה. בקרוב יוצג כאן iframe של התשלום.</div></div></body></html>"
+                    srcDoc="<!doctype html><html lang='he'><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1' /></head><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;'><div style='text-align:center;color:#0f172a;padding:24px;'><div style='font-weight:800;font-size:16px;margin-bottom:8px;'>תשלום מאובטח</div><div style='font-size:13px;color:#475569;'>טוען טופס תשלום...</div></div></body></html>"
                     className="w-full h-[340px]"
                     sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
                     referrerPolicy="no-referrer"

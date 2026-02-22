@@ -10,6 +10,9 @@ import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizatio
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
+import AdminBreadcrumbs from '@/components/admin/AdminBreadcrumbs';
+import AdminEmptyState from '@/components/admin/AdminEmptyState';
+import { AdminFadeIn } from '@/components/admin/AdminMotion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { generateOrgSlug } from '@/lib/shared/orgSlug';
@@ -155,8 +158,16 @@ export default function AdminOrganizationsClient(props: {
   };
 
   return (
-    <div className="space-y-6 pb-24">
-      <AdminPageHeader title="ארגונים" subtitle="ניהול ארגונים ולקוחות" icon={Building2} />
+    <div className="space-y-6 pb-24" dir="rtl">
+      <AdminBreadcrumbs items={[
+        { label: 'אדמין', href: '/app/admin' },
+        { label: 'לקוחות', href: '/app/admin/dashboard/customers' },
+        { label: 'ניהול ארגונים' },
+      ]} />
+
+      <AdminFadeIn>
+        <AdminPageHeader title="ארגונים" subtitle="ניהול ארגונים ולקוחות" icon={Building2} />
+      </AdminFadeIn>
 
       <AdminToolbar
         actions={
@@ -186,7 +197,13 @@ export default function AdminOrganizationsClient(props: {
 
       <div className="md:hidden">
         {orgs.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600">אין ארגונים להצגה</div>
+          <AdminEmptyState
+            icon={Building2}
+            title="אין ארגונים במערכת"
+            description="צור ארגון חדש כדי להתחיל לנהל לקוחות, משתמשים ומנויים."
+            actionLabel="הקמת ארגון חדש"
+            onAction={openModal}
+          />
         ) : (
           <div className="space-y-3">
             {orgs.map((o) => {

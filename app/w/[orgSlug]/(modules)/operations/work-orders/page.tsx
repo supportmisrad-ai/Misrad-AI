@@ -23,10 +23,7 @@ export default async function OperationsWorkOrdersPage({
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
-  // Use lighter cached version — layout already verified full access
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
-
+  // Parse search params first (no I/O, pure computation)
   const sp = searchParams ? await Promise.resolve(searchParams) : {};
 
   const statusParamRaw = sp.status;
@@ -52,18 +49,24 @@ export default async function OperationsWorkOrdersPage({
 
   const status = parseStatus(statusParam);
 
-  const [workOrdersRes, projectOptionsRes] = await Promise.all([
-    getOperationsWorkOrdersData({
-      orgSlug,
-      status,
-      projectId: projectId ? String(projectId) : undefined,
-      assignedTechnicianId: onlyMine ? user.id : undefined,
-      search: search || undefined,
-      page,
-      limit: PAGE_SIZE,
-    }),
+  // Use cached workspace (layout already verified) + resolve user in parallel with project options
+  const [workspace, projectOptionsRes] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
     getOperationsProjectOptions({ orgSlug }),
   ]);
+
+  // User resolution needs workspace.id, then work orders may need user.id for onlyMine filter
+  const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+
+  const workOrdersRes = await getOperationsWorkOrdersData({
+    orgSlug,
+    status,
+    projectId: projectId ? String(projectId) : undefined,
+    assignedTechnicianId: onlyMine ? user.id : undefined,
+    search: search || undefined,
+    page,
+    limit: PAGE_SIZE,
+  });
 
   const workOrders = workOrdersRes.success ? workOrdersRes.data?.workOrders ?? [] : [];
   const totalCount = workOrdersRes.success ? workOrdersRes.data?.totalCount ?? 0 : 0;

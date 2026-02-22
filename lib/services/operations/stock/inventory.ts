@@ -52,6 +52,8 @@ export async function getOperationsInventoryDataForOrganizationId(params: {
           select: {
             name: true,
             sku: true,
+            supplierId: true,
+            supplier: { select: { id: true, name: true } },
           },
         },
       },
@@ -64,6 +66,8 @@ export async function getOperationsInventoryDataForOrganizationId(params: {
         sku: r.item.sku,
         onHand: toNumberSafe(r.onHand),
         minLevel: toNumberSafe(r.minLevel),
+        supplierId: r.item.supplierId,
+        supplierName: r.item.supplier?.name ?? null,
       })),
     };
 

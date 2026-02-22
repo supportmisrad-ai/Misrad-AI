@@ -84,8 +84,7 @@ export function LandingHeroSection() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-[10px] font-bold text-emerald-600">מחובר</span>
+                  <span className="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-[9px] font-bold text-amber-700">תצוגת דוגמה</span>
                 </div>
               </div>
 

@@ -174,19 +174,7 @@ app/app/admin/
 
 ---
 
-## 6. המלצות עתידיות (לא בוצעו)
-
-1. **חיבור PlatformDashboard לנתונים אמיתיים** – Vercel Analytics, Datadog, או Supabase metrics
-2. **הוספת breadcrumbs** – במיוחד לדפים עמוקים כמו `/org/[id]`
-3. **מיזוג customers/organizations** – לדף אחד עם view toggle
-4. **הוספת framer-motion** – animations עדינים לכל דפי האדמין
-5. **הרחבת mobile nav** – להציג יותר מ-3 פריטים או כפתור "עוד"
-6. **הנגשת דפים חבויים** – landing sub-pages ו-global sub-pages לסיידבר
-7. **empty states עשירים יותר** – illustrations ו-CTAs ברורים
-
----
-
-## 7. קבצים שנערכו
+## 6. קבצים שנערכו
 
 ```
 app/app/admin/business-clients/BusinessClientsClient.tsx

@@ -56,6 +56,85 @@ export async function getMaintenanceInfo(): Promise<{
 }
 
 /**
+ * Get real platform stats from DB for PlatformDashboard
+ */
+export async function getPlatformStats(): Promise<{
+  success: boolean;
+  data?: {
+    totalOrganizations: number;
+    activeOrganizations: number;
+    trialOrganizations: number;
+    totalUsers: number;
+    recentSignups7d: number;
+    totalClients: number;
+    totalTasks: number;
+    databaseSizeMB: number;
+    lastBackup: string | null;
+    systemVersion: string;
+    serverStartedAt: string;
+  };
+  error?: string;
+}> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    await requireSuperAdmin();
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [
+      totalOrganizations,
+      activeOrganizations,
+      trialOrganizations,
+      totalUsers,
+      recentSignups7d,
+      totalClients,
+      totalTasks,
+      dbSizeResult,
+      lastBackupRecord,
+    ] = await Promise.all([
+      prisma.organization.count().catch(() => 0),
+      prisma.organization.count({ where: { subscription_status: 'active' } }).catch(() => 0),
+      prisma.organization.count({ where: { subscription_status: 'trial' } }).catch(() => 0),
+      prisma.organizationUser.count().catch(() => 0),
+      prisma.organization.count({ where: { created_at: { gte: sevenDaysAgo } } }).catch(() => 0),
+      prisma.clientClient.count().catch(() => 0),
+      prisma.nexusTask.count().catch(() => 0),
+      prisma.$queryRaw<{ size: bigint }[]>(
+        Prisma.sql`SELECT pg_database_size(current_database()) as size`
+      ).catch(() => [{ size: BigInt(0) }]),
+      prisma.systemBackup.findFirst({
+        select: { created_at: true },
+        orderBy: { created_at: 'desc' },
+      }).catch(() => null),
+    ]);
+
+    const rawSize = dbSizeResult?.[0]?.size ?? BigInt(0);
+    const databaseSizeMB = Number(rawSize) / (1024 * 1024);
+
+    return createSuccessResponse({
+      totalOrganizations,
+      activeOrganizations,
+      trialOrganizations,
+      totalUsers,
+      recentSignups7d,
+      totalClients,
+      totalTasks,
+      databaseSizeMB: Math.round(databaseSizeMB * 10) / 10,
+      lastBackup: lastBackupRecord?.created_at ? new Date(lastBackupRecord.created_at).toISOString() : null,
+      systemVersion: 'v2.4.12-admin',
+      serverStartedAt: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+    });
+  } catch (error: unknown) {
+    return createErrorResponse(error, 'שגיאה בטעינת נתוני פלטפורמה');
+  }
+}
+
+/**
  * Create database backup
  */
 export async function createBackup(): Promise<{
