@@ -1,14 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
-import {
-  enforceModuleAccessOrRedirect,
-  persistCurrentUserLastLocation,
-} from '@/lib/server/workspace';
-import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
-import OperationsShell from '@/components/operations/OperationsShell';
-import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
+import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import OperationsLayoutShell from './OperationsLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -22,16 +18,9 @@ export default async function OperationsModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  // enforceModuleAccessOrRedirect returns workspace info — must resolve first for workspace.id
-  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
 
-  // Run user resolution and logo signing in parallel (both need workspace.id)
-  const [user, signedLogo] = await Promise.all([
-    resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
-    resolveStorageUrlMaybeServiceRole(workspace.logo, 3600, { organizationId: workspace.id }),
-  ]);
   const def = getModuleDefinition('operations');
 
   const style = {
@@ -51,14 +40,11 @@ export default async function OperationsModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
-      <OperationsShell
-        orgSlug={orgSlug}
-        workspace={{ name: workspace.name, logoUrl: signedLogo || null }}
-        user={{ name: user.name, role: user.role || null, avatarUrl: user.avatar || null }}
-        entitlements={workspace.entitlements}
-      >
-        {children}
-      </OperationsShell>
+      <Suspense fallback={<ModuleLoadingScreen moduleKey="operations" />}>
+        <OperationsLayoutShell orgSlug={orgSlug}>
+          {children}
+        </OperationsLayoutShell>
+      </Suspense>
     </div>
   );
 }

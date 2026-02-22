@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
-import { getSystemBootstrap } from '@/lib/services/system-service';
-import SystemShellGateClient from './SystemShellGateClient';
 import { getSystemMetadata } from '@/lib/metadata';
+import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import SystemLayoutShell from './SystemLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -20,15 +20,12 @@ export default async function SystemModuleLayout({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  // Run module access check and bootstrap data fetch in parallel
-  const [, bootstrap] = await Promise.all([
-    enforceModuleAccessOrRedirect({ orgSlug, module: 'system' }),
-    getSystemBootstrap(orgSlug),
-  ]);
+
+  // Only the fast access check blocks the layout — everything else streams
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'system' }).catch(() => undefined);
   const def = getModuleDefinition('system');
-  const { initialCurrentUser, initialOrganization } = bootstrap;
 
   const style = {
     '--os-accent': def.theme.accent,
@@ -45,13 +42,11 @@ export default async function SystemModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <SystemShellGateClient
-        orgSlug={orgSlug}
-        initialCurrentUser={initialCurrentUser}
-        initialOrganization={initialOrganization}
-      >
-        {children}
-      </SystemShellGateClient>
+      <Suspense fallback={<ModuleLoadingScreen moduleKey="system" />}>
+        <SystemLayoutShell orgSlug={orgSlug}>
+          {children}
+        </SystemLayoutShell>
+      </Suspense>
     </div>
   );
 }

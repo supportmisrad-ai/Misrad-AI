@@ -169,7 +169,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                                 <>
                                     <div className="flex -space-x-2 space-x-reverse shrink-0">
                                         {assignedUsers.slice(0,2).map((u) => (
-                                            <img key={u.id} src={u.avatar} className="w-5 h-5 rounded-full border border-white shadow-sm" />
+                                            <img key={u.id} src={u.avatar} className="w-5 h-5 rounded-full object-cover border border-white shadow-sm" />
                                         ))}
                                     </div>
                                     <span className="text-gray-900 font-bold truncate">

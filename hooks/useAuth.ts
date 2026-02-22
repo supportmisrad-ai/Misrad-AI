@@ -439,7 +439,32 @@ export const useAuth = (
         if (!orgSlug) return;
         try {
             const bc = new BroadcastChannel(ATTENDANCE_BROADCAST_CHANNEL);
-            const handler = () => {
+            const handler = (ev: MessageEvent) => {
+                const data = ev?.data;
+                if (!data || data.orgSlug !== orgSlug) return;
+
+                // Immediate optimistic update so dashboard feels instant
+                if (data.entryId === null || data.startTime === null) {
+                    // Clock-out broadcast → mark current user's active shift as ended
+                    setTimeEntries(prev => prev.map(t =>
+                        t.userId === currentUser.id && !t.endTime
+                            ? { ...t, endTime: new Date().toISOString(), durationMinutes: Math.round((Date.now() - new Date(t.startTime).getTime()) / 60000) }
+                            : t
+                    ));
+                } else if (data.entryId && data.startTime) {
+                    // Clock-in broadcast → add optimistic entry if not already present
+                    setTimeEntries(prev => {
+                        if (prev.some(t => t.id === data.entryId)) return prev;
+                        return [{
+                            id: String(data.entryId),
+                            userId: currentUser.id,
+                            date: String(data.startTime).slice(0, 10),
+                            startTime: String(data.startTime),
+                        }, ...prev];
+                    });
+                }
+
+                // Also refresh from server for eventual consistency
                 void refreshTimeEntries();
             };
             bc.addEventListener('message', handler);
@@ -450,7 +475,7 @@ export const useAuth = (
         } catch {
             return undefined;
         }
-    }, [orgSlug, refreshTimeEntries]);
+    }, [orgSlug, currentUser.id, refreshTimeEntries]);
 
     const meQuery = useQuery({
         queryKey: ['nexus', 'me', orgSlug],

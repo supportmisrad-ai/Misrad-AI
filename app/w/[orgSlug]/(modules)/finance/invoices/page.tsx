@@ -12,9 +12,11 @@ export default async function FinanceInvoicesPage({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const canViewFinancials = await hasPermission('view_financials');
+  // Run workspace access and permission check in parallel
+  const [workspace, canViewFinancials] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    hasPermission('view_financials'),
+  ]);
   const invoices = canViewFinancials ? await getFinanceInvoices({ organizationId: workspace.id }) : [];
 
   return <FinanceInvoicesClient invoices={invoices} />;

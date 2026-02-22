@@ -67,18 +67,19 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     throw setErrorStatus(new Error('Forbidden'), 403);
   }
 
-  if (!isSuperAdmin && socialUser?.id) {
-    await enforceTrialExpirationBestEffort({
-      organizationId: String(org.id),
-      socialUserId: String(socialUser.id),
-      now: new Date(),
-    });
-  }
-
   // Check if organization trial has expired and redirect to trial-expired page
   if (!isSuperAdmin && org.subscription_status === 'expired') {
     const { redirect } = await import('next/navigation');
     redirect('/app/trial-expired');
+  }
+
+  // Fire-and-forget: trial enforcement is a side-effect for NEXT request, not current
+  if (!isSuperAdmin && socialUser?.id) {
+    enforceTrialExpirationBestEffort({
+      organizationId: String(org.id),
+      socialUserId: String(socialUser.id),
+      now: new Date(),
+    }).catch(() => undefined);
   }
 
   let entitlements = await getOrganizationEntitlements(
@@ -116,29 +117,33 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     });
   }
 
-  const { socialUser, isSuperAdmin } = await resolveWorkspaceActorApi(clerkUserId);
-  const org = await resolveOrganizationForWorkspaceAccessApi({
-    orgSlug,
-    decodedOrgSlug,
-    decodedOnceOrgSlug,
-  });
+  // Actor and org resolution are independent in API path — run in parallel
+  const [{ socialUser, isSuperAdmin }, org] = await Promise.all([
+    resolveWorkspaceActorApi(clerkUserId),
+    resolveOrganizationForWorkspaceAccessApi({
+      orgSlug,
+      decodedOrgSlug,
+      decodedOnceOrgSlug,
+    }),
+  ]);
 
   const membership = await checkWorkspaceMembership({ org, socialUser, isSuperAdmin });
   if (!membership.allowed) {
     throw setErrorStatus(new Error('Forbidden'), 403);
   }
 
-  if (!isSuperAdmin && socialUser?.id) {
-    await enforceTrialExpirationBestEffort({
-      organizationId: String(org.id),
-      socialUserId: String(socialUser.id),
-      now: new Date(),
-    });
-  }
-
   // Check if organization trial has expired (for API routes)
   if (!isSuperAdmin && org.subscription_status === 'expired') {
     throw setErrorStatus(new Error('Trial expired'), 402); // 402 Payment Required
+  }
+
+  // Fire-and-forget: trial enforcement is a side-effect for NEXT request, not current
+  if (!isSuperAdmin && socialUser?.id) {
+    enforceTrialExpirationBestEffort({
+      organizationId: String(org.id),
+      socialUserId: String(socialUser.id),
+      now: new Date(),
+    }).catch(() => undefined);
   }
 
   let entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, orgSlug, org);
@@ -166,12 +171,15 @@ export const requireWorkspaceIdByOrgSlugApiCached = cache(async (clerkUserId: st
   const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
   const decodedOnceOrgSlug = decodeOnce(orgSlug);
 
-  const { socialUser, isSuperAdmin } = await resolveWorkspaceActorApi(clerkUserId);
-  const org = await resolveOrganizationForWorkspaceAccessApi({
-    orgSlug,
-    decodedOrgSlug,
-    decodedOnceOrgSlug,
-  });
+  // Actor and org resolution are independent — run in parallel
+  const [{ socialUser, isSuperAdmin }, org] = await Promise.all([
+    resolveWorkspaceActorApi(clerkUserId),
+    resolveOrganizationForWorkspaceAccessApi({
+      orgSlug,
+      decodedOrgSlug,
+      decodedOnceOrgSlug,
+    }),
+  ]);
 
   const membership = await checkWorkspaceMembership({ org, socialUser, isSuperAdmin });
   if (!membership.allowed) {

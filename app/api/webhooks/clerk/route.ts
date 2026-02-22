@@ -8,6 +8,7 @@ import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserF
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug } from '@/lib/server/orgSlug';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { sendMisradWelcomeEmail } from '@/lib/email';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
@@ -343,6 +344,19 @@ async function POSTHandler(req: Request) {
         } else {
           await baseTeamUpdateQuery;
         }
+      }
+
+      // Fire-and-forget: send welcome email with download links for NEW signups only
+      if (eventType === 'user.created' && primaryEmail) {
+        const ownerName = first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined;
+        const signInUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.misrad-ai.com'}/me`;
+        sendMisradWelcomeEmail({
+          toEmail: primaryEmail,
+          ownerName: ownerName || null,
+          signInUrl,
+        }).catch((err) => {
+          console.error('[clerk-webhook] welcome email failed (ignored):', IS_PROD ? '' : err);
+        });
       }
 
       return NextResponse.json({ ok: true }, { status: 200 });

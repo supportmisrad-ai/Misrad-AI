@@ -173,7 +173,7 @@ export default function AttendanceMiniStatus() {
     if (!orgSlug) return;
     if (!isClerkLoaded || !isSignedIn) return;
     loadActiveShift();
-    const interval = window.setInterval(loadActiveShift, 10_000);
+    const interval = window.setInterval(loadActiveShift, 30_000);
     return () => window.clearInterval(interval);
   }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
 

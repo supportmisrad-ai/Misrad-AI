@@ -11,9 +11,10 @@ import { ClerkProviderWithRouter } from './ClerkProviderWithRouter';
 // Geometric modern font with excellent Hebrew/English support, critical for RTL interface
 const heebo = Heebo({
   variable: "--font-sans",
-  subsets: ["hebrew", "latin"],
+  subsets: ["hebrew"],
   display: "swap",
-  preload: true, // Preload main font for faster render
+  preload: true,
+  adjustFontFallback: true,
   fallback: ['system-ui', 'arial'],
 });
 

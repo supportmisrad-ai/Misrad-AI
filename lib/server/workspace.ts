@@ -387,11 +387,18 @@ export async function enforceModuleAccessOrRedirect({
 }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
+  // Fast path: module is allowed by entitlements — no extra I/O needed
+  if (workspace.entitlements[module]) {
+    return workspace;
+  }
+
   const bypassEntitlements = isBypassModuleEntitlementsEnabled();
   if (bypassEntitlements) {
     assertNoProdEntitlementsBypass('enforceModuleAccessOrRedirect');
+    return workspace;
   }
 
+  // Slow path: module not in entitlements — check if user is super admin
   const clerkUserId = await requireClerkUserId();
   let isSuperAdmin = false;
   try {
@@ -410,15 +417,7 @@ export async function enforceModuleAccessOrRedirect({
     redirect('/');
   }
 
-  if (workspace.entitlements[module]) {
-    return workspace;
-  }
-
   if (isSuperAdmin) {
-    return workspace;
-  }
-
-  if (bypassEntitlements) {
     return workspace;
   }
 

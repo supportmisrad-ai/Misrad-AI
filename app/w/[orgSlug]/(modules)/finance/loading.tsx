@@ -1,5 +1,5 @@
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function FinanceLoading() {
-  return <ModuleLoadingScreen moduleKey="finance" />;
+  return <DashboardContentSkeleton moduleKey="finance" />;
 }

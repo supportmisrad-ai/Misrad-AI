@@ -1131,7 +1131,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     onClick={() => { setAssigneeId(u.id); setActivePopover('none'); }}
                                     className={`w-full flex items-center gap-3 p-2 rounded-xl transition-colors ${assigneeId === u.id ? 'bg-gray-50 text-gray-900' : 'hover:bg-gray-50'}`}
                                 >
-                                    <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full border border-gray-100" />
+                                    <img src={u.avatar} alt={u.name} className="w-8 h-8 rounded-full object-cover border border-gray-100" />
                                     <div className="text-right flex-1 min-w-0">
                                         <div className="font-bold text-xs truncate">{u.name}</div>
                                         <div className="text-[10px] opacity-70 truncate">{u.role}</div>

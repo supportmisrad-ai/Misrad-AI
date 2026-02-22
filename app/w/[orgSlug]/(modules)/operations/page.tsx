@@ -7,7 +7,7 @@ import {
   getOperationsInventoryOptions,
   getOperationsTechnicianActiveVehicle,
 } from '@/app/actions/operations';
-import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import { redirect } from 'next/navigation';
 import { OperationsDashboard } from '@/views/OperationsDashboard';
@@ -27,8 +27,14 @@ export default async function OperationsModuleHome({
   const flashRaw = sp.flash;
   const flash = flashRaw ? String(Array.isArray(flashRaw) ? flashRaw[0] : flashRaw) : null;
 
-  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
-  const currentUser = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+  // Use the lighter cached version — layout already verified full access
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  // Run user resolution and dashboard data in parallel
+  const [currentUser, dashboardRes, inventoryOptionsRes] = await Promise.all([
+    resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
+    getOperationsDashboardData({ orgSlug }),
+    getOperationsInventoryOptions({ orgSlug }),
+  ]);
   const technicianId = String(currentUser.profileId || currentUser.id || '').trim();
 
   async function quickAddStockAction(formData: FormData) {
@@ -72,11 +78,10 @@ export default async function OperationsModuleHome({
     redirect(`${base}?flash=${encodeURIComponent('נוצר פריט חדש')}`);
   }
 
-  const [dashboardRes, inventoryOptionsRes, activeVehicleRes] = await Promise.all([
-    getOperationsDashboardData({ orgSlug }),
-    getOperationsInventoryOptions({ orgSlug }),
-    technicianId ? getOperationsTechnicianActiveVehicle({ orgSlug, technicianId }) : Promise.resolve({ success: true, data: { vehicleId: null, vehicleName: null } }),
-  ]);
+  // Fetch active vehicle (depends on technicianId from user resolution above)
+  const activeVehicleRes = technicianId
+    ? await getOperationsTechnicianActiveVehicle({ orgSlug, technicianId })
+    : { success: true as const, data: { vehicleId: null, vehicleName: null } };
 
   return (
     <OperationsDashboard

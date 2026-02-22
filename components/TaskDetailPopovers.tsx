@@ -174,7 +174,7 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
                                         isAssigned ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-700'
                                     }`}
                                 >
-                                    <img src={u.avatar} className={`w-8 h-8 rounded-full border ${isAssigned ? 'border-white/20' : 'border-gray-100'}`} />
+                                    <img src={u.avatar} className={`w-8 h-8 rounded-full object-cover border ${isAssigned ? 'border-white/20' : 'border-gray-100'}`} />
                                     <div className="text-right flex-1 min-w-0">
                                         <div className="text-xs font-bold truncate">{u.name}</div>
                                         <div className={`text-[10px] truncate ${isAssigned ? 'text-gray-400' : 'text-gray-400'}`}>{u.role}</div>

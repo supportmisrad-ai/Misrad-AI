@@ -1,5 +1,5 @@
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function AdminLoading() {
-  return <ModuleLoadingScreen moduleKey="admin" />;
+  return <DashboardContentSkeleton moduleKey="admin" />;
 }

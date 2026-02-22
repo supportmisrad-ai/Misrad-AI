@@ -40,18 +40,20 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     orgIds.add(String(socialUser.organization_id));
   }
 
-  const ownedOrgs = await prisma.organization.findMany({
-    where: { owner_id: socialUser.id },
-    select: { id: true },
-  });
+  // Run owned orgs and memberships queries in parallel
+  const [ownedOrgs, membershipRows] = await Promise.all([
+    prisma.organization.findMany({
+      where: { owner_id: socialUser.id },
+      select: { id: true },
+    }),
+    prisma.teamMember.findMany({
+      where: { user_id: socialUser.id },
+      select: { organization_id: true },
+    }),
+  ]);
   for (const org of ownedOrgs) {
     if (org?.id) orgIds.add(String(org.id));
   }
-
-  const membershipRows = await prisma.teamMember.findMany({
-    where: { user_id: socialUser.id },
-    select: { organization_id: true },
-  });
   for (const row of membershipRows) {
     if (row?.organization_id) orgIds.add(String(row.organization_id));
   }

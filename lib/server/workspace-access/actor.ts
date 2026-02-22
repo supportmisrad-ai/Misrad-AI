@@ -89,14 +89,15 @@ const getCurrentSocialUserCached = cache(async (clerkUserId: string): Promise<So
 });
 
 export async function resolveWorkspaceActorUi(clerkUserId: string): Promise<{ socialUser: SocialUserRow | null; isSuperAdmin: boolean }> {
-  let socialUser: SocialUserRow | null = null;
-  try {
-    socialUser = await getCurrentSocialUserCached(clerkUserId);
-  } catch (e: unknown) {
-    throw e instanceof Error ? e : new Error(getErrorMessage(e) || 'Failed to load social_user');
-  }
+  // Run social user lookup and Clerk super-admin check in parallel (independent I/O)
+  const [socialUserResult, clerkIsSuperAdmin] = await Promise.all([
+    getCurrentSocialUserCached(clerkUserId).catch((e: unknown) => {
+      throw e instanceof Error ? e : new Error(getErrorMessage(e) || 'Failed to load social_user');
+    }),
+    getClerkIsSuperAdminCached(),
+  ]);
 
-  const clerkIsSuperAdmin = await getClerkIsSuperAdminCached();
+  const socialUser = socialUserResult;
   if (!socialUser?.id && !clerkIsSuperAdmin) {
     throw setErrorStatus(new Error('Unauthorized'), 401);
   }
@@ -106,18 +107,18 @@ export async function resolveWorkspaceActorUi(clerkUserId: string): Promise<{ so
 }
 
 export async function resolveWorkspaceActorApi(clerkUserId: string): Promise<{ socialUser: SocialUserRow | null; isSuperAdmin: boolean }> {
-  let socialUser: SocialUserRow | null = null;
-  try {
-    socialUser = await getCurrentSocialUserCached(clerkUserId);
-  } catch (e: unknown) {
-    const msg = String(getErrorMessage(e) || '').toLowerCase();
-    if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('permission denied')) {
-      throw setErrorStatus(new Error('Service unavailable'), 503);
-    }
-    throw e;
-  }
+  // Run social user lookup and Clerk super-admin check in parallel (independent I/O)
+  const [socialUser, clerkIsSuperAdmin] = await Promise.all([
+    getCurrentSocialUserCached(clerkUserId).catch((e: unknown) => {
+      const msg = String(getErrorMessage(e) || '').toLowerCase();
+      if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('permission denied')) {
+        throw setErrorStatus(new Error('Service unavailable'), 503);
+      }
+      throw e;
+    }),
+    getClerkIsSuperAdminCached(),
+  ]);
 
-  const clerkIsSuperAdmin = await getClerkIsSuperAdminCached();
   if (!socialUser?.id && !clerkIsSuperAdmin) {
     throw setErrorStatus(new Error('Unauthorized'), 401);
   }

@@ -150,7 +150,7 @@ export const SearchableEmployeeSelect: React.FC<SearchableEmployeeSelectProps> =
                   <img 
                     src={selectedEmployee.avatar} 
                     alt={selectedEmployee.name}
-                    className="w-6 h-6 rounded-full border border-gray-200 shrink-0"
+                    className="w-6 h-6 rounded-full object-cover border border-gray-200 shrink-0"
                   />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
@@ -258,7 +258,7 @@ export const SearchableEmployeeSelect: React.FC<SearchableEmployeeSelectProps> =
                                             <img 
                                                 src={employee.avatar} 
                                                 alt={employee.name}
-                                                className={`w-8 h-8 rounded-full border shrink-0 ${
+                                                className={`w-8 h-8 rounded-full object-cover border shrink-0 ${
                                                     isSelected ? 'border-white/20' : 'border-gray-200'
                                                 }`}
                                             />

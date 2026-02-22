@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getOperationsProjectOptions, getOperationsWorkOrdersData } from '@/app/actions/operations';
 import { Select } from '@/components/ui/select';
 import WorkOrdersSmartSortClient from '@/components/operations/WorkOrdersSmartSortClient';
-import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import type { OperationsWorkOrderStatus } from '@/lib/services/operations/types';
 
@@ -46,7 +46,8 @@ export default async function OperationsWorkOrdersPage({
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
-  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
+  // Use lighter cached version — layout already verified full access
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
   const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
 
   const sp = searchParams ? await Promise.resolve(searchParams) : {};

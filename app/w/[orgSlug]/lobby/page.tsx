@@ -16,34 +16,37 @@ export default async function LobbyPage({
   const { orgSlug } = resolvedParams;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-  let user: Awaited<ReturnType<typeof resolveWorkspaceCurrentUserForUiWithWorkspaceId>> | null = null;
-  try {
-    user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
-  } catch (e: unknown) {
-    console.error('[LobbyPage] resolveWorkspaceCurrentUserForUiWithWorkspaceId failed:', e);
-    const clerk = await currentUser().catch(() => null);
-    const email = clerk?.primaryEmailAddress?.emailAddress ?? null;
-    const name = clerk?.fullName ?? clerk?.username ?? (email ? email.split('@')[0] : null) ?? 'User';
-    const publicMetadata = (clerk?.publicMetadata ?? {}) as Record<string, unknown>;
-    const roleValue = publicMetadata.role;
-    const isSuperAdmin = publicMetadata.isSuperAdmin === true;
-    user = {
-      id: clerk?.id ?? '',
-      profileId: '',
-      name,
-      role: isSuperAdmin ? 'super_admin' : (typeof roleValue === 'string' ? roleValue : 'עובד'),
-      avatar: clerk?.imageUrl ?? '',
-      online: true,
-      capacity: 0,
-      email: email ?? '',
-      phone: undefined,
-      isSuperAdmin,
-      organizationId: workspace.id,
-      tenantId: workspace.id,
-    };
-  }
-
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+  // Run user resolution and logo signing in parallel
+  const [userResult, signedLogo] = await Promise.all([
+    resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id)
+      .catch(async (e: unknown) => {
+        console.error('[LobbyPage] resolveWorkspaceCurrentUserForUiWithWorkspaceId failed:', e);
+        const clerk = await currentUser().catch(() => null);
+        const email = clerk?.primaryEmailAddress?.emailAddress ?? null;
+        const name = clerk?.fullName ?? clerk?.username ?? (email ? email.split('@')[0] : null) ?? 'User';
+        const publicMetadata = (clerk?.publicMetadata ?? {}) as Record<string, unknown>;
+        const roleValue = publicMetadata.role;
+        const isSuperAdmin = publicMetadata.isSuperAdmin === true;
+        return {
+          id: clerk?.id ?? '',
+          profileId: '',
+          name,
+          role: isSuperAdmin ? 'super_admin' : (typeof roleValue === 'string' ? roleValue : 'עובד'),
+          avatar: clerk?.imageUrl ?? '',
+          online: true,
+          capacity: 0,
+          email: email ?? '',
+          phone: undefined,
+          isSuperAdmin,
+          organizationId: workspace.id,
+          tenantId: workspace.id,
+        };
+      }),
+    workspace.logo
+      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
+      : Promise.resolve(''),
+  ]);
+  const user = userResult;
 
   return (
     <LobbyClient

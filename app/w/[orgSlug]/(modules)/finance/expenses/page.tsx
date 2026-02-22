@@ -12,9 +12,11 @@ export default async function FinanceExpensesPage({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const canViewFinancials = await hasPermission('view_financials');
+  // Run workspace access and permission check in parallel
+  const [workspace, canViewFinancials] = await Promise.all([
+    requireWorkspaceAccessByOrgSlug(orgSlug),
+    hasPermission('view_financials'),
+  ]);
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
 

@@ -1,15 +1,13 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import {
   enforceModuleAccessOrRedirect,
   persistCurrentUserLastLocation,
-  requireWorkspaceAccessByOrgSlug,
 } from '@/lib/server/workspace';
-import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
-import FinanceModuleEntryClient from './FinanceModuleEntryClient';
-import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
+import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import FinanceLayoutShell from './FinanceLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -25,22 +23,11 @@ export default async function FinanceModuleLayout({
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
 
-  // Run all independent data fetches in parallel
-  const [, workspace, initialCurrentUser] = await Promise.all([
-    enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' }),
-    requireWorkspaceAccessByOrgSlug(orgSlug),
-    resolveWorkspaceCurrentUserForUi(orgSlug),
-  ]);
+  // Only the fast access check blocks the layout — everything else streams
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
 
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
-  const initialOrganization = {
-    name: workspace.name,
-    logo: signedLogo || '',
-    primaryColor: '#000000',
-    isShabbatProtected: workspace.isShabbatProtected,
-  };
   const def = getModuleDefinition('finance');
 
   const style = {
@@ -55,9 +42,11 @@ export default async function FinanceModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <FinanceModuleEntryClient initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-        {children}
-      </FinanceModuleEntryClient>
+      <Suspense fallback={<ModuleLoadingScreen moduleKey="finance" />}>
+        <FinanceLayoutShell orgSlug={orgSlug}>
+          {children}
+        </FinanceLayoutShell>
+      </Suspense>
     </div>
   );
 }

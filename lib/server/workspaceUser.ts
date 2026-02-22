@@ -306,8 +306,12 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const avatarValue = nexusObj['avatar'];
   const avatarCandidate = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
   const ttlSeconds = 60 * 60;
-  const signedAvatar = await resolveStorageUrlMaybeServiceRole(avatarCandidate, ttlSeconds, { organizationId: workspaceId });
-  const resolvedAvatar = signedAvatar ?? (avatarCandidate.startsWith('sb://') ? String(avatarUrl || '') : avatarCandidate);
+  // Only call storage signing for sb:// refs; skip for external URLs and empty strings
+  const needsSigning = avatarCandidate && avatarCandidate.startsWith('sb://');
+  const signedAvatar = needsSigning
+    ? await resolveStorageUrlMaybeServiceRole(avatarCandidate, ttlSeconds, { organizationId: workspaceId })
+    : avatarCandidate || null;
+  const resolvedAvatar = signedAvatar ?? (needsSigning ? String(avatarUrl || '') : avatarCandidate);
   const capacityValue = nexusObj['capacity'];
   const capacity = Number(capacityValue ?? 0) || 0;
   const nexusEmail = typeof nexusObj['email'] === 'string' ? String(nexusObj['email']) : String(email);
@@ -354,24 +358,26 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
   const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
   const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
 
-  await ensureProfileRow({
-    organizationId: workspace.id,
-    clerkUserId,
-    email,
-    fullName: clerk?.fullName ?? null,
-    avatarUrl,
-    role,
-    isSuperAdmin,
-  });
-
-  const nexusUser = await ensureNexusUserRow({
-    organizationId: workspace.id,
-    email: String(email).trim().toLowerCase(),
-    name,
-    role,
-    avatarUrl,
-    isSuperAdmin,
-  });
+  // Run profile and nexus user creation in parallel — they are independent
+  const [, nexusUser] = await Promise.all([
+    ensureProfileRow({
+      organizationId: workspace.id,
+      clerkUserId,
+      email,
+      fullName: clerk?.fullName ?? null,
+      avatarUrl,
+      role,
+      isSuperAdmin,
+    }),
+    ensureNexusUserRow({
+      organizationId: workspace.id,
+      email: String(email).trim().toLowerCase(),
+      name,
+      role,
+      avatarUrl,
+      isSuperAdmin,
+    }),
+  ]);
 
   return {
     user: nexusUser,

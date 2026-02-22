@@ -29,7 +29,9 @@ export default async function NexusModuleHome({
   ]);
 
   const workspace = bootstrap.workspace;
-  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+  const signedLogo = workspace.logo
+    ? await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
+    : '';
 
   const clerkObj = asObject(clerk) ?? {};
   const publicMd = asObject(clerkObj.publicMetadata);

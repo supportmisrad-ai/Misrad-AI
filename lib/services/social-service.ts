@@ -673,14 +673,18 @@ export async function getSocialInitialData(params: {
   ]);
 
   const clients = clientsResult.success ? clientsResult.data.clients : [];
-  const clientsWithPlatforms = await attachActivePlatforms(clients);
 
+  // Run platform attachment and conversation avatar signing in parallel
   const ttlSeconds = 60 * 60;
-  const resolvedConversationAvatars = await resolveStorageUrlsMaybeBatchedServiceRole(
-    (Array.isArray(conversations) ? conversations : []).map((c) => c.userAvatar),
-    ttlSeconds,
-    { organizationId }
-  );
+  const conversationsArr = Array.isArray(conversations) ? conversations : [];
+  const [clientsWithPlatforms, resolvedConversationAvatars] = await Promise.all([
+    attachActivePlatforms(clients),
+    resolveStorageUrlsMaybeBatchedServiceRole(
+      conversationsArr.map((c) => c.userAvatar),
+      ttlSeconds,
+      { organizationId }
+    ),
+  ]);
   const resolvedConversations = (Array.isArray(conversations) ? conversations : []).map((c, idx) => {
     const signed = resolvedConversationAvatars[idx] ?? null;
     if (signed) return { ...c, userAvatar: signed };
