@@ -50,7 +50,10 @@ export const useCRM = (
 
         (async () => {
             try {
-                const res = await fetch('/api/system/products', { cache: 'no-store' });
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                const headers: Record<string, string> = {};
+                if (orgSlug) headers['x-org-id'] = encodeURIComponent(orgSlug);
+                const res = await fetch('/api/system/products', { cache: 'no-store', headers });
                 if (!res.ok) return;
                 const data = await res.json().catch(() => null);
                 const next = Array.isArray(data?.products) ? (data.products as Product[]) : null;
@@ -72,16 +75,13 @@ export const useCRM = (
         const next = Array.isArray(nextProducts) ? nextProducts : [];
         setProducts(next);
 
-        if (!currentUser?.isSuperAdmin) {
-            addToast('אין הרשאה לשמור קטלוג מוצרים (נדרש Super Admin)', 'error');
-            setProducts(prev);
-            return false;
-        }
-
         try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (orgSlug) headers['x-org-id'] = encodeURIComponent(orgSlug);
             const res = await fetch('/api/system/products', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ products: next }),
             });
 

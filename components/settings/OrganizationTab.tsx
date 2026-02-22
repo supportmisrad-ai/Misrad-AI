@@ -386,7 +386,7 @@ export const OrganizationTab: React.FC = () => {
                                 className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${isSoloMode ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                                 aria-pressed={isSoloMode}
                             >
-                                {isSoloMode ? 'פעיל' : 'כבוי'}
+                                {isSoloMode ? 'הפעל' : 'כבוי'}
                             </button>
                         </div>
                     </div>

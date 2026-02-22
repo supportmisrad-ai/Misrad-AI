@@ -3,17 +3,22 @@ import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
 
 import prisma, { accelerateCache } from '@/lib/prisma';
-import { requireSuperAdmin } from '@/lib/auth';
+import { requireSuperAdmin, isTenantAdmin, getAuthenticatedUser } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import type { ModuleId, Product } from '@/types';
 import { DEFAULT_PRODUCTS } from '@/constants';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PRODUCTS_SETTINGS_KEY = 'products_catalog_v1';
+const PRODUCTS_GLOBAL_KEY = 'products_catalog_v1';
+
+function orgProductsKey(orgId: string): string {
+  return `products_catalog_v1:${orgId}`;
+}
 
 function isModuleId(value: unknown): value is ModuleId {
   return (
@@ -63,26 +68,53 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
-async function readProducts(): Promise<Product[]> {
+async function readOrgProducts(orgId: string): Promise<Product[] | null> {
   const row = await prisma.coreSystemSettings.findUnique({
-    where: { key: PRODUCTS_SETTINGS_KEY },
+    where: { key: orgProductsKey(orgId) },
     select: { value: true },
     ...accelerateCache({ ttl: 60, swr: 120 }),
   });
+  return row ? coerceProducts(row.value) : null;
+}
 
-  const rawValue: unknown = row?.value ?? null;
-  const list = coerceProducts(rawValue);
+async function readGlobalProducts(): Promise<Product[]> {
+  const row = await prisma.coreSystemSettings.findUnique({
+    where: { key: PRODUCTS_GLOBAL_KEY },
+    select: { value: true },
+    ...accelerateCache({ ttl: 60, swr: 120 }),
+  });
+  const list = coerceProducts(row?.value ?? null);
   return list ?? DEFAULT_PRODUCTS;
 }
 
-async function GETHandler() {
+async function readProducts(orgId?: string): Promise<Product[]> {
+  if (orgId) {
+    const orgProducts = await readOrgProducts(orgId);
+    if (orgProducts) return orgProducts;
+  }
+  return readGlobalProducts();
+}
+
+async function GETHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const products = await readProducts();
+    const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+    let orgId: string | undefined;
+
+    if (orgKey) {
+      try {
+        const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(String(orgKey));
+        orgId = workspaceId;
+      } catch {
+        // fall through to global products
+      }
+    }
+
+    const products = await readProducts(orgId);
     return NextResponse.json({ products }, { status: 200 });
   } catch {
     return NextResponse.json({ products: DEFAULT_PRODUCTS }, { status: 200 });
@@ -96,7 +128,8 @@ async function PATCHHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await requireSuperAdmin();
+    const user = await getAuthenticatedUser();
+    const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
 
     const body: unknown = await request.json().catch(() => null);
     const obj = asObject(body) ?? {};
@@ -106,21 +139,51 @@ async function PATCHHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid products' }, { status: 400 });
     }
 
+    // Determine target: org-specific or global
+    let targetKey: string;
+    let tenantContextOrgId: string | null = null;
+
+    if (orgKey) {
+      const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(String(orgKey));
+      tenantContextOrgId = workspaceId;
+      targetKey = orgProductsKey(workspaceId);
+
+      // Org-level: allow super admin OR org admin/CEO
+      if (!user.isSuperAdmin) {
+        const isOrgAdmin = await isTenantAdmin();
+        if (!isOrgAdmin) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+    } else {
+      // Global catalog: super admin only
+      await requireSuperAdmin();
+      targetKey = PRODUCTS_GLOBAL_KEY;
+    }
+
     try {
       const value = toJsonValue(nextList);
 
+      const isolationCtx = tenantContextOrgId
+        ? {
+            source: 'api_system_products' as const,
+            reason: 'PATCH org products' as const,
+            organizationId: tenantContextOrgId,
+          }
+        : {
+            source: 'api_system_products' as const,
+            reason: 'PATCH global products' as const,
+            mode: 'global_admin' as const,
+            isSuperAdmin: true,
+          };
+
       await withTenantIsolationContext(
-        {
-          source: 'api_system_products',
-          reason: 'PATCH',
-          mode: 'global_admin',
-          isSuperAdmin: true,
-        },
+        isolationCtx,
         async () =>
           await prisma.coreSystemSettings.upsert({
-            where: { key: PRODUCTS_SETTINGS_KEY },
+            where: { key: targetKey },
             create: {
-              key: PRODUCTS_SETTINGS_KEY,
+              key: targetKey,
               value,
               updated_at: new Date(),
               created_at: new Date(),

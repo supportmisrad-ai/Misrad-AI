@@ -159,8 +159,8 @@ export async function getConnectedPlatforms(
   meet: boolean;
 }> {
   const [hasZoom, hasMeet] = await Promise.all([
-    isZoomConnected(userId, organizationId),
-    getCalendarClient(userId, organizationId).then(client => !!client),
+    isZoomConnected(userId, organizationId).catch(() => false),
+    getCalendarClient(userId, organizationId).then(client => !!client).catch(() => false),
   ]);
 
   return {

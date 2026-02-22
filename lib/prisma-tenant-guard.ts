@@ -309,7 +309,7 @@ const SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS = new Set<string>([
   'products_catalog_v1',
 ]);
 
-const SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES = ['nexus_onboarding_template:', 'nexus_billing_items:'];
+const SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES = ['nexus_onboarding_template:', 'nexus_billing_items:', 'products_catalog_v1:'];
 
 function extractScalarEquals(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return value;

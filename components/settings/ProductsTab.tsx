@@ -9,7 +9,7 @@ import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { MODULES_CONFIG } from '../saas/SaasConstants';
 
 export const ProductsTab: React.FC = () => {
-    const { products, saveProductsCatalog, deleteProduct, hasPermission, addToast } = useData();
+    const { products, saveProductsCatalog, deleteProduct, hasPermission, addToast, currentUser } = useData();
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [newProduct, setNewProduct] = useState<Partial<Product>>({ id: '', name: '', price: 0, color: 'bg-gray-800 text-white', modules: [] });
     const [isShaking, setIsShaking] = useState(false);
@@ -18,7 +18,7 @@ export const ProductsTab: React.FC = () => {
     // Delete Modal
     const [productToDelete, setProductToDelete] = useState<{id: string, name: string} | null>(null);
 
-    const canEditProducts = hasPermission('manage_system');
+    const canEditProducts = hasPermission('manage_system') || currentUser?.isTenantAdmin;
 
     const handleAddProduct = async () => {
         if(!newProduct.name || !newProduct.name.trim()) {

@@ -95,6 +95,16 @@ export function useNexusSoloMode(orgSlug: string | null | undefined, teamSize?: 
     return () => window.removeEventListener('nexus:solo-mode', handler);
   }, [orgSlug]);
 
+  // Auto-clear stale solo mode override when team grows beyond 1
+  useEffect(() => {
+    if (!orgSlug) return;
+    const size = typeof teamSize === 'number' ? teamSize : null;
+    if (size != null && size > 1 && soloModeOverride === true) {
+      writeNexusSoloMode(orgSlug, false);
+      setSoloModeOverride(false);
+    }
+  }, [orgSlug, teamSize, soloModeOverride]);
+
   const isSoloMode = useMemo(() => {
     if (soloModeOverride !== null) return soloModeOverride;
     const size = typeof teamSize === 'number' ? teamSize : null;
