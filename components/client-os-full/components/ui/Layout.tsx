@@ -153,13 +153,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const ALL_NAV_ITEMS = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'ראשי' },
     { id: 'clients', icon: Users, label: 'לקוחות' },
-    { id: 'cycles', icon: Layers, label: 'מחזורים' },
+    { id: 'cycles', icon: Layers, label: 'מחזורים', separatorBefore: true },
     { id: 'email', icon: Mail, label: 'דואר' },
     { id: 'workflows', icon: GitMerge, label: 'תהליכים' },
     { id: 'forms', icon: ClipboardList, label: 'טפסים' },
     { id: 'feedback', icon: MessageSquareQuote, label: 'משובים' },
     { id: 'intelligence', icon: Cpu, label: 'פענוח' },
     { id: 'analyzer', icon: Sparkles, label: 'ניתוח' },
+    { id: 'settings', icon: Settings, label: 'הגדרות', separatorBefore: true },
   ];
 
   const navItems = ALL_NAV_ITEMS.filter((item) => featureFlags[item.id] !== false);
@@ -195,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   }, [activeView, navItems]);
 
   const viewNavItems = useMemo(
-    () => navItems.map((item) => ({ label: item.label, path: `/${item.id}`, icon: item.icon })),
+    () => navItems.map((item) => ({ label: item.label, path: `/${item.id}`, icon: item.icon, separatorBefore: item.separatorBefore })),
     [navItems]
   );
 
@@ -401,27 +402,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         onNavigateAction={onNavigateAction}
         bottomSlot={
           <div className={isSidebarOpen ? 'w-full px-1' : 'w-full'}>
-            <button
-              onClick={() => onNavigateAction('/settings')}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)] ${
-                !isSidebarOpen ? 'justify-center px-0 aspect-square' : ''
-              }`}
-              aria-label="הגדרות"
-              title="הגדרות"
-              type="button"
-            >
-              <span className="relative z-10 flex items-center justify-center w-5 h-5">
-                <Settings size={20} strokeWidth={2} className="text-current" />
-              </span>
-              {isSidebarOpen ? <span className="relative z-10">הגדרות</span> : null}
-            </button>
-
-            <div
-              className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${
-                isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'
-              }`}
-            ></div>
-
             <OSAppSwitcher
               compact={true}
               buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
