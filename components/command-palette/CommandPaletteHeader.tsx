@@ -33,59 +33,54 @@ export function CommandPaletteHeader({ mode, onModeChange, onClose, inputRef, mo
   };
 
   return (
-    <div className="flex items-center justify-between p-5 border-b border-slate-200/60 bg-gradient-to-r from-white via-slate-50/50 to-white backdrop-blur-xl shrink-0 relative overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-30"
-        style={{ background: `linear-gradient(90deg, ${moduleAccent}0D 0%, transparent 50%, ${moduleAccent}0D 100%)` }}
-      ></div>
-      
-      <div className="flex items-center gap-4 relative z-10">
-        <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-md rounded-2xl p-1.5 border border-slate-200/60 shadow-sm">
+    <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-200/60 bg-white/90 backdrop-blur-xl shrink-0">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-slate-100/80 rounded-xl p-1 border border-slate-200/50">
           <button
             onClick={() => handleModeChange('search')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-1.5 ${
               mode === 'search'
-                ? 'bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            <Search size={14} />
+            <Search size={13} />
             <span>חיפוש</span>
           </button>
           <button
             onClick={() => handleModeChange('chat')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-1.5 ${
               mode === 'chat'
-                ? 'text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+                ? 'text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
             style={mode === 'chat' ? { background: moduleGradient } : undefined}
           >
-            <Sparkles size={14} />
-            <span>AI Chat</span>
+            <Sparkles size={13} />
+            <span>צ׳אט AI</span>
           </button>
         </div>
         {mode === 'chat' && (
-          <div className="flex items-center gap-3 pl-4 border-r border-slate-200/60 pr-4">
+          <div className="hidden sm:flex items-center gap-2 pr-2 border-r border-slate-200/60 mr-1">
             <div className="relative">
-              <div className="p-2.5 rounded-2xl shadow-md" style={{ background: moduleGradient }}>
-                <Sparkles className="text-white" size={18} />
+              <div className="p-1.5 rounded-xl shadow-sm" style={{ background: moduleGradient }}>
+                <Sparkles className="text-white" size={14} />
               </div>
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white animate-pulse"></div>
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900">Misrad AI</div>
-              <div className="text-[10px] text-slate-500 font-medium">עוזר חכם • מחובר</div>
+              <div className="text-xs font-bold text-slate-800">Misrad AI</div>
+              <div className="text-[9px] text-slate-400 font-medium">עוזר חכם • מחובר</div>
             </div>
           </div>
         )}
       </div>
       <button
         onClick={onClose}
-        className="p-2 hover:bg-slate-100/80 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 relative z-10"
+        className="p-1.5 hover:bg-slate-100 rounded-lg transition-all duration-150"
         aria-label="סגור"
       >
-        <X size={18} className="text-slate-500" />
+        <X size={16} className="text-slate-400" />
       </button>
     </div>
   );

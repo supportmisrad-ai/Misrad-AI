@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 interface AvatarProps {
     src?: string | null;
@@ -27,12 +27,6 @@ export function Avatar({
     rounded = 'full',
     className = ''
 }: AvatarProps) {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
     const getInitials = (name?: string) => {
         if (!name) return '?';
         return name
@@ -61,8 +55,7 @@ export function Avatar({
 
     const [imgError, setImgError] = useState(false);
 
-    const raw = mounted ? src : undefined;
-    const effectiveSrc = raw && !String(raw).startsWith('sb://') ? String(raw).trim() : '';
+    const effectiveSrc = src && !String(src).startsWith('sb://') ? String(src).trim() : '';
 
     const fallback = (
         <div 
@@ -84,6 +77,9 @@ export function Avatar({
             alt={alt || name || 'User avatar'} 
             className={`${sizeClass} object-cover ${className} ${roundedClass}`}
             onError={() => setImgError(true)}
+            loading="eager"
+            decoding="async"
+            suppressHydrationWarning
         />
     );
 };

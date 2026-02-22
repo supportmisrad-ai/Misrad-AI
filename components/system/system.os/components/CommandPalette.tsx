@@ -1,8 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Command, ArrowRight, User, LayoutGrid, Calculator, Calendar, Sparkles, TrendingUp, CircleAlert, CircleCheckBig, Link, Copy, Send } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Search, Command, ArrowRight, User, LayoutGrid, Sparkles, Link, Copy, Send } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { Lead } from '../types';
 import { NAV_ITEMS, QUICK_ASSETS } from '../constants';
 import { useToast } from '../contexts/ToastContext';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
+import { ChatSources } from '@/components/command-palette/ChatSources';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -15,72 +21,55 @@ interface CommandPaletteProps {
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onSelectLead, leads }) => {
   const { addToast } = useToast();
   const [query, setQuery] = useState('');
-  const [aiResponse, setAiResponse] = useState<{type: string, text: string} | null>(null);
-  const [isThinking, setIsThinking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
+  const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug, [pathname]);
+
+  const { messages, isLoading: isThinking, error, sendText, clear } = useAIModuleChat({
+    moduleOverride: 'system',
+    orgSlugOverride: orgSlug,
+  });
+
+  const lastAssistant = useMemo(() => {
+    const list = Array.isArray(messages) ? messages : [];
+    return [...list].reverse().find((m) => m.role === 'assistant') || null;
+  }, [messages]);
+
+  const aiResponse = lastAssistant
+    ? {
+        type: error ? 'error' : 'success',
+        text: String(lastAssistant.content || ''),
+        sources: Array.isArray(lastAssistant.sources) ? lastAssistant.sources : [],
+      }
+    : null;
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
         setQuery('');
-        setAiResponse(null);
-        setIsThinking(false);
+        clear();
     }
   }, [isOpen]);
 
   // AI Brain Logic
   useEffect(() => {
       if (query.length < 3) {
-          setAiResponse(null);
           return;
       }
 
       const debounceTimer = setTimeout(async () => {
-          // Heuristic to detect natural language questions vs simple search
           const lowerQ = query.toLowerCase();
           const isQuestion = lowerQ.includes('?') || lowerQ.split(' ').length > 3 || 
                              ['what', 'how', 'who', 'where', 'when', 'why', 'status', 'money', 'revenue', 'leads', 'מה', 'איך', 'כמה', 'מי', 'מתי', 'למה', 'מצב'].some(w => lowerQ.startsWith(w) || lowerQ.includes(w));
 
           if (isQuestion) {
-              setIsThinking(true);
-              try {
-                  // Construct Context
-                  const stats = {
-                      totalLeads: leads.length,
-                      wonLeads: leads.filter(l => l.status === 'won').length,
-                      totalRevenue: leads.filter(l => l.status === 'won').reduce((sum, l) => sum + l.value, 0),
-                      hotLeads: leads.filter(l => l.isHot).length,
-                      recentActivity: leads.slice(0, 3).map(l => `${l.name}: ${l.status}`)
-                  };
-
-                  const res = await fetch('/api/ai/analyze', {
-                      method: 'POST',
-                      headers: { 'content-type': 'application/json' },
-                      body: JSON.stringify({
-                          query: `User Query: "${query}"\n\nContext Data (JSON): ${JSON.stringify(stats)}`,
-                          rawData: stats,
-                      }),
-                  });
-
-                  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-                  const result = data?.result && typeof data.result === 'object' ? (data.result as Record<string, unknown>) : null;
-                  const text = String(result?.summary || 'מצטער, לא הצלחתי לעבד את הבקשה כרגע.');
-                  setAiResponse({ type: res.ok ? 'success' : 'error', text });
-              } catch (error) {
-                  console.error("AI Error:", error);
-                  setAiResponse({ type: 'error', text: 'מצטער, לא הצלחתי לעבד את הבקשה כרגע.' });
-              } finally {
-                  setIsThinking(false);
-              }
-          } else {
-              setAiResponse(null);
-              setIsThinking(false);
+              sendText(query);
           }
       }, 800);
 
       return () => clearTimeout(debounceTimer);
-  }, [query, leads]);
+  }, [query, sendText]);
 
   if (!isOpen) return null;
 
@@ -164,6 +153,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                             <div>
                                 <div className="text-[10px] font-bold text-rose-300 uppercase tracking-wider mb-1">Misrad AI</div>
                                 <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
+                                {Array.isArray(aiResponse.sources) && aiResponse.sources.length ? (
+                                  <ChatSources sources={aiResponse.sources} />
+                                ) : null}
                             </div>
                         </div>
                     </div>

@@ -322,8 +322,13 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const nexusObj = asObject(nexusUser) ?? {};
   const phoneValue = profileObj['phone'];
   const resolvedPhone = phoneValue != null ? String(phoneValue) : undefined;
-  const avatarValue = nexusObj['avatar'];
-  const avatarCandidate = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
+  // Avatar priority: profile (custom upload) > nexusUser > Clerk imageUrl
+  const profileAvatarValue = profileObj['avatarUrl'];
+  const nexusAvatarValue = nexusObj['avatar'];
+  const avatarCandidate =
+    (typeof profileAvatarValue === 'string' && profileAvatarValue ? profileAvatarValue : '') ||
+    (typeof nexusAvatarValue === 'string' && nexusAvatarValue ? nexusAvatarValue : '') ||
+    String(avatarUrl || '');
   const ttlSeconds = 60 * 60;
   // Only call storage signing for sb:// refs; skip for external URLs and empty strings
   const needsSigning = avatarCandidate && avatarCandidate.startsWith('sb://');

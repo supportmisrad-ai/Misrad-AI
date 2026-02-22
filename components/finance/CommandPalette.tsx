@@ -74,7 +74,7 @@ export default function CommandPalette({
           <input
             ref={inputRef}
             type="text"
-            placeholder="שאל את Nexus על כספים או חפש..."
+            placeholder="שאל את Misrad AI על כספים או חפש..."
             className="flex-1 bg-transparent text-xl focus:outline-none text-slate-800 placeholder:text-slate-300 font-medium h-10"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -126,7 +126,7 @@ export default function CommandPalette({
                     <Sparkles size={18} className="text-yellow-300" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider mb-1">Nexus Intelligence</div>
+                    <div className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider mb-1">Misrad AI</div>
                     <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
                     {Array.isArray(aiResponse.sources) && aiResponse.sources.length ? (
                       <ChatSources sources={aiResponse.sources} />
@@ -167,7 +167,7 @@ export default function CommandPalette({
 
         <div className="p-3 bg-white border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 px-6">
           <div className="flex items-center gap-1 text-emerald-500 font-bold">
-            <Sparkles size={10} /> Nexus AI Active
+            <Sparkles size={10} /> Misrad AI
           </div>
         </div>
       </div>

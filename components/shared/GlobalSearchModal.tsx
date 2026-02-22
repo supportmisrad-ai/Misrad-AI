@@ -246,7 +246,7 @@ export function GlobalSearchModal() {
             initial={{ opacity: 0, y: -20, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.98 }}
-            className={`fixed top-[10%] left-1/2 -translate-x-1/2 w-full z-[9001] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col ${
+            className={`fixed top-[6vh] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-full z-[9001] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/60 overflow-hidden flex flex-col ${
               mode === 'chat' ? 'max-w-2xl max-h-[75vh]' : 'max-w-lg'
             }`}
             dir="rtl"

@@ -172,19 +172,19 @@ export default function CommandPalette() {
   return (
     <AnimatePresence>
       {isCommandPaletteOpen && (
-        <div className="fixed inset-0 z-[550] flex items-start justify-center pt-24 px-4 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsCommandPaletteOpen(false)}>
+        <div className="fixed inset-0 z-[550] flex items-start justify-center pt-[6vh] px-3 sm:px-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsCommandPaletteOpen(false)}>
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }} 
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-3xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            className="w-full max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] border border-slate-200/60"
             onClick={e => e.stopPropagation()}
             dir="rtl"
           >
              {/* Header */}
-             <div className="p-6 border-b flex items-center gap-4 bg-gradient-to-l from-indigo-50 to-white">
-               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isChatMode ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
-                 {isChatMode ? <MessageSquare size={24} /> : <Search size={24} />}
+             <div className="px-4 py-3 border-b border-slate-200/60 flex items-center gap-3 bg-white">
+               <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isChatMode ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
+                 {isChatMode ? <MessageSquare size={18} /> : <Search size={18} />}
                </div>
                {!isChatMode ? (
                  <>
@@ -192,8 +192,8 @@ export default function CommandPalette() {
                      ref={inputRef}
                      autoFocus
                      type="text" 
-                     placeholder="חפש לקוח, פקודה, הקלד ? או /chat לצ'אט..." 
-                     className="flex-1 outline-none text-xl font-black bg-transparent"
+                     placeholder="חפש לקוח, פקודה, או הקלד ? לצ׳אט..." 
+                     className="flex-1 outline-none text-base font-bold bg-transparent"
                      value={query}
                      onChange={e => setQuery(e.target.value)}
                      onKeyDown={(e) => {
@@ -207,10 +207,10 @@ export default function CommandPalette() {
                        setIsChatMode(true);
                        setQuery('');
                      }}
-                     className="px-4 py-2 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-lg"
-                     title="הפעל מצב צ'אט AI"
+                     className="px-3 py-1.5 bg-purple-600 text-white rounded-lg font-bold text-xs hover:bg-purple-700 transition-colors flex items-center gap-1.5 shadow-sm"
+                     title="הפעל מצב צ׳אט AI"
                    >
-                     <Sparkles size={16} />
+                     <Sparkles size={13} />
                      AI
                    </button>
                  </>
@@ -227,16 +227,16 @@ export default function CommandPalette() {
                        setChatInput('');
                        clear();
                      }}
-                     className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
+                     className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-colors flex items-center gap-1.5"
                      title="חזור למצב חיפוש"
                    >
-                     <Search size={16} />
+                     <Search size={13} />
                      חיפוש
                    </button>
                  </>
                )}
-               <button onClick={() => setIsCommandPaletteOpen(false)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
-                 <X size={20}/>
+               <button onClick={() => setIsCommandPaletteOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                 <X size={16} className="text-slate-400"/>
                </button>
              </div>
 
@@ -470,8 +470,8 @@ export default function CommandPalette() {
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-50 p-4 flex items-center justify-between border-t border-slate-100">
-              <div className="flex gap-4 text-[10px] font-black text-slate-400">
+            <div className="bg-slate-50/80 px-3 py-2 flex items-center justify-between border-t border-slate-100">
+              <div className="flex gap-3 text-[10px] font-bold text-slate-400">
                 {!isChatMode && (
                   <>
                     <span className="flex items-center gap-2">
@@ -489,7 +489,7 @@ export default function CommandPalette() {
                   </span>
                 )}
               </div>
-              <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Social Search v1.3</p>
+              <p className="text-[10px] font-bold text-purple-600">Misrad AI</p>
             </div>
           </motion.div>
         </div>

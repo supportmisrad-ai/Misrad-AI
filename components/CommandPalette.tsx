@@ -73,17 +73,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const { filteredNav, filteredLeads, filteredAssets } = getFilteredResults(leads);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-start justify-center transition-all duration-300" onClick={onClose} style={{ paddingTop: '8vh' }}>
+    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center px-3 sm:px-4 transition-all duration-300" onClick={onClose} style={{ paddingTop: '6vh' }}>
       <div 
-        className={`w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-scale-in transform transition-all ${
-          mode === 'chat' ? 'max-w-5xl h-[85vh] flex flex-col' : 'max-w-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.15)]'
+        className={`w-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-slate-200/60 animate-scale-in transform transition-all ${
+          mode === 'chat' ? 'max-w-3xl h-[80vh] flex flex-col' : 'max-w-lg'
         }`}
         onClick={e => e.stopPropagation()}
-        style={{
-          boxShadow: mode === 'chat' 
-            ? '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.5)'
-            : '0 20px 60px -12px rgba(0, 0, 0, 0.15)'
-        }}
+        dir="rtl"
       >
         <CommandPaletteHeader 
           mode={mode} 

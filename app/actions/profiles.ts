@@ -342,6 +342,25 @@ export async function upsertMyProfile(params: {
           return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
         }
 
+        // Keep nexusUser.avatar in sync when avatar is changed in profile
+        if (typeof params.updates.avatarUrl !== 'undefined') {
+          try {
+            const profileForEmail = await prisma.profile.findFirst({
+              where: { id: String(profileId), organizationId: String(organizationId) },
+              select: { email: true },
+            });
+            const email = typeof profileForEmail?.email === 'string' ? profileForEmail.email : null;
+            if (email) {
+              await prisma.nexusUser.updateMany({
+                where: { email, organizationId: String(organizationId) },
+                data: { avatar: params.updates.avatarUrl },
+              });
+            }
+          } catch {
+            // best-effort sync — profile is the source of truth
+          }
+        }
+
         const updated = await prisma.profile.findFirst({
           where: {
             id: String(profileId),
