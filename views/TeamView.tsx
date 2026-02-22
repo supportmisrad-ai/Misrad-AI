@@ -20,7 +20,7 @@ import { EmployeeInvitationsPanel } from '../components/nexus/EmployeeInvitation
 import { TeamEventsPanel } from '../components/nexus/team/TeamEventsPanel';
 import { LeaveRequestsPanel } from '../components/nexus/team/LeaveRequestsPanel';
 import { Skeleton } from '@/components/ui/skeletons';
-import { isAdminRole, isCeoRole, isTenantAdminRole } from '@/lib/constants/roles';
+import { isAdminRole, isCeoRole, isTenantAdminRole, isManagementRole } from '@/lib/constants/roles';
 import { createNexusUser, deleteNexusUser, listNexusUsers, sendNexusUserInvitation, updateNexusUser } from '@/app/actions/nexus';
 
 // Helper to check if a task is "active" (contributes to workload)
@@ -238,14 +238,7 @@ export const TeamView: React.FC = () => {
 
   const visibleUsers = users.filter((user: User) => {
       if (showHeadsOnly) {
-          const roleStr = String(user.role || '');
-          const isHead =
-              roleStr.includes('מנהל') ||
-              roleStr.includes('ראש') ||
-              roleStr.includes('VP') ||
-              roleStr.includes('סמנכ') ||
-              isCeoRole(user.role) ||
-              isAdminRole(user.role);
+          const isHead = isManagementRole(user.role) || isAdminRole(user.role) || Boolean(user.managedDepartment);
           if (!isHead) return false;
       }
 
@@ -384,6 +377,7 @@ export const TeamView: React.FC = () => {
                   commissionPct: Number(formData.commissionPct),
                   bonusPerTask: Number(formData.bonusPerTask),
                   managerId: formData.managerId || null,
+                  managedDepartment: formData.managedDepartment || null,
               } as User);
 
               try {
@@ -421,6 +415,7 @@ export const TeamView: React.FC = () => {
                   commissionPct: Number(formData.commissionPct),
                   bonusPerTask: Number(formData.bonusPerTask),
                   managerId: formData.managerId,
+                  managedDepartment: formData.managedDepartment,
               };
               updateUser(editingUser.id, optimisticUpdates);
               addToast('פרטי העובד עודכנו בהצלחה', 'success');
@@ -574,6 +569,7 @@ export const TeamView: React.FC = () => {
         departments={departments}
         isGlobalAdmin={isGlobalAdmin}
         myDepartment={myDepartment}
+        allUsers={users}
       />
 
       <div className="flex-1 flex flex-col overflow-visible md:overflow-hidden max-w-7xl mx-auto w-full">

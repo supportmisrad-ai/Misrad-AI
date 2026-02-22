@@ -2,7 +2,32 @@
  * Team and user types
  */
 
-export type TeamUserRole = 'admin' | 'manager' | 'team_member' | 'מנכ"ל' | 'מנהל' | 'רכז' | 'עובד' | 'מכירות';
+export type TeamUserRole =
+  | 'admin'
+  | 'manager'
+  | 'team_member'
+  | 'מנכ״ל'
+  | 'מנכ"ל'
+  | 'אדמין'
+  | 'סמנכ״ל'
+  | 'סמנכ"ל'
+  | 'מנהל בכיר'
+  | 'ראש מחלקה'
+  | 'מנהל'
+  | 'מנהלת'
+  | 'ראש צוות'
+  | 'רכז'
+  | 'רכזת'
+  | 'אחראי'
+  | 'אחראית'
+  | 'עובד בכיר'
+  | 'עובד'
+  | 'עובדת'
+  | 'איש מכירות'
+  | 'מכירות'
+  | 'מתמחה'
+  | 'פרילנסר'
+  | (string & {});
 
 export interface User {
   id: string;

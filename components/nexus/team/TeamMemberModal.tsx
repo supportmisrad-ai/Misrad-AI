@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, DollarSign, TrendingUp, Lock, LayoutGrid } from 'lucide-react';
+import { X, Check, DollarSign, TrendingUp, Lock, LayoutGrid, Users, Crown } from 'lucide-react';
 import { User, RoleDefinition } from '../../../types';
 import { CustomSelect } from '../../CustomSelect';
 import { OS_MODULES } from '../../../types/os-modules';
 import { OSModuleIcon } from '../../shared/OSModuleIcon';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { isManagementRole } from '@/lib/constants/roles';
 
 interface TeamMemberModalProps {
     isOpen: boolean;
@@ -18,10 +19,11 @@ interface TeamMemberModalProps {
     departments: string[];
     isGlobalAdmin: boolean;
     myDepartment?: string;
+    allUsers?: User[];
 }
 
 export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
-    isOpen, onClose, mode, initialData, onSave, roleDefinitions, departments, isGlobalAdmin, myDepartment
+    isOpen, onClose, mode, initialData, onSave, roleDefinitions, departments, isGlobalAdmin, myDepartment, allUsers
 }) => {
     const [form, setForm] = useState({ 
         name: '', 
@@ -35,7 +37,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         monthlySalary: 0,
         commissionPct: 0,
         bonusPerTask: 0,
-        allowed_modules: ['nexus', 'client'] as string[]
+        allowed_modules: ['nexus', 'client'] as string[],
+        managerId: null as string | null,
+        managedDepartment: null as string | null,
     });
 
     useEffect(() => {
@@ -53,14 +57,16 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     monthlySalary: initialData.monthlySalary || 0,
                     commissionPct: initialData.commissionPct || 0,
                     bonusPerTask: initialData.bonusPerTask || 0,
-                    allowed_modules: initialData.allowed_modules || ['nexus', 'client']
+                    allowed_modules: initialData.allowed_modules || ['nexus', 'client'],
+                    managerId: initialData.managerId || null,
+                    managedDepartment: initialData.managedDepartment || null,
                 });
             } else {
                 setForm({ 
                     name: '', 
                     email: '',
                     role: roleDefinitions[0]?.name || 'עובד', 
-                    department: isGlobalAdmin ? (departments[0] || 'Operations') : (myDepartment || 'Operations'),
+                    department: isGlobalAdmin ? (departments[0] || '') : (myDepartment || ''),
                     avatar: '', 
                     capacity: 5, 
                     paymentType: 'hourly',
@@ -68,7 +74,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     monthlySalary: 0,
                     commissionPct: 0,
                     bonusPerTask: 0,
-                    allowed_modules: ['nexus', 'client']
+                    allowed_modules: ['nexus', 'client'],
+                    managerId: null,
+                    managedDepartment: null,
                 });
             }
         }
@@ -178,6 +186,60 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                             className="w-full p-3 border border-gray-200 rounded-xl focus:border-black outline-none font-medium"
                         />
                     </div>
+
+                    {/* Hierarchy: Direct Manager */}
+                    {isGlobalAdmin && allUsers && allUsers.length > 0 && (
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                <Users size={12} /> מנהל ישיר
+                            </label>
+                            <CustomSelect
+                                value={form.managerId || ''}
+                                onChange={(val) => setForm({...form, managerId: val || null})}
+                                options={[
+                                    { value: '', label: 'ללא מנהל ישיר' },
+                                    ...allUsers
+                                        .filter((u) => {
+                                            if (u.id === initialData?.id) return false;
+                                            if (initialData && u.managerId === initialData.id) return false;
+                                            return true;
+                                        })
+                                        .map((u) => ({
+                                            value: u.id,
+                                            label: `${u.name}${u.role ? ` (${u.role})` : ''}`,
+                                            icon: <Users size={14} className="text-gray-400" />
+                                        }))
+                                ]}
+                                placeholder="בחר מנהל"
+                                className="w-full text-sm font-medium"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">
+                                למי העובד כפוף? המנהל הישיר יראה את העובד בצוות שלו.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Hierarchy: Managed Department */}
+                    {isGlobalAdmin && isManagementRole(form.role) && (
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
+                                <Crown size={12} /> מחלקה בניהול
+                            </label>
+                            <CustomSelect
+                                value={form.managedDepartment || ''}
+                                onChange={(val) => setForm({...form, managedDepartment: val || null})}
+                                options={[
+                                    { value: '', label: 'לא מנהל מחלקה' },
+                                    ...departments.map(d => ({ value: d, label: d }))
+                                ]}
+                                placeholder="בחר מחלקה"
+                                className="w-full text-sm font-medium"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">
+                                אם העובד מנהל מחלקה — יוכל לראות את כל חברי המחלקה ומשימותיהם.
+                            </p>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-3">הרשאות גישה למערכות (OS)</label>

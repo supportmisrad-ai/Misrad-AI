@@ -204,6 +204,8 @@ export async function createNexusUser(params: { orgId: string; input: Omit<User,
       ),
       twoFactorEnabled: false,
       isSuperAdmin: requester.isSuperAdmin ? Boolean(body.isSuperAdmin) : false,
+      managerId: body.managerId ?? null,
+      managed_department: body.managedDepartment ?? null,
     },
   });
 
