@@ -251,7 +251,7 @@ export default function OperationsShell({
         />
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
-          <div className="flex flex-col min-h-0 pb-24 md:pb-0">{children}</div>
+          <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
         </div>
       </main>
 

@@ -552,7 +552,7 @@ export const Layout = ({ children }: LayoutProps) => {
         />
 
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0 touch-pan-y" id="main-scroll-container" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="flex flex-col min-h-0 pb-24 md:pb-0">
+          <div className="flex flex-col min-h-0 pb-36 md:pb-0">
             {children}
           </div>
         </main>

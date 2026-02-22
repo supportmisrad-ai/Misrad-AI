@@ -138,13 +138,6 @@ export function AiAssistantWidget() {
   const [feedbackHelpful, setFeedbackHelpful] = useState<boolean | null>(null);
 
   const messagesRef = useRef<ChatMessage[]>([]);
-  const [typedById, setTypedById] = useState<Record<string, string>>({});
-  const typedByIdRef = useRef<Record<string, string>>({});
-  const typingIntervalRef = useRef<any>(null);
-
-  useEffect(() => {
-    typedByIdRef.current = typedById;
-  }, [typedById]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -265,72 +258,6 @@ export function AiAssistantWidget() {
     }
   }
 
-  // Typing animation
-  useEffect(() => {
-    const msgs = (messages as ChatMessage[]).filter((m) => m && m.role === 'assistant');
-    if (!msgs.length) return;
-
-    const pending = msgs.find((m) => {
-      const id = String(m.id);
-      const full = extractText(m);
-      const current = typedByIdRef.current[id] ?? '';
-      return current.length < full.length;
-    });
-
-    if (!pending) return;
-
-    const id = String(pending.id);
-    const full = extractText(pending);
-
-    // If message contains markdown links or URLs, show it immediately
-    const hasLinks = /\[.+?\]\(.+?\)/.test(full) || /https?:\/\//.test(full);
-    if (hasLinks) {
-      setTypedById((prev) => ({ ...prev, [id]: full }));
-      return;
-    }
-
-    if (typingIntervalRef.current) {
-      clearInterval(typingIntervalRef.current);
-      typingIntervalRef.current = null;
-    }
-
-    const step = 3;
-    typingIntervalRef.current = window.setInterval(() => {
-      setTypedById((prev) => {
-        const curr = prev[id] ?? '';
-        if (curr.length >= full.length) {
-          if (typingIntervalRef.current) {
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-          }
-          return prev;
-        }
-
-        const next = full.slice(0, Math.min(full.length, curr.length + step));
-        if (next === curr) return prev;
-        return { ...prev, [id]: next };
-      });
-
-      const el = endRef.current;
-      if (el) el.scrollIntoView({ behavior: 'auto' });
-    }, 15);
-
-    return () => {
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-        typingIntervalRef.current = null;
-      }
-    };
-  }, [messages]);
-
-  useEffect(() => {
-    return () => {
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-        typingIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -652,9 +579,7 @@ export function AiAssistantWidget() {
                           const text = extractText(m);
                           const isUser = m.role === 'user';
                           const id = String(m.id);
-                          const typed = typedById[id] ?? '';
-                          const isTyping = !isUser && typed.length < text.length;
-                          const displayText = isTyping ? typed : text;
+                          const displayText = text;
                           
                           return (
                             <div key={id} className="space-y-2">
@@ -676,14 +601,13 @@ export function AiAssistantWidget() {
                                         content={displayText}
                                         className="[&_p]:first:mt-0 [&_p]:last:mb-0 [&_p]:text-[16px] [&_p]:leading-relaxed"
                                       />
-                                      {isTyping && <span className="opacity-70 ml-1">▍</span>}
                                     </div>
                                   )}
                                 </div>
                               </div>
 
                               {/* Quick Actions */}
-                              {!isUser && m.quickActions && m.quickActions.length > 0 && !isTyping && (
+                              {!isUser && m.quickActions && m.quickActions.length > 0 && (
                                 <div className="flex gap-1.5 sm:gap-2 flex-wrap pr-1 sm:pr-2">
                                   {m.quickActions.map((action, idx) => (
                                     <button

@@ -355,7 +355,51 @@ async function POSTHandler(request: NextRequest) {
         });
 
         const newClient = mapClientRow(created);
-        
+
+        // ── Cross-sync: Nexus → ClientClient (if org has Client module) ──
+        if (workspace.entitlements?.client) {
+            try {
+                const syncEmail = String(clientData.email || '').trim().toLowerCase();
+                const syncPhone = String(clientData.phone || '').trim();
+                const syncName = String(clientData.companyName || clientData.name || '').trim();
+
+                let existingCC: { id: string } | null = null;
+                if (syncEmail) {
+                    existingCC = await prisma.clientClient.findFirst({
+                        where: { organizationId: workspace.id, email: { equals: syncEmail, mode: 'insensitive' } },
+                        select: { id: true },
+                    });
+                }
+
+                if (existingCC?.id) {
+                    await prisma.clientClient.updateMany({
+                        where: { id: existingCC.id, organizationId: workspace.id },
+                        data: {
+                            fullName: syncName,
+                            phone: syncPhone || undefined,
+                            email: syncEmail || undefined,
+                            metadata: { source: 'nexus_sync', nexusClientId: newClient.id },
+                        },
+                    });
+                } else {
+                    await prisma.clientClient.create({
+                        data: {
+                            organizationId: workspace.id,
+                            fullName: syncName,
+                            phone: syncPhone || null,
+                            email: syncEmail || null,
+                            metadata: { source: 'nexus_sync', nexusClientId: newClient.id },
+                        },
+                        select: { id: true },
+                    });
+                }
+            } catch (syncError: unknown) {
+                const syncMsg = getErrorMessage(syncError);
+                if (IS_PROD) console.warn('[API] Nexus→ClientClient sync failed (ignored)');
+                else console.warn('[API] Nexus→ClientClient sync failed:', syncMsg);
+            }
+        }
+
         await logAuditEvent('data.write', 'client', {
             resourceId: newClient.id,
             details: { createdBy: user.id }

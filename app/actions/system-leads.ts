@@ -1016,6 +1016,78 @@ export async function createSystemLeadActivity(params: {
   }
 }
 
+async function upsertNexusClientByEmail(params: {
+  organizationId: string;
+  fullName: string;
+  companyName: string;
+  email: string;
+  phone?: string | null;
+  source?: string | null;
+}): Promise<{ nexusClientId: string | null }> {
+  const organizationId = params.organizationId;
+  const phone = String(params.phone || '').trim();
+
+  // NexusClient has a unique constraint on (organizationId, phone)
+  if (phone) {
+    const existing = await prisma.nexusClient.findFirst({
+      where: { organizationId, phone },
+      select: { id: true },
+    });
+
+    if (existing?.id) {
+      await prisma.nexusClient.updateMany({
+        where: { id: existing.id, organizationId },
+        data: {
+          name: params.fullName,
+          companyName: params.companyName || params.fullName,
+          email: params.email,
+          source: params.source || 'system_leads',
+        },
+      });
+      return { nexusClientId: existing.id };
+    }
+  }
+
+  // Fallback: check by email
+  const email = String(params.email || '').trim().toLowerCase();
+  if (email) {
+    const existing = await prisma.nexusClient.findFirst({
+      where: { organizationId, email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+
+    if (existing?.id) {
+      await prisma.nexusClient.updateMany({
+        where: { id: existing.id, organizationId },
+        data: {
+          name: params.fullName,
+          companyName: params.companyName || params.fullName,
+          phone: phone || undefined,
+          source: params.source || 'system_leads',
+        },
+      });
+      return { nexusClientId: existing.id };
+    }
+  }
+
+  // Create new NexusClient
+  const created = await prisma.nexusClient.create({
+    data: {
+      organizationId,
+      name: params.fullName,
+      companyName: params.companyName || params.fullName,
+      contactPerson: params.fullName,
+      email: email || '',
+      phone: phone || '',
+      status: 'Active',
+      source: params.source || 'system_leads',
+    },
+    select: { id: true },
+  });
+
+  return { nexusClientId: created?.id ?? null };
+}
+
 async function upsertClientClientByEmail(params: {
   organizationId: string;
   fullName: string;
@@ -1174,17 +1246,45 @@ export async function updateSystemLeadStatus(params: {
         phone: lead.phone || null,
       });
 
-      const synced = await upsertClientClientByEmail({
-        organizationId,
-        fullName: lead.company?.trim() ? lead.company.trim() : lead.name,
-        email,
-        phone: lead.phone || null,
-        metadata: {
-          source: 'system_leads',
-          systemLeadId: lead.id,
-          canonicalClientId: canonical.canonicalClientId,
-        },
-      });
+      // ── Sync to Nexus client list (if org has Nexus) ──
+      let nexusClientId: string | null = null;
+      if (workspace.entitlements?.nexus) {
+        try {
+          const nexusSynced = await upsertNexusClientByEmail({
+            organizationId,
+            fullName: lead.name,
+            companyName: lead.company?.trim() || lead.name,
+            email,
+            phone: lead.phone || null,
+            source: 'system_leads',
+          });
+          nexusClientId = nexusSynced.nexusClientId;
+        } catch (e: unknown) {
+          logger.error('system-leads', 'failed to sync lead to NexusClient', e);
+        }
+      }
+
+      // ── Sync to Client module (if org has Client) ──
+      let syncedClientId: string | null = null;
+      if (workspace.entitlements?.client) {
+        try {
+          const synced = await upsertClientClientByEmail({
+            organizationId,
+            fullName: lead.company?.trim() ? lead.company.trim() : lead.name,
+            email,
+            phone: lead.phone || null,
+            metadata: {
+              source: 'system_leads',
+              systemLeadId: lead.id,
+              canonicalClientId: canonical.canonicalClientId,
+              nexusClientId,
+            },
+          });
+          syncedClientId = synced.clientId;
+        } catch (e: unknown) {
+          logger.error('system-leads', 'failed to sync lead to ClientClient', e);
+        }
+      }
 
       const canonicalClientId = canonical.canonicalClientId;
 
@@ -1244,7 +1344,7 @@ export async function updateSystemLeadStatus(params: {
         }
       }
 
-      return { ok: true, lead, syncedClientId: synced.clientId };
+      return { ok: true, lead, syncedClientId: syncedClientId || nexusClientId };
     },
     { source: 'server_actions_system_leads', reason: 'updateSystemLeadStatus' }
   );

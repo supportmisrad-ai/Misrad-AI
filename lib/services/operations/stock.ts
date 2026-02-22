@@ -23,7 +23,6 @@ import {
 import { getOperationsVehiclesByOrganizationId } from '@/lib/services/operations/vehicles';
 import type {
   OperationsHolderStockRow,
-  OperationsInventoryData,
   OperationsInventoryOption,
   OperationsStockSourceOption,
   OperationsVehicleRow,
@@ -116,56 +115,69 @@ async function getOperationsStockSourceOptionsForOrganizationId(params: {
   vehicles: OperationsVehicleRow[];
 }): Promise<{ success: boolean; data?: OperationsStockSourceOption[]; error?: string }> {
   try {
-    const warehouseHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
-    const warehouseLabel = await resolveOperationsStockHolderLabel({ organizationId: params.organizationId, holderId: warehouseHolderId });
+    // Phase 1: Warehouse holder + tech assignment query in parallel
+    const [warehouseHolderId, techRows] = await Promise.all([
+      ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId }),
+      orgQuery<unknown[]>(
+        prisma,
+        params.organizationId,
+        `
+          SELECT
+            p.id::text as technician_id,
+            COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text) as technician_label,
+            a.vehicle_id::text as vehicle_id,
+            v.name as vehicle_name
+          FROM operations_technician_vehicle_assignments a
+          JOIN profiles p
+            ON p.id = a.technician_id
+           AND p.organization_id = a.organization_id
+          JOIN operations_vehicles v
+            ON v.id = a.vehicle_id
+           AND v.organization_id = a.organization_id
+          WHERE a.organization_id = $1::uuid
+            AND a.active = true
+          ORDER BY lower(COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text)) ASC
+        `,
+        [params.organizationId]
+      ),
+    ]);
 
-    const vehicleOptions: OperationsStockSourceOption[] = [];
-    for (const v of params.vehicles || []) {
-      const holderId = await ensureOperationsVehicleHolderId({
+    // Phase 2: Resolve warehouse label + all vehicle holders in parallel
+    // (Previously: sequential loop with await per vehicle)
+    const vehicleHolderPromises = (params.vehicles || []).map((v) =>
+      ensureOperationsVehicleHolderId({
         organizationId: params.organizationId,
         vehicleId: v.id,
         label: v.name,
-      });
-      vehicleOptions.push({ holderId, label: v.name, group: 'VEHICLE' });
-    }
-
-    const techRows = await orgQuery<unknown[]>(
-      prisma,
-      params.organizationId,
-      `
-        SELECT
-          p.id::text as technician_id,
-          COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text) as technician_label,
-          a.vehicle_id::text as vehicle_id,
-          v.name as vehicle_name
-        FROM operations_technician_vehicle_assignments a
-        JOIN profiles p
-          ON p.id = a.technician_id
-         AND p.organization_id = a.organization_id
-        JOIN operations_vehicles v
-          ON v.id = a.vehicle_id
-         AND v.organization_id = a.organization_id
-        WHERE a.organization_id = $1::uuid
-          AND a.active = true
-        ORDER BY lower(COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text)) ASC
-      `,
-      [params.organizationId]
+      }).then((holderId) => ({ holderId, label: v.name, group: 'VEHICLE' as const }))
     );
 
-    const techOptions: OperationsStockSourceOption[] = [];
-    for (const r of techRows || []) {
-      const obj = asObject(r) ?? {};
-      const vehicleId = String(obj.vehicle_id ?? '').trim();
-      const vehicleName = String(obj.vehicle_name ?? '').trim();
-      if (!vehicleId) continue;
-      const holderId = await ensureOperationsVehicleHolderId({
+    const techVehicleIds = (techRows || [])
+      .map((r) => {
+        const obj = asObject(r) ?? {};
+        const vehicleId = String(obj.vehicle_id ?? '').trim();
+        const vehicleName = String(obj.vehicle_name ?? '').trim();
+        const techLabel = String(obj.technician_label ?? '');
+        return vehicleId ? { vehicleId, vehicleName, techLabel } : null;
+      })
+      .filter(Boolean) as { vehicleId: string; vehicleName: string; techLabel: string }[];
+
+    const techHolderPromises = techVehicleIds.map((t) =>
+      ensureOperationsVehicleHolderId({
         organizationId: params.organizationId,
-        vehicleId,
-        label: vehicleName,
-      });
-      const label = `${String(obj.technician_label ?? '')} (${vehicleName})`;
-      techOptions.push({ holderId, label, group: 'TECHNICIAN' });
-    }
+        vehicleId: t.vehicleId,
+        label: t.vehicleName,
+      }).then((holderId) => ({ holderId, label: `${t.techLabel} (${t.vehicleName})`, group: 'TECHNICIAN' as const }))
+    );
+
+    const [warehouseLabel, ...allHolders] = await Promise.all([
+      resolveOperationsStockHolderLabel({ organizationId: params.organizationId, holderId: warehouseHolderId }),
+      ...vehicleHolderPromises,
+      ...techHolderPromises,
+    ]);
+
+    const vehicleOptions = allHolders.filter((h) => h.group === 'VEHICLE') as OperationsStockSourceOption[];
+    const techOptions = allHolders.filter((h) => h.group === 'TECHNICIAN') as OperationsStockSourceOption[];
 
     const data: OperationsStockSourceOption[] = [];
     data.push({ holderId: warehouseHolderId, label: warehouseLabel || 'מחסן', group: 'WAREHOUSE' });
@@ -367,8 +379,10 @@ async function transferOperationsStockToVehicleForOrganizationId(params: {
     if (!vFirst?.id) return { success: false, error: 'רכב לא נמצא או שאין הרשאה' };
     const vehicleName = String(vFirst.name);
 
-    const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
-    const vehicleHolderId = await ensureOperationsVehicleHolderId({ organizationId: params.organizationId, vehicleId, label: vehicleName });
+    const [whHolderId, vehicleHolderId] = await Promise.all([
+      ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId }),
+      ensureOperationsVehicleHolderId({ organizationId: params.organizationId, vehicleId, label: vehicleName }),
+    ]);
 
     await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       // Best effort ensure rows exist
@@ -489,12 +503,14 @@ async function addOperationsStockToActiveVehicleForOrganizationId(params: {
     const vehicleId = vehicleIdVal;
     const vehicleName = firstRowField(rows, 'vehicle_name') || 'רכב';
 
-    const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
-    const vehicleHolderId = await ensureOperationsVehicleHolderId({
-      organizationId: params.organizationId,
-      vehicleId,
-      label: vehicleName,
-    });
+    const [whHolderId, vehicleHolderId] = await Promise.all([
+      ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId }),
+      ensureOperationsVehicleHolderId({
+        organizationId: params.organizationId,
+        vehicleId,
+        label: vehicleName,
+      }),
+    ]);
 
     await prismaForInteractiveTransaction().$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.operationsInventory.upsert({
@@ -870,43 +886,6 @@ async function getOperationsMaterialsForWorkOrderForOrganizationId(params: {
   } catch (e: unknown) {
     logOperationsError('[operations] getOperationsMaterialsForWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת חומרים לקריאה' };
-  }
-}
-
-async function getOperationsInventoryDataForOrganizationId(params: {
-  organizationId: string;
-}): Promise<{ success: boolean; data?: OperationsInventoryData; error?: string }> {
-  try {
-    const rows = await prisma.operationsInventory.findMany({
-      where: { organizationId: params.organizationId },
-      orderBy: { item: { name: 'asc' } },
-      select: {
-        id: true,
-        onHand: true,
-        minLevel: true,
-        item: {
-          select: {
-            name: true,
-            sku: true,
-          },
-        },
-      },
-    });
-
-    const data: OperationsInventoryData = {
-      items: rows.map((r) => ({
-        id: r.id,
-        itemName: r.item.name,
-        sku: r.item.sku,
-        onHand: toNumberSafe(r.onHand),
-        minLevel: toNumberSafe(r.minLevel),
-      })),
-    };
-
-    return { success: true, data };
-  } catch (e: unknown) {
-    logOperationsError('[operations] getOperationsInventoryData failed', e);
-    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
   }
 }
 

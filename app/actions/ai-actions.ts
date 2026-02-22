@@ -122,8 +122,11 @@ export async function generateAIImageAction(prompt: string): Promise<string> {
     const authCheck = await requireAuth();
     if (!authCheck.success) return '';
 
-    // This is a placeholder - actual image generation would use Gemini's image generation API
-    return `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/600`;
+    // AI image generation: generate a descriptive seed for a contextual placeholder.
+    // Full image generation (DALL-E/Gemini Imagen) can be wired here when API is enabled.
+    const sanitized = String(prompt || '').replace(/[^a-zA-Z0-9\u0590-\u05FF ]/g, '').trim().slice(0, 80);
+    const seed = encodeURIComponent(sanitized || 'social-post');
+    return `https://picsum.photos/seed/${seed}/800/600`;
   } catch (error) {
     logger.error('ai-actions', 'Error generating image:', error);
     return '';
@@ -134,16 +137,30 @@ export async function getTrendingOpportunitiesAction(): Promise<AIOpportunity[]>
   const authCheck = await requireAuth();
   if (!authCheck.success) return [];
 
-  // Returns empty array - to be implemented with real AI analysis
+  // Trending opportunities require external data sources (Google Trends, social listening)
+  // which are not yet integrated. Returns empty until external API integration.
   return [];
 }
 
 export async function getBusinessAuditAction(clientId: string): Promise<string> {
-  const authCheck = await requireAuth();
-  if (!authCheck.success) return '';
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) return '';
+    if (!clientId) return '';
 
-  // Returns empty object - to be implemented with real AI analysis
-  return '';
+    const ai = AIService.getInstance();
+    const prompt = `בצע ביקורת עסקית קצרה (3-5 משפטים) ללקוח מספר ${clientId}. התמקד בנקודות חוזק, סיכונים ותחומים לשיפור. אם אין לך מידע ספציפי — ציין זאת בכנות ותן המלצות כלליות.`;
+
+    const out = await ai.generateText({
+      featureKey: 'social.business_audit',
+      prompt,
+    });
+
+    return out.text || 'לא ניתן לבצע ביקורת כרגע. נסה שוב מאוחר יותר.';
+  } catch (error) {
+    logger.error('ai-actions', 'Error getting business audit:', error);
+    return 'שגיאה בביצוע ביקורת';
+  }
 }
 
 export async function draftAIResponseAction(message: string, context: string): Promise<string> {

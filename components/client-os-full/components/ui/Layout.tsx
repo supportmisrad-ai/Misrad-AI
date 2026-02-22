@@ -470,7 +470,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         />
 
         <main id="main-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0">
-          <div className="flex flex-col min-h-0 pb-24 md:pb-0">{children}</div>
+          <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
         </main>
       </main>
 

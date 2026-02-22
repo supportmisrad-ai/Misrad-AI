@@ -711,6 +711,61 @@ export async function createClientForWorkspace(
 
     const client = mapClientClientToSocialClient(row);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+
+    // ── Cross-sync: ClientClient → NexusClient (if org has Nexus module) ──
+    const metaSource = String(asRecord(row.metadata).source ?? '');
+    const skipNexusSync = metaSource === 'nexus_sync' || metaSource === 'system_leads';
+    if (workspace.entitlements?.nexus && !skipNexusSync) {
+      try {
+        const syncPhone = String(clientData.phone || '').trim();
+        const syncEmail = normalizedEmail;
+        const syncName = requiredName;
+        const syncCompany = requiredCompanyName;
+
+        let existingNexus: { id: string } | null = null;
+        if (syncPhone) {
+          existingNexus = await prisma.nexusClient.findFirst({
+            where: { organizationId, phone: syncPhone },
+            select: { id: true },
+          });
+        }
+        if (!existingNexus?.id && syncEmail) {
+          existingNexus = await prisma.nexusClient.findFirst({
+            where: { organizationId, email: { equals: syncEmail, mode: 'insensitive' } },
+            select: { id: true },
+          });
+        }
+
+        if (existingNexus?.id) {
+          await prisma.nexusClient.updateMany({
+            where: { id: existingNexus.id, organizationId },
+            data: {
+              name: syncName,
+              companyName: syncCompany,
+              email: syncEmail || undefined,
+              source: 'client_sync',
+            },
+          });
+        } else {
+          await prisma.nexusClient.create({
+            data: {
+              organizationId,
+              name: syncName,
+              companyName: syncCompany,
+              contactPerson: syncName,
+              email: syncEmail || '',
+              phone: syncPhone || '',
+              status: 'Active',
+              source: 'client_sync',
+            },
+            select: { id: true },
+          });
+        }
+      } catch (syncErr: unknown) {
+        logger.error('clients', 'ClientClient→NexusClient sync failed (ignored)', syncErr);
+      }
+    }
+
     revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {

@@ -464,8 +464,10 @@ export const useAuth = (
                     });
                 }
 
-                // Also refresh from server for eventual consistency
-                void refreshTimeEntries();
+                // Delayed refresh for eventual consistency — wait for any in-flight
+                // GPS + API calls to complete before hitting the server, otherwise we
+                // may fetch stale data that reverts the optimistic update above.
+                setTimeout(() => void refreshTimeEntries(), 12_000);
             };
             bc.addEventListener('message', handler);
             return () => {

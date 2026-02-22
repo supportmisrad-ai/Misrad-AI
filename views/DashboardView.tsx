@@ -15,6 +15,7 @@ import { isCeoRole } from '@/lib/constants/roles';
 import { DashboardOnboarding, DashboardOwnerPanel, DashboardQuickActions, DashboardKPIWidgets, DashboardFocusTasks } from './dashboard';
 import type { OnboardingStep } from './dashboard';
 import { listNexusUsers } from '@/app/actions/nexus';
+import { AIAttentionCard } from '@/components/ai/AIAttentionCard';
 
 type OwnerDashboardAction = {
     id: string;
@@ -773,6 +774,11 @@ export const DashboardView: React.FC<{
                             .finally(() => setIsPilotLoading(false));
                     }}
                 />
+            )}
+
+            {/* ===== SECTION 2.5: AI ATTENTION CARD ===== */}
+            {workspaceOrgSlug && (
+                <AIAttentionCard orgSlug={workspaceOrgSlug} maxAlerts={3} />
             )}
 
             {/* ===== SECTION 3: QUICK ACTIONS ===== */}
