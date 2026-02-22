@@ -77,7 +77,7 @@ export default async function NexusLayoutShell({
 
   const initialCurrentUser = {
     id: clerk?.id || '',
-    name: rawProfileName || clerk?.fullName ?? clerk?.username ?? '',
+    name: rawProfileName || (clerk?.fullName ?? clerk?.username ?? ''),
     role: normalizedRole || 'עובד',
     avatar: signedAvatar || clerk?.imageUrl || '',
     online: true,

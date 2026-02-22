@@ -48,7 +48,7 @@ export default function AdminPanelLayout({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-100/20 rounded-full blur-[200px]"></div>
 
       {/* Mobile Tab Bar */}
-      <div className="md:hidden relative z-10 bg-white/90 backdrop-blur-sm border-b border-indigo-200 shrink-0">
+      <div className="md:hidden relative z-10 bg-white border-b border-indigo-200 shrink-0">
         <div className="px-4 pt-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-black tracking-tight text-slate-900">ניהול מערכת</h1>

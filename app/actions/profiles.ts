@@ -315,7 +315,7 @@ export async function upsertMyProfile(params: {
             organizationId: String(organizationId),
             clerkUserId: String(clerkUserId),
           },
-          select: { id: true, email: true },
+          select: { id: true, email: true, uiPreferences: true },
         });
 
         // Bootstrap profile if it doesn't exist yet
@@ -345,22 +345,14 @@ export async function upsertMyProfile(params: {
         if (typeof params.updates.notificationPreferences !== 'undefined')
           patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
         if (typeof params.updates.uiPreferences !== 'undefined') {
-          // Merge uiPreferences with existing values instead of replacing
-          try {
-            const existing = await prisma.profile.findFirst({
-              where: { id: profileId, organizationId: String(organizationId) },
-              select: { uiPreferences: true },
-            });
-            const existingPrefs = existing?.uiPreferences && typeof existing.uiPreferences === 'object' && !Array.isArray(existing.uiPreferences)
-              ? existing.uiPreferences as Record<string, unknown>
-              : {};
-            const incoming = params.updates.uiPreferences && typeof params.updates.uiPreferences === 'object' && !Array.isArray(params.updates.uiPreferences)
-              ? params.updates.uiPreferences as Record<string, unknown>
-              : {};
-            patch.uiPreferences = normalizeJson({ ...existingPrefs, ...incoming });
-          } catch {
-            patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
-          }
+          // Server-side merge for uiPreferences
+          const existingPrefs = profileRow.uiPreferences && typeof profileRow.uiPreferences === 'object' && !Array.isArray(profileRow.uiPreferences)
+            ? profileRow.uiPreferences as Record<string, unknown>
+            : {};
+          const incoming = params.updates.uiPreferences && typeof params.updates.uiPreferences === 'object' && !Array.isArray(params.updates.uiPreferences)
+            ? params.updates.uiPreferences as Record<string, unknown>
+            : {};
+          patch.uiPreferences = normalizeJson({ ...existingPrefs, ...incoming });
         }
         if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
         if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
@@ -377,7 +369,7 @@ export async function upsertMyProfile(params: {
           return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
         }
 
-        // Keep nexusUser.avatar in sync when avatar is changed in profile
+        // Keep nexusUser.avatar in sync when avatar is changed
         if (typeof params.updates.avatarUrl !== 'undefined') {
           try {
             const email = typeof profileRow.email === 'string' ? profileRow.email : null;
@@ -388,7 +380,7 @@ export async function upsertMyProfile(params: {
               });
             }
           } catch {
-            // best-effort sync — profile is the source of truth
+            // best-effort sync
           }
         }
 

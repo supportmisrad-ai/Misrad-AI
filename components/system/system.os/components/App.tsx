@@ -279,7 +279,7 @@ const SystemOSApp = () => {
 
       <main className="main-content">
           {/* Header strictly for utility tools and profile - Simplified and Clean */}
-          <header className="header mb-4 relative md:relative sticky top-0 z-40 bg-white/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none px-4 md:px-0 py-4 md:py-2 shadow-sm md:shadow-none border-b border-slate-200/50 md:border-none rounded-b-[32px] justify-end">
+          <header className="header mb-4 relative z-40 bg-white md:bg-transparent md:backdrop-blur-none px-4 md:px-0 py-4 md:py-2 shadow-sm md:shadow-none border-b border-slate-200/50 md:border-none rounded-b-[32px] justify-end">
             <div className="flex items-center gap-2 md:gap-4 mt-0 justify-end w-full">
                 <div className="hidden md:block">{getHeaderActions()}</div>
 
