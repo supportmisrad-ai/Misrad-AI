@@ -178,18 +178,19 @@ export const TutorialOverlay: React.FC = () => {
 
         if (!rect || position === 'center') {
             const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
             const safeGap = mobile ? MOBILE_PADDING : GAP;
             const maxAllowedWidth = windowWidth - (safeGap * 2);
             const tooltipWidth = mobile ? TOOLTIP_WIDTH_MOBILE : TOOLTIP_WIDTH;
             const finalWidth = Math.min(tooltipWidth, maxAllowedWidth);
+            const estimatedHeight = mobile ? 240 : 280;
             
             return { 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%)', 
+                top: `${Math.max(safeGap, (windowHeight - estimatedHeight) / 2)}px`,
+                left: `${Math.max(safeGap, (windowWidth - finalWidth) / 2)}px`,
                 position: 'fixed',
                 zIndex: 10002,
-                width: mobile ? `${finalWidth}px` : undefined,
+                width: `${finalWidth}px`,
                 maxWidth: `${finalWidth}px`
             };
         }
@@ -385,13 +386,6 @@ export const TutorialOverlay: React.FC = () => {
                 style={{
                     ...tooltipStyle,
                     boxSizing: 'border-box',
-                    ...(isMobile && {
-                        maxWidth: `calc(100vw - ${MOBILE_PADDING * 2}px)`,
-                        maxHeight: `calc(100vh - ${MOBILE_PADDING * 2}px)`,
-                        width: `min(${TOOLTIP_WIDTH_MOBILE}px, calc(100vw - ${MOBILE_PADDING * 2}px))`,
-                        left: '50%',
-                        transform: targetRect ? `translateX(-50%)` : 'translate(-50%, -50%)',
-                    })
                 }}
             >
                 {!targetRect && (
