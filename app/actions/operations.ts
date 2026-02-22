@@ -18,8 +18,10 @@ import {
 } from '@/lib/services/operations/locations';
 import {
   createOperationsProjectForOrganizationId,
+  getOperationsProjectByIdForOrganizationId,
   getOperationsProjectOptionsForOrganizationId,
   getOperationsProjectsDataForOrganizationId,
+  updateOperationsProjectForOrganizationId,
 } from '@/lib/services/operations/projects';
 import { getOperationsDashboardDataForOrganizationId } from '@/lib/services/operations/dashboard';
 import {
@@ -112,6 +114,7 @@ import type {
   OperationsInventoryData,
   OperationsInventoryOption,
   OperationsLocationRow,
+  OperationsProjectDetail,
   OperationsProjectOption,
   OperationsProjectsData,
   OperationsStockSourceOption,
@@ -131,6 +134,8 @@ export type { OperationsClientOption } from '@/lib/services/operations/types';
 export type { OperationsDashboardData } from '@/lib/services/operations/types';
 
 export type { OperationsProjectsData } from '@/lib/services/operations/types';
+
+export type { OperationsProjectDetail } from '@/lib/services/operations/types';
 
 export type { OperationsSupplierRow } from '@/lib/services/operations/types';
 
@@ -1003,6 +1008,9 @@ export async function getOperationsWorkOrdersData(params: {
   status?: 'OPEN' | 'ALL' | OperationsWorkOrderStatus;
   projectId?: string;
   assignedTechnicianId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }): Promise<{ success: boolean; data?: OperationsWorkOrdersData; error?: string }> {
   try {
     return await withWorkspaceTenantContext(
@@ -1013,6 +1021,9 @@ export async function getOperationsWorkOrdersData(params: {
           status: params.status,
           projectId: params.projectId,
           assignedTechnicianId: params.assignedTechnicianId,
+          search: params.search,
+          page: params.page,
+          limit: params.limit,
         }),
       { source: 'server_actions_operations', reason: 'getOperationsWorkOrdersData' }
     );
@@ -1022,6 +1033,38 @@ export async function getOperationsWorkOrdersData(params: {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאות',
     };
+  }
+}
+
+export async function bulkUpdateOperationsWorkOrderStatus(params: {
+  orgSlug: string;
+  ids: string[];
+  status: OperationsWorkOrderStatus;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!params.ids.length) return { success: true };
+    const results = await Promise.all(
+      params.ids.map((id) =>
+        withWorkspaceTenantContext(
+          params.orgSlug,
+          async ({ organizationId }) =>
+            await setOperationsWorkOrderStatusForOrganizationId({
+              organizationId,
+              id,
+              status: params.status,
+            }),
+          { source: 'server_actions_operations', reason: 'bulkUpdateOperationsWorkOrderStatus' }
+        )
+      )
+    );
+    const failed = results.filter((r) => !r.success);
+    if (failed.length) {
+      return { success: false, error: `${failed.length} מתוך ${params.ids.length} נכשלו` };
+    }
+    return { success: true };
+  } catch (e: unknown) {
+    logger.error('operations', 'bulkUpdateOperationsWorkOrderStatus failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס מרובה' };
   }
 }
 
@@ -1151,6 +1194,54 @@ export async function setOperationsWorkOrderStatus(params: {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס קריאה',
     };
+  }
+}
+
+export async function getOperationsProjectById(params: {
+  orgSlug: string;
+  id: string;
+}): Promise<{ success: boolean; data?: OperationsProjectDetail; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsProjectByIdForOrganizationId({
+          organizationId,
+          id: params.id,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsProjectById' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'getOperationsProjectById failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הפרויקט' };
+  }
+}
+
+export async function updateOperationsProject(params: {
+  orgSlug: string;
+  id: string;
+  title?: string;
+  status?: string;
+  canonicalClientId?: string | null;
+  installationAddress?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await updateOperationsProjectForOrganizationId({
+          organizationId,
+          id: params.id,
+          title: params.title,
+          status: params.status,
+          canonicalClientId: params.canonicalClientId,
+          installationAddress: params.installationAddress,
+        }),
+      { source: 'server_actions_operations', reason: 'updateOperationsProject' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'updateOperationsProject failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון הפרויקט' };
   }
 }
 

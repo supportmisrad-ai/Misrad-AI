@@ -25,6 +25,8 @@ export default async function OperationsContractorsPage({
   const newTokenRaw = sp.newToken;
   const newToken = newTokenRaw ? String(Array.isArray(newTokenRaw) ? newTokenRaw[0] : newTokenRaw) : null;
   const newTokenLabel = sp.tokenLabel ? String(Array.isArray(sp.tokenLabel) ? sp.tokenLabel[0] : sp.tokenLabel) : null;
+  const tabRaw = sp.tab;
+  const initialTab = tabRaw === 'suppliers' ? 'suppliers' as const : 'contractors' as const;
 
   const suppliersRes = await getOperationsSuppliers({ orgSlug });
   const suppliers = suppliersRes.success ? suppliersRes.data ?? [] : [];
@@ -67,6 +69,7 @@ export default async function OperationsContractorsPage({
       newToken={newToken}
       newTokenLabel={newTokenLabel}
       suppliers={suppliers}
+      initialTab={initialTab}
       createTokenAction={createTokenAction}
       addSupplierAction={addSupplierAction}
       deleteSupplierAction={deleteSupplierAction}

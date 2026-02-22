@@ -10,6 +10,7 @@ interface ContractorsPageClientProps {
   newToken: string | null;
   newTokenLabel: string | null;
   suppliers: OperationsSupplierRow[];
+  initialTab?: 'contractors' | 'suppliers';
   createTokenAction: (formData: FormData) => Promise<void>;
   addSupplierAction: (formData: FormData) => Promise<void>;
   deleteSupplierAction: (formData: FormData) => Promise<void>;
@@ -27,11 +28,12 @@ export default function ContractorsPageClient({
   newToken,
   newTokenLabel,
   suppliers,
+  initialTab,
   createTokenAction,
   addSupplierAction,
   deleteSupplierAction,
 }: ContractorsPageClientProps) {
-  const [activeTab, setActiveTab] = useState<'contractors' | 'suppliers'>('contractors');
+  const [activeTab, setActiveTab] = useState<'contractors' | 'suppliers'>(initialTab || 'contractors');
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">

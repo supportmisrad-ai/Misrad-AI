@@ -16,11 +16,17 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
   status?: 'OPEN' | 'ALL' | OperationsWorkOrderStatus;
   projectId?: string;
   assignedTechnicianId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }): Promise<{ success: boolean; data?: OperationsWorkOrdersData; error?: string }> {
   try {
     const status = params.status || 'OPEN';
     const projectId = params.projectId ? String(params.projectId).trim() : '';
     const assignedTechnicianId = params.assignedTechnicianId ? String(params.assignedTechnicianId).trim() : '';
+    const pageLimit = Math.min(Math.max(params.limit || 25, 1), 100);
+    const page = Math.max(params.page || 1, 1);
+    const offset = (page - 1) * pageLimit;
 
     const values: unknown[] = [params.organizationId];
     let idx = values.length;
@@ -45,6 +51,13 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
       idx += 1;
       values.push(assignedTechnicianId);
       whereSql += ` AND wo.assigned_technician_id = $${idx}::uuid`;
+    }
+
+    const searchTerm = params.search ? String(params.search).trim() : '';
+    if (searchTerm) {
+      idx += 1;
+      values.push(`%${searchTerm}%`);
+      whereSql += ` AND (wo.title ILIKE $${idx}::text OR wo.reporter_name ILIKE $${idx}::text)`;
     }
 
     const rows = await orgQuery<unknown[]>(
@@ -82,9 +95,18 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
           ON bld.id = wo.building_id
         WHERE ${whereSql}
         ORDER BY wo.created_at DESC
+        LIMIT $${idx + 1}::int OFFSET $${idx + 2}::int
       `,
+      [...values, pageLimit, offset]
+    );
+
+    const countRows = await orgQuery<unknown[]>(
+      prisma,
+      params.organizationId,
+      `SELECT COUNT(*)::int as total FROM operations_work_orders wo WHERE ${whereSql}`,
       values
     );
+    const totalCount = Number(asObject((countRows || [])[0])?.total ?? 0);
 
     const technicianIds = Array.from(
       new Set(
@@ -116,6 +138,9 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
     };
 
     const data: OperationsWorkOrdersData = {
+      totalCount,
+      page,
+      limit: pageLimit,
       workOrders: (rows || []).map((r) => {
         const obj = asObject(r) ?? {};
         const assignedId = obj.assigned_technician_id ? String(obj.assigned_technician_id) : '';
