@@ -391,6 +391,125 @@ async function generateAndSendReports(request: NextRequest): Promise<Response> {
           errors.push(`user:${userId}@${org.id}: ${userErr instanceof Error ? userErr.message : String(userErr)}`);
         }
       }
+      // ── Send consolidated report to org owner (CEO/manager) ──
+      if (totalGenerated > 0) {
+        try {
+          const orgFull = await prisma.organization.findUnique({
+            where: { id: org.id },
+            select: { owner_id: true },
+          });
+
+          if (orgFull?.owner_id) {
+            const owner = await prisma.organizationUser.findUnique({
+              where: { id: orgFull.owner_id },
+              select: { email: true, full_name: true },
+            });
+
+            if (owner?.email) {
+              // Fetch all reports for this org+month
+              const allOrgReports = await prisma.attendanceMonthlyReport.findMany({
+                where: { organizationId: org.id, year: targetYear, month: targetMonth },
+                orderBy: { employeeName: 'asc' },
+              });
+
+              if (allOrgReports.length > 0) {
+                const fmtHHMM = (min: number) => {
+                  const h = Math.floor(Math.abs(min) / 60);
+                  const m = Math.abs(min) % 60;
+                  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                };
+
+                const baseUrl = getBaseUrl();
+                const reportsPageUrl = org.slug
+                  ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                  : baseUrl;
+
+                // Build summary table rows
+                const employeeRows = allOrgReports.map((r) => `
+                  <tr style="border-bottom:1px solid #e2e8f0;">
+                    <td style="padding:10px 12px;font-weight:700;font-size:13px;color:#0f172a;">${r.employeeName}</td>
+                    <td style="padding:10px 8px;text-align:center;font-size:13px;">${r.totalPresenceDays}/${r.totalStandardDays}</td>
+                    <td style="padding:10px 8px;text-align:center;font-size:13px;font-weight:700;color:#6366f1;">${fmtHHMM(r.totalPayableMinutes)}</td>
+                    <td style="padding:10px 8px;text-align:center;font-size:13px;color:#059669;">${fmtHHMM(r.overtime125Minutes + r.overtime150Minutes + r.overtime175Minutes + r.overtime200Minutes)}</td>
+                    <td style="padding:10px 8px;text-align:center;font-size:13px;color:#dc2626;">${fmtHHMM(r.absenceMinutes)}</td>
+                  </tr>
+                `).join('');
+
+                const totalPayable = allOrgReports.reduce((s, r) => s + r.totalPayableMinutes, 0);
+                const totalOT = allOrgReports.reduce((s, r) => s + r.overtime125Minutes + r.overtime150Minutes + r.overtime175Minutes + r.overtime200Minutes, 0);
+
+                const consolidatedHtml = generateBaseEmailTemplate({
+                  headerTitle: `סיכום נוכחות ${monthName} ${targetYear}`,
+                  headerSubtitle: `${org.name} — ${allOrgReports.length} עובדים`,
+                  headerIcon: '📊',
+                  bodyContent: `
+                    <div style="font-size:18px;font-weight:900;color:#0f172a;margin-bottom:12px;">שלום ${owner.full_name || 'מנהל'},</div>
+                    <div style="font-size:15px;line-height:1.7;color:#334155;margin-bottom:20px;">
+                      להלן סיכום נוכחות <strong>${monthName} ${targetYear}</strong> עבור כל ${allOrgReports.length} העובדים בארגון.
+                    </div>
+                    <div style="overflow-x:auto;margin:16px 0;">
+                      <table role="presentation" style="width:100%;border-collapse:collapse;border:2px solid #e2e8f0;border-radius:12px;overflow:hidden;" cellpadding="0" cellspacing="0">
+                        <thead>
+                          <tr style="background:#0f172a;">
+                            <th style="padding:10px 12px;text-align:right;font-size:12px;font-weight:800;color:#fff;">עובד</th>
+                            <th style="padding:10px 8px;text-align:center;font-size:12px;font-weight:800;color:#fff;">ימים</th>
+                            <th style="padding:10px 8px;text-align:center;font-size:12px;font-weight:800;color:#fff;">לתשלום</th>
+                            <th style="padding:10px 8px;text-align:center;font-size:12px;font-weight:800;color:#fff;">נוספות</th>
+                            <th style="padding:10px 8px;text-align:center;font-size:12px;font-weight:800;color:#fff;">חוסר</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${employeeRows}
+                        </tbody>
+                        <tfoot>
+                          <tr style="background:#f1f5f9;font-weight:900;">
+                            <td style="padding:10px 12px;font-size:13px;color:#0f172a;">סה"כ (${allOrgReports.length} עובדים)</td>
+                            <td style="padding:10px 8px;text-align:center;font-size:13px;"></td>
+                            <td style="padding:10px 8px;text-align:center;font-size:13px;color:#6366f1;font-weight:900;">${fmtHHMM(totalPayable)}</td>
+                            <td style="padding:10px 8px;text-align:center;font-size:13px;color:#059669;font-weight:900;">${fmtHHMM(totalOT)}</td>
+                            <td style="padding:10px 8px;text-align:center;font-size:13px;"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    <div style="text-align:center;margin:28px 0 8px;">
+                      <a href="${reportsPageUrl}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;font-weight:800;text-decoration:none;border-radius:14px;box-shadow:0 4px 16px rgba(99,102,241,0.3);">צפה בכל הדוחות</a>
+                    </div>
+                  `,
+                });
+
+                await sendEmail({
+                  emailTypeId: 'attendance_monthly_report',
+                  to: owner.email,
+                  subject: `סיכום נוכחות ${monthName} ${targetYear} — ${allOrgReports.length} עובדים — ${org.name}`,
+                  html: consolidatedHtml,
+                });
+
+                // Push notification to owner
+                try {
+                  await sendWebPushNotificationToEmails({
+                    organizationId: org.id,
+                    emails: [owner.email],
+                    payload: {
+                      title: `סיכום נוכחות ${monthName} ${targetYear}`,
+                      body: `${allOrgReports.length} דוחות עובדים מוכנים — סה"כ ${fmtHHMM(totalPayable)} שעות`,
+                      url: org.slug
+                        ? `/w/${encodeURIComponent(org.slug)}/operations/attendance-reports`
+                        : '/me',
+                      tag: `attendance-summary-${targetYear}-${targetMonth}`,
+                      category: 'system',
+                    },
+                  });
+                } catch {
+                  // Push failures are non-critical
+                }
+              }
+            }
+          }
+        } catch (ownerErr: unknown) {
+          errors.push(`owner-summary:${org.id}: ${ownerErr instanceof Error ? ownerErr.message : String(ownerErr)}`);
+        }
+      }
     } catch (orgErr: unknown) {
       errors.push(`org:${org.id}: ${orgErr instanceof Error ? orgErr.message : String(orgErr)}`);
     }

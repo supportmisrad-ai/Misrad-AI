@@ -240,6 +240,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
       { href: '/app/admin/global/data', label: 'דאטה', icon: Server },
       { href: '/app/admin/global/downloads', label: 'הורדות', icon: Server },
+      { href: '/app/admin/global/cron-testing', label: 'טסט CRON', icon: Zap },
     ],
   }), []);
 

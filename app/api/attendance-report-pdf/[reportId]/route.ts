@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getBaseUrl } from '@/lib/utils';
@@ -29,6 +30,8 @@ export async function GET(
     if (!orgSlug || !reportId) {
       return NextResponse.json({ error: 'Missing params' }, { status: 400 });
     }
+
+    await requireWorkspaceAccessByOrgSlugApi(orgSlug);
 
     const resolved = await resolveWorkspaceCurrentUserForApi(orgSlug);
     const workspace = resolved.workspace;
