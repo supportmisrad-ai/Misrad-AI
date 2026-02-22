@@ -326,35 +326,21 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
 
 export async function requireWorkspaceAccessByOrgSlugUi(orgSlug: string): Promise<WorkspaceInfoWithPackage> {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  const clerkUserId = await requireClerkUserId();
-  let socialUser: Awaited<ReturnType<typeof resolveWorkspaceActorUi>>['socialUser'] = null;
-  let isSuperAdmin = false;
-  try {
-    ({ socialUser, isSuperAdmin } = await resolveWorkspaceActorUi(clerkUserId));
-  } catch (e: unknown) {
-    const status = getErrorStatus(e);
-    if (status === 401) {
-      redirect('/login');
-    }
-    if (status === 404) {
-      notFound();
-    }
-    if (status === 503) {
-      redirect('/maintenance');
-    }
-    redirect('/');
-  }
 
-  const { packageType, entitlements } = await getOrganizationPackageEntitlements(
-    workspace.id,
-    isSuperAdmin ? undefined : socialUser?.id,
-    orgSlug
-  );
+  // Entitlements are already user-scoped from the cached access function.
+  // Infer packageType from the org-level flags (entitlements) to avoid redundant DB calls.
+  const packageType = inferOrganizationPackageTypeInternal({
+    has_nexus: workspace.entitlements.nexus,
+    has_system: workspace.entitlements.system,
+    has_social: workspace.entitlements.social,
+    has_finance: workspace.entitlements.finance,
+    has_client: workspace.entitlements.client,
+    has_operations: workspace.entitlements.operations,
+  });
 
   return {
     ...workspace,
     packageType,
-    entitlements,
   };
 }
 

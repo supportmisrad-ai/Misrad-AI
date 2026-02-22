@@ -34,14 +34,19 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
   const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
   const decodedOnceOrgSlug = decodeOnce(orgSlug);
 
-  const { socialUser, isSuperAdmin } = await resolveWorkspaceActorUi(clerkUserId);
-  const org = await resolveOrganizationForWorkspaceAccessUi({
-    orgSlug,
-    decodedOrgSlug,
-    decodedOnceOrgSlug,
-    socialUser,
-  });
+  // Phase 1: Actor + Org resolution are independent — run in parallel
+  // (mirrors the API path pattern which was already parallelized)
+  const [{ socialUser, isSuperAdmin }, org] = await Promise.all([
+    resolveWorkspaceActorUi(clerkUserId),
+    resolveOrganizationForWorkspaceAccessUi({
+      orgSlug,
+      decodedOrgSlug,
+      decodedOnceOrgSlug,
+      socialUser: null,
+    }),
+  ]);
 
+  // Phase 2: Membership check (needs both actor + org)
   const membership = await checkWorkspaceMembership({ org, socialUser, isSuperAdmin });
   if (!membership.allowed) {
     if (WORKSPACE_ACCESS_DEBUG) {

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { Camera, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -11,6 +12,7 @@ interface PersonalSettingsProps {
 
 export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) => {
     const { currentUser, updateUser, addToast } = useData();
+    const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
@@ -92,6 +94,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 }
 
                 updateUser(currentUser.id, { avatar: displayUrl || storageRef });
+                queryClient.invalidateQueries({ queryKey: ['nexus', 'me'] });
                 addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
             } catch (err: unknown) {
                 addToast((err instanceof Error ? err.message : String(err)) || 'שגיאה בעדכון תמונת פרופיל', 'error');
@@ -180,6 +183,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             location: form.location,
             bio: form.bio
         });
+        queryClient.invalidateQueries({ queryKey: ['nexus', 'me'] });
         setIsSaving(false);
         addToast('הפרופיל עודכן בהצלחה', 'success');
         onClose();

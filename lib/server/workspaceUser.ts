@@ -100,13 +100,19 @@ async function ensureProfileRow(params: {
   }
 
   if (existing?.id) {
-    // Best-effort: backfill role if missing.
-    if (params.role && !existing.role) {
+    // Best-effort: backfill role and avatar if missing.
+    const needsRoleBackfill = params.role && !existing.role;
+    const needsAvatarBackfill = params.avatarUrl && !existing.avatarUrl;
+    if (needsRoleBackfill || needsAvatarBackfill) {
       try {
+        const backfillData: Record<string, unknown> = { updatedAt: new Date() };
+        if (needsRoleBackfill) backfillData.role = params.role;
+        if (needsAvatarBackfill) backfillData.avatarUrl = params.avatarUrl;
         await prisma.profile.updateMany({
           where: { id: existing.id, organizationId: params.organizationId, clerkUserId: params.clerkUserId },
-          data: { role: params.role, updatedAt: new Date() },
+          data: backfillData,
         });
+        if (needsAvatarBackfill) existing = { ...existing, avatarUrl: params.avatarUrl };
       } catch (error: unknown) {
         if (isNonProd && isPrismaMissingRelationError(error)) {
           throwMissingProfilesTableDevError({ phase: 'update', error });
@@ -211,6 +217,19 @@ async function ensureNexusUserRow(params: {
 }) {
   const existing = await findNexusUserByEmail({ email: params.email, organizationId: params.organizationId });
   if (existing?.id) {
+    // Backfill avatar from Clerk if nexus user has no avatar
+    const existingObj = asObject(existing) ?? {};
+    const currentAvatar = typeof existingObj.avatar === 'string' ? existingObj.avatar : '';
+    if (params.avatarUrl && !currentAvatar) {
+      try {
+        await prisma.nexusUser.updateMany({
+          where: { id: String(existing.id) },
+          data: { avatar: params.avatarUrl },
+        });
+      } catch {
+        // best-effort backfill
+      }
+    }
     return existing;
   }
 
