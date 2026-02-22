@@ -203,16 +203,6 @@ export default function SocialFrame({
     [resolvedUser.avatarUrl, resolvedUser.name]
   );
 
-  const mobileLeadingSlot = (
-    <button
-      type="button"
-      onClick={() => setIsMobileMenuOpen(true)}
-      className="w-10 h-10 rounded-full bg-white/70 border border-white/60 text-slate-700 flex items-center justify-center shadow-sm"
-      aria-label="פתח תפריט"
-    >
-      <SquareMousePointer size={18} />
-    </button>
-  );
 
   const notificationsSlot = (
     <button
@@ -247,14 +237,13 @@ export default function SocialFrame({
       { id: 'calendar', label: 'אירועים', view: 'calendar', icon: 'Calendar' },
       { id: 'inbox', label: 'הודעות', view: 'inbox', icon: 'MessageSquare' },
       { id: 'workspace', label: 'סביבת עבודה', view: 'workspace', icon: 'LayoutGrid', requiresClient: true },
-      { id: 'machine', label: 'פוסט בקליק ✨', view: 'machine', icon: 'Sparkles', requiresClient: true },
-      { id: 'campaigns', label: 'קמפיינים', view: 'campaigns', icon: 'Megaphone', requiresClient: true },
-      { id: 'analytics', label: 'אנליטיקה', view: 'analytics', icon: 'BarChart3', requiresClient: true },
+      { id: 'machine', label: 'פוסט בקליק ✨', view: 'machine', icon: 'Sparkles' },
+      { id: 'campaigns', label: 'קמפיינים', view: 'campaigns', icon: 'Megaphone' },
+      { id: 'analytics', label: 'אנליטיקה', view: 'analytics', icon: 'BarChart3' },
       ...(isTeamEnabled || isTeamManagementEnabled ? [{ id: 'team', label: 'צוות', view: 'team', icon: 'Users' }] : []),
       { id: 'collection', label: 'גבייה', view: 'collection', icon: 'Wallet' },
       { id: 'agency-insights', label: 'תובנות', view: 'agency-insights', icon: 'TrendingUp' },
       { id: 'settings', label: 'הגדרות', view: 'settings', icon: 'Settings' },
-      { id: 'profile', label: 'פרופיל', view: 'profile', icon: 'User' },
     ],
     [isTeamEnabled, isTeamManagementEnabled]
   );
@@ -354,7 +343,7 @@ export default function SocialFrame({
               fallbackIcon: <OSModuleSquircleIcon moduleKey="social" boxSize={32} iconSize={16} className="shadow-none" />,
               badgeModuleKey: 'social',
             }}
-            mobileLeadingSlot={mobileLeadingSlot}
+            mobileLeadingSlot={undefined}
             onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
             onOpenSupportAction={() => setIsHelpModalOpen(true)}
             actionsSlot={<ModuleHelpVideos moduleKey="social" />}
@@ -412,8 +401,45 @@ export default function SocialFrame({
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
 
+              {/* כללי */}
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">כללי</div>
               <div className="grid grid-cols-4 gap-4">
-                {menuItems.map((item) => {
+                {menuItems.filter(i => ['dashboard','all-clients','calendar','inbox'].includes(i.id)).map((item) => {
+                  const isActiveItem = currentView === item.view;
+                  const IconComponent = iconMap[item.icon] || Icons.Home;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onNavigateAction(getRouteForView(item.view));
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                          isActiveItem
+                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* תוכן ויצירה */}
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4"></div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">תוכן ויצירה</div>
+              <div className="grid grid-cols-4 gap-4">
+                {menuItems.filter(i => ['workspace','machine','campaigns','analytics'].includes(i.id)).map((item) => {
                   const isActiveItem = currentView === item.view;
                   const IconComponent = iconMap[item.icon] || Icons.Home;
                   return (
@@ -434,17 +460,13 @@ export default function SocialFrame({
                       <div
                         className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
                           isActiveItem
-                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                            ? 'bg-indigo-600 text-white shadow-indigo-600/20 border-indigo-600'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-white'
                         }`}
                       >
                         <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
                       </div>
-                      <span
-                        className={`text-[10px] font-bold text-center leading-tight ${
-                          isActiveItem ? 'text-slate-900' : 'text-slate-500'
-                        }`}
-                      >
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-indigo-700' : 'text-slate-500'}`}>
                         {item.label}
                       </span>
                     </button>
@@ -452,10 +474,45 @@ export default function SocialFrame({
                 })}
               </div>
 
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+              {/* ניהול */}
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4"></div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">ניהול</div>
+              <div className="grid grid-cols-4 gap-4">
+                {menuItems.filter(i => ['team','collection','agency-insights','settings'].includes(i.id)).map((item) => {
+                  const isActiveItem = currentView === item.view;
+                  const IconComponent = iconMap[item.icon] || Icons.Home;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onNavigateAction(getRouteForView(item.view));
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                          isActiveItem
+                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <IconComponent size={20} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4"></div>
 
               <div className="space-y-3">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">מודולים</div>
                 <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="social" />
               </div>
             </motion.div>

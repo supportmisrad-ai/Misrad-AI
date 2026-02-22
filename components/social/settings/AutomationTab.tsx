@@ -8,6 +8,7 @@ import { AutomationRule } from '@/types/social';
 const CustomToggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () => void }) => (
   <button
     onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    dir="ltr"
     className={`relative w-14 h-7 rounded-full transition-all duration-500 focus:outline-none shadow-inner flex items-center px-1 overflow-hidden shrink-0 ${enabled ? 'bg-blue-600' : 'bg-slate-200'}`}
   >
     <motion.div
@@ -20,6 +21,20 @@ const CustomToggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () =>
 
 export default function AutomationTab() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [nextRuleId, setNextRuleId] = useState(1);
+
+  const addRule = () => {
+    const newRule: AutomationRule = {
+      id: `rule_${nextRuleId}`,
+      title: `חוק חדש #${nextRuleId}`,
+      description: 'תזכורת תשלום אוטומטית ללקוח',
+      type: 'email',
+      triggerDays: 7,
+      isEnabled: true,
+    };
+    setRules(prev => [...prev, newRule]);
+    setNextRuleId(prev => prev + 1);
+  };
 
   const toggleRule = (id: string) => {
     setRules(rules.map(r => r.id === id ? { ...r, isEnabled: !r.isEnabled } : r));
@@ -27,6 +42,10 @@ export default function AutomationTab() {
 
   const updateTrigger = (id: string, days: number) => {
     setRules(rules.map(r => r.id === id ? { ...r, triggerDays: days } : r));
+  };
+
+  const deleteRule = (id: string) => {
+    setRules(prev => prev.filter(r => r.id !== id));
   };
 
   return (
@@ -46,7 +65,7 @@ export default function AutomationTab() {
                   <p className="text-sm font-bold text-slate-400">הגדר מה קורה כשהלקוח לא משלם בזמן.</p>
                 </div>
               </div>
-              <button className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs flex items-center gap-2">
+              <button onClick={addRule} className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-xs flex items-center gap-2">
                 <Plus size={16}/> הוסף חוק
               </button>
             </div>
@@ -86,7 +105,7 @@ export default function AutomationTab() {
                           />
                         </div>
                         <CustomToggle enabled={rule.isEnabled} onToggle={() => toggleRule(rule.id)} />
-                        <button className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onClick={() => deleteRule(rule.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
                           <Trash2 size={20}/>
                         </button>
                       </div>

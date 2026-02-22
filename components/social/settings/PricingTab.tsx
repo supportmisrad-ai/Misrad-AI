@@ -17,6 +17,7 @@ interface PricingTabProps {
 const CustomToggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () => void }) => (
   <button
     onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    dir="ltr"
     className={`relative w-14 h-7 rounded-full transition-all duration-500 focus:outline-none shadow-inner flex items-center px-1 overflow-hidden shrink-0 ${enabled ? 'bg-blue-600' : 'bg-slate-200'}`}
   >
     <motion.div

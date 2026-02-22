@@ -106,7 +106,7 @@ export default function HelpModal() {
             <div className="flex gap-4 pt-4">
               <button
                 type="button"
-                onClick={() => { setIsHelpModalOpen(false); setIsTourActive(true); }}
+                onClick={() => { setIsHelpModalOpen(false); setTimeout(() => setIsTourActive(true), 300); }}
                 className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black hover:bg-slate-200 transition-all"
               >
                 הדרכת מערכת

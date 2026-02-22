@@ -11,7 +11,7 @@ import { Avatar } from '@/components/Avatar';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
 export default function Campaigns() {
-  const { clients, setIsCampaignWizardOpen, addToast } = useApp();
+  const { clients, setIsCampaignWizardOpen, addToast, orgSlug } = useApp();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -20,11 +20,15 @@ export default function Campaigns() {
   // Load campaigns on mount
   useEffect(() => {
     loadCampaigns();
-  }, []);
+  }, [orgSlug]);
 
   const loadCampaigns = async () => {
+    if (!orgSlug) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
-    const result = await getCampaigns();
+    const result = await getCampaigns(undefined, orgSlug);
     if (result.success && result.data) {
       setCampaigns(result.data);
     } else {

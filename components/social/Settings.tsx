@@ -4,13 +4,15 @@ import React from 'react';
 import { Shield, Globe, Tag, Zap, Bot, Users, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import PricingTab from './settings/PricingTab';
-import AutomationTab from './settings/AutomationTab';
-import SocialConnectionsTab from './settings/SocialConnectionsTab';
-import SecurityTab from './settings/SecurityTab';
-import TeamSettingsTab from './settings/TeamSettingsTab';
-import IntegrationsTab from './settings/IntegrationsTab';
-import UpdatesTab from './settings/UpdatesTab';
+import dynamic from 'next/dynamic';
+
+const PricingTab = dynamic(() => import('./settings/PricingTab'), { ssr: false });
+const AutomationTab = dynamic(() => import('./settings/AutomationTab'), { ssr: false });
+const SocialConnectionsTab = dynamic(() => import('./settings/SocialConnectionsTab'), { ssr: false });
+const SecurityTab = dynamic(() => import('./settings/SecurityTab'), { ssr: false });
+const TeamSettingsTab = dynamic(() => import('./settings/TeamSettingsTab'), { ssr: false });
+const IntegrationsTab = dynamic(() => import('./settings/IntegrationsTab'), { ssr: false });
+const UpdatesTab = dynamic(() => import('./settings/UpdatesTab'), { ssr: false });
 
 const SETTINGS_ITEMS = [
   { id: 'updates', label: 'עדכונים', desc: 'עדכוני אפליקציה ושינויים', icon: Sparkles },

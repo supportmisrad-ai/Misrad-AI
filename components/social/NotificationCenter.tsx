@@ -97,16 +97,16 @@ export default function NotificationCenter() {
         <>
           <div className="fixed inset-0 z-[150] bg-black/20 backdrop-blur-sm" onClick={() => setIsNotificationCenterOpen(false)} />
           <motion.div 
-            initial={{ x: '-100%' }}
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            exit={{ x: '100%' }}
             transition={{ 
               type: 'spring', 
               damping: 25, 
               stiffness: 200,
               mass: 0.8
             }}
-            className="fixed top-20 left-0 h-[calc(100vh-5rem)] w-full md:w-[420px] bg-white z-[160] shadow-2xl flex flex-col text-right"
+            className="fixed top-0 right-0 h-full w-full md:w-[420px] bg-white z-[160] shadow-2xl flex flex-col text-right md:rounded-l-[2rem]"
             dir="rtl"
           >
             <div className="px-8 pt-6 pb-6 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">

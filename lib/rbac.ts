@@ -124,17 +124,11 @@ export async function getUserRole(
       const roleResult = await getOrganizationUserRoleFromSupabaseAction(userResult.userId);
       
       if (!roleResult.success || !roleResult.role) {
-        console.error('[getUserRole] Failed to get role:', {
-          success: roleResult.success,
-          role: roleResult.role,
-          error: roleResult.error || 'Unknown error',
-          fullResult: roleResult,
-        });
+        console.warn('[getUserRole] Role not found, defaulting to team_member:', String(roleResult.error || 'no role returned'));
         return 'team_member';
       }
 
       const role = roleResult.role as UserRole;
-      // ✅ REMOVED: Global cache write - no longer caching at this level
 
       return role;
     } else {
@@ -159,17 +153,11 @@ export async function getUserRole(
       const roleResult = await getUserRoleFromSupabaseAction(userResult.userId);
       
       if (!roleResult.success || !roleResult.role) {
-        console.error('[getUserRole] Failed to get role via Server Action:', {
-          success: roleResult.success,
-          role: roleResult.role,
-          error: roleResult.error || 'Unknown error',
-          fullResult: roleResult,
-        });
+        console.warn('[getUserRole] Role not found, defaulting to team_member:', String(roleResult.error || 'no role returned'));
         return 'team_member';
       }
 
       const role = roleResult.role as UserRole;
-      // ✅ REMOVED: Global cache write - no longer caching at this level
 
       return role;
     }
