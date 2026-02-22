@@ -2,6 +2,7 @@
 
 
 import React, { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Student } from './types';
 import { 
     GraduationCap, Users, Calendar, CircleAlert, CircleCheck, 
@@ -79,13 +80,12 @@ const DeliveryView: React.FC<DeliveryViewProps> = ({ students = [], onUpdateStud
                 </div>
                 <div className="flex items-center gap-3 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                     <span className="text-xs font-bold text-slate-500 px-3 border-l border-slate-100">מחזור פעיל:</span>
-                    <select className="bg-transparent border-none text-sm font-bold text-indigo-700 rounded-lg py-1.5 pl-3 pr-8 focus:ring-0 cursor-pointer outline-none" disabled={cohorts.length === 0}>
-                        {cohorts.length === 0 ? (
-                          <option>לא הוגדר</option>
-                        ) : (
-                          cohorts.map(c => <option key={c}>{c}</option>)
-                        )}
-                    </select>
+                    <CustomSelect
+                        value={cohorts.length > 0 ? cohorts[0] : 'לא הוגדר'}
+                        onChange={() => {}}
+                        disabled={cohorts.length === 0}
+                        options={cohorts.length === 0 ? [{ value: 'לא הוגדר', label: 'לא הוגדר' }] : cohorts.map(c => ({ value: c, label: c }))}
+                    />
                 </div>
             </div>
 

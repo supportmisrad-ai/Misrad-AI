@@ -1,7 +1,7 @@
 import React from 'react';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
-import FinanceModuleEntryClient from './FinanceModuleEntryClient';
+import FinanceModuleClient from './FinanceModuleClient';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 /**
@@ -33,8 +33,8 @@ export default async function FinanceLayoutShell({
   };
 
   return (
-    <FinanceModuleEntryClient initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+    <FinanceModuleClient initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
       {children}
-    </FinanceModuleEntryClient>
+    </FinanceModuleClient>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, memo } from 'react';
 import { Lead, PipelineStage, ProductType } from './types';
 import { Phone, MessageSquare, Clock, User, GripVertical, Crown, Users, BookOpen, Flame, Zap, ArrowRight, MoreHorizontal, CircleAlert } from 'lucide-react';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface PipelineBoardProps {
   leads: Lead[];
@@ -236,17 +237,11 @@ const PipelineCard = memo(({
 
                     {isCoarsePointer ? (
                         <div onClick={(e) => e.stopPropagation()}>
-                            <select
+                            <CustomSelect
                                 value={lead.status}
-                                onChange={(e) => onStatusChange(lead.id, e.target.value as PipelineStage)}
-                                className="bg-white border border-slate-200 rounded-full px-3 py-1 text-[11px] font-black text-slate-700"
-                            >
-                                {stages.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.label}
-                                    </option>
-                                ))}
-                            </select>
+                                onChange={(val) => onStatusChange(lead.id, val as PipelineStage)}
+                                options={stages.map((s) => ({ value: s.id, label: s.label }))}
+                            />
                         </div>
                     ) : null}
                     

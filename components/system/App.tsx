@@ -11,7 +11,7 @@ import MarketingView from './MarketingView';
 import CommandPalette from './CommandPalette';
 import NewMeetingModal from './NewMeetingModal';
 import FocusModeView from './FocusModeView';
-import FinanceView from './FinanceView';
+const FinanceView = () => <div className="p-8 text-center text-slate-500">מודול Finance עבר לנתיב /w/[org]/finance</div>;
 import NotificationsView from './NotificationsView';
 import LeadsHub from './LeadsHub';
 import HeadquartersView from '../nexus/HeadquartersView';
@@ -329,7 +329,7 @@ const SystemOSApp = () => {
                               )}
                               {activeTab === 'sales_hub' && <LeadsHub leads={leads} onLeadClick={setSelectedLead} onStatusChange={handleStatusChange} />}
                               {activeTab === 'marketing' && <MarketingView campaigns={storedCampaigns} content={storedContent} onUpdateContent={(c) => setStoredContent(p => p.map(i => i.id === c.id ? c : i))} onAddContent={(c) => setStoredContent(p => [c, ...p])} onAddCampaign={(c) => setStoredCampaigns(p => [c, ...p])} onUpdateCampaign={(c) => setStoredCampaigns(p => p.map(i => i.id === c.id ? c : i))} onDeleteCampaign={(id) => setStoredCampaigns(p => p.filter(i => i.id !== id))} />}
-                              {activeTab === 'finance' && <FinanceView invoices={storedInvoices} onAddInvoice={(i) => setStoredInvoices(p => [i, ...p])} />}
+                              {activeTab === 'finance' && <FinanceView />}
                               {activeTab === 'operations' && <OperationsHub students={storedStudents} leads={leads} onUpdateStudent={(s) => setStoredStudents(p => p.map(i => i.id === s.id ? s : i))} />}
                               {activeTab === 'reports' && <ReportsView leads={leads} campaigns={storedCampaigns} tasks={tasks} />}
                               {activeTab === 'headquarters' && <HeadquartersView onAddTask={(t) => setStoredTasks(p => [t, ...p])} leads={leads} />}

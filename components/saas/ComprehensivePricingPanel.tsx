@@ -10,6 +10,7 @@ import {
 import { useData } from '../../context/DataContext';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 export type SystemType = 'nexus' | 'system' | 'client' | 'social' | 'bundle';
 
@@ -574,15 +575,11 @@ export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ 
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-900 mb-2">מערכת</label>
-                                    <select
-                                        value={newPlan.system}
-                                        onChange={(e) => setNewPlan({ ...newPlan, system: e.target.value as SystemType })}
-                                        className="w-full bg-white/80 border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
-                                    >
-                                        {(Object.keys(systemConfig) as SystemType[]).map(system => (
-                                            <option key={system} value={system}>{systemConfig[system].label}</option>
-                                        ))}
-                                    </select>
+                                    <CustomSelect
+                                        value={newPlan.system || 'nexus'}
+                                        onChange={(val) => setNewPlan({ ...newPlan, system: val as SystemType })}
+                                        options={(Object.keys(systemConfig) as SystemType[]).map(system => ({ value: system, label: systemConfig[system].label }))}
+                                    />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>

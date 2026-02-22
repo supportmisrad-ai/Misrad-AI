@@ -6,6 +6,7 @@ import { AddUserToTenantModal } from './AddUserToTenantModal';
 import Image from 'next/image';
 import { getAdminUsersPage } from '@/app/actions/admin-users';
 import { deleteAdminUser } from '@/app/actions/admin-users';
+import { CustomSelect } from '@/components/CustomSelect';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -230,19 +231,11 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                     </div>
                     <div className="relative w-full md:w-auto">
                         <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                        <select
+                        <CustomSelect
                             value={selectedTenantFilter}
-                            onChange={(e) => setSelectedTenantFilter(e.target.value)}
-                            className="w-full md:w-auto bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-sm text-slate-900 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200/60 transition-all appearance-none cursor-pointer md:min-w-[200px]"
-                        >
-                            <option value="all">כל הטננטים</option>
-                            {uniqueTenants.map((tenant: Tenant) => (
-                                <option key={tenant.id} value={tenant.id}>
-                                    {tenant.name}
-                                </option>
-                            ))}
-                            <option value="none">ללא טננט</option>
-                        </select>
+                            onChange={(val) => setSelectedTenantFilter(val)}
+                            options={[{ value: 'all', label: 'כל הטננטים' }, ...uniqueTenants.map((tenant: Tenant) => ({ value: tenant.id, label: tenant.name })), { value: 'none', label: 'ללא טננט' }]}
+                        />
                     </div>
                 </div>
             </div>

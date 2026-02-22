@@ -5,6 +5,7 @@ import { FormTemplate, FormField, FormStep, FieldType } from '../types';
 import { generateFormTemplate } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
 import { Eye, Plus, Trash2, GripVertical, CircleCheckBig, Link, FileText, ChevronLeft, Upload, LayoutList, Layers, ChevronRight, X, Copy, Edit2, CirclePlay, Calendar, Settings2, MoreHorizontal, Sparkles, ArrowRight } from 'lucide-react';
+import { CustomSelect } from '@/components/CustomSelect';
 
 // --- MOCK TEMPLATES ---
 const MOCK_TEMPLATES: FormTemplate[] = [];
@@ -224,11 +225,12 @@ export const FormsManager: React.FC = () => {
                                 
                                 {field.type === 'SELECT' && (
                                     <div className="relative">
-                                        <select className="w-full p-4 bg-gray-50 border-gray-200 border rounded-xl focus:bg-white focus:border-nexus-primary focus:ring-4 focus:ring-nexus-primary/5 transition-all outline-none text-gray-900 appearance-none">
-                                            <option value="">בחר אפשרות...</option>
-                                            {field.options?.map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
-                                        </select>
-                                        <ChevronLeft className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none -rotate-90" size={20} />
+                                        <CustomSelect
+                                            value=""
+                                            onChange={() => {}}
+                                            placeholder="בחר אפשרות..."
+                                            options={field.options?.map((opt) => ({ value: opt, label: opt })) || []}
+                                        />
                                     </div>
                                 )}
 
@@ -554,19 +556,19 @@ export const FormsManager: React.FC = () => {
 
                                             {/* Control Bar */}
                                             <div className="flex flex-col lg:flex-row lg:items-center gap-3 bg-gray-50/80 p-3 rounded-xl border border-gray-100">
-                                                <select 
+                                                <CustomSelect
                                                     value={field.type}
-                                                    onChange={(e) => handleUpdateField(editingStepId!, field.id, { type: e.target.value as FieldType })}
-                                                    className="w-full lg:w-auto text-xs font-medium bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-700 outline-none focus:border-nexus-primary focus:ring-2 focus:ring-nexus-primary/5 cursor-pointer hover:bg-gray-50"
-                                                >
-                                                    <option value="TEXT">טקסט קצר (Input)</option>
-                                                    <option value="TEXTAREA">פסקה (Textarea)</option>
-                                                    <option value="SELECT">דרופדאון (Select)</option>
-                                                    <option value="RADIO">בחירה יחידה (Radio)</option>
-                                                    <option value="CHECKBOX">ריבוי בחירה (Checkbox)</option>
-                                                    <option value="DATE">תאריך (Date)</option>
-                                                    <option value="UPLOAD">העלאת קובץ (Upload)</option>
-                                                </select>
+                                                    onChange={(val) => handleUpdateField(editingStepId!, field.id, { type: val as FieldType })}
+                                                    options={[
+                                                        { value: 'TEXT', label: 'טקסט קצר (Input)' },
+                                                        { value: 'TEXTAREA', label: 'פסקה (Textarea)' },
+                                                        { value: 'SELECT', label: 'דרופדאון (Select)' },
+                                                        { value: 'RADIO', label: 'בחירה יחידה (Radio)' },
+                                                        { value: 'CHECKBOX', label: 'ריבוי בחירה (Checkbox)' },
+                                                        { value: 'DATE', label: 'תאריך (Date)' },
+                                                        { value: 'UPLOAD', label: 'העלאת קובץ (Upload)' },
+                                                    ]}
+                                                />
 
                                                 <div className="hidden lg:block h-4 w-px bg-gray-300 mx-1"></div>
                                                 

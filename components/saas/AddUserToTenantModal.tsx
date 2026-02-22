@@ -6,6 +6,7 @@ import { X, UserPlus, Mail, User, Shield } from 'lucide-react';
 import { Tenant } from '../../types';
 import { createNexusUser, sendNexusUserInvitation } from '@/app/actions/nexus';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 function getErrorMessage(error: unknown): string {
@@ -198,16 +199,16 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                 <label className="block text-sm font-bold text-slate-700 mb-2">
                                     תפקיד
                                 </label>
-                                <select
+                                <CustomSelect
                                     value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                    className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-4 pl-4 text-sm text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
-                                >
-                                    <option value="עובד">עובד</option>
-                                    <option value="מנהל">מנהל</option>
-                                    <option value="מנכ״ל">מנכ״ל</option>
-                                    <option value="אדמין">אדמין</option>
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, role: val })}
+                                    options={[
+                                        { value: 'עובד', label: 'עובד' },
+                                        { value: 'מנהל', label: 'מנהל' },
+                                        { value: 'מנכ״ל', label: 'מנכ״ל' },
+                                        { value: 'אדמין', label: 'אדמין' },
+                                    ]}
+                                />
                             </div>
 
                             <div>

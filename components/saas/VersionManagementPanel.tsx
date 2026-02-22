@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Code, Package, TriangleAlert, CircleCheckBig, Clock, Search, RefreshCw, Download } from 'lucide-react';
 import { Tenant } from '../../types';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface VersionManagementPanelProps {
     tenants: Tenant[];
@@ -194,16 +195,12 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                                         </div>
                                         <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
                                             <div className="text-slate-500 font-black">עדכון לגרסה</div>
-                                            <select
+                                            <CustomSelect
                                                 value={selected}
-                                                onChange={(e) => setSelectedVersion(prev => ({ ...prev, [tenant.id]: e.target.value }))}
-                                                className="mt-2 w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
+                                                onChange={(val) => setSelectedVersion(prev => ({ ...prev, [tenant.id]: val }))}
                                                 disabled={isUpdating}
-                                            >
-                                                {availableVersions.map(v => (
-                                                    <option key={v} value={v}>{v}</option>
-                                                ))}
-                                            </select>
+                                                options={availableVersions.map(v => ({ value: v, label: v }))}
+                                            />
                                         </div>
                                     </div>
 
@@ -269,19 +266,12 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <select
+                                            <CustomSelect
                                                 value={selectedVersion[tenant.id] || currentVersion}
-                                                onChange={(e) => setSelectedVersion(prev => ({
-                                                    ...prev,
-                                                    [tenant.id]: e.target.value
-                                                }))}
-                                                className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
+                                                onChange={(val) => setSelectedVersion(prev => ({ ...prev, [tenant.id]: val }))}
                                                 disabled={isUpdating}
-                                            >
-                                                {availableVersions.map(v => (
-                                                    <option key={v} value={v}>{v}</option>
-                                                ))}
-                                            </select>
+                                                options={availableVersions.map(v => ({ value: v, label: v }))}
+                                            />
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${

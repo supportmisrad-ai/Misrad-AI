@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
@@ -57,6 +58,8 @@ export default function SystemSalesPipelineClient({
   initialStages: SystemPipelineStageDTO[];
 }) {
   const { addToast } = useToast();
+  const router = useRouter();
+  const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/system`, [orgSlug]);
   const [leads, setLeads] = useState<SystemLeadDTO[]>(initialLeads);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [hasMore, setHasMore] = useState<boolean>(Boolean(initialHasMore));
@@ -136,6 +139,17 @@ export default function SystemSalesPipelineClient({
       }
     };
   }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await getSystemLeadAssignees({ orgSlug });
+        setAssignees(rows);
+      } catch {
+        // non-critical — assignees dropdown will just be empty
+      }
+    })();
+  }, [orgSlug]);
 
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [query, setQuery] = useState('');
@@ -488,8 +502,11 @@ export default function SystemSalesPipelineClient({
     }
   };
 
-  const handleScheduleMeeting = () => {
-    addToast('פגישות יתווספו בשלב ה-calendar', 'info');
+  const handleScheduleMeeting = (leadId?: string) => {
+    const url = leadId
+      ? `${basePath}/calendar?leadId=${encodeURIComponent(leadId)}`
+      : `${basePath}/calendar`;
+    router.push(url);
   };
 
   const handleOpenClientPortal = (lead: Lead) => {
@@ -715,12 +732,12 @@ export default function SystemSalesPipelineClient({
           lead={selectedLead}
           onClose={() => setSelectedLeadId(null)}
           onAddActivity={(leadId, activity) => void handleAddActivity(leadId, activity)}
-          onScheduleMeeting={(_leadId) => handleScheduleMeeting()}
+          onScheduleMeeting={(leadId) => handleScheduleMeeting(String(leadId))}
           onStatusChange={(id, status) => void handleStatusChange(String(id), status)}
           onOpenClientPortal={() => handleOpenClientPortal(selectedLead)}
           assignees={assignees}
           onUpdateLead={(p) => void handleUpdateLead(p)}
-          onAddTask={() => addToast('משימות יתווספו בהמשך', 'info')}
+          onAddTask={() => router.push(`${basePath}/tasks`)}
         />
       ) : null}
 

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Lead, SquareActivity, Task } from './types';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { STAGES } from './constants';
+import { CustomSelect } from '@/components/CustomSelect';
 import { X, ArrowRight, ArrowLeft } from 'lucide-react';
 import LogCallModal from './LogCallModal';
 import { useToast } from './contexts/ToastContext';
@@ -735,22 +736,15 @@ const LeadModal: React.FC<LeadModalProps> = ({
 
                 <div className="space-y-1">
                   <div className="text-[11px] font-black text-slate-500">אחראי</div>
-                  <select
+                  <CustomSelect
                     value={draftAssignedAgentId}
-                    onChange={(e) => {
-                      const v = e.target.value;
+                    onChange={(v) => {
                       setDraftAssignedAgentId(v);
                       void handleSaveBasics({ assignedAgentId: v ? v : null });
                     }}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                  >
-                    <option value="">לא משויך</option>
-                    {(assignees || []).map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="לא משויך"
+                    options={(assignees || []).map((a) => ({ value: a.id, label: a.name }))}
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -896,17 +890,11 @@ const LeadModal: React.FC<LeadModalProps> = ({
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-black text-slate-900">תיעוד</div>
                     {onStatusChange ? (
-                      <select
+                      <CustomSelect
                         value={lead.status}
-                        onChange={(e) => onStatusChange(lead.id, e.target.value as Lead['status'])}
-                        className="bg-white border border-slate-200 rounded-full px-3 py-2 text-xs font-black"
-                      >
-                        {stagesForSelect.map((s) => (
-                          <option key={String(s.id)} value={String(s.id)}>
-                            {String(s.label)}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => onStatusChange(lead.id, val as Lead['status'])}
+                        options={stagesForSelect.map((s) => ({ value: String(s.id), label: String(s.label) }))}
+                      />
                     ) : null}
                   </div>
 

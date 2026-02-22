@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { 
     FileInput, Plus, Monitor, Smartphone, Eye, Code, 
     Share2, Palette, Settings, Type, List, Layout, 
@@ -306,7 +307,7 @@ const FormsView: React.FC = () => {
                                                 {field.type === 'textarea' ? (
                                                     <textarea disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm resize-none h-24" placeholder={field.placeholder}></textarea>
                                                 ) : field.type === 'select' ? (
-                                                    <select disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm"><option>בחר אפשרות...</option></select>
+                                                    <CustomSelect value="" onChange={() => {}} disabled placeholder="בחר אפשרות..." options={[]} />
                                                 ) : (
                                                     <input type={field.type} disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm" placeholder={field.placeholder} />
                                                 )}

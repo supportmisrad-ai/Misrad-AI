@@ -183,18 +183,15 @@ const IntegrationsView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">{integration.name}</h3>
-                  <p className="text-xs text-slate-500">{(integration as Record<string, unknown>).lastSynced ? `עודכן לאחרונה: ${new Date((integration as Record<string, unknown>).lastSynced as string).toLocaleDateString('he-IL')}` : 'לא סונכרן עדיין'}</p>
+                  <p className="text-xs text-slate-500">{integration.description}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className={`flex items-center gap-2 ${(integration as Record<string, unknown>).connected ? 'text-emerald-600' : 'text-slate-400'}`}>
-                  <CircleCheckBig size={20} />
-                  <span className="text-sm font-medium">מחובר</span>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <CircleX size={18} />
+                  <span className="text-xs font-bold">לא זמין</span>
                 </div>
               </div>
-            </div>
-            <div className="mt-3 text-xs text-slate-500">
-              אין חיבור API פעיל במערכת עבור ספק זה כרגע.
             </div>
           </div>
         ))}

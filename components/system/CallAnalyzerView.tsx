@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { usePathname } from 'next/navigation';
 import { 
     UploadCloud, FileAudio, X, SquareActivity, 
@@ -376,23 +377,18 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                             {/* Lead Assignment */}
                             <div className="flex items-center gap-1 bg-slate-100 rounded px-2 py-0.5">
                                 <LinkIcon size={10} />
-                                <select 
-                                    value={result.leadId || ''} 
-                                    onChange={(e) => {
-                                        const leadId = e.target.value;
+                                <CustomSelect
+                                    value={result.leadId || ''}
+                                    onChange={(val) => {
                                         if (state.result?.id) {
-                                            updateHistoryItem(state.result.id, { leadId });
-                                            const leadName = leads.find(l => l.id === leadId)?.name;
+                                            updateHistoryItem(state.result.id, { leadId: val });
+                                            const leadName = leads.find(l => l.id === val)?.name;
                                             if (leadName) addToast(`השיחה שויכה ל-${leadName}`, 'success');
                                         }
                                     }}
-                                    className="bg-transparent border-none text-xs font-medium text-slate-600 focus:ring-0 cursor-pointer outline-none p-0 w-24"
-                                >
-                                    <option value="">שייך לליד...</option>
-                                    {leads.map(l => (
-                                        <option key={l.id} value={l.id}>{l.name}</option>
-                                    ))}
-                                </select>
+                                    placeholder="שייך לליד..."
+                                    options={leads.map(l => ({ value: l.id, label: l.name }))}
+                                />
                             </div>
                         </div>
                     </div>

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Zap, Download, Play, RefreshCw, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type OrganizationLite = {
   id: string;
@@ -243,18 +244,12 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
               'טען ארגונים'
             )}
           </Button>
-          <select
+          <CustomSelect
             value={selectedOrgId}
-            onChange={(e) => setSelectedOrgId(e.target.value)}
-            className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/60"
-          >
-            <option value="">בחר ארגון...</option>
-            {orgs.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.name}{o.slug ? ` (${o.slug})` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedOrgId(val)}
+            placeholder="בחר ארגון..."
+            options={orgs.map((o) => ({ value: o.id, label: `${o.name}${o.slug ? ` (${o.slug})` : ''}` }))}
+          />
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -384,22 +379,15 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
                       className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
                     />
                     <div className="grid grid-cols-1 gap-2">
-                      <select
+                      <CustomSelect
                         value={knownModels.includes(r.primary_model) ? r.primary_model : ''}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!v) return;
-                          updateRowLocal(r.feature_key, { primary_model: v });
+                        onChange={(val) => {
+                          if (!val) return;
+                          updateRowLocal(r.feature_key, { primary_model: val });
                         }}
-                        className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none"
-                      >
-                        <option value="">בחר מודל מהרשימה (אופציונלי)</option>
-                        {knownModels.map((m) => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="בחר מודל מהרשימה (אופציונלי)"
+                        options={knownModels.map((m) => ({ value: m, label: m }))}
+                      />
                       <input
                         value={r.primary_model || ''}
                         onChange={(e) => updateRowLocal(r.feature_key, { primary_model: e.target.value })}

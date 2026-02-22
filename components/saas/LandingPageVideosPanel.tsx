@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface LandingPageVideo {
     id: string;
@@ -353,18 +354,18 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                                             className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="קישור לתמונת תצוגה"
                                         />
-                                        <select
+                                        <CustomSelect
                                             value={displayVideo.accent}
-                                            onChange={(e) => setEditedVideo({ ...displayVideo, accent: e.target.value as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
-                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
-                                        >
-                                            <option value="indigo">אינדיגו</option>
-                                            <option value="emerald">אזמרגד</option>
-                                            <option value="purple">סגול</option>
-                                            <option value="pink">ורוד</option>
-                                            <option value="amber">ענבר</option>
-                                            <option value="blue">כחול</option>
-                                        </select>
+                                            onChange={(val) => setEditedVideo({ ...displayVideo, accent: val as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
+                                            options={[
+                                                { value: 'indigo', label: 'אינדיגו' },
+                                                { value: 'emerald', label: 'אזמרגד' },
+                                                { value: 'purple', label: 'סגול' },
+                                                { value: 'pink', label: 'ורוד' },
+                                                { value: 'amber', label: 'ענבר' },
+                                                { value: 'blue', label: 'כחול' },
+                                            ]}
+                                        />
                                     </div>
                                 ) : (
                                     <div>
@@ -539,18 +540,18 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
                                     className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                     placeholder="קישור לתמונת תצוגה (URL)"
                                 />
-                                <select
-                                    value={newVideo.accent}
-                                    onChange={(e) => setNewVideo({ ...newVideo, accent: e.target.value as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
-                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
-                                >
-                                    <option value="indigo">Indigo</option>
-                                    <option value="emerald">Emerald</option>
-                                    <option value="purple">Purple</option>
-                                    <option value="pink">Pink</option>
-                                    <option value="amber">Amber</option>
-                                    <option value="blue">Blue</option>
-                                </select>
+                                <CustomSelect
+                                    value={newVideo.accent || 'indigo'}
+                                    onChange={(val) => setNewVideo({ ...newVideo, accent: val as 'indigo' | 'emerald' | 'purple' | 'pink' | 'amber' | 'blue' })}
+                                    options={[
+                                        { value: 'indigo', label: 'Indigo' },
+                                        { value: 'emerald', label: 'Emerald' },
+                                        { value: 'purple', label: 'Purple' },
+                                        { value: 'pink', label: 'Pink' },
+                                        { value: 'amber', label: 'Amber' },
+                                        { value: 'blue', label: 'Blue' },
+                                    ]}
+                                />
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
                                 <Button onClick={() => setIsAddingVideo(false)} variant="outline">ביטול</Button>

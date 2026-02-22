@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plug, SlidersHorizontal, Sparkles, Users } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { Tenant } from '@/types';
+import { CustomSelect } from '@/components/CustomSelect';
 import { IntegrationsTab } from './tabs/IntegrationsTab';
 import { AutomationTab } from './tabs/AutomationTab';
 import { QuotasTab } from './tabs/QuotasTab';
@@ -68,21 +69,12 @@ export function SocialManagementPanel() {
 
           <div className="w-full md:w-auto md:min-w-[260px]">
             <label className="block text-xs font-bold text-slate-600 mb-2">בחר טננט</label>
-            <select
+            <CustomSelect
               value={selectedTenantId}
-              onChange={(e) => setSelectedTenantId(e.target.value)}
-              className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200/60 transition-all appearance-none cursor-pointer"
-            >
-              {tenantOptions.length === 0 ? (
-                <option value="">אין טננטים</option>
-              ) : (
-                tenantOptions.map((t: Tenant) => (
-                  <option key={t.id} value={String(t.id)}>
-                    {t.name || t.id}
-                  </option>
-                ))
-              )}
-            </select>
+              onChange={(val) => setSelectedTenantId(val)}
+              placeholder="אין טננטים"
+              options={tenantOptions.map((t: Tenant) => ({ value: String(t.id), label: t.name || t.id }))}
+            />
           </div>
         </div>
       </div>

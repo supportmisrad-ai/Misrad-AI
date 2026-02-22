@@ -2,45 +2,13 @@
 
 import React, { useMemo } from 'react';
 import ReportsView from '@/components/system/ReportsView';
-import type { Campaign, Lead, Task, TaskPriority, TaskStatus } from '@/components/system/types';
+import type { Campaign, Lead, Task } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
+import { mapNexusTaskToUiTask } from '@/components/system/utils/mapTask';
+import { mapCampaignDto } from '@/components/system/utils/mapCampaign';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
 import type { Task as NexusTask } from '@/types';
-
-import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
-import { normalizeCampaignStatus } from '@/lib/campaign-utils';
-
-function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
-  return {
-    id: String(dto.id),
-    name: String(dto.name || ''),
-    platform: String(dto.objective || ''),
-    status: normalizeCampaignStatus(String(dto.status || 'active')),
-    budget: Number(dto.budget || 0),
-    spent: Number(dto.spent || 0),
-    leads: 0,
-    cpl: 0,
-    roas: Number(dto.roas || 0),
-    impressions: Number(dto.impressions || 0),
-  };
-}
-
-function mapTaskDto(dto: NexusTask): Task {
-  const due = dto.dueDate ? new Date(String(dto.dueDate)) : new Date();
-  const dueDate = Number.isNaN(due.getTime()) ? new Date() : due;
-
-  return {
-    id: String(dto.id),
-    title: String(dto.title || ''),
-    description: dto.description == null ? undefined : String(dto.description),
-    assigneeId: String(dto.assigneeId || (Array.isArray(dto.assigneeIds) ? dto.assigneeIds[0] : '') || ''),
-    dueDate,
-    priority: normalizeTaskPriority(String(dto.priority || 'medium')),
-    status: normalizeTaskStatus(String(dto.status || 'todo')),
-    tags: Array.isArray(dto.tags) ? dto.tags.map((t) => String(t)).filter(Boolean) : [],
-  };
-}
 
 export default function SystemReportsClient({
   orgSlug: _orgSlug,
@@ -55,7 +23,7 @@ export default function SystemReportsClient({
 }) {
   const leads: Lead[] = useMemo(() => (initialLeads || []).map(mapDtoToLead), [initialLeads]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);
-  const tasks: Task[] = useMemo(() => (initialTasks || []).map(mapTaskDto), [initialTasks]);
+  const tasks: Task[] = useMemo(() => (initialTasks || []).map(mapNexusTaskToUiTask), [initialTasks]);
 
   return <ReportsView leads={leads} campaigns={campaigns} tasks={tasks} />;
 }

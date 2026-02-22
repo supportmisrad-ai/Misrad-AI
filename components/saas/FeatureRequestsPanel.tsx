@@ -6,6 +6,7 @@ import { Sparkles, Bug, Wrench, Zap, Clock, CircleCheckBig, CircleX, CircleAlert
 import { FeatureRequest } from '../../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Button } from '@/components/ui/button';
 
 interface FeatureRequestsPanelProps {
@@ -230,30 +231,30 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                         />
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
-                        <select
+                        <CustomSelect
                             value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
-                        >
-                            <option value="all">כל הסטטוסים</option>
-                            <option value="pending">ממתין</option>
-                            <option value="under_review">בבדיקה</option>
-                            <option value="planned">מתוכנן</option>
-                            <option value="in_progress">בפיתוח</option>
-                            <option value="completed">הושלם</option>
-                            <option value="rejected">נדחה</option>
-                        </select>
-                        <select
+                            onChange={(val) => setStatusFilter(val)}
+                            options={[
+                                { value: 'all', label: 'כל הסטטוסים' },
+                                { value: 'pending', label: 'ממתין' },
+                                { value: 'under_review', label: 'בבדיקה' },
+                                { value: 'planned', label: 'מתוכנן' },
+                                { value: 'in_progress', label: 'בפיתוח' },
+                                { value: 'completed', label: 'הושלם' },
+                                { value: 'rejected', label: 'נדחה' },
+                            ]}
+                        />
+                        <CustomSelect
                             value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                            className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
-                        >
-                            <option value="all">כל הסוגים</option>
-                            <option value="feature">פיצ׳ר חדש</option>
-                            <option value="bug">תקלה</option>
-                            <option value="improvement">שיפור</option>
-                            <option value="integration">אינטגרציה</option>
-                        </select>
+                            onChange={(val) => setTypeFilter(val)}
+                            options={[
+                                { value: 'all', label: 'כל הסוגים' },
+                                { value: 'feature', label: 'פיצ׳ר חדש' },
+                                { value: 'bug', label: 'תקלה' },
+                                { value: 'improvement', label: 'שיפור' },
+                                { value: 'integration', label: 'אינטגרציה' },
+                            ]}
+                        />
                     </div>
                     <Button
                         onClick={loadRequests}

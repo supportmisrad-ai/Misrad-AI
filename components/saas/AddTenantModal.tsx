@@ -6,6 +6,7 @@ import { Tenant, Product, ModuleId } from '../../types';
 import { Building2, Mail, Globe2, Package, Server, X, Sparkles, Phone, Users, Languages, Calendar, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CustomSelect } from '@/components/CustomSelect';
 import { StyledDropdown } from '@/components/ui/StyledDropdown';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
@@ -201,14 +202,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
                                         <Languages className="w-4 h-4 text-indigo-600" />
                                         שפת ברירת מחדל
                                     </label>
-                                    <select
-                                        name="defaultLanguage"
-                                        defaultValue="he"
-                                        className="w-full h-12 px-4 text-base font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
-                                    >
-                                        <option value="he">עברית</option>
-                                        <option value="en">English</option>
-                                    </select>
+                                    <CustomSelect
+                                        value="he"
+                                        onChange={() => {}}
+                                        options={[
+                                            { value: 'he', label: 'עברית' },
+                                            { value: 'en', label: 'English' },
+                                        ]}
+                                    />
                                 </div>
                             </div>
 

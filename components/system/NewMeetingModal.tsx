@@ -5,6 +5,7 @@ import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mai
 import { Lead, CalendarEvent } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface NewMeetingModalProps {
   leads: Lead[];
@@ -435,14 +436,14 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-emerald-700 uppercase mr-1">מתי?</label>
-                                        <select 
+                                        <CustomSelect
                                             value={postMeeting.delay}
-                                            onChange={(e) => setPostMeeting({...postMeeting, delay: e.target.value as '1h_after' | 'morning_after'})}
-                                            className="w-full bg-white border border-emerald-100 text-xs font-bold text-emerald-800 rounded-xl py-2.5 px-3 focus:ring-0 cursor-pointer"
-                                        >
-                                            <option value="1h_after">שעה אחרי</option>
-                                            <option value="morning_after">בוקר למחרת</option>
-                                        </select>
+                                            onChange={(val) => setPostMeeting({...postMeeting, delay: val as '1h_after' | 'morning_after'})}
+                                            options={[
+                                                { value: '1h_after', label: 'שעה אחרי' },
+                                                { value: 'morning_after', label: 'בוקר למחרת' },
+                                            ]}
+                                        />
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-emerald-700 uppercase mr-1">ערוץ</label>

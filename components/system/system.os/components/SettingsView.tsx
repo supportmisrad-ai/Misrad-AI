@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/CustomSelect';
 import { 
     User, Bell, Shield, Building, Mail, Smartphone, 
     SquareActivity, CreditCard, Users, Plus, Trash2, Check, 
@@ -242,17 +243,25 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">שפת מערכת</label>
-                                    <select className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white">
-                                        <option>עברית</option>
-                                        <option>אנגלית</option>
-                                    </select>
+                                    <CustomSelect
+                                        value="עברית"
+                                        onChange={() => {}}
+                                        options={[
+                                            { value: 'עברית', label: 'עברית' },
+                                            { value: 'אנגלית', label: 'אנגלית' },
+                                        ]}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700">מטבע ראשי</label>
-                                    <select className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white">
-                                        <option>₪ שקל חדש</option>
-                                        <option>$ דולר אמריקאי</option>
-                                    </select>
+                                    <CustomSelect
+                                        value="₪ שקל חדש"
+                                        onChange={() => {}}
+                                        options={[
+                                            { value: '₪ שקל חדש', label: '₪ שקל חדש' },
+                                            { value: '$ דולר אמריקאי', label: '$ דולר אמריקאי' },
+                                        ]}
+                                    />
                                 </div>
                             </div>
                         </div>

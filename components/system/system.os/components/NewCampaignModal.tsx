@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Megaphone, Target, DollarSign, Layout, CirclePlus, ArrowLeft } from 'lucide-react';
 import { Campaign } from '../types';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface NewCampaignModalProps {
   onClose: () => void;
@@ -92,22 +93,19 @@ const NewCampaignModal: React.FC<NewCampaignModalProps> = ({ onClose, onSubmit }
                     
                     {platformMode === 'select' ? (
                         <div className="relative">
-                            <select 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white appearance-none cursor-pointer shadow-sm transition-all"
+                            <CustomSelect
                                 value={platform}
-                                onChange={e => setPlatform(e.target.value)}
-                            >
-                                <option value="facebook">Facebook</option>
-                                <option value="google">Google Ads</option>
-                                <option value="instagram">Instagram</option>
-                                <option value="tiktok">TikTok</option>
-                                <option value="linkedin">LinkedIn</option>
-                                <option value="youtube">YouTube</option>
-                                <option value="outbrain">Outbrain / Taboola</option>
-                            </select>
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
+                                onChange={(val) => setPlatform(val)}
+                                options={[
+                                    { value: 'facebook', label: 'Facebook' },
+                                    { value: 'google', label: 'Google Ads' },
+                                    { value: 'instagram', label: 'Instagram' },
+                                    { value: 'tiktok', label: 'TikTok' },
+                                    { value: 'linkedin', label: 'LinkedIn' },
+                                    { value: 'youtube', label: 'YouTube' },
+                                    { value: 'outbrain', label: 'Outbrain / Taboola' },
+                                ]}
+                            />
                         </div>
                     ) : (
                         <input 

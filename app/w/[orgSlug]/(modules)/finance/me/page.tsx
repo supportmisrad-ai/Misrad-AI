@@ -23,15 +23,15 @@ export default async function FinanceMePage({
         },
         {
           title: 'חשבוניות',
-          subtitle: 'רשימת חשבוניות מהירה',
+          subtitle: 'רשימת חשבוניות הארגון',
           href: `/w/${encodeURIComponent(orgSlug)}/finance/invoices`,
-          iconId: 'trending_up',
+          iconId: 'target',
         },
         {
           title: 'הוצאות',
-          subtitle: 'סיכום הוצאות ותמחור',
+          subtitle: 'עלויות עבודה והוצאות ישירות',
           href: `/w/${encodeURIComponent(orgSlug)}/finance/expenses`,
-          iconId: 'target',
+          iconId: 'settings',
         },
       ]}
     />

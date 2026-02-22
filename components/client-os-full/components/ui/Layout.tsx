@@ -8,6 +8,7 @@ import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
+import { CustomSelect } from '@/components/CustomSelect';
 import { useNexus } from '../../context/ClientContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -639,16 +640,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-bold text-slate-500 uppercase block mb-2">קטגוריה</label>
-                      <select
+                      <CustomSelect
                         value={supportDraft.category}
-                        onChange={(e) => setSupportDraft((prev) => ({ ...prev, category: e.target.value }))}
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-nexus-primary"
-                      >
-                        <option value="Tech">תמיכה טכנית</option>
-                        <option value="Account">חשבון ופרטים</option>
-                        <option value="Billing">חיוב ומנויים</option>
-                        <option value="Feature">בקשת פיצ׳ר</option>
-                      </select>
+                        onChange={(val) => setSupportDraft((prev) => ({ ...prev, category: val }))}
+                        options={[
+                          { value: 'Tech', label: 'תמיכה טכנית' },
+                          { value: 'Account', label: 'חשבון ופרטים' },
+                          { value: 'Billing', label: 'חיוב ומנויים' },
+                          { value: 'Feature', label: 'בקשת פיצ׳ר' },
+                        ]}
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-bold text-slate-500 uppercase block mb-2">כותרת</label>

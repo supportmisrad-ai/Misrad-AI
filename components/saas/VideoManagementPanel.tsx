@@ -6,6 +6,7 @@ import { Plus, Save, Trash2, Video, X, RefreshCw, Monitor, Smartphone, Globe, Bo
 import { Button } from '@/components/ui/button';
 import { useData } from '@/context/DataContext';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { CustomSelect } from '@/components/CustomSelect';
 import {
   adminCreateHelpVideo,
   adminDeleteHelpVideo,
@@ -269,16 +270,11 @@ export function VideoManagementPanel() {
         <div className="w-px h-6 bg-slate-200 mx-1" />
 
         {/* Module filter */}
-        <select
+        <CustomSelect
           value={moduleFilter}
-          onChange={(e) => setModuleFilter(e.target.value as 'all' | OSModuleKey)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold outline-none focus:ring-4 ring-slate-100"
-        >
-          <option value="all">כל המודולים</option>
-          {MODULES.map((m) => (
-            <option key={m.key} value={m.key}>{m.label}</option>
-          ))}
-        </select>
+          onChange={(val) => setModuleFilter(val as 'all' | OSModuleKey)}
+          options={[{ value: 'all', label: 'כל המודולים' }, ...MODULES.map((m) => ({ value: m.key, label: m.label }))]}
+        />
       </div>
 
       {/* Video list */}
@@ -429,15 +425,11 @@ export function VideoManagementPanel() {
                 {/* Module */}
                 <div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">מודול</div>
-                  <select
+                  <CustomSelect
                     value={draft.moduleKey}
-                    onChange={(e) => setDraft((p) => ({ ...p, moduleKey: e.target.value as OSModuleKey }))}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-4 ring-slate-100"
-                  >
-                    {MODULES.map((m) => (
-                      <option key={m.key} value={m.key}>{m.label}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setDraft((p) => ({ ...p, moduleKey: val as OSModuleKey }))}
+                    options={MODULES.map((m) => ({ value: m.key, label: m.label }))}
+                  />
                 </div>
 
                 {/* Device type */}

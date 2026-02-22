@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FileUp, Loader2, Sparkles, X } from 'lucide-react';
+import { CustomSelect } from '@/components/CustomSelect';
 import {
   suggestSystemLeadImportMapping,
   importSystemLeadsFromFile,
@@ -530,18 +531,12 @@ export default function SmartImportLeadsDialog(props: {
                       <tr key={h} className="bg-white hover:bg-slate-50">
                         <td className="px-4 py-3 font-black text-slate-800">{h}</td>
                         <td className="px-4 py-3">
-                          <select
-                            className="w-full h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200/60"
+                          <CustomSelect
                             value={mapping[h] ?? ''}
-                            onChange={(e) => handleChangeMapping(h, e.target.value)}
-                          >
-                            <option value="">התעלם</option>
-                            {TARGET_FIELDS.map((f) => (
-                              <option key={f.id} value={f.id}>
-                                {f.label}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={(val) => handleChangeMapping(h, val)}
+                            placeholder="התעלם"
+                            options={TARGET_FIELDS.map((f) => ({ value: f.id, label: f.label }))}
+                          />
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500 font-bold" dir="ltr">
                           {rowsPreview[h] || '—'}

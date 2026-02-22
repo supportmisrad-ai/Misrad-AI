@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Shield, Trash2, User } from 'lucide-react';
 import { getTeam, removeUserFromTeam, updateUserRole } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 import { Toast } from '@/types';
 
 type Role = 'super_admin' | 'owner' | 'team_member';
@@ -159,16 +160,16 @@ export function TeamTab({
                       <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black">
                         <Shield size={14} />
                       </span>
-                      <select
+                      <CustomSelect
                         value={u.role}
-                        onChange={(e) => onChangeRole(u.id, e.target.value as Role)}
+                        onChange={(val) => onChangeRole(u.id, val as Role)}
                         disabled={isLoading || isRemoving !== null || isUpdatingRole === u.id}
-                        className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-black text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200/60 transition-all"
-                      >
-                        <option value="super_admin">Super Admin</option>
-                        <option value="owner">Owner</option>
-                        <option value="team_member">Member</option>
-                      </select>
+                        options={[
+                          { value: 'super_admin', label: 'Super Admin' },
+                          { value: 'owner', label: 'Owner' },
+                          { value: 'team_member', label: 'Member' },
+                        ]}
+                      />
                       <span className="text-xs font-bold text-slate-500">{roleLabel(u.role)}</span>
                     </div>
                   </td>

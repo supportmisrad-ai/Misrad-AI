@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { UserCheck, X, CircleCheckBig, Clock, Mail, Search, Plus, Trash2, CircleAlert } from 'lucide-react';
 import { UserApprovalRequest, Tenant } from '../../types';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 interface UserApprovalsPanelProps {
     approvalRequests: UserApprovalRequest[];
@@ -134,16 +135,11 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                         <UserCheck size={20} /> בקשות ממתינות לאישור
                     </h3>
                     <div className="flex gap-3">
-                        <select
+                        <CustomSelect
                             value={selectedTenant}
-                            onChange={(e) => setSelectedTenant(e.target.value)}
-                            className="bg-white/80 border border-slate-200 rounded-xl py-2 px-4 text-sm text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60"
-                        >
-                            <option value="all">כל הלקוחות</option>
-                            {uniqueTenants.map((t, index) => (
-                                <option key={`${t.id}-${index}`} value={t.id}>{t.name}</option>
-                            ))}
-                        </select>
+                            onChange={(val) => setSelectedTenant(val)}
+                            options={[{ value: 'all', label: 'כל הלקוחות' }, ...uniqueTenants.map((t) => ({ value: t.id, label: t.name }))]}
+                        />
                         <div className="relative">
                             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                             <input

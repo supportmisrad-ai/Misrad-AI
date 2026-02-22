@@ -6,6 +6,7 @@ import { CreditCard, Save } from 'lucide-react';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { useData } from '@/context/DataContext';
 import { Button } from '@/components/ui/button';
+import { CustomSelect } from '@/components/CustomSelect';
 
 type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire';
 
@@ -160,15 +161,15 @@ export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean 
 
                   <div className="min-w-[220px]">
                     <div className="text-[10px] font-black text-slate-600 mb-2">Payment Method</div>
-                    <select
+                    <CustomSelect
                       value={cfg.paymentMethod}
-                      onChange={(e) => update(pkg, { paymentMethod: e.target.value === 'automatic' ? 'automatic' : 'manual' })}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
+                      onChange={(val) => update(pkg, { paymentMethod: val === 'automatic' ? 'automatic' : 'manual' })}
                       disabled={isLoading || isSaving}
-                    >
-                      <option value="manual">manual (QR + הוכחה)</option>
-                      <option value="automatic">automatic (קישור סליקה חיצוני)</option>
-                    </select>
+                      options={[
+                        { value: 'manual', label: 'manual (QR + הוכחה)' },
+                        { value: 'automatic', label: 'automatic (קישור סליקה חיצוני)' },
+                      ]}
+                    />
                   </div>
                 </div>
 

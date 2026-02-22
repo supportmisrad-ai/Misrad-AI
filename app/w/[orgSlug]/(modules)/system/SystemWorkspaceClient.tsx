@@ -6,8 +6,11 @@ import WorkspaceHub from '@/components/system/WorkspaceHub';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
-import type { Activity, Lead, CalendarEvent, Campaign, Task, TaskPriority, TaskStatus } from '@/components/system/types';
+import type { Activity, Lead, CalendarEvent, Campaign, Task } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
+import { mapDtoToCalendarEvent } from '@/components/system/utils/mapCalendarEvent';
+import { mapNexusTaskToUiTask, toNexusPriority, toNexusStatus } from '@/components/system/utils/mapTask';
+import { mapCampaignDto } from '@/components/system/utils/mapCampaign';
 import {
   createSystemLead,
   createSystemLeadActivity,
@@ -17,137 +20,13 @@ import {
   type SystemCalendarEventDTO,
 } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import { Priority, Status, type Task as NexusTask } from '@/types';
+import { type Task as NexusTask } from '@/types';
 import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
 
-import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
-import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
-function mapNexusTaskToUiTask(row: NexusTask): Task {
-  const due = row.dueDate ? new Date(String(row.dueDate)) : new Date();
-  const dueDate = Number.isNaN(due.getTime()) ? new Date() : due;
-
-  return {
-    id: String(row.id),
-    title: String(row.title || ''),
-    description: row.description == null ? undefined : String(row.description),
-    assigneeId: String(row.assigneeId || (Array.isArray(row.assigneeIds) ? row.assigneeIds[0] : '') || ''),
-    dueDate,
-    priority: normalizeTaskPriority(String(row.priority || 'medium')),
-    status: normalizeTaskStatus(String(row.status || 'todo')),
-    tags: Array.isArray(row.tags) ? row.tags.map((t) => String(t)).filter(Boolean) : [],
-  };
-}
-
-function normalizeCampaignStatus(value: string): Campaign['status'] {
-  const v = String(value || '').toLowerCase();
-  if (v === 'active' || v === 'paused' || v === 'draft') return v;
-  if (v === 'completed') return 'paused';
-  return 'active';
-}
-
-function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
-  return {
-    id: String(dto.id),
-    name: String(dto.name || ''),
-    platform: String(dto.objective || ''),
-    status: normalizeCampaignStatus(String(dto.status || 'active')),
-    budget: Number(dto.budget || 0),
-    spent: Number(dto.spent || 0),
-    leads: 0,
-    cpl: 0,
-    roas: Number(dto.roas || 0),
-    impressions: Number(dto.impressions || 0),
-  };
-}
-
-function normalizeCalendarEventType(value: unknown): CalendarEvent['type'] {
-  const v = String(value || '').trim().toLowerCase();
-  if (v === 'frontal') return 'frontal';
-  if (v === 'group_session') return 'group_session';
-  return 'zoom';
-}
-
-function parseCalendarReminders(value: unknown): CalendarEvent['reminders'] | undefined {
-  const obj = asObject(value);
-  if (!obj) return undefined;
-  const whatsapp = obj.whatsapp;
-  const sms = obj.sms;
-  const email = obj.email;
-  const timing = obj.timing;
-  const timingStr = typeof timing === 'string' ? timing : '';
-  const timingOk = timingStr === 'immediate' || timingStr === '1h_before' || timingStr === '24h_before';
-  if (!timingOk) return undefined;
-  return {
-    whatsapp: Boolean(whatsapp),
-    sms: Boolean(sms),
-    email: Boolean(email),
-    timing: timingStr,
-  };
-}
-
-function parseCalendarPostMeeting(value: unknown): CalendarEvent['postMeeting'] | undefined {
-  const obj = asObject(value);
-  if (!obj) return undefined;
-  const enabledRaw = obj.enabled;
-  const typeRaw = obj.type;
-  const delayRaw = obj.delay;
-  const channelRaw = obj.channel;
-  const typeStr = typeof typeRaw === 'string' ? typeRaw : '';
-  const typeOk = typeStr === 'thank_you' || typeStr === 'summary' || typeStr === 'proposal_link';
-  if (!typeOk) return undefined;
-
-  const delayStr = typeof delayRaw === 'string' ? delayRaw : '';
-  const delayOk = delayStr === '1h_after' || delayStr === 'morning_after';
-  if (!delayOk) return undefined;
-
-  const channelStr = typeof channelRaw === 'string' ? channelRaw : '';
-  const channelOk = channelStr === 'whatsapp' || channelStr === 'email';
-  if (!channelOk) return undefined;
-
-  return {
-    enabled: Boolean(enabledRaw),
-    type: typeStr,
-    delay: delayStr,
-    channel: channelStr,
-  };
-}
-
-function toNexusPriority(value: TaskPriority): Priority {
-  const v = String(value || '').toLowerCase();
-  if (v === 'low') return Priority.LOW;
-  if (v === 'high') return Priority.HIGH;
-  if (v === 'critical') return Priority.URGENT;
-  return Priority.MEDIUM;
-}
-
-function toNexusStatus(value: TaskStatus): Status {
-  const v = String(value || '').toLowerCase();
-  if (v === 'in_progress') return Status.IN_PROGRESS;
-  if (v === 'review') return Status.WAITING;
-  if (v === 'done') return Status.DONE;
-  return Status.TODO;
-}
-
-function mapDtoToCalendarEvent(dto: SystemCalendarEventDTO): CalendarEvent {
-  return {
-    id: String(dto.id),
-    leadId: dto.lead_id ? String(dto.lead_id) : null,
-    title: String(dto.title || ''),
-    leadName: String(dto.lead_name || ''),
-    leadCompany: String(dto.lead_company || ''),
-    dayName: String(dto.day_name || ''),
-    date: String(dto.date || ''),
-    time: String(dto.time || ''),
-    type: normalizeCalendarEventType(dto.type),
-    location: String(dto.location || ''),
-    participants: dto.participants == null ? undefined : Number(dto.participants),
-    reminders: parseCalendarReminders(dto.reminders) ?? undefined,
-    postMeeting: parseCalendarPostMeeting(dto.post_meeting) ?? undefined,
-  };
-}
 
 export default function SystemWorkspaceClient({
   orgSlug,
