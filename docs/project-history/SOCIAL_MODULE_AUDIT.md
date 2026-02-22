@@ -3,7 +3,7 @@
 ## סיכום מנהלים
 
 בוצעה סקירה מקיפה של כל דף, קומפוננטה ופיצ'ר במודול Social.
-המודול מוכן להשקה עם **7 תיקונים שבוצעו** ומספר נקודות למעקב עתידי.
+המודול מוכן להשקה עם **8 תיקונים שבוצעו** ומספר נקודות למעקב עתידי.
 
 ---
 
@@ -106,12 +106,45 @@
 
 ---
 
+## ביקורת Cross-Module: דפי אזור אישי (`/me`)
+
+### מצב האיחוד — ✅ הושלם
+
+כל 6 המודולים משתמשים בקומפוננטת `MeView` המאוחדת (`views/MeView.tsx`, 1,360 שורות):
+
+| מודול | נתיב | גישה ל-MeView | שיטה |
+|-------|-------|---------------|------|
+| Social | `/social/me` | ✅ | Server page → `MeView` ישירות |
+| Finance | `/finance/me` | ✅ | Server page → `MeView` ישירות |
+| System | `/system/me` | ✅ | Server page → `DataProvider` → `MeView` |
+| Operations | `/operations/me` | ✅ | Server page → `DataProvider` → `MeView` + children (רכב, מלאי, ספירות) |
+| Client | `/client/me` | ✅ תוקן | היה: bootstrap כפול 115 שורות → `ClientOSApp` → `MeView`. עכשיו: server page → `DataProvider` → `MeView` ישירות (כמו שאר המודולים) |
+| Nexus | `/nexus/me` | ✅ | Client-side routing ב-`NexusWorkspaceApp` (case `/me`) |
+
+### מה `MeView` מספקת (ליבה אחידה):
+- פרופיל + אווטר + תפקיד + streak
+- שעון נוכחות (clock in/out) + היסטוריית משמרות
+- סטטיסטיקות: משימות, בונוסים, עמלות
+- 4 modals הגדרות: PersonalSettings, NotificationSettings, SecuritySettings, BillingSettings
+- 4 module-settings drawers: System, Social, Client, Finance
+- me-insights API לפי מודול נוכחי
+- leave requests + team events
+- `moduleCards` — כרטיסים ספציפיים למודול
+- `children` — תוכן מותאם אישית (Operations מנצל זאת)
+
+### תיקון 8: client/me — ביטול bootstrap כפול
+**קובץ:** `app/w/[orgSlug]/(modules)/client/me/page.tsx`
+**בעיה:** 115 שורות של bootstrap server-side שכפלו את אותו קוד מ-`ClientAppLayoutShell.tsx` (role resolution, Clerk metadata parsing, logo signing, access checks) — רק כדי לאתחל את כל `ClientOSApp` SPA שאז מרנדר `MeView`.
+**תיקון:** פושט ל-~55 שורות — `requireWorkspaceAccessByOrgSlugUi` + `DataProvider` + `MeView` ישירות, כמו שאר המודולים.
+
+---
+
 ## סיכום
 
 | קטגוריה | כמות |
 |----------|------|
 | דפים פעילים | 14 |
-| תיקונים שבוצעו | 7 |
+| תיקונים שבוצעו | 8 |
 | placeholder (Inbox, Morning sync) | 2 |
 | באגים קריטיים שנותרו | 0 |
 
