@@ -2723,12 +2723,13 @@ model OperationsCallMessage {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model organization_settings {
-  organization_id String               @id @db.Uuid
-  ai_dna          Json                 @default("{}")
-  created_at      DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime             @default(now()) @db.Timestamptz(6)
-  ai_quota_cents  BigInt?
-  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization_id  String               @id @db.Uuid
+  ai_dna           Json                 @default("{}")
+  ai_sales_context Json?                @default("{}")
+  created_at       DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime             @default(now()) @db.Timestamptz(6)
+  ai_quota_cents   BigInt?
+  organizations    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([ai_dna], map: "organization_settings_ai_dna_gin_idx", type: Gin)
 }

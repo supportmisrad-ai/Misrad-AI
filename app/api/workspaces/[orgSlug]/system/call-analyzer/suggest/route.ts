@@ -5,6 +5,8 @@ import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace
 import { AIService } from '@/lib/services/ai/AIService';
 import { logAuditEvent } from '@/lib/audit';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import prisma from '@/lib/prisma';
+import { asObject } from '@/lib/shared/unknown';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -60,16 +62,39 @@ async function POSTHandler(
       },
     });
 
+    // Fetch business-specific AI sales context (non-blocking if missing)
+    let businessContextBlock = '';
+    try {
+      const settings = await prisma.organization_settings.findUnique({
+        where: { organization_id: String(workspace.id) },
+        select: { ai_sales_context: true },
+      });
+      const ctx = asObject(settings?.ai_sales_context) ?? {};
+      const parts: string[] = [];
+      if (ctx.businessDescription) parts.push(`תיאור העסק: ${String(ctx.businessDescription)}`);
+      if (ctx.productsAndServices) parts.push(`מוצרים ושירותים: ${String(ctx.productsAndServices)}`);
+      if (ctx.targetAudience) parts.push(`קהל יעד: ${String(ctx.targetAudience)}`);
+      if (ctx.salesApproach) parts.push(`סגנון מכירה: ${String(ctx.salesApproach)}`);
+      if (ctx.salesScripts) parts.push(`תסריטי מכירה: ${String(ctx.salesScripts)}`);
+      if (ctx.commonObjections) parts.push(`התנגדויות נפוצות ותשובות: ${String(ctx.commonObjections)}`);
+      if (ctx.specialInstructions) parts.push(`הוראות מיוחדות: ${String(ctx.specialInstructions)}`);
+      if (parts.length > 0) {
+        businessContextBlock = `\n\nהקשר עסקי (השתמש במידע הזה כדי להתאים את הניתוח, הציונים, והמלצות המענה לעסק הספציפי הזה):\n${parts.join('\n')}`;
+      }
+    } catch {
+      // non-fatal – proceed without business context
+    }
+
     const prompt = `אתה מאמן מכירות ושירות ברמה גבוהה.
 קיבלת תמלול שיחה (עברית) של שיחת מכירה/שירות.
 
-החזר JSON תקין בלבד (ללא טקסט חופשי).
+החזר JSON תקין בלבד (ללא טקסט חופשי).${businessContextBlock}
 
 מטרות:
 1) סכם את השיחה בקצרה.
-2) תן ציון שיחה 0-100.
+2) תן ציון שיחה 0-100 (אם יש הקשר עסקי – השווה לסטנדרט המכירה של העסק הזה).
 3) זהה כוונת לקוח.
-4) הפק 3-7 הצעות "מענה להתנגדות" (objection -> reply -> next_question).
+4) הפק 3-7 הצעות "מענה להתנגדות" (objection -> reply -> next_question). אם יש תסריטי מכירה או התנגדויות מוגדרות – השתמש בהם כבסיס.
 5) הפק רשימת משימות אופרטיביות.
 6) אם אפשר - החזר גם פירוק בסיסי לקטעי תמלול (speaker,timestamp,text,sentiment).
 

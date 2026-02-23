@@ -15,15 +15,15 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 interface FormsViewProps {
-  initialForms: SystemFormDTO[];
-  orgSlug: string;
-  createFormAction: (orgSlug: string, data: { title: string; description?: string; category?: string }) => Promise<{ id?: string; error?: string }>;
-  toggleActiveAction: (orgSlug: string, formId: string, isActive: boolean) => Promise<{ error?: string }>;
-  deleteFormAction: (orgSlug: string, formId: string) => Promise<{ error?: string }>;
+  initialForms?: SystemFormDTO[];
+  orgSlug?: string;
+  createFormAction?: (orgSlug: string, data: { title: string; description?: string; category?: string }) => Promise<{ id?: string; error?: string }>;
+  toggleActiveAction?: (orgSlug: string, formId: string, isActive: boolean) => Promise<{ error?: string }>;
+  deleteFormAction?: (orgSlug: string, formId: string) => Promise<{ error?: string }>;
 }
 
 const FormsView: React.FC<FormsViewProps> = ({
-  initialForms, orgSlug, createFormAction, toggleActiveAction, deleteFormAction,
+  initialForms = [], orgSlug = '', createFormAction, toggleActiveAction, deleteFormAction,
 }) => {
   const [forms, setForms] = useState<SystemFormDTO[]>(initialForms);
   const [showCreate, setShowCreate] = useState(false);
@@ -34,7 +34,7 @@ const FormsView: React.FC<FormsViewProps> = ({
   const [newCategory, setNewCategory] = useState('ONBOARDING');
 
   const handleCreate = useCallback(async () => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || !createFormAction || !orgSlug) return;
     startTransition(async () => {
       const result = await createFormAction(orgSlug, {
         title: newTitle.trim(),
@@ -58,6 +58,7 @@ const FormsView: React.FC<FormsViewProps> = ({
   }, [newTitle, newDesc, newCategory, orgSlug, createFormAction]);
 
   const handleToggle = useCallback(async (formId: string, currentActive: boolean) => {
+    if (!toggleActiveAction || !orgSlug) return;
     startTransition(async () => {
       const result = await toggleActiveAction(orgSlug, formId, !currentActive);
       if (!result.error) {
@@ -67,6 +68,7 @@ const FormsView: React.FC<FormsViewProps> = ({
   }, [orgSlug, toggleActiveAction]);
 
   const handleDelete = useCallback(async (formId: string) => {
+    if (!deleteFormAction || !orgSlug) return;
     startTransition(async () => {
       const result = await deleteFormAction(orgSlug, formId);
       if (!result.error) {

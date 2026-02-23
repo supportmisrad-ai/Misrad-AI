@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { 
     User, Bell, Shield, Building, Mail, Smartphone, 
     SquareActivity, CreditCard, Users, Plus, Trash2, Check, 
     Globe, Lock, LogOut, Receipt, FileText, TriangleAlert, 
     Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target,
-    FileInput, Zap, ExternalLink
+    FileInput, Zap, ExternalLink, BrainCircuit, Loader2, Info,
+    Phone, ShoppingBag, MessageSquareText, Lightbulb, BookOpenText
 } from 'lucide-react';
 import Link from 'next/link';
 import { INITIAL_AGENTS, STAGES } from '../constants';
@@ -22,7 +23,27 @@ interface SettingsViewProps {
   orgSlug?: string;
 }
 
-type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications';
+type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications' | 'ai_sales';
+
+interface AiSalesContextData {
+  businessDescription: string;
+  productsAndServices: string;
+  targetAudience: string;
+  salesApproach: string;
+  salesScripts: string;
+  commonObjections: string;
+  specialInstructions: string;
+}
+
+const EMPTY_SALES_CONTEXT: AiSalesContextData = {
+  businessDescription: '',
+  productsAndServices: '',
+  targetAudience: '',
+  salesApproach: '',
+  salesScripts: '',
+  commonObjections: '',
+  specialInstructions: '',
+};
 
 const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' }) => {
   const { canAccess, user, isSuperAdmin, isTenantAdmin } = useAuth();
@@ -42,6 +63,66 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
       setTempLogo(brandLogo);
   }, [brandName, brandLogo]);
   
+  // AI Sales Context state
+  const [aiSalesContext, setAiSalesContext] = useState<AiSalesContextData>(EMPTY_SALES_CONTEXT);
+  const [aiSalesLoading, setAiSalesLoading] = useState(false);
+  const [aiSalesSaving, setAiSalesSaving] = useState(false);
+  const [aiSalesLoaded, setAiSalesLoaded] = useState(false);
+
+  const loadAiSalesContext = useCallback(async () => {
+    if (!orgSlug || aiSalesLoaded) return;
+    setAiSalesLoading(true);
+    try {
+      const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/ai-sales-context`);
+      if (!res.ok) throw new Error('Failed to load');
+      const json = (await res.json()) as Record<string, unknown>;
+      const nested = (json?.data && typeof json.data === 'object' ? json.data : json) as Record<string, unknown>;
+      const ctx = (nested?.aiSalesContext && typeof nested.aiSalesContext === 'object' ? nested.aiSalesContext : {}) as Record<string, unknown>;
+      setAiSalesContext({
+        businessDescription: String(ctx.businessDescription || ''),
+        productsAndServices: String(ctx.productsAndServices || ''),
+        targetAudience: String(ctx.targetAudience || ''),
+        salesApproach: String(ctx.salesApproach || ''),
+        salesScripts: String(ctx.salesScripts || ''),
+        commonObjections: String(ctx.commonObjections || ''),
+        specialInstructions: String(ctx.specialInstructions || ''),
+      });
+      setAiSalesLoaded(true);
+    } catch {
+      // silent – first time
+    } finally {
+      setAiSalesLoading(false);
+    }
+  }, [orgSlug, aiSalesLoaded]);
+
+  useEffect(() => {
+    if (activeTab === 'ai_sales') {
+      void loadAiSalesContext();
+    }
+  }, [activeTab, loadAiSalesContext]);
+
+  const saveAiSalesContext = async () => {
+    if (!orgSlug) return;
+    setAiSalesSaving(true);
+    try {
+      const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/ai-sales-context`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ aiSalesContext }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      addToast('הנחיות AI למכירות נשמרו בהצלחה', 'success');
+    } catch {
+      addToast('שגיאה בשמירת הנחיות AI', 'error');
+    } finally {
+      setAiSalesSaving(false);
+    }
+  };
+
+  const updateSalesField = (field: keyof AiSalesContextData, value: string) => {
+    setAiSalesContext(prev => ({ ...prev, [field]: value }));
+  };
+
   // Rule 1: Dynamic Configuration State (Simulated)
   const [editableStages, setEditableStages] = useState(STAGES);
 
@@ -85,6 +166,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
       { id: 'pipeline', label: 'תהליך המכירה', icon: Kanban, desc: 'עריכת שלבים', allowed: canAccess('settings_team') },
       { id: 'team', label: 'צוות והרשאות', icon: Users, desc: 'מי במערכת', allowed: canAccess('settings_team') },
       { id: 'billing', label: 'תוכנית ותשלום', icon: CreditCard, desc: 'חשבוניות', allowed: canAccess('billing') },
+      { id: 'ai_sales', label: 'AI מאמן מכירות', icon: BrainCircuit, desc: 'הנחיות למנוע הניתוח', allowed: true },
       { id: 'notifications', label: 'התראות', icon: Bell, desc: 'מתי להציק לך', allowed: true },
     ] satisfies Array<{
       id: SettingsTabId;
@@ -497,6 +579,199 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                             אין עדיין תשלומים להצגה
                         </div>
                     </div>
+                </div>
+              )}
+
+              {/* AI SALES COACH TAB */}
+              {activeTab === 'ai_sales' && (
+                <div className="space-y-6 animate-slide-up">
+                    {/* Explainer Card */}
+                    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200 rounded-3xl p-6 md:p-8">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-indigo-100 rounded-2xl shrink-0">
+                                <Lightbulb size={24} className="text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-indigo-900 mb-2">למה זה חשוב?</h3>
+                                <p className="text-sm text-indigo-800 leading-relaxed mb-3">
+                                    כשאתה מזין מידע על העסק, סגנון המכירה, והמוצרים שלך – ה-AI של מנתח השיחות והחייגן הופך <strong>ממאמן גנרי למאמן שמכיר את העסק שלך לעומק</strong>.
+                                </p>
+                                <ul className="text-sm text-indigo-700 space-y-1.5">
+                                    <li className="flex items-start gap-2"><Check size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>ניתוח שיחות יתייחס למוצרים ולשירותים הספציפיים שלך</span></li>
+                                    <li className="flex items-start gap-2"><Check size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>הצעות מענה להתנגדויות יתבססו על תסריטי המכירה שלך</span></li>
+                                    <li className="flex items-start gap-2"><Check size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>המאמן החי (Live Coach) ייתן טיפים רלוונטיים לקהל היעד שלך</span></li>
+                                    <li className="flex items-start gap-2"><Check size={14} className="text-indigo-500 shrink-0 mt-0.5" /> <span>ציון השיחה ישקף את סטנדרט המכירה שאתה מגדיר</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {aiSalesLoading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <Loader2 size={32} className="text-indigo-500 animate-spin" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Business Description */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Building size={20} className="text-indigo-500" />
+                                    תיאור העסק
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">ספר ל-AI מי אתה ומה העסק שלך עושה</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.businessDescription}
+                                    onChange={(e) => updateSalesField('businessDescription', e.target.value)}
+                                    rows={4}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder="דוגמה: אנחנו חברת שיפוצים מוגבלת בע״מ שמתמחה בשיפוצי דירות יוקרה באזור המרכז. פועלים מ-2018, 12 עובדים, תקציב ממוצע לפרויקט 150-400 אלף ₪."
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Products & Services */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <ShoppingBag size={20} className="text-emerald-500" />
+                                    מוצרים ושירותים
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">מה אתה מוכר? פרט מחירים, חבילות, יתרונות</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.productsAndServices}
+                                    onChange={(e) => updateSalesField('productsAndServices', e.target.value)}
+                                    rows={5}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder="דוגמה:\n- שיפוץ דירה מלא: 150-400 אלף ₪ (כולל תכנון, ביצוע, ליווי)\n- שיפוץ מטבח: 40-80 אלף ₪\n- שיפוץ חדר אמבטיה: 25-50 אלף ₪\nיתרון מרכזי: אחריות 5 שנים, מנהל פרויקט צמוד"
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Target Audience */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Users size={20} className="text-amber-500" />
+                                    קהל יעד
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">מי הלקוחות שלך? מה חשוב להם?</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.targetAudience}
+                                    onChange={(e) => updateSalesField('targetAudience', e.target.value)}
+                                    rows={3}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder="דוגמה: זוגות צעירים שרוכשים דירה ראשונה, משפחות מבוססות שרוצות שדרוג, משקיעי נדל״ן. חשוב להם: אמינות, עמידה בלוחות זמנים, שקיפות תקציבית."
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Sales Approach */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Phone size={20} className="text-rose-500" />
+                                    סגנון וגישת מכירה
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">איך אתה מוכר? מה הגישה שלך? מה עובד?</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.salesApproach}
+                                    onChange={(e) => updateSalesField('salesApproach', e.target.value)}
+                                    rows={4}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder="דוגמה: אנחנו לא לוחצים – בונים אמון. השיחה הראשונה היא תמיד ייעוצית, בלי לדבר על מחיר. מזמינים לפגישה באתר. המרה טובה כשהלקוח מרגיש שהבנו את הצרכים שלו."
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Sales Scripts */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <BookOpenText size={20} className="text-blue-500" />
+                                    תסריטי מכירה
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">הדבק את תסריטי המכירה / משפטי מפתח שאתה משתמש בהם</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.salesScripts}
+                                    onChange={(e) => updateSalesField('salesScripts', e.target.value)}
+                                    rows={6}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all font-mono text-xs"
+                                    placeholder={'דוגמה:\nפתיחה: "שלום [שם], כאן [שם] מ[חברה]. ראיתי שהשארת פרטים לגבי שיפוץ – אשמח לשמוע מה בדיוק אתם מחפשים."\nמעבר לפגישה: "בואו נקבע פגישת ייעוץ קצרה באתר – זה בלי התחייבות, רק כדי שנבין מה הצרכים."\nסגירה: "אני שולח לך הצעה מסודרת עד [תאריך], ונדבר שוב."'}
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Common Objections */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <MessageSquareText size={20} className="text-orange-500" />
+                                    התנגדויות נפוצות ותשובות
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">מה הלקוחות אומרים ואיך אתה עונה? ה-AI ישתמש בזה לייצר מענה מותאם</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.commonObjections}
+                                    onChange={(e) => updateSalesField('commonObjections', e.target.value)}
+                                    rows={5}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder={'דוגמה:\n"יקר לי" → "אני מבין. בואו נראה מה באמת חשוב לכם ונתאים חבילה. הרבה לקוחות שלנו חסכו בסוף כי הכל נעשה נכון מהפעם הראשונה."\n"אני צריך לחשוב" → "בהחלט, קחו את הזמן. אני שולח סיכום קצר במייל ונדבר שוב בתחילת השבוע?"\n"יש לי כבר קבלן" → "מעולה, כדאי תמיד להשוות. אשמח לתת הצעה שתוכלו לבדוק מולו."'}
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Special Instructions */}
+                        <div className="ui-card overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <Info size={20} className="text-violet-500" />
+                                    הוראות מיוחדות ל-AI
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">הנחיות נוספות, דגשים, מה לא לומר, טון דיבור מועדף</p>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    value={aiSalesContext.specialInstructions}
+                                    onChange={(e) => updateSalesField('specialInstructions', e.target.value)}
+                                    rows={3}
+                                    className="w-full border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 outline-none resize-none transition-all"
+                                    placeholder="דוגמה: תמיד להדגיש את האחריות של 5 שנים. לא להזכיר מתחרים בשם. הטון צריך להיות מקצועי אבל חם. אם הלקוח מדבר על תקציב נמוך – לא לוותר, להציע פתרון מדורג."
+                                    dir="rtl"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex justify-end pt-4 pb-8">
+                            <button
+                                onClick={saveAiSalesContext}
+                                disabled={aiSalesSaving}
+                                className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {aiSalesSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                {aiSalesSaving ? 'שומר...' : 'שמור הנחיות AI'}
+                            </button>
+                        </div>
+                      </>
+                    )}
                 </div>
               )}
 
