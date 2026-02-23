@@ -10,7 +10,7 @@ export default async function SystemSalesLeadsPage({
 }) {
   const { orgSlug } = await params;
 
-  const res = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+  const res = await getSystemLeadsPage({ orgSlug, pageSize: 50 });
   const initialLeads = res.success ? res.data.leads : [];
   const initialNextCursor = res.success ? res.data.nextCursor : null;
   const initialHasMore = res.success ? res.data.hasMore : false;

@@ -12,7 +12,7 @@ export default async function SystemDialerPage({
   const { orgSlug } = await params;
 
   const [leadsRes, callHistory, initialStages] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
     getSystemCallHistory({ orgSlug, take: 200 }),
     getSystemPipelineStages({ orgSlug }),
   ]);

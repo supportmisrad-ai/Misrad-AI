@@ -31,10 +31,25 @@ export const F = {
 // ═══════════════════════════════════════════════════════════
 // LAYOUT — Fill the screen
 // ═══════════════════════════════════════════════════════════
-export const CARD_W = 980;
+export const CARD_W = 960;
 export const PAD = 50;
 export const FULL_W = 1080;
 export const FULL_H = 1920;
+
+// TikTok Safe Zone
+export const SAFE = {
+  top: 150,
+  bottom: 280,
+  left: 50,
+  right: 50,
+} as const;
+
+// Unified accent — ONE color per video, not rainbow
+export const ACCENT = {
+  gold: '#D4A04A',
+  goldLight: '#EAD7A1',
+  goldDim: 'rgba(212,160,74,0.15)',
+} as const;
 
 // ═══════════════════════════════════════════════════════════
 // LOGO — Shield M mark (from misrad-icon.svg)
@@ -49,7 +64,7 @@ export const MisradLogo: React.FC<{
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, opacity,
   }}>
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <path fill={BRAND.primary} d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z" />
+      <path fill="#0F172A" d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z" />
       <path fill="#FFFFFF" d="M19 21.5h6.2l6.8 12.1 6.8-12.1H45v21h-5.8V32.2l-6.1 10.3h-2.2l-6.1-10.3v10.3H19v-21z" />
     </svg>
     {withText && (
@@ -66,11 +81,11 @@ export const MisradLogo: React.FC<{
 // Compact watermark logo for bottom of scenes
 export const LogoWatermark: React.FC<{ opacity?: number }> = ({ opacity = 0.35 }) => (
   <div style={{
-    position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+    position: 'absolute', bottom: SAFE.bottom + 10, left: '50%', transform: 'translateX(-50%)',
     display: 'flex', alignItems: 'center', gap: 12, opacity,
   }}>
     <svg width={28} height={28} viewBox="0 0 64 64" fill="none">
-      <path fill={BRAND.primary} d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z" />
+      <path fill="#0F172A" d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z" />
       <path fill="#FFFFFF" d="M19 21.5h6.2l6.8 12.1 6.8-12.1H45v21h-5.8V32.2l-6.1 10.3h-2.2l-6.1-10.3v10.3H19v-21z" />
     </svg>
     <span style={{ fontFamily: RUBIK, fontSize: 20, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 }}>
@@ -89,7 +104,7 @@ export const gradientText = (
   const bgs: Record<string, string> = {
     warm: 'linear-gradient(170deg, #FFFFFF 0%, #E8E2D8 50%, #F0EDE8 100%)',
     gold: 'linear-gradient(170deg, #F5E6B8 0%, #D4A04A 40%, #EAD7A1 80%, #C5A572 100%)',
-    brand: 'linear-gradient(170deg, #F0A0B8 0%, #A21D3C 40%, #6366F1 70%, #4338CA 100%)',
+    brand: 'linear-gradient(170deg, #FFFFFF 0%, #D4A04A 50%, #EAD7A1 100%)',
     white: 'linear-gradient(170deg, #FFFFFF 0%, #E0E0E0 50%, #FFFFFF 100%)',
   };
   return {
@@ -180,33 +195,32 @@ export const GrainOverlay: React.FC<{ opacity?: number }> = ({ opacity = 0.04 })
 // ═══════════════════════════════════════════════════════════
 // LAYOUT HELPERS — Fill screen, no dead space
 // ═══════════════════════════════════════════════════════════
-export const fillCenter: React.CSSProperties = {
+// Safe-zone aware centered layout — content in the middle, respects TikTok safe zones
+export const safeFill: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
-  padding: `${PAD}px`,
+  paddingTop: SAFE.top,
+  paddingBottom: SAFE.bottom,
+  paddingLeft: SAFE.left,
+  paddingRight: SAFE.right,
+  gap: 28,
 };
 
-export const fillTop: React.CSSProperties = {
+// Top-aligned within safe zone
+export const safeTop: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'flex-start',
   overflow: 'hidden',
-  paddingTop: 100,
-  paddingLeft: PAD,
-  paddingRight: PAD,
-};
-
-export const fillSpread: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  overflow: 'hidden',
-  padding: `120px ${PAD}px 80px`,
+  paddingTop: SAFE.top + 20,
+  paddingBottom: SAFE.bottom,
+  paddingLeft: SAFE.left,
+  paddingRight: SAFE.right,
+  gap: 24,
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -241,11 +255,12 @@ export const statCard = (accent: string): React.CSSProperties => ({
 // ═══════════════════════════════════════════════════════════
 // ROW CARD — Full-width card for list items
 // ═══════════════════════════════════════════════════════════
-export const rowCard = (accent?: string): React.CSSProperties => ({
+// Row card — ALWAYS gold accent for consistency
+export const rowCard = (): React.CSSProperties => ({
   width: CARD_W,
   borderRadius: 24,
-  background: accent ? `${accent}08` : 'rgba(255,255,255,0.05)',
-  border: `1.5px solid ${accent ? accent + '30' : 'rgba(255,255,255,0.08)'}`,
+  background: 'rgba(212,160,74,0.06)',
+  border: '1.5px solid rgba(212,160,74,0.2)',
   padding: '28px 40px',
   display: 'flex',
   justifyContent: 'space-between',

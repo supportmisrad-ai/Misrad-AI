@@ -1,14 +1,13 @@
 /**
- * Create Invoice / Document Modal with Custom Design Options
+ * Create Document Modal with Custom Design Options
  * 
- * Modal for creating invoices, quotes, receipts via מורנינג with custom design, colors, and styling
- * Supports document types: חשבונית (320), הצעת מחיר (100), חשבונית מס/קבלה (305), קבלה (400)
+ * Modal for creating documents (invoices, quotes, receipts) via מורנינג with custom design, colors, and styling
  */
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Plus, Trash2, Download, Send, Palette, Image, Check, Type } from 'lucide-react';
+import { X, FileText, Plus, Trash2, Download, Send, Palette, Image, Check, Type, ClipboardList, Receipt } from 'lucide-react';
 import type { PackageType } from '@/lib/billing/pricing';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -16,18 +15,14 @@ import PaywallModal from '@/components/shared/PaywallModal';
 import { Skeleton } from '@/components/ui/skeletons';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
-type DocumentTypeOption = {
-    value: number;
-    label: string;
-    description: string;
-};
+type DocumentTypeKey = 'invoice' | 'quote' | 'receipt' | 'invoice_receipt';
 
-const DOCUMENT_TYPES: DocumentTypeOption[] = [
-    { value: 320, label: 'חשבונית', description: 'חשבונית רגילה ללא קבלה' },
-    { value: 100, label: 'הצעת מחיר', description: 'הצעת מחיר ללקוח' },
-    { value: 305, label: 'חשבונית מס / קבלה', description: 'חשבונית מס עם קבלה מובנית' },
-    { value: 400, label: 'קבלה', description: 'קבלה על תשלום שהתקבל' },
-];
+const DOCUMENT_TYPES: Record<DocumentTypeKey, { label: string; icon: React.ReactNode; color: string; bgColor: string }> = {
+    invoice: { label: 'חשבונית', icon: <FileText size={16} />, color: 'text-green-600', bgColor: 'bg-green-100' },
+    quote: { label: 'הצעת מחיר', icon: <ClipboardList size={16} />, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    receipt: { label: 'קבלה', icon: <Receipt size={16} />, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+    invoice_receipt: { label: 'חשבונית מס / קבלה', icon: <FileText size={16} />, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+};
 
 interface CreateInvoiceModalProps {
     isOpen: boolean;
@@ -38,7 +33,7 @@ interface CreateInvoiceModalProps {
     clientPhone?: string;
     defaultAmount?: number;
     defaultDescription?: string;
-    defaultDocumentType?: number;
+    defaultDocumentType?: DocumentTypeKey;
 }
 
 export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
@@ -50,7 +45,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     clientPhone,
     defaultAmount = 0,
     defaultDescription = '',
-    defaultDocumentType = 320
+    defaultDocumentType = 'invoice',
 }) => {
     useBackButtonClose(isOpen, onClose);
     const pathname = usePathname();
@@ -62,7 +57,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     const [quantity, setQuantity] = useState('1');
     const [vatRate, setVatRate] = useState('17');
     const [notes, setNotes] = useState('');
-    
+
     // Design options
     const [showDesignOptions, setShowDesignOptions] = useState(false);
     const [primaryColor, setPrimaryColor] = useState('#10B981'); // Green default
@@ -71,7 +66,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     const [fontFamily, setFontFamily] = useState('Arial');
     const [headerText, setHeaderText] = useState('');
     const [footerText, setFooterText] = useState('');
-    
+
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -124,12 +119,8 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                 ...(footerText && { footerText })
             } : undefined;
 
-            // Use the new generic endpoint for all document types
-            const endpoint = documentType === 320
-                ? '/api/integrations/green-invoice/create'
-                : '/api/integrations/green-invoice/create-document';
-
             const bodyPayload: Record<string, unknown> = {
+                documentType,
                 clientName,
                 clientEmail,
                 clientPhone,
@@ -142,15 +133,10 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                 currency: 'ILS',
                 paymentMethod: 'bank_transfer',
                 notes,
-                ...(designOptions && { design: designOptions }),
+                ...(designOptions && { design: designOptions })
             };
 
-            // For non-invoice types, add documentType to payload
-            if (documentType !== 320) {
-                bodyPayload.documentType = documentType;
-            }
-
-            const response = await fetch(endpoint, {
+            const response = await fetch('/api/integrations/green-invoice/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -174,11 +160,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             }
 
             const result = await response.json();
-            const doc = result.invoice || result.document;
-            onSuccess(doc?.invoiceUrl || doc?.documentUrl || doc?.pdfUrl || '');
+            const doc = result.document || result.invoice;
+            onSuccess(doc?.documentUrl || doc?.invoiceUrl || doc?.pdfUrl || '');
             onClose();
-            
+
             // Reset form
+            setDocumentType(defaultDocumentType);
             setAmount(defaultAmount.toString());
             setDescription(defaultDescription);
             setQuantity('1');
@@ -224,7 +211,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                 </div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">אינטגרציה לא מחוברת</h3>
                                 <p className="text-sm text-gray-500 mb-1">
-                                    כדי להפיק חשבוניות, יש לחבר קודם את חשבון חשבונית ירוקה (Green Invoice)
+                                    כדי להפיק מסמכים, יש לחבר קודם את חשבון חשבונית ירוקה (Green Invoice)
                                 </p>
                                 <p className="text-xs text-gray-400 mb-6">
                                     ניתן לחבר דרך הגדרות → אינטגרציות במודול הפיננסי
@@ -281,12 +268,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                 >
                     <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                                <FileText size={20} className="text-green-600" />
+                            <div className={`w-10 h-10 ${DOCUMENT_TYPES[documentType].bgColor} rounded-xl flex items-center justify-center`}>
+                                {DOCUMENT_TYPES[documentType].icon}
                             </div>
                             <div>
                                 <h3 className="font-bold text-lg text-gray-900">
-                                    {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'יצירת מסמך'}
+                                    יצירת {DOCUMENT_TYPES[documentType].label}
                                 </h3>
                                 <p className="text-xs text-gray-500">לקוח: {clientName}</p>
                             </div>
@@ -305,27 +292,30 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             <label className="block text-sm font-bold text-gray-700 mb-2">
                                 סוג מסמך
                             </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                {DOCUMENT_TYPES.map((dt) => (
-                                    <button
-                                        key={dt.value}
-                                        type="button"
-                                        onClick={() => setDocumentType(dt.value)}
-                                        disabled={isCreating}
-                                        className={`p-3 rounded-xl border-2 text-right transition-all ${
-                                            documentType === dt.value
-                                                ? 'border-green-500 bg-green-50'
-                                                : 'border-gray-200 bg-white hover:border-gray-300'
-                                        } disabled:opacity-50`}
-                                    >
-                                        <div className="font-bold text-sm text-gray-900">{dt.label}</div>
-                                        <div className="text-[10px] text-gray-500 mt-0.5">{dt.description}</div>
-                                    </button>
-                                ))}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {(Object.keys(DOCUMENT_TYPES) as DocumentTypeKey[]).map((key) => {
+                                    const dt = DOCUMENT_TYPES[key];
+                                    const isSelected = documentType === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setDocumentType(key)}
+                                            disabled={isCreating}
+                                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                                                isSelected
+                                                    ? `border-gray-900 bg-gray-50 text-gray-900 shadow-sm`
+                                                    : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <span className={`${isSelected ? dt.color : 'text-gray-400'}`}>{dt.icon}</span>
+                                            {dt.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
-                        {/* Basic Invoice Details */}
+                        {/* Basic Document Details */}
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -593,12 +583,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             {isCreating ? (
                                 <>
                                     <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
-                                    יוצר {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'מסמך'}...
+                                    יוצר {DOCUMENT_TYPES[documentType].label}...
                                 </>
                             ) : (
                                 <>
                                     <Check size={16} />
-                                    צור {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'מסמך'}
+                                    צור {DOCUMENT_TYPES[documentType].label}
                                 </>
                             )}
                         </button>

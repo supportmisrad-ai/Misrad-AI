@@ -12,7 +12,7 @@ export default async function SystemSalesPipelinePage({
   const { orgSlug } = await params;
 
   const [leadsRes, initialStages] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
     getSystemPipelineStages({ orgSlug }),
   ]);
 

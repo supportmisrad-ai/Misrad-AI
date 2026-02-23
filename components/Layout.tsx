@@ -23,6 +23,7 @@ import { LayoutModals } from './layout/LayoutModals';
 import { MobileMenu } from './layout/MobileMenu';
 import { NAV_ITEMS } from './layout/layout.types';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+import { ModuleBackground } from '@/components/shared/ModuleBackground';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -499,11 +500,7 @@ export const Layout = ({ children }: LayoutProps) => {
       )}
       {isMounted && <ToastContainer toasts={toasts} removeToast={removeToast} />}
       
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-[100px] animate-blob mix-blend-multiply filter"></div>
-          <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-blue-200/40 rounded-full blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply filter"></div>
-          <div className="absolute bottom-[-10%] left-[20%] w-[500px] h-[500px] bg-pink-200/40 rounded-full blur-[100px] animate-blob animation-delay-4000 mix-blend-multiply filter"></div>
-      </div>
+      <ModuleBackground moduleKey="nexus" />
 
       {isMounted && (
         <LayoutModals

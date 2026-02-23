@@ -1,14 +1,16 @@
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
- * API Route: Create Invoice via Green Invoice
+ * API Route: Create Document via Green Invoice
  * POST /api/integrations/green-invoice/create
  * 
- * Creates an invoice using Green Invoice API
+ * Creates a document (invoice, quote, receipt, invoice+receipt, etc.) using Green Invoice API.
+ * Pass `documentType` in body to select type. Defaults to 'invoice' for backward compatibility.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { createInvoice } from '@/lib/integrations/green-invoice';
+import { createDocument, GreenInvoiceDocumentType, DOCUMENT_TYPE_LABELS } from '@/lib/integrations/green-invoice';
+import type { GreenInvoiceDocumentTypeValue } from '@/lib/integrations/green-invoice';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { Prisma } from '@prisma/client';
@@ -186,6 +188,24 @@ async function POSTHandler(request: NextRequest) {
         const body: unknown = await request.json();
         const bodyObj = asObject(body) ?? {};
 
+        // 3.1 Resolve document type (default: invoice for backward compatibility)
+        const documentTypeRaw = bodyObj.documentType;
+        const DOCUMENT_TYPE_MAP: Record<string, GreenInvoiceDocumentTypeValue> = {
+            'invoice': GreenInvoiceDocumentType.INVOICE,
+            'quote': GreenInvoiceDocumentType.QUOTE,
+            'receipt': GreenInvoiceDocumentType.RECEIPT,
+            'invoice_receipt': GreenInvoiceDocumentType.INVOICE_RECEIPT,
+            'credit_note': GreenInvoiceDocumentType.CREDIT_NOTE,
+            'delivery_note': GreenInvoiceDocumentType.DELIVERY_NOTE,
+            'work_order': GreenInvoiceDocumentType.WORK_ORDER,
+        };
+        const resolvedDocumentType: GreenInvoiceDocumentTypeValue =
+            typeof documentTypeRaw === 'string' && documentTypeRaw in DOCUMENT_TYPE_MAP
+                ? DOCUMENT_TYPE_MAP[documentTypeRaw]
+                : typeof documentTypeRaw === 'number' && Object.values(GreenInvoiceDocumentType).includes(documentTypeRaw as GreenInvoiceDocumentTypeValue)
+                    ? documentTypeRaw as GreenInvoiceDocumentTypeValue
+                    : GreenInvoiceDocumentType.INVOICE;
+
         const clientName = String(bodyObj.clientName ?? '').trim();
         const clientEmailRaw = bodyObj.clientEmail;
         const clientEmail = typeof clientEmailRaw === 'string' ? clientEmailRaw : clientEmailRaw == null ? undefined : String(clientEmailRaw);
@@ -279,8 +299,8 @@ async function POSTHandler(request: NextRequest) {
             });
         }
 
-        // 4. Create invoice via Green Invoice API
-        const invoiceInput: InvoiceCreateInput = {
+        // 4. Create document via Green Invoice API
+        const documentInput: InvoiceCreateInput = {
             clientName,
             clientEmail,
             clientPhone,
@@ -293,9 +313,9 @@ async function POSTHandler(request: NextRequest) {
             design,
         };
 
-        const result = await createInvoice(dbUserId, invoiceInput, String(workspaceId));
+        const result = await createDocument(dbUserId, resolvedDocumentType, documentInput, String(workspaceId));
 
-        // 4.5 Paywall usage tracking: increment total trial invoices (no migration)
+        // 4.5 Paywall usage tracking: increment total trial documents (no migration)
         if (isTrial && integrationIdForUsage) {
             try {
                 const prevTotal = Number(integrationMetadataForUsage.total_trial_invoices ?? 0);
@@ -317,14 +337,20 @@ async function POSTHandler(request: NextRequest) {
             }
         }
 
+        const documentTypeLabel = DOCUMENT_TYPE_LABELS[resolvedDocumentType] || 'מסמך';
+
         return NextResponse.json({
             success: true,
-            invoice: result
+            documentType: resolvedDocumentType,
+            documentTypeLabel,
+            // Backward compat: keep `invoice` key, add `document` key
+            invoice: result,
+            document: result,
         }, { status: 201 });
 
     } catch (error: unknown) {
-        if (IS_PROD) console.error('[API] Error creating invoice');
-        else console.error('[API] Error creating invoice:', error);
+        if (IS_PROD) console.error('[API] Error creating document');
+        else console.error('[API] Error creating document:', error);
         if (error instanceof APIError) {
             const safeMsg =
                 error.status === 400
@@ -342,7 +368,7 @@ async function POSTHandler(request: NextRequest) {
             );
         }
         const message = getErrorMessage(error);
-        const safeMsg = 'Failed to create invoice';
+        const safeMsg = 'Failed to create document';
         return NextResponse.json(
             { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: 500 }

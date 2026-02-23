@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { getOperationsProjectsData } from '@/app/actions/operations';
 import { formatProjectStatus } from '@/lib/services/operations/format';
+import ProjectsImportButton from '@/components/operations/ProjectsImportButton';
 
 function formatDate(dateIso: string): string {
   try {
@@ -35,12 +36,15 @@ export default async function OperationsProjectsPage({
                 <div className="text-xs text-slate-400 mt-0.5">סך הכל {projects.length} פרויקטים</div>
               </div>
 
-              <Link
-                href={`${base}/projects/new`}
-                className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
-              >
-                פרויקט חדש
-              </Link>
+              <div className="flex items-center gap-2">
+                <ProjectsImportButton orgSlug={orgSlug} />
+                <Link
+                  href={`${base}/projects/new`}
+                  className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
+                >
+                  פרויקט חדש
+                </Link>
+              </div>
             </div>
           </div>
 

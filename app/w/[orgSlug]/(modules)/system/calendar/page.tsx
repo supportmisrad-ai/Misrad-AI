@@ -15,7 +15,7 @@ export default async function SystemCalendarPage({
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   const [leadsRes, initialEvents] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
     getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 200 }),
   ]);
 

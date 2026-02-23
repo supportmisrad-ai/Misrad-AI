@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, Status, Priority, Asset, Task, Invoice } from '../types';
 import { useData } from '../context/DataContext';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
-import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CircleCheckBig, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe } from 'lucide-react';
+import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CircleCheckBig, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TaskItem } from './nexus/TaskItem';
 import { CustomSelect } from './CustomSelect';
@@ -33,6 +33,8 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
   
   // Invoice Modal
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceDocType, setInvoiceDocType] = useState<'invoice' | 'quote' | 'receipt' | 'invoice_receipt'>('invoice');
+  const [isDocTypeDropdownOpen, setIsDocTypeDropdownOpen] = useState(false);
 
   // Scroll to top on mobile when modal opens
   useEffect(() => {
@@ -108,7 +110,9 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
       setNewAssetValue('');
   };
 
-  const handleGenerateInvoice = () => {
+  const handleGenerateDocument = (docType: 'invoice' | 'quote' | 'receipt' | 'invoice_receipt' = 'invoice') => {
+      setInvoiceDocType(docType);
+      setIsDocTypeDropdownOpen(false);
       setIsInvoiceModalOpen(true);
   };
 
@@ -567,12 +571,38 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                                     <p className="text-xs text-gray-500">מסמכים מתוך חשבונית ירוקה</p>
                                 </div>
                                 {hasPermission('view_financials') && (
-                                    <button 
-                                        onClick={handleGenerateInvoice}
-                                        className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 hover:bg-green-700 transition-colors"
-                                    >
-                                        <Plus size={14} /> הפק חשבונית
-                                    </button>
+                                    <div className="relative">
+                                        <div className="flex">
+                                            <button
+                                                onClick={() => handleGenerateDocument('invoice')}
+                                                className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-r-lg font-bold flex items-center gap-1 hover:bg-green-700 transition-colors"
+                                            >
+                                                <Plus size={14} /> הפק חשבונית
+                                            </button>
+                                            <button
+                                                onClick={() => setIsDocTypeDropdownOpen(!isDocTypeDropdownOpen)}
+                                                className="text-xs bg-green-700 text-white px-1.5 py-1.5 rounded-l-lg font-bold hover:bg-green-800 transition-colors border-r border-green-500"
+                                            >
+                                                <ChevronDown size={12} />
+                                            </button>
+                                        </div>
+                                        {isDocTypeDropdownOpen && (
+                                            <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 min-w-[180px] py-1">
+                                                <button onClick={() => handleGenerateDocument('invoice')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 text-right">
+                                                    <FileText size={13} className="text-green-600" /> חשבונית
+                                                </button>
+                                                <button onClick={() => handleGenerateDocument('quote')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 text-right">
+                                                    <ClipboardList size={13} className="text-blue-600" /> הצעת מחיר
+                                                </button>
+                                                <button onClick={() => handleGenerateDocument('receipt')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 text-right">
+                                                    <Receipt size={13} className="text-purple-600" /> קבלה
+                                                </button>
+                                                <button onClick={() => handleGenerateDocument('invoice_receipt')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 text-right">
+                                                    <FileText size={13} className="text-amber-600" /> חשבונית מס / קבלה
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -622,6 +652,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
         clientPhone={client.phone}
         defaultAmount={monthlyValue}
         defaultDescription={`שירות ${client.package} - חודש שוטף`}
+        defaultDocumentType={invoiceDocType}
       />
     </div>
   );

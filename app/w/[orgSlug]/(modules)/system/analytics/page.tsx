@@ -16,9 +16,9 @@ export default async function SystemAnalyticsPage({
   const initialTab = tabRaw === 'reports' ? 'reports' as const : 'analytics' as const;
 
   const [leadsRes, campaignsRes, initialTasks] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
     getCampaigns(undefined, orgSlug),
-    listNexusTasksByOrgSlug({ orgSlug, pageSize: 200 }).then((r) => r.tasks),
+    listNexusTasksByOrgSlug({ orgSlug, pageSize: 50 }).then((r) => r.tasks),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];

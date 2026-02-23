@@ -24,7 +24,7 @@ export default async function SystemModuleHome({
 
   // Run ALL data fetches in parallel instead of sequentially
   const [leadsRes, initialEvents, tasksRes, campaignsRes, initialNotifications] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 200 }).catch((): LeadsRes => ({
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
       success: false,
       error: 'שגיאה בטעינת לידים',
     })),
@@ -34,10 +34,10 @@ export default async function SystemModuleHome({
       to: startOfNextMonth.toISOString(),
       take: 200,
     }).catch(() => []),
-    listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 200 }).catch((): TasksRes => ({
+    listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 50 }).catch((): TasksRes => ({
       tasks: [],
       page: 1,
-      pageSize: 200,
+      pageSize: 50,
       hasMore: false,
     })),
     getCampaigns(undefined, orgSlug).catch((): CampaignsRes => ({

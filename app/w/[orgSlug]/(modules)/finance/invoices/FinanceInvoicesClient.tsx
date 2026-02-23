@@ -1,10 +1,26 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { ExternalLink, FileText, Receipt, Plus, Download } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { ExternalLink, FileText, Receipt, Plus, Download, ChevronDown, ClipboardList } from 'lucide-react';
 import type { FinanceInvoice } from '@/lib/services/finance-service';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
 import { useToast } from '@/components/system/contexts/ToastContext';
+
+type DocumentTypeKey = 'invoice' | 'quote' | 'receipt' | 'invoice_receipt';
+
+const DOC_TYPE_OPTIONS: { key: DocumentTypeKey; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'invoice', label: 'חשבונית', icon: <FileText size={14} />, color: 'text-emerald-600' },
+  { key: 'quote', label: 'הצעת מחיר', icon: <ClipboardList size={14} />, color: 'text-blue-600' },
+  { key: 'receipt', label: 'קבלה', icon: <Receipt size={14} />, color: 'text-purple-600' },
+  { key: 'invoice_receipt', label: 'חשבונית מס / קבלה', icon: <FileText size={14} />, color: 'text-amber-600' },
+];
+
+const DOC_TYPE_LABELS: Record<DocumentTypeKey, string> = {
+  invoice: 'חשבונית',
+  quote: 'הצעת מחיר',
+  receipt: 'קבלה',
+  invoice_receipt: 'חשבונית מס / קבלה',
+};
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   paid: { label: 'שולם', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -58,18 +74,33 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [showClientForm, setShowClientForm] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState<DocumentTypeKey>('invoice');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { addToast } = useToast();
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleCreateSuccess = useCallback((url: string) => {
-    addToast('חשבונית נוצרה בהצלחה!', 'success');
+    addToast(`${DOC_TYPE_LABELS[selectedDocType]} נוצרה בהצלחה!`, 'success');
     setIsCreateOpen(false);
     setShowClientForm(false);
     setClientName('');
     setClientEmail('');
     if (url) window.open(url, '_blank');
-  }, [addToast]);
+  }, [addToast, selectedDocType]);
 
-  const handleStartCreate = () => {
+  const handleStartCreate = (docType: DocumentTypeKey = 'invoice') => {
+    setSelectedDocType(docType);
+    setIsDropdownOpen(false);
     setShowClientForm(true);
   };
 
@@ -96,20 +127,44 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
               ייצוא CSV
             </button>
           )}
-          <button
-            onClick={handleStartCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            <Plus size={14} />
-            צור חשבונית
-          </button>
+          <div className="relative" ref={dropdownRef}>
+            <div className="flex">
+              <button
+                onClick={() => handleStartCreate('invoice')}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-r-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                <Plus size={14} />
+                צור חשבונית
+              </button>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="inline-flex items-center px-2 py-2.5 rounded-l-xl bg-emerald-700 text-white text-xs font-black hover:bg-emerald-800 transition-colors shadow-sm border-r border-emerald-500"
+              >
+                <ChevronDown size={14} />
+              </button>
+            </div>
+            {isDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 min-w-[200px] py-1">
+                {DOC_TYPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleStartCreate(opt.key)}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors text-right"
+                  >
+                    <span className={opt.color}>{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Client Name Pre-Form */}
       {showClientForm && (
         <div className="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-black text-slate-900 mb-4">פרטי לקוח לחשבונית</h3>
+          <h3 className="text-sm font-black text-slate-900 mb-4">פרטי לקוח ל{DOC_TYPE_LABELS[selectedDocType]}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-black text-slate-600 mb-1.5">שם לקוח *</label>
@@ -141,7 +196,7 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
               disabled={!clientName.trim()}
               className="px-5 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              המשך ליצירת חשבונית
+              המשך ליצירת {DOC_TYPE_LABELS[selectedDocType]}
             </button>
             <button
               onClick={() => { setShowClientForm(false); setClientName(''); setClientEmail(''); }}
@@ -163,11 +218,11 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
             צרו חשבונית ראשונה או חברו אינטגרציה (Morning / חשבונית ירוקה).
           </p>
           <button
-            onClick={handleStartCreate}
+            onClick={() => handleStartCreate('invoice')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition-colors"
           >
             <Plus size={16} />
-            צור חשבונית ראשונה
+            צור מסמך ראשון
           </button>
         </div>
       ) : invoices.length > 0 ? (
@@ -259,6 +314,7 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
         onSuccess={handleCreateSuccess}
         clientName={clientName}
         clientEmail={clientEmail || undefined}
+        defaultDocumentType={selectedDocType}
       />
     </div>
   );

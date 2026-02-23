@@ -3,11 +3,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Users, TrendingUp, Wallet, ChevronDown } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Wallet } from 'lucide-react';
 import { joinPath } from '@/lib/os/social-routing';
 import { getClientStatusLabel, getClientStatusDotColor } from '@/lib/status-labels';
 import DashboardActionsClient from '@/components/social/dashboard/DashboardActionsClient';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
+import ScriptsBank from '@/components/social/dashboard/ScriptsBank';
 import { useApp } from '@/contexts/AppContext';
 import { useUser } from '@clerk/nextjs';
 
@@ -30,7 +31,6 @@ export default function Dashboard({
   const { clients, posts } = useApp();
   const { isLoaded, isSignedIn, user } = useUser();
   const [hasMounted, setHasMounted] = useState(false);
-  const [isScriptsOpen, setIsScriptsOpen] = useState(false);
   const [scripts, setScripts] = useState<StrategicContentItem[]>(() => (Array.isArray(initialScripts) ? initialScripts : []));
 
   useEffect(() => {
@@ -113,36 +113,7 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div>
-        <button
-          type="button"
-          onClick={() => setIsScriptsOpen((v) => !v)}
-          className="w-full bg-white p-5 md:p-6 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-900">בנק תסריטים</h2>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-              <ChevronDown size={18} className={isScriptsOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
-            </div>
-          </div>
-
-          {isScriptsOpen && (
-            <div className="mt-6 text-right">
-              {scripts.map((item) => (
-                <div key={item.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-5">
-                  <div className="text-sm font-black text-slate-900">{item.title}</div>
-                  <div className="text-sm font-bold text-slate-700 mt-3 whitespace-pre-line leading-relaxed">{item.content}</div>
-                </div>
-              ))}
-              {!scripts.length && (
-                <div className="text-sm font-bold text-slate-500">אין תסריטים זמינים כרגע.</div>
-              )}
-            </div>
-          )}
-        </button>
-      </div>
+      <ScriptsBank scripts={scripts} />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">

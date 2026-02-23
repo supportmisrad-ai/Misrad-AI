@@ -606,6 +606,8 @@ input[type=range]:active::-webkit-slider-thumb {
 }
 
 .animate-blob { animation: blob 7s infinite; }
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-4000 { animation-delay: 4s; }
 .animate-scroll-rtl { animation: scroll-rtl 20s linear infinite; }
 .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 3s ease infinite; }
 .animate-float { animation: float 3s ease-in-out infinite; }

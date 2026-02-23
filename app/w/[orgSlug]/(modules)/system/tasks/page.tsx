@@ -10,7 +10,7 @@ export default async function SystemTasksPage({
 }) {
   const { orgSlug } = await params;
 
-  const list = await listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 200 });
+  const list = await listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 50 });
 
   return <SystemTasksClient orgSlug={orgSlug} initialTasks={list.tasks} />;
 }

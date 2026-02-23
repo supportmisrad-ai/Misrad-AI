@@ -10,7 +10,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
 import { TaskItem } from '../components/nexus/TaskItem';
 import { TaskCard } from '../components/nexus/TaskCard';
-import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, SquareCheck, Star, Users, Flag, Briefcase, Server, Settings, X, Check } from 'lucide-react';
+import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, SquareCheck, Star, Users, Flag, Briefcase, Server, Settings, X, Check, FileUp } from 'lucide-react';
+import SmartImportTasksDialog from '@/components/nexus/SmartImportTasksDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
@@ -67,6 +68,7 @@ export const TasksView: React.FC = () => {
   const dragStartRef = useRef<{ taskId: string | null; time: number; x: number; y: number }>({ taskId: null, time: 0, x: 0, y: 0 });
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   // Group By State
   const [groupBy, setGroupBy] = useState<GroupByOption>('status');
@@ -625,6 +627,15 @@ export const TasksView: React.FC = () => {
         
           <div className="flex items-center gap-3 flex-wrap">
             <button 
+                onClick={() => setShowImportDialog(true)}
+                aria-label="ייבוא משימות מקובץ"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors"
+            >
+                <FileUp size={16} />
+                <span className="hidden sm:inline">ייבוא</span>
+            </button>
+
+            <button 
                 onClick={() => openCreateTask()}
                 aria-label="צור משימה חדשה"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors"
@@ -1144,6 +1155,14 @@ export const TasksView: React.FC = () => {
             )}
         </div>
       </div>
+      {orgSlug ? (
+        <SmartImportTasksDialog
+          orgSlug={orgSlug}
+          open={showImportDialog}
+          onCloseAction={() => setShowImportDialog(false)}
+          onImportedAction={() => void refetchTasks()}
+        />
+      ) : null}
     </div>
   );
 };
