@@ -305,6 +305,14 @@ async function POSTHandler(req: Request) {
                 } catch {
                   // ignore
                 }
+
+                // Best-effort: auto-create BusinessClient for the new org
+                try {
+                  const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
+                  await ensureBusinessClientForOrg(orgId);
+                } catch {
+                  // ignore — never fail webhook
+                }
               }
             }
           } catch (e) {

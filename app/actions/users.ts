@@ -495,6 +495,14 @@ async function upsertProfileForClerkUser(params: {
     return { createdOrg, createdProfile };
   });
 
+  // Best-effort: auto-create BusinessClient for the new org
+  try {
+    const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
+    await ensureBusinessClientForOrg(createdOrg.id);
+  } catch (e) {
+    logger.error('upsertProfileForClerkUser', 'ensureBusinessClientForOrg failed (ignored)', e);
+  }
+
   // Best-effort welcome email with portal link
   try {
     const ownerEmail = params.email ? String(params.email) : null;

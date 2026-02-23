@@ -819,6 +819,110 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
 // Sync Organizations → Business Clients
 // ============================================================
 
+/**
+ * Ensures a BusinessClient exists for the given organization.
+ * Called automatically after every org creation to keep the two tables in sync.
+ * If the org already has a client_id, this is a no-op.
+ * Otherwise, finds or creates a BusinessClient based on the owner's email and links it.
+ *
+ * Safe to call from non-admin context — uses global_admin isolation internally.
+ */
+export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
+  try {
+    const org = await withTenantIsolationContext(
+      {
+        source: 'business-clients.ensureBusinessClientForOrg',
+        reason: 'auto_link_org_to_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        prisma.organization.findUnique({
+          where: { id: orgId },
+          select: {
+            id: true,
+            name: true,
+            client_id: true,
+            owner_id: true,
+            owner: { select: { id: true, email: true, full_name: true } },
+          },
+        })
+    );
+
+    if (!org || org.client_id) return; // already linked or not found
+
+    const ownerEmail = org.owner?.email ? String(org.owner.email).trim().toLowerCase() : '';
+    const ownerName = org.owner?.full_name ? String(org.owner.full_name) : org.name;
+
+    await withTenantIsolationContext(
+      {
+        source: 'business-clients.ensureBusinessClientForOrg',
+        reason: 'auto_create_or_link_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // Try to find existing BusinessClient by owner email
+        let bizClient: { id: string } | null = null;
+        if (ownerEmail) {
+          bizClient = await prisma.businessClient.findUnique({
+            where: { primary_email: ownerEmail },
+            select: { id: true },
+          });
+        }
+
+        if (!bizClient) {
+          const normalizedEmail = ownerEmail || `org-${org.id}@placeholder.local`;
+          bizClient = await prisma.businessClient.create({
+            data: {
+              company_name: ownerName,
+              primary_email: normalizedEmail,
+              status: 'active',
+              lifecycle_stage: 'customer',
+            },
+            select: { id: true },
+          });
+        }
+
+        // Link org to business client
+        await prisma.organization.update({
+          where: { id: org.id },
+          data: { client_id: bizClient.id },
+        });
+
+        // Link owner as contact if not already linked
+        if (org.owner?.id) {
+          const existingContact = await prisma.businessClientContact.findUnique({
+            where: {
+              client_id_user_id: {
+                client_id: bizClient.id,
+                user_id: org.owner.id,
+              },
+            },
+            select: { id: true },
+          });
+
+          if (!existingContact) {
+            await prisma.businessClientContact.create({
+              data: {
+                client_id: bizClient.id,
+                user_id: org.owner.id,
+                role: 'owner',
+                is_primary: true,
+              },
+            });
+          }
+        }
+      }
+    );
+  } catch (error) {
+    // Best-effort — never fail the parent flow
+    logger.error('ensureBusinessClientForOrg', 'Failed (non-fatal):', error);
+  }
+}
+
 export async function syncOrganizationsToBusinessClients(): Promise<
   { ok: true; created: number; linked: number } | { ok: false; error: string }
 > {

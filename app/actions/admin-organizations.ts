@@ -492,6 +492,14 @@ export async function createOrganization(input: {
       }
     );
 
+    // Best-effort: auto-create BusinessClient for the new org
+    try {
+      const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
+      await ensureBusinessClientForOrg(createdOrg.id);
+    } catch (e) {
+      logger.error('createOrganization', 'ensureBusinessClientForOrg failed (ignored)', e);
+    }
+
     // Best-effort: send welcome email with portal link
     try {
       const ownerData = await prisma.organizationUser.findFirst({
@@ -608,6 +616,16 @@ export async function createOrganizationOrInviteOwner(input: {
           return createdOrg;
         }
       );
+
+      // Best-effort: auto-create BusinessClient if not already linked
+      if (!input.businessClientId) {
+        try {
+          const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
+          await ensureBusinessClientForOrg(createdOrg.id);
+        } catch (e) {
+          logger.error('createOrganizationOrInviteOwner', 'ensureBusinessClientForOrg failed (ignored)', e);
+        }
+      }
 
       try {
         const baseUrl = getBaseUrl();
