@@ -183,7 +183,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                         <span className="text-5xl font-black font-mono leading-none tracking-tighter">{velocityScore}</span>
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">דופק ביצועים</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">ביצועים</span>
                     </div>
                 </div>
             </div>
@@ -425,7 +425,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
             <div className="p-8 border-b border-slate-100 bg-white/50 flex justify-between items-center">
                <h3 className="font-black text-slate-800 text-xl flex items-center gap-3">
                    <SquareActivity size={24} className="text-indigo-600" />
-                   דופק המערכת
+                   סטטוס מערכת
                </h3>
                <div className="flex items-center gap-2 px-2 py-1 bg-emerald-50 rounded-full border border-emerald-100">
                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>

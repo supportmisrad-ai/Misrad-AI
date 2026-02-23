@@ -20,6 +20,8 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
+import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
@@ -615,6 +617,8 @@ function SystemShellGateClientCore({
           </CallAnalysisProvider>
         </AuthProvider>
       </ToastProvider>
+      <GlobalSearchModal />
+      <GlobalSupportModal />
     </SystemShellContext.Provider>
   );
 }

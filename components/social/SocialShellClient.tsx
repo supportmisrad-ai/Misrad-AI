@@ -17,6 +17,8 @@ import type { User, OrganizationProfile } from '@/types';
 import { SocialSessionProvider } from '@/contexts/SocialSessionContext';
 import { SocialUIProvider } from '@/contexts/SocialUIContext';
 import { SocialDataProvider } from '@/contexts/SocialDataContext';
+import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
+import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 
 export default function SocialShellClient({
   children,
@@ -72,6 +74,8 @@ export default function SocialShellClient({
           </ToastProvider>
         </AuthProvider>
       </AppProvider>
+      <GlobalSearchModal />
+      <GlobalSupportModal />
     </ReactQueryProvider>
   );
 }

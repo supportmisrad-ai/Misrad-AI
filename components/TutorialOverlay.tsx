@@ -51,7 +51,7 @@ const STEPS = [
     {
         id: 'notify',
         targetId: 'notification-trigger',
-        title: 'דופק המערכת',
+        title: 'מצב המערכת',
         description: 'עדכונים חיים על מה שקורה בצוות. אם זה דחוף - זה יהיה פה.',
         position: 'bottom'
     },

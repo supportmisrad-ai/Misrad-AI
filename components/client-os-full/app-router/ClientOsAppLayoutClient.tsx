@@ -7,6 +7,8 @@ import NexusCommand from '@/components/client-os-full/components/NexusCommand';
 import NexusComposer from '@/components/client-os-full/components/NexusComposer';
 import { GlobalProcessor } from '@/components/client-os-full/components/GlobalProcessor';
 import { ToastManager } from '@/components/client-os-full/components/ui/ToastManager';
+import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
+import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { ClientProvider } from '../context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAuth } from '@clerk/nextjs';
@@ -194,6 +196,8 @@ export default function ClientOsAppLayoutClient({
 
       <GlobalProcessor />
       <ToastManager />
+      <GlobalSearchModal />
+      <GlobalSupportModal />
     </ClientProvider>
   );
 }

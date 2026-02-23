@@ -248,7 +248,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
               </span>
             </div>
             <div>
-              <div className="text-xs font-bold text-slate-400">דופק ביצועים</div>
+              <div className="text-xs font-bold text-slate-400">ביצועים</div>
               <div className="text-sm font-black text-slate-700 mt-0.5">
                 {velocityScore > 80 ? 'מצוין' : velocityScore > 50 ? 'סביר' : 'דורש תשומת לב'}
               </div>
@@ -487,7 +487,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
               <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
                 <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                   <HeartPulse size={16} className="text-indigo-500" />
-                  דופק המערכת
+                  סטטוס מערכת
                 </h3>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

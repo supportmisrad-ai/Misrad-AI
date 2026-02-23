@@ -12,6 +12,8 @@ import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
+import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
@@ -421,6 +423,8 @@ export default function OperationsShell({
           </>
         ) : null}
       </AnimatePresence>
+      <GlobalSearchModal />
+      <GlobalSupportModal />
     </div>
   );
 }
