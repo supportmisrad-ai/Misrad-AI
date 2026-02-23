@@ -6,7 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
-import { getActiveShift, punchOut } from '@/app/actions/attendance';
+import { getActiveShift, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
@@ -167,51 +167,52 @@ export default function AttendanceMiniStatus() {
     setStartTime(null);
     broadcast({ orgSlug, entryId: null, startTime: null });
 
-    // BACKGROUND: GPS → API → rollback on failure
+    // INSTANT server call with lat:0 — GPS updates location in background
     void (async () => {
       try {
-        let lat = 0, lng = 0, accuracy = 0;
-        let city: string | undefined;
-
-        if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 8000,
-                maximumAge: 30000,
-              });
-            });
-            lat = position.coords.latitude;
-            lng = position.coords.longitude;
-            accuracy = position.coords.accuracy;
-
-            // Reverse geocoding — short timeout, non-blocking
-            try {
-              const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
-              const geocodeRes = await Promise.race([
-                fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-                new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
-              ]);
-              if (geocodeRes.ok) {
-                const geocodeData = await geocodeRes.json();
-                city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
-              }
-            } catch {
-              // Geocoding failure is non-critical
-            }
-          } catch {
-            // GPS failure — proceed without location (lat/lng stay 0)
-          }
-        }
-
-        const res = await punchOut(orgSlug, undefined, { lat, lng, accuracy, city });
+        const res = await punchOut(orgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
 
         if (res?.noActiveShift) {
-          // Already closed — UI is already correct, nothing to do
+          // Already closed — UI is already correct
         }
 
         void loadActiveShift();
+
+        // BACKGROUND GPS — fire-and-forget, updates DB after punch out
+        const closedEntryId = res?.entryId || prevEntryId;
+        if (closedEntryId && orgSlug) {
+          const capturedSlug = orgSlug;
+          void (async () => {
+            try {
+              if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
+              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  enableHighAccuracy: true,
+                  timeout: 8000,
+                  maximumAge: 30000,
+                });
+              });
+              let city: string | undefined;
+              try {
+                const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&accept-language=he`;
+                const geocodeRes = await Promise.race([
+                  fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+                  new Promise<Response>((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+                ]);
+                if (geocodeRes.ok) {
+                  const geocodeData = await geocodeRes.json();
+                  city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+                }
+              } catch { /* geocoding non-critical */ }
+              await updateEntryLocation(capturedSlug, closedEntryId, 'end', {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                city,
+              });
+            } catch { /* GPS unavailable — entry saved without location */ }
+          })();
+        }
       } catch (e: unknown) {
         // ROLLBACK — restore previous state
         setEntryId(prevEntryId);

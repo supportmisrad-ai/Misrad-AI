@@ -19,18 +19,16 @@ export type AttendanceGeoLocationInput = {
   city?: string;
 };
 
-function parseGeoLocationRequired(input: unknown): { lat: number; lng: number; accuracy: number | null; city: string | null } {
+function parseGeoLocation(input: unknown): { lat: number; lng: number; accuracy: number | null; city: string | null } {
   const obj = asObject(input) ?? {};
-  const lat = Number(getStringProp(obj, 'lat') || (obj as Record<string, unknown>).lat);
-  const lng = Number(getStringProp(obj, 'lng') || (obj as Record<string, unknown>).lng);
+  const latRaw = (obj as Record<string, unknown>).lat;
+  const lngRaw = (obj as Record<string, unknown>).lng;
+  const lat = Number.isFinite(Number(latRaw)) ? Number(latRaw) : 0;
+  const lng = Number.isFinite(Number(lngRaw)) ? Number(lngRaw) : 0;
   const accuracyRaw = (obj as Record<string, unknown>).accuracy;
   const accuracy = accuracyRaw == null || accuracyRaw === '' ? null : Number(accuracyRaw);
   const cityRaw = (obj as Record<string, unknown>).city;
   const city = typeof cityRaw === 'string' && cityRaw.trim().length > 0 ? cityRaw.trim() : null;
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    throw new Error('נדרש מיקום פעיל כדי לבצע כניסה/יציאה (lat/lng חסרים או לא תקינים)');
-  }
 
   return {
     lat,
@@ -84,7 +82,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   const now = new Date();
 
   const dateOnly = toIsoDate(now);
-  const geo = parseGeoLocationRequired(location);
+  const geo = parseGeoLocation(location);
   const noteValue = typeof note === 'string' && note.trim().length > 0 ? note.trim() : null;
 
   const rows = await queryRawOrgScopedSql<{ id: string; start_time: Date }[]>(prisma, {
@@ -146,7 +144,7 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
     return { success: true, closed: false, noActiveShift: true };
   }
 
-  const geo = parseGeoLocationRequired(location);
+  const geo = parseGeoLocation(location);
 
   const now = new Date();
   const endTime = now.toISOString();
@@ -180,4 +178,41 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
 
   revalidatePath('/', 'layout');
   return { success: true, closed: true, entryId: existing.activeShift.id, noActiveShift: false };
+}
+
+export async function updateEntryLocation(
+  orgSlugOrId: string,
+  entryId: string,
+  side: 'start' | 'end',
+  location: AttendanceGeoLocationInput,
+) {
+  const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
+  const workspace = resolved.workspace;
+  const geo = parseGeoLocation(location);
+
+  if (geo.lat === 0 && geo.lng === 0) return { updated: false };
+
+  const latCol = side === 'start' ? 'start_lat' : 'end_lat';
+  const lngCol = side === 'start' ? 'start_lng' : 'end_lng';
+  const accCol = side === 'start' ? 'start_accuracy' : 'end_accuracy';
+  const cityCol = side === 'start' ? 'start_city' : 'end_city';
+
+  await executeRawOrgScopedSql(prisma, {
+    organizationId: String(workspace.id),
+    reason: 'attendance_update_location',
+    sql: Prisma.sql`
+      UPDATE nexus_time_entries
+      SET
+        ${Prisma.raw(latCol)} = ${geo.lat}::double precision,
+        ${Prisma.raw(lngCol)} = ${geo.lng}::double precision,
+        ${Prisma.raw(accCol)} = ${geo.accuracy}::double precision,
+        ${Prisma.raw(cityCol)} = ${geo.city}
+      WHERE
+        id = ${String(entryId)}::uuid
+        AND organization_id = ${String(workspace.id)}::uuid
+        AND user_id = ${String(resolved.user.id)}::uuid
+    `,
+  });
+
+  return { updated: true };
 }

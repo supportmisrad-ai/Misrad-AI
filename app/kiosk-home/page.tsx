@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Boxes, ClipboardCheck, Clock, Home, MessageSquareText } from 'lucide-react';
-import { getActiveShift, punchIn, punchOut } from '@/app/actions/attendance';
+import { getActiveShift, punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 import { getDailySummary } from '@/app/actions/attendance-reports';
 import { asObjectLoose as asObject } from '@/lib/shared/unknown';
 
@@ -298,23 +298,29 @@ function KioskHomePageInner() {
                     setAttendanceMessage('');
 
                     try {
-                      // CRITICAL: Get GPS location FIRST before any UI changes
-                      const location = await getLocation();
+                      // INSTANT server call with lat:0 — GPS updates in background
+                      const res = await punchIn(orgSlug, attendanceNote, { lat: 0, lng: 0, accuracy: 0 });
 
-                      // Call API and wait for success
-                      const res = await punchIn(orgSlug, attendanceNote, location);
-
-                      // Update UI ONLY after successful API response
                       if (res?.activeShift) {
                         setActiveShift(res.activeShift);
                       }
 
-                      // Refresh shift data
                       await refreshShift(orgSlug);
 
-                      // Show success message ONLY after everything succeeded
                       const inTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${inTime}. עבודה נעימה!`);
+
+                      // BACKGROUND GPS — fire-and-forget
+                      const entryId = res?.activeShift?.id;
+                      if (entryId && orgSlug) {
+                        const capturedSlug = orgSlug;
+                        void (async () => {
+                          try {
+                            const location = await getLocation();
+                            await updateEntryLocation(capturedSlug, entryId, 'start', location);
+                          } catch { /* GPS unavailable */ }
+                        })();
+                      }
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
                       setAttendanceMessage(msg || 'שגיאה בכניסה למשמרת');
@@ -339,21 +345,27 @@ function KioskHomePageInner() {
                     setAttendanceMessage('');
 
                     try {
-                      // CRITICAL: Get GPS location FIRST before any UI changes
-                      const location = await getLocation();
+                      // INSTANT server call with lat:0 — GPS updates in background
+                      const res = await punchOut(orgSlug, attendanceNote, { lat: 0, lng: 0, accuracy: 0 });
 
-                      // Call API and wait for success
-                      const res = await punchOut(orgSlug, attendanceNote, location);
-
-                      // Update UI ONLY after successful API response
                       setActiveShift(null);
 
-                      // Refresh shift data
                       await refreshShift(orgSlug);
 
-                      // Show success message ONLY after everything succeeded
                       const outTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTime}. תודה!`);
+
+                      // BACKGROUND GPS — fire-and-forget
+                      const closedId = res?.entryId;
+                      if (closedId && orgSlug) {
+                        const capturedSlug = orgSlug;
+                        void (async () => {
+                          try {
+                            const location = await getLocation();
+                            await updateEntryLocation(capturedSlug, closedId, 'end', location);
+                          } catch { /* GPS unavailable */ }
+                        })();
+                      }
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
                       setAttendanceMessage(msg || 'שגיאה ביציאה ממשמרת');

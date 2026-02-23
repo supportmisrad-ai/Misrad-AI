@@ -10,7 +10,7 @@ import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { isCeoRole } from '@/lib/constants/roles';
 import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
-import { punchIn, punchOut } from '@/app/actions/attendance';
+import { punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const ATTENDANCE_BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
@@ -764,25 +764,38 @@ export const useAuth = (
         const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         addToast(`נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
 
-        // BACKGROUND: GPS + server call, rollback on failure
+        const capturedOrgSlug = orgSlug;
+
+        // INSTANT server call with lat:0/lng:0 — GPS updates location in background
         void (async () => {
             try {
-                const location = await getLocation();
-                const res = await punchIn(orgSlug, undefined, location);
+                const res = await punchIn(capturedOrgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
 
-                // Replace optimistic entry with real server data
                 await refreshTimeEntries();
 
-                if (res?.activeShift?.id && res?.activeShift?.startTime) {
-                    broadcastAttendanceUpdate(orgSlug, res.activeShift.id, new Date(res.activeShift.startTime).toISOString());
+                const entryId = res?.activeShift?.id;
+                if (entryId && res?.activeShift?.startTime) {
+                    broadcastAttendanceUpdate(capturedOrgSlug, entryId, new Date(res.activeShift.startTime).toISOString());
                 }
                 if (res?.alreadyActive) {
                     addToast('כבר יש משמרת פעילה.', 'info');
                 }
+
+                // BACKGROUND GPS — fire-and-forget, updates DB after entry is created
+                if (entryId) {
+                    void (async () => {
+                        try {
+                            const location = await getLocation();
+                            await updateEntryLocation(capturedOrgSlug, entryId, 'start', location);
+                        } catch {
+                            // GPS unavailable — entry already saved without location
+                        }
+                    })();
+                }
             } catch (e: unknown) {
-                // ROLLBACK optimistic entry
+                // ROLLBACK optimistic entry — only on actual server failure
                 setTimeEntries(prevEntries);
-                broadcastAttendanceUpdate(orgSlug, null, null);
+                broadcastAttendanceUpdate(capturedOrgSlug, null, null);
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
             }
@@ -795,9 +808,10 @@ export const useAuth = (
 
         // OPTIMISTIC: immediately mark shift as ended so clock stops
         const prevEntries = timeEntries;
+        const capturedShift = activeShift;
         const nowIso = new Date().toISOString();
         setTimeEntries(prev => prev.map(t =>
-            t.id === activeShift.id
+            t.id === capturedShift.id
                 ? { ...t, endTime: nowIso, durationMinutes: Math.round((Date.now() - new Date(t.startTime).getTime()) / 60000) }
                 : t
         ));
@@ -806,24 +820,35 @@ export const useAuth = (
         const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         addToast(`יצאת ממשמרת ב-${outTimeStr}. תודה!`, 'info');
 
-        // BACKGROUND: GPS + server call, rollback on failure
+        const capturedOrgSlug = orgSlug;
+
+        // INSTANT server call with lat:0/lng:0 — GPS updates location in background
         void (async () => {
             try {
-                const location = await getLocation();
-                const res = await punchOut(orgSlug, undefined, location);
+                const res = await punchOut(capturedOrgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
 
-                // Sync with real server data
                 await refreshTimeEntries();
 
                 if (res?.noActiveShift) {
                     addToast('אין משמרת פעילה לסגירה.', 'info');
                 }
+
+                // BACKGROUND GPS — fire-and-forget, updates DB after punch out
+                const closedEntryId = res?.entryId || capturedShift.id;
+                if (closedEntryId) {
+                    void (async () => {
+                        try {
+                            const location = await getLocation();
+                            await updateEntryLocation(capturedOrgSlug, closedEntryId, 'end', location);
+                        } catch {
+                            // GPS unavailable — entry already saved without location
+                        }
+                    })();
+                }
             } catch (e: unknown) {
                 // ROLLBACK — restore active shift
                 setTimeEntries(prevEntries);
-                if (activeShift) {
-                    broadcastAttendanceUpdate(orgSlug, activeShift.id, activeShift.startTime);
-                }
+                broadcastAttendanceUpdate(capturedOrgSlug, capturedShift.id, capturedShift.startTime);
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה ביציאה ממשמרת — המשמרת עדיין פעילה', 'error');
             }
