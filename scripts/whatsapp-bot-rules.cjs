@@ -1,6 +1,7 @@
 /**
- * MISRAD AI WhatsApp Bot Rules Data
- * Used by generate-whatsapp-bot.cjs
+ * MISRAD AI WhatsApp Bot Rules Data — v2
+ * אסטרטגיה חדשה: טון ישראלי, סיווג תעשייה, social proof, nurturing, opt-out
+ * Used by generate-dot-rules.cjs
  */
 
 function R(rule, response, o = {}) {
@@ -29,9 +30,12 @@ function L({ h, d, f, btn, secs }) {
   return lines.join('\n') + '\n\n';
 }
 
-const WH_SIGNUP  = 'https://hook.eu1.make.com/REPLACE_SIGNUP_WEBHOOK';
-const WH_DEMO    = 'https://hook.eu1.make.com/REPLACE_DEMO_WEBHOOK';
-const WH_SUPPORT = 'https://hook.eu1.make.com/REPLACE_SUPPORT_WEBHOOK';
+// Webhooks — ישירות לבקנד MISRAD AI (ללא Make.com)
+const WH_BASE    = 'https://misrad-ai.com/api/webhooks/blaster';
+const WH_LEAD    = WH_BASE + '?type=lead';
+const WH_SIGNUP  = WH_BASE + '?type=signup';
+const WH_DEMO    = WH_BASE + '?type=demo';
+const WH_SUPPORT = WH_BASE + '?type=support';
 
 const rules = [];
 
