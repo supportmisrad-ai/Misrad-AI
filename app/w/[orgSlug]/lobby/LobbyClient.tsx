@@ -137,6 +137,7 @@ export default function LobbyClient({
             metricLabel="לידים"
             onClickAction={() => openModule('system')}
             className="min-h-[132px]"
+            locked={!entitlements.system}
           />
 
           <NexusCard
@@ -144,9 +145,10 @@ export default function LobbyClient({
             subtitle={modulesRegistry.operations.labelHe}
             iconSlot={<OSModuleIcon moduleKey="operations" size={44} className="block" />}
             metric={operationsMetric}
-            metricLabel={Boolean(operationsObj.locked) ? 'אין הרשאה' : 'פרויקטים'}
+            metricLabel={!entitlements.operations ? 'נעול' : 'פרויקטים'}
             onClickAction={() => openModule('operations')}
             className="min-h-[132px]"
+            locked={!entitlements.operations}
           />
 
           <NexusCard
@@ -154,9 +156,10 @@ export default function LobbyClient({
             subtitle={modulesRegistry.finance.labelHe}
             iconSlot={<OSModuleIcon moduleKey="finance" size={44} className="block" />}
             metric={financeMetric}
-            metricLabel={Boolean(financeObj.locked) ? 'אין הרשאה' : 'שעות'}
+            metricLabel={!entitlements.finance ? 'נעול' : 'שעות'}
             onClickAction={() => openModule('finance')}
             className="min-h-[132px]"
+            locked={!entitlements.finance}
           />
 
           <NexusCard
@@ -164,9 +167,10 @@ export default function LobbyClient({
             subtitle={modulesRegistry.client.labelHe}
             iconSlot={<OSModuleIcon moduleKey="client" size={44} className="block" />}
             metric={clientMetric}
-            metricLabel="לקוחות"
+            metricLabel={!entitlements.client ? 'נעול' : 'לקוחות'}
             onClickAction={() => openModule('client')}
             className="min-h-[132px]"
+            locked={!entitlements.client}
           />
 
           <NexusCard
@@ -174,9 +178,10 @@ export default function LobbyClient({
             subtitle={modulesRegistry.social.labelHe}
             iconSlot={<OSModuleIcon moduleKey="social" size={44} className="block" />}
             metric={socialMetric}
-            metricLabel="מתוזמנים"
+            metricLabel={!entitlements.social ? 'נעול' : 'מתוזמנים'}
             onClickAction={() => openModule('social')}
             className="min-h-[132px]"
+            locked={!entitlements.social}
           />
         </div>
       </div>

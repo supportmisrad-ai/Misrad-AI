@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Lock } from 'lucide-react';
 
 type IconType = React.ComponentType<{ size?: number; className?: string }>;
 
@@ -13,6 +14,7 @@ export default function NexusCard({
   metricLabel,
   onClickAction,
   className,
+  locked,
 }: {
   title: string;
   subtitle?: string | null;
@@ -22,12 +24,14 @@ export default function NexusCard({
   metricLabel?: string | null;
   onClickAction?: () => void;
   className?: string;
+  locked?: boolean;
 }) {
   const isClickable = Boolean(onClickAction);
 
   const content = (
     <>
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50/60 via-white to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className={`absolute inset-0 bg-gradient-to-br from-gray-50/60 via-white to-white opacity-0 group-hover:opacity-100 transition-opacity${locked ? ' pointer-events-none' : ''}`} />
+      {locked && <div className="absolute inset-0 bg-slate-100/60 z-[1]" />}
 
       <div className="relative p-5 md:p-6">
         <div className="flex items-start justify-between gap-4">
@@ -41,7 +45,10 @@ export default function NexusCard({
             ) : null}
 
             <div className="min-w-0">
-              <div className="text-sm md:text-[15px] font-black text-slate-900 truncate">{title}</div>
+              <div className={`text-sm md:text-[15px] font-black truncate ${locked ? 'text-slate-400' : 'text-slate-900'}`}>
+                {title}
+                {locked && <Lock size={12} className="inline-block mr-1 align-[-1px] text-slate-400" />}
+              </div>
               {subtitle ? <div className="text-xs text-slate-500 font-semibold mt-1">{subtitle}</div> : null}
             </div>
           </div>
@@ -59,10 +66,16 @@ export default function NexusCard({
         </div>
 
         {isClickable ? (
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">פתח</div>
-            <div className="w-9 h-9 rounded-full border border-gray-200 bg-white flex items-center justify-center text-slate-500 group-hover:text-slate-900 group-hover:border-gray-300 transition-colors">
-              <span className="text-lg leading-none">›</span>
+          <div className="relative z-[2] mt-4 flex items-center justify-between">
+            <div className={`text-[10px] font-bold uppercase tracking-[0.2em] ${locked ? 'text-slate-300' : 'text-slate-400'}`}>
+              {locked ? 'נעול' : 'פתח'}
+            </div>
+            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
+              locked
+                ? 'border-slate-200 bg-slate-50 text-slate-300'
+                : 'border-gray-200 bg-white text-slate-500 group-hover:text-slate-900 group-hover:border-gray-300'
+            }`}>
+              {locked ? <Lock size={14} /> : <span className="text-lg leading-none">›</span>}
             </div>
           </div>
         ) : null}

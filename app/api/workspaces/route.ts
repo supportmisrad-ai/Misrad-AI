@@ -108,7 +108,7 @@ async function GETHandler() {
       return [] as WorkspaceApiItem[];
     }
 
-    const [systemFlags, orgs] = await Promise.all([
+    const [systemFlags, orgs, customerAccounts] = await Promise.all([
       getSystemFeatureFlags(),
       prisma.organization.findMany({
         where: { id: { in: ids } },
@@ -130,7 +130,19 @@ async function GETHandler() {
         },
         orderBy: { created_at: 'desc' },
       }),
+      prisma.customerAccount.findMany({
+        where: { organizationId: { in: ids } },
+        select: { organizationId: true, company_name: true, phone: true },
+      }),
     ]);
+
+    const customerDetailsByOrg = new Map<string, { hasCompany: boolean; hasPhone: boolean }>();
+    for (const ca of customerAccounts) {
+      customerDetailsByOrg.set(ca.organizationId, {
+        hasCompany: Boolean(ca.company_name && String(ca.company_name).trim()),
+        hasPhone: Boolean(ca.phone && String(ca.phone).trim()),
+      });
+    }
 
     // Sort: primary workspace first, then by creation date (newest first)
     const primaryOrgId = socialUser?.organization_id ?? null;
@@ -167,7 +179,11 @@ async function GETHandler() {
           seatsAllowedOverride: o.seats_allowed ?? null,
         }),
         subscriptionPlan: o.subscription_plan ?? null,
-        onboardingComplete: Boolean(o.subscription_plan),
+        onboardingComplete: (() => {
+          if (!o.subscription_plan) return false;
+          const details = customerDetailsByOrg.get(o.id);
+          return Boolean(details?.hasCompany && details?.hasPhone);
+        })(),
       };
     });
 

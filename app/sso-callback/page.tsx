@@ -252,7 +252,7 @@ export default function SsoCallbackPage() {
       <AuthenticateWithRedirectCallback
         signInUrl="/login"
         signUpUrl="/login?mode=sign-up"
-        signInFallbackRedirectUrl="/me"
+        signInFallbackRedirectUrl="/workspaces/onboarding"
         signUpFallbackRedirectUrl="/workspaces/onboarding"
       />
     </div>

@@ -73,17 +73,20 @@ export default async function WorkspaceOnboardingPage({
   const { organizationKey, subscriptionPlan } = await getCurrentOrganizationKey();
   const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
 
-  // If the org already has a subscription plan, it's fully provisioned.
-  // Never allow re-onboarding — redirect to workspace immediately.
-  // This prevents authenticated users (e.g. super admin) from accidentally
-  // modifying their existing org via marketing CTAs.
-  if (subscriptionPlan) {
-    redirect(`/w/${encodeURIComponent(organizationKey)}`);
-  }
-
   const existing = accountRes.success ? accountRes.data : null;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
+
+  // Only skip onboarding if ALL conditions are met:
+  // 1. Organization has a subscription plan in the DB
+  // 2. Customer account has company name
+  // 3. Customer account has phone number
+  // This prevents users from being redirected to the workspace before
+  // completing all onboarding steps (e.g. when plan was set via cookie
+  // during provisioning but details were never entered).
+  if (subscriptionPlan && hasCompany && hasPhone) {
+    redirect(`/w/${encodeURIComponent(organizationKey)}`);
+  }
 
   const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
   const planRaw = resolvedSearchParams?.plan;
@@ -91,12 +94,6 @@ export default async function WorkspaceOnboardingPage({
   const planKey = (planFromUrl && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, planFromUrl))
     ? planFromUrl
     : null;
-
-  const hasPlan = Boolean(planKey);
-
-  if (hasCompany && hasPhone && hasPlan) {
-    redirect(`/w/${encodeURIComponent(organizationKey)}`);
-  }
 
   const seatsRaw = resolvedSearchParams?.seats;
   const seatsStr = String(Array.isArray(seatsRaw) ? seatsRaw[0] : seatsRaw || '').trim();

@@ -133,21 +133,31 @@ export default async function MePage({
   }
 
   if (orgSlug) {
-    // Check if onboarding is complete (plan selected) before sending to workspace
-    const orgRecord = await withTenantIsolationContext(
+    // Check if onboarding is complete (plan + company name + phone) before sending to workspace
+    const onboardingCheck = await withTenantIsolationContext(
       { suppressReporting: true, reason: 'me_page_check_onboarding', source: 'me-page-redirect' },
       async () => {
+        const slugFilter = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgSlug ?? '');
         const allOrgs = await prisma.organization.findMany(
           withPrismaTenantIsolationOverride({
-            where: { OR: [{ slug: orgSlug }, ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgSlug ?? '') ? [{ id: orgSlug }] : [])] },
-            select: { subscription_plan: true },
+            where: { OR: [{ slug: orgSlug }, ...(slugFilter ? [{ id: orgSlug }] : [])] },
+            select: { id: true, subscription_plan: true },
           }, { suppressReporting: true, reason: 'me_page_check_plan', source: 'me-page-redirect' })
         );
-        return allOrgs[0] ?? null;
+        const org = allOrgs[0] ?? null;
+        if (!org?.subscription_plan) return { complete: false };
+
+        const account = await prisma.customerAccount.findFirst({
+          where: { organizationId: org.id },
+          select: { company_name: true, phone: true },
+        });
+        const hasCompany = Boolean(account?.company_name && String(account.company_name).trim());
+        const hasPhone = Boolean(account?.phone && String(account.phone).trim());
+        return { complete: hasCompany && hasPhone };
       }
     );
 
-    if (!orgRecord?.subscription_plan) {
+    if (!onboardingCheck.complete) {
       redirect('/workspaces/onboarding');
     }
 
