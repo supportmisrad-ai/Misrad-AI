@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, useTransition } from 'react';
 import nextDynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Bell, ChevronRight, Cog, ExternalLink, Shield, Sparkles, User, X } from 'lucide-react';
+import { Bell, ChevronRight, Cog, Download, ExternalLink, Shield, Smartphone, Sparkles, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { encodeWorkspaceOrgSlug, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { getModuleLabel as getOSModuleLabel, isOSModuleKey } from '@/lib/os/modules/registry';
@@ -92,6 +92,8 @@ function getSectionDescription(id: string) {
       return 'חשבוניות, מסמכים ותשלומים.';
     case 'client':
       return 'פורטל לקוחות והעדפות.';
+    case 'app-download':
+      return 'התקנת MISRAD AI במכשיר הנייד.';
     default:
       return null;
   }
@@ -452,6 +454,45 @@ function AiDnaSection({ orgSlug }: { orgSlug: string }) {
   );
 }
 
+function AppDownloadSection() {
+  const [checking, setChecking] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setChecking(true);
+    fetch('/api/download/android', { method: 'HEAD' })
+      .then((res) => setAvailable(res.ok || res.status === 302 || res.redirected))
+      .catch(() => setAvailable(false))
+      .finally(() => setChecking(false));
+  }, []);
+
+  return (
+    <SectionCard title="הורדת אפליקציה">
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600">התקן את אפליקציית MISRAD AI במכשיר הנייד שלך לגישה מהירה מכל מקום.</p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a
+            href="/api/download/android"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all shadow-md ${
+              available === false
+                ? 'bg-slate-200 text-slate-500 cursor-not-allowed pointer-events-none'
+                : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white hover:shadow-lg hover:shadow-violet-300/40'
+            }`}
+          >
+            <Download size={18} />
+            {checking ? 'בודק זמינות…' : available === false ? 'לא זמין כרגע' : 'הורד APK לאנדרואיד'}
+          </a>
+        </div>
+        {available === false && (
+          <p className="text-xs text-slate-500">קובץ ה-APK טרם הוגדר. פנה למנהל המערכת.</p>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
 const EmbeddedSocialSettings = nextDynamic(() => import('@/components/social/Settings'), {
   ssr: false,
   loading: () => <div className="text-slate-600">טוען…</div>,
@@ -633,6 +674,13 @@ export default function GlobalProfileHub({
       groupLabel: 'ניהול הארגון',
       icon: Sparkles,
       content: <AiDnaSection orgSlug={orgSlug} />,
+    },
+    {
+      id: 'app-download',
+      label: 'הורדת אפליקציה',
+      groupLabel: 'הגדרות אישיות',
+      icon: Smartphone,
+      content: <AppDownloadSection />,
     },
   ];
 

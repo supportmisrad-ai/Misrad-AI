@@ -409,7 +409,7 @@ function SystemShellGateClientCore({
                               setIsPlusFanOpen(false);
                               dispatchSystemEvent('system:new-lead');
                             }}
-                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
+                            className="bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-2xl py-4 text-sm font-black"
                           >
                             ליד חדש
                           </button>
@@ -468,7 +468,7 @@ function SystemShellGateClientCore({
                               setIsCalendarPlusOpen(false);
                               dispatchSystemEvent('system:calendar:new-meeting');
                             }}
-                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
+                            className="bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-2xl py-4 text-sm font-black"
                           >
                             פגישה חדשה
                           </button>

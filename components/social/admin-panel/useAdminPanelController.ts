@@ -431,5 +431,6 @@ export function useAdminPanelController() {
     loadNavigationMenu,
     setPayments,
     pendingVerificationCount,
+    orgSlug,
   };
 }

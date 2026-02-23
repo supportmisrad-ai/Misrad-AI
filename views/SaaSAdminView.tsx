@@ -550,7 +550,7 @@ export const SaaSAdminView: React.FC = () => {
                             { id: 'announcements' as GlobalTab, label: 'הודעות מערכת', icon: MessageSquare },
                             { id: 'versions' as GlobalTab, label: 'ניהול גרסאות', icon: Code },
                             { id: 'data' as GlobalTab, label: 'ניהול נתונים', icon: Database },
-                            { id: 'updates' as GlobalTab, label: 'מרכז עדכונים', icon: Rocket },
+                            { id: 'updates' as GlobalTab, label: 'עדכוני מערכת', icon: Rocket },
                             { id: 'approvals' as GlobalTab, label: 'אישורי משתמשים', icon: UserCheck },
                         ].map((item) => {
                             const Icon = item.icon;
@@ -922,7 +922,7 @@ export const SaaSAdminView: React.FC = () => {
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                                         <div className="mb-8">
                                             <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-emerald-700 to-teal-700 bg-clip-text text-transparent">
-                                                מרכז העדכונים
+                                                עדכוני מערכת
                                             </h1>
                                             <p className="text-slate-600 text-lg">פרסם ונהל את ה-Change Log עבור כל משתמשי הפלטפורמה.</p>
                                         </div>
