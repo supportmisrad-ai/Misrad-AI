@@ -282,7 +282,7 @@ CTA: תגובה / שתף
 ## 💡 טיפים לאורך הדרך
 
 1. **עקביות > איכות:** עדיף פוסט בינוני כל יום מאשר פוסט מושלם אחת לשבוע
-2. **תן ערך תמיד:** 90% עזרה, 10% מכירה
+2. **תן ערך תמיד:** 80% עזרה, 20% מכירה
 3. **תגיד את האמת:** גם על החסרונות של המוצר
 4. **תענה לכולם:** כל תגובה, כל הודעה
 5. **תתעד הכל:** "Build in Public" יוצר trust
@@ -316,10 +316,10 @@ CTA: תגובה / שתף
 ```
 
 ### YouTube Video Title
-"איך בניתי מערכת AI שמנהלת ארגונים ב-₪0 (והפכתי למוצר שמרוויח ₪50K/חודש)"
+"איך בניתי מערכת AI שמנהלת ארגונים — הסיפור מאפס תקציב עד מוצר SaaS"
 
 ### Reddit Comment
-"I built a CRM for Israeli small businesses because everything was either too expensive (Salesforce) or too generic (Monday). Started with ₪0 budget, just content and helping people. Now at 175 customers. Happy to share the playbook if anyone's interested."
+"I built an AI-powered business OS for Israeli companies — it replaces the chaos of WhatsApp + Excel + 3 other tools with one system that actually tells you what to do next. 6 modules (CRM, marketing, finance, ops, team, client portal), fully in Hebrew. Started with ₪0 budget, just content and helping people. Happy to share the playbook if anyone's interested."
 
 ---
 

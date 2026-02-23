@@ -41,9 +41,11 @@
 
 **יעדים:**
 - חודש 1: ₪10K
-- חודש 3: ₪35K
-- חודש 6: ₪105K
-- חודש 12: ₪402K
+- חודש 3: ₪31K
+- חודש 6: ₪80K
+- חודש 12: ₪244K
+
+**הערה:** יעדים כוללים churn צפוי של 6% חודשי.
 
 ---
 
@@ -89,8 +91,8 @@
 
 | Metric | Formula | Target | Actual |
 |--------|---------|--------|--------|
-| **Churn Rate** | Lost / Total | <15%/חודש | - |
-| **Retention** | Stayed / Total | >85% | - |
+| **Churn Rate** | Lost / Total | <8%/חודש | - |
+| **Retention** | Stayed / Total | >92% | - |
 | **NPS** | Promoters - Detractors | >50 | - |
 
 ---
@@ -294,7 +296,7 @@ Excellent: <3 חודשים
 | Metric | Threshold | Action |
 |--------|-----------|--------|
 | CAC | >₪500 | עצירת קמפיין |
-| Churn | >20%/חודש | Customer Success call |
+| Churn | >10%/חודש | Customer Success call |
 | CTR | <1% | החלפת קריאייטיב |
 | Trial→Paid | <10% | אופטימיזציית Onboarding |
 | CPA | >₪600 | סקירת טרגטינג |
@@ -304,7 +306,7 @@ Excellent: <3 חודשים
 | Metric | Threshold | Action |
 |--------|-----------|--------|
 | CAC | ₪400-500 | אופטימיזציה |
-| Churn | 15-20% | בדיקה |
+| Churn | 8-10% | בדיקה |
 | CTR | 1-2% | A/B Testing |
 | Trial→Paid | 10-15% | שיפורים קטנים |
 
