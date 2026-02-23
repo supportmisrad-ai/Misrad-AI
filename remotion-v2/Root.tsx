@@ -23,6 +23,11 @@ import { NavigationVideoV2 } from './ui-demos/navigation/NavigationVideo';
 import { RegistrationVideoV2 } from './ui-demos/registration/RegistrationVideo';
 import { AIActionVideoV2 } from './ui-demos/ai-action/AIActionVideo';
 
+// Launch videos
+import { L1HeroVideo } from './launch/L1-HeroVideo';
+import { L2ShabbatVideo } from './launch/L2-ShabbatVideo';
+import { L3WorkflowVideo } from './launch/L3-WorkflowVideo';
+
 // Bonus videos
 import { BrandStoryVideoV2 } from './bonus/brand-story/BrandStoryVideo';
 import { AIShowcaseVideoV2 } from './bonus/ai-showcase/AIShowcaseVideo';
@@ -74,6 +79,11 @@ export const RemotionRoot: React.FC = () => {
       {dualComposition('V2-BrandStory', BrandStoryVideoV2)}
       {dualComposition('V2-AIShowcase', AIShowcaseVideoV2)}
       {dualComposition('V2-ShabbatMode', ShabbatModeVideoV2)}
+
+      {/* ═══ LAUNCH VIDEOS (3 × 2 = 6 compositions) ═══ */}
+      {dualComposition('Launch-L1-Hero', L1HeroVideo)}
+      {dualComposition('Launch-L2-Shabbat', L2ShabbatVideo)}
+      {dualComposition('Launch-L3-Workflow', L3WorkflowVideo)}
 
       {/* ═══ TUTORIAL VIDEOS ═══ */}
       <Composition id="Tutorial-System-Leads-Desktop" component={SystemLeadsTutorialDesktop} durationInFrames={90 * FPS} fps={FPS} width={TV_WIDTH} height={TV_HEIGHT} />
