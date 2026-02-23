@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireSuperAdmin } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 function json(data: unknown, status = 200) {
@@ -14,7 +16,12 @@ function json(data: unknown, status = 200) {
 }
 
 export async function GET(req: NextRequest) {
+  return withTenantIsolationContext(
+    { source: 'api/admin/bot.GET', reason: 'admin_bot_dashboard', mode: 'global_admin', isSuperAdmin: true, suppressReporting: true },
+    async () => {
   try {
+    await requireSuperAdmin();
+
     const search = req.nextUrl.searchParams.get('search') ?? '';
     const status = req.nextUrl.searchParams.get('status') ?? '';
 
@@ -61,4 +68,6 @@ export async function GET(req: NextRequest) {
     console.error('[admin-bot]', getErrorMessage(err));
     return json({ error: 'Internal error' }, 500);
   }
+    },
+  );
 }

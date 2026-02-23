@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 const BLASTER_SECRET = process.env.BLASTER_WEBHOOK_SECRET;
@@ -22,14 +23,16 @@ function json(data: unknown, status = 200) {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    // Optional secret validation
-    if (BLASTER_SECRET) {
-      const authHeader = req.headers.get('x-webhook-secret') ?? '';
-      if (authHeader !== BLASTER_SECRET) {
-        return json({ error: 'Unauthorized' }, 401);
-      }
+  // Optional secret validation
+  if (BLASTER_SECRET) {
+    const authHeader = req.headers.get('x-webhook-secret') ?? '';
+    if (authHeader !== BLASTER_SECRET) {
+      return json({ error: 'Unauthorized' }, 401);
     }
+  }
+
+  return withWebhookGlobalAdminContext({ source: 'blaster-webhook' }, async () => {
+  try {
 
     const body: Record<string, unknown> = await req.json().catch(() => ({}));
     const type = req.nextUrl.searchParams.get('type') ?? 'lead';
@@ -111,6 +114,7 @@ export async function POST(req: NextRequest) {
     console.error('[blaster-webhook]', getErrorMessage(err));
     return json({ error: 'Internal error' }, 500);
   }
+  });
 }
 
 export async function GET() {

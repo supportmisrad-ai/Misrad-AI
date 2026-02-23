@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { requireSuperAdmin } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 function json(data: unknown, status = 200) {
@@ -14,7 +16,12 @@ function json(data: unknown, status = 200) {
 }
 
 export async function GET(req: NextRequest) {
+  return withTenantIsolationContext(
+    { source: 'api/admin/bot/conversations.GET', reason: 'admin_bot_conversations', mode: 'global_admin', isSuperAdmin: true, suppressReporting: true },
+    async () => {
   try {
+    await requireSuperAdmin();
+
     const leadId = req.nextUrl.searchParams.get('leadId');
     if (!leadId) {
       return json({ error: 'Missing leadId' }, 400);
@@ -31,4 +38,6 @@ export async function GET(req: NextRequest) {
     console.error('[admin-bot-conversations]', getErrorMessage(err));
     return json({ error: 'Internal error' }, 500);
   }
+    },
+  );
 }
