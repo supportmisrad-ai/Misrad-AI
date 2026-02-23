@@ -923,6 +923,43 @@ export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
   }
 }
 
+/**
+ * Server-only backfill: finds all orgs without a BusinessClient and creates one for each.
+ * No auth check — designed to be called from SSR page components.
+ * Idempotent: safe to call on every page load (no-op when all orgs are linked).
+ */
+export async function backfillUnlinkedOrganizations(): Promise<number> {
+  try {
+    const unlinkedOrgs = await withTenantIsolationContext(
+      {
+        source: 'business-clients.backfillUnlinkedOrganizations',
+        reason: 'auto_backfill_unlinked_orgs',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        prisma.organization.findMany({
+          where: { client_id: null },
+          select: { id: true },
+        })
+    );
+
+    if (unlinkedOrgs.length === 0) return 0;
+
+    let synced = 0;
+    for (const org of unlinkedOrgs) {
+      await ensureBusinessClientForOrg(org.id);
+      synced++;
+    }
+
+    return synced;
+  } catch (error) {
+    logger.error('backfillUnlinkedOrganizations', 'Failed (non-fatal):', error);
+    return 0;
+  }
+}
+
 export async function syncOrganizationsToBusinessClients(): Promise<
   { ok: true; created: number; linked: number } | { ok: false; error: string }
 > {
