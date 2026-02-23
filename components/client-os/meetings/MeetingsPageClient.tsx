@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Meeting, Client, MeetingAnalysisResult } from '@/components/client-os-full/types';
 import { MeetingResultDashboard } from './MeetingResultDashboard';
-import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
+import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users, FileText, ArrowLeft } from 'lucide-react';
 import { createClinicSession, createClinicClient } from '@/app/actions/client-clinic';
 import { useAuth } from '@clerk/nextjs';
 import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
@@ -39,7 +39,9 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
   }, [getToken]);
 
   const [mounted, setMounted] = useState(false);
-  const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'ADD'>('LIST');
+  const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'ADD' | 'TRANSCRIPT'>('LIST');
+  const [uploadMode, setUploadMode] = useState<'analyze' | 'transcribe'>('analyze');
+  const [transcriptResult, setTranscriptResult] = useState<string | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings);
   const [analysisResult, setAnalysisResult] = useState<MeetingAnalysisResult | undefined>(undefined);
   const [processingFileName, setProcessingFileName] = useState<string | null>(null);
@@ -360,6 +362,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                           path: uploadUrlJson.path,
                           mimeType: file.type || '',
                           fileName: file.name,
+                          mode: uploadMode,
                       }),
                   });
 
@@ -368,11 +371,18 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                       throw new Error(err?.error || 'Processing failed');
                   }
 
-                  const json = (await res.json()) as { analysis?: MeetingAnalysisResult };
-                  if (!json.analysis) throw new Error('Missing analysis');
-                  setAnalysisResult(json.analysis);
-                  setActiveView('RESULT');
-                  window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+                  const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; mode?: string };
+
+                  if (json.mode === 'transcribe' || uploadMode === 'transcribe') {
+                    setTranscriptResult(json.transcript || '');
+                    setActiveView('TRANSCRIPT');
+                    window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'התמלול הושלם ונשמר בהצלחה.', type: 'success' } }));
+                  } else {
+                    if (!json.analysis) throw new Error('Missing analysis');
+                    setAnalysisResult(json.analysis);
+                    setActiveView('RESULT');
+                    window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+                  }
               } catch (err: unknown) {
                   const msg = err instanceof Error ? err.message : 'שגיאה בניתוח ההקלטה';
                   window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
@@ -419,7 +429,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
 
   return (
     <div className="min-h-full flex flex-col animate-fade-in p-8 md:p-12">
-      {activeView !== 'RESULT' && activeView !== 'LIVE' && activeView !== 'ADD' && (
+      {activeView !== 'RESULT' && activeView !== 'LIVE' && activeView !== 'ADD' && activeView !== 'TRANSCRIPT' && (
           <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-primary font-bold text-sm tracking-widest uppercase">
@@ -727,18 +737,49 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                       </div>
                   </div>
 
-                  <div className="relative group">
-                    <input type="file" accept="audio/*,video/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" title="גרור או לחץ להעלאת הקלטה" />
-                    <div className="relative border-4 border-dashed border-slate-200 rounded-[3rem] p-16 text-center bg-white/50 hover:bg-white hover:border-primary/30 transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-primary/5">
-                        <div className="w-24 h-24 bg-primary/5 text-primary rounded-[2rem] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                            <UploadCloud size={48} strokeWidth={1.5} />
-                        </div>
-                        <h3 className="text-3xl font-black text-slate-900 mb-3">העלאת הקלטה חדשה</h3>
-                        <p className="text-slate-500 text-lg font-medium max-w-md mx-auto">גרור לכאן קבצי MP3, WAV או MP4. נקסוס ינתח את השיחה ויפיק תובנות באופן אוטומטי.</p>
-                        <div className="mt-8 flex justify-center gap-3">
-                            <span className="px-4 py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-widest border border-slate-200">Audio Only</span>
-                            <span className="px-4 py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-widest border border-slate-200">Video Sync</span>
-                        </div>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => setUploadMode('analyze')}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all border ${
+                          uploadMode === 'analyze'
+                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30'
+                        }`}
+                      >
+                        <Zap size={16} /> ניתוח מלא + תמלול
+                      </button>
+                      <button
+                        onClick={() => setUploadMode('transcribe')}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all border ${
+                          uploadMode === 'transcribe'
+                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30'
+                        }`}
+                      >
+                        <FileText size={16} /> תמלול בלבד
+                      </button>
+                    </div>
+
+                    <div className="relative group">
+                      <input type="file" accept="audio/*,video/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-20" title="גרור או לחץ להעלאת הקלטה" />
+                      <div className="relative border-4 border-dashed border-slate-200 rounded-[3rem] p-16 text-center bg-white/50 hover:bg-white hover:border-primary/30 transition-all duration-500 group-hover:shadow-2xl group-hover:shadow-primary/5">
+                          <div className="w-24 h-24 bg-primary/5 text-primary rounded-[2rem] flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                              <UploadCloud size={48} strokeWidth={1.5} />
+                          </div>
+                          <h3 className="text-3xl font-black text-slate-900 mb-3">
+                            {uploadMode === 'transcribe' ? 'העלאת הקלטה לתמלול' : 'העלאת הקלטה לניתוח'}
+                          </h3>
+                          <p className="text-slate-500 text-lg font-medium max-w-md mx-auto">
+                            {uploadMode === 'transcribe'
+                              ? 'גרור לכאן קבצי MP3, WAV או MP4. המערכת תתמלל את ההקלטה ותשמור אותה.'
+                              : 'גרור לכאן קבצי MP3, WAV או MP4. נקסוס ינתח את השיחה ויפיק תובנות באופן אוטומטי.'}
+                          </p>
+                          <div className="mt-8 flex justify-center gap-3">
+                              <span className="px-4 py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-widest border border-slate-200">Audio Only</span>
+                              <span className="px-4 py-2 bg-slate-100 text-slate-500 text-xs font-bold rounded-full uppercase tracking-widest border border-slate-200">Video Sync</span>
+                          </div>
+                      </div>
                     </div>
                   </div>
 
@@ -799,6 +840,38 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                         ))}
                     </div>
                   </div>
+              </div>
+          )}
+
+          {activeView === 'TRANSCRIPT' && transcriptResult !== null && (
+              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <button
+                    onClick={() => { setTranscriptResult(null); setActiveView('LIST'); }}
+                    className="flex items-center gap-3 text-slate-400 hover:text-primary transition-all group w-fit font-bold"
+                  >
+                    <div className="p-2 rounded-xl bg-white border border-slate-100 group-hover:border-primary/20 group-hover:shadow-sm">
+                      <ArrowLeft size={20} />
+                    </div>
+                    <span>חזרה לרשימת הפגישות</span>
+                  </button>
+                </div>
+                <div className="ui-card p-10 bg-white shadow-luxury">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center">
+                      <FileText size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-black text-slate-900">תמלול הקלטה</h2>
+                      <p className="text-slate-500 font-medium">התמלול הושלם ונשמר במערכת</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-2xl border border-slate-100 p-8 max-h-[600px] overflow-y-auto custom-scrollbar">
+                    <pre className="whitespace-pre-wrap text-slate-800 text-lg leading-relaxed font-sans" dir="rtl">
+                      {transcriptResult}
+                    </pre>
+                  </div>
+                </div>
               </div>
           )}
 

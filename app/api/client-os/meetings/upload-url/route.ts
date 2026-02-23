@@ -1,5 +1,5 @@
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
-import { createStorageClient } from '@/lib/supabase';
+import { createServiceRoleStorageClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
@@ -100,7 +100,7 @@ async function POSTHandler(req: Request) {
       return apiError('Invalid path', { status: 400 });
     }
 
-    const supabase = createStorageClient();
+    const supabase = createServiceRoleStorageClient({ reason: 'meeting-recording-signed-upload', allowUnscoped: true });
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data?.signedUrl || !data?.token) {

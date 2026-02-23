@@ -3,7 +3,9 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { createStorageClient } from '@/lib/supabase';
+import { createServiceRoleStorageClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { analyzeAndStoreMeeting } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
 import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -116,6 +118,7 @@ async function POSTHandler(req: Request) {
     const storagePath = String(bodyObj.path || '');
     const mimeType = String(bodyObj.mimeType || '');
     const fileName = String(bodyObj.fileName || 'recording');
+    const mode = String(bodyObj.mode || 'analyze') === 'transcribe' ? 'transcribe' : 'analyze';
 
     if (!orgKey) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
@@ -167,7 +170,7 @@ async function POSTHandler(req: Request) {
       return apiError('Forbidden', { status: 403 });
     }
 
-    const supabase = createStorageClient();
+    const supabase = createServiceRoleStorageClient({ reason: 'meeting-recording-download', allowUnscoped: true });
 
     const { data: downloadData, error: downloadError } = await supabase.storage.from(bucket).download(storagePath);
     if (downloadError || !downloadData) {
@@ -230,6 +233,49 @@ async function POSTHandler(req: Request) {
 
     const recordingUrl = `sb://${bucket}/${storagePath}`;
 
+    if (mode === 'transcribe') {
+      const now = new Date();
+      const meetingDateLabel = now.toLocaleDateString('he-IL');
+
+      const meeting = await prisma.misradMeeting.create({
+        data: {
+          organization_id: orgId,
+          client_id: clientId,
+          date: meetingDateLabel,
+          title,
+          location,
+          attendees: [],
+          transcript,
+          summary: null,
+          recordingUrl,
+          manualNotes: null,
+        } as unknown as Prisma.MisradMeetingUncheckedCreateInput,
+        select: { id: true },
+      });
+
+      try {
+        await createClinicSessionForOrganizationId({
+          organizationId: orgId,
+          clientId,
+          startAt: now.toISOString(),
+          status: 'completed',
+          sessionType: title,
+          location,
+          summary: null,
+          metadata: {
+            meetingId: meeting.id,
+            recordingUrl,
+            transcript,
+            mode: 'transcribe',
+          },
+        });
+      } catch {
+        // ignore
+      }
+
+      return apiSuccessCompat({ meetingId: meeting.id, transcript, mode: 'transcribe' as const }, { headers: abuse.headers });
+    }
+
     const saved = await analyzeAndStoreMeeting({
       orgId,
       clientId,
@@ -263,7 +309,7 @@ async function POSTHandler(req: Request) {
       // ignore
     }
 
-    return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
+    return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript, mode: 'analyze' as const }, { headers: abuse.headers });
   } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Processing failed' });
   } finally {

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 // Fix: Removed Modality from local types import as it should come from the GenAI SDK
 import { MeetingAnalysisResult } from '../types';
-import { UploadCloud, Video, Mic, MicOff, Zap } from 'lucide-react';
+import { UploadCloud, Video, Mic, MicOff, Zap, FileText, ArrowLeft } from 'lucide-react';
 import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
 import { CustomSelect } from '@/components/CustomSelect';
@@ -15,7 +15,9 @@ import { Skeleton } from '@/components/ui/skeletons';
 const MeetingIntelligence: React.FC = () => {
   const { clients, meetings: contextMeetings } = useNexus();
   const { getToken } = useAuth();
-  const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE'>('LIST');
+  const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'TRANSCRIPT'>('LIST');
+  const [uploadMode, setUploadMode] = useState<'analyze' | 'transcribe'>('analyze');
+  const [transcriptResult, setTranscriptResult] = useState<string | null>(null);
   const [meetings, setMeetings] = useState(contextMeetings);
   const [analysisResult, setAnalysisResult] = useState<MeetingAnalysisResult | undefined>(contextMeetings[0]?.aiAnalysis);
   const [processingFileName, setProcessingFileName] = useState<string | null>(null);
@@ -306,6 +308,7 @@ const MeetingIntelligence: React.FC = () => {
               path: uploadUrlJson.path,
               mimeType: file.type || '',
               fileName: file.name,
+              mode: uploadMode,
             }),
           });
 
@@ -314,11 +317,18 @@ const MeetingIntelligence: React.FC = () => {
             throw new Error(err?.error || 'Processing failed');
           }
 
-          const json = (await res.json()) as { analysis?: MeetingAnalysisResult };
-          if (!json.analysis) throw new Error('Missing analysis');
-          setAnalysisResult(json.analysis);
-          setActiveView('RESULT');
-          globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+          const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; mode?: string };
+
+          if (json.mode === 'transcribe' || uploadMode === 'transcribe') {
+            setTranscriptResult(json.transcript || '');
+            setActiveView('TRANSCRIPT');
+            globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'התמלול הושלם ונשמר בהצלחה.', type: 'success' } }));
+          } else {
+            if (!json.analysis) throw new Error('Missing analysis');
+            setAnalysisResult(json.analysis);
+            setActiveView('RESULT');
+            globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+          }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'שגיאה בניתוח ההקלטה';
           globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: msg, type: 'error' } }));
@@ -339,7 +349,7 @@ const MeetingIntelligence: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col animate-fade-in">
-      {activeView !== 'RESULT' && activeView !== 'LIVE' && (
+      {activeView !== 'RESULT' && activeView !== 'LIVE' && activeView !== 'TRANSCRIPT' && (
         <header className="mb-6 flex justify-end items-end pb-2">
           <button
             onClick={startLiveSession}
@@ -400,7 +410,9 @@ const MeetingIntelligence: React.FC = () => {
               <div className="mx-auto w-16 h-16 rounded-2xl bg-nexus-primary/10 flex items-center justify-center mb-5">
                 <Skeleton className="w-10 h-10 rounded-xl" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">מנתח את ההקלטה...</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {uploadMode === 'transcribe' ? 'מתמלל את ההקלטה...' : 'מנתח את ההקלטה...'}
+              </h3>
               <p className="text-gray-500 mt-2">{processingFileName ?? 'הקובץ נטען'} </p>
               <div className="mt-6 flex items-center justify-center gap-3">
                 <button
@@ -442,11 +454,41 @@ const MeetingIntelligence: React.FC = () => {
                 />
               </div>
             </div>
+
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <button
+                onClick={() => setUploadMode('analyze')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                  uploadMode === 'analyze'
+                    ? 'bg-nexus-primary text-white border-nexus-primary shadow-lg'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-nexus-primary/30'
+                }`}
+              >
+                <Zap size={14} /> ניתוח מלא + תמלול
+              </button>
+              <button
+                onClick={() => setUploadMode('transcribe')}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all border ${
+                  uploadMode === 'transcribe'
+                    ? 'bg-nexus-primary text-white border-nexus-primary shadow-lg'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-nexus-primary/30'
+                }`}
+              >
+                <FileText size={14} /> תמלול בלבד
+              </button>
+            </div>
+
             <div className="relative border-2 border-dashed border-slate-200/70 rounded-3xl p-12 text-center bg-white hover:border-nexus-primary transition-all cursor-pointer">
               <input type="file" accept="audio/*,video/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
               <UploadCloud size={48} className="mx-auto text-nexus-primary mb-4" />
-              <h3 className="text-xl font-bold">העלאת הקלטה קיימת</h3>
-              <p className="text-gray-500 mt-2">MP3, WAV, MP4 • נקסוס ינתח הכל תוך דקות</p>
+              <h3 className="text-xl font-bold">
+                {uploadMode === 'transcribe' ? 'העלאת הקלטה לתמלול' : 'העלאת הקלטה לניתוח'}
+              </h3>
+              <p className="text-gray-500 mt-2">
+                {uploadMode === 'transcribe'
+                  ? 'MP3, WAV, MP4 • המערכת תתמלל את ההקלטה ותשמור אותה'
+                  : 'MP3, WAV, MP4 • נקסוס ינתח הכל תוך דקות'}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -460,6 +502,33 @@ const MeetingIntelligence: React.FC = () => {
                   <p className="text-xs text-gray-500 line-clamp-2">{m.summary}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeView === 'TRANSCRIPT' && transcriptResult !== null && (
+          <div className="animate-fade-in space-y-6">
+            <button
+              onClick={() => { setTranscriptResult(null); setActiveView('LIST'); }}
+              className="flex items-center gap-2 text-gray-400 hover:text-nexus-primary transition-all font-bold text-sm"
+            >
+              <ArrowLeft size={16} /> חזרה לרשימה
+            </button>
+            <div className="bg-white border rounded-2xl p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-nexus-primary/10 text-nexus-primary rounded-xl flex items-center justify-center">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">תמלול הקלטה</h2>
+                  <p className="text-gray-500 text-sm">התמלול הושלם ונשמר במערכת</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-xl border border-gray-100 p-6 max-h-[500px] overflow-y-auto custom-scrollbar">
+                <pre className="whitespace-pre-wrap text-gray-800 text-base leading-relaxed font-sans" dir="rtl">
+                  {transcriptResult}
+                </pre>
+              </div>
             </div>
           </div>
         )}
