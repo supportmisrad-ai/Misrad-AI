@@ -9,7 +9,7 @@ import WorkspaceOnboardingClient from '@/app/workspaces/onboarding/WorkspaceOnbo
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
-async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string; subscriptionPlan: string | null }> {
+async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string; subscriptionPlan: string | null; orgCreatedAt: Date | null }> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     redirect('/login?redirect=/workspaces/onboarding');
@@ -58,11 +58,16 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
 
   const org = await prisma.organization.findUnique({
     where: { id: String(organizationId) },
-    select: { id: true, slug: true, subscription_plan: true },
+    select: { id: true, slug: true, subscription_plan: true, created_at: true },
   });
 
   const organizationKey = String(org?.slug || org?.id || organizationId);
-  return { organizationId: String(organizationId), organizationKey, subscriptionPlan: org?.subscription_plan ?? null };
+  return {
+    organizationId: String(organizationId),
+    organizationKey,
+    subscriptionPlan: org?.subscription_plan ?? null,
+    orgCreatedAt: org?.created_at ?? null,
+  };
 }
 
 export default async function WorkspaceOnboardingPage({
@@ -70,22 +75,31 @@ export default async function WorkspaceOnboardingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { organizationKey, subscriptionPlan } = await getCurrentOrganizationKey();
+  const { organizationKey, subscriptionPlan, orgCreatedAt } = await getCurrentOrganizationKey();
   const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
 
   const existing = accountRes.success ? accountRes.data : null;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
 
-  // Only skip onboarding if ALL conditions are met:
-  // 1. Organization has a subscription plan in the DB
-  // 2. Customer account has company name
-  // 3. Customer account has phone number
-  // This prevents users from being redirected to the workspace before
-  // completing all onboarding steps (e.g. when plan was set via cookie
-  // during provisioning but details were never entered).
-  if (subscriptionPlan && hasCompany && hasPhone) {
-    redirect(`/w/${encodeURIComponent(organizationKey)}`);
+  if (subscriptionPlan) {
+    // Case 1: Customer account exists with full details → onboarding complete
+    if (hasCompany && hasPhone) {
+      redirect(`/w/${encodeURIComponent(organizationKey)}`);
+    }
+
+    // Case 2: No customer_accounts record at all → could be legacy user OR freshly provisioned
+    // Legacy users (org older than 10 min) should skip onboarding
+    // New users (provisioned with plan from cookie) should complete onboarding
+    const LEGACY_THRESHOLD_MS = 10 * 60 * 1000;
+    if (!existing && orgCreatedAt) {
+      const orgAge = Date.now() - new Date(orgCreatedAt).getTime();
+      if (orgAge > LEGACY_THRESHOLD_MS) {
+        redirect(`/w/${encodeURIComponent(organizationKey)}`);
+      }
+    }
+
+    // Case 3: Customer account exists but details missing, OR new org → show form
   }
 
   const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
