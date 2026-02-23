@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users, PhoneCall, Network, Map, BarChart3, Settings } from 'lucide-react';
+import { CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users, PhoneCall, Network, Map, BarChart3, Settings, SquareMousePointer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
@@ -25,6 +25,7 @@ import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+import { ModuleBackground } from '@/components/shared/ModuleBackground';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -266,6 +267,7 @@ function SystemShellGateClientCore({
           <CallAnalysisProvider>
             <BrandProvider>
               <div className="flex h-screen w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
+                <ModuleBackground moduleKey="system" />
                 <SharedSidebar
                   isOpen={isSidebarOpen}
                   onSetOpenAction={setIsSidebarOpen}
@@ -369,101 +371,114 @@ function SystemShellGateClientCore({
                         aria-modal="true"
                         aria-label="תפריט"
                       >
-                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50" />
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-4 gap-4">
+                            {NAV_GROUPS[0]?.items.map((item) => {
+                              const path = item.id === 'workspace' ? '/' : `/${item.id}`;
+                              const isActiveItem = isActiveAction(path);
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => { onNavigateAction(path); setIsMobileMenuOpen(false); }}
+                                  className="flex flex-col items-center gap-2 group"
+                                >
+                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                    isActiveItem
+                                      ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
+                                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                                  }`}>
+                                    <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                  </div>
+                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                    {item.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
 
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">ראשי</div>
-                        <div className="grid grid-cols-4 gap-4">
-                          {NAV_GROUPS[0]?.items.map((item) => {
-                            const isActiveItem = isActiveAction(item.id === 'workspace' ? '/' : `/${item.id}`);
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  onNavigateAction(item.id === 'workspace' ? '/' : `/${item.id}`);
-                                  setIsMobileMenuOpen(false);
-                                }}
-                                className="flex flex-col items-center gap-2 group"
-                              >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
-                                  isActiveItem
-                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
-                                }`}>
-                                  <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                </div>
-                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                                  {item.label}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
-                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">כלים</div>
-                        <div className="grid grid-cols-4 gap-4">
-                          {[...NAV_GROUPS.slice(1, 3).flatMap(g => g.items)].map((item) => {
-                            const isActiveItem = isActiveAction(`/${item.id}`);
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  onNavigateAction(`/${item.id}`);
-                                  setIsMobileMenuOpen(false);
-                                }}
-                                className="flex flex-col items-center gap-2 group"
-                              >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
-                                  isActiveItem
-                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
-                                }`}>
-                                  <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                </div>
-                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                                  {item.label}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                          <div>
+                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">כלים</div>
+                            <div className="grid grid-cols-4 gap-4">
+                              {[...NAV_GROUPS.slice(1, 3).flatMap(g => g.items)].map((item) => {
+                                const isActiveItem = isActiveAction(`/${item.id}`);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
+                                    className="flex flex-col items-center gap-2 group"
+                                  >
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                      isActiveItem
+                                        ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
+                                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                                    }`}>
+                                      <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                    </div>
+                                    <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                      {item.label}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
 
-                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">ניהול</div>
-                        <div className="grid grid-cols-4 gap-4">
-                          {NAV_GROUPS[3]?.items.map((item) => {
-                            const isActiveItem = isActiveAction(`/${item.id}`);
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  onNavigateAction(`/${item.id}`);
-                                  setIsMobileMenuOpen(false);
-                                }}
-                                className="flex flex-col items-center gap-2 group"
-                              >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
-                                  isActiveItem
-                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-white'
-                                }`}>
-                                  <item.icon size={20} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                </div>
-                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                                  {item.label}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
-                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
-                        <div className="space-y-3">
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">מודולים</div>
-                          <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="system" />
+                          <div className="flex justify-center">
+                            {NAV_GROUPS[3]?.items.filter(i => i.id !== 'settings').map((item) => {
+                              const isActiveItem = isActiveAction(`/${item.id}`);
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
+                                  className="flex flex-col items-center gap-2 group"
+                                >
+                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                    isActiveItem
+                                      ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
+                                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                                  }`}>
+                                    <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                  </div>
+                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                    {item.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
+                          <div className="flex justify-center">
+                            <button
+                              type="button"
+                              onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
+                              className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 group shadow-md ${
+                                isActiveAction('/settings')
+                                  ? 'bg-[#A21D3C] text-white shadow-lg shadow-[#A21D3C]/30'
+                                  : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
+                              }`}
+                            >
+                              <Settings size={24} strokeWidth={2} />
+                              <span className="text-sm font-bold">הגדרות ופיצ׳רים</span>
+                            </button>
+                          </div>
+
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
+                          <div className="space-y-3">
+                            <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                            <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="system" />
+                          </div>
                         </div>
                       </motion.div>
                     </>
@@ -591,8 +606,8 @@ function SystemShellGateClientCore({
                     },
                     {
                       id: 'menu',
-                      label: 'עוד',
-                      icon: Menu,
+                      label: 'תפריט',
+                      icon: SquareMousePointer,
                       active: isMobileMenuOpen,
                       onClick: () => setIsMobileMenuOpen(true),
                     },

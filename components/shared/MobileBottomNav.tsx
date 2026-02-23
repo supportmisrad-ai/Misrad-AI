@@ -85,18 +85,39 @@ export default function MobileBottomNav({
               type="button"
               className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[5px] border-white transition-all duration-200 ${plusClassName || ''}`}
               style={{
-                background: `linear-gradient(135deg, ${plusGradient ? plusGradient.replace('from-', '').replace('to-', '').split(' ').map(c => {
+                background: (() => {
+                  if (!plusGradient) return 'linear-gradient(135deg, #0f172a, #334155)';
                   const colorMap: Record<string, string> = {
-                    'slate-900': '#0f172a',
-                    'slate-700': '#334155',
-                    'indigo-600': '#4f46e5',
-                    'purple-600': '#9333ea',
+                    'slate-900': '#0f172a', 'slate-700': '#334155', 'slate-800': '#1e293b',
+                    'indigo-500': '#6366f1', 'indigo-600': '#4f46e5',
+                    'purple-600': '#9333ea', 'purple-700': '#7e22ce',
+                    'violet-600': '#7c3aed',
                     'blue-600': '#2563eb',
+                    'pink-600': '#db2777',
+                    'fuchsia-600': '#c026d3',
                     'cyan-600': '#0891b2',
-                    'emerald-600': '#059669',
+                    'sky-500': '#0ea5e9', 'sky-600': '#0284c7',
+                    'emerald-500': '#10b981', 'emerald-600': '#059669',
+                    'teal-600': '#0d9488',
+                    'red-600': '#dc2626', 'red-700': '#b91c1c',
+                    'rose-600': '#e11d48',
+                    'amber-500': '#f59e0b',
+                    'orange-600': '#ea580c',
                   };
-                  return colorMap[c] || '#0f172a';
-                }).join(', ') : '#0f172a, #334155'})`
+                  const resolveColor = (token: string): string | null => {
+                    const arbMatch = token.match(/\[([^\]]+)\]/);
+                    if (arbMatch) return arbMatch[1];
+                    return colorMap[token] || null;
+                  };
+                  const stops = plusGradient
+                    .split(/\s+/)
+                    .map(t => t.replace(/^(?:from-|via-|to-)/, ''))
+                    .map(resolveColor)
+                    .filter(Boolean) as string[];
+                  return stops.length >= 2
+                    ? `linear-gradient(135deg, ${stops.join(', ')})`
+                    : `linear-gradient(135deg, ${stops[0] || '#0f172a'}, ${stops[0] || '#334155'})`;
+                })()
               }}
             >
               <Plus

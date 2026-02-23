@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
-import { BarChart, FileText, Menu, Mic, TrendingUp, User as UserIcon } from 'lucide-react';
+import { BarChart, FileText, Menu, Mic, Settings, SquareMousePointer, TrendingUp, User as UserIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/components/system/contexts/AuthContext';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
@@ -23,6 +23,7 @@ import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
 import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
+import { ModuleBackground } from '@/components/shared/ModuleBackground';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -158,7 +159,8 @@ export default function FinanceShell(props: {
   );
 
   return (
-    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
+    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden relative" dir="rtl">
+      <ModuleBackground moduleKey="finance" />
       <SharedSidebar
         isOpen={isSidebarOpen}
         onSetOpenAction={setIsSidebarOpen}
@@ -251,7 +253,7 @@ export default function FinanceShell(props: {
           {
             id: 'menu',
             label: 'תפריט',
-            icon: Menu,
+            icon: SquareMousePointer,
             active: isMobileMenuOpen,
             onClick: () => setIsMobileMenuOpen(true),
           },
@@ -340,45 +342,66 @@ export default function FinanceShell(props: {
               aria-modal="true"
               aria-label="תפריט"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
-
-              <div className="grid grid-cols-4 gap-4">
-                {mobileMenuItems.map((item) => {
-                  const isActiveItem = isActiveAction(item.path);
-                  const IconComponent = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        onNavigateAction(item.path);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex flex-col items-center gap-2 group"
-                      aria-label={item.label}
-                    >
-                      <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-4 gap-4">
+                  {mobileMenuItems.filter(i => i.id !== 'me').map((item) => {
+                    const isActiveItem = isActiveAction(item.path);
+                    const IconComponent = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => { onNavigateAction(item.path); setIsMobileMenuOpen(false); }}
+                        className="flex flex-col items-center gap-2 group"
+                        aria-label={item.label}
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
                           isActiveItem
-                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                            ? 'bg-[#059669] text-white shadow-[#059669]/30'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                        }`}>
+                          <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                        </div>
+                        <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#059669]' : 'text-slate-500'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
+
+                <div className="flex justify-center">
+                  {(() => {
+                    const meItem = mobileMenuItems.find(i => i.id === 'me');
+                    if (!meItem) return null;
+                    const isActiveItem = isActiveAction(meItem.path);
+                    const IconComponent = meItem.icon;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => { onNavigateAction(meItem.path); setIsMobileMenuOpen(false); }}
+                        className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
+                          isActiveItem
+                            ? 'bg-[#059669] text-white shadow-lg shadow-[#059669]/30'
+                            : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
                         }`}
                       >
-                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                      </div>
-                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                        <IconComponent size={24} strokeWidth={2} />
+                        <span className="text-sm font-bold">פרופיל</span>
+                      </button>
+                    );
+                  })()}
+                </div>
 
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-              <div className="space-y-3">
-                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                <div className="space-y-3">
+                  <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                  <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                </div>
               </div>
             </motion.div>
           </>

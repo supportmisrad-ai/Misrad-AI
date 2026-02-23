@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, Users, Settings, Sparkles, Cpu, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, Sparkles, Cpu, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send, SquareMousePointer } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '../../types';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
@@ -21,6 +21,7 @@ import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
+import { ModuleBackground } from '@/components/shared/ModuleBackground';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -378,7 +379,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   );
 
   return (
-    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
+    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden relative" dir="rtl">
+      <ModuleBackground moduleKey="client" />
       <SharedSidebar
         isOpen={isSidebarOpen}
         onSetOpenAction={setIsSidebarOpen}
@@ -481,7 +483,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           {
             id: 'menu',
             label: 'תפריט',
-            icon: Menu,
+            icon: SquareMousePointer,
             active: isMobileMenuOpen,
             onClick: () => handleMobileNavClick('MENU'),
           },
@@ -499,68 +501,67 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             onClick={() => setIsMobileMenuOpen(false)}
             role="presentation"
           />
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50">
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50" />
-
-            <div className="grid grid-cols-4 gap-4">
-              {navItems.map((item) => {
-                const isActiveItem = item.id === activeView;
-                const IconComponent = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleDrawerNav(item.id)}
-                    className="flex flex-col items-center gap-2 group"
-                    aria-label={item.label}
-                    type="button"
-                  >
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+            <div className="space-y-6">
+              <div className="grid grid-cols-4 gap-4">
+                {navItems.map((item) => {
+                  const isActiveItem = item.id === activeView;
+                  const IconComponent = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleDrawerNav(item.id)}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                      type="button"
+                    >
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
                         isActiveItem
-                          ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
-                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
-                      }`}
-                    >
-                      <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                    </div>
-                    <span
-                      className={`text-[10px] font-bold text-center leading-tight ${
-                        isActiveItem ? 'text-slate-900' : 'text-slate-500'
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => handleDrawerNav('me')}
-              className="mt-6 w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 active:scale-[0.98] transition-transform"
-              type="button"
-            >
-              <div className="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center font-black text-lg shadow-md">
-                {(displayInitials || 'U').slice(0, 2)}
+                          ? 'bg-[#C5A572] text-white shadow-[#C5A572]/30'
+                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                      }`}>
+                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${
+                        isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
+                      }`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex-1 text-right">
-                <span className="block font-bold text-gray-900" suppressHydrationWarning>
-                  {systemIdentity?.name || userLabel.name || '—'}
-                </span>
-                <span className="text-xs text-gray-500" suppressHydrationWarning>
-                  {systemIdentity?.role || userLabel.roleLabel || 'אזור אישי'}
-                </span>
-              </div>
-              <div className="p-2 text-gray-400 bg-gray-50 rounded-lg">
-                <ChevronRight size={20} className="rotate-180" />
-              </div>
-            </button>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
-            <div className="space-y-3">
-              <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-              <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+              <button
+                onClick={() => handleDrawerNav('me')}
+                className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 active:scale-[0.98] transition-transform"
+                type="button"
+              >
+                <div className="w-12 h-12 bg-[#C5A572] text-white rounded-full flex items-center justify-center font-black text-lg shadow-md">
+                  {(displayInitials || 'U').slice(0, 2)}
+                </div>
+                <div className="flex-1 text-right">
+                  <span className="block font-bold text-gray-900" suppressHydrationWarning>
+                    {systemIdentity?.name || userLabel.name || '—'}
+                  </span>
+                  <span className="text-xs text-gray-500" suppressHydrationWarning>
+                    {systemIdentity?.role || userLabel.roleLabel || 'אזור אישי'}
+                  </span>
+                </div>
+                <div className="p-2 text-gray-400 bg-gray-50 rounded-lg">
+                  <ChevronRight size={20} className="rotate-180" />
+                </div>
+              </button>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
+              <div className="space-y-3">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+              </div>
             </div>
           </div>
         </div>
