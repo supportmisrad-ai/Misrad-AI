@@ -1,8 +1,5 @@
-/**
- * Nexus loading — returns null because the shell lives in the layout
- * (via NexusLayoutShell) and pages return null instantly.
- * The layout's own Suspense shows ModuleLoadingScreen on first load.
- */
+import { FormContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+
 export default function NexusLoading() {
-  return null;
+  return <FormContentSkeleton moduleKey="nexus" />;
 }

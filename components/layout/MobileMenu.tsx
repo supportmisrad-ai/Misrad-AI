@@ -249,7 +249,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
             id: 'menu',
             label: 'תפריט',
             icon: SquareMousePointer,
-            active: Boolean(isMobileMenuOpen || isActive('/settings') || isActive('/me')),
+            active: Boolean(isMobileMenuOpen || isActive('/settings')),
             onClick: () => toggleMobileMenu(),
           },
         ]}

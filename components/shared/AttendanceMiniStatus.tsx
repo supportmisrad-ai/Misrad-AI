@@ -45,6 +45,7 @@ export default function AttendanceMiniStatus() {
 
   const now = useSecondTicker(Boolean(startTime));
   const loadInFlightRef = React.useRef(false);
+  const lastBroadcastRef = React.useRef(0);
 
   // Single effect: load entitlements + active shift in PARALLEL
   useEffect(() => {
@@ -99,6 +100,8 @@ export default function AttendanceMiniStatus() {
     if (!isClerkLoaded || !isSignedIn) return;
     if (loadInFlightRef.current) return;
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    // Skip if a broadcast was received recently — trust broadcast over periodic poll
+    if (Date.now() - lastBroadcastRef.current < 10_000) return;
     loadInFlightRef.current = true;
     try {
       const data = await getActiveShift(orgSlug);
@@ -130,6 +133,7 @@ export default function AttendanceMiniStatus() {
       bc.onmessage = (ev) => {
         const data = ev?.data;
         if (!data || data.orgSlug !== orgSlug) return;
+        lastBroadcastRef.current = Date.now();
         setEntryId(data.entryId || null);
         setStartTime(data.startTime || null);
       };
