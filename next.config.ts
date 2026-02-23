@@ -67,6 +67,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
               "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.misrad-ai.com https://challenges.cloudflare.com https://*.sentry.io https://*.ingest.sentry.io https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com",
               "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.misrad-ai.com",
+              "media-src 'self' blob:",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
@@ -78,7 +79,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=(self)',
+            value: 'camera=(self), microphone=(self), geolocation=(self), payment=(self)',
           },
         ],
       },
