@@ -242,7 +242,7 @@ finance_whatsapp_reminder_events:
   → מחובר ל-misrad_invoices
 
 -- אינטגרציות (API Keys מוצפנים)
-scale_integrations:
+misrad_integrations:
   id, user_id, tenant_id, service_type
   access_token (encrypted), is_active, last_synced_at
   metadata JSONB (usage tracking)

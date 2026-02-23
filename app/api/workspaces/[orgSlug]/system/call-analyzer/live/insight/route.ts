@@ -4,6 +4,8 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import prisma from '@/lib/prisma';
+import { asObject } from '@/lib/shared/unknown';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -57,14 +59,35 @@ async function POSTHandler(
 
     const truncated = transcriptText.length > 6000 ? transcriptText.slice(-6000) : transcriptText;
 
+    // Fetch business-specific AI sales context (non-blocking if missing)
+    let businessContextBlock = '';
+    try {
+      const settings = await prisma.organization_settings.findUnique({
+        where: { organization_id: String(workspace.id) },
+        select: { ai_sales_context: true },
+      });
+      const ctx = asObject(settings?.ai_sales_context) ?? {};
+      const parts: string[] = [];
+      if (ctx.businessDescription) parts.push(`עסק: ${String(ctx.businessDescription)}`);
+      if (ctx.productsAndServices) parts.push(`מוצרים: ${String(ctx.productsAndServices)}`);
+      if (ctx.salesApproach) parts.push(`גישת מכירה: ${String(ctx.salesApproach)}`);
+      if (ctx.specialInstructions) parts.push(`הוראות: ${String(ctx.specialInstructions)}`);
+      if (parts.length > 0) {
+        businessContextBlock = `\nהקשר עסקי (התאם את הטיפים לעסק הזה): ${parts.join(' | ')}`;
+      }
+    } catch {
+      // non-fatal
+    }
+
     const prompt = `אתה מאמן מכירות בזמן אמת (Live Coach).
 קיבלת תמלול חלקי של שיחת מכירה/שירות בעברית.
 החזר JSON תקין בלבד ללא טקסט חופשי, בפורמט:
 { "insight": "..." }
-
+${businessContextBlock}
 כללים:
 - תן תובנה אחת קצרה, עד 15 מילים.
 - תן משהו שאפשר להגיד עכשיו / שאלה הבאה / זיהוי סיכון.
+- אם יש הקשר עסקי, התאם את התובנה למוצרים ולגישת המכירה של העסק.
 
 תמלול (חלקי):
 ${truncated}`;

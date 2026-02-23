@@ -30,7 +30,7 @@
 | **יצירה מהירה** | הזן נושא → 3 וריאציות |
 | **התאמה** | כל וריאציה מותאמת לפלטפורמה (Facebook / Instagram / LinkedIn) |
 | **Hashtags חכמים** ⭐ NEW | AI ממליץ hashtags מותאמים לפלטפורמה (Instagram: 5-10, LinkedIn: 3-5, Facebook: 1-2) |
-| **שעות פרסום מיטביות** ⭐ NEW | AI אומר מתי לפרסם לפי engagement ("רביעי 11:00 - 85%") |
+| **שעות פרסום מיטביות** ⭐ NEW | AI ממליץ מתי לפרסם על בסיס best practices של התעשייה |
 | **הצעות תמונה** | תיאור visual מ-AI |
 | **עברית מלאה** | קופי בעברית טבעית |
 | **שפות** | עברית + אנגלית |
@@ -43,17 +43,17 @@ Output:
 ├── Facebook: 
 │   Content: "🎉 מבצע סוף שנה! 30% הנחה על כל המוצרים..."
 │   Hashtags: ["#מבצע", "#הנחה"]
-│   Best time: "רביעי 11:00 (engagement: 85%)"
+│   Best time: "רביעי 11:00 (מומלץ על בסיס best practices)"
 │
 ├── Instagram: 
 │   Content: "30% OFF 🔥"
 │   Hashtags: ["#מבצע", "#הנחה", "#סוףשנה", "#sale", "#shopping", "#ישראל", "#טכנולוגיה"]
-│   Best time: "שלישי 12:00 (reach: 88%)"
+│   Best time: "שלישי 12:00 (מומלץ על בסיס best practices)"
 │
 └── LinkedIn: 
     Content: "אנו שמחים להכריז על מבצע מיוחד..."
     Hashtags: ["#BusinessDeal", "#B2B", "#עסקים"]
-    Best time: "רביעי 12:00 (professional engagement: 87%)"
+    Best time: "רביעי 12:00 (מומלץ על בסיס best practices)"
 ```
 
 ### 3. תזמון פוסטים

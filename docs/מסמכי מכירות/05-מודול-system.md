@@ -104,7 +104,7 @@ Incoming → Contacted → Meeting → Proposal → Negotiation
 | **שליחה במייל** | ישירות מהמערכת |
 | **סטטוס** | draft / sent / viewed / accepted / rejected |
 
-### 5. מוצרים ומחירון
+### 6. מוצרים ומחירון
 
 | פיצ'ר | תיאור |
 |--------|--------|
@@ -112,7 +112,7 @@ Incoming → Contacted → Meeting → Proposal → Negotiation
 | **מלאי** | כמות זמינה |
 | **מטבעות** | ILS / USD / EUR |
 
-### 6. Portal שותפים
+### 7. Portal שותפים
 
 | פיצ'ר | תיאור |
 |--------|--------|
@@ -120,7 +120,7 @@ Incoming → Contacted → Meeting → Proposal → Negotiation
 | **עמלות** | חישוב אוטומטי |
 | **מעקב** | סטטוס כל הפנייה |
 
-### 7. אוטומציות
+### 8. אוטומציות
 
 | Trigger | Action |
 |---------|--------|
