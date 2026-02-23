@@ -21,6 +21,13 @@ const DUAL_IDS = [
   'V2-BrandStory', 'V2-AIShowcase', 'V2-ShabbatMode',
 ];
 
+// Launch compositions — 75s videos, IDs already include Social/TV suffix
+const LAUNCH_IDS = [
+  'Launch-L1-Hero-Social', 'Launch-L1-Hero-TV',
+  'Launch-L2-Shabbat-Social', 'Launch-L2-Shabbat-TV',
+  'Launch-L3-Workflow-Social', 'Launch-L3-Workflow-TV',
+];
+
 // Tutorial compositions — IDs already include Desktop/Mobile suffix
 const TUTORIAL_IDS = [
   'Tutorial-System-Leads-Desktop',     'Tutorial-System-Leads-Mobile',
@@ -37,14 +44,16 @@ const args = process.argv.slice(2);
 const socialOnly     = args.includes('--social-only');
 const tvOnly         = args.includes('--tv-only');
 const tutorialsOnly  = args.includes('--tutorials-only');
+const launchOnly     = args.includes('--launch-only');
 const noTutorials    = args.includes('--no-tutorials');
+const noLaunch       = args.includes('--no-launch');
 const filterArg      = args.find(a => a.startsWith('--filter='));
 const filter         = filterArg ? filterArg.split('=')[1] : null;
 
 // Build the full list of composition IDs to render
 const compositionIds = [];
 
-if (!tutorialsOnly) {
+if (!tutorialsOnly && !launchOnly) {
   const formats = [];
   if (!tvOnly) formats.push('Social');
   if (!socialOnly) formats.push('TV');
@@ -57,7 +66,17 @@ if (!tutorialsOnly) {
   }
 }
 
-if (!noTutorials) {
+// Launch videos (IDs already include -Social/-TV suffix)
+if (!tutorialsOnly && !noLaunch || launchOnly) {
+  for (const id of LAUNCH_IDS) {
+    if (filter && !id.toLowerCase().includes(filter.toLowerCase())) continue;
+    if (socialOnly && !id.endsWith('-Social')) continue;
+    if (tvOnly && !id.endsWith('-TV')) continue;
+    compositionIds.push(id);
+  }
+}
+
+if (!noTutorials && !launchOnly) {
   for (const id of TUTORIAL_IDS) {
     if (filter && !id.toLowerCase().includes(filter.toLowerCase())) continue;
     compositionIds.push(id);

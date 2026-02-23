@@ -1,6 +1,7 @@
 import React from 'react';
 import { Composition } from 'remotion';
 import { FPS, V2_DURATION, SOCIAL_WIDTH, SOCIAL_HEIGHT, TV_WIDTH, TV_HEIGHT } from './shared/config';
+import { LAUNCH_DURATION } from './launch/shared/launch-config';
 
 // Module videos
 import { SystemVideoV2 } from './modules/system/SystemVideo';
@@ -80,10 +81,13 @@ export const RemotionRoot: React.FC = () => {
       {dualComposition('V2-AIShowcase', AIShowcaseVideoV2)}
       {dualComposition('V2-ShabbatMode', ShabbatModeVideoV2)}
 
-      {/* ═══ LAUNCH VIDEOS (3 × 2 = 6 compositions) ═══ */}
-      {dualComposition('Launch-L1-Hero', L1HeroVideo)}
-      {dualComposition('Launch-L2-Shabbat', L2ShabbatVideo)}
-      {dualComposition('Launch-L3-Workflow', L3WorkflowVideo)}
+      {/* ═══ LAUNCH VIDEOS (3 × 2 = 6 compositions, 75s @ 30fps = 2250 frames) ═══ */}
+      <Composition id="Launch-L1-Hero-Social" component={L1HeroVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={SOCIAL_WIDTH} height={SOCIAL_HEIGHT} />
+      <Composition id="Launch-L1-Hero-TV" component={L1HeroVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={TV_WIDTH} height={TV_HEIGHT} />
+      <Composition id="Launch-L2-Shabbat-Social" component={L2ShabbatVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={SOCIAL_WIDTH} height={SOCIAL_HEIGHT} />
+      <Composition id="Launch-L2-Shabbat-TV" component={L2ShabbatVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={TV_WIDTH} height={TV_HEIGHT} />
+      <Composition id="Launch-L3-Workflow-Social" component={L3WorkflowVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={SOCIAL_WIDTH} height={SOCIAL_HEIGHT} />
+      <Composition id="Launch-L3-Workflow-TV" component={L3WorkflowVideo} durationInFrames={LAUNCH_DURATION} fps={FPS} width={TV_WIDTH} height={TV_HEIGHT} />
 
       {/* ═══ TUTORIAL VIDEOS ═══ */}
       <Composition id="Tutorial-System-Leads-Desktop" component={SystemLeadsTutorialDesktop} durationInFrames={90 * FPS} fps={FPS} width={TV_WIDTH} height={TV_HEIGHT} />
