@@ -9,7 +9,7 @@ import type { SystemFormDTO } from '@/app/actions/system-forms';
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   ONBOARDING: { label: 'אונבורדינג', color: 'text-blue-700 bg-blue-50 border-blue-200' },
   FEEDBACK: { label: 'פידבק', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-  STRATEGY: { label: 'אסטרטגיה', color: 'text-violet-700 bg-violet-50 border-violet-200' },
+  STRATEGY: { label: 'אסטרטגיה', color: 'text-rose-700 bg-rose-50 border-rose-200' },
   INTAKE: { label: 'קליטה', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
   SURVEY: { label: 'סקר', color: 'text-rose-700 bg-rose-50 border-rose-200' },
 };
@@ -86,20 +86,20 @@ const FormsView: React.FC<FormsViewProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-            <FileInput className="text-violet-500" strokeWidth={2.5} size={28} />
+            <FileInput className="text-rose-500" strokeWidth={2.5} size={28} />
             טפסים
           </h2>
           <p className="text-sm text-slate-500 mt-1">{forms.length} טפסים • {activeForms} פעילים • {totalResponses} תגובות</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="bg-violet-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-violet-200 hover:bg-violet-700 transition-all flex items-center gap-2" type="button">
+        <button onClick={() => setShowCreate(true)} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-2" type="button">
           <Plus size={16} /> טופס חדש
         </button>
       </div>
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
-          <p className="text-2xl font-black text-violet-600">{forms.length}</p>
+        <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
+          <p className="text-2xl font-black text-rose-600">{forms.length}</p>
           <p className="text-[10px] text-slate-500 font-bold mt-0.5">סה״כ טפסים</p>
         </div>
         <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
@@ -122,19 +122,19 @@ const FormsView: React.FC<FormsViewProps> = ({
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-black text-slate-800">טופס חדש</h3>
-              <button onClick={() => setShowCreate(false)} type="button" className="p-1 hover:bg-slate-100 rounded-lg"><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => setShowCreate(false)} type="button" className="p-1 hover:bg-rose-100 rounded-lg"><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
-              <input type="text" placeholder="שם הטופס *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 outline-none" />
-              <input type="text" placeholder="תיאור (אופציונלי)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 outline-none" />
-              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500 outline-none">
+              <input type="text" placeholder="שם הטופס *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none" />
+              <input type="text" placeholder="תיאור (אופציונלי)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none" />
+              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none">
                 <option value="ONBOARDING">אונבורדינג</option>
                 <option value="FEEDBACK">פידבק</option>
                 <option value="STRATEGY">אסטרטגיה</option>
                 <option value="INTAKE">קליטה</option>
                 <option value="SURVEY">סקר</option>
               </select>
-              <button onClick={handleCreate} disabled={!newTitle.trim() || isPending} type="button" className="w-full bg-violet-600 text-white font-bold py-3 rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50">
+              <button onClick={handleCreate} disabled={!newTitle.trim() || isPending} type="button" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50">
                 {isPending ? 'יוצר...' : 'צור טופס'}
               </button>
             </div>
@@ -145,12 +145,12 @@ const FormsView: React.FC<FormsViewProps> = ({
       {/* Forms List */}
       {forms.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
-          <div className="w-20 h-20 rounded-3xl bg-violet-50 border border-violet-100 flex items-center justify-center mb-6">
-            <FileInput size={36} className="text-violet-400" />
+          <div className="w-20 h-20 rounded-3xl bg-rose-50 border border-rose-100 flex items-center justify-center mb-6">
+            <FileInput size={36} className="text-rose-400" />
           </div>
           <h3 className="text-xl font-black text-slate-800 mb-2">אין טפסים עדיין</h3>
           <p className="text-slate-500 text-sm max-w-md mb-6">צור את הטופס הראשון שלך כדי להתחיל לאסוף לידים ופניות</p>
-          <button onClick={() => setShowCreate(true)} className="bg-violet-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-violet-200 hover:bg-violet-700 transition-all flex items-center gap-2" type="button">
+          <button onClick={() => setShowCreate(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-2" type="button">
             <Plus size={16} /> צור טופס ראשון
           </button>
         </div>
@@ -161,7 +161,7 @@ const FormsView: React.FC<FormsViewProps> = ({
             return (
               <div key={form.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex flex-col hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`p-2.5 rounded-xl ${form.is_active ? 'bg-violet-50 text-violet-600' : 'bg-slate-100 text-slate-400'}`}>
+                  <div className={`p-2.5 rounded-xl ${form.is_active ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-400'}`}>
                     <Layout size={20} />
                   </div>
                   <div className="flex items-center gap-2">
@@ -202,7 +202,7 @@ const FormsView: React.FC<FormsViewProps> = ({
             );
           })}
 
-          <button onClick={() => setShowCreate(true)} type="button" className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50/30 transition-all min-h-[250px] group">
+          <button onClick={() => setShowCreate(true)} type="button" className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/30 transition-all min-h-[250px] group">
             <div className="w-14 h-14 rounded-full bg-slate-50 group-hover:bg-white border border-slate-200 flex items-center justify-center mb-4 transition-colors shadow-sm">
               <Plus size={28} />
             </div>

@@ -44,7 +44,6 @@ import CMSTab from '@/components/social/admin-panel/tabs/CMSTab';
 import NavigationTab from '@/components/social/admin-panel/tabs/NavigationTab';
 import { AdminTab } from '@/components/social/admin-panel/types';
 import { useAdminPanelController } from '@/components/social/admin-panel/useAdminPanelController';
-import SendNotificationModal from '@/components/social/admin-panel/tabs/SendNotificationModal';
 
 function HeavySocialAdminPanelInner() {
   const router = useRouter();
@@ -96,7 +95,6 @@ function HeavySocialAdminPanelInner() {
     setNavigationItems,
     handleRefresh,
     pageSize,
-    orgSlug,
   } = controller;
 
   if (isCheckingRole) {
@@ -295,17 +293,6 @@ function HeavySocialAdminPanelInner() {
         onSuccess={() => {
           loadAllUsers();
           addToast('משתמש נוצר בהצלחה', 'success');
-        }}
-      />
-
-      <SendNotificationModal
-        isOpen={isNotificationModalOpen}
-        onClose={() => setIsNotificationModalOpen(false)}
-        orgSlug={orgSlug || ''}
-        allUsers={allUsers as Array<{ id: string; full_name?: string; email?: string; name?: string }>}
-        onSuccess={() => {
-          addToast('התראה נשלחה בהצלחה', 'success');
-          controller.loadNotificationHistory?.();
         }}
       />
     </div>

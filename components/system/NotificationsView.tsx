@@ -143,7 +143,7 @@ const NotificationsView: React.FC<{ orgSlug?: string; initialNotifications?: Not
                         מרכז העדכון
                     </h2>
                     <p className="text-slate-500 font-medium mt-1">
-                        יש לך <span className="font-bold text-slate-800">{unreadCount}</span> עדכונים שלא נקראו.
+                        יש לך <span className="font-bold text-slate-800">{unreadCount}</span> התראות שלא נקראו.
                     </p>
                 </div>
                 

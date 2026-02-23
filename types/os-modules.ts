@@ -32,8 +32,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
     name: 'System',
     nameHebrew: 'מכירות',
     iconName: modulesRegistry.system.iconName,
-    color: 'text-violet-600',
-    gradient: 'from-violet-600 to-purple-700',
+    color: 'text-rose-600',
+    gradient: 'from-[#A21D3C] to-[#881337]',
     description: 'לידים מכירות טלפוניה',
     purchased: true, // Currently exists
     route: '/w/[orgSlug]/system'

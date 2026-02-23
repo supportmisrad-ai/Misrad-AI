@@ -16,7 +16,7 @@ import { KnowledgeItem, OnboardingTask, UserRole, Task } from './types';
 const CATEGORIES = [
     { id: 'sales', label: 'תסריטי מכירה', icon: UserCheck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { id: 'ops', label: 'תפעול ונהלים', icon: FileText, color: 'text-indigo-600', bg: 'bg-indigo-50' }, 
-    { id: 'tech', label: 'מערכות וטכני', icon: Hash, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { id: 'tech', label: 'מערכות וטכני', icon: Hash, color: 'text-rose-600', bg: 'bg-rose-50' },
     { id: 'hr', label: 'משאבי אנוש', icon: UserCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
 ];
 
@@ -229,7 +229,7 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
                         </div>
 
                         {/* AI Quick Insight Box */}
-                        <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                             <div className="relative z-10">
                                 <div className="flex items-center gap-2 mb-3 text-indigo-200 text-xs font-bold uppercase tracking-wider">

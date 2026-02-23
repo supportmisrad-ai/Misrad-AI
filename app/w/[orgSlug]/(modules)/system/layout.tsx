@@ -30,9 +30,9 @@ export default async function SystemModuleLayout({
   const style = {
     '--os-accent': def.theme.accent,
     '--os-bg': def.theme.background,
-    '--os-sidebar-active-bg': '#7C3AED',
-    '--os-sidebar-active-bg-image': 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-    '--os-sidebar-active-shadow': 'rgba(124, 58, 237, 0.15)',
+    '--os-sidebar-active-bg': '#A21D3C',
+    '--os-sidebar-active-bg-image': 'linear-gradient(135deg, #A21D3C 0%, #3730A3 100%)',
+    '--os-sidebar-active-shadow': 'rgba(162, 29, 60, 0.10)',
   } as React.CSSProperties;
 
   return (

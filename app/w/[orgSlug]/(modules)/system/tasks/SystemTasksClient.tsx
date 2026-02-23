@@ -94,6 +94,10 @@ export default function SystemTasksClient({
   }, [user?.id]);
 
   const handleUpdateTask = async (task: Task) => {
+    // Optimistic update - apply immediately so drag feels instant
+    const prevTasks = tasks;
+    setTasks((prev) => prev.map((t) => (String(t.id) === String(task.id) ? task : t)));
+
     try {
       const updated = await updateNexusTaskByOrgSlug({
         orgSlug,
@@ -113,6 +117,8 @@ export default function SystemTasksClient({
       const mapped = mapNexusTaskToUiTask(updated);
       setTasks((prev) => prev.map((t) => (String(t.id) === String(mapped.id) ? mapped : t)));
     } catch (e: unknown) {
+      // Revert on error
+      setTasks(prevTasks);
       addToast(getErrorMessage(e) || 'שגיאה בעדכון משימה', 'error');
       return;
     }

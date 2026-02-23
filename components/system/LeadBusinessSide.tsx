@@ -75,7 +75,7 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
                 <div className="p-6 space-y-8">
                     {/* AI Closure Prediction */}
                     {lead.closureProbability != null && (
-                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 p-4 shadow-md">
+                        <div className="bg-gradient-to-br from-rose-50 to-indigo-50 rounded-2xl border border-indigo-200 p-4 shadow-md">
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">חיזוי AI - סיכוי לסגירה</label>
                                 <div className={`text-2xl font-black ${

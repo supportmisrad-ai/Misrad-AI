@@ -284,7 +284,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
           {/* Won Deals */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+              <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
                 <Target size={16} />
               </div>
               <span className="text-xs font-bold text-slate-400">סגירות</span>
@@ -502,7 +502,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                       <SquareActivity size={24} />
                     </div>
                     <h4 className="text-sm font-bold text-slate-700">הכל מעודכן</h4>
-                    <p className="text-xs text-slate-400 mt-1">אין עדכונים חדשים כרגע</p>
+                    <p className="text-xs text-slate-400 mt-1">אין התראות חדשות כרגע</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50">
@@ -528,7 +528,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                 onClick={() => onNavigate('notifications')}
                 className="px-5 py-3 text-center text-xs font-bold text-indigo-600 hover:bg-indigo-50/50 transition-all border-t border-slate-100 group"
               >
-                כל העדכונים <ArrowRight size={12} className="inline mr-1" />
+                כל ההתראות <ArrowRight size={12} className="inline mr-1" />
               </button>
             </div>
 

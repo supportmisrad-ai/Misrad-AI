@@ -168,8 +168,8 @@ const TeamsView: React.FC<TeamsViewProps> = ({
           <p className="text-2xl font-black text-amber-600">{teams.filter(t => t.members.some(m => m.role === 'LEADER')).length}</p>
           <p className="text-[10px] text-slate-500 font-bold mt-0.5">מנהלי צוות</p>
         </div>
-        <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
-          <p className="text-2xl font-black text-violet-600">₪{teams.reduce((s, t) => s + t.target_monthly, 0).toLocaleString()}</p>
+        <div className="bg-rose-50 rounded-2xl p-4 border border-rose-100">
+          <p className="text-2xl font-black text-rose-600">₪{teams.reduce((s, t) => s + t.target_monthly, 0).toLocaleString()}</p>
           <p className="text-[10px] text-slate-500 font-bold mt-0.5">יעד חודשי כולל</p>
         </div>
       </div>

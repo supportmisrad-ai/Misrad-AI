@@ -437,7 +437,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                     { icon: CircleCheck, color: 'text-emerald-600', bg: 'bg-emerald-100', title: 'תשלום התקבל', desc: 'יואב כהן שילם מקדמה על סך ₪5,000.', time: 'לפני 12 דק\'' },
                     { icon: Video, color: 'text-indigo-600', bg: 'bg-indigo-100', title: 'תוכן חדש מוכן', desc: 'העורך סיים את הסרטון "איך למנף".', time: 'לפני 38 דק\'' },
                     { icon: TriangleAlert, color: 'text-amber-600', bg: 'bg-amber-100', title: 'התראת נטישה', desc: 'רון שוורץ לא פתח את הפורטל השבוע.', time: 'לפני שעה' },
-                    { icon: Mic, color: 'text-purple-600', bg: 'bg-purple-100', title: 'ניתוח שיחה', desc: 'זיהיתי 2 התנגדויות בשיחה עם דניאל.', time: 'לפני שעתיים' },
+                    { icon: Mic, color: 'text-rose-600', bg: 'bg-rose-100', title: 'ניתוח שיחה', desc: 'זיהיתי 2 התנגדויות בשיחה עם דניאל.', time: 'לפני שעתיים' },
                     { icon: Layers, color: 'text-slate-600', bg: 'bg-slate-200', title: 'אוטומציה', desc: 'נשלחו 42 הודעות פולואפ אוטומטיות.', time: 'לפני 4 שעות' }
                 ].map((item, idx) => (
                     <div key={idx} className="flex gap-5 group">
@@ -462,7 +462,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                 onClick={() => onNavigate('notifications_center')}
                 className="p-6 text-center text-sm font-black text-indigo-600 hover:bg-white transition-all border-t border-slate-100 active:bg-slate-50 uppercase tracking-[0.2em]"
             >
-                צפה בכל העדכונים <ArrowRight size={14} className="inline ml-2" />
+                כל ההתראות <ArrowRight size={14} className="inline ml-2" />
             </button>
         </section>
 

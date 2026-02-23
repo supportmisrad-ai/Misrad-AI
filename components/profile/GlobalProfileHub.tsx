@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, useTransition } from 'react';
 import nextDynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Bell, ChevronRight, Cog, Download, ExternalLink, Shield, Smartphone, Sparkles, User, X } from 'lucide-react';
+import { Bell, ChevronRight, Cog, Download, ExternalLink, Monitor, Shield, Smartphone, Sparkles, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { encodeWorkspaceOrgSlug, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { getModuleLabel as getOSModuleLabel, isOSModuleKey } from '@/lib/os/modules/registry';
@@ -92,8 +92,6 @@ function getSectionDescription(id: string) {
       return 'חשבוניות, מסמכים ותשלומים.';
     case 'client':
       return 'פורטל לקוחות והעדפות.';
-    case 'app-download':
-      return 'התקנת MISRAD AI במכשיר הנייד.';
     default:
       return null;
   }
@@ -331,6 +329,76 @@ function NotificationsSection({ orgSlug }: { orgSlug: string }) {
   );
 }
 
+function DownloadAppsSection() {
+  const [links, setLinks] = useState<{ windowsDownloadUrl: string | null; androidDownloadUrl: string | null }>({ windowsDownloadUrl: null, androidDownloadUrl: null });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/download-links', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data: Record<string, unknown>) => {
+        setLinks({
+          windowsDownloadUrl: typeof data.windowsDownloadUrl === 'string' ? data.windowsDownloadUrl : null,
+          androidDownloadUrl: typeof data.androidDownloadUrl === 'string' ? data.androidDownloadUrl : null,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-slate-600">טוען…</div>;
+
+  const hasAny = links.windowsDownloadUrl || links.androidDownloadUrl;
+  if (!hasAny) {
+    return (
+      <SectionCard title="הורדת אפליקציה">
+        <div className="text-sm text-slate-500">אין לינקים להורדה כרגע. פנה למנהל המערכת.</div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard title="הורדת אפליקציה">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {links.androidDownloadUrl ? (
+          <a
+            href={links.androidDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors group"
+          >
+            <div className="p-2.5 rounded-xl bg-emerald-500 text-white shadow-sm">
+              <Smartphone size={20} />
+            </div>
+            <div>
+              <div className="text-sm font-black text-slate-900">Android APK</div>
+              <div className="text-xs text-slate-500 font-medium">התקנה ישירה על הנייד</div>
+            </div>
+            <Download size={16} className="mr-auto text-emerald-600 group-hover:translate-y-0.5 transition-transform" />
+          </a>
+        ) : null}
+        {links.windowsDownloadUrl ? (
+          <a
+            href={links.windowsDownloadUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors group"
+          >
+            <div className="p-2.5 rounded-xl bg-blue-500 text-white shadow-sm">
+              <Monitor size={20} />
+            </div>
+            <div>
+              <div className="text-sm font-black text-slate-900">Windows</div>
+              <div className="text-xs text-slate-500 font-medium">הורדה למחשב</div>
+            </div>
+            <Download size={16} className="mr-auto text-blue-600 group-hover:translate-y-0.5 transition-transform" />
+          </a>
+        ) : null}
+      </div>
+    </SectionCard>
+  );
+}
+
 function SecuritySection({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, startTransition] = useTransition();
@@ -449,45 +517,6 @@ function AiDnaSection({ orgSlug }: { orgSlug: string }) {
       </div>
       <div className="mt-4 flex gap-2">
         <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
-      </div>
-    </SectionCard>
-  );
-}
-
-function AppDownloadSection() {
-  const [checking, setChecking] = useState(false);
-  const [available, setAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    setChecking(true);
-    fetch('/api/download/android', { method: 'HEAD' })
-      .then((res) => setAvailable(res.ok || res.status === 302 || res.redirected))
-      .catch(() => setAvailable(false))
-      .finally(() => setChecking(false));
-  }, []);
-
-  return (
-    <SectionCard title="הורדת אפליקציה">
-      <div className="space-y-4">
-        <p className="text-sm text-slate-600">התקן את אפליקציית MISRAD AI במכשיר הנייד שלך לגישה מהירה מכל מקום.</p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <a
-            href="/api/download/android"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all shadow-md ${
-              available === false
-                ? 'bg-slate-200 text-slate-500 cursor-not-allowed pointer-events-none'
-                : 'bg-gradient-to-br from-violet-600 to-purple-700 text-white hover:shadow-lg hover:shadow-violet-300/40'
-            }`}
-          >
-            <Download size={18} />
-            {checking ? 'בודק זמינות…' : available === false ? 'לא זמין כרגע' : 'הורד APK לאנדרואיד'}
-          </a>
-        </div>
-        {available === false && (
-          <p className="text-xs text-slate-500">קובץ ה-APK טרם הוגדר. פנה למנהל המערכת.</p>
-        )}
       </div>
     </SectionCard>
   );
@@ -675,13 +704,6 @@ export default function GlobalProfileHub({
       icon: Sparkles,
       content: <AiDnaSection orgSlug={orgSlug} />,
     },
-    {
-      id: 'app-download',
-      label: 'הורדת אפליקציה',
-      groupLabel: 'הגדרות אישיות',
-      icon: Smartphone,
-      content: <AppDownloadSection />,
-    },
   ];
 
   // IMPORTANT: Embedded module screens depend on module-specific providers.
@@ -758,6 +780,14 @@ export default function GlobalProfileHub({
         ),
     });
   }
+
+  sections.push({
+    id: 'downloads',
+    label: 'הורדת אפליקציה',
+    groupLabel: 'כלים',
+    icon: Download,
+    content: <DownloadAppsSection />,
+  });
 
   const headerActions = (
     <BackButton

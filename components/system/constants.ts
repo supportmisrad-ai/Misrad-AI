@@ -20,7 +20,7 @@ export const STAGES: { id: SystemStage; label: string; color: string; accent: st
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    title: 'ליבה',
+    title: '',
     items: [
       { id: 'workspace', label: 'לוח בקרה', icon: LayoutDashboard },
       { id: 'sales_pipeline', label: 'לידים', icon: Users },
@@ -29,13 +29,13 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
-    title: 'תקשורת',
+    title: '',
     items: [
       { id: 'dialer', label: 'חייגן', icon: PhoneCall },
     ]
   },
   {
-    title: 'כלים',
+    title: '',
     items: [
       { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
       { id: 'partners', label: 'שותפים', icon: Network },
@@ -44,7 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
-    title: 'ניהול מערכת',
+    title: '',
     items: [
       { id: 'analytics', label: 'דוחות ונתונים', icon: BarChart3 },
       { id: 'settings', label: 'הגדרות', icon: Settings },

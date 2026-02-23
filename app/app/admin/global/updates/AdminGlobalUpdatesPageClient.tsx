@@ -10,7 +10,7 @@ export default function AdminGlobalUpdatesPageClient() {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="space-y-6 pb-24" dir="rtl">
-        <AdminPageHeader title="עדכוני מערכת" subtitle="Change Log לכל משתמשי הפלטפורמה" icon={RefreshCw} />
+        <AdminPageHeader title="עדכונים" subtitle="Change Log לכל משתמשי הפלטפורמה" icon={RefreshCw} />
         <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-4 md:p-8 text-slate-900 shadow-2xl">
           <UpdatesTab readOnly={false} />
         </div>

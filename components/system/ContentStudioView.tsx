@@ -21,7 +21,7 @@ const CONTENT_STAGES: { id: ContentStage; label: string; color: string; owner: s
     { id: 'idea', label: 'בנק רעיונות', color: 'bg-slate-400', owner: 'סיעור מוחות' },
     { id: 'scripting', label: 'כתיבת תסריט', color: 'bg-indigo-400', owner: 'קופירייטינג' },
     { id: 'filming', label: 'ממתין לצילום', color: 'bg-red-500', owner: 'מנכ״ל' },
-    { id: 'editing', label: 'בחדר עריכה', color: 'bg-purple-500', owner: 'עורכים' },
+    { id: 'editing', label: 'בחדר עריכה', color: 'bg-rose-500', owner: 'עורכים' },
     { id: 'ready', label: 'מוכן לפרסום', color: 'bg-emerald-500', owner: 'מנהל סושיאל' },
     { id: 'published', label: 'פורסם (באוויר)', color: 'bg-blue-500', owner: 'ציבורי' }
 ];
@@ -175,7 +175,7 @@ const ContentStudioView: React.FC<ContentStudioViewProps> = ({ content = [], onU
                                                 )}
 
                                                 {item.status === 'editing' && (
-                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100">
+                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">
                                                         <Scissors size={10} /> בעריכה
                                                     </div>
                                                 )}

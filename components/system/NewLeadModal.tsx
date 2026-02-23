@@ -61,14 +61,17 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
       createdAt: new Date(),
       activities: [{ id: `act_${Date.now()}`, type: 'system' as const, content: 'ליד נוצר ידנית במערכת', timestamp: new Date() }],
       location: { x: 50, y: 50 },
-      // Added default score to match Lead interface requirements
       score: 50
     };
 
     setIsSaving(true);
     try {
-      await onSave(newLead);
-      onClose();
+      const result = onSave(newLead);
+      if (result && typeof (result as Promise<void>).then === 'function') {
+        await result;
+      }
+    } catch {
+      // Parent handles error display
     } finally {
       setIsSaving(false);
     }

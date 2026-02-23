@@ -2,7 +2,8 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users } from 'lucide-react';
+import { CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users, PhoneCall, Network, Map, BarChart3, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { CallAnalysisProvider } from '@/components/system/contexts/CallAnalysisContext';
@@ -18,6 +19,7 @@ import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
@@ -253,16 +255,7 @@ function SystemShellGateClientCore({
     onNavigateAction('/tasks');
   };
 
-  const notificationsSlot = (
-    <button
-      onClick={() => startTransition(() => router.push(`${basePath}/notifications`))}
-      className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
-      aria-label="התראות"
-      type="button"
-    >
-      <Bell size={18} />
-    </button>
-  );
+  const notificationsSlot = <GlobalNotificationsBell />;
 
   return (
     <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser ?? null }}>
@@ -316,16 +309,7 @@ function SystemShellGateClientCore({
                       fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={32} iconSize={16} className="shadow-none" />,
                       badgeModuleKey: 'system',
                     }}
-                    mobileLeadingSlot={
-                      <button
-                        onClick={() => setIsMobileMenuOpen(true)}
-                        className="p-2 rounded-full hover:bg-white/50 text-gray-600"
-                        aria-label="פתח תפריט"
-                        type="button"
-                      >
-                        <Menu size={18} />
-                      </button>
-                    }
+                    mobileLeadingSlot={undefined}
                     onOpenCommandPaletteAction={() => {
                       if (typeof window !== 'undefined') {
                         window.dispatchEvent(new CustomEvent('os:open-search'));
@@ -356,43 +340,133 @@ function SystemShellGateClientCore({
                   </div>
                 </main>
 
-                {isMobileMenuOpen ? (
-                  <>
-                    <div
-                      className="fixed inset-0 z-[100] bg-black/50 md:hidden"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    />
-                    <SharedSidebar
-                      isOpen={true}
-                      onSetOpenAction={() => setIsMobileMenuOpen(false)}
-                      brand={{
-                        name: String(initialOrganization?.name || moduleTitle),
-                        logoUrl: initialOrganization?.logo || null,
-                        fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={40} iconSize={18} className="shadow-none" />,
-                        badgeModuleKey: 'system',
-                      }}
-                      brandSubtitle={moduleTitle}
-                      onBrandClickAction={() => {
-                        setIsMobileMenuOpen(false);
-                        startTransition(() => router.push('/workspaces'));
-                      }}
-                      topSlot={
-                        <div className="flex flex-col gap-2">
-                          <BusinessSwitcher currentTenantName={String(initialOrganization?.name || moduleTitle)} />
-                          <WorkspaceSwitcher className="w-full" />
+                <AnimatePresence>
+                  {isMobileMenuOpen ? (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="md:hidden fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+                      />
+                      <motion.div
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                        drag="y"
+                        dragConstraints={{ top: 0, bottom: 0 }}
+                        dragElastic={{ top: 0, bottom: 0.35 }}
+                        onDragEnd={(_, info) => {
+                          if (info.offset.y > 110 || info.velocity.y > 900) setIsMobileMenuOpen(false);
+                        }}
+                        className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+                        style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="תפריט"
+                      >
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50" />
+
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">ראשי</div>
+                        <div className="grid grid-cols-4 gap-4">
+                          {NAV_GROUPS[0]?.items.map((item) => {
+                            const isActiveItem = isActiveAction(item.id === 'workspace' ? '/' : `/${item.id}`);
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  onNavigateAction(item.id === 'workspace' ? '/' : `/${item.id}`);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="flex flex-col items-center gap-2 group"
+                              >
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                                  isActiveItem
+                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                                }`}>
+                                  <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                </div>
+                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                                  {item.label}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
-                      }
-                      navItems={navItems}
-                      primaryNavPaths={primaryNavPaths}
-                      isActiveAction={isActiveAction}
-                      onNavigateAction={onSidebarItemClick}
-                      linkHrefPrefix={basePath}
-                      bottomSlot={<OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug} currentModule="system" />}
-                      showCollapseControls={false}
-                      containerClassName="fixed inset-y-0 right-0 z-[110] flex flex-col w-full max-w-[320px] p-4 md:hidden"
-                    />
-                  </>
-                ) : null}
+
+                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">כלים</div>
+                        <div className="grid grid-cols-4 gap-4">
+                          {[...NAV_GROUPS.slice(1, 3).flatMap(g => g.items)].map((item) => {
+                            const isActiveItem = isActiveAction(`/${item.id}`);
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  onNavigateAction(`/${item.id}`);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="flex flex-col items-center gap-2 group"
+                              >
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                                  isActiveItem
+                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                                }`}>
+                                  <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                </div>
+                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                                  {item.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-2">ניהול</div>
+                        <div className="grid grid-cols-4 gap-4">
+                          {NAV_GROUPS[3]?.items.map((item) => {
+                            const isActiveItem = isActiveAction(`/${item.id}`);
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  onNavigateAction(`/${item.id}`);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="flex flex-col items-center gap-2 group"
+                              >
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                                  isActiveItem
+                                    ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-white'
+                                }`}>
+                                  <item.icon size={20} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                </div>
+                                <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                                  {item.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-4" />
+                        <div className="space-y-3">
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">מודולים</div>
+                          <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="system" />
+                        </div>
+                      </motion.div>
+                    </>
+                  ) : null}
+                </AnimatePresence>
 
                 {isPlusFanOpen ? (
                   <>
@@ -409,7 +483,7 @@ function SystemShellGateClientCore({
                               setIsPlusFanOpen(false);
                               dispatchSystemEvent('system:new-lead');
                             }}
-                            className="bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-2xl py-4 text-sm font-black"
+                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
                           >
                             ליד חדש
                           </button>
@@ -468,7 +542,7 @@ function SystemShellGateClientCore({
                               setIsCalendarPlusOpen(false);
                               dispatchSystemEvent('system:calendar:new-meeting');
                             }}
-                            className="bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-2xl py-4 text-sm font-black"
+                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
                           >
                             פגישה חדשה
                           </button>

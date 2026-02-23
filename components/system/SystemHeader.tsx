@@ -70,7 +70,7 @@ export function SystemHeader({
             {roleLabel}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden">
+        <div className="w-10 h-10 rounded-full bg-nexus-gradient flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden">
           {hasValidAvatarSrc ? (
             <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
           ) : (
@@ -93,7 +93,7 @@ export function SystemHeader({
       </button>
       <button
         onClick={onProfileClickAction}
-        className="md:hidden w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden"
+        className="md:hidden w-10 h-10 rounded-full bg-nexus-gradient flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden"
         aria-label="פרופיל"
         type="button"
       >

@@ -48,12 +48,12 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
         <aside className="hidden md:flex w-64 border-l border-slate-800 bg-[#020617] flex-col p-4 relative z-20">
             {/* Logo Area */}
             <div className="flex items-center gap-3 px-4 py-6 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-violet-500/20 ring-1 ring-white/20 overflow-hidden shrink-0">
+                <div className="w-12 h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-rose-500/20 ring-1 ring-white/20 overflow-hidden shrink-0">
                     <Target size={24} strokeWidth={2} />
                 </div>
                 <div>
                     <h1 className="text-xl font-black text-white tracking-tight leading-none">System</h1>
-                    <p className="text-[10px] font-bold text-violet-400 tracking-widest uppercase mt-1">מרכז השליטה</p>
+                    <p className="text-[10px] font-bold text-rose-500 tracking-widest uppercase mt-1">מרכז השליטה</p>
                 </div>
             </div>
 
@@ -65,18 +65,18 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                         onClick={() => router.push(toNexusPath(basePath, item.path))}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 group relative overflow-hidden ${
                             isActive(item.path) 
-                            ? 'text-white bg-violet-600/20 border border-violet-600/30 shadow-lg shadow-violet-600/10 font-bold' 
+                            ? 'text-white bg-rose-600/20 border border-rose-600/30 shadow-lg shadow-rose-600/10 font-bold' 
                             : 'text-slate-500 hover:text-white hover:bg-white/5'
                         }`}
                     >
                         {isActive(item.path) && (
                             <motion.div 
                                 layoutId="systemActiveTab"
-                                className="absolute left-0 top-0 bottom-0 w-1 bg-violet-600 shadow-[0_0_8px_rgba(124,58,237,0.65)]"
+                                className="absolute left-0 top-0 bottom-0 w-1 bg-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.65)]"
                                 transition={{ type: "spring", stiffness: 500, damping: 40 }}
                             />
                         )}
-                        <item.icon size={20} className={isActive(item.path) ? 'text-violet-400' : 'text-slate-600 group-hover:text-slate-400'} />
+                        <item.icon size={20} className={isActive(item.path) ? 'text-rose-400' : 'text-slate-600 group-hover:text-slate-400'} />
                         {item.label}
                     </button>
                 ))}
@@ -88,7 +88,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                     <Avatar src={currentUser.avatar} name={currentUser.name} size="md" className="border border-slate-700" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-white truncate" suppressHydrationWarning>{currentUser.name}</p>
-                        <p className="text-[10px] text-violet-400 uppercase font-bold tracking-wider">ביצועי שיא</p>
+                        <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>
                     </div>
                 </div>
                 
@@ -120,8 +120,8 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                     <RoomSwitcher />
-                    <div className="h-7 sm:h-8 px-2 sm:px-3 rounded-lg bg-violet-600/10 border border-violet-600/20 flex items-center gap-1.5 sm:gap-2 text-violet-400 text-[10px] sm:text-xs font-bold font-mono">
-                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-violet-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(124,58,237,0.55)]"></div>
+                    <div className="h-7 sm:h-8 px-2 sm:px-3 rounded-lg bg-rose-600/10 border border-rose-600/20 flex items-center gap-1.5 sm:gap-2 text-rose-400 text-[10px] sm:text-xs font-bold font-mono">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-rose-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(225,29,72,0.55)]"></div>
                         <span className="hidden sm:inline">נתונים בזמן אמת</span>
                         <span className="sm:hidden">זמן אמת</span>
                     </div>
@@ -152,12 +152,12 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                         >
                             <div className="flex items-center justify-between p-4 border-b border-slate-800">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-purple-700 text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-violet-500/20 ring-1 ring-white/20 overflow-hidden shrink-0">
+                                    <div className="w-12 h-12 bg-nexus-gradient text-white rounded-[18px] flex items-center justify-center shadow-lg shadow-rose-500/20 ring-1 ring-white/20 overflow-hidden shrink-0">
                                         <Target size={24} strokeWidth={2} />
                                     </div>
                                     <div>
                                         <h1 className="text-lg font-black text-white tracking-tight leading-none">System</h1>
-                                        <p className="text-[10px] font-bold text-violet-400 tracking-widest uppercase mt-0.5">מרכז השליטה</p>
+                                        <p className="text-[10px] font-bold text-rose-500 tracking-widest uppercase mt-0.5">מרכז השליטה</p>
                                     </div>
                                 </div>
                                 <button 
@@ -177,11 +177,11 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                                         }}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
                                             isActive(item.path) 
-                                            ? 'text-white bg-violet-600/20 border border-violet-600/30 shadow-lg shadow-violet-600/10 font-bold' 
+                                            ? 'text-white bg-rose-600/20 border border-rose-600/30 shadow-lg shadow-rose-600/10 font-bold' 
                                             : 'text-slate-500 hover:text-white hover:bg-white/5'
                                         }`}
                                     >
-                                        <item.icon size={20} className={isActive(item.path) ? 'text-violet-400' : 'text-slate-600'} />
+                                        <item.icon size={20} className={isActive(item.path) ? 'text-rose-400' : 'text-slate-600'} />
                                         {item.label}
                                     </button>
                                 ))}
@@ -191,7 +191,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                                     <Avatar src={currentUser.avatar} name={currentUser.name} size="md" className="border border-slate-700" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
-                                        <p className="text-[10px] text-violet-400 uppercase font-bold tracking-wider">ביצועי שיא</p>
+                                        <p className="text-[10px] text-rose-500 uppercase font-bold tracking-wider">ביצועי שיא</p>
                                     </div>
                                 </div>
                                 <button 

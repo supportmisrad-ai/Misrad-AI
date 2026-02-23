@@ -13,7 +13,7 @@ export const modulesRegistry: Record<OSModuleKey, OSModuleDefinition> = {
     key: 'system',
     label: 'System',
     labelHe: 'מכירות',
-    theme: { accent: '#7C3AED', background: '#F8FAFC', gradient: 'from-violet-600 to-purple-700' },
+    theme: { accent: '#A21D3C', background: '#F8FAFC', gradient: 'from-[#A21D3C] to-[#881337]' },
     iconName: '/icons/system-icon.svg',
   },
   social: {

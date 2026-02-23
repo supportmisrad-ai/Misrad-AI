@@ -205,7 +205,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
           href={orgSlug ? `/w/${encodeURIComponent(orgSlug)}/system/forms` : '#'}
           className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-slate-300 hover:shadow-sm transition-all group"
         >
-          <div className="p-1.5 rounded-lg bg-violet-50 text-violet-600 group-hover:bg-violet-100 transition-colors">
+          <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100 transition-colors">
             <FileInput size={16} />
           </div>
           טפסים
@@ -586,7 +586,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
               {activeTab === 'ai_sales' && (
                 <div className="space-y-6 animate-slide-up">
                     {/* Explainer Card */}
-                    <div className="bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-200 rounded-3xl p-6 md:p-8">
+                    <div className="bg-gradient-to-br from-rose-50 to-indigo-50 border border-rose-200 rounded-3xl p-6 md:p-8">
                         <div className="flex items-start gap-4">
                             <div className="p-3 bg-indigo-100 rounded-2xl shrink-0">
                                 <Lightbulb size={24} className="text-indigo-600" />
@@ -742,7 +742,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                         <div className="ui-card overflow-hidden">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                    <Info size={20} className="text-violet-500" />
+                                    <Info size={20} className="text-rose-500" />
                                     הוראות מיוחדות ל-AI
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-1">הנחיות נוספות, דגשים, מה לא לומר, טון דיבור מועדף</p>

@@ -179,8 +179,8 @@ export default function SystemLeadsClient({
       {showNewLeadModal && (
         <NewLeadModal
           onClose={() => (isSaving ? null : setShowNewLeadModal(false))}
-          onSave={(lead) => {
-            void handleCreateLead({
+          onSave={(lead) =>
+            handleCreateLead({
               name: lead.name,
               company: lead.company,
               phone: lead.phone,
@@ -189,8 +189,8 @@ export default function SystemLeadsClient({
               value: lead.value,
               isHot: lead.isHot,
               productInterest: lead.productInterest,
-            });
-          }}
+            })
+          }
         />
       )}
 

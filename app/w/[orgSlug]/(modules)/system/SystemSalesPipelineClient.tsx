@@ -738,7 +738,7 @@ export default function SystemSalesPipelineClient({
       {showNewLeadModal ? (
         <NewLeadModal
           onClose={() => (isSaving ? null : setShowNewLeadModal(false))}
-          onSave={(lead) => void handleCreateLead(lead)}
+          onSave={(lead) => handleCreateLead(lead)}
         />
       ) : null}
 
