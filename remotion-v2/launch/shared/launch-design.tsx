@@ -44,11 +44,11 @@ export const SAFE = {
   right: 50,
 } as const;
 
-// Unified accent — ONE color per video, not rainbow
+// Unified accent — brand indigo
 export const ACCENT = {
-  gold: '#D4A04A',
-  goldLight: '#EAD7A1',
-  goldDim: 'rgba(212,160,74,0.15)',
+  gold: '#6366F1',
+  goldLight: '#818CF8',
+  goldDim: 'rgba(99,102,241,0.15)',
 } as const;
 
 // ═══════════════════════════════════════════════════════════
@@ -103,8 +103,8 @@ export const gradientText = (
 ): React.CSSProperties => {
   const bgs: Record<string, string> = {
     warm: 'linear-gradient(170deg, #FFFFFF 0%, #E8E2D8 50%, #F0EDE8 100%)',
-    gold: 'linear-gradient(170deg, #F5E6B8 0%, #D4A04A 40%, #EAD7A1 80%, #C5A572 100%)',
-    brand: 'linear-gradient(170deg, #FFFFFF 0%, #D4A04A 50%, #EAD7A1 100%)',
+    gold: 'linear-gradient(170deg, #C7D2FE 0%, #6366F1 40%, #818CF8 80%, #A5B4FC 100%)',
+    brand: 'linear-gradient(170deg, #FFFFFF 0%, #6366F1 50%, #818CF8 100%)',
     white: 'linear-gradient(170deg, #FFFFFF 0%, #E0E0E0 50%, #FFFFFF 100%)',
   };
   return {
@@ -139,12 +139,12 @@ export const sceneBg = (
 
 // Warm scene bg (for Shabbat/emotional scenes)
 export const warmSceneBg = (
-  bloomColor = 'rgba(212,160,74,0.1)',
+  bloomColor = 'rgba(99,102,241,0.1)',
   bloomY = '40%',
 ): React.CSSProperties => ({
   background: [
     `radial-gradient(ellipse 100% 50% at 50% ${bloomY}, ${bloomColor}, transparent)`,
-    `radial-gradient(ellipse 80% 40% at 30% 70%, rgba(197,165,114,0.05), transparent)`,
+    `radial-gradient(ellipse 80% 40% at 30% 70%, rgba(99,102,241,0.05), transparent)`,
     `radial-gradient(ellipse 60% 30% at 70% 30%, rgba(162,29,60,0.03), transparent)`,
     'linear-gradient(180deg, #14120A 0%, #100E08 40%, #0C0A06 70%, #080804 100%)',
   ].join(', '),
@@ -202,6 +202,7 @@ export const safeFill: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
+  direction: 'rtl' as const,
   paddingTop: SAFE.top,
   paddingBottom: SAFE.bottom,
   paddingLeft: SAFE.left,
@@ -216,6 +217,7 @@ export const safeTop: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'flex-start',
   overflow: 'hidden',
+  direction: 'rtl' as const,
   paddingTop: SAFE.top + 20,
   paddingBottom: SAFE.bottom,
   paddingLeft: SAFE.left,
@@ -259,8 +261,8 @@ export const statCard = (accent: string): React.CSSProperties => ({
 export const rowCard = (): React.CSSProperties => ({
   width: CARD_W,
   borderRadius: 24,
-  background: 'rgba(212,160,74,0.06)',
-  border: '1.5px solid rgba(212,160,74,0.2)',
+  background: 'rgba(99,102,241,0.06)',
+  border: '1.5px solid rgba(99,102,241,0.2)',
   padding: '28px 40px',
   display: 'flex',
   justifyContent: 'space-between',
@@ -284,7 +286,7 @@ export const CheckIcon: React.FC<{ size?: number; color?: string }> = ({
 
 export const LockClosedIcon: React.FC<{ size?: number; color?: string }> = ({
   size = 80,
-  color = WARM.amber,
+  color = '#6366F1',
 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <rect x="4" y="10" width="16" height="12" rx="3" fill={`${color}20`} stroke={color} strokeWidth="1.5" />
@@ -307,7 +309,7 @@ export const LockOpenIcon: React.FC<{ size?: number; color?: string }> = ({
 
 export const ShieldCheckIcon: React.FC<{ size?: number; color?: string }> = ({
   size = 56,
-  color = WARM.amber,
+  color = '#6366F1',
 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <path
@@ -320,7 +322,7 @@ export const ShieldCheckIcon: React.FC<{ size?: number; color?: string }> = ({
 
 export const CalendarIcon: React.FC<{ size?: number; color?: string }> = ({
   size = 56,
-  color = WARM.amber,
+  color = '#6366F1',
 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <rect x="3" y="4" width="18" height="18" rx="3" fill={`${color}12`} stroke={color} strokeWidth="1.5" />
@@ -373,7 +375,7 @@ export const AnalogClock: React.FC<{
   hourAngle: number;
   minuteAngle: number;
   color?: string;
-}> = ({ size = 420, hourAngle, minuteAngle, color = WARM.amber }) => {
+}> = ({ size = 420, hourAngle, minuteAngle, color = '#6366F1' }) => {
   const cx = 100, cy = 100;
   return (
     <svg viewBox="0 0 200 200" width={size} height={size}>

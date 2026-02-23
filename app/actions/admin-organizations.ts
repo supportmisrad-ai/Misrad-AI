@@ -127,6 +127,7 @@ export async function getOrganizations(params?: {
             logo: true,
             owner_id: true,
             is_shabbat_protected: true,
+            is_medical_exempt: true,
             has_nexus: true,
             has_social: true,
             has_system: true,
@@ -674,6 +675,7 @@ export async function updateOrganization(input: {
   slug?: string;
   logo?: string | null;
   is_shabbat_protected?: boolean;
+  is_medical_exempt?: boolean;
   has_nexus?: boolean;
   has_social?: boolean;
   has_system?: boolean;
@@ -719,7 +721,25 @@ export async function updateOrganization(input: {
     if (input.has_client !== undefined) patch.has_client = input.has_client;
     if (input.has_operations !== undefined) patch.has_operations = input.has_operations;
 
-    if (input.is_shabbat_protected !== undefined) patch.is_shabbat_protected = input.is_shabbat_protected;
+    if (input.is_shabbat_protected !== undefined) {
+      if (input.is_shabbat_protected === false) {
+        const currentOrg = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { is_medical_exempt: true },
+        });
+        if (!currentOrg?.is_medical_exempt) {
+          return { success: false, error: 'ניתן לבטל הגנת שבת רק עבור מוסדות רפואיים מאושרים' };
+        }
+      }
+      patch.is_shabbat_protected = input.is_shabbat_protected;
+    }
+
+    if (input.is_medical_exempt !== undefined) {
+      patch.is_medical_exempt = input.is_medical_exempt;
+      if (!input.is_medical_exempt) {
+        patch.is_shabbat_protected = true;
+      }
+    }
 
     if (input.subscription_status !== undefined) patch.subscription_status = input.subscription_status;
     if (input.subscription_plan !== undefined) patch.subscription_plan = input.subscription_plan;

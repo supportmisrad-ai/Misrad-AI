@@ -687,19 +687,12 @@ export default function SetupCustomerWizard() {
                   </div>
                 </div>
 
-                {/* Shabbat Protection */}
-                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <Checkbox
-                    id="is_shabbat_protected"
-                    checked={data.package.is_shabbat_protected}
-                    onCheckedChange={(checked) => updateData('package', 'is_shabbat_protected', checked)}
-                  />
-                  <Label htmlFor="is_shabbat_protected" className="cursor-pointer flex-1">
-                    <div className="font-bold">🕎 החרגת שבת</div>
-                    <div className="text-xs text-blue-700 mt-1">
-                      חסימת פעולות במערכת בשבת ומועדים
-                    </div>
-                  </Label>
+                {/* Shabbat Protection - always on */}
+                <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
+                  <div className="font-bold text-sm text-violet-800">🕎 סגירת שבת</div>
+                  <div className="text-xs text-violet-700 mt-1">
+                    המערכת סגורה בשבת לכל הארגונים. פטור רפואי ניתן להגדיר בדף פרטי ארגון.
+                  </div>
                 </div>
               </div>
             </div>

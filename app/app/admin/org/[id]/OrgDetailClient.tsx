@@ -79,19 +79,19 @@ function StatusBadge({ status }: { status: string | null }) {
   );
 }
 
-function ShabbatBadge({ protected: isProtected }: { protected: boolean | null }) {
-  if (isProtected === true) {
+function ShabbatBadge({ protected: isProtected, isMedicalExempt }: { protected: boolean | null; isMedicalExempt?: boolean }) {
+  if (isProtected === true || isProtected === null) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-violet-100 text-violet-700">
         <Moon size={12} />
-        מוגן שבת
+        סגור בשבת
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-slate-100 text-slate-600">
-      <X size={12} />
-      לא מוגן שבת
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-700">
+      <Shield size={12} />
+      פטור רפואי — פעיל בשבת
     </span>
   );
 }
@@ -110,6 +110,10 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
   };
 
   const handleToggleShabbat = () => {
+    if (!org.is_medical_exempt) {
+      showToast('ניתן לבטל סגירת שבת רק עבור מוסדות רפואיים מאושרים', 'error');
+      return;
+    }
     startTransition(async () => {
       const newVal = !org.is_shabbat_protected;
       const res = await updateOrganization({
@@ -117,7 +121,23 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
         is_shabbat_protected: newVal,
       });
       if (res.success) {
-        showToast(`הגנת שבת ${newVal ? 'הופעלה' : 'בוטלה'}`, 'success');
+        showToast(`מצב שבת: ${newVal ? 'סגור בשבת' : 'פטור רפואי — פעיל בשבת'}`, 'success');
+        router.refresh();
+      } else {
+        showToast(res.error || 'שגיאה בעדכון', 'error');
+      }
+    });
+  };
+
+  const handleToggleMedicalExempt = () => {
+    startTransition(async () => {
+      const newVal = !org.is_medical_exempt;
+      const res = await updateOrganization({
+        organizationId: org.id,
+        is_medical_exempt: newVal,
+      });
+      if (res.success) {
+        showToast(`סיווג מוסד רפואי ${newVal ? 'הופעל' : 'בוטל'}`, 'success');
         router.refresh();
       } else {
         showToast(res.error || 'שגיאה בעדכון', 'error');
@@ -193,9 +213,9 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
           </div>
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
-          <div className="text-xs font-bold text-slate-500">הגנת שבת</div>
+          <div className="text-xs font-bold text-slate-500">מצב שבת</div>
           <div className="mt-2">
-            <ShabbatBadge protected={org.is_shabbat_protected} />
+            <ShabbatBadge protected={org.is_shabbat_protected} isMedicalExempt={org.is_medical_exempt} />
           </div>
         </div>
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
@@ -265,6 +285,7 @@ export default function OrgDetailClient({ data }: { data: OrgDetailResult }) {
               settings={settings}
               isPending={isPending}
               onToggleShabbat={handleToggleShabbat}
+              onToggleMedicalExempt={handleToggleMedicalExempt}
               onToggleModule={handleToggleModule}
             />
           ) : null}
@@ -384,12 +405,14 @@ function SettingsTab({
   settings,
   isPending,
   onToggleShabbat,
+  onToggleMedicalExempt,
   onToggleModule,
 }: {
   org: OrgDetailRecord;
   settings: OrgSettingsRecord | null;
   isPending: boolean;
   onToggleShabbat: () => void;
+  onToggleMedicalExempt: () => void;
   onToggleModule: (moduleKey: string, currentValue: boolean | null) => void;
 }) {
   const allModules = [
@@ -404,17 +427,34 @@ function SettingsTab({
   return (
     <div className="space-y-6">
       <div>
-        <div className="text-sm font-black text-slate-800 mb-3">הגנת שבת</div>
-        <div className="flex items-center gap-4">
-          <ShabbatBadge protected={org.is_shabbat_protected} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onToggleShabbat}
-            disabled={isPending}
-          >
-            {org.is_shabbat_protected ? 'בטל הגנה' : 'הפעל הגנה'}
-          </Button>
+        <div className="text-sm font-black text-slate-800 mb-3">מצב שבת</div>
+        <div className="p-4 rounded-xl bg-violet-50 border border-violet-200 space-y-3">
+          <div className="flex items-center gap-4">
+            <ShabbatBadge protected={org.is_shabbat_protected} isMedicalExempt={org.is_medical_exempt} />
+          </div>
+          <p className="text-xs text-slate-600">
+            ברירת מחדל: המערכת סגורה בשבת לכל הארגונים. רק מוסדות רפואיים מאושרים יכולים לפעול בשבת.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              variant={org.is_medical_exempt ? 'default' : 'outline'}
+              size="sm"
+              onClick={onToggleMedicalExempt}
+              disabled={isPending}
+            >
+              {org.is_medical_exempt ? '✅ מוסד רפואי מאושר' : 'סמן כמוסד רפואי'}
+            </Button>
+            {org.is_medical_exempt ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onToggleShabbat}
+                disabled={isPending}
+              >
+                {org.is_shabbat_protected ? 'אפשר פעילות בשבת' : 'החזר סגירת שבת'}
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
 

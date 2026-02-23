@@ -435,7 +435,7 @@ export default function WorkspaceOnboardingClient(props: {
                   <Input
                     value={companyName}
                     onChange={(e) => { setCompanyName(e.target.value); setError(null); }}
-                    placeholder="לדוגמה: משרד דהן"
+                    placeholder="לדוגמה: סטודיו לעיצוב"
                     aria-invalid={error === 'שם עסק חובה'}
                     className="h-12 rounded-2xl"
                     autoFocus

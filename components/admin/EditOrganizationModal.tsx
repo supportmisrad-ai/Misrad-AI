@@ -19,7 +19,6 @@ type EditOrganizationModalProps = {
     has_finance?: boolean | null;
     has_client?: boolean | null;
     has_operations?: boolean | null;
-    is_shabbat_protected?: boolean;
   };
   onClose: () => void;
   onSuccess: () => void;
@@ -35,7 +34,6 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
   const [hasFinance, setHasFinance] = useState(false);
   const [hasClient, setHasClient] = useState(false);
   const [hasOperations, setHasOperations] = useState(false);
-  const [isShabatProtected, setIsShabatProtected] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -47,7 +45,6 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
       setHasFinance(organization.has_finance ?? false);
       setHasClient(organization.has_client ?? false);
       setHasOperations(organization.has_operations ?? false);
-      setIsShabatProtected(organization.is_shabbat_protected ?? true);
     }
   }, [isOpen, organization]);
   useBackButtonClose(isOpen, onClose);
@@ -75,7 +72,6 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
           has_finance: hasFinance,
           has_client: hasClient,
           has_operations: hasOperations,
-          is_shabbat_protected: isShabatProtected,
         });
 
         if (!result.ok) {
@@ -157,15 +153,11 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
             </div>
           </div>
 
-          {/* Settings */}
+          {/* Shabbat Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">הגדרות</div>
-            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <Checkbox id="isShabatProtected" checked={isShabatProtected} onCheckedChange={(checked) => setIsShabatProtected(checked as boolean)} disabled={isPending} className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="isShabatProtected" className="cursor-pointer font-medium">🕎 החרגת שבת</Label>
-                <p className="text-xs text-slate-700 mt-1">חסימת פעולות במערכת בשבת ומועדים</p>
-              </div>
+            <div className="text-sm font-semibold text-slate-700 border-b pb-2">מצב שבת</div>
+            <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+              <p className="text-xs text-slate-700">🕎 המערכת סגורה בשבת לכל הארגונים. שינוי ניתן רק בדף פרטי ארגון עבור מוסדות רפואיים.</p>
             </div>
           </div>
 

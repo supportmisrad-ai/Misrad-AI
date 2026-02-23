@@ -57,7 +57,6 @@ export type OrganizationInput = {
   has_finance?: boolean;
   has_client?: boolean;
   has_operations?: boolean;
-  is_shabbat_protected?: boolean;
 };
 
 async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -642,9 +641,6 @@ export async function createOrganizationForClient(
             has_client: input.has_client ?? false,
             has_operations: input.has_operations ?? false,
             
-            // Settings
-            is_shabbat_protected: input.is_shabbat_protected ?? true,
-            
             // Timestamps
             created_at: now,
             updated_at: now,
@@ -682,7 +678,6 @@ export async function updateOrganization(orgId: string, input: {
   has_finance?: boolean;
   has_client?: boolean;
   has_operations?: boolean;
-  is_shabbat_protected?: boolean;
 }) {
   try {
     const guard = await requireSuperAdminOrReturn();

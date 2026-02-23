@@ -130,7 +130,6 @@ export async function updateOrganizationPackage(
     has_finance?: boolean;
     has_client?: boolean;
     has_operations?: boolean;
-    is_shabbat_protected?: boolean;
   }
 ) {
   try {
@@ -150,7 +149,7 @@ export async function updateOrganizationPackage(
         suppressReporting: true,
       },
       async () => {
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           updated_at: new Date(),
         };
 
@@ -171,7 +170,6 @@ export async function updateOrganizationPackage(
         if (data.has_finance !== undefined) updateData.has_finance = data.has_finance;
         if (data.has_client !== undefined) updateData.has_client = data.has_client;
         if (data.has_operations !== undefined) updateData.has_operations = data.has_operations;
-        if (data.is_shabbat_protected !== undefined) updateData.is_shabbat_protected = data.is_shabbat_protected;
 
         return await prisma.organization.update({
           where: { id: organizationId },

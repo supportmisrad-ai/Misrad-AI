@@ -12,6 +12,7 @@ export type OrgDetailRecord = {
   logo: string | null;
   owner_id: string;
   is_shabbat_protected: boolean | null;
+  is_medical_exempt: boolean;
   has_nexus: boolean | null;
   has_social: boolean | null;
   has_system: boolean | null;
@@ -119,6 +120,7 @@ export async function getOrganizationDetail(params: {
           seats_allowed: orgRow.seats_allowed == null ? null : Number(orgRow.seats_allowed),
           ai_credits_balance_cents: Number(orgRow.ai_credits_balance_cents ?? 0),
           is_shabbat_protected: orgRow.is_shabbat_protected ?? null,
+          is_medical_exempt: orgRow.is_medical_exempt ?? false,
           created_at: toIsoOrNull(orgRow.created_at),
           updated_at: toIsoOrNull(orgRow.updated_at),
         };
@@ -200,6 +202,7 @@ export async function getOrganizationDetail(params: {
           logo: org.logo == null ? null : String(org.logo),
           owner_id: String(org.owner_id),
           is_shabbat_protected: org.is_shabbat_protected ?? null,
+          is_medical_exempt: org.is_medical_exempt ?? false,
           has_nexus: org.has_nexus,
           has_social: org.has_social,
           has_system: org.has_system,

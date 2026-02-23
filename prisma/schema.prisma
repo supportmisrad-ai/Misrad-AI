@@ -3006,6 +3006,7 @@ model Organization {
   ai_credits_balance_cents         BigInt                             @default(0)
   has_operations                   Boolean                            @default(false)
   is_shabbat_protected             Boolean                            @default(true)
+  is_medical_exempt                Boolean                            @default(false)
   billing_cycle                    String?
   billing_email                    String?
   payment_method_id                String?
@@ -4723,7 +4724,7 @@ model BotLead {
   created_at       DateTime        @default(now())
   updated_at       DateTime        @updatedAt
   conversations    BotConversation[]
-  organization_id  String?
+  organization_id  String?         @db.Uuid
   organization     Organization?   @relation(fields: [organization_id], references: [id])
 
   @@index([status])

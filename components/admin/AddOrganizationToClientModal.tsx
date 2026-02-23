@@ -44,9 +44,6 @@ export default function AddOrganizationToClientModal({
   const [hasClient, setHasClient] = useState(false);
   const [hasOperations, setHasOperations] = useState(false);
   
-  // Settings
-  const [isShabatProtected, setIsShabatProtected] = useState(true);
-  
   const [error, setError] = useState('');
   useBackButtonClose(isOpen, onClose);
 
@@ -82,7 +79,6 @@ export default function AddOrganizationToClientModal({
           has_finance: hasFinance,
           has_client: hasClient,
           has_operations: hasOperations,
-          is_shabbat_protected: isShabatProtected,
         });
 
         if (!result.ok) {
@@ -112,7 +108,6 @@ export default function AddOrganizationToClientModal({
     setHasFinance(false);
     setHasClient(false);
     setHasOperations(false);
-    setIsShabatProtected(true);
     setError('');
   };
 
@@ -372,22 +367,8 @@ export default function AddOrganizationToClientModal({
               הגדרות נוספות
             </div>
             
-            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <Checkbox
-                id="isShabbatProtected"
-                checked={isShabatProtected}
-                onCheckedChange={(checked: boolean) => setIsShabatProtected(checked as boolean)}
-                disabled={isPending || !primaryContactUserId}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <Label htmlFor="isShabbatProtected" className="cursor-pointer font-medium">
-                  🕎 החרגת שבת
-                </Label>
-                <p className="text-xs text-blue-700 mt-1">
-                  חסימת פעולות במערכת בשבת ומועדים (ברירת מחדל: מופעל)
-                </p>
-              </div>
+            <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+              <p className="text-xs text-violet-700">🕎 המערכת סגורה בשבת לכל הארגונים. פטור רפואי ניתן להגדיר בדף פרטי ארגון.</p>
             </div>
           </div>
 

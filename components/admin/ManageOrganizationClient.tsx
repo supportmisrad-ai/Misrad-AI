@@ -128,7 +128,6 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
     has_finance: initialData.has_finance,
     has_client: initialData.has_client,
     has_operations: initialData.has_operations,
-    is_shabbat_protected: initialData.is_shabbat_protected,
   });
 
   // Tab 4: Billing
@@ -274,7 +273,6 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
         has_finance: packageData.has_finance || undefined,
         has_client: packageData.has_client || undefined,
         has_operations: packageData.has_operations || undefined,
-        is_shabbat_protected: packageData.is_shabbat_protected || undefined,
       });
       if (result.ok) {
         showMessage('success', 'החבילה והמודולים עודכנו בהצלחה');
@@ -732,14 +730,9 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <Checkbox
-                    checked={packageData.is_shabbat_protected || false}
-                    onCheckedChange={(checked) =>
-                      setPackageData({ ...packageData, is_shabbat_protected: checked as boolean })
-                    }
-                  />
-                  <Label className="cursor-pointer">🕯️ הגנת שבת (חסום מידע רגיש בשבת)</Label>
+                <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
+                  <div className="font-bold text-sm text-violet-800">🕎 סגירת שבת</div>
+                  <div className="text-xs text-violet-700 mt-1">המערכת סגורה בשבת לכל הארגונים. פטור רפואי ניתן להגדיר בדף פרטי ארגון.</div>
                 </div>
 
                 <Button onClick={handleSavePackage} disabled={saving} className="w-full sm:w-auto">
