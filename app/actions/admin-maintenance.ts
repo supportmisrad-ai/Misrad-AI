@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
@@ -104,9 +104,11 @@ export async function getPlatformStats(): Promise<{
       prisma.organization.count({ where: { created_at: { gte: sevenDaysAgo } } }).catch(() => 0),
       prisma.clientClient.count().catch(() => 0),
       prisma.nexusTask.count().catch(() => 0),
-      prisma.$queryRaw<{ size: bigint }[]>(
-        Prisma.sql`SELECT pg_database_size(current_database()) as size`
-      ).catch(() => [{ size: BigInt(0) }]),
+      queryRawAllowlisted<{ size: bigint }[]>(prisma, {
+        reason: 'admin_maintenance_db_size',
+        query: 'SELECT pg_database_size(current_database()) as size',
+        values: [],
+      }).catch(() => [{ size: BigInt(0) }]),
       prisma.systemBackup.findFirst({
         select: { created_at: true },
         orderBy: { created_at: 'desc' },

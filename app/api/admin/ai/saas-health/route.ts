@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -131,16 +131,17 @@ async function GETHandler(req: NextRequest) {
     // ── AI Engagement ──
     let aiStats = { sessions: 0, avgRating: null as number | null, helpfulRate: null as number | null };
     try {
-      const aiRows = await prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        `SELECT
+      const aiRows = await queryRawAllowlisted<Array<Record<string, unknown>>>(prisma, {
+        reason: 'saas_health_ai_engagement',
+        query: `SELECT
           COUNT(*) AS total,
           AVG(user_rating) AS avg_rating,
           COUNT(*) FILTER (WHERE helpful_yn = true) AS helpful,
           COUNT(*) FILTER (WHERE helpful_yn IS NOT NULL) AS rated
         FROM ai_chat_sessions
         WHERE started_at >= $1::timestamptz`,
-        startOfMonth
-      );
+        values: [startOfMonth],
+      });
       const ai = asObject(Array.isArray(aiRows) ? aiRows[0] : null) ?? {};
       aiStats.sessions = toNum(ai.total);
       aiStats.avgRating = ai.avg_rating != null ? round2(toNum(ai.avg_rating)) : null;
