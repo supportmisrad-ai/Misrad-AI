@@ -146,6 +146,7 @@ export async function getCampaigns(
           clicks: true,
         },
         orderBy: { created_at: 'desc' },
+        take: 100,
       });
     } catch (error: unknown) {
       if (isMissingTableError(error)) {

@@ -38,12 +38,14 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
   };
 
   const ttlSeconds = 60 * 60;
+  const withTimeout = <T>(p: Promise<T>, fallback: T, ms = 1500): Promise<T> =>
+    Promise.race([p, new Promise<T>((r) => setTimeout(() => r(fallback), ms))]);
   const [resolvedAvatar, resolvedLogo] = await Promise.all([
     normalizedCurrentUser.avatar
-      ? resolveStorageUrlMaybeServiceRole(normalizedCurrentUser.avatar, ttlSeconds, { organizationId: workspace.id })
+      ? withTimeout(resolveStorageUrlMaybeServiceRole(normalizedCurrentUser.avatar, ttlSeconds, { organizationId: workspace.id }), '')
       : Promise.resolve(''),
     workspace.logo
-      ? resolveStorageUrlMaybeServiceRole(workspace.logo, ttlSeconds, { organizationId: workspace.id })
+      ? withTimeout(resolveStorageUrlMaybeServiceRole(workspace.logo, ttlSeconds, { organizationId: workspace.id }), '')
       : Promise.resolve(''),
   ]);
 

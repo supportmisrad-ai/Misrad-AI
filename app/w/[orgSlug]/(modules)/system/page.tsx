@@ -32,7 +32,7 @@ export default async function SystemModuleHome({
       orgSlug,
       from: startOfMonth.toISOString(),
       to: startOfNextMonth.toISOString(),
-      take: 200,
+      take: 50,
     }).catch(() => []),
     listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 50 }).catch((): TasksRes => ({
       tasks: [],

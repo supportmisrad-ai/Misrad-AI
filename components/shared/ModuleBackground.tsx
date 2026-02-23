@@ -54,7 +54,7 @@ export function ModuleBackground({ moduleKey }: { moduleKey: string }) {
   const colors = MODULE_BLOB_COLORS[moduleKey as ModuleKey] ?? MODULE_BLOB_COLORS.nexus;
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-70 md:opacity-100" aria-hidden="true">
       <div
         className={`absolute top-[-10%] right-[-5%] w-[500px] h-[500px] ${colors.a} rounded-full blur-[100px] animate-blob mix-blend-multiply`}
       />
