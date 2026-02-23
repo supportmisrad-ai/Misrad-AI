@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { MisradSalesTeamMemberRole } from '@prisma/client';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
@@ -33,7 +34,7 @@ export async function getSalesTeamsAction(orgSlug: string): Promise<{ teams: Sal
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('getSalesTeamsAction', workspace.id);
 
-    const teams = await (prisma as any).misradSalesTeam.findMany({
+    const teams = await prisma.misradSalesTeam.findMany({
       where: { organization_id: organizationId },
       orderBy: { created_at: 'desc' },
       include: {
@@ -45,7 +46,7 @@ export async function getSalesTeamsAction(orgSlug: string): Promise<{ teams: Sal
     });
 
     return {
-      teams: (teams as any[]).map((t: any) => ({
+      teams: teams.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
@@ -53,7 +54,7 @@ export async function getSalesTeamsAction(orgSlug: string): Promise<{ teams: Sal
         target_monthly: t.target_monthly ?? 0,
         is_active: t.is_active,
         created_at: t.created_at.toISOString(),
-        members: (t.members as any[]).map((m: any) => ({
+        members: t.members.map((m) => ({
           id: m.id,
           team_id: m.team_id,
           name: m.name,
@@ -82,7 +83,7 @@ export async function createSalesTeamAction(orgSlug: string, data: {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('createSalesTeamAction', workspace.id);
 
-    const team = await (prisma as any).misradSalesTeam.create({
+    const team = await prisma.misradSalesTeam.create({
       data: {
         organization_id: organizationId,
         name: data.name,
@@ -112,14 +113,15 @@ export async function addTeamMemberAction(orgSlug: string, data: {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('addTeamMemberAction', workspace.id);
 
-    const member = await (prisma as any).misradSalesTeamMember.create({
+    const roleValue = (data.role || 'MEMBER') as MisradSalesTeamMemberRole;
+    const member = await prisma.misradSalesTeamMember.create({
       data: {
         organization_id: organizationId,
         team_id: data.team_id,
         name: data.name,
         email: data.email || null,
         phone: data.phone || null,
-        role: (data.role as any) || 'MEMBER',
+        role: roleValue,
         target_monthly: data.target_monthly || 0,
       },
     });
@@ -136,7 +138,7 @@ export async function deleteTeamMemberAction(orgSlug: string, memberId: string):
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     requireOrganizationId('deleteTeamMemberAction', workspace.id);
-    await (prisma as any).misradSalesTeamMember.delete({ where: { id: memberId } });
+    await prisma.misradSalesTeamMember.delete({ where: { id: memberId } });
     revalidatePath(`/w/${orgSlug}/system/teams`, 'page');
     return {};
   } catch (err) {
@@ -149,7 +151,7 @@ export async function deleteSalesTeamAction(orgSlug: string, teamId: string): Pr
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     requireOrganizationId('deleteSalesTeamAction', workspace.id);
-    await (prisma as any).misradSalesTeam.delete({ where: { id: teamId } });
+    await prisma.misradSalesTeam.delete({ where: { id: teamId } });
     revalidatePath(`/w/${orgSlug}/system/teams`, 'page');
     return {};
   } catch (err) {

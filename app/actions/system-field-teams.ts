@@ -35,7 +35,7 @@ export async function getFieldTeamsAction(orgSlug: string): Promise<{ teams: Fie
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('getFieldTeamsAction', workspace.id);
 
-    const teams = await (prisma as any).misradFieldTeam.findMany({
+    const teams = await prisma.misradFieldTeam.findMany({
       where: { organization_id: organizationId },
       orderBy: { created_at: 'desc' },
       include: {
@@ -57,14 +57,14 @@ export async function getFieldTeamsAction(orgSlug: string): Promise<{ teams: Fie
     });
 
     return {
-      teams: (teams as any[]).map((t: any) => ({
+      teams: teams.map((t) => ({
         id: t.id,
         name: t.name,
         area: t.area,
         color: t.color ?? '#f43f5e',
         is_active: t.is_active,
         created_at: t.created_at.toISOString(),
-        agents: (t.agents as any[]).map((a: any) => ({
+        agents: t.agents.map((a) => ({
           id: a.id,
           team_id: a.team_id,
           name: a.name,
@@ -75,8 +75,8 @@ export async function getFieldTeamsAction(orgSlug: string): Promise<{ teams: Fie
           lat: a.lat,
           lng: a.lng,
           is_active: a.is_active,
-          visits_today: (a.visits as any[]).filter((v: any) => v.status === 'COMPLETED').length,
-          visits_remaining: (a.visits as any[]).filter((v: any) => v.status === 'UPCOMING' || v.status === 'CURRENT').length,
+          visits_today: a.visits.filter((v) => v.status === 'COMPLETED').length,
+          visits_remaining: a.visits.filter((v) => v.status === 'UPCOMING' || v.status === 'CURRENT').length,
         })),
       })),
     };
@@ -95,7 +95,7 @@ export async function createFieldTeamAction(orgSlug: string, data: {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('createFieldTeamAction', workspace.id);
 
-    const team = await (prisma as any).misradFieldTeam.create({
+    const team = await prisma.misradFieldTeam.create({
       data: {
         organization_id: organizationId,
         name: data.name,
@@ -122,7 +122,7 @@ export async function addFieldAgentAction(orgSlug: string, data: {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('addFieldAgentAction', workspace.id);
 
-    const agent = await (prisma as any).misradFieldAgent.create({
+    const agent = await prisma.misradFieldAgent.create({
       data: {
         organization_id: organizationId,
         team_id: data.team_id,
@@ -144,7 +144,7 @@ export async function deleteFieldTeamAction(orgSlug: string, teamId: string): Pr
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     requireOrganizationId('deleteFieldTeamAction', workspace.id);
-    await (prisma as any).misradFieldTeam.delete({ where: { id: teamId } });
+    await prisma.misradFieldTeam.delete({ where: { id: teamId } });
     revalidatePath(`/w/${orgSlug}/system/field_map`, 'page');
     return {};
   } catch (err) {
@@ -157,7 +157,7 @@ export async function deleteFieldAgentAction(orgSlug: string, agentId: string): 
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     requireOrganizationId('deleteFieldAgentAction', workspace.id);
-    await (prisma as any).misradFieldAgent.delete({ where: { id: agentId } });
+    await prisma.misradFieldAgent.delete({ where: { id: agentId } });
     revalidatePath(`/w/${orgSlug}/system/field_map`, 'page');
     return {};
   } catch (err) {

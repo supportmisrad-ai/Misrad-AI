@@ -166,6 +166,11 @@ type PrismaClientWithAliases = PrismaClient & {
   billing_invoices: PrismaClient['billing_invoices'];
   attendanceMonthlyReport: PrismaClient['attendanceMonthlyReport'];
   attendanceSalaryConfig: PrismaClient['attendanceSalaryConfig'];
+  misradSalesTeam: PrismaClient['misradSalesTeam'];
+  misradSalesTeamMember: PrismaClient['misradSalesTeamMember'];
+  misradFieldTeam: PrismaClient['misradFieldTeam'];
+  misradFieldAgent: PrismaClient['misradFieldAgent'];
+  misradFieldVisit: PrismaClient['misradFieldVisit'];
 };
 
 const _basePrismaClient = _client;
@@ -179,6 +184,11 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   billing_invoices: _basePrismaClient.billing_invoices,
   attendanceMonthlyReport: _basePrismaClient.attendanceMonthlyReport,
   attendanceSalaryConfig: _basePrismaClient.attendanceSalaryConfig,
+  misradSalesTeam: _basePrismaClient.misradSalesTeam,
+  misradSalesTeamMember: _basePrismaClient.misradSalesTeamMember,
+  misradFieldTeam: _basePrismaClient.misradFieldTeam,
+  misradFieldAgent: _basePrismaClient.misradFieldAgent,
+  misradFieldVisit: _basePrismaClient.misradFieldVisit,
 });
 
 // ═══════════════════════════════════════════════════════════════════
