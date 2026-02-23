@@ -80,9 +80,9 @@ export default function PricingSection({
 
   return (
     <section id="pricing" className="py-20 sm:py-32 bg-gradient-to-b from-white via-slate-50 to-white relative z-10 overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-20 right-20 w-[500px] h-[500px] bg-gradient-to-br from-indigo-100/40 to-purple-100/40 rounded-full blur-[120px]" />
-        <div className="absolute bottom-20 left-20 w-[600px] h-[600px] bg-gradient-to-br from-purple-100/30 to-pink-100/30 rounded-full blur-[140px]" />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute top-20 right-20 w-[500px] h-[500px] bg-gradient-to-br from-indigo-100/40 to-purple-100/40 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+        <div className="absolute bottom-20 left-20 w-[600px] h-[600px] bg-gradient-to-br from-purple-100/30 to-pink-100/30 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
       </div>
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">

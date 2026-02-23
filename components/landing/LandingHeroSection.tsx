@@ -4,11 +4,11 @@ import { CTAButtons } from '@/components/landing/CTAButtons';
 export function LandingHeroSection() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-white via-slate-50/50 to-white">
-      {/* Background Effects */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-gradient-to-br from-amber-200/40 via-rose-200/30 to-transparent rounded-full blur-[120px]" />
-        <div className="absolute -bottom-32 -left-24 w-[700px] h-[700px] bg-gradient-to-tr from-indigo-200/30 via-purple-200/20 to-transparent rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-emerald-100/20 to-cyan-100/20 rounded-full blur-[200px]" />
+      {/* Background Effects — GPU-accelerated, reduced blur for scroll perf */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-gradient-to-br from-amber-200/40 via-rose-200/30 to-transparent rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+        <div className="absolute -bottom-32 -left-24 w-[700px] h-[700px] bg-gradient-to-tr from-indigo-200/30 via-purple-200/20 to-transparent rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-emerald-100/20 to-cyan-100/20 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-32 sm:pt-48 md:pt-56 pb-16 sm:pb-20 relative">

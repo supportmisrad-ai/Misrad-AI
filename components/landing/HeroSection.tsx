@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ArrowRight, Play, Sparkles } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface HeroSectionProps {
   isAuthenticated: boolean;
@@ -11,23 +10,16 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectionProps) {
-  const router = useRouter();
-
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white border-b border-slate-200">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-200/60 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-200/60 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      {/* Background */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-200/60 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-200/60 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-32 relative z-10 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-indigo-700 text-xs font-bold mb-6">
             <Sparkles size={14} className="text-indigo-600" />
             <span>AI שמנהל את הארגון במקומך</span>
@@ -53,12 +45,12 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button
-              onClick={() => isAuthenticated ? router.push('/me') : router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
+            <Link
+              href={isAuthenticated ? '/me' : '/login?mode=sign-up&redirect=/workspaces/onboarding'}
               className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-full font-bold text-lg hover:bg-indigo-500 transition-all shadow-sm flex items-center justify-center gap-2"
             >
               {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם'} <ArrowRight size={20} className="rotate-180" />
-            </button>
+            </Link>
             <button
               onClick={onWatchDemo}
               className="w-full sm:w-auto px-8 py-4 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
@@ -66,7 +58,7 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
               <Play size={20} fill="currentColor" /> איך זה עובד
             </button>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -4,8 +4,8 @@ import { ArrowLeft, Gift } from 'lucide-react';
 export function LandingPricingCTA() {
   return (
     <section id="pricing" className="py-14 sm:py-18 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-indigo-100/40 rounded-full blur-[100px]" />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-indigo-100/40 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
       </div>
       <div className="max-w-6xl mx-auto px-6 py-10 sm:py-12 relative">
         <div className="relative rounded-[2rem] overflow-hidden border-2 border-slate-200 bg-white shadow-xl">

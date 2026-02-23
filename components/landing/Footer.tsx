@@ -1,14 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getSystemIconUrl } from '@/lib/metadata';
-import { ArrowUpRight, Mail, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Mail, Sparkles } from 'lucide-react';
 
 export const Footer = () => {
-    const router = useRouter();
     const [logoSrc, setLogoSrc] = useState<string | null>(null);
     const [logoText, setLogoText] = useState('MISRAD AI');
 
@@ -40,9 +38,9 @@ export const Footer = () => {
     return (
         <footer className="relative bg-[#0a0a0f] overflow-hidden" dir="rtl">
             {/* Background Effects */}
-            <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px]" />
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
             </div>
 
             {/* Top Border Glow */}
@@ -85,14 +83,14 @@ export const Footer = () => {
 
                     {/* CTA */}
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                        <button
-                            onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
+                        <Link
+                            href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                             className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
                         >
                             <Sparkles size={18} />
                             התחל ניסיון חינם
                             <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                        </button>
+                        </Link>
                         <a
                             href="mailto:support@misrad-ai.com"
                             className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"

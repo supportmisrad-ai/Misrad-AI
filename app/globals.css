@@ -101,7 +101,6 @@ body {
     radial-gradient(at 100% 0%, rgba(162, 29, 60, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(55, 48, 163, 0.03) 0px, transparent 50%),
     radial-gradient(at 0% 50%, rgba(162, 29, 60, 0.02) 0px, transparent 50%);
-  background-attachment: fixed;
   background-size: cover;
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -617,3 +616,15 @@ input[type=range]:active::-webkit-slider-thumb {
 /* 3D Utilities */
 .perspective-1000 { perspective: 1000px; }
 .rotate-y-6 { transform: rotateY(6deg); }
+
+/* Landing page performance: defer rendering of below-fold sections */
+.landing-section-lazy {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* GPU-accelerated decorative blurs */
+.gpu-blur {
+  will-change: transform;
+  transform: translateZ(0);
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Sparkles, Zap, Brain, Clock } from 'lucide-react';
 
 export function AiManagementSection() {
@@ -8,8 +9,8 @@ export function AiManagementSection() {
     <section className="py-20 px-4 md:px-6 lg:px-8 bg-white relative overflow-hidden">
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-50 via-blue-50 to-transparent opacity-60" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-200 to-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-purple-200 to-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Main Header with Sparkles */}
@@ -110,10 +111,10 @@ export function AiManagementSection() {
             <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-6">
               כשכל המידע העסקי שלך במקום אחד, כל החלטה מבוססת נתונים. ליד לא חזרו אליו? אתה יודע. עסקה תלויה? תקבל התראה. רווחיות יורדת? אתה רואה את זה מיד.
             </p>
-            <button className="inline-flex items-center gap-2 bg-white text-purple-600 font-bold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors">
-              <span>צפו בדמו</span>
+            <Link href="/pricing" className="inline-flex items-center gap-2 bg-white text-purple-600 font-bold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors">
+              <span>התחילו עכשיו</span>
               <Sparkles className="w-4 h-4" />
-            </button>
+            </Link>
           </div>
         </div>
       </div>

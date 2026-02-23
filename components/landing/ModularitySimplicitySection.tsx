@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { CircleCheckBig, Zap, Layers, Smartphone } from 'lucide-react';
 
 export function ModularitySimplicitySection() {
@@ -158,10 +159,10 @@ export function ModularitySimplicitySection() {
           <p className="text-slate-600 max-w-2xl mx-auto mb-6">
             המערכת בנויה לעסקים שרוצים כלים חזקים בלי מורכבות. ללא תוספות מיותרות. בלי תעריפים נסתרים. רק מה שאתה באמת צריך.
           </p>
-          <button className="inline-flex items-center gap-2 bg-green-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-green-700 transition-colors">
+          <Link href="/login?mode=sign-up&redirect=/workspaces/onboarding" className="inline-flex items-center gap-2 bg-green-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-green-700 transition-colors">
             <span>בואו נתחיל - ניסיון של 7 ימים</span>
             <CircleCheckBig className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </div>
     </section>

@@ -44,9 +44,9 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
   return (
     <section id={id} className="py-20 sm:py-28 bg-gradient-to-b from-white via-slate-50/30 to-white relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-rose-100/30 rounded-full blur-[80px]" />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-rose-100/30 rounded-full blur-3xl will-change-transform" style={{ transform: 'translateZ(0)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 relative">

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { CircleUser, LifeBuoy, Menu, X, CircleHelp, Type, User, LogIn, Accessibility, ChevronDown } from 'lucide-react';
+import { CircleUser, LifeBuoy, Menu, X, Type, User, LogIn, Accessibility, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { getSystemIconUrl } from '@/lib/metadata';
 interface NavbarProps {
     initialLogo?: string | null;
@@ -13,7 +13,6 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: NavbarProps) => {
-    const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [isModulesOpen, setIsModulesOpen] = useState(false);
@@ -71,19 +70,13 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
         };
     }, [fontScale, highContrast]);
 
-    const handleNavClick = (id: string) => {
+    const handleNavClick = useCallback((id: string) => {
         setIsMenuOpen(false);
         const element = document.getElementById(id);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth' });
-            return;
         }
-        router.push('/');
-        setTimeout(() => {
-            const el = document.getElementById(id);
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    };
+    }, []);
 
     return (
         <>
@@ -125,12 +118,9 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                             </div>
 
                             {/* תמיכה */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsFabOpen(false);
-                                    router.push('/support');
-                                }}
+                            <Link
+                                href="/support"
+                                onClick={() => setIsFabOpen(false)}
                                 className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-transparent transition-all text-right group"
                             >
                                 <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:bg-emerald-700 transition-colors">
@@ -140,7 +130,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                     <div className="font-bold text-slate-900 text-sm">תמיכה</div>
                                     <div className="text-xs text-slate-500">פתיחת קריאת שירות</div>
                                 </div>
-                            </button>
+                            </Link>
 
                             {/* נגישות - גודל טקסט */}
                             <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50">
@@ -195,12 +185,9 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                             </div>
 
                             {/* הצהרת נגישות */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsFabOpen(false);
-                                    router.push('/accessibility');
-                                }}
+                            <Link
+                                href="/accessibility"
+                                onClick={() => setIsFabOpen(false)}
                                 className="w-full px-5 py-3.5 border-t border-slate-200 flex items-center gap-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent transition-all text-right group bg-slate-50/30"
                             >
                                 <div className="w-10 h-10 rounded-xl bg-slate-600 text-white flex items-center justify-center group-hover:bg-slate-700 transition-colors">
@@ -210,20 +197,17 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                     <div className="font-bold text-slate-900 text-sm">הצהרת נגישות</div>
                                     <div className="text-xs text-slate-500">מידע על התאמות הנגישות</div>
                                 </div>
-                            </button>
+                            </Link>
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
             </div>
 
-            <motion.nav
-                initial={{ y: -10, opacity: 1 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
+            <nav
                 className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-xl shadow-slate-200/40"
             >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
+                    <Link href="/" className="flex items-center gap-3" prefetch={false}>
                         <div className="w-10 h-10 flex items-center justify-center">
                             {logoSrc ? (
                                 <img 
@@ -242,7 +226,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                         <div className="flex flex-col items-start">
                             <span className="text-xl font-black text-slate-900 tracking-tight">{logoText || 'MISRAD AI'}</span>
                         </div>
-                    </div>
+                    </Link>
 
                     <div className="hidden md:flex items-center gap-8 bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-slate-200/70 shadow-lg shadow-slate-200/50">
                         <div
@@ -264,60 +248,61 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                         { label: 'תפעול ושטח', href: '/operations' },
                                         { label: 'פיננסים', href: '/finance-landing' },
                                     ].map((item) => (
-                                        <button
+                                        <Link
                                             key={item.href}
-                                            onClick={() => { setIsModulesOpen(false); router.push(item.href); }}
-                                            className="w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                            href={item.href}
+                                            onClick={() => setIsModulesOpen(false)}
+                                            className="block w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                                         >
                                             {item.label}
-                                        </button>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => router.push('/pricing')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</button>
-                        <button onClick={() => router.push('/contact')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">צור קשר</button>
+                        <Link href="/pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</Link>
+                        <Link href="/contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">צור קשר</Link>
                     </div>
 
                     <div className="hidden md:flex items-center gap-4">
                         {isSignedIn ? (
-                            <button
-                                onClick={() => router.push('/me')}
+                            <Link
+                                href="/me"
                                 className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/20"
                             >
                                 <User size={16} />
                                 למערכת שלי
-                            </button>
+                            </Link>
                         ) : (
                             <>
-                                <button onClick={() => router.push('/login')} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors">
+                                <Link href="/login" className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors">
                                     <LogIn size={16} />
                                     כניסה
-                                </button>
-                                <button onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
+                                </Link>
+                                <Link href="/login?mode=sign-up&redirect=/workspaces/onboarding" className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
                                     התחילו חינם
-                                </button>
+                                </Link>
                             </>
                         )}
                     </div>
 
                     <div className="md:hidden flex items-center gap-3">
                         {isSignedIn ? (
-                            <button 
-                                onClick={() => router.push('/me')} 
+                            <Link 
+                                href="/me" 
                                 className="flex items-center gap-1.5 bg-gradient-to-r from-slate-900 to-slate-700 text-white px-3 py-2 rounded-lg text-xs font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-lg"
                             >
                                 <User size={14} />
                                 למערכת
-                            </button>
+                            </Link>
                         ) : (
-                            <button 
-                                onClick={() => router.push('/login')} 
+                            <Link 
+                                href="/login" 
                                 className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 transition-colors"
                             >
                                 <LogIn size={14} />
                                 כניסה
-                            </button>
+                            </Link>
                         )}
                         <button
                             className="text-slate-900"
@@ -340,30 +325,30 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                         >
                             <div className="p-6 space-y-4 flex flex-col">
                                 <div className="text-xs font-black text-slate-500 uppercase tracking-wider">מודולים</div>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/system'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול מכירות ולידים</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/nexus'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול משימות וצוות</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/client'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול לקוחות</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/operations'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">תפעול ושטח</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/finance-landing'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">פיננסים</button>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/system" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול מכירות ולידים</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/nexus" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול משימות וצוות</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/client" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול לקוחות</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/operations" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">תפעול ושטח</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/finance-landing" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">פיננסים</Link>
                                 <div className="h-px bg-slate-200 my-2"></div>
                                 <div className="text-xs font-black text-slate-500 uppercase tracking-wider">חבילות</div>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-closer'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת מכירות</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-authority'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת שיווק ומיתוג</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-operator'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת תפעול ושטח</button>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-empire'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">הכל כלול</button>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/the-closer" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת מכירות</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/the-authority" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת שיווק ומיתוג</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/the-operator" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת תפעול ושטח</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/the-empire" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">הכל כלול</Link>
                                 <div className="h-px bg-slate-200 my-2"></div>
-                                <button onClick={() => { setIsMenuOpen(false); router.push('/pricing'); }} className="text-lg font-bold text-slate-900 text-right">כל החבילות והמחירים</button>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/pricing" className="text-lg font-bold text-slate-900 text-right">כל החבילות והמחירים</Link>
                                 {!isSignedIn && (
                                     <>
                                         <div className="h-px bg-slate-200 my-2"></div>
-                                        <button onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-full font-bold shadow-xl shadow-slate-900/10">התחילו חינם</button>
+                                        <Link href="/login?mode=sign-up&redirect=/workspaces/onboarding" className="block text-center bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-full font-bold shadow-xl shadow-slate-900/10">התחילו חינם</Link>
                                     </>
                                 )}
                             </div>
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
-            </motion.nav>
+            </nav>
         </>
     );
 };

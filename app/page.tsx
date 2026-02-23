@@ -1,18 +1,22 @@
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import prisma, { accelerateCache } from '@/lib/prisma';
 import { Navbar } from '@/components/landing/Navbar';
 import { auth } from '@clerk/nextjs/server';
-import { Footer } from '@/components/landing/Footer';
-import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import { SalesFaq } from '@/components/landing/SalesFaq';
 import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
-import { LandingModulesSection } from '@/components/landing/LandingModulesSection';
-import { LandingPricingCTA } from '@/components/landing/LandingPricingCTA';
-import { LandingValueProps } from '@/components/landing/LandingValueProps';
-import { UnifiedBusinessSection } from '@/components/landing/UnifiedBusinessSection';
-import { AiManagementSection } from '@/components/landing/AiManagementSection';
-import { ModularitySimplicitySection } from '@/components/landing/ModularitySimplicitySection';
 import { asObject } from '@/lib/shared/unknown';
+
+// Below-fold sections — lazy-loaded so they don't block first paint
+const LandingValueProps = dynamic(() => import('@/components/landing/LandingValueProps').then(m => ({ default: m.LandingValueProps })));
+const LandingModulesSection = dynamic(() => import('@/components/landing/LandingModulesSection').then(m => ({ default: m.LandingModulesSection })));
+const UnifiedBusinessSection = dynamic(() => import('@/components/landing/UnifiedBusinessSection').then(m => ({ default: m.UnifiedBusinessSection })));
+const KillerFeaturesBox = dynamic(() => import('@/components/landing/KillerFeaturesBox'));
+const AiManagementSection = dynamic(() => import('@/components/landing/AiManagementSection').then(m => ({ default: m.AiManagementSection })));
+const ModularitySimplicitySection = dynamic(() => import('@/components/landing/ModularitySimplicitySection').then(m => ({ default: m.ModularitySimplicitySection })));
+const LandingPricingCTA = dynamic(() => import('@/components/landing/LandingPricingCTA').then(m => ({ default: m.LandingPricingCTA })));
+const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
+const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
+const Footer = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 export const maxDuration = 10;
@@ -60,18 +64,41 @@ export default async function RootPage() {
 
       <main className="flex-1">
         <LandingHeroSection />
-        <LandingValueProps />
-        <LandingModulesSection />
-        <UnifiedBusinessSection />
-        <KillerFeaturesBox id="features" />
-        <AiManagementSection />
-        <ModularitySimplicitySection />
-        <LandingPricingCTA />
-        <TestimonialsSection />
-        <SalesFaq variant="default" />
+
+        <Suspense>
+          <div className="landing-section-lazy">
+            <LandingValueProps />
+          </div>
+          <div className="landing-section-lazy">
+            <LandingModulesSection />
+          </div>
+          <div className="landing-section-lazy">
+            <UnifiedBusinessSection />
+          </div>
+          <div className="landing-section-lazy">
+            <KillerFeaturesBox id="features" />
+          </div>
+          <div className="landing-section-lazy">
+            <AiManagementSection />
+          </div>
+          <div className="landing-section-lazy">
+            <ModularitySimplicitySection />
+          </div>
+          <div className="landing-section-lazy">
+            <LandingPricingCTA />
+          </div>
+          <div className="landing-section-lazy">
+            <TestimonialsSection />
+          </div>
+          <div className="landing-section-lazy">
+            <SalesFaq variant="default" />
+          </div>
+        </Suspense>
       </main>
-      <Footer />
-      
+
+      <Suspense>
+        <Footer />
+      </Suspense>
     </div>
   );
 }
