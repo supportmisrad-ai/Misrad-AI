@@ -353,7 +353,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
     return (
         <div className={`w-full md:w-[35%] md:shrink-0 flex flex-col bg-[#e5ddd5] relative border-l border-gray-200 overflow-hidden ${activeTab === 'chat' ? 'flex-1 h-full min-h-0' : 'hidden md:flex h-full'}`}>
-            <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/gplay.png')" }}></div>
+            <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.15) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
             
             <div className="hidden md:flex p-4 border-b border-gray-200 bg-[#f0f2f5] z-10 justify-between items-center sticky top-0 shadow-sm">
                 <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm">

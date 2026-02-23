@@ -32,8 +32,8 @@ export const SettingsView: React.FC = () => {
 
   const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname || ''), [pathname]);
   const { isSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
-  const [canManageBranding, setCanManageBranding] = useState(false);
-  const [isLoadingBrandingAccess, setIsLoadingBrandingAccess] = useState(false);
+  const [canManageBranding, setCanManageBranding] = useState(true);
+  const [isLoadingBrandingAccess, setIsLoadingBrandingAccess] = useState(true);
 
   const isTeamModuleEnabled = Boolean(organization?.enabledModules?.includes('team'));
 
@@ -331,7 +331,7 @@ export const SettingsView: React.FC = () => {
                             className={`
                                 w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all relative overflow-hidden group text-right border
                                 ${activeTab === tab.id 
-                                ? 'bg-black text-white shadow-lg border-gray-200 scale-[1.02]' 
+                                ? 'bg-black text-white shadow-lg border-gray-200' 
                                 : 'bg-white border-gray-100 text-gray-500 hover:bg-white hover:border-gray-300 hover:text-gray-900 shadow-sm'}
                             `}
                         >
@@ -357,7 +357,7 @@ export const SettingsView: React.FC = () => {
                             className={`
                                 w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all relative overflow-hidden group text-right border
                                 ${activeTab === tab.id 
-                                ? 'bg-black text-white shadow-lg border-gray-200 scale-[1.02]' 
+                                ? 'bg-black text-white shadow-lg border-gray-200' 
                                 : 'bg-white border-gray-100 text-gray-500 hover:bg-white hover:border-gray-300 hover:text-gray-900 shadow-sm'}
                             `}
                         >
@@ -385,9 +385,9 @@ export const SettingsView: React.FC = () => {
       </div>
 
       <div className="flex-1 lg:h-full lg:overflow-y-auto overflow-visible p-4 md:p-8 bg-transparent scroll-smooth no-scrollbar pb-28 lg:pb-0" id="settings-scroll-container">
-          <AnimatePresence mode="wait">
+          <div key={activeTab}>
             {renderActiveTab()}
-          </AnimatePresence>
+          </div>
       </div>
     </div>
   );

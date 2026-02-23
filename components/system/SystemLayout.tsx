@@ -102,7 +102,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 relative overflow-hidden flex flex-col bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+        <main className="flex-1 relative overflow-hidden flex flex-col" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 35px, rgba(0,0,0,0.015) 35px, rgba(0,0,0,0.015) 36px), repeating-linear-gradient(90deg, transparent, transparent 35px, rgba(0,0,0,0.015) 35px, rgba(0,0,0,0.015) 36px)' }}>
             {/* Ambient Glow */}
             <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-rose-600/5 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>

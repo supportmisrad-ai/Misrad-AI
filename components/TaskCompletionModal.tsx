@@ -110,7 +110,7 @@ export const TaskCompletionModal: React.FC = () => {
             >
                 {/* Header */}
                 <div className="bg-green-600 p-6 text-white text-center relative overflow-hidden shrink-0">
-                    <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                    <div className="absolute top-0 left-0 w-full h-full opacity-20" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/30">
                             <CircleCheckBig size={32} className="text-white" />

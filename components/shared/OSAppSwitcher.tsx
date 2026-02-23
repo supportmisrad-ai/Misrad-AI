@@ -142,7 +142,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         if (!(iconName.startsWith('/') || iconName.startsWith('http://') || iconName.startsWith('https://'))) continue;
 
         const link = document.createElement('link');
-        link.rel = 'preload';
+        link.rel = 'prefetch';
         link.as = 'image';
         link.href = iconName;
         document.head.appendChild(link);

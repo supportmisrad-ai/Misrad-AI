@@ -177,7 +177,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
       >
         {/* Cover Image */}
         <div className={`h-40 w-full relative flex-shrink-0 ${getGradient(client.package)}`}>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
             <div className="absolute top-4 left-4 flex gap-3 z-20">
                 {/* System.OS Jump Button */}
                 <button 

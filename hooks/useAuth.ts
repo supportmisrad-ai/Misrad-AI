@@ -216,8 +216,8 @@ export const useAuth = (
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 0,
+                    timeout: 5000,
+                    maximumAge: 60000,
                 });
             });
 
@@ -231,7 +231,7 @@ export const useAuth = (
                 const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=he`;
                 const geocodeRes = await Promise.race([
                     fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-                    new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+                    new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
                 ]);
                 if (geocodeRes.ok) {
                     const geocodeData = await geocodeRes.json();
@@ -467,7 +467,7 @@ export const useAuth = (
                 // Delayed refresh for eventual consistency — wait for any in-flight
                 // GPS + API calls to complete before hitting the server, otherwise we
                 // may fetch stale data that reverts the optimistic update above.
-                setTimeout(() => void refreshTimeEntries(), 12_000);
+                setTimeout(() => void refreshTimeEntries(), 2_000);
             };
             bc.addEventListener('message', handler);
             return () => {
@@ -787,8 +787,8 @@ export const useAuth = (
                         try {
                             const location = await getLocation();
                             await updateEntryLocation(capturedOrgSlug, entryId, 'start', location);
-                        } catch {
-                            // GPS unavailable — entry already saved without location
+                        } catch (gpsErr) {
+                            console.warn('[Attendance] GPS failed (clockIn):', gpsErr instanceof Error ? gpsErr.message : gpsErr);
                         }
                     })();
                 }
@@ -833,6 +833,9 @@ export const useAuth = (
                     addToast('אין משמרת פעילה לסגירה.', 'info');
                 }
 
+                // Confirm clock-out broadcast after server success
+                broadcastAttendanceUpdate(capturedOrgSlug, null, null);
+
                 // BACKGROUND GPS — fire-and-forget, updates DB after punch out
                 const closedEntryId = res?.entryId || capturedShift.id;
                 if (closedEntryId) {
@@ -840,8 +843,8 @@ export const useAuth = (
                         try {
                             const location = await getLocation();
                             await updateEntryLocation(capturedOrgSlug, closedEntryId, 'end', location);
-                        } catch {
-                            // GPS unavailable — entry already saved without location
+                        } catch (gpsErr) {
+                            console.warn('[Attendance] GPS failed (clockOut):', gpsErr instanceof Error ? gpsErr.message : gpsErr);
                         }
                     })();
                 }
