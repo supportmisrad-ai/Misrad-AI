@@ -10,10 +10,10 @@ export function ModularitySimplicitySection() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-            קצוות מודולרי, עיצוב פשוט
+            מבנה מודולרי, עיצוב פשוט
           </h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            שלם רק על מה שצריך. התחל קטן, גדל כשהעסק גדל. אין חוזקות סגורות, אין תעריפים מוגזמים.
+            שלם רק על מה שצריך. התחל קטן, גדל כשהעסק גדל. אין חוזים סגורים, אין תעריפים מוגזמים.
           </p>
         </div>
 
@@ -54,7 +54,7 @@ export function ModularitySimplicitySection() {
               <h3 className="text-lg font-bold text-slate-900">פשטות</h3>
             </div>
             <p className="text-slate-600">
-              ממשק אינטואיטיבי שלא צריך הדרכה. כל קליק הוא יעד, כל עמוד היא ברורה.
+              ממשק אינטואיטיבי שלא צריך הדרכה. כל קליק הוא יעד, כל עמוד ברור.
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export function ModularitySimplicitySection() {
                 </li>
                 <li className="flex items-start gap-3">
                   <CircleCheckBig className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-700"><strong>שום הגבלות מלא</strong> - הוסף עובדים כשאתה צריך</span>
+                  <span className="text-slate-700"><strong>ללא הגבלות</strong> - הוסף עובדים כשאתה צריך</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CircleCheckBig className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
@@ -97,7 +97,7 @@ export function ModularitySimplicitySection() {
               </ul>
             </div>
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-8 border-2 border-green-200">
-              <h4 className="text-2xl font-bold text-slate-900 mb-6">דוגמא: עסק קטן</h4>
+              <h4 className="text-2xl font-bold text-slate-900 mb-6">דוגמה: עסק קטן</h4>
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-3 border-b border-green-200">
                   <span className="text-slate-700">System (CRM)</span>
@@ -137,7 +137,7 @@ export function ModularitySimplicitySection() {
             <Zap className="w-10 h-10 text-amber-600 mb-4" />
             <h3 className="text-lg font-bold text-slate-900 mb-3">ביצועים מהירים</h3>
             <p className="text-slate-600">
-              המערכת מהירה גם עם עובדים הרבה וניתונים גדולים. ממש מהיר.
+              המערכת מהירה גם עם הרבה עובדים ונתונים. ביצועים חלקים.
             </p>
           </div>
 
@@ -145,7 +145,7 @@ export function ModularitySimplicitySection() {
             <Smartphone className="w-10 h-10 text-purple-600 mb-4" />
             <h3 className="text-lg font-bold text-slate-900 mb-3">נייד ראשון</h3>
             <p className="text-slate-600">
-              עבוד מהטלפון, טאבלט, מחשב. כל דבר סינכרוני בזמן אמת.
+              עבוד מהטלפון, טאבלט, מחשב. הכל מסונכרן בזמן אמת.
             </p>
           </div>
         </div>
@@ -156,7 +156,7 @@ export function ModularitySimplicitySection() {
             התחל עם מה שצריך. גדל בהתאם לצורך.
           </h3>
           <p className="text-slate-600 max-w-2xl mx-auto mb-6">
-            המערכת הזו בנויה לעסקים שרוצים שיקרים חזקים בלי מורכבות. ללא טיירים מלא. בלי תעריפים מסתרים. בלי טוב מדי שלא צריך.
+            המערכת בנויה לעסקים שרוצים כלים חזקים בלי מורכבות. ללא תוספות מיותרות. בלי תעריפים נסתרים. רק מה שאתה באמת צריך.
           </p>
           <button className="inline-flex items-center gap-2 bg-green-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-green-700 transition-colors">
             <span>בואו נתחיל - ניסיון של 7 ימים</span>

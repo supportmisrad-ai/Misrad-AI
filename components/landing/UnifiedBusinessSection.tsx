@@ -13,7 +13,7 @@ export function UnifiedBusinessSection() {
             כל העסק שלך במקום אחד
           </h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            בלי לעבור בין 5 תוכנות שונות. מערכת הפעלה לעסק שמתחברת לתוך המצאים שלך
+            בלי לעבור בין 5 תוכנות שונות. מערכת הפעלה לעסק שמתחברת לכל התהליכים שלך
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export function UnifiedBusinessSection() {
               </li>
               <li className="flex items-start gap-3">
                 <CircleCheckBig className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-700">התרעות בעוד זמן אמת</span>
+                <span className="text-slate-700">התראות בזמן אמת</span>
               </li>
             </ul>
           </div>
@@ -78,7 +78,7 @@ export function UnifiedBusinessSection() {
                 <CreditCard className="w-7 h-7 text-amber-600" />
               </div>
               <h3 className="text-2xl font-bold text-slate-900 mb-2">גבייה וחשבוניות</h3>
-              <p className="text-slate-600">בקרה מלאה על כספיה</p>
+              <p className="text-slate-600">בקרה מלאה על הכספים</p>
             </div>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
@@ -87,7 +87,7 @@ export function UnifiedBusinessSection() {
               </li>
               <li className="flex items-start gap-3">
                 <CircleCheckBig className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-700">תזכורות תשלום מחודשות</span>
+                <span className="text-slate-700">תזכורות תשלום אוטומטיות</span>
               </li>
               <li className="flex items-start gap-3">
                 <CircleCheckBig className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
@@ -101,7 +101,7 @@ export function UnifiedBusinessSection() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 md:p-12 text-white text-center">
           <h3 className="text-2xl font-bold mb-4">הכל מחובר, הכל עובד ביחד</h3>
           <p className="text-blue-100 text-lg max-w-3xl mx-auto">
-            בלי שום אינטגרציות מסובכות, בלי API שלא עובד. המערכת שלך זורמת כמו מי טהור - לקוחות נתמכים אוטומטית, משכורות מחושבות, עסקאות מתועדות.
+            בלי שום אינטגרציות מסובכות, בלי API שלא עובד. המערכת שלך זורמת כמו מי טהור - לקוחות נתמכים אוטומטית, שעות עבודה מחושבות, עסקאות מתועדות.
           </p>
         </div>
       </div>

@@ -16,11 +16,11 @@ export function AiManagementSection() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full px-4 py-2 mb-6 border border-purple-200">
             <Sparkles className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-purple-700">טכנולוגיה בתרופה בעברית</span>
+            <span className="text-sm font-semibold text-purple-700">טכנולוגיה מתקדמת בעברית</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6 leading-tight">
-            מערכת AI שמנהלת את העסק במקומך
+            AI שעוזר לך לנהל את העסק חכם יותר
           </h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
             לא עוד עבודה ידנית חוזרת ונשנית. AI חכם שמבין את העסק שלך בעברית טהורה ופועל בשמך
@@ -43,7 +43,7 @@ export function AiManagementSection() {
             <ul className="space-y-2 text-slate-600 text-sm">
               <li>✓ הקלטה וקידוד עברי בזמן אמת</li>
               <li>✓ תיעוד עסקאות מיידי</li>
-              <li>✓ התנבהות כשמשהו שפתוח</li>
+              <li>✓ התראה כשמשהו נשאר פתוח</li>
             </ul>
           </div>
 
@@ -56,7 +56,7 @@ export function AiManagementSection() {
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-3">הצעות חכמות</h3>
             <p className="text-slate-600 mb-4">
-              AI מציע פעולות הבאות בהתבסס על הדפוסים שלך. מחיר עדכון? זה יציע לך?
+              AI מנתח את הנתונים שלך ומציע את הפעולה הבאה. צריך לעדכן הצעת מחיר? הוא ידע לפני שתשאל.
             </p>
             <ul className="space-y-2 text-slate-600 text-sm">
               <li>✓ המלצות מחיר תחרותיות</li>
@@ -74,12 +74,12 @@ export function AiManagementSection() {
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-3">עובד 24/7 בשבילך</h3>
             <p className="text-slate-600 mb-4">
-              כשאתה ישן, אתה עובד. כשאתה בחופשה, אתה לא בטוח. המערכת לא קומה.
+              כשאתה ישן, המערכת ערה. כשאתה בחופשה, העסק ממשיך לעבוד. זמין מכל מכשיר, בכל שעה.
             </p>
             <ul className="space-y-2 text-slate-600 text-sm">
-              <li>✓ סינכרון בעברית 24/7</li>
+              <li>✓ גישה מלאה מכל מכשיר 24/7</li>
               <li>✓ עדכוני אוטומטיים ללקוחות</li>
-              <li>✓ דוחות בבוקר בפנדק שלך</li>
+              <li>✓ תדריך בוקר חכם עם סדר יום מומלץ</li>
             </ul>
           </div>
 
@@ -90,12 +90,12 @@ export function AiManagementSection() {
                 <Sparkles className="w-7 h-7 text-violet-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">מערכת שלומדת</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">AI שמנתח את העסק שלך</h3>
             <p className="text-slate-600 mb-4">
-              ככל שאתה משתמש, ה-AI מבין יותר את הדפוסים שלך וחוזה יותר טוב.
+              ה-AI מנתח את כל הנתונים שלך ונותן לך תובנות שלא היית מגיע אליהן לבד.
             </p>
             <ul className="space-y-2 text-slate-600 text-sm">
-              <li>✓ למידה מהפעולות שלך</li>
+              <li>✓ ניתוח חוצה-מודולים</li>
               <li>✓ הצעות מדויקות יותר עם הזמן</li>
               <li>✓ התאמה לדרך העבודה שלך</li>
             </ul>
@@ -106,9 +106,9 @@ export function AiManagementSection() {
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 rounded-2xl blur-xl opacity-20" />
           <div className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 rounded-2xl p-12 text-white text-center">
-            <h3 className="text-3xl font-bold mb-4">הדיוק שלך בנתונים</h3>
+            <h3 className="text-3xl font-bold mb-4">כל ההחלטות מבוססות נתונים</h3>
             <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-6">
-              כשברי-מובן של העסק שלך בתוך המערכת, כל קבלת החלטה היא מבוססת נתונים. מישהו עוד לא קרא? אתה יודע. עסקה תלויה? אלרט בפנדק שלך. רווחיות מפחתת? אתה רואה זה מיד.
+              כשכל המידע העסקי שלך במקום אחד, כל החלטה מבוססת נתונים. ליד לא חזרו אליו? אתה יודע. עסקה תלויה? תקבל התראה. רווחיות יורדת? אתה רואה את זה מיד.
             </p>
             <button className="inline-flex items-center gap-2 bg-white text-purple-600 font-bold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors">
               <span>צפו בדמו</span>
