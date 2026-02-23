@@ -58,8 +58,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:35–0:39 | 1050–1170 | **3 stats — Slot Machine Roll, brushed brand, enormous:** "5 דקות — מההרשמה לעבודה" / "0 כרטיס אשראי — לניסיון" / "מודול 1 → מודול 3 — תוך חודשיים". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed brand metal. | "5 דקות מההרשמה. אפס כרטיס אשראי. וההיסטוריה האמיתית: מודול אחד הפך ל-3 תוך חודשיים." |
-| 0:39–0:43 | 1170–1290 | **ציטוט + צללית:** "התחלתי עם System בלבד. אחרי חודש הוספתי Social. עכשיו יש לי 3 ואני לא מבין איך עבדתי בלי." — **צללית מינימליסטית:** פרילנסר (קווי brand, בלי פנים) ליד לפטופ. | Quote: large, warm. Silhouette: brand outline, no face, parallax. Laptop visible. | "פרילנסר: 'התחלתי עם מודול אחד. היום 3. לא מבין איך עבדתי בלי.'" |
+| 0:35–0:39 | 1050–1170 | **3 stats — Slot Machine Roll, brushed brand, enormous:** "5 דקות — מההרשמה לעבודה" / "7 ימי ניסיון חינם" / "גדלת? מוסיפים מודולים". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed brand metal. | "5 דקות מההרשמה. מודול אחד עם AI מובנה — והאפשרות לגדול לכל 6." |
+| 0:39–0:43 | 1170–1290 | **ציטוט + צללית:** "בלי התחייבות. 7 ימי ניסיון. ביטול בכל עת איך עבדתי בלי." — **צללית מינימליסטית:** פרילנסר (קווי brand, בלי פנים) ליד לפטופ. | Quote: large, warm. Silhouette: brand outline, no face, parallax. Laptop visible. | "בלי התחייבות. 7 ימי ניסיון. ביטול בכל עת." |
 
 ---
 

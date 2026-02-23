@@ -60,8 +60,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed brand, enormous:** "₪8,400 — חיסכון שנתי" / "6 — מודולים, מערכת אחת" / "5 דקות — מההרשמה לעבודה מלאה". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed brand metal. | "8,400 שקל חיסכון. 6 מודולים. 5 דקות — ואתה עובד." |
-| 0:44–0:47 | 1320–1410 | **ציטוט + צללית:** "ביטלנו 4 תוכנות. מערכת אחת שעושה הכל. העובדים מרוצים. הרו'ח השתפר." — **צללית:** (קווי brand gradient, בלי פנים) ליד desktop עם dashboard. | Quote: large, warm. Silhouette: brand gradient outline, no face, parallax. Desktop: dashboard visible. | "מנכ'ל: 'ביטלנו 4 תוכנות. מערכת אחת. העובדים מרוצים. הרו'ח השתפר.'" |
+| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed brand, enormous:** "6 מודולים" / "AI אחד" / "כניסה אחת — טביעת אצבע אחת". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed brand metal. | "6 מודולים. AI אחד. כניסה אחת. טביעת אצבע אחת. ואתה שולט בהכל." |
+| 0:44–0:47 | 1320–1410 | **ציטוט + צללית:** "מערכת הפעלה אחת שמחליפה את כל מה שהיה. בלי אינטגרציות. בלי העתקות. בלי סיסמאות." — **צללית:** (קווי brand gradient, בלי פנים) ליד desktop עם dashboard. | Quote: large, warm. Silhouette: brand gradient outline, no face, parallax. Desktop: dashboard visible. | "מערכת הפעלה אחת שמחליפה את כל מה שהיה. בלי אינטגרציות. בלי העתקות. בלי סיסמאות." |
 
 ---
 

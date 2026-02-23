@@ -60,8 +60,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed sky blue, enormous:** "80% — פחות זמן תיעוד" / "45% — יותר קריאות ביום" / "0 — ויכוחים (הכל מתועד + חתום)". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed sky blue metal. | "80 אחוז פחות תיעוד. 45 אחוז יותר קריאות ביום. אפס ויכוחים — כי הכל מתועד וחתום." |
-| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "הפסקנו עם וואטסאפ. הטכנאים מדווחים בקול, AI מסכם, והלקוח חותם על טאבלט. הכל סגור." — **צללית מינימליסטית:** קבלן (קווי sky blue, בלי פנים) ליד Kiosk tablet. | Quote: large, warm. Silhouette: sky blue outline, no face, parallax. Kiosk tablet visible. | "קבלן: 'הפסקנו וואטסאפ. טכנאי מדווח בקול, AI מסכם, לקוח חותם. הכל סגור.'" |
+| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed sky blue, enormous:** "כל קריאה מתועדת" / "כל תמונה שמורה" / "0 — ויכוחים (הכל מתועד + חתום)". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed sky blue metal. | "כל קריאה מתועדת. כל תמונה שמורה. כל חתימה דיגיטלית. אפס ויכוחים — כי הכל מתועד." |
+| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "טכנאי מדווח בקול. AI מסכם. לקוח חותם. חשבונית יוצאת. הכל סגור — ממסך אחד." — **צללית מינימליסטית:** קבלן (קווי sky blue, בלי פנים) ליד Kiosk tablet. | Quote: large, warm. Silhouette: sky blue outline, no face, parallax. Kiosk tablet visible. | "טכנאי מדווח בקול. AI מסכם. לקוח חותם. חשבונית יוצאת. הכל סגור — ממסך אחד." |
 
 ---
 

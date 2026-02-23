@@ -60,8 +60,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed gold, enormous:** "70% — פחות נטישה" / "4.8X — ערך לקוח לאורך זמן" / "0 — לקוחות שנעלמו בלי שידעת". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed gold. | "70 אחוז פחות נטישה. פי 4.8 ערך לקוח. אפס לקוחות שנעלמו בלי שידעת." |
-| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "הפסקתי לחפש בוואטסאפ מתי הפגישה האחרונה. פותחת Client — ותוך שנייה יש תמונה." — **צללית מינימליסטית:** (קווי זהב, בלי פנים) ליד מסך שמראה תיק לקוח. | Quote: large, warm. Silhouette: gold outline, no face, parallax. Screen: client file visible. | "מאמנת: 'הפסקתי לחפש בוואטסאפ. פותחת Client — ותוך שנייה, תמונה מלאה.'" |
+| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed gold, enormous:** "כל לקוח מנוהל" / "כל סיכון מזוהה" / "0 — לקוחות שנעלמו בלי שידעת". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed gold. | "כל לקוח מנוהל. כל סיכון מזוהה. אף לקוח לא נעלם בלי שידעת." |
+| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "פותח Client — ותוך שנייה, תמונה מלאה. מי צריך תשומת לב, מי בסדר, מי בסיכון." — **צללית מינימליסטית:** (קווי זהב, בלי פנים) ליד מסך שמראה תיק לקוח. | Quote: large, warm. Silhouette: gold outline, no face, parallax. Screen: client file visible. | "פותח Client — ותוך שנייה, תמונה מלאה. מי צריך תשומת לב, מי בסדר, מי בסיכון." |
 
 ---
 

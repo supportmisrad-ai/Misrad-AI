@@ -62,7 +62,7 @@
 |-------|---------|----------|---------|---------|
 | 0:38–0:42 | 1140–1260 | **3 features — frosted glass cards צפים ב-3D עם DoF:** (1) "לוח שנה עברי — יודע מתי י'ז בתמוז ומתי ערב חג" (2) "כספת שבת — לידים ותשלומים נשמרים, לא הולכים לאיבוד" (3) "גבייה חכמה — מתזמנת אוטומטית לפני ערב חג, לא אחריו". | 3D floating cards: frosted glass, DoF — one sharp at a time, others bokeh. Warm gold accent bloom. Camera: subtle dolly between cards. | "לוח עברי שמבין מה י'ז בתמוז. כספת שלא מפסידה ליד. גבייה שיודעת מתי ערב חג — בלי שתגיד לה." |
 | 0:42–0:46 | 1260–1380 | **Slot Machine Roll stats:** "1.7M — שומרי שבת בישראל" / "0 — מערכות שמכבדות אותם". ואז: **"עד עכשיו."** — materialize, brushed gold, Bloom. | Numbers: slot machine roll. "0" lands hard. "עד עכשיו": materialize with bloom. | "מיליון שבע מאות אלף שומרי שבת. אפס מערכות שמכבדות אותם. עד עכשיו." |
-| 0:46–0:50 | 1380–1500 | **ציטוט + צללית:** "קיצרנו את יום שישי בשעתיים. המערכת מסכמת לבד, סוגרת לבד, ויוצאת לשבת לבד." — **צללית מינימליסטית:** בעל עסק (קווי זהב) ליד מסך שעליו frosted glass + "Shabbat Mode Active". | Quote: warm fade, generous size. Silhouette: gold outline, no face, parallax. Screen behind: frosted glass visible. | "בעל עסק: 'קיצרנו את יום שישי בשעתיים. המערכת יוצאת לשבת לבד.'" |
+| 0:46–0:50 | 1380–1500 | **ציטוט + צללית:** "לא רק שומר שבת. מכבד שבת. AI כשר — מהיום הראשון." — **צללית מינימליסטית:** (קווי זהב) ליד מסך שעליו frosted glass + "Shabbat Mode Active". | Quote: warm fade, generous size. Silhouette: gold outline, no face, parallax. Screen behind: frosted glass visible. | "לא רק שומר שבת. מכבד שבת. AI כשר — מהיום הראשון." |
 
 ---
 

@@ -25,8 +25,8 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:03–0:05 | 90–150 | **"דירוג לידים"** — frosted badge "System" (rose bloom). **Camera dolly into phone.** רשימת 5 לידים — frosted glass, no scores. DoF: top lead sharp. | Title + badge: frosted. Camera: dolly in. Leads: frosted glass, no scores. DoF: top sharp. | "5 לידים חדשים. מי הכי חם?" |
-| 0:05–0:08 | 150–240 | **AI activation: purple bloom wave** sweeps the list. **כל ליד: ציון Slot Machine Roll** → lock. 92% green → 78% green → 65% yellow → 43% orange → 21% red. **List reorders physically** — top lead slides up, others shift down. Physics-based movement. | Purple bloom wave: sweeps list. Each score: slot machine roll → lock. List: physics reorder. Not glow sweep — bloom wave. | "AI סורק. 92. 78. 65. 43. 21. מדורג." |
-| 0:08–0:11 | 240–330 | **Macro push-in** on 92%: "רונית כץ · ₪47,000 · 92%". **AI Insight** מתממש frosted: "סיכוי סגירה גבוה. מומלץ: שלח הצעה עכשיו." כפתור: bloom. **Rack focus on button.** | Macro: on 92%. Insight: materializes frosted. Button: bloom. Rack focus: on button. | "רונית כץ. 92 אחוז. AI אומר: 'שלח הצעה.' אתה רק לוחץ." |
+| 0:05–0:08 | 150–240 | **AI activation: purple bloom wave** sweeps the list. **כל ליד: ציון Slot Machine Roll** → lock. גבוה green → בינוני green → בינוני yellow → נמוך orange → נמוך red. **List reorders physically** — top lead slides up, others shift down. Physics-based movement. | Purple bloom wave: sweeps list. Each score: slot machine roll → lock. List: physics reorder. Not glow sweep — bloom wave. | "AI סורק. מדרג. הליד הכי חם — בראש הרשימה." |
+| 0:08–0:11 | 240–330 | **Macro push-in** on top lead: "רונית כץ · ציון גבוה". **AI Insight** מתממש frosted: "שלח הצעה מותאמת עכשיו." כפתור: bloom. **Rack focus on button.** | Macro: on top lead. Insight: materializes frosted. Button: bloom. Rack focus: on button. | "רונית כץ. ציון גבוה. AI אומר: 'שלח הצעה.' אתה רק לוחץ." |
 | 0:11–0:14 | 330–420 | **Tap** → frosted glass transition → **"הצעה נשלחה!"** — green V bloom. **Camera pulls back.** רשימה מסודרת visible. **"הליד הכי חם — תמיד בראש."** | Tap: frosted transition. Success: green V bloom. Dolly out. Sorted list visible. Text: materialize. | "הצעה בדרך. הליד הכי חם — תמיד בראש." |
 
 ---
@@ -60,8 +60,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:36–0:39 | 1080–1170 | **"חיזוי AI"** — frosted badge "System" (rose bloom). **Graph frosted glass:** solid line (actual) materializes, then **dashed line extends forward** (prediction) — different depth, subtle bloom. **"₪127,000"** — Slot Machine Roll, enormous. | Title. Graph: frosted glass. Solid: materializes. Dashed: extends forward, different depth. Number: slot machine roll → lock. | "חיזוי הכנסות. 30 ימים קדימה. 127 אלף שקל." |
-| 0:39–0:43 | 1170–1290 | **2 frosted glass prediction cards** in 3D. Camera dolly. **Card 1:** "92% — רונית כץ תיסגר השבוע" — Slot Machine Roll + green bloom. **Card 2:** "67% — ליד מקמפיין יהפוך ללקוח" — Slot Machine Roll + amber bloom. **"לא ניחוש. מתמטיקה."** — materialize. | 2 cards: 3D, frosted. Camera: dolly + rack focus. Each: slot machine roll probability. Text: materializes. | "92 אחוז — רונית תיסגר. 67 — ליד חדש יהפוך ללקוח. לא ניחוש. מתמטיקה." |
+| 0:36–0:39 | 1080–1170 | **"Pipeline AI"** — frosted badge "System" (rose bloom). **Dashboard frosted glass:** pipeline columns materialize — כמה כסף בצנרת, מה הליד הבא, מה צריך לעשות היום. | Title. Dashboard: frosted glass. Columns: materialize with depth. | "Pipeline — כמה כסף בצנרת. מי הליד הבא. מה צריך לעשות היום." |
+| 0:39–0:43 | 1170–1290 | **3 frosted glass AI capability cards** in 3D. Camera dolly. **Card 1:** "דירוג לידים" + green bloom. **Card 2:** "ניתוח רווחיות" + amber bloom. **Card 3:** "זיהוי חובות מסוכנים" + red bloom. **"AI שנותן תובנות — לא ניחושים."** — materialize. | 3 cards: 3D, frosted. Camera: dolly + rack focus. Each: bloom. Text: materializes. | "דירוג לידים. ניתוח רווחיות. זיהוי חובות מסוכנים. AI שנותן תובנות — לא ניחושים." |
 
 ---
 

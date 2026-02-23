@@ -60,8 +60,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed indigo, enormous:** "15 שעות/שבוע — חזרו אליך" / "0 — משימות שנפלו בין הכיסאות" / "100% — שקיפות (כל עובד רואה את שלו)". Rack focus shifts between them. | Stats: slot machine roll with motion blur → lock overshoot. Rack focus between stats. Brushed indigo metal. | "15 שעות בשבוע חזרו אליך. אפס משימות נופלות. 100 אחוז שקיפות." |
-| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "הפסקתי לשאול 'מי עושה מה'. עכשיו אני פותח את Nexus ותוך שנייה יש לי תמונה." — **צללית מינימליסטית:** מנכ"ל (קווי indigo, בלי פנים) ליד מסך desktop שמראה dashboard. | Quote: large, warm fade. Silhouette: indigo outline, no face, parallax. Desktop screen: dashboard visible through figure. | "מנכ'ל: 'הפסקתי לשאול מי עושה מה. פותח Nexus — ותוך שנייה יש תמונה.'" |
+| 0:40–0:44 | 1200–1320 | **3 stats — Slot Machine Roll, brushed indigo, enormous:** "כל משימה מנוהלת" / "כל עובד רואה מה מוטל עליו" / "שקיפות מלאה — בלי לרדוף אחרי אנשים". Rack focus shifts between them. | Stats: slot machine roll with motion blur → lock overshoot. Rack focus between stats. Brushed indigo metal. | "כל משימה מנוהלת. כל עובד רואה מה מוטל עליו. שקיפות מלאה — בלי לרדוף אחרי אנשים." |
+| 0:44–0:48 | 1320–1440 | **ציטוט + צללית:** "פותח Nexus — ותוך שנייה יש תמונת מצב. מי עובד על מה, מה באיחור, מה הושלם." — **צללית מינימליסטית:** מנכ"ל (קווי indigo, בלי פנים) ליד מסך desktop שמראה dashboard. | Quote: large, warm fade. Silhouette: indigo outline, no face, parallax. Desktop screen: dashboard visible through figure. | "פותח Nexus — ותוך שנייה יש תמונת מצב. מי עובד על מה, מה באיחור, מה הושלם." |
 
 ---
 

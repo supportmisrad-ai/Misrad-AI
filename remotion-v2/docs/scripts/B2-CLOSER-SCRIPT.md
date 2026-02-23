@@ -49,8 +49,8 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:25–0:29 | 750–870 | **3 frosted glass cards ב-3D space.** Camera dolly. **Card 1:** "דירוג AI — כל ליד מקבל ציון" + mini score badge. **Card 2:** "Pipeline 8 שלבים — מליד לעסקה" + mini pipeline. | 3D space: cards float. Camera: dolly + rack focus. Each: frosted + mini UI. | "דירוג AI לכל ליד. Pipeline מכירות — 8 שלבים." |
-| 0:29–0:33 | 870–990 | **Card 3 in focus:** "ניהול צוות מכירות — Nexus" + mini KPI bars. **Camera continues →** **AI Forecast card** מתממש: "₪127K צפוי להיסגר" — Slot Machine Roll. Prediction line bloom. | Card 3: rack focus. Forecast: materializes frosted. Number: slot machine roll. Bloom. | "ניהול צוות. AI שמנבא: 127 אלף צפוי להיסגר החודש." |
-| 0:33–0:38 | 990–1140 | **"₪249"** — brushed dual metal, enormous, 80% frame. מתחתיו: **"מתחרים — ₪640+ על פחות."** — "₪640" ב-Slot Machine Roll אדום. **ההפרש ויזואלי:** 249 = frosted green badge / 640 = frosted red badge שמתפורר. | Price: materializes enormous. Competitor: red slot machine roll. Competitor badge: edge disintegration. Own price: green bloom. | "249 שקל. מתחרים — 640 שקל. על פחות. תעשו את החשבון." |
+| 0:29–0:33 | 870–990 | **Card 3 in focus:** "ניהול צוות מכירות — Nexus" + mini KPI bars. **Camera continues →** **תמונת מצב צוות** card מתממש: "מי עובד על מה. מי סוגר. מי צריך עזרה." | Card 3: rack focus. Team overview: materializes frosted. | "ניהול צוות מכירות. מי עובד על מה. מי סוגר. מי צריך עזרה. תמונת מצב אחת." |
+| 0:33–0:38 | 990–1140 | **"₪249"** — brushed dual metal, enormous, 80% frame. מתחתיו: **"מערכות אחרות — מאות עד אלפי שקלים. על פחות. בלי AI."** | Price: materializes enormous. Comparison: general text, no specific competitor price. Own price: green bloom. | "249 שקל. מערכות אחרות — מאות עד אלפי שקלים. על פחות. בלי AI. בלי ניהול צוות." |
 
 ---
 
@@ -59,8 +59,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed dual metal:** "340% — יותר סגירות" / "0 — לידים אבודים" / "14 ימים — ROI". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed dual metal. | "340 אחוז יותר סגירות. אפס לידים אבודים. ROI תוך שבועיים." |
-| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "מאז החבילה — סוגר פי 3. ה-AI עובד בשבילי 24/7. חוץ משבת." — **צללית:** (קווי dual color, בלי פנים) ליד מסך pipeline. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Pipeline screen visible. | "סוכן ביטוח: 'סוגר פי 3. ה-AI עובד 24/7. חוץ משבת.'" |
+| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed dual metal:** "כל ליד מנוהל" / "כל follow-up מתוזמן" / "0 — לידים שנופלים בין הכיסאות". Rack focus. | Stats: slot machine roll → lock. Rack focus between. Brushed dual metal. | "כל ליד מנוהל. כל follow-up מתוזמן. אף ליד לא נופל בין הכיסאות." |
+| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "מכירות + ניהול צוות. 2 מודולים שעובדים ביחד — מליד לסגירה." — **צללית:** (קווי dual color, בלי פנים) ליד מסך pipeline. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Pipeline screen visible. | "מכירות + ניהול צוות. 2 מודולים שעובדים ביחד — מליד לסגירה." |
 
 ---
 

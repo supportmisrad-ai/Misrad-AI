@@ -50,7 +50,7 @@
 |-------|---------|----------|---------|---------|
 | 0:25–0:29 | 750–870 | **3 frosted glass cards ב-3D.** Camera dolly. **Card 1:** "שיבוץ AI — טכנאי נכון, אוטומטי" + mini map. **Card 2:** "שליטה קולית — ידיים מלאות, פה פנוי" + mini waveform. | 3D space. Camera: dolly + rack focus. Each: frosted + mini UI. | "שיבוץ AI. שליטה קולית — ידיים מלאות, פה פנוי." |
 | 0:29–0:33 | 870–990 | **Card 3:** "תיעוד + חתימה דיגיטלית" + mini gallery. **Camera → KIOSK.** טאבלט low angle, thick bezels. מסך: שעון + משימות + "סיימתי". **צללית עובד** (קווי sky, בלי פנים). | Card 3: rack focus. Kiosk: low angle, tactical. Silhouette: sky outline. | "תיעוד וחתימה. Kiosk — כפתור אחד לעובד בשטח." |
-| 0:33–0:38 | 990–1140 | **"₪349"** — brushed sky-emerald, enormous, 80% frame. **Gold badge:** "Finance במתנה" — bloom. מתחתיו: **"מתחרים — ₪400+ על Operations בלבד."** — "₪400" red Slot Machine Roll, מתפורר. | Price: enormous. Gold badge: bloom. Competitor: red slot machine roll + disintegration. | "349 שקל. Finance במתנה. מתחרים — 400 שקל. על Operations בלבד." |
+| 0:33–0:38 | 990–1140 | **"₪349"** — brushed sky-emerald, enormous, 80% frame. **Gold badge:** "Finance במתנה" — bloom. מתחתיו: **"מערכות אחרות — הרבה יותר. על פחות. בלי AI."** | Price: enormous. Gold badge: bloom. Comparison: general text. | "349 שקל. 4 מודולים. מערכות אחרות — הרבה יותר. על פחות. בלי AI." |
 
 ---
 
@@ -59,8 +59,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed sky-emerald:** "80% — פחות תיעוד" / "45% — יותר קריאות ביום" / "0 — חשבוניות שנשכחו". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed dual metal. | "80 אחוז פחות תיעוד. 45 אחוז יותר קריאות. אפס חשבוניות שנשכחו." |
-| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "מקריאה לחשבונית — בלי אקסל. Finance במתנה? בונוס." — **צללית:** (קווי sky-emerald, בלי פנים) ליד Kiosk tablet. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Kiosk visible. | "קבלן: 'מקריאה לחשבונית — בלי אקסל. Finance במתנה? בונוס.'" |
+| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed sky-emerald:** "כל קריאה מתועדת" / "כל חתימה דיגיטלית" / "0 — ויכוחים — כי הכל מתועד ושמור". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed dual metal. | "כל קריאה מתועדת. כל חתימה דיגיטלית. אפס ויכוחים — כי הכל מתועד ושמור." |
+| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "טכנאי מדווח בקול. AI מסכם. לקוח חותם. חשבונית יוצאת. הכל סגור." — **צללית:** (קווי sky-emerald, בלי פנים) ליד Kiosk tablet. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Kiosk visible. | "טכנאי מדווח בקול. AI מסכם. לקוח חותם. חשבונית יוצאת. הכל סגור." |
 
 ---
 

@@ -50,7 +50,7 @@
 |-------|---------|----------|---------|---------|
 | 0:25–0:29 | 750–870 | **3 frosted glass cards ב-3D.** Camera dolly. **Card 1:** "לוח תוכן AI — חודש שלם במבט" + mini calendar. **Card 2:** "תיק לקוח + Health Score" + mini gauge. | 3D space: cards. Camera: dolly + rack focus. Each: frosted + mini UI. | "לוח תוכן AI. תיק לקוח עם Health Score." |
 | 0:29–0:33 | 870–990 | **Card 3:** "פורטל — הלקוח רואה הכל בעצמו" + mini portal UI. **Camera continues →** **Nexus card** מתממש: "ניהול צוות + דוחות ROI" + mini KPI bars. | Cards: rack focus shifts. Each: frosted, mini UI. | "פורטל לקוחות. ניהול צוות. דוחות ROI — מה שווה כל קמפיין." |
-| 0:33–0:38 | 990–1140 | **"₪349"** — brushed dual metal, enormous, 80% frame. מתחתיו: **"3 מנויים נפרדים = ₪450+."** — "₪450" Slot Machine Roll אדום, מתפורר. **349 = green bloom, 450 = red disintegration.** | Price: materializes enormous. Competitor: red slot machine roll + disintegration. Own: green bloom. | "349 שקל. 3 מודולים. מתחרים — 450 שקל בנפרד. על פחות." |
+| 0:33–0:38 | 990–1140 | **"₪349"** — brushed dual metal, enormous, 80% frame. מתחתיו: **"מערכות אחרות — כל כלי בנפרד, מאות שקלים. על פחות."** | Price: materializes enormous. Comparison: general text. Own: green bloom. | "349 שקל. 3 מודולים. מערכות אחרות — כל כלי בנפרד, מאות שקלים. על פחות." |
 
 ---
 
@@ -59,8 +59,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed dual:** "23 — לקוחות מ-1,200 עוקבים" / "₪12 — per lead" / "4.8X — lifetime value". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed purple-gold. | "23 לקוחות מ-1,200 עוקבים. 12 שקל per lead. פי 4.8 ערך לקוח." |
-| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "יודעת בדיוק מאיפה כל לקוח מגיע ומה שווה כל פוסט — עד השקל." — **צללית:** (קווי purple-gold, בלי פנים) ליד מסך analytics. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Analytics visible. | "יוצרת תוכן: 'יודעת מאיפה כל לקוח. מה שווה כל פוסט. עד השקל.'" |
+| 0:38–0:42 | 1140–1260 | **3 stats — Slot Machine Roll, brushed dual:** "כל ליד נתפס" / "כל לקוח מנוהל" / "כל שקל שיווקי — יודעים מה הוא שווה". Rack focus. | Stats: slot machine roll → lock. Rack focus. Brushed purple-gold. | "כל ליד נתפס. כל לקוח מנוהל. כל שקל שיווקי — יודעים בדיוק מה הוא שווה." |
+| 0:42–0:45 | 1260–1350 | **ציטוט + צללית:** "AI כותב תוכן בעברית. מציע שעות פרסום. ומחבר את הלייק לליד — אוטומטית." — **צללית:** (קווי purple-gold, בלי פנים) ליד מסך analytics. | Quote: large, warm. Silhouette: dual outline, no face, parallax. Analytics visible. | "AI כותב תוכן בעברית. מציע שעות פרסום. ומחבר את הלייק לליד — אוטומטית." |
 
 ---
 
