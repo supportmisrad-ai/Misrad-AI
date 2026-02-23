@@ -102,6 +102,16 @@ async function POSTHandler(req: Request) {
 
     const supabase = createServiceRoleStorageClient({ reason: 'meeting-recording-signed-upload', allowUnscoped: true });
 
+    // Ensure bucket exists (idempotent — no-ops if already created)
+    const { error: bucketError } = await supabase.storage.createBucket(bucket, {
+      public: false,
+      fileSizeLimit: MAX_MEETING_RECORDING_SIZE,
+    });
+    // Ignore "already exists" (409) — only fail on unexpected errors
+    if (bucketError && !String(bucketError.message ?? '').toLowerCase().includes('already exists')) {
+      console.error('[upload-url] Bucket creation failed:', bucketError.message);
+    }
+
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data?.signedUrl || !data?.token) {
       const safeMsg = 'Failed to create signed upload URL';
@@ -116,6 +126,7 @@ async function POSTHandler(req: Request) {
       token: data.token,
     });
   } catch (e: unknown) {
+    console.error('[upload-url] Failed to prepare upload:', e instanceof Error ? e.message : e);
     return apiError(e, { status: 500, message: 'Failed to prepare upload' });
   }
 }

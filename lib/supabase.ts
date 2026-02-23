@@ -248,6 +248,8 @@ const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
   'kiosk_pairing_create_or_refresh',
   'kiosk_pairing_status',
   'landing_upload_public_assets',
+  'meeting-recording-signed-upload',
+  'meeting-recording-download',
   'storage_upload_default',
   'storage_signed_url_resolve',
   'storage_test_admin',
