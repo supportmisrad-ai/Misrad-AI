@@ -26,11 +26,19 @@ export async function setOperationsWorkOrderAssignedTechnicianForOrganizationId(
     if (!id) return { success: false, error: 'חסר מזהה קריאה' };
 
     if (technicianId) {
-      const tech = await prisma.profile.findFirst({
-        where: { id: technicianId, organizationId: params.organizationId },
-        select: { id: true },
-      });
-      if (!tech?.id) {
+      // Check Profile first, then NexusUser as fallback (covers members whose profile
+      // hasn't been lazily created yet)
+      const [profileHit, nexusHit] = await Promise.all([
+        prisma.profile.findFirst({
+          where: { id: technicianId, organizationId: params.organizationId },
+          select: { id: true },
+        }),
+        prisma.nexusUser.findFirst({
+          where: { id: technicianId, organizationId: params.organizationId },
+          select: { id: true },
+        }),
+      ]);
+      if (!profileHit?.id && !nexusHit?.id) {
         return { success: false, error: 'טכנאי לא תקין או שאין הרשאה' };
       }
 

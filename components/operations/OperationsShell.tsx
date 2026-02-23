@@ -198,7 +198,8 @@ export default function OperationsShell({
 
   return (
     <div
-      className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden relative"
+      className="flex h-[100dvh] w-full bg-[#f1f5f9] text-gray-900 overflow-hidden relative"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
       dir="rtl"
     >
       <ModuleBackground moduleKey="operations" />

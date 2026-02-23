@@ -49,24 +49,42 @@ export default async function OperationsWorkOrdersPage({
 
   const status = parseStatus(statusParam);
 
-  // Use cached workspace (layout already verified) + resolve user in parallel with project options
+  // Use cached workspace (layout already verified) + resolve project options in parallel
   const [workspace, projectOptionsRes] = await Promise.all([
     requireWorkspaceAccessByOrgSlug(orgSlug),
     getOperationsProjectOptions({ orgSlug }),
   ]);
 
-  // User resolution needs workspace.id, then work orders may need user.id for onlyMine filter
-  const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+  // When onlyMine is false, user resolution and work orders fetch are independent — run in parallel
+  let user: Awaited<ReturnType<typeof resolveWorkspaceCurrentUserForUiWithWorkspaceId>>;
+  let workOrdersRes: Awaited<ReturnType<typeof getOperationsWorkOrdersData>>;
 
-  const workOrdersRes = await getOperationsWorkOrdersData({
-    orgSlug,
-    status,
-    projectId: projectId ? String(projectId) : undefined,
-    assignedTechnicianId: onlyMine ? user.id : undefined,
-    search: search || undefined,
-    page,
-    limit: PAGE_SIZE,
-  });
+  if (onlyMine) {
+    user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+    workOrdersRes = await getOperationsWorkOrdersData({
+      orgSlug,
+      status,
+      projectId: projectId ? String(projectId) : undefined,
+      assignedTechnicianId: user.id,
+      search: search || undefined,
+      page,
+      limit: PAGE_SIZE,
+    });
+  } else {
+    const [u, wo] = await Promise.all([
+      resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
+      getOperationsWorkOrdersData({
+        orgSlug,
+        status,
+        projectId: projectId ? String(projectId) : undefined,
+        search: search || undefined,
+        page,
+        limit: PAGE_SIZE,
+      }),
+    ]);
+    user = u;
+    workOrdersRes = wo;
+  }
 
   const workOrders = workOrdersRes.success ? workOrdersRes.data?.workOrders ?? [] : [];
   const totalCount = workOrdersRes.success ? workOrdersRes.data?.totalCount ?? 0 : 0;

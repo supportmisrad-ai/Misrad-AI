@@ -114,8 +114,11 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
     const assignedTechnicianId = row.assigned_technician_id ? String(row.assigned_technician_id) : null;
     const ttlSeconds = 60 * 60;
 
-    // Phase 2a: Technician label + signature URL signing — independent, run in parallel
-    const [techResult, completionSignatureUrlResolved] = await Promise.all([
+    // Phase 2: Technician label + signature URL + stock source holder — all independent, run in parallel
+    const stockSourceHolderIdRaw = row.stock_source_holder_id ? String(row.stock_source_holder_id) : null;
+    const needsStockResolve = !stockSourceHolderIdRaw;
+
+    const [techResult, completionSignatureUrlResolved, resolvedStockHolderId] = await Promise.all([
       assignedTechnicianId
         ? prisma.profile.findFirst({
             where: { id: assignedTechnicianId, organizationId: params.organizationId },
@@ -127,21 +130,22 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
         ttlSeconds,
         { organizationId: params.organizationId, orgSlug: params.orgSlug || null }
       ),
+      needsStockResolve
+        ? (assignedTechnicianId
+            ? resolveDefaultOperationsStockSourceHolderIdForTechnician({
+                organizationId: params.organizationId,
+                technicianId: assignedTechnicianId,
+              })
+            : ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId })
+          ).catch(() => null as string | null)
+        : Promise.resolve(stockSourceHolderIdRaw),
     ]);
     const technicianLabel = techResult?.id ? String(techResult.fullName || techResult.email || techResult.id) : null;
+    const stockSourceHolderId: string | null = resolvedStockHolderId ?? stockSourceHolderIdRaw;
 
-    // Phase 2b: Stock source holder resolution (may write to DB if missing)
-    const stockSourceHolderIdRaw = row.stock_source_holder_id ? String(row.stock_source_holder_id) : null;
-    let stockSourceHolderId: string | null = stockSourceHolderIdRaw;
-    if (!stockSourceHolderId) {
-      stockSourceHolderId = assignedTechnicianId
-        ? await resolveDefaultOperationsStockSourceHolderIdForTechnician({
-            organizationId: params.organizationId,
-            technicianId: assignedTechnicianId,
-          })
-        : await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
-
-      await orgExec(
+    // Fire-and-forget: persist resolved stock source (non-blocking)
+    if (needsStockResolve && stockSourceHolderId) {
+      orgExec(
         prisma,
         params.organizationId,
         `
@@ -152,9 +156,10 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
             AND stock_source_holder_id IS NULL
         `,
         [stockSourceHolderId, id, params.organizationId]
-      );
+      ).catch(() => undefined);
     }
 
+    // Phase 3: Stock source label (needs holderId from Phase 2)
     const stockSourceLabel = stockSourceHolderId
       ? await resolveOperationsStockHolderLabel({ organizationId: params.organizationId, holderId: stockSourceHolderId })
       : null;

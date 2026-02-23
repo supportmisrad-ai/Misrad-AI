@@ -32,6 +32,7 @@ export const metadata: Metadata = getSystemMetadata();
 
 export const viewport: Viewport = {
   themeColor: getThemeColor(),
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

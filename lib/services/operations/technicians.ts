@@ -7,48 +7,51 @@ import { asObject, getUnknownErrorMessage, logOperationsError } from '@/lib/serv
 import { ensureOperationsVehicleHolderIdTx } from '@/lib/services/operations/stock-holders';
 import type { OperationsTechnicianOption } from '@/lib/services/operations/types';
 
-type TechnicianProfileRow = { id: string; email: string | null; fullName: string | null };
-
 export async function getOperationsTechnicianOptionsForOrganizationId(params: {
   organizationId: string;
 }): Promise<{ success: boolean; data?: OperationsTechnicianOption[]; error?: string }> {
   try {
-    const pageSize = 200;
-    const maxTotal = 2000;
-    let cursorId: string | null = null;
-    const profiles: Array<{ id: string; email: string | null; fullName: string | null }> = [];
-
-    for (;;) {
-      const rows = (await prisma.profile.findMany({
+    // Fetch profiles and nexus users in parallel — nexus_users is the fallback for members
+    // whose Profile hasn't been lazily created yet (race condition on first visit)
+    const [profiles, nexusUsers] = await Promise.all([
+      prisma.profile.findMany({
         where: { organizationId: params.organizationId },
         select: { id: true, email: true, fullName: true },
-        orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-        ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
-        take: pageSize,
-      })) as TechnicianProfileRow[];
+        orderBy: [{ fullName: 'asc' }, { id: 'asc' }],
+        take: 500,
+      }),
+      prisma.nexusUser.findMany({
+        where: { organizationId: params.organizationId },
+        select: { id: true, email: true, name: true },
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        take: 500,
+      }),
+    ]);
 
-      const list: TechnicianProfileRow[] = Array.isArray(rows) ? rows : [];
-      if (list.length === 0) break;
-      profiles.push(
-        ...list.map((r: TechnicianProfileRow) => ({ id: String(r.id), email: r.email ?? null, fullName: r.fullName ?? null }))
-      );
-      if (profiles.length >= maxTotal) break;
-      if (list.length < pageSize) break;
-      const last: TechnicianProfileRow | undefined = list[list.length - 1];
-      cursorId = last?.id ? String(last.id) : null;
-      if (!cursorId) break;
+    const seen = new Set<string>();
+    const options: OperationsTechnicianOption[] = [];
+
+    for (const p of profiles || []) {
+      const id = String(p.id || '').trim();
+      const name = p.fullName ? String(p.fullName).trim() : '';
+      const email = p.email ? String(p.email).trim().toLowerCase() : '';
+      const label = name || email || id;
+      if (!id || !label) continue;
+      seen.add(email || id);
+      options.push({ id, label });
     }
 
-    const options: OperationsTechnicianOption[] = (profiles || [])
-      .map((p) => {
-        const id = String(p.id || '').trim();
-        const name = p.fullName ? String(p.fullName).trim() : '';
-        const email = p.email ? String(p.email).trim().toLowerCase() : '';
-        const label = name || email || id;
-        if (!id || !label) return null;
-        return { id, label };
-      })
-      .filter(Boolean) as OperationsTechnicianOption[];
+    // Add nexus users not already covered by profiles (match by email)
+    for (const n of nexusUsers || []) {
+      const id = String(n.id || '').trim();
+      const name = n.name ? String(n.name).trim() : '';
+      const email = n.email ? String(n.email).trim().toLowerCase() : '';
+      const label = name || email || id;
+      if (!id || !label) continue;
+      if (seen.has(email || id)) continue;
+      seen.add(email || id);
+      options.push({ id, label });
+    }
 
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
     return { success: true, data: options };

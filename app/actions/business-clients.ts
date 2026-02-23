@@ -875,68 +875,79 @@ export async function syncOrganizationsToBusinessClients(): Promise<
           byOwner.get(key)!.push(org);
         }
 
+        // Batch: collect all owner emails to check existing business clients
+        const ownerEmails = new Set<string>();
+        for (const [, ownerOrgs] of byOwner) {
+          const email = ownerOrgs[0].owner?.email;
+          if (email) ownerEmails.add(email.toLowerCase());
+        }
+
+        // Batch lookup: find all existing business clients by email
+        const existingBizClients = ownerEmails.size > 0
+          ? await prisma.businessClient.findMany({
+              where: { primary_email: { in: Array.from(ownerEmails) } },
+              select: { id: true, primary_email: true },
+            })
+          : [];
+        const bizClientByEmail = new Map(existingBizClients.map((bc) => [bc.primary_email, bc.id]));
+
+        // Batch lookup: find all existing contacts for these business clients
+        const existingBizClientIds = existingBizClients.map((bc) => bc.id);
+        const existingContacts = existingBizClientIds.length > 0
+          ? await prisma.businessClientContact.findMany({
+              where: { client_id: { in: existingBizClientIds } },
+              select: { client_id: true, user_id: true },
+            })
+          : [];
+        const contactSet = new Set(existingContacts.map((c) => `${c.client_id}::${c.user_id}`));
+
         let created = 0;
         let linked = 0;
 
+        // Process each owner group — creates are sequential (need IDs), but we minimized reads
         for (const [, ownerOrgs] of byOwner) {
           const firstOrg = ownerOrgs[0];
           const ownerEmail = firstOrg.owner?.email || '';
           const ownerName = firstOrg.owner?.full_name || firstOrg.name;
+          const normalizedEmail = (ownerEmail || `org-${firstOrg.id}@placeholder.local`).toLowerCase();
 
-          // Check if a BusinessClient with this email already exists
-          let bizClient = ownerEmail
-            ? await prisma.businessClient.findUnique({
-                where: { primary_email: ownerEmail.toLowerCase() },
-                select: { id: true },
-              })
-            : null;
+          let bizClientId = bizClientByEmail.get(normalizedEmail);
 
-          if (!bizClient) {
-            // Create a new BusinessClient from the first org's data
-            bizClient = await prisma.businessClient.create({
+          if (!bizClientId) {
+            const newBizClient = await prisma.businessClient.create({
               data: {
                 company_name: ownerName,
-                primary_email: (ownerEmail || `org-${firstOrg.id}@placeholder.local`).toLowerCase(),
+                primary_email: normalizedEmail,
                 status: 'active',
                 lifecycle_stage: 'customer',
               },
               select: { id: true },
             });
+            bizClientId = newBizClient.id;
+            bizClientByEmail.set(normalizedEmail, bizClientId);
             created++;
           }
 
-          // Link the owner as a contact if they have a user record
-          if (firstOrg.owner?.id) {
-            const existingContact = await prisma.businessClientContact.findUnique({
-              where: {
-                client_id_user_id: {
-                  client_id: bizClient.id,
-                  user_id: firstOrg.owner.id,
-                },
+          // Link the owner as a contact if not already linked
+          if (firstOrg.owner?.id && !contactSet.has(`${bizClientId}::${firstOrg.owner.id}`)) {
+            await prisma.businessClientContact.create({
+              data: {
+                client_id: bizClientId,
+                user_id: firstOrg.owner.id,
+                role: 'owner',
+                is_primary: true,
               },
-              select: { id: true },
             });
-
-            if (!existingContact) {
-              await prisma.businessClientContact.create({
-                data: {
-                  client_id: bizClient.id,
-                  user_id: firstOrg.owner.id,
-                  role: 'owner',
-                  is_primary: true,
-                },
-              });
-            }
+            contactSet.add(`${bizClientId}::${firstOrg.owner.id}`);
           }
 
-          // Link all owner's orgs to this BusinessClient
-          for (const org of ownerOrgs) {
-            await prisma.organization.update({
-              where: { id: org.id },
-              data: { client_id: bizClient.id },
-            });
-            linked++;
-          }
+          // Batch update: link all owner's orgs to this BusinessClient
+          const orgIds = ownerOrgs.map((o) => o.id);
+          await prisma.organization.updateMany({
+            where: { id: { in: orgIds } },
+            data: { client_id: bizClientId },
+          });
+          linked += orgIds.length;
         }
 
         revalidatePath('/', 'layout');

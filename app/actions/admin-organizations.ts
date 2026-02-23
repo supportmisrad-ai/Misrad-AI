@@ -158,79 +158,83 @@ export async function getOrganizations(params?: {
             isSuperAdmin: true,
           },
           async () => {
-            const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
-            if (ownerIds.length) {
-              const owners = await prisma.organizationUser.findMany(
-                withPrismaTenantIsolationOverride({
-                  where: { id: { in: ownerIds as string[] } },
-                  select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
-                }, { suppressReporting: true, reason: 'admin_organizations_lookup_owners_by_id_list', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
-              );
+            const orgIds = (orgs || []).map((o) => o.id);
+            const clientIds = (orgs || []).map((o) => o.client_id).filter((id): id is string => Boolean(id));
 
-              for (const o of owners || []) {
-                ownersById[String(o.id)] = {
-                  id: String(o.id),
-                  email: o.email == null ? null : String(o.email),
-                  full_name: o.full_name == null ? null : String(o.full_name),
-                  clerk_user_id: String(o.clerk_user_id),
-                  role: o.role == null ? null : String(o.role),
-                };
-              }
+            const [ownersRaw, groupRaw, primaryClientsRaw, bizClientsRaw] = await Promise.all([
+              ownerIds.length
+                ? prisma.organizationUser.findMany(
+                    withPrismaTenantIsolationOverride({
+                      where: { id: { in: ownerIds as string[] } },
+                      select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
+                    }, { suppressReporting: true, reason: 'admin_organizations_lookup_owners_by_id_list', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
+                  )
+                : Promise.resolve([]),
+
+              orgIds.length
+                ? prisma.organizationUser.groupBy(
+                    withPrismaTenantIsolationOverride({
+                      by: ['organization_id'],
+                      where: { organization_id: { in: orgIds } },
+                      _count: { _all: true },
+                    }, { suppressReporting: true, reason: 'admin_organizations_group_members_count_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
+                  )
+                : Promise.resolve([]),
+
+              orgIds.length
+                ? prisma.clientClient.findMany(
+                    withPrismaTenantIsolationOverride(
+                      {
+                        where: { organizationId: { in: orgIds } },
+                        select: { id: true, organizationId: true },
+                        orderBy: [{ organizationId: Prisma.SortOrder.asc }, { createdAt: Prisma.SortOrder.asc }],
+                        distinct: [Prisma.ClientClientScalarFieldEnum.organizationId],
+                        take: orgIds.length,
+                      },
+                      { suppressReporting: true, reason: 'admin_organizations_primary_client_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
+                    )
+                  )
+                : Promise.resolve([]),
+
+              clientIds.length
+                ? prisma.businessClient.findMany(
+                    withPrismaTenantIsolationOverride(
+                      { where: { id: { in: clientIds } }, select: { id: true, company_name: true } },
+                      { suppressReporting: true, reason: 'admin_organizations_biz_client_names', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
+                    )
+                  )
+                : Promise.resolve([]),
+            ]);
+
+            const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
+            for (const o of ownersRaw || []) {
+              ownersById[String(o.id)] = {
+                id: String(o.id),
+                email: o.email == null ? null : String(o.email),
+                full_name: o.full_name == null ? null : String(o.full_name),
+                clerk_user_id: String(o.clerk_user_id),
+                role: o.role == null ? null : String(o.role),
+              };
             }
 
-            const orgIds = (orgs || []).map((o) => o.id);
             const membersCountByOrg: Record<string, number> = {};
-            if (orgIds.length) {
-              const group = await prisma.organizationUser.groupBy(
-                withPrismaTenantIsolationOverride({
-                  by: ['organization_id'],
-                  where: { organization_id: { in: orgIds } },
-                  _count: { _all: true },
-                }, { suppressReporting: true, reason: 'admin_organizations_group_members_count_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
-              );
-
-              for (const g of group || []) {
-                const key = String(g.organization_id || '');
-                if (!key) continue;
-                membersCountByOrg[key] = Number(g._count?._all || 0);
-              }
+            for (const g of groupRaw || []) {
+              const key = String(g.organization_id || '');
+              if (!key) continue;
+              membersCountByOrg[key] = Number(g._count?._all || 0);
             }
 
             const primaryClientByOrgId: Record<string, string> = {};
-            if (orgIds.length) {
-              const primaryClients = await prisma.clientClient.findMany(
-                withPrismaTenantIsolationOverride(
-                  {
-                    where: { organizationId: { in: orgIds } },
-                    select: { id: true, organizationId: true },
-                    orderBy: [{ organizationId: Prisma.SortOrder.asc }, { createdAt: Prisma.SortOrder.asc }],
-                    distinct: [Prisma.ClientClientScalarFieldEnum.organizationId],
-                    take: orgIds.length,
-                  },
-                  { suppressReporting: true, reason: 'admin_organizations_primary_client_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
-                )
-              );
-
-              for (const c of primaryClients || []) {
-                const orgId = c.organizationId ? String(c.organizationId) : '';
-                const clientId = c.id ? String(c.id) : '';
-                if (!orgId || !clientId) continue;
-                primaryClientByOrgId[orgId] = clientId;
-              }
+            for (const c of primaryClientsRaw || []) {
+              const orgId = c.organizationId ? String(c.organizationId) : '';
+              const clientId = c.id ? String(c.id) : '';
+              if (!orgId || !clientId) continue;
+              primaryClientByOrgId[orgId] = clientId;
             }
 
             const businessClientNameById: Record<string, string> = {};
-            const clientIds = (orgs || []).map((o) => o.client_id).filter((id): id is string => Boolean(id));
-            if (clientIds.length) {
-              const bizClients = await prisma.businessClient.findMany(
-                withPrismaTenantIsolationOverride(
-                  { where: { id: { in: clientIds } }, select: { id: true, company_name: true } },
-                  { suppressReporting: true, reason: 'admin_organizations_biz_client_names', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
-                )
-              );
-              for (const bc of bizClients || []) {
-                businessClientNameById[String(bc.id)] = String(bc.company_name);
-              }
+            for (const bc of bizClientsRaw || []) {
+              businessClientNameById[String(bc.id)] = String(bc.company_name);
             }
 
             return { ownersById, membersCountByOrg, primaryClientByOrgId, businessClientNameById };

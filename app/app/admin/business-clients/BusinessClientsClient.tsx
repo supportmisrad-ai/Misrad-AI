@@ -77,9 +77,9 @@ type BusinessClient = {
   [key: string]: unknown;
 };
 
-export default function BusinessClientsClient() {
-  const [clients, setClients] = useState<BusinessClient[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function BusinessClientsClient({ initialClients }: { initialClients?: BusinessClient[] }) {
+  const [clients, setClients] = useState<BusinessClient[]>(initialClients ?? []);
+  const [loading, setLoading] = useState(!initialClients?.length);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -105,7 +105,9 @@ export default function BusinessClientsClient() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialClients?.length) return;
     loadClients(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadClients = async (autoSync = false) => {
@@ -339,9 +341,9 @@ export default function BusinessClientsClient() {
         <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="min-w-0 space-y-1">
-              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">פעילים</p>
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">ארגונים פעילים</p>
               <p className="text-2xl sm:text-3xl font-black text-slate-900">
-                {clients.filter((c) => c.status === 'active').length}
+                {clients.reduce((sum, c) => sum + c.organizations.filter((o) => o.subscription_status === 'active').length, 0)}
               </p>
             </div>
             <div className="p-3 bg-green-50 rounded-xl shrink-0 flex items-center justify-center">
