@@ -43,7 +43,7 @@ export default function NexusMarketingPage() {
                 </div>
                 <div className="text-xs font-black text-slate-500">ניהול צוות</div>
                 <div className="mt-2 text-lg font-black">מי עושה מה ומתי</div>
-                <div className="mt-2 text-sm text-slate-600">תמונה רחבה, עומסים, משימות ותיעדוף.</div>
+                <div className="mt-2 text-sm text-slate-600">תמונה רחבה של עומסים, משימות ותיעדוף.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
@@ -66,8 +66,8 @@ export default function NexusMarketingPage() {
                   <Archive size={24} className="text-slate-700" />
                 </div>
                 <div className="text-xs font-black text-slate-500">ניהול נכסים</div>
-                <div className="mt-2 text-lg font-black">Assets Management</div>
-                <div className="mt-2 text-sm text-slate-600">ניהול נכסים, מסמכים, וקבצים ארגוניים.</div>
+                <div className="mt-2 text-lg font-black">נכסים ומסמכים</div>
+                <div className="mt-2 text-sm text-slate-600">ניהול נכסים, מסמכים וקבצים של הארגון במקום אחד.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">

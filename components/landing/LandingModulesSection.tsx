@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ClipboardCheck, ArrowLeft, Sparkles, Target, Rocket, Share2, Users, TrendingUp } from 'lucide-react';
+import { ClipboardCheck, ArrowLeft, Sparkles, Target, LayoutDashboard, Share2, HeartPulse, CreditCard, CircleCheckBig } from 'lucide-react';
 
 export function LandingModulesSection() {
   return (
@@ -18,54 +18,102 @@ export function LandingModulesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[
             {
-              name: 'Operations - מודול אופרציה',
-              title: 'שטח, מלאי וספקים',
-              desc: 'שיבוץ טכנאי חכם ב-AI, סיכום קריאות אוטומטי, צ׳אט שטח עם הקלטות קוליות, גלריית תמונות, ניהול מלאי ורכבים, מעקב SLA',
+              name: 'Operations',
+              nameHe: 'תפעול ושטח',
+              title: 'קריאות שירות, טכנאים ומלאי',
+              features: [
+                'שיבוץ טכנאי חכם ב-AI',
+                'סיכום קריאות אוטומטי',
+                'צ׳אט שטח עם הקלטות קוליות',
+                'גלריית תמונות לכל קריאה',
+                'ניהול מלאי ורכבים',
+                'מעקב SLA ודחיפות',
+              ],
               icon: ClipboardCheck,
               gradient: 'from-emerald-500 to-teal-600',
               href: '/operations'
             },
             {
-              name: 'System - מודול סיסטם',
-              title: 'ניהול מכירות ולידים',
-              desc: 'ניהול לידים, מרכזיית ענן, ניתוח מכירות ב-AI, ניהול קורס מכירות, סיוע AI להתנגדויות ב-LIVE, ליווי עסקאות, אוטומציות, דוחות',
+              name: 'System',
+              nameHe: 'מכירות ולידים',
+              title: 'Pipeline מכירות מליד עד סגירה',
+              features: [
+                'ניהול לידים עם Pipeline ויזואלי',
+                'חייגן מובנה + תיעוד שיחות',
+                'ניתוח סיכויי סגירה ב-AI',
+                'הצעות מחיר מקצועיות',
+                'אוטומציות ותזכורות Follow Up',
+                'דוחות מכירות ויעדים',
+              ],
               icon: Target,
-              gradient: 'from-blue-500 to-indigo-600',
+              gradient: 'from-rose-500 to-red-600',
               href: '/system'
             },
             {
-              name: 'Nexus - מודול נקסוס',
-              title: 'ניהול משימות, לקוחות וצוות',
-              desc: 'ניהול משימות, צוות, ניתוח התקדמות עסקי, דו"ח רווחיות עובדים ב-AI, שעון נוכחות, מעקב אחר התקדמות',
-              icon: Rocket,
-              gradient: 'from-purple-500 to-pink-600',
+              name: 'Nexus',
+              nameHe: 'ניהול צוות ומשימות',
+              title: 'חדר המנהלים של העסק',
+              features: [
+                'ניהול משימות עם לוח שנה',
+                'ניהול צוות והרשאות',
+                'ניתוח רווחיות עובדים ב-AI',
+                'שעון נוכחות + דוחות שעות',
+                'מעקב התקדמות ויעדים',
+                'חיבור לכל המודולים האחרים',
+              ],
+              icon: LayoutDashboard,
+              gradient: 'from-indigo-500 to-purple-600',
               href: '/nexus'
             },
             {
-              name: 'Social - מודול סושיאל',
-              title: 'שיווק, תוכן וקמפיינים',
-              desc: 'ניהול תוכן לרשתות, בניית אסטרטגיות שיווק, פוסטים, לוח שידורים, AI, מעקב קמפיינים',
+              name: 'Social',
+              nameHe: 'שיווק ותוכן',
+              title: 'יצירת תוכן וניהול קמפיינים',
+              features: [
+                'מכונת תוכן AI — פוסטים בקליק',
+                'לוח שידורים לכל הפלטפורמות',
+                'ניהול קמפיינים ומעקב ביצועים',
+                'בנק תוכן עם תבניות',
+                'ניתוח ביצועי פרסום ב-AI',
+                'ניהול לקוחות סושיאל (סוכנות)',
+              ],
               icon: Share2,
-              gradient: 'from-rose-500 to-orange-500',
+              gradient: 'from-purple-500 to-pink-600',
               href: '/the-authority'
             },
             {
-              name: 'Client - מודול קליינט',
-              title: 'ניהול ומעקב VIP ללקוחות',
-              desc: 'ניהול לקוחות, פגישות, תוכניות, ניהול קבוצות ומחזורים, מעקב אחר תהליך לקוח (פגישות/אימונים), פורטל ייעודי ללקוח למעקב וביצוע משימות, משוב, ניתוח הקלטות ופענוח פגישות ב-AI',
-              icon: Users,
-              gradient: 'from-amber-500 to-yellow-500',
+              name: 'Client',
+              nameHe: 'מערך לקוחות',
+              title: 'ניהול VIP ומעקב אישי',
+              features: [
+                'פורטל לקוח — הלקוח רואה הכל',
+                'ניהול פגישות + Zoom / Google Meet',
+                'ניהול קבוצות ומחזורי טיפול',
+                'מעקב אישי לכל לקוח (CRM)',
+                'משוב ודירוג אוטומטי',
+                'ניתוח פגישות ב-AI',
+              ],
+              icon: HeartPulse,
+              gradient: 'from-amber-500 to-orange-500',
               href: '/client'
             },
             {
-              name: 'Finance - מודול פיננס ',
-              title: 'אינטגרציה עם החשבוניות',
-              desc: 'חשבוניות, הוצאות, דוחות, אינטגרציה לחשבונית ירוקה (מורנינג) ועוד, ניהול כספים ותקציבים, אינטגרציה עם שאר המודולים להצעות מחיר וחשבוניות אוטומטיות',
-              icon: TrendingUp,
-              gradient: 'from-cyan-500 to-blue-500',
+              name: 'Finance',
+              nameHe: 'כספים וחשבוניות',
+              title: 'חשבוניות, הוצאות ודוחות',
+              features: [
+                'הנפקת חשבוניות בקליק',
+                'שליחה בוואטסאפ / מייל',
+                'ניהול הוצאות ותשלומים',
+                'דוחות הכנסות והוצאות',
+                'תזכורות גבייה אוטומטיות',
+                'חיבור לחשבונית ירוקה (מורנינג)',
+              ],
+              icon: CreditCard,
+              gradient: 'from-teal-500 to-emerald-600',
               href: '/finance-landing'
             },
           ].map((module) => {
@@ -80,27 +128,38 @@ export function LandingModulesSection() {
                 <div className={`absolute inset-0 bg-gradient-to-br ${module.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
                 
                 <div className="relative">
-                  {/* Icon */}
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform mb-3 sm:mb-4 md:mb-6`}>
-                    <Icon size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                  {/* Icon + Name */}
+                  <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${module.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                      <Icon size={18} className="sm:w-5 sm:h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        {module.name}
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-600">
+                        {module.nameHe}
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="mb-3 sm:mb-4">
-                    <div className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 sm:mb-2">
-                      {module.name}
-                    </div>
-                    <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight">
-                      {module.title}
-                    </h3>
-                  </div>
+                  {/* Title */}
+                  <h3 className="text-sm sm:text-base md:text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight mb-3 sm:mb-4">
+                    {module.title}
+                  </h3>
                   
-                  <p className="text-slate-600 leading-relaxed text-[11px] sm:text-xs md:text-sm">
-                    {module.desc}
-                  </p>
+                  {/* Features List */}
+                  <ul className="space-y-1.5 sm:space-y-2">
+                    {module.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-1.5 sm:gap-2">
+                        <CircleCheckBig size={14} className="sm:w-4 sm:h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-slate-600 text-[11px] sm:text-xs md:text-sm leading-snug">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
                   {/* Arrow */}
-                  <div className="mt-3 sm:mt-4 md:mt-6 flex items-center gap-2 text-xs sm:text-sm font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="mt-4 sm:mt-5 flex items-center gap-2 text-xs sm:text-sm font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
                     <span>למידע נוסף</span>
                     <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                   </div>

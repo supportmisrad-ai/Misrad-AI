@@ -17,7 +17,7 @@ export default async function TheAuthorityLandingPage() {
       bullets={[
         {
           title: 'ניהול קמפיינים',
-          desc: 'רואים את כל הפעילות השיווקית מול העיניים.',
+          desc: 'כל הפעילות השיווקית במקום אחד — ברור ומסודר.',
         },
         {
           title: 'תיק לקוח חכם',

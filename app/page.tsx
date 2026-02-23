@@ -5,9 +5,7 @@ import { Footer } from '@/components/landing/Footer';
 import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
-import { PartnersLogosSection } from '@/components/landing/PartnersLogosSection';
 import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
-import { LandingDeviceMockups } from '@/components/landing/LandingDeviceMockups';
 import { LandingModulesSection } from '@/components/landing/LandingModulesSection';
 import { LandingPricingCTA } from '@/components/landing/LandingPricingCTA';
 import { LandingValueProps } from '@/components/landing/LandingValueProps';
@@ -62,10 +60,12 @@ export default async function RootPage() {
 
       <main className="flex-1">
         <LandingHeroSection />
+        <LandingValueProps />
         <LandingModulesSection />
         <UnifiedBusinessSection />
         <KillerFeaturesBox id="features" />
         <AiManagementSection />
+        <ModularitySimplicitySection />
         <LandingPricingCTA />
         <TestimonialsSection />
         <SalesFaq variant="default" />
