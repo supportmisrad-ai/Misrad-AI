@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Star, Clock, Link as LinkIcon, CircleCheck, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, Pin, MessageSquare, Pencil } from 'lucide-react';
+import { getClientStatusLabel, getClientStatusColor } from '@/lib/status-labels';
 import { Client, SocialPlatform } from '@/types/social';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
@@ -95,10 +96,8 @@ export function ClientWorkspaceHeader({
               {activeClient.activePlatforms.length} רשתות
             </span>
           </div>
-          <span className={`px-3 py-1 rounded-lg font-black text-[9px] uppercase ${
-            activeClient.status === 'Active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-          }`}>
-            {activeClient.status === 'Active' ? 'פעיל' : 'בפיגור'}
+          <span className={`px-3 py-1 rounded-lg font-black text-[9px] ${getClientStatusColor(activeClient.status)}`}>
+            {getClientStatusLabel(activeClient.status)}
           </span>
         </div>
       </div>

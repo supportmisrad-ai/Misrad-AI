@@ -341,9 +341,10 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 5. Return success with file info
+        // IMPORTANT: `url` must always be a browser-safe URL (http/https), never sb://
         return NextResponse.json({
             success: true,
-            url: signedUrl || ref,
+            url: signedUrl || null,
             signedUrl: signedUrl || undefined,
             ref,
             path: filePath,

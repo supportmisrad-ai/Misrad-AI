@@ -12,6 +12,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 const PLANS = [
   { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
@@ -335,7 +336,7 @@ export default function AddClientModal() {
                     <div>
                       <label className="block text-sm font-black text-slate-400 mb-2">לוגו</label>
                       <div className="flex items-center gap-4">
-                        {logo && <img src={logo} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
+                        {safeBrowserUrl(logo) && <img src={safeBrowserUrl(logo)!} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}

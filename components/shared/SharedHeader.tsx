@@ -5,6 +5,7 @@ import { Search, Headphones, Bell } from 'lucide-react';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 export function SharedHeader({
@@ -75,9 +76,9 @@ export function SharedHeader({
         {mobileLeadingSlot ? <div className="shrink-0">{mobileLeadingSlot}</div> : null}
         <div className="relative w-8 h-8 rounded-xl shrink-0">
           <div className="absolute inset-0 rounded-xl flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">
-            {mobileBrand.logoUrl && !mobileBrandLogoFailed ? (
+            {safeBrowserUrl(mobileBrand.logoUrl) && !mobileBrandLogoFailed ? (
               <img
-                src={mobileBrand.logoUrl}
+                src={safeBrowserUrl(mobileBrand.logoUrl)!}
                 alt="Logo"
                 className="w-full h-full object-cover"
                 onError={() => setMobileBrandLogoFailed(true)}

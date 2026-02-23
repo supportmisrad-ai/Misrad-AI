@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings,
@@ -474,7 +475,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
         <div className="flex items-start gap-4">
           {initialData.logo ? (
-            <img src={initialData.logo} alt={initialData.name} className="w-16 h-16 rounded-xl object-cover" />
+            <img src={safeBrowserUrl(initialData.logo) || '/icons/misrad-icon.svg'} alt={initialData.name} className="w-16 h-16 rounded-xl object-cover" />
           ) : (
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <Building2 className="w-8 h-8 text-white" />

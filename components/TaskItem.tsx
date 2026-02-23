@@ -103,7 +103,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick }) => {
                 )}
                 {isHighImpact && (
                     <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[9px] uppercase font-black tracking-wide flex items-center gap-1">
-                        <Target size={10} /> Impact
+                        <Target size={10} /> השפעה
                     </span>
                 )}
             </h3>

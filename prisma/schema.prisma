@@ -3093,6 +3093,7 @@ model Organization {
   system_support_tickets                                               SystemSupportTicket[]
   attendanceMonthlyReports                                             AttendanceMonthlyReport[]
   attendanceSalaryConfig                                               AttendanceSalaryConfig?
+  botLeads                                                             BotLead[]
   @@index([owner_id])
   @@index([partnerId])
   @@map("organizations")
@@ -4689,6 +4690,61 @@ model MisradFieldVisit {
   @@index([agent_id])
   @@index([organization_id, scheduled_at])
   @@map("misrad_field_visits")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOT / WHATSAPP MODELS
+// ═══════════════════════════════════════════════════════════════════
+
+enum BotLeadStatus {
+  new
+  qualified
+  demo_booked
+  trial
+  customer
+  churned
+  unsubscribed
+}
+
+model BotLead {
+  id               String          @id @default(cuid())
+  phone            String          @unique
+  name             String?
+  business_name    String?
+  email            String?
+  industry         String?
+  org_size         String?
+  pain_point       String?
+  selected_plan    String?
+  source           String?
+  status           BotLeadStatus   @default(new)
+  score            Int             @default(0)
+  last_interaction DateTime        @default(now())
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+  conversations    BotConversation[]
+  organization_id  String?
+  organization     Organization?   @relation(fields: [organization_id], references: [id])
+
+  @@index([status])
+  @@index([created_at])
+  @@index([organization_id])
+  @@map("bot_leads")
+}
+
+model BotConversation {
+  id         String   @id @default(cuid())
+  lead_id    String
+  lead       BotLead  @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  direction  String
+  message    String
+  rule_id    String?
+  variables  Json?
+  created_at DateTime @default(now())
+
+  @@index([lead_id])
+  @@index([created_at])
+  @@map("bot_conversations")
 }
 
 // ═══════════════════════════════════════════════════════════════════

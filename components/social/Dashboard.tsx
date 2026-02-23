@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Calendar, Users, TrendingUp, Wallet, ChevronDown } from 'lucide-react';
 import { joinPath } from '@/lib/os/social-routing';
+import { getClientStatusLabel, getClientStatusDotColor } from '@/lib/status-labels';
 import DashboardActionsClient from '@/components/social/dashboard/DashboardActionsClient';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 import { useApp } from '@/contexts/AppContext';
@@ -225,8 +226,8 @@ export default function Dashboard({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${client.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm font-bold text-slate-600">{client.status}</span>
+                <div className={`w-3 h-3 rounded-full ${getClientStatusDotColor(client.status)}`}></div>
+                <span className="text-sm font-bold text-slate-600">{getClientStatusLabel(client.status)}</span>
               </div>
             </Link>
           ))}

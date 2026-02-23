@@ -10,6 +10,7 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 import { extractData } from '@/lib/shared/api-types';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface TenantsPanelProps {
     tenants: Tenant[];
@@ -237,7 +238,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                 <div key={`${tenant.id}-${index}`} className="bg-white/80 border border-slate-200 rounded-2xl p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <img src={tenant.logo} className="w-11 h-11 rounded-xl bg-white border border-slate-200 object-cover" />
+                                            <img src={safeBrowserUrl(tenant.logo) || '/icons/misrad-icon.svg'} className="w-11 h-11 rounded-xl bg-white border border-slate-200 object-cover" />
                                             <div className="min-w-0">
                                                 <div className="font-black text-slate-900 truncate">{tenant.name}</div>
                                                 <div className="text-[11px] text-indigo-400 flex items-center gap-1 font-mono truncate">
@@ -375,7 +376,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                 <tr key={`${tenant.id}-${index}`} className="hover:bg-slate-50/80 transition-colors group">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <img src={tenant.logo} className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 object-cover" />
+                                            <img src={safeBrowserUrl(tenant.logo) || '/icons/misrad-icon.svg'} className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 object-cover" />
                                             <div>
                                                 <div className="font-bold text-slate-900">{tenant.name}</div>
                                                 <div className="text-xs text-indigo-400 flex items-center gap-1 font-mono">

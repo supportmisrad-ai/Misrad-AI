@@ -13,6 +13,7 @@ import {
   Building2,
   Loader2,
 } from 'lucide-react';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface GuestMessage {
   id: string;
@@ -135,8 +136,8 @@ export function GuestTaskView({ token, task: initialTask, organization }: GuestT
       {/* Header */}
       <header className="h-16 md:h-20 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-4 md:px-12 sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          {organization.logo ? (
-            <img src={organization.logo} alt="" className="w-10 h-10 rounded-xl object-cover" />
+          {safeBrowserUrl(organization.logo) ? (
+            <img src={safeBrowserUrl(organization.logo)!} alt="" className="w-10 h-10 rounded-xl object-cover" />
           ) : (
             <div className="w-10 h-10 bg-gradient-to-br from-gray-900 to-gray-700 rounded-xl flex items-center justify-center shadow-lg">
               <Building2 size={18} className="text-white" />

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface PartnerLogo {
     id: string;
@@ -415,7 +416,7 @@ export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHea
                                     <label className="block text-sm font-bold text-slate-900 mb-2">לוגו</label>
                                     {newLogo.logo ? (
                                         <div className="mb-3">
-                                            <img src={newLogo.logo} alt="Preview" className="max-w-full max-h-32 object-contain bg-slate-50 border border-slate-200 rounded-lg p-4" />
+                                            <img src={safeBrowserUrl(newLogo.logo) || ''} alt="Preview" className="max-w-full max-h-32 object-contain bg-slate-50 border border-slate-200 rounded-lg p-4" />
                                         </div>
                                     ) : null}
                                     <label className="cursor-pointer">

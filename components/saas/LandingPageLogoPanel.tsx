@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Button } from '@/components/ui/button';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
@@ -124,8 +125,8 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                         {/* Logo Preview */}
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shadow-xl">
-                                {logo ? (
-                                    <img src={logo} alt="Landing Page Logo" className="w-full h-full object-contain p-4" />
+                                {safeBrowserUrl(logo) ? (
+                                    <img src={safeBrowserUrl(logo)!} alt="Landing Page Logo" className="w-full h-full object-contain p-4" />
                                 ) : (
                                     <div className="text-slate-500 flex flex-col items-center gap-2">
                                         <Image size={32} />
@@ -203,7 +204,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                 <div className="flex items-center gap-2">
                                     {logo ? (
                                         <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-indigo-600/20 border border-indigo-500/30">
-                                            <img src={logo} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                                            <img src={safeBrowserUrl(logo)!} alt="Logo" className="w-full h-full object-contain p-1.5" />
                                         </div>
                                     ) : (
                                         <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">

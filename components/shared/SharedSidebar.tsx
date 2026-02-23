@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal } from 'lucide-r
 import { motion, AnimatePresence } from 'framer-motion';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 export type SharedNavItem = {
   label: string;
@@ -108,8 +109,8 @@ export function SharedSidebar({
               >
                 <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-[color:var(--os-sidebar-logo-surface,#ffffff)] border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
                   <div className="absolute inset-0 overflow-hidden rounded-xl">
-                    {brand.logoUrl ? (
-                      <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
+                    {safeBrowserUrl(brand.logoUrl) ? (
+                      <img src={safeBrowserUrl(brand.logoUrl)!} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
                     ) : (
                       brand.fallbackIcon || null
                     )}

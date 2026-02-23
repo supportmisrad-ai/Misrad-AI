@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Image, Upload, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,10 +102,13 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
       }
 
       const upload = await uploadRes.json().catch(() => null);
-      const url = String(upload?.ref || upload?.url || '');
-      if (!url) throw new Error('לא התקבל URL מהעלאה');
+      const ref = String(upload?.ref || '').trim();
+      const displayUrl = safeBrowserUrl(upload?.signedUrl) || safeBrowserUrl(upload?.url);
+      if (!ref && !displayUrl) throw new Error('לא התקבל URL מהעלאה');
 
-      await saveDefaultLogoUrl(url);
+      // Save the sb:// ref (or display URL) to DB; show display URL locally
+      await saveDefaultLogoUrl(ref || displayUrl);
+      if (displayUrl) setDefaultLogoUrl(displayUrl);
     } catch (err: unknown) {
       alert((err instanceof Error ? err.message : String(err)) || 'שגיאה');
     } finally {
@@ -142,8 +146,8 @@ export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHe
               <div className="w-24 h-24 rounded-2xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
                 {isLoading ? (
                   <Skeleton className="w-7 h-7 rounded-full" />
-                ) : defaultLogoUrl ? (
-                  <img src={defaultLogoUrl} alt="Default Logo" className="w-full h-full object-contain p-3" />
+                ) : safeBrowserUrl(defaultLogoUrl) ? (
+                  <img src={safeBrowserUrl(defaultLogoUrl)!} alt="Default Logo" className="w-full h-full object-contain p-3" />
                 ) : (
                   <div className="flex flex-col items-center gap-2 text-slate-500">
                     <Image size={28} />

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
 import type { Lead } from '@/types';
 
-type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra';
+type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot';
 const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v2';
 
 function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
@@ -54,6 +54,9 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/global/links')) return 'content';
   if (p.startsWith('/app/admin/global/work-listings')) return 'content';
 
+  // bot
+  if (p.startsWith('/app/admin/bot')) return 'bot';
+
   // infra
   if (p.startsWith('/app/admin/modules')) return 'infra';
   if (p.startsWith('/app/admin/system-flags')) return 'infra';
@@ -72,7 +75,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   return null;
 }
 
-const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra'];
+const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot'];
 
 function isAdminArea(value: unknown): value is AdminArea {
   return ADMIN_AREAS.includes(value as AdminArea);
@@ -85,6 +88,7 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   product: { label: 'מוצר', description: 'מודולים · בקרה · הגדרות' },
   content: { label: 'תוכן', description: 'נחיתה · מיילים · סרטונים' },
   infra: { label: 'מערכת', description: 'תשתית · לוגים · AI · דאטה' },
+  bot: { label: 'בוט', description: 'וואטסאפ · לידים · שיחות' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -248,6 +252,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/global/data', label: 'דאטה', icon: Server },
       { href: '/app/admin/global/downloads', label: 'הורדות', icon: Server },
       { href: '/app/admin/global/cron-testing', label: 'טסט CRON', icon: Zap },
+    ],
+    bot: [
+      { href: '/app/admin/bot', label: 'דשבורד בוט', icon: MessageSquare },
     ],
   }), []);
 

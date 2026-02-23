@@ -56,6 +56,39 @@ const GreenInvoiceDocumentsListResponseSchema = z
 
 type GreenInvoiceDocumentsListResponse = z.infer<typeof GreenInvoiceDocumentsListResponseSchema>;
 
+/**
+ * Green Invoice Document Types
+ * https://www.greeninvoice.co.il/help-center/api/
+ */
+export const GreenInvoiceDocumentType = {
+    /** הצעת מחיר */
+    QUOTE: 100,
+    /** הזמנת עבודה */
+    WORK_ORDER: 200,
+    /** תעודת משלוח */
+    DELIVERY_NOTE: 210,
+    /** חשבונית (ללא קבלה) */
+    INVOICE: 320,
+    /** חשבונית מס / קבלה */
+    INVOICE_RECEIPT: 305,
+    /** קבלה */
+    RECEIPT: 400,
+    /** חשבונית זיכוי */
+    CREDIT_NOTE: 330,
+} as const;
+
+export type GreenInvoiceDocumentTypeValue = (typeof GreenInvoiceDocumentType)[keyof typeof GreenInvoiceDocumentType];
+
+export const DOCUMENT_TYPE_LABELS: Record<number, string> = {
+    [GreenInvoiceDocumentType.QUOTE]: 'הצעת מחיר',
+    [GreenInvoiceDocumentType.WORK_ORDER]: 'הזמנת עבודה',
+    [GreenInvoiceDocumentType.DELIVERY_NOTE]: 'תעודת משלוח',
+    [GreenInvoiceDocumentType.INVOICE]: 'חשבונית',
+    [GreenInvoiceDocumentType.INVOICE_RECEIPT]: 'חשבונית מס / קבלה',
+    [GreenInvoiceDocumentType.RECEIPT]: 'קבלה',
+    [GreenInvoiceDocumentType.CREDIT_NOTE]: 'חשבונית זיכוי',
+};
+
 type GreenInvoiceClientPayload = {
     name: string;
     emails: string[];
@@ -132,98 +165,91 @@ export async function getGreenInvoiceApiKey(userId: string, organizationId: stri
  * @param invoiceData - Invoice data
  * @returns Created invoice ID and URL
  */
-export async function createInvoice(
-    userId: string,
-    invoiceData: {
-        clientName: string;
-        clientEmail?: string;
-        clientPhone?: string;
-        clientId?: string; // Green Invoice client ID (if exists)
-        items: Array<{
-            description: string;
-            quantity: number;
-            price: number;
-            vatRate?: number; // Default: 17%
-        }>;
-        currency?: string; // Default: 'ILS'
-        paymentMethod?: 'cash' | 'bank_transfer' | 'credit_card' | 'check';
-        dueDate?: string; // ISO date string
-        notes?: string;
-        design?: {
-            templateId?: number;
-            primaryColor?: string;
-            secondaryColor?: string;
-            logoUrl?: string;
-            fontFamily?: string;
-            headerText?: string;
-            footerText?: string;
-        };
-    }
-    ,
-    organizationId: string
-): Promise<{
-    invoiceId: string;
-    invoiceNumber: string;
-    invoiceUrl: string;
+export type DocumentInput = {
+    clientName: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    clientId?: string;
+    items: Array<{
+        description: string;
+        quantity: number;
+        price: number;
+        vatRate?: number;
+    }>;
+    currency?: string;
+    paymentMethod?: 'cash' | 'bank_transfer' | 'credit_card' | 'check';
+    dueDate?: string;
+    notes?: string;
+    design?: {
+        templateId?: number;
+        primaryColor?: string;
+        secondaryColor?: string;
+        logoUrl?: string;
+        fontFamily?: string;
+        headerText?: string;
+        footerText?: string;
+    };
+};
+
+export type DocumentResult = {
+    documentId: string;
+    documentNumber: string;
+    documentUrl: string;
     pdfUrl?: string;
-} | null> {
+    documentType: number;
+    documentTypeLabel: string;
+};
+
+/**
+ * Generic document creation via Green Invoice API.
+ * All specific functions (createInvoice, createQuote, createReceipt, etc.) delegate here.
+ */
+export async function createDocument(
+    userId: string,
+    documentType: GreenInvoiceDocumentTypeValue,
+    data: DocumentInput,
+    organizationId: string
+): Promise<DocumentResult | null> {
     const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
-    
+
     if (!apiKey) {
         throw new Error('Green Invoice API key not configured. Please connect your account first.');
     }
 
     try {
-        // Prepare invoice payload for Green Invoice API
         const payload: GreenInvoiceDocumentCreatePayload = {
-            type: 320, // Invoice type (320 = Invoice)
-            client: invoiceData.clientId
-                ? String(invoiceData.clientId)
+            type: documentType,
+            client: data.clientId
+                ? String(data.clientId)
                 : {
-                    name: String(invoiceData.clientName),
-                    emails: invoiceData.clientEmail ? [String(invoiceData.clientEmail)] : [],
-                    phones: invoiceData.clientPhone ? [String(invoiceData.clientPhone)] : [],
+                    name: String(data.clientName),
+                    emails: data.clientEmail ? [String(data.clientEmail)] : [],
+                    phones: data.clientPhone ? [String(data.clientPhone)] : [],
                 },
             payment: {
-                method: String(invoiceData.paymentMethod || 'bank_transfer'),
-                date: String(invoiceData.dueDate || new Date().toISOString().split('T')[0]),
+                method: String(data.paymentMethod || 'bank_transfer'),
+                date: String(data.dueDate || new Date().toISOString().split('T')[0]),
             },
-            items: invoiceData.items.map((item): GreenInvoiceDocumentItemPayload => ({
+            items: data.items.map((item): GreenInvoiceDocumentItemPayload => ({
                 description: String(item.description),
                 quantity: Number(item.quantity),
                 price: Number(item.price),
                 vatRate: Number(item.vatRate ?? 17) || 17,
             })),
-            currency: String(invoiceData.currency || 'ILS'),
-            notes: String(invoiceData.notes || ''),
+            currency: String(data.currency || 'ILS'),
+            notes: String(data.notes || ''),
         };
 
-        // Add custom design options if provided
-        if (invoiceData.design) {
-            if (invoiceData.design.templateId) {
-                payload.templateId = invoiceData.design.templateId;
-            }
-            if (invoiceData.design.primaryColor) {
-                payload.primaryColor = invoiceData.design.primaryColor;
-            }
-            if (invoiceData.design.secondaryColor) {
-                payload.secondaryColor = invoiceData.design.secondaryColor;
-            }
-            if (invoiceData.design.logoUrl) {
-                payload.logoUrl = invoiceData.design.logoUrl;
-            }
-            if (invoiceData.design.fontFamily) {
-                payload.fontFamily = invoiceData.design.fontFamily;
-            }
-            if (invoiceData.design.headerText) {
-                payload.headerText = invoiceData.design.headerText;
-            }
-            if (invoiceData.design.footerText) {
-                payload.footerText = invoiceData.design.footerText;
-            }
+        if (data.design) {
+            if (data.design.templateId) payload.templateId = data.design.templateId;
+            if (data.design.primaryColor) payload.primaryColor = data.design.primaryColor;
+            if (data.design.secondaryColor) payload.secondaryColor = data.design.secondaryColor;
+            if (data.design.logoUrl) payload.logoUrl = data.design.logoUrl;
+            if (data.design.fontFamily) payload.fontFamily = data.design.fontFamily;
+            if (data.design.headerText) payload.headerText = data.design.headerText;
+            if (data.design.footerText) payload.footerText = data.design.footerText;
         }
 
-        // Call Green Invoice API
         const response = await fetch(`${GREEN_INVOICE_API_URL}/documents`, {
             method: 'POST',
             headers: {
@@ -245,7 +271,7 @@ export async function createInvoice(
         const resultJson: unknown = await response.json();
         const parsed = GreenInvoiceDocumentResponseSchema.safeParse(resultJson);
         if (!parsed.success) {
-            captureIntegrationException(parsed.error, { action: 'createInvoice', stage: 'parse_response' });
+            captureIntegrationException(parsed.error, { action: 'createDocument', stage: 'parse_response', documentType });
             throw new Error('Green Invoice API returned unexpected response');
         }
         const result: GreenInvoiceDocumentResponse = parsed.data;
@@ -271,8 +297,9 @@ export async function createInvoice(
                         last_synced_at: new Date(),
                         metadata: {
                             ...prevMeta,
-                            lastInvoiceId: String(result.id),
-                            lastInvoiceNumber: String(result.number),
+                            lastDocumentId: String(result.id),
+                            lastDocumentNumber: String(result.number),
+                            lastDocumentType: documentType,
                         },
                         updated_at: new Date(),
                     },
@@ -281,17 +308,75 @@ export async function createInvoice(
         }
 
         return {
-            invoiceId: String(result.id),
-            invoiceNumber: String(result.number),
-            invoiceUrl: result.url ? String(result.url) : '',
-            pdfUrl: result.pdfUrl ? String(result.pdfUrl) : undefined
+            documentId: String(result.id),
+            documentNumber: String(result.number),
+            documentUrl: result.url ? String(result.url) : '',
+            pdfUrl: result.pdfUrl ? String(result.pdfUrl) : undefined,
+            documentType,
+            documentTypeLabel: DOCUMENT_TYPE_LABELS[documentType] || 'מסמך',
         };
-
     } catch (error: unknown) {
-        captureIntegrationException(error, { action: 'createInvoice', userId: String(userId), organizationId: String(organizationId) });
-        console.error('[Green Invoice] Error creating invoice:', error);
+        captureIntegrationException(error, { action: 'createDocument', userId: String(userId), organizationId: String(organizationId), documentType });
+        console.error(`[Green Invoice] Error creating document (type ${documentType}):`, error);
         throw error;
     }
+}
+
+/**
+ * Create invoice (חשבונית) — type 320
+ * Backward-compatible wrapper around createDocument
+ */
+export async function createInvoice(
+    userId: string,
+    invoiceData: DocumentInput,
+    organizationId: string
+): Promise<{
+    invoiceId: string;
+    invoiceNumber: string;
+    invoiceUrl: string;
+    pdfUrl?: string;
+} | null> {
+    const result = await createDocument(userId, GreenInvoiceDocumentType.INVOICE, invoiceData, organizationId);
+    if (!result) return null;
+    return {
+        invoiceId: result.documentId,
+        invoiceNumber: result.documentNumber,
+        invoiceUrl: result.documentUrl,
+        pdfUrl: result.pdfUrl,
+    };
+}
+
+/**
+ * Create quote / price proposal (הצעת מחיר) — type 100
+ */
+export async function createQuote(
+    userId: string,
+    quoteData: DocumentInput,
+    organizationId: string
+): Promise<DocumentResult | null> {
+    return createDocument(userId, GreenInvoiceDocumentType.QUOTE, quoteData, organizationId);
+}
+
+/**
+ * Create receipt (קבלה) — type 400
+ */
+export async function createReceipt(
+    userId: string,
+    receiptData: DocumentInput,
+    organizationId: string
+): Promise<DocumentResult | null> {
+    return createDocument(userId, GreenInvoiceDocumentType.RECEIPT, receiptData, organizationId);
+}
+
+/**
+ * Create invoice + receipt combo (חשבונית מס / קבלה) — type 305
+ */
+export async function createInvoiceReceipt(
+    userId: string,
+    data: DocumentInput,
+    organizationId: string
+): Promise<DocumentResult | null> {
+    return createDocument(userId, GreenInvoiceDocumentType.INVOICE_RECEIPT, data, organizationId);
 }
 
 /**

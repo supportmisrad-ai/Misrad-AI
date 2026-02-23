@@ -1,7 +1,8 @@
 /**
- * Create Invoice Modal with Custom Design Options
+ * Create Invoice / Document Modal with Custom Design Options
  * 
- * Modal for creating invoices via מורנינג with custom design, colors, and styling
+ * Modal for creating invoices, quotes, receipts via מורנינג with custom design, colors, and styling
+ * Supports document types: חשבונית (320), הצעת מחיר (100), חשבונית מס/קבלה (305), קבלה (400)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +16,19 @@ import PaywallModal from '@/components/shared/PaywallModal';
 import { Skeleton } from '@/components/ui/skeletons';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
+type DocumentTypeOption = {
+    value: number;
+    label: string;
+    description: string;
+};
+
+const DOCUMENT_TYPES: DocumentTypeOption[] = [
+    { value: 320, label: 'חשבונית', description: 'חשבונית רגילה ללא קבלה' },
+    { value: 100, label: 'הצעת מחיר', description: 'הצעת מחיר ללקוח' },
+    { value: 305, label: 'חשבונית מס / קבלה', description: 'חשבונית מס עם קבלה מובנית' },
+    { value: 400, label: 'קבלה', description: 'קבלה על תשלום שהתקבל' },
+];
+
 interface CreateInvoiceModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -24,6 +38,7 @@ interface CreateInvoiceModalProps {
     clientPhone?: string;
     defaultAmount?: number;
     defaultDescription?: string;
+    defaultDocumentType?: number;
 }
 
 export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
@@ -34,12 +49,14 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     clientEmail,
     clientPhone,
     defaultAmount = 0,
-    defaultDescription = ''
+    defaultDescription = '',
+    defaultDocumentType = 320
 }) => {
     useBackButtonClose(isOpen, onClose);
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
 
+    const [documentType, setDocumentType] = useState(defaultDocumentType);
     const [amount, setAmount] = useState(defaultAmount.toString());
     const [description, setDescription] = useState(defaultDescription);
     const [quantity, setQuantity] = useState('1');
@@ -107,27 +124,39 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                 ...(footerText && { footerText })
             } : undefined;
 
-            const response = await fetch('/api/integrations/green-invoice/create', {
+            // Use the new generic endpoint for all document types
+            const endpoint = documentType === 320
+                ? '/api/integrations/green-invoice/create'
+                : '/api/integrations/green-invoice/create-document';
+
+            const bodyPayload: Record<string, unknown> = {
+                clientName,
+                clientEmail,
+                clientPhone,
+                items: [{
+                    description,
+                    quantity: Number(quantity) || 1,
+                    price: Number(amount),
+                    vatRate: Number(vatRate) || 17
+                }],
+                currency: 'ILS',
+                paymentMethod: 'bank_transfer',
+                notes,
+                ...(designOptions && { design: designOptions }),
+            };
+
+            // For non-invoice types, add documentType to payload
+            if (documentType !== 320) {
+                bodyPayload.documentType = documentType;
+            }
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
-                body: JSON.stringify({
-                    clientName,
-                    clientEmail,
-                    clientPhone,
-                    items: [{
-                        description,
-                        quantity: Number(quantity) || 1,
-                        price: Number(amount),
-                        vatRate: Number(vatRate) || 17
-                    }],
-                    currency: 'ILS',
-                    paymentMethod: 'bank_transfer',
-                    notes,
-                    ...(designOptions && { design: designOptions })
-                })
+                body: JSON.stringify(bodyPayload)
             });
 
             if (!response.ok) {
@@ -145,7 +174,8 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             }
 
             const result = await response.json();
-            onSuccess(result.invoice.invoiceUrl || result.invoice.pdfUrl || '');
+            const doc = result.invoice || result.document;
+            onSuccess(doc?.invoiceUrl || doc?.documentUrl || doc?.pdfUrl || '');
             onClose();
             
             // Reset form
@@ -255,7 +285,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                                 <FileText size={20} className="text-green-600" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-lg text-gray-900">יצירת חשבונית</h3>
+                                <h3 className="font-bold text-lg text-gray-900">
+                                    {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'יצירת מסמך'}
+                                </h3>
                                 <p className="text-xs text-gray-500">לקוח: {clientName}</p>
                             </div>
                         </div>
@@ -268,6 +300,31 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     </div>
 
                     <div className="p-6 space-y-6">
+                        {/* Document Type Selector */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                סוג מסמך
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {DOCUMENT_TYPES.map((dt) => (
+                                    <button
+                                        key={dt.value}
+                                        type="button"
+                                        onClick={() => setDocumentType(dt.value)}
+                                        disabled={isCreating}
+                                        className={`p-3 rounded-xl border-2 text-right transition-all ${
+                                            documentType === dt.value
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-gray-200 bg-white hover:border-gray-300'
+                                        } disabled:opacity-50`}
+                                    >
+                                        <div className="font-bold text-sm text-gray-900">{dt.label}</div>
+                                        <div className="text-[10px] text-gray-500 mt-0.5">{dt.description}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Basic Invoice Details */}
                         <div className="space-y-4">
                             <div>
@@ -536,12 +593,12 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                             {isCreating ? (
                                 <>
                                     <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
-                                    יוצר חשבונית...
+                                    יוצר {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'מסמך'}...
                                 </>
                             ) : (
                                 <>
                                     <Check size={16} />
-                                    צור חשבונית
+                                    צור {DOCUMENT_TYPES.find(d => d.value === documentType)?.label || 'מסמך'}
                                 </>
                             )}
                         </button>

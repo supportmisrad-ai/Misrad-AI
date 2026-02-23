@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const rows = require('./whatsapp-bot-rules.cjs');
+const rows = require('./whatsapp-bot-rules-v2.cjs');
 
 // Build conceptual-number → array-index mapping
 const numMap = {};

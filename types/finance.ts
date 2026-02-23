@@ -4,6 +4,16 @@ export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' 
 
 export type IntegrationType = 'green_invoice' | 'morning' | 'none';
 
+export type DocumentType = 'invoice' | 'quote' | 'receipt' | 'invoice_receipt' | 'credit_note';
+
+export const DOCUMENT_TYPE_CODE: Record<DocumentType, number> = {
+  quote: 100,
+  invoice: 320,
+  invoice_receipt: 305,
+  receipt: 400,
+  credit_note: 330,
+};
+
 export interface Invoice {
   id: string;
   number: string;
@@ -21,6 +31,7 @@ export interface Invoice {
   notes?: string;
   externalId?: string; // ID from Green Invoice/Morning
   integrationType?: IntegrationType;
+  documentType?: DocumentType;
 }
 
 export interface InvoiceItem {

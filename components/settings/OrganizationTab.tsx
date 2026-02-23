@@ -6,6 +6,7 @@ import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { usePathname } from 'next/navigation';
 import { getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
 import { saveWorkspaceLogo } from '@/app/actions/workspace-branding';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 export const OrganizationTab: React.FC = () => {
     const { organization, updateOrganization, addToast, users } = useData();
@@ -97,9 +98,9 @@ export const OrganizationTab: React.FC = () => {
                 throw new Error('error' in saveRes ? saveRes.error : 'שגיאה בשמירה');
             }
 
-            // Update local state with the signed URL for display
-            const signedUrl = String(uploaded?.signedUrl || uploaded?.url || logoRef);
-            updateOrganization({ logo: signedUrl });
+            // Update local state with the signed URL for display (never sb://)
+            const displayUrl = safeBrowserUrl(uploaded?.signedUrl) || safeBrowserUrl(uploaded?.url);
+            updateOrganization({ logo: displayUrl || previewUrl });
             setUploadProgress(100);
             addToast('לוגו הארגון עודכן ונשמר בהצלחה', 'success');
 
@@ -308,8 +309,8 @@ export const OrganizationTab: React.FC = () => {
                     <div className="flex flex-col items-center gap-5">
                         <div className="relative">
                             <div className="w-32 h-32 rounded-3xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden shadow-inner relative">
-                                {organization.logo ? (
-                                    <img src={organization.logo} alt="Organization Logo" className="w-full h-full object-contain p-4" suppressHydrationWarning />
+                                {safeBrowserUrl(organization.logo) ? (
+                                    <img src={safeBrowserUrl(organization.logo)!} alt="Organization Logo" className="w-full h-full object-contain p-4" suppressHydrationWarning />
                                 ) : (
                                     <div className="text-gray-500 flex flex-col items-center gap-2">
                                         <Image size={32} />
@@ -423,8 +424,8 @@ export const OrganizationTab: React.FC = () => {
                         <p className="text-xs text-blue-600 mb-3 font-bold uppercase tracking-wide">תצוגה מקדימה בסרגל הניווט</p>
                         <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm p-3 pr-4 pl-6 rounded-2xl border border-blue-100 shadow-sm">
                             <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 overflow-hidden flex items-center justify-center shadow-sm">
-                                {organization.logo ? (
-                                    <img src={organization.logo} className="w-full h-full object-contain p-1" suppressHydrationWarning />
+                                {safeBrowserUrl(organization.logo) ? (
+                                    <img src={safeBrowserUrl(organization.logo)!} className="w-full h-full object-contain p-1" suppressHydrationWarning />
                                 ) : (
                                     <div className="w-3 h-3 bg-black rounded-full" />
                                 )}

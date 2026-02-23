@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Building2, Edit, Plus, Save, X, RefreshCw, Upload } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { generateOrgSlug } from '@/lib/shared/orgSlug';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 import {
   createOrganization,
   getOrganizations,
@@ -505,7 +506,7 @@ export default function OrganizationsTab() {
                       ) : (
                         <div className="flex items-start gap-3">
                           <img
-                            src={org.logo || '/icons/misrad-icon.svg'}
+                            src={safeBrowserUrl(org.logo) || '/icons/misrad-icon.svg'}
                             alt={org.name || 'org'}
                             className="w-10 h-10 rounded-xl border border-indigo-100 bg-white object-contain"
                             loading="lazy"

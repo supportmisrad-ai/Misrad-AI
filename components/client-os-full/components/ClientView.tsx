@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
 import { generateClientInsight } from '../services/geminiService';
-import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe } from 'lucide-react';
+import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe, FileUp } from 'lucide-react';
+import SmartImportClientsDialog from '@/components/client-os-full/SmartImportClientsDialog';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 import { ClientPulseTab } from './client-tabs/ClientPulseTab';
 import { ClientStrategyTab } from './client-tabs/ClientStrategyTab';
@@ -25,6 +27,8 @@ import { getClientOsOrgId } from '../lib/getOrgId';
 const ClientView: React.FC = () => {
   const { clients: contextClients, meetings: contextMeetings, refreshClients } = useNexus();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug || '', [pathname]);
   const [clients, setClients] = useState<Client[]>(contextClients);
   const [viewMode, setViewMode] = useState<'LIST' | 'DETAIL'>('LIST');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -38,6 +42,7 @@ const ClientView: React.FC = () => {
   const [newClientEmail, setNewClientEmail] = useState('');
   const [createClientError, setCreateClientError] = useState<string | null>(null);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   useEffect(() => {
     const onCreateClient = () => {
@@ -248,6 +253,13 @@ const ClientView: React.FC = () => {
                        </div>
 
                        <button
+                           onClick={() => setShowImportDialog(true)}
+                           className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap bg-white text-slate-700 border-slate-200 hover:border-nexus-primary hover:text-nexus-primary"
+                       >
+                           <FileUp size={14} /> ייבוא מקובץ
+                       </button>
+
+                       <button
                            onClick={() => {
                                setCreateClientError(null);
                                setIsCreateClientOpen(true);
@@ -376,6 +388,14 @@ const ClientView: React.FC = () => {
                        </div>
                    )}
                </div>
+               {orgSlug ? (
+                 <SmartImportClientsDialog
+                   orgSlug={orgSlug}
+                   open={showImportDialog}
+                   onCloseAction={() => setShowImportDialog(false)}
+                   onImportedAction={() => void refreshClients()}
+                 />
+               ) : null}
           </div>
       );
   }
@@ -554,6 +574,14 @@ const ClientView: React.FC = () => {
            {activeTab === 'transform' && <ClientTransformTab client={client} />}
            {activeTab === 'feedback' && <ClientFeedbackTab feedback={clientFeedback} />}
       </div>
+      {orgSlug ? (
+        <SmartImportClientsDialog
+          orgSlug={orgSlug}
+          open={showImportDialog}
+          onCloseAction={() => setShowImportDialog(false)}
+          onImportedAction={() => void refreshClients()}
+        />
+      ) : null}
     </div>
   );
 };

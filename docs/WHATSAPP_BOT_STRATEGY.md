@@ -550,13 +550,37 @@ model BotConversation {
 
 ## סיכום
 
-| נושא | החלטה |
+| נושא | החלטה | סטטוס |
+|-------|--------|--------|
+| **תוכן הבוט** | שוכתב מאפס — טון ישראלי, סיווג תעשייה, social proof, opt-out | ✅ בוצע |
+| **Webhooks** | Webhook ישיר ל-`/api/webhooks/blaster` (ללא Make.com) | ✅ בוצע |
+| **Admin Panel** | דשבורד בוט ב-`/app/admin/bot` — לידים, שיחות, סטטיסטיקות | ✅ בוצע |
+| **קובץ .rules** | נוצר (`bot/Rules_2.rules`) — 69 כללים | ✅ בוצע |
+| **Prisma Models** | `BotLead` + `BotConversation` + `BotLeadStatus` enum | ✅ בוצע |
+| **SQL Migration** | `scripts/db-setup/add-bot-tables.sql` (IF NOT EXISTS) | ✅ בוצע |
+| **Make.com** | Webhooks מצביעים ישירות לבקנד — Make מיותר | ✅ בוצע |
+| **Opt-out** | "סטופ" בכל שלב — כלל 80 | ✅ בוצע |
+| **שבת** | כלל 81 — הודעת "שבת שלום" + הגדרת שעות ב-Blaster | ✅ בוצע |
+| **עורך ויזואלי** | Phase 2/3 — לא עכשיו, אבל תשתית קיימת | ⏳ עתידי |
+
+---
+
+## נספח: קבצים שנוצרו/עודכנו
+
+| קובץ | תיאור |
 |-------|--------|
-| **תוכן הבוט** | לשכתב מאפס לפי האסטרטגיה החדשה — ישראלי, מותאם, עם social proof |
-| **Webhooks** | לעבור מ-Make.com ל-Webhook ישיר לבקנד MISRAD AI |
-| **Admin Panel** | לבנות דשבורד בוט ב-`/admin/bot` — לידים, שיחות, אנליטיקס |
-| **קובץ .rules** | לבנות את הכללים ידנית ב-Blaster (כדי להבטיח תאימות) ולייצא |
-| **עורך ויזואלי** | Phase 2/3 — לא עכשיו, אבל לתכנן |
-| **Make.com** | להפסיק להשתמש — מיותר ויקר |
-| **Opt-out** | חובה — "הקלד סטופ בכל שלב" |
-| **שעות + שבת** | להגדיר ב-Blaster: א-ה 08:00-20:00, שישי עד 14:00 |
+| `scripts/whatsapp-bot-rules-v2.cjs` | כללי בוט חדשים — 69 כללים, טון ישראלי |
+| `scripts/generate-dot-rules.cjs` | מחולל .rules (מעודכן להצביע על v2) |
+| `bot/Rules_2.rules` | קובץ כללים בפורמט Blaster |
+| `prisma/schema.prisma` | +3 מודלים: BotLead, BotConversation, BotLeadStatus |
+| `scripts/db-setup/add-bot-tables.sql` | SQL migration ידנית |
+| `app/api/webhooks/blaster/route.ts` | Webhook receiver מ-Blaster |
+| `app/api/admin/bot/route.ts` | API לדשבורד Admin (לידים + סטטיסטיקות) |
+| `app/api/admin/bot/conversations/route.ts` | API להיסטוריית שיחות |
+| `app/app/admin/bot/page.tsx` | עמוד Admin Bot |
+| `app/app/admin/bot/BotDashboardClient.tsx` | דשבורד בוט — טבלת לידים, סינון, שיחות |
+| `app/app/admin/AdminShell.tsx` | +אזור "בוט" בניווט Admin |
+| `components/ui/card.tsx` | קומפוננטת Card (חדשה) |
+| `components/ui/badge.tsx` | קומפוננטת Badge (חדשה) |
+| `.env.example` | +BLASTER_WEBHOOK_SECRET |
+| `docs/WHATSAPP_BOT_STRATEGY.md` | מסמך אסטרטגיה מקיף (זה) |

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface BrandContextType {
   brandName: string;
@@ -18,7 +19,7 @@ export const BrandProvider: React.FC<{
 }> = ({ children, initialBrandName, initialBrandLogo }) => {
   const [brandName, setBrandName] = useState(initialBrandName || 'System');
   const [brandLogo, setBrandLogo] = useState<string | null>(
-    typeof initialBrandLogo === 'string' ? initialBrandLogo : null
+    typeof initialBrandLogo === 'string' ? safeBrowserUrl(initialBrandLogo) : null
   );
 
   const isProbablyTokenOrId = (value: string) => {
@@ -41,7 +42,7 @@ export const BrandProvider: React.FC<{
   };
 
   const updateBrandLogo = (logo: string | null) => {
-    setBrandLogo(logo);
+    setBrandLogo(safeBrowserUrl(logo));
   };
 
   return (

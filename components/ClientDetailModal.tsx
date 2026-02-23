@@ -245,9 +245,10 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                         ) : (
                             <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                                 client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100' : 
+                                client.status === 'Paused' ? 'bg-slate-50 text-slate-600 border-slate-100' :
                                 'bg-yellow-50 text-yellow-700 border-yellow-100'
                             }`}>
-                                {client.status === 'Active' ? 'לקוח פעיל' : 'בתהליך קליטה'}
+                                {client.status === 'Active' ? 'לקוח פעיל' : client.status === 'Paused' ? 'מושהה' : 'בתהליך קליטה'}
                             </span>
                         )}
                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-700 border border-slate-100">

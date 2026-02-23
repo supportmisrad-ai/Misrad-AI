@@ -8,6 +8,7 @@ import { SocialPlatform, StrategicCharacterization, Client, OnboardingStatus, Cl
 import { updateClientForWorkspace } from '@/app/actions/clients';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 const PLATFORM_ICONS: Record<SocialPlatform, React.ComponentType<{ size?: number; className?: string }>> = {
   facebook: Facebook,
@@ -235,7 +236,7 @@ export default function ClientOnboardingPortal() {
               <div>
                 <label className="block text-sm font-black text-slate-400 mb-2">לוגו</label>
                 <div className="flex items-center gap-4">
-                  {logo && <img src={logo} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
+                  {safeBrowserUrl(logo) && <img src={safeBrowserUrl(logo)!} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
