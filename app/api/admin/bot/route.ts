@@ -1,6 +1,8 @@
 /**
  * Admin Bot API — GET /api/admin/bot
  * Returns bot leads + dashboard stats for the admin panel.
+ *
+ * @guard SUPERADMIN
  */
 
 import { NextRequest, NextResponse } from 'next/server';

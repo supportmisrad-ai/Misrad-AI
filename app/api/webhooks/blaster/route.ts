@@ -7,6 +7,8 @@
  *
  * Query params:
  *   type = lead | signup | demo | support
+ *
+ * @guard WEBHOOK
  */
 
 import { NextRequest, NextResponse } from 'next/server';

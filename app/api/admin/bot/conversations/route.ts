@@ -1,6 +1,8 @@
 /**
  * Admin Bot Conversations API — GET /api/admin/bot/conversations
  * Returns conversation history for a specific lead.
+ *
+ * @guard SUPERADMIN
  */
 
 import { NextRequest, NextResponse } from 'next/server';
