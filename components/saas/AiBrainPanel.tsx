@@ -39,7 +39,7 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
   const [loadingRows, setLoadingRows] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [runningIngest, setRunningIngest] = useState(false);
-  const [creditStatus, setCreditStatus] = useState<any>(null);
+  const [creditStatus, setCreditStatus] = useState<{ quota_cents?: number; used_cents?: number; remaining_cents?: number } | null>(null);
 
   const providers = useMemo(
     () => [

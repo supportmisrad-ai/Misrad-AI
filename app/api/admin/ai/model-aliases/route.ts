@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/shared/unknown';
+import { AIService } from '@/lib/services/ai/AIService';
 
 export const runtime = 'nodejs';
 
@@ -124,6 +125,7 @@ async function POSTHandler(req: Request) {
           },
         });
 
+    AIService.clearCache('models');
     return apiSuccess({ row: toRow(row) });
   } catch (e: unknown) {
     return apiError(e, { status: 500 });
@@ -140,6 +142,7 @@ async function DELETEHandler(req: Request) {
 
     await prisma.ai_model_aliases.delete({ where: { id } });
 
+    AIService.clearCache('models');
     return apiSuccess({ ok: true });
   } catch (e: unknown) {
     return apiError(e, { status: 500 });

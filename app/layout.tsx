@@ -6,6 +6,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
 import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets, ClientOnlyPwaBiometricGuard } from './ClientOnlyWidgets';
 import { ClerkProviderWithRouter } from './ClerkProviderWithRouter';
+import { GlobalContextMenuProvider } from '@/components/shared/GlobalContextMenu';
 
 // Heebo - Main text font (font-sans)
 // Geometric modern font with excellent Hebrew/English support, critical for RTL interface
@@ -63,6 +64,7 @@ export default function RootLayout({
       <body className={`${heebo.variable} ${inter.variable} antialiased bg-[#F8FAFC]`} suppressHydrationWarning>
         {/* Required by Clerk Turnstile CAPTCHA - must be in body for OAuth flows */}
         <div id="clerk-captcha" />
+        <GlobalContextMenuProvider>
         <ToastProvider>
           <ReactQueryProvider>
           {clerkPublishableKey ? (
@@ -96,6 +98,7 @@ export default function RootLayout({
           <ClientOnlyGlobalWidgets />
           </ReactQueryProvider>
         </ToastProvider>
+        </GlobalContextMenuProvider>
       </body>
     </html>
   );

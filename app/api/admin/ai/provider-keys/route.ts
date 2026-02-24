@@ -5,6 +5,7 @@ import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { encrypt } from '@/lib/encryption';
+import { AIService } from '@/lib/services/ai/AIService';
 
 export const runtime = 'nodejs';
 
@@ -94,12 +95,11 @@ async function POSTHandler(req: Request) {
     if (!provider) return apiError('provider is required', { status: 400 });
 
     const apiKey = String(bodyObj.api_key || '').trim();
-    if (!apiKey) return apiError('api_key is required', { status: 400 });
+    const isKeepSentinel = apiKey === '__KEEP__';
+    if (!apiKey && !isKeepSentinel) return apiError('api_key is required', { status: 400 });
 
     const scope = String(bodyObj.scope || 'org').trim().toLowerCase();
     const targetOrgId = scope === 'global' ? null : String(organizationId);
-
-    const encryptedKey = await encrypt(apiKey);
 
     const existing = await prisma.ai_provider_keys.findFirst({
       where: {
@@ -109,26 +109,44 @@ async function POSTHandler(req: Request) {
       select: { id: true },
     });
 
-    const row = existing?.id
-      ? await prisma.ai_provider_keys.update({
-          where: { id: String(existing.id) },
-          data: {
-            api_key: encryptedKey,
-            enabled: bodyObj.enabled !== undefined ? Boolean(bodyObj.enabled) : true,
-            updated_at: new Date(),
-          },
-        })
-      : await prisma.ai_provider_keys.create({
-          data: {
-            provider,
-            organization_id: targetOrgId,
-            api_key: encryptedKey,
-            enabled: bodyObj.enabled !== undefined ? Boolean(bodyObj.enabled) : true,
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-        });
+    if (isKeepSentinel && !existing?.id) {
+      return apiError('Cannot toggle a key that does not exist yet', { status: 400 });
+    }
 
+    let row;
+    if (existing?.id && isKeepSentinel) {
+      row = await prisma.ai_provider_keys.update({
+        where: { id: String(existing.id) },
+        data: {
+          enabled: bodyObj.enabled !== undefined ? Boolean(bodyObj.enabled) : true,
+          updated_at: new Date(),
+        },
+      });
+    } else if (existing?.id) {
+      const encryptedKey = await encrypt(apiKey);
+      row = await prisma.ai_provider_keys.update({
+        where: { id: String(existing.id) },
+        data: {
+          api_key: encryptedKey,
+          enabled: bodyObj.enabled !== undefined ? Boolean(bodyObj.enabled) : true,
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      const encryptedKey = await encrypt(apiKey);
+      row = await prisma.ai_provider_keys.create({
+        data: {
+          provider,
+          organization_id: targetOrgId,
+          api_key: encryptedKey,
+          enabled: bodyObj.enabled !== undefined ? Boolean(bodyObj.enabled) : true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+    }
+
+    AIService.clearCache('keys');
     return apiSuccess({ row: toRow(row) });
   } catch (e: unknown) {
     return apiError(e, { status: 500 });
@@ -145,6 +163,7 @@ async function DELETEHandler(req: Request) {
 
     await prisma.ai_provider_keys.delete({ where: { id } });
 
+    AIService.clearCache('keys');
     return apiSuccess({ ok: true });
   } catch (e: unknown) {
     return apiError(e, { status: 500 });

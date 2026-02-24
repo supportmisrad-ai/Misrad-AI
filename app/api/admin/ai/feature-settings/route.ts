@@ -5,6 +5,7 @@ import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { AIService } from '@/lib/services/ai/AIService';
 export const runtime = 'nodejs';
 
 type UnknownRecord = Record<string, unknown>;
@@ -179,6 +180,7 @@ async function POSTHandler(req: Request) {
           data: { ...(patch as FeatureSettingsCreateData), created_at: new Date() },
         });
 
+    AIService.clearCache('features');
     return apiSuccess({ row: toRow(row) });
   } catch (e: unknown) {
     const msg = getUnknownErrorMessage(e);
@@ -207,6 +209,7 @@ async function DELETEHandler(req: Request) {
 
     await prisma.ai_feature_settings.deleteMany({ where });
 
+    AIService.clearCache('features');
     return apiSuccess({ ok: true });
   } catch (e: unknown) {
     const msg = getUnknownErrorMessage(e);

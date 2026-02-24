@@ -198,6 +198,14 @@ export class AIService {
     return AIService.instance;
   }
 
+  static clearCache(scope?: 'features' | 'keys' | 'models' | 'dna' | 'all'): void {
+    const s = scope || 'all';
+    if (s === 'all' || s === 'features') AIService._featureSettingsCache.clear();
+    if (s === 'all' || s === 'keys') AIService._providerKeyCache.clear();
+    if (s === 'all' || s === 'models') AIService._modelDisplayNameCache.clear();
+    if (s === 'all' || s === 'dna') AIService._aiDnaCache.clear();
+  }
+
   async semanticSearch(params: {
     featureKey: string;
     organizationId?: string;

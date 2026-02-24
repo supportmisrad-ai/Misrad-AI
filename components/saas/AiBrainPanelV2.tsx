@@ -2,10 +2,17 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Download, Play, RefreshCw, Save, Plus, Trash2, Key, Tag, Settings } from 'lucide-react';
+import { Zap, Download, Play, RefreshCw, Save, Plus, Trash2, Key, Tag, Settings, CircleCheck, CircleAlert, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/CustomSelect';
+import { useData } from '@/context/DataContext';
+
+type CreditStatus = {
+  quota_cents?: number;
+  used_cents?: number;
+  remaining_cents?: number;
+};
 
 type OrganizationLite = {
   id: string;
@@ -66,7 +73,10 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
   const [loadingAliases, setLoadingAliases] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [runningIngest, setRunningIngest] = useState(false);
-  const [creditStatus, setCreditStatus] = useState<any>(null);
+  const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
+  const [showNewFeatureForm, setShowNewFeatureForm] = useState(false);
+  const [newFeatureKey, setNewFeatureKey] = useState('');
+  const { addToast } = useData();
 
   const [newProviderKey, setNewProviderKey] = useState({ provider: '', api_key: '', scope: 'org' });
   const [newAlias, setNewAlias] = useState({ provider: '', model: '', display_name: '', scope: 'org' });
@@ -228,17 +238,42 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       if (data.row?.feature_key) {
         updateFeatureLocal(String(data.row.feature_key), data.row);
       }
-      alert('נשמר בהצלחה!');
+      addToast('הגדרות נשמרו בהצלחה! (Cache נוקה אוטומטית)', 'success');
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     } finally {
       setSavingKey(null);
     }
   };
 
+  const createNewFeature = async () => {
+    const key = newFeatureKey.trim();
+    if (!key) {
+      addToast('יש להזין מזהה פיצ\'ר (feature_key)', 'error');
+      return;
+    }
+    const newRow: FeatureRow = {
+      id: '',
+      organization_id: selectedOrgId,
+      feature_key: key,
+      enabled: true,
+      primary_provider: 'google',
+      primary_model: 'gemini-2.5-flash',
+      fallback_provider: null,
+      fallback_model: null,
+      base_prompt: null,
+      reserve_cost_cents: 25,
+      timeout_ms: 30000,
+    };
+    await saveFeature(newRow);
+    setNewFeatureKey('');
+    setShowNewFeatureForm(false);
+    await loadFeatureSettings();
+  };
+
   const addProviderKey = async () => {
     if (!newProviderKey.provider || !newProviderKey.api_key) {
-      alert('יש למלא Provider ו-API Key');
+      addToast('יש למלא Provider ו-API Key', 'error');
       return;
     }
     try {
@@ -251,9 +286,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       if (!res.ok) throw new Error(data.error || 'שגיאה בהוספת API Key');
       setNewProviderKey({ provider: '', api_key: '', scope: 'org' });
       await loadProviderKeys(newProviderKey.scope as 'org' | 'global');
-      alert('API Key נוסף בהצלחה!');
+      addToast('API Key נוסף בהצלחה! (Cache נוקה אוטומטית)', 'success');
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     }
   };
 
@@ -263,15 +298,31 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       const res = await fetch(`/api/admin/ai/provider-keys?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('שגיאה במחיקה');
       await loadProviderKeys();
-      alert('נמחק בהצלחה!');
+      addToast('נמחק בהצלחה!', 'success');
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
+    }
+  };
+
+  const toggleProviderKey = async (key: ProviderKeyRow) => {
+    try {
+      const res = await fetch('/api/admin/ai/provider-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(selectedOrgKey ? { 'x-org-id': selectedOrgKey } : {}) },
+        body: JSON.stringify({ provider: key.provider, api_key: '__KEEP__', enabled: !key.enabled, scope: key.organization_id ? 'org' : 'global' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'שגיאה בעדכון');
+      setProviderKeys((prev) => prev.map((k) => k.id === key.id ? { ...k, enabled: !k.enabled } : k));
+      addToast(`${key.provider} ${!key.enabled ? 'הופעל' : 'הושבת'}`, 'success');
+    } catch (e: unknown) {
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     }
   };
 
   const addModelAlias = async () => {
     if (!newAlias.provider || !newAlias.model || !newAlias.display_name) {
-      alert('יש למלא Provider, Model ו-Display Name');
+      addToast('יש למלא Provider, Model ו-Display Name', 'error');
       return;
     }
     try {
@@ -284,9 +335,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       if (!res.ok) throw new Error(data.error || 'שגיאה בהוספת Alias');
       setNewAlias({ provider: '', model: '', display_name: '', scope: 'org' });
       await loadModelAliases(newAlias.scope as 'org' | 'global');
-      alert('Alias נוסף בהצלחה!');
+      addToast('Alias נוסף בהצלחה!', 'success');
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     }
   };
 
@@ -296,9 +347,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       const res = await fetch(`/api/admin/ai/model-aliases?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('שגיאה במחיקה');
       await loadModelAliases();
-      alert('נמחק בהצלחה!');
+      addToast('נמחק בהצלחה!', 'success');
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     }
   };
 
@@ -313,10 +364,10 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בהרצת אינדוקס');
-      alert(`אינדוקס הסתיים\n\nSystem Leads: ${data.systemLeads?.succeeded || 0}/${data.systemLeads?.attempted || 0}\nNexus Clients: ${data.nexusClients?.succeeded || 0}/${data.nexusClients?.attempted || 0}`);
+      addToast(`אינדוקס הסתיים — Leads: ${data.systemLeads?.succeeded || 0}/${data.systemLeads?.attempted || 0}, Clients: ${data.nexusClients?.succeeded || 0}/${data.nexusClients?.attempted || 0}`, 'success');
       await loadCreditStatus();
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     } finally {
       setRunningIngest(false);
     }
@@ -425,9 +476,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
             onClick={async () => {
               try {
                 await adjustCredits(1000);
-                alert('נוספו 10₪ קרדיטים (1000 סנט)');
+                addToast('נוספו 10₪ קרדיטים', 'success');
               } catch (e: unknown) {
-                alert(String(e instanceof Error ? e.message : e));
+                addToast(String(e instanceof Error ? e.message : e), 'error');
               }
             }}
             disabled={!selectedOrgId}
@@ -441,8 +492,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
             onClick={async () => {
               try {
                 await downloadAiBackup();
+                addToast('גיבוי הורד בהצלחה', 'success');
               } catch (e: unknown) {
-                alert(String(e instanceof Error ? e.message : e));
+                addToast(String(e instanceof Error ? e.message : e), 'error');
               }
             }}
             disabled={!selectedOrgId}
@@ -514,8 +566,29 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
                   <Button variant="secondary" size="sm" onClick={() => loadFeatureSettings()} disabled={loadingFeatures}>
                     רענן
                   </Button>
+                  <Button size="sm" onClick={() => setShowNewFeatureForm(!showNewFeatureForm)} className="bg-emerald-600 hover:bg-emerald-700">
+                    <Plus size={14} className="mr-1" /> פיצ'ר חדש
+                  </Button>
                 </div>
               </div>
+
+              {showNewFeatureForm && (
+                <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 mb-4">
+                  <div className="text-sm font-bold text-emerald-900 mb-3">יצירת Feature Setting חדש</div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      value={newFeatureKey}
+                      onChange={(e) => setNewFeatureKey(e.target.value)}
+                      placeholder="למשל: client_os.meetings.live_transcribe"
+                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm col-span-2"
+                    />
+                    <Button onClick={createNewFeature} className="bg-emerald-600 hover:bg-emerald-700">
+                      <Plus size={14} className="mr-1" /> צור
+                    </Button>
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-2">ברירת מחדל: Google Gemini 2.5 Flash, timeout 30s, 25 סנט לשימוש</div>
+                </div>
+              )}
 
               {loadingFeatures ? (
                 <div className="text-slate-600 text-sm inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full" /> טוען...</div>
@@ -578,18 +651,24 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
                           />
                         </div>
 
-                        <input
-                          value={String(r.reserve_cost_cents ?? '')}
-                          onChange={(e) => updateFeatureLocal(r.feature_key, { reserve_cost_cents: Math.max(0, Math.floor(Number(e.target.value || 0))) })}
-                          placeholder="reserve_cost_cents"
-                          className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
-                        />
-                        <input
-                          value={String(r.timeout_ms ?? '')}
-                          onChange={(e) => updateFeatureLocal(r.feature_key, { timeout_ms: Math.max(1000, Math.floor(Number(e.target.value || 0))) })}
-                          placeholder="timeout_ms"
-                          className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
-                        />
+                        <div>
+                          <label className="text-[11px] text-slate-500 block mb-1">עלות לשימוש (סנט)</label>
+                          <input
+                            value={String(r.reserve_cost_cents ?? '')}
+                            onChange={(e) => updateFeatureLocal(r.feature_key, { reserve_cost_cents: Math.max(0, Math.floor(Number(e.target.value || 0))) })}
+                            placeholder="25"
+                            className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-slate-500 block mb-1">Timeout (מילישניות)</label>
+                          <input
+                            value={String(r.timeout_ms ?? '')}
+                            onChange={(e) => updateFeatureLocal(r.feature_key, { timeout_ms: Math.max(1000, Math.floor(Number(e.target.value || 0))) })}
+                            placeholder="30000"
+                            className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none w-full"
+                          />
+                        </div>
                         <CustomSelect
                           value={r.fallback_provider || ''}
                           onChange={(val) => updateFeatureLocal(r.feature_key, { fallback_provider: val || null })}
@@ -668,10 +747,18 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
               ) : (
                 <div className="space-y-3">
                   {providerKeys.map((k) => (
-                    <div key={k.id} className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-bold text-slate-900">{k.provider}</div>
-                        <div className="text-xs text-slate-500">Key: {k.api_key_masked} | {k.organization_id ? 'ארגוני' : 'גלובלי'}</div>
+                    <div key={k.id} className={`bg-white border rounded-xl p-3 flex items-center justify-between ${k.enabled ? 'border-emerald-200' : 'border-red-200 bg-red-50/30'}`}>
+                      <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => toggleProviderKey(k)} className="text-slate-500 hover:text-slate-700">
+                          {k.enabled ? <ToggleRight size={24} className="text-emerald-600" /> : <ToggleLeft size={24} className="text-slate-400" />}
+                        </button>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            {k.provider}
+                            {k.enabled ? <CircleCheck size={14} className="text-emerald-600" /> : <CircleAlert size={14} className="text-red-400" />}
+                          </div>
+                          <div className="text-xs text-slate-500">Key: {k.api_key_masked} | {k.organization_id ? 'ארגוני' : 'גלובלי'} | {k.enabled ? 'פעיל' : 'מושבת'}</div>
+                        </div>
                       </div>
                       <Button onClick={() => deleteProviderKey(k.id)} variant="destructive" size="sm">
                         <Trash2 size={14} />
