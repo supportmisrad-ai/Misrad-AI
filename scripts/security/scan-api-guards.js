@@ -30,6 +30,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/guest/task/[token]/approve/route.ts', // Public: guest approval — scoped by share token
   'app/api/download-links/route.ts', // Public: download links for APK/Windows installer, no auth required
   'app/api/analytics/track/route.ts', // Public: site analytics tracking for landing pages and anonymous visitors
+  'app/api/telephony/onboarding-request/route.ts', // Public: telephony onboarding form — no auth, sends confirmation emails
 ]);
 
 const CANDIDATE_APPROVED = new Set([
