@@ -96,6 +96,9 @@ async function POSTHandler(req: Request) {
 
     return apiSuccessCompat({ text: out.text }, { headers: abuse.headers });
   } catch (e: unknown) {
+    const errMsg = getErrorMessage(e) || String(e);
+    console.error('[live-transcribe] Error:', errMsg);
+
     if (e instanceof APIError) {
       const safeMsg =
         e.status === 400
@@ -109,8 +112,21 @@ async function POSTHandler(req: Request) {
                 : 'Forbidden';
       return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
+
+    const lower = errMsg.toLowerCase();
+    if (lower.includes('missing api key') || lower.includes('missing provider')) {
+      console.error('[live-transcribe] AI provider not configured. Set GEMINI_API_KEY in environment.');
+      return apiError(e, { status: 503, message: 'AI transcription service not configured' });
+    }
+    if (lower.includes('overloaded') || lower.includes('overload')) {
+      return apiError(e, { status: 503, message: 'Service temporarily overloaded' });
+    }
+    if (lower.includes('upgrade') || lower.includes('insufficient')) {
+      return apiError(e, { status: 402, message: 'Upgrade required' });
+    }
+
     const safeMsg = 'Live transcription failed';
-    return apiError(e, { status: 500, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
+    return apiError(e, { status: 500, message: IS_PROD ? safeMsg : errMsg || safeMsg });
   }
 }
 
