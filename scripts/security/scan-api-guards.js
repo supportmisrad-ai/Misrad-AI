@@ -29,6 +29,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/guest/task/[token]/comment/route.ts', // Public: guest comment — scoped by share token
   'app/api/guest/task/[token]/approve/route.ts', // Public: guest approval — scoped by share token
   'app/api/download-links/route.ts', // Public: download links for APK/Windows installer, no auth required
+  'app/api/analytics/track/route.ts', // Public: site analytics tracking for landing pages and anonymous visitors
 ]);
 
 const CANDIDATE_APPROVED = new Set([
