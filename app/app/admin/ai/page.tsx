@@ -1,10 +1,8 @@
 import React from 'react';
-import { AiBrainPanel } from '@/components/saas/AiBrainPanel';
-
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+import { AiBrainPanelV2 } from '@/components/saas/AiBrainPanelV2';
 
 export default async function AdminAIPage() {
   return (
-    <AiBrainPanel />
+    <AiBrainPanelV2 />
   );
 }
