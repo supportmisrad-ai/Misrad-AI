@@ -262,18 +262,19 @@ export default function PricingSection({
                 התחל 7 ימי ניסיון חינם
                 <ArrowRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
               </button>
-              <div className="text-[11px] text-slate-400 text-center mt-2">ללא כרטיס אשראי · בטל בכל עת</div>
+              <div className="text-[11px] text-slate-400 text-center mt-2">ללא כרטיס אשראי · בטל בכל עת · כל המחירים כוללים מע&quot;מ</div>
             </div>
           </div>
         </div>
 
         {/* Bottom note */}
-        <div className="mt-12 sm:mt-16 text-center">
+        <div className="mt-12 sm:mt-16 text-center space-y-3">
           <div className="inline-block bg-white border border-slate-200 rounded-full px-6 py-3 shadow-md">
             <span className="text-sm text-slate-600 font-bold">
               כל החבילות כוללות <strong className="text-indigo-700">ניסיון חינם 7 ימים</strong> + <strong className="text-emerald-700">משתמשים כלולים במחיר</strong>
             </span>
           </div>
+          <div className="text-xs text-slate-400 font-bold">כל המחירים כוללים מע&quot;מ</div>
         </div>
       </div>
     </section>

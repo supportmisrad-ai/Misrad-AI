@@ -118,6 +118,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                             ₪{finalPrice}
                         </span>
                         <span className="text-slate-400 text-xs sm:text-sm font-bold">/חודש</span>
+                        <span className="text-[10px] text-slate-400 font-bold mr-1">כולל מע&quot;מ</span>
                     </div>
                     
                     {billingCycle === 'yearly' && (

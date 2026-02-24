@@ -204,6 +204,7 @@ export const MeView: React.FC<{
   const [eventRSVPStatus, setEventRSVPStatus] = useState<Record<string, string>>({});
 
   const [hasNexusEntitlement, setHasNexusEntitlement] = useState<boolean | null>(null);
+  const [aiCredits, setAiCredits] = useState<{ balance_cents: string; used_this_month_cents: string } | null>(null);
 
   const [activeModuleSettingsDrawer, setActiveModuleSettingsDrawer] = useState<
     'system' | 'social' | 'client' | 'finance' | null
@@ -283,6 +284,19 @@ export const MeView: React.FC<{
       };
 
       loadEntitlements();
+  }, [orgSlug]);
+
+  useEffect(() => {
+      if (!orgSlug) { setAiCredits(null); return; }
+      (async () => {
+          try {
+              const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/ai-credits`, { cache: 'no-store' });
+              if (res.ok) {
+                  const data = await res.json().catch(() => null);
+                  if (data?.balance_cents != null) setAiCredits(data);
+              }
+          } catch { /* ignore */ }
+      })();
   }, [orgSlug]);
 
   const getOrgHeaderValue = () => {
@@ -989,6 +1003,27 @@ export const MeView: React.FC<{
                   }
               }}
           />
+
+          {/* AI Credit Balance */}
+          {aiCredits && (
+            <div className="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/60 rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                  <Zap size={18} />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-900">קרדיטי AI</div>
+                  <div className="text-xs text-slate-500">שימוש החודש: {(Number(aiCredits.used_this_month_cents) / 100).toFixed(0)}₪</div>
+                </div>
+              </div>
+              <div className="text-left">
+                <div className={`text-xl font-black ${Number(aiCredits.balance_cents) <= 0 ? 'text-red-600' : 'text-indigo-700'}`}>
+                  {(Number(aiCredits.balance_cents) / 100).toFixed(0)}₪
+                </div>
+                <div className="text-[10px] text-slate-400 font-bold">יתרה</div>
+              </div>
+            </div>
+          )}
 
           {resolvedModuleCards.length ? (
             <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-6">

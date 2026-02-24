@@ -473,6 +473,7 @@ export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ 
                                             <span className="text-2xl font-black text-slate-900">₪{displayPlan.priceMonthly}</span>
                                             <span className="text-slate-600 text-sm">/חודש</span>
                                             <span className="text-slate-500 text-xs">(₪{displayPlan.priceYearly} שנתי)</span>
+                                            <span className="text-[10px] text-slate-400 font-bold">כולל מע&quot;מ</span>
                                         </div>
                                         <div className="text-xs text-slate-600 mb-2">{displayPlan.features.length} תכונות</div>
                                     </div>

@@ -88,6 +88,8 @@ export default function PricingPageClient() {
               <strong className="text-indigo-600">MISRAD AI כוללת עד 5 משתמשים בחבילת "הכל כלול"</strong> — מתחרים גובים per user בלבד.
               <br />
               <span className="text-slate-500">"מותאם לשבת" = בחירה אידיאולוגית של המפתח. לא מתאים? יש Monday/Fireberry/הכוורת (פתוח 24/7).</span>
+              <br />
+              <strong className="text-slate-600">כל המחירים של MISRAD AI כוללים מע&quot;מ.</strong>
             </p>
           </div>
         </section>
