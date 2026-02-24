@@ -130,33 +130,19 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
       try {
         const monthStart = new Date(startOfMonthISO());
 
-        const settingsRows = await prisma.organization_settings.findMany(
+        const activeOrgs = await prisma.organization.findMany(
           withPrismaTenantIsolationOverride(
             {
-              where: { ai_quota_cents: { not: null } },
-              select: { organization_id: true, ai_quota_cents: true },
+              where: { subscription_status: { in: ['active', 'trial'] } },
+              select: { id: true, name: true, slug: true, ai_credits_balance_cents: true },
               take: 30,
             },
-            { suppressReporting: true, reason: 'admin_godview_alerts_list_org_settings_ai_quota', source: 'admin-godview-alerts', mode: 'global_admin', isSuperAdmin: true }
+            { suppressReporting: true, reason: 'admin_godview_alerts_list_orgs_ai_credits', source: 'admin-godview-alerts', mode: 'global_admin', isSuperAdmin: true }
           )
         );
 
-        const orgIds = (Array.isArray(settingsRows) ? settingsRows : [])
-          .map((r) => (r?.organization_id ? String(r.organization_id) : null))
-          .filter((v): v is string => Boolean(v));
-
-        const orgsById = new Map<string, { name: string; slug: string | null }>();
-        if (orgIds.length) {
-          const orgs = await prisma.organization.findMany({
-            where: { id: { in: orgIds } },
-            select: { id: true, name: true, slug: true },
-          });
-
-          for (const o of Array.isArray(orgs) ? orgs : []) {
-            const id = String(o.id);
-            orgsById.set(id, { name: String(o.name || ''), slug: o.slug ? String(o.slug) : null });
-          }
-        }
+        const orgRows = Array.isArray(activeOrgs) ? activeOrgs : [];
+        const orgIds = orgRows.map((r) => String(r.id)).filter(Boolean);
 
         const usageByOrg = orgIds.length
           ? await prisma.ai_usage_logs.groupBy({
@@ -177,22 +163,18 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
           if (orgId) usedCentsByOrgId.set(orgId, used);
         }
 
-        for (const row of Array.isArray(settingsRows) ? settingsRows : []) {
-          const orgId = row?.organization_id ? String(row.organization_id) : null;
-          const quota = row?.ai_quota_cents === null || row?.ai_quota_cents === undefined ? null : Number(row.ai_quota_cents);
-          if (!orgId || quota === null) continue;
-
+        for (const org of orgRows) {
+          const orgId = String(org.id);
+          const balance = Number(org.ai_credits_balance_cents ?? 0);
           const used = usedCentsByOrgId.get(orgId) ?? 0;
-          const remaining = quota - used;
 
-          if (remaining <= 0 && used > 0) {
-            const info = orgsById.get(orgId);
+          if (balance <= 0 && used > 0) {
             alerts.push({
               type: 'ai_quota_exceeded',
-              title: `חריגה ממכסת AI${info?.name ? ` - ${info.name}` : ''}`,
-              details: `נוצלו ${Math.round(used / 100).toLocaleString('he-IL')} קרדיטים החודש (מכסה: ${Math.round(quota / 100).toLocaleString('he-IL')})`,
+              title: `קרדיטי AI אזלו${org.name ? ` - ${org.name}` : ''}`,
+              details: `נוצלו ${Math.round(used / 100).toLocaleString('he-IL')}₪ החודש. יתרה: ${Math.round(balance / 100).toLocaleString('he-IL')}₪`,
               organizationId: orgId,
-              organizationSlug: info?.slug ?? null,
+              organizationSlug: org.slug ? String(org.slug) : null,
             });
           }
 

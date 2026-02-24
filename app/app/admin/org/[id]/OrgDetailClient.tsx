@@ -496,10 +496,6 @@ function SettingsTab({
           <div className="text-sm font-black text-slate-800 mb-3">הגדרות AI</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InfoRow
-              label="מכסת AI (סנטים)"
-              value={settings.ai_quota_cents != null ? String(settings.ai_quota_cents) : null}
-            />
-            <InfoRow
               label="DNA מותאם"
               value={settings.ai_dna && typeof settings.ai_dna === 'object' && Object.keys(settings.ai_dna).length > 0 ? 'כן' : 'לא'}
             />

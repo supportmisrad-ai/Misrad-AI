@@ -49,7 +49,6 @@ export type OrgOwnerRecord = {
 
 export type OrgSettingsRecord = {
   ai_dna: unknown;
-  ai_quota_cents: number | null;
 };
 
 export type OrgDetailResult = {
@@ -179,12 +178,11 @@ export async function getOrganizationDetail(params: {
             try {
               const settings = await prisma.organization_settings.findFirst({
                 where: { organization_id: organizationId },
-                select: { ai_dna: true, ai_quota_cents: true },
+                select: { ai_dna: true },
               });
               if (settings) {
                 settingsRecord = {
                   ai_dna: settings.ai_dna,
-                  ai_quota_cents: settings.ai_quota_cents == null ? null : Number(settings.ai_quota_cents),
                 };
               }
             } catch {
