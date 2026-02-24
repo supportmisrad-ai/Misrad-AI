@@ -106,14 +106,14 @@ export async function createNexusTask(params: {
 export async function updateNexusTask(params: { orgId: string; taskId: string; updates: Partial<Task> }): Promise<Task> {
   await requireWorkspaceAccessForOrgId(params.orgId);
   const result = await updateNexusTaskInternal(params);
-  revalidatePath('/', 'layout');
+  // No revalidatePath — client manages optimistic state; broad revalidation causes bounce-back race conditions
   return result;
 }
 
 export async function deleteNexusTask(params: { orgId: string; taskId: string }): Promise<{ ok: true }> {
   await requireWorkspaceAccessForOrgId(params.orgId);
   const result = await deleteNexusTaskInternal(params);
-  revalidatePath('/', 'layout');
+  // No revalidatePath — client manages optimistic state; broad revalidation causes bounce-back race conditions
   return result;
 }
 

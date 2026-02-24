@@ -62,6 +62,9 @@ export const TasksView: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(contextTasks || []);
   const [cachedTasks, setCachedTasks] = useState<Task[]>(contextTasks || []);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Track in-flight optimistic mutations so sync effects never overwrite them
+  const pendingMutationsRef = useRef<Map<string, Partial<Task>>>(new Map());
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null); // Visual feedback
@@ -139,10 +142,24 @@ export const TasksView: React.FC = () => {
   useEffect(() => {
       const next = tasksQuery.data?.tasks;
       if (Array.isArray(next)) {
-          setTasks(next);
-          setCachedTasks(next);
-          if (typeof replaceContextTasks === 'function') {
-              replaceContextTasks(next);
+          const pending = pendingMutationsRef.current;
+          if (pending.size > 0) {
+              // Merge: use server data but preserve in-flight optimistic fields
+              const merged = next.map(t => {
+                  const opt = pending.get(t.id);
+                  return opt ? { ...t, ...opt } : t;
+              });
+              setTasks(merged);
+              setCachedTasks(next);
+              if (typeof replaceContextTasks === 'function') {
+                  replaceContextTasks(merged);
+              }
+          } else {
+              setTasks(next);
+              setCachedTasks(next);
+              if (typeof replaceContextTasks === 'function') {
+                  replaceContextTasks(next);
+              }
           }
       }
   }, [tasksQuery.data, replaceContextTasks]);
@@ -154,8 +171,19 @@ export const TasksView: React.FC = () => {
       if (!contextTasks || contextTasks.length === 0) return;
       if (contextTasks === lastContextRef.current) return;
       lastContextRef.current = contextTasks;
-      setTasks(contextTasks);
-      setCachedTasks(contextTasks);
+      const pending = pendingMutationsRef.current;
+      if (pending.size > 0) {
+          // Merge: preserve in-flight optimistic fields on top of context data
+          const merged = contextTasks.map(t => {
+              const opt = pending.get(t.id);
+              return opt ? { ...t, ...opt } : t;
+          });
+          setTasks(merged);
+          setCachedTasks(contextTasks);
+      } else {
+          setTasks(contextTasks);
+          setCachedTasks(contextTasks);
+      }
   }, [contextTasks]);
 
   // Sync local list with global task events (TaskDetailModal uses DataContext actions)
@@ -224,21 +252,31 @@ export const TasksView: React.FC = () => {
 
   // Wrapper for updateTask that updates local state and calls API
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
+      // Register pending mutation BEFORE optimistic update — protects against sync overwrites
+      pendingMutationsRef.current.set(taskId, { ...pendingMutationsRef.current.get(taskId), ...updates });
+
       // Optimistic update immediately
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
       
       try {
           const updated = await updateTaskMutation.mutateAsync({ taskId, updates });
+          // Clear pending — server confirmed the change
+          pendingMutationsRef.current.delete(taskId);
           if (updated) {
               setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
               setCachedTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+              // Direct cache update instead of invalidation — no stale refetch race
+              queryClient.setQueryData(['nexus', 'tasks', orgSlug], (old: { tasks: Task[]; page: number; pageSize: number; hasMore: boolean } | undefined) => {
+                  if (!old) return old;
+                  return { ...old, tasks: old.tasks.map(t => t.id === taskId ? { ...t, ...updated } : t) };
+              });
           }
-          queryClient.invalidateQueries({ queryKey: ['nexus', 'tasks', orgSlug] });
       } catch (error) {
+          // Clear pending on error too
+          pendingMutationsRef.current.delete(taskId);
           // Revert on error
           setTasks(prev => prev.map(t => {
               if (t.id === taskId) {
-                  // Revert to previous state
                   const originalTask = cachedTasks.find(ct => ct.id === taskId);
                   return originalTask || t;
               }
@@ -261,6 +299,8 @@ export const TasksView: React.FC = () => {
       if (!task) return;
       
       const newTimerState = !task.isTimerRunning;
+      // Register pending mutation — protects against sync overwrites
+      pendingMutationsRef.current.set(taskId, { ...pendingMutationsRef.current.get(taskId), isTimerRunning: newTimerState });
       setTasks(prev => prev.map(t => {
           if (t.id === taskId) {
               return { ...t, isTimerRunning: newTimerState };
@@ -272,7 +312,9 @@ export const TasksView: React.FC = () => {
       if (contextToggleTimer) {
           try {
               await contextToggleTimer(taskId);
+              pendingMutationsRef.current.delete(taskId);
           } catch (error) {
+              pendingMutationsRef.current.delete(taskId);
               // Revert on error
               setTasks(prev => prev.map(t => {
                   if (t.id === taskId) {
