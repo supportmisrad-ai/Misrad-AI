@@ -416,6 +416,172 @@ export type { OperationsDepartmentRow } from '@/lib/services/operations/types';
 export type { OperationsCallMessageRow } from '@/lib/services/operations/types';
 export type { OperationsWorkOrderPriority } from '@/lib/services/operations/types';
 
+export async function checkAndNotifyLowInventory(params: {
+  orgSlug: string;
+}): Promise<{ success: boolean; lowCount?: number; criticalCount?: number; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        const { prisma: db } = await import('@/lib/services/operations/db');
+        const items = await db.operationsInventory.findMany({
+          where: { organizationId },
+          select: { onHand: true, minLevel: true, item: { select: { name: true } } },
+        });
+
+        let lowCount = 0;
+        let criticalCount = 0;
+        const criticalNames: string[] = [];
+
+        for (const row of items) {
+          const onHand = Number(row.onHand ?? 0);
+          const minLevel = Number(row.minLevel ?? 0);
+          if (onHand <= 0) {
+            criticalCount++;
+            if (row.item?.name) criticalNames.push(String(row.item.name));
+          } else if (minLevel > 0 && onHand < minLevel) {
+            lowCount++;
+          }
+        }
+
+        if (criticalCount > 0 || lowCount > 0) {
+          try {
+            const adminUsers = await db.$queryRawUnsafe<Array<{ clerk_user_id: string }>>(
+              `SELECT clerk_user_id FROM organization_users WHERE organization_id = $1::uuid AND role IN ('admin','ceo','owner','super_admin','ADMIN','CEO','OWNER','SUPER_ADMIN')`,
+              organizationId,
+            );
+            const recipientIds = adminUsers.map((u) => String(u.clerk_user_id)).filter(Boolean);
+            if (recipientIds.length > 0) {
+              const text = criticalCount > 0
+                ? `התראת מלאי: ${criticalCount} פריטים קריטיים (אזלו)${criticalNames.length > 0 ? ` — ${criticalNames.slice(0, 3).join(', ')}` : ''}${lowCount > 0 ? `, ${lowCount} נמוכים` : ''}`
+                : `התראת מלאי: ${lowCount} פריטים מתחת לכמות מינימום`;
+              insertMisradNotificationsForOrganizationId({
+                organizationId,
+                recipientIds,
+                type: 'INVENTORY_ALERT',
+                text,
+                reason: 'ops_inventory_low_stock_alert',
+              }).catch(() => null);
+            }
+          } catch {
+            // notification is non-critical
+          }
+        }
+
+        return { success: true, lowCount, criticalCount };
+      },
+      { source: 'server_actions_operations', reason: 'checkAndNotifyLowInventory' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'checkAndNotifyLowInventory failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בבדיקת מלאי' };
+  }
+}
+
+export async function importInventoryFromCsv(params: {
+  orgSlug: string;
+  rows: Array<{ name: string; sku?: string; unit?: string; minLevel?: number; onHand?: number }>;
+}): Promise<{ success: boolean; imported?: number; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        const { prisma: db } = await import('@/lib/services/operations/db');
+        let imported = 0;
+        for (const row of params.rows) {
+          const name = String(row.name || '').trim();
+          if (!name) continue;
+
+          const item = await db.operationsItem.create({
+            data: {
+              organizationId,
+              name,
+              sku: row.sku ? String(row.sku).trim() : null,
+              unit: row.unit ? String(row.unit).trim() : null,
+            },
+          });
+
+          await db.operationsInventory.create({
+            data: {
+              organizationId,
+              itemId: item.id,
+              onHand: Number(row.onHand) || 0,
+              minLevel: Number(row.minLevel) || 0,
+            },
+          });
+
+          imported++;
+        }
+        return { success: true, imported };
+      },
+      { source: 'server_actions_operations', reason: 'importInventoryFromCsv' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'importInventoryFromCsv failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בייבוא מלאי' };
+  }
+}
+
+export async function getAiMaterialSuggestions(params: {
+  orgSlug: string;
+  categoryId?: string | null;
+  title?: string;
+}): Promise<{ success: boolean; suggestions?: Array<{ itemName: string; avgQty: number; usageCount: number }>; error?: string }> {
+  try {
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        const { prisma: db, orgQuery } = await import('@/lib/services/operations/db');
+        const { asObject } = await import('@/lib/services/operations/shared');
+
+        const values: unknown[] = [organizationId];
+        let categoryFilter = '';
+        if (params.categoryId) {
+          values.push(params.categoryId);
+          categoryFilter = `AND wo.category_id = $${values.length}::uuid`;
+        }
+
+        const rows = await orgQuery<unknown[]>(
+          db,
+          organizationId,
+          `
+            SELECT
+              oi.name AS item_name,
+              ROUND(AVG(wom.quantity)::numeric, 2) AS avg_qty,
+              COUNT(*)::int AS usage_count
+            FROM operations_work_order_materials wom
+            JOIN operations_inventory inv ON inv.id = wom.inventory_id
+            JOIN operations_items oi ON oi.id = inv.item_id
+            JOIN operations_work_orders wo ON wo.id = wom.work_order_id
+            WHERE wo.organization_id = $1::uuid
+              AND wo.status = 'DONE'
+              ${categoryFilter}
+            GROUP BY oi.name
+            ORDER BY usage_count DESC
+            LIMIT 5
+          `,
+          values,
+        );
+
+        const suggestions = (rows || []).map((r) => {
+          const obj = asObject(r) ?? {};
+          return {
+            itemName: String(obj.item_name ?? ''),
+            avgQty: Number(obj.avg_qty ?? 0),
+            usageCount: Number(obj.usage_count ?? 0),
+          };
+        });
+
+        return { success: true, suggestions };
+      },
+      { source: 'server_actions_operations', reason: 'getAiMaterialSuggestions' }
+    );
+  } catch (e: unknown) {
+    logger.error('operations', 'getAiMaterialSuggestions failed', e);
+    return { success: true, suggestions: [] };
+  }
+}
+
 
 export async function getOperationsClientOptions(params: {
   orgSlug: string;

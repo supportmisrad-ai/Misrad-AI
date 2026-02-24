@@ -54,6 +54,11 @@ export interface OrgSnapshot {
     avgCompletionDays: number;
     slaBreaches: number;
     slaComplianceRate: number;
+    inventoryTotal: number;
+    inventoryLow: number;
+    inventoryCritical: number;
+    topTechnicianName: string | null;
+    topTechnicianCompleted: number;
   };
 
   team: {
@@ -212,23 +217,57 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── Operations Module ──
-  let opsStats = { openWorkOrders: 0, completedThisMonth: 0, avgCompletionDays: 0, slaBreaches: 0, slaComplianceRate: 100 };
+  let opsStats = { openWorkOrders: 0, completedThisMonth: 0, avgCompletionDays: 0, slaBreaches: 0, slaComplianceRate: 100, inventoryTotal: 0, inventoryLow: 0, inventoryCritical: 0, topTechnicianName: null as string | null, topTechnicianCompleted: 0 };
   try {
-    const opsRows = await queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
-      organizationId,
-      reason: 'cross_module_operations_stats',
-      query: `
-        SELECT
-          COUNT(*) FILTER (WHERE lower(status) NOT IN ('completed','closed','cancelled')) AS open_count,
-          COUNT(*) FILTER (WHERE lower(status) IN ('completed','closed') AND completed_at >= $2::timestamptz) AS completed_this_month,
-          COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) FILTER (WHERE completed_at IS NOT NULL AND completed_at >= $2::timestamptz), 0) AS avg_days,
-          COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL AND completed_at IS NOT NULL AND completed_at > sla_deadline) AS sla_breaches,
-          COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL AND completed_at IS NOT NULL) AS sla_total
-        FROM operations_work_orders
-        WHERE organization_id = $1::uuid
-      `,
-      values: [organizationId, somIso],
-    });
+    const [opsRows, invRows, techRows] = await Promise.all([
+      queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
+        organizationId,
+        reason: 'cross_module_operations_stats',
+        query: `
+          SELECT
+            COUNT(*) FILTER (WHERE lower(status) NOT IN ('completed','closed','cancelled','done')) AS open_count,
+            COUNT(*) FILTER (WHERE lower(status) IN ('completed','closed','done') AND completed_at >= $2::timestamptz) AS completed_this_month,
+            COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) FILTER (WHERE completed_at IS NOT NULL AND completed_at >= $2::timestamptz), 0) AS avg_days,
+            COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL AND completed_at IS NOT NULL AND completed_at > sla_deadline) AS sla_breaches,
+            COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL AND completed_at IS NOT NULL) AS sla_total
+          FROM operations_work_orders
+          WHERE organization_id = $1::uuid
+        `,
+        values: [organizationId, somIso],
+      }),
+      queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
+        organizationId,
+        reason: 'cross_module_inventory_stats',
+        query: `
+          SELECT
+            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE on_hand <= 0) AS critical,
+            COUNT(*) FILTER (WHERE min_level > 0 AND on_hand > 0 AND on_hand < min_level) AS low
+          FROM operations_inventory
+          WHERE organization_id = $1::uuid
+        `,
+        values: [organizationId],
+      }),
+      queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
+        organizationId,
+        reason: 'cross_module_top_technician',
+        query: `
+          SELECT
+            p.full_name AS tech_name,
+            COUNT(*)::int AS completed
+          FROM operations_work_orders wo
+          JOIN profiles p ON p.id = wo.assigned_technician_id AND p.organization_id = wo.organization_id
+          WHERE wo.organization_id = $1::uuid
+            AND lower(wo.status) IN ('done','completed','closed')
+            AND wo.completed_at >= $2::timestamptz
+          GROUP BY p.full_name
+          ORDER BY completed DESC
+          LIMIT 1
+        `,
+        values: [organizationId, somIso],
+      }),
+    ]);
+
     const os = asObject(Array.isArray(opsRows) ? opsRows[0] : null) ?? {};
     opsStats.openWorkOrders = toNum(os.open_count);
     opsStats.completedThisMonth = toNum(os.completed_this_month);
@@ -236,6 +275,15 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
     opsStats.slaBreaches = toNum(os.sla_breaches);
     const slaTotal = toNum(os.sla_total);
     opsStats.slaComplianceRate = slaTotal > 0 ? round2(((slaTotal - opsStats.slaBreaches) / slaTotal) * 100) : 100;
+
+    const inv = asObject(Array.isArray(invRows) ? invRows[0] : null) ?? {};
+    opsStats.inventoryTotal = toNum(inv.total);
+    opsStats.inventoryLow = toNum(inv.low);
+    opsStats.inventoryCritical = toNum(inv.critical);
+
+    const topTech = asObject(Array.isArray(techRows) ? techRows[0] : null) ?? {};
+    opsStats.topTechnicianName = typeof topTech.tech_name === 'string' ? topTech.tech_name : null;
+    opsStats.topTechnicianCompleted = toNum(topTech.completed);
   } catch { /* non-critical */ }
 
   // ── Team Module ──
@@ -332,6 +380,24 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
       title: `${opsStats.slaBreaches} חריגות SLA`,
       description: `שיעור עמידה ב-SLA: ${opsStats.slaComplianceRate}%`,
       dataSource: 'operations_work_orders WHERE completed_at > sla_deadline',
+    });
+  }
+
+  if (opsStats.inventoryCritical > 0) {
+    alerts.push({
+      severity: 'critical',
+      module: 'operations',
+      title: `${opsStats.inventoryCritical} פריטי מלאי אזלו`,
+      description: `${opsStats.inventoryCritical} פריטים עם כמות 0 במלאי${opsStats.inventoryLow > 0 ? `, ${opsStats.inventoryLow} נוספים מתחת למינימום` : ''}`,
+      dataSource: 'operations_inventory WHERE on_hand <= 0',
+    });
+  } else if (opsStats.inventoryLow > 0) {
+    alerts.push({
+      severity: 'warning',
+      module: 'operations',
+      title: `${opsStats.inventoryLow} פריטי מלאי נמוכים`,
+      description: `${opsStats.inventoryLow} פריטים מתחת לכמות מינימום — יש לבצע הזמנה`,
+      dataSource: 'operations_inventory WHERE on_hand < min_level',
     });
   }
 

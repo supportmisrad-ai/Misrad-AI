@@ -4,6 +4,7 @@ import { createOperationsItem, getOperationsInventoryData } from '@/app/actions/
 import { ExportInventoryCsvButton } from '@/components/operations/ExportButtons';
 import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import { InventoryItemActions } from '@/components/operations/InventoryItemActions';
+import { InventoryCsvImport } from '@/components/operations/InventoryCsvImport';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
 import { redirect } from 'next/navigation';
 import { AlertTriangle } from 'lucide-react';
@@ -133,7 +134,10 @@ export default async function OperationsInventoryPage({
                 <div className="text-sm font-black text-slate-900">פריטי מלאי</div>
                 <div className="text-xs text-slate-500 mt-1">סך הכל {filteredItems.length} פריטים</div>
               </div>
-              <ExportInventoryCsvButton items={filteredItems} />
+              <div className="flex items-center gap-2">
+                <InventoryCsvImport orgSlug={orgSlug} />
+                <ExportInventoryCsvButton items={filteredItems} />
+              </div>
             </div>
 
             <form id="ops-inventory-search-form" method="get" className="mt-4 flex items-center gap-2">

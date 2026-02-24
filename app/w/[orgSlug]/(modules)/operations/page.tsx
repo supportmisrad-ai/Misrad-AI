@@ -2,6 +2,7 @@
 
 import {
   addOperationsStockToActiveVehicle,
+  checkAndNotifyLowInventory,
   createOperationsItem,
   getOperationsDashboardData,
   getOperationsInventoryOptions,
@@ -77,6 +78,9 @@ export default async function OperationsModuleHome({
 
     redirect(`${base}?flash=${encodeURIComponent('נוצר פריט חדש')}`);
   }
+
+  // Fire-and-forget: check low inventory and notify admins
+  checkAndNotifyLowInventory({ orgSlug }).catch(() => null);
 
   // Fetch active vehicle (depends on technicianId from user resolution above)
   const activeVehicleRes = technicianId
