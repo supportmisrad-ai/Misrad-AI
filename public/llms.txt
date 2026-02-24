@@ -1,0 +1,133 @@
+# MISRAD AI
+
+> מערכת AI מודולרית לניהול ארגונים וחברות — CRM, משימות, צוות, כספים, שיווק ותפעול במקום אחד.
+
+## מידע כללי
+
+- שם המוצר: MISRAD AI
+- כתובת האתר: https://misrad-ai.com
+- שפת ממשק: עברית (RTL)
+- קהל יעד: ארגונים וחברות בישראל, 2–200 עובדים
+- סוג מוצר: SaaS — מערכת ניהול עסקית מבוססת AI עם Multi-Tenancy
+- תקופת ניסיון: 7 ימים חינם
+
+## תיאור קצר
+
+MISRAD AI היא מערכת AI שמנהלת את הארגון — מנתחת נתונים, מחזה מגמות וממליצה על פעולות. המערכת מרכזת ניהול לקוחות, משימות, צוות, כספים, שיווק ותפעול שטח בממשק אחד מודרני בעברית. המערכת בנויה כ-SaaS מודולרי: כל ארגון בוחר את המודולים שמתאימים לו.
+
+## מודולים
+
+### Nexus — ניהול, משימות וצוות
+מודול הליבה. ניהול צוות, הרשאות, נוכחות עובדים (כולל GPS ו-Kiosk), משימות, לוח זמנים ודיווחי שעות.
+
+### System — מכירות
+ניהול לידים, הזדמנויות מכירה, יומן פגישות ותהליכי מכירה מקצה לקצה. כולל AI לחיזוי סגירות.
+
+### Social — שיווק
+ניהול תוכן, קמפיינים, התראות ולוח שיווקי. כולל AI להמלצות Hashtags מותאמי פלטפורמה ושעות פרסום מיטביות.
+
+### Finance — כספים
+חשבוניות מס/קבלה, סליקה, קישורי תשלום, דוחות פיננסיים וניהול תקציבים.
+
+### Client — מעקב לקוחות
+ניהול לקוחות, מסמכים, תיקי לקוח וחוויית לקוח מותאמת.
+
+### Operations — תפעול
+ניהול שטח, קריאות שירות, שיגור טכנאים, צילום תקלות, חתימות דיגיטליות, מלאי חלקים ותמיכת Offline.
+
+## חבילות ומחירים
+
+כל המחירים כוללים מע״מ (17%).
+
+| חבילה | שם בעברית | מחיר חודשי | מודולים כלולים |
+|--------|-----------|------------|----------------|
+| Solo | מודול בודד | 149 ₪ | מודול אחד לבחירה |
+| The Closer | חבילת מכירות | 249 ₪ | System + Nexus |
+| The Authority | חבילת שיווק ומיתוג | 349 ₪ | Social + Client + Nexus |
+| The Operator | חבילת תפעול ושטח | 349 ₪ | Operations + Nexus |
+| The Empire | הכל כלול | 499 ₪ | כל המודולים |
+
+- תשלום שנתי: הנחה של 20%
+- כל חבילה עם Nexus כוללת 5 מושבים (משתמשים)
+- תוספת משתמש: 39 ₪/חודש
+
+## תכונות AI עיקריות
+
+- חיזוי סגירת עסקאות (ניקוד סיכוי לכל ליד)
+- המלצות Hashtags חכמים מותאמים לפלטפורמה
+- זיהוי שעות פרסום מיטביות
+- ניתוח נתונים והמלצות פעולה
+- קרדיטי AI לכל חבילה (5,000–25,000 קרדיטים)
+
+## דפים ציבוריים חשובים
+
+- דף הבית: https://misrad-ai.com
+- אודות: https://misrad-ai.com/about
+- מחירון: https://misrad-ai.com/pricing
+- צור קשר: https://misrad-ai.com/contact
+- מרכז הידע (תמיכה): https://misrad-ai.com/support
+- הצהרת נגישות: https://misrad-ai.com/accessibility
+- מדיניות פרטיות: https://misrad-ai.com/legal/privacy
+- תנאי שימוש: https://misrad-ai.com/legal/terms
+- מדיניות החזרים: https://misrad-ai.com/refund-policy
+- אבטחה: https://misrad-ai.com/security
+
+## דפי מודולים (Landing Pages)
+
+- Nexus: https://misrad-ai.com/nexus
+- System (מכירות): https://misrad-ai.com/system
+- Social (שיווק): https://misrad-ai.com/social
+- Finance (כספים): https://misrad-ai.com/finance-landing
+- Client (לקוחות): https://misrad-ai.com/client
+- Operations (תפעול): https://misrad-ai.com/operations
+
+## דפי חבילות (Landing Pages)
+
+- Solo: https://misrad-ai.com/solo
+- The Closer: https://misrad-ai.com/the-closer
+- The Authority: https://misrad-ai.com/the-authority
+- The Operator: https://misrad-ai.com/the-operator
+- The Empire: https://misrad-ai.com/the-empire
+
+## כניסה והרשמה
+
+- כניסה למערכת: https://misrad-ai.com/login
+- הרשמה: https://misrad-ai.com/login?mode=sign-up
+- אימות: Clerk (כולל Google OAuth)
+
+## מצב שבת
+
+המערכת כוללת מצב שבת אוטומטי — בזמני שבת וחגים המערכת נכנסת למצב שקט שמכבד את המשתמשים.
+דף מצב שבת: https://misrad-ai.com/shabbat
+
+## טכנולוגיה
+
+- Frontend: Next.js (App Router), React, TypeScript, TailwindCSS
+- Backend: Next.js Server Actions, Prisma ORM
+- Database: PostgreSQL (Supabase)
+- Auth: Clerk
+- Hosting: Vercel
+- AI: מודלים מובנים לניתוח נתונים והמלצות
+
+## אבטחה
+
+- אימות: Clerk Authentication
+- הרשאות: מערכת תפקידים מבוססת RBAC
+- Tenant Isolation: Prisma Tenant Guard — סינון ארגוני קשיח בכל שאילתה
+- Audit Logging: מעקב אחר כל הפעולות
+- API Security: API Key authentication לאינטגרציות
+- סינון נתונים רגישים לפי הרשאות
+
+## אינטגרציות
+
+- Google Calendar
+- Google Drive
+- Webhooks API לקליטת לקוחות אוטומטית ממערכות חיצוניות
+- ייצוא/ייבוא CSV/Excel עם מיפוי AI חכם
+
+## שפה ומיקום
+
+- שפת ממשק ראשית: עברית
+- כיוון: RTL (ימין לשמאל)
+- מטבע: שקל חדש (₪ / ILS)
+- אזור: ישראל
