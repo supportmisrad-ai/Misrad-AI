@@ -121,8 +121,8 @@ export default function SystemOSLandingPage() {
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <Check size={18} className="sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">חייגן + Follow Up אוטומטי</div>
-                      <div className="text-xs sm:text-sm text-slate-600">חייג מהמערכת, תיעוד שיחות, תזכורות מעקב</div>
+                      <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">מרכז תקשורת + מרכזיית ענן</div>
+                      <div className="text-xs sm:text-sm text-slate-600">חייג מהמערכת דרך Voicenter/Twilio, Inbox אחוד, תיעוד שיחות</div>
                     </div>
                   </div>
                 </div>
@@ -193,8 +193,8 @@ export default function SystemOSLandingPage() {
                 icon: Target
               },
               {
-                title: 'חייגן מובנה',
-                desc: 'חייג ללידים ישירות מהמערכת, תיעוד אוטומטי של שיחות ומעקב מלא',
+                title: 'מרכז תקשורת',
+                desc: 'חייג ללידים דרך מרכזיית ענן (Voicenter / Twilio), Inbox אחוד לכל הערוצים, תיעוד שיחות ומעקב',
                 icon: PhoneCall
               },
               {
@@ -312,8 +312,8 @@ export default function SystemOSLandingPage() {
                 price={billingCycle === 'monthly' ? 149 : Math.round(149 * 0.8)}
                 features={[
                   'משתמש אחד (ללא ניהול צוות)',
-                  'ניהול לידים',
-                  'Pipeline מכירות',
+                  'ניהול לידים + Pipeline מכירות',
+                  'מרכז תקשורת + חייגן מרכזיית ענן',
                   'משימות Follow Up',
                   'תמיכה בעברית'
                 ]}
@@ -328,7 +328,7 @@ export default function SystemOSLandingPage() {
                 features={[
                   getModuleLabelHe('system'),
                   getModuleLabelHe('nexus'),
-                  'ניהול לידים + ניהול צוות',
+                  'ניהול לידים + ניהול צוות + מרכז תקשורת',
                   'סנכרון בין המודולים'
                 ]}
                 recommended={false}

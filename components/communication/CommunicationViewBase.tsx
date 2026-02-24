@@ -425,10 +425,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                   {(
                     [
                       { id: 'all', label: 'הכל', icon: Layers },
-                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-                      { id: 'sms', label: 'SMS', icon: Smartphone },
-                      { id: 'email', label: 'Email', icon: Mail },
-                    ] satisfies Array<{ id: ChannelFilter; label: string; icon: LucideIcon }>
+                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, soon: true },
+                      { id: 'sms', label: 'SMS', icon: Smartphone, soon: true },
+                      { id: 'email', label: 'Email', icon: Mail, soon: true },
+                    ] satisfies Array<{ id: ChannelFilter; label: string; icon: LucideIcon; soon?: boolean }>
                   ).map((filter) => (
                     <button
                       key={filter.id}
@@ -441,6 +441,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                     >
                       <filter.icon size={12} />
                       {filter.label}
+                      {filter.soon && <span className="px-1 py-px rounded text-[7px] font-black bg-amber-100 text-amber-700 border border-amber-200 leading-none">בקרוב</span>}
                     </button>
                   ))}
                 </div>
@@ -666,10 +667,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                     <div className="flex gap-2 mb-3 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit mx-auto md:mx-0">
                       {(
                         [
-                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100' },
-                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100' },
-                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100' },
-                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string }>
+                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100', soon: true },
+                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100', soon: true },
+                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100', soon: true },
+                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string; soon?: boolean }>
                       ).map((channel) => (
                         <button
                           key={channel.id}
@@ -683,6 +684,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                         >
                           <channel.icon size={12} />
                           {channel.label}
+                          {channel.soon && <span className="px-1 py-px rounded text-[7px] font-black bg-amber-100 text-amber-700 border border-amber-200 leading-none">בקרוב</span>}
                         </button>
                       ))}
                     </div>

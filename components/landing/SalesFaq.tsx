@@ -116,6 +116,16 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
       ),
     },
     {
+      q: 'איך מרכז התקשורת והחייגן עובדים?',
+      a: (
+        <span>
+          מרכז התקשורת כולל <strong className="text-slate-900">חייגן מובנה</strong> שמתחבר למרכזיית הענן שלך —{' '}
+          <strong className="text-slate-900">Voicenter או Twilio</strong>. כל ארגון מביא את החשבון שלו (BYOC), מזין את הקרדנשיאלס בהגדרות,
+          ומתחיל לחייג ישירות מהמערכת. <strong className="text-slate-900">לא צריך מספר חדש</strong> — עובדים עם המספרים הקיימים שלכם.
+        </span>
+      ),
+    },
+    {
       q: 'יש API לחיבור מערכות חיצוניות?',
       a: 'כן. יש API מתועד שמאפשר חיבור לכל מערכת חיצונית — Zapier, Make, או אינטגרציה ישירה. צריך עזרה בחיבור? הצוות שלנו ילווה אותך.',
     },
