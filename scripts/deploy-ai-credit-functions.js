@@ -79,12 +79,12 @@ async function main() {
     const colCheck = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'Organization' 
+      WHERE table_name = 'organizations' 
         AND column_name = 'ai_credits_balance_cents'
     `);
 
     if (colCheck.rows.length === 0) {
-      console.error('❌ Column ai_credits_balance_cents not found on Organization table!');
+      console.error('❌ Column ai_credits_balance_cents not found on organizations table!');
       process.exit(1);
     }
 
@@ -107,7 +107,7 @@ async function main() {
     // Show current orgs and their credit balances
     const orgs = await client.query(`
       SELECT name, slug, subscription_plan, subscription_status, ai_credits_balance_cents
-      FROM "Organization"
+      FROM "organizations"
       WHERE subscription_status IN ('active', 'trial')
       ORDER BY name
     `);

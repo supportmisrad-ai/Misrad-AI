@@ -23,7 +23,7 @@ BEGIN
     RETURN;
   END IF;
 
-  UPDATE "Organization"
+  UPDATE "organizations"
   SET ai_credits_balance_cents = ai_credits_balance_cents - p_amount_cents
   WHERE id = p_organization_id
     AND ai_credits_balance_cents >= p_amount_cents;
@@ -44,7 +44,7 @@ BEGIN
     RETURN;
   END IF;
 
-  UPDATE "Organization"
+  UPDATE "organizations"
   SET ai_credits_balance_cents = ai_credits_balance_cents + p_delta_cents
   WHERE id = p_organization_id;
 END;
@@ -58,13 +58,13 @@ WHERE routine_name IN ('ai_debit_credits', 'ai_adjust_credits')
 
 -- Step 5: Set initial credits for Misrad AI HQ (the_empire = 25,000 cents)
 -- Only run this if balance is currently 0
-UPDATE "Organization"
+UPDATE "organizations"
 SET ai_credits_balance_cents = 25000
 WHERE slug = 'misrad-ai-hq'
   AND ai_credits_balance_cents = 0;
 
 -- Step 6: Verify
 SELECT id, name, slug, subscription_plan, subscription_status, ai_credits_balance_cents
-FROM "Organization"
+FROM "organizations"
 WHERE subscription_status IN ('active', 'trial')
 ORDER BY name;

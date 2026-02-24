@@ -1287,7 +1287,7 @@ export class AIService {
         organizationId: params.organizationId,
         reason: 'ai_debit_credits',
         query:
-          'UPDATE "Organization" ' +
+          'UPDATE "organizations" ' +
           'SET ai_credits_balance_cents = ai_credits_balance_cents - $2::bigint ' +
           'WHERE id = $1::uuid AND ai_credits_balance_cents >= $2::bigint',
         values: [params.organizationId, reserve],
@@ -1314,7 +1314,7 @@ export class AIService {
         organizationId: params.organizationId,
         reason: 'ai_adjust_credits',
         query:
-          'UPDATE "Organization" ' +
+          'UPDATE "organizations" ' +
           'SET ai_credits_balance_cents = ai_credits_balance_cents + $2::bigint ' +
           'WHERE id = $1::uuid',
         values: [params.organizationId, delta],

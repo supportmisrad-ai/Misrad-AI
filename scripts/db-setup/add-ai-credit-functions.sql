@@ -15,7 +15,7 @@ BEGIN
     RETURN;
   END IF;
 
-  UPDATE "Organization"
+  UPDATE "organizations"
   SET ai_credits_balance_cents = ai_credits_balance_cents - p_amount_cents
   WHERE id = p_organization_id
     AND ai_credits_balance_cents >= p_amount_cents;
@@ -36,7 +36,7 @@ BEGIN
     RETURN;
   END IF;
 
-  UPDATE "Organization"
+  UPDATE "organizations"
   SET ai_credits_balance_cents = ai_credits_balance_cents + p_delta_cents
   WHERE id = p_organization_id;
 END;

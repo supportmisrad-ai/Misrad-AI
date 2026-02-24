@@ -75,8 +75,10 @@ async function POSTHandler(req: NextRequest) {
       const orgIds = orgs.map((o) => o.id);
       let alreadySentOrgIds = new Set<string>();
       try {
-        const existing = await (prisma as Record<string, unknown>).emailSentLog
-          ? await (prisma.emailSentLog as { findMany: (args: Record<string, unknown>) => Promise<Array<{ organization_id: string | null }>> }).findMany({
+        const p = prisma as unknown as Record<string, unknown>;
+        const delegate = p.emailSentLog as { findMany: (args: Record<string, unknown>) => Promise<Array<{ organization_id: string | null }>> } | undefined;
+        const existing = delegate
+          ? await delegate.findMany({
               where: {
                 email_type_id: config.emailTypeId,
                 organization_id: { in: orgIds },
@@ -85,7 +87,7 @@ async function POSTHandler(req: NextRequest) {
             })
           : [];
         alreadySentOrgIds = new Set(
-          (existing as Array<{ organization_id: string | null }>)
+          existing
             .map((r) => r.organization_id)
             .filter((id): id is string => Boolean(id))
         );
@@ -157,7 +159,8 @@ async function POSTHandler(req: NextRequest) {
 
         // Log the sent email for dedup
         try {
-          await (prisma.emailSentLog as { create: (args: Record<string, unknown>) => Promise<unknown> }).create({
+          const logDelegate = (prisma as unknown as Record<string, unknown>).emailSentLog as { create: (args: Record<string, unknown>) => Promise<unknown> } | undefined;
+          await logDelegate?.create({
             data: {
               email_type_id: config.emailTypeId,
               recipient_email: ownerEmail,
