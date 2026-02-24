@@ -147,7 +147,7 @@ export default function EditContactModal({
           </div>
 
           <div className="space-y-3 pt-1">
-            <p className="text-sm font-semibold text-slate-700 border-b pb-2">הגדרות</p>
+            <p className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">הגדרות</p>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="ec-primary"

@@ -213,7 +213,7 @@ export default function UpgradeSeatsModal({
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button
               onClick={handleUpgrade}
               disabled={isPending || selectedSeats < minRequiredSeats}

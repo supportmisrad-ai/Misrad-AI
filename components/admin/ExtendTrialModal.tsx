@@ -167,7 +167,7 @@ export default function ExtendTrialModal({
 
           {/* Extension Input */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               הארכה חדשה
             </div>
             
@@ -263,7 +263,7 @@ export default function ExtendTrialModal({
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button type="submit" disabled={isPending} className="flex-1">
               {isPending ? (
                 <>

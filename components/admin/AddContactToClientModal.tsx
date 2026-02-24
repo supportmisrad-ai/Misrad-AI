@@ -163,7 +163,7 @@ export default function AddContactToClientModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Search User */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               חיפוש משתמש
             </div>
             
@@ -245,7 +245,7 @@ export default function AddContactToClientModal({
           {selectedUser && (
             <>
               <div className="space-y-4">
-                <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+                <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
                   פרטי איש קשר
                 </div>
                 
@@ -295,7 +295,7 @@ export default function AddContactToClientModal({
 
               {/* Flags */}
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+                <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
                   הגדרות נוספות
                 </div>
                 
@@ -344,7 +344,7 @@ export default function AddContactToClientModal({
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button type="submit" disabled={isPending || !selectedUserId} className="flex-1">
               {isPending ? (
                 <>

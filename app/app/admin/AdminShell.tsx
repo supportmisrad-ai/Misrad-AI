@@ -203,9 +203,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const areaNavMap = useMemo<Record<AdminArea, AdminNavItem[]>>(() => ({
     customers: [
       { href: '/app/admin/dashboard/customers', label: 'מבט על לקוחות', icon: LayoutGrid },
+      { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Network },
       { href: '/app/admin/setup-customer', label: 'הקמת לקוח', icon: UserPlus },
-      { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
       { href: '/app/admin/billing-management', label: 'ניהול גבייה', icon: DollarSign },
     ],
     users: [

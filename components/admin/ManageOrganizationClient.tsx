@@ -706,7 +706,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   </div>
                 )}
 
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-4 border-t border-slate-200">
                   <h4 className="font-bold text-slate-900">מודולים פעילים</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
@@ -861,7 +861,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 </div>
 
                 {/* Address */}
-                <div className="space-y-4 pt-6 border-t">
+                <div className="space-y-4 pt-6 border-t border-slate-200">
                   <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
                     כתובת
@@ -915,7 +915,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 </div>
 
                 {/* Contact Details */}
-                <div className="space-y-4 pt-6 border-t">
+                <div className="space-y-4 pt-6 border-t border-slate-200">
                   <h4 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                     <Phone className="w-5 h-5" />
                     פרטי קשר

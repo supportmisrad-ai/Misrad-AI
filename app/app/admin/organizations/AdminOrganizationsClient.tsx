@@ -227,7 +227,21 @@ export default function AdminOrganizationsClient(props: {
                       <Settings className="w-4 h-4 text-slate-600" />
                     </Link>
                   </div>
-                  <div className="text-xs font-bold text-slate-600 truncate">כתובת: {o.slug || '-'}</div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                      o.subscription_status === 'active' ? 'bg-green-100 text-green-800'
+                      : o.subscription_status === 'trial' ? 'bg-blue-100 text-blue-800'
+                      : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
+                    </span>
+                    {o.subscription_plan && (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-700">
+                        {String(o.subscription_plan).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs font-bold text-slate-600 truncate mt-1">כתובת: {o.slug || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
                   {o.businessClientName ? (
@@ -249,7 +263,8 @@ export default function AdminOrganizationsClient(props: {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">כתובת</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">סטטוס</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">חבילה</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">לקוח עסקי</th>
@@ -273,7 +288,16 @@ export default function AdminOrganizationsClient(props: {
                 return (
                   <tr key={String(o.id)} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm font-bold text-slate-900">{o.name}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{o.slug || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                        o.subscription_status === 'active' ? 'bg-green-100 text-green-800'
+                        : o.subscription_status === 'trial' ? 'bg-blue-100 text-blue-800'
+                        : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{o.subscription_plan ? String(o.subscription_plan).toUpperCase() : '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
                     <td className="px-4 py-3 text-sm text-slate-700 font-bold">{o.businessClientName || '-'}</td>

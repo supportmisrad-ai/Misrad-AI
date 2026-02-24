@@ -366,7 +366,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
             const primary = primaryContact(client);
 
             return (
-              <div key={client.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
+              <div key={client.id} className="bg-white border border-slate-200 rounded-2xl hover:shadow-md transition-shadow">
                 {/* Client Header */}
                 <div
                   className="p-5 sm:p-6 cursor-pointer hover:bg-slate-50 transition-colors"

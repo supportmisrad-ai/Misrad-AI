@@ -33,6 +33,8 @@ export type BusinessClientInput = {
   company_size?: string;
   lead_source?: string;
   notes?: string;
+  status?: string;
+  lifecycle_stage?: string;
 };
 
 export type ContactInput = {

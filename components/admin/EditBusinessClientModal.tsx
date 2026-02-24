@@ -15,6 +15,8 @@ type EditBusinessClientModalProps = {
     company_name: string;
     company_name_en?: string | null;
     business_number?: string | null;
+    status?: string | null;
+    lifecycle_stage?: string | null;
     tax_id?: string | null;
     legal_entity_type?: string | null;
     primary_email: string;
@@ -35,6 +37,17 @@ type EditBusinessClientModalProps = {
 const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+'];
 const INDUSTRIES = ['טכנולוגיה', 'שירותים פיננסיים', 'קמעונאות', 'בריאות', 'חינוך', 'נדל"ן', 'ייצור', 'תיירות ואירוח', 'שירותים מקצועיים', 'אחר'];
 const LEGAL_ENTITY_TYPES = ['עוסק מורשה', 'חברה בע"מ', 'שותפות', 'עמותה', 'אחר'];
+const CLIENT_STATUSES = [
+  { value: 'active', label: 'פעיל' },
+  { value: 'inactive', label: 'לא פעיל' },
+  { value: 'churned', label: 'עזב' },
+];
+const LIFECYCLE_STAGES = [
+  { value: 'lead', label: 'ליד' },
+  { value: 'prospect', label: 'פרוספקט' },
+  { value: 'customer', label: 'לקוח' },
+  { value: 'churned', label: 'עזב' },
+];
 
 export default function EditBusinessClientModal({ isOpen, client, onClose, onSuccess }: EditBusinessClientModalProps) {
   const [isPending, startTransition] = useTransition();
@@ -54,6 +67,8 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
   const [companySize, setCompanySize] = useState('');
   const [leadSource, setLeadSource] = useState('');
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState('');
+  const [lifecycleStage, setLifecycleStage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -73,6 +88,8 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
       setCompanySize(client.company_size || '');
       setLeadSource(client.lead_source || '');
       setNotes(client.notes || '');
+      setStatus(client.status || 'active');
+      setLifecycleStage(client.lifecycle_stage || 'customer');
     }
   }, [isOpen, client]);
   useBackButtonClose(isOpen, onClose);
@@ -113,6 +130,8 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
           company_size: companySize || undefined,
           lead_source: leadSource.trim() || undefined,
           notes: notes.trim() || undefined,
+          status: status || undefined,
+          lifecycle_stage: lifecycleStage || undefined,
         });
 
         if (!result.ok) {
@@ -153,9 +172,21 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>סטטוס לקוח</Label>
+              <CustomSelect value={status} onChange={(val) => setStatus(val)} disabled={isPending} options={CLIENT_STATUSES} />
+            </div>
+            <div>
+              <Label>שלב מחזור חיים</Label>
+              <CustomSelect value={lifecycleStage} onChange={(val) => setLifecycleStage(val)} disabled={isPending} options={LIFECYCLE_STAGES} />
+            </div>
+          </div>
+
           {/* Basic Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">מידע בסיסי</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">מידע בסיסי</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="companyName">שם חברה (עברית) *</Label>
@@ -184,7 +215,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
 
           {/* Contact Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">פרטי התקשרות</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">פרטי התקשרות</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="primaryEmail">מייל ראשי *</Label>
@@ -203,7 +234,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
 
           {/* Address */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">כתובת</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">כתובת</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <Label htmlFor="addressStreet">רחוב</Label>
@@ -222,7 +253,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
 
           {/* Business Details */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">פרטים עסקיים</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">פרטים עסקיים</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="industry">תחום עיסוק</Label>
@@ -261,7 +292,7 @@ export default function EditBusinessClientModal({ isOpen, client, onClose, onSuc
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button type="submit" disabled={isPending} className="flex-1">
               {isPending ? (
                 <>

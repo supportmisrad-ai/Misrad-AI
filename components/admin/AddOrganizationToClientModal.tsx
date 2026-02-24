@@ -158,7 +158,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Basic Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               פרטי ארגון
             </div>
             
@@ -208,7 +208,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Subscription & Billing */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               חבילה ומנויים
             </div>
             
@@ -294,7 +294,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Modules */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               מודולים פעילים
             </div>
             
@@ -363,7 +363,7 @@ export default function AddOrganizationToClientModal({
 
           {/* Settings */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">
               הגדרות נוספות
             </div>
             
@@ -384,7 +384,7 @@ export default function AddOrganizationToClientModal({
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t">
+          <div className="flex gap-3 pt-4 border-t border-slate-200">
             <Button
               type="submit"
               disabled={isPending || !primaryContactUserId}

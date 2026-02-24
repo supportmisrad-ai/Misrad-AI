@@ -114,7 +114,7 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">פרטי ארגון</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">פרטי ארגון</div>
             <div>
               <Label htmlFor="orgName">שם ארגון *</Label>
               <Input id="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} disabled={isPending} className="mt-1" />
@@ -128,7 +128,7 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
 
           {/* Modules */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">מודולים פעילים</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">מודולים פעילים</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <Checkbox id="hasNexus" checked={hasNexus} onCheckedChange={(checked) => setHasNexus(checked as boolean)} disabled={isPending} />
@@ -155,7 +155,7 @@ export default function EditOrganizationModal({ isOpen, organization, onClose, o
 
           {/* Shabbat Info */}
           <div className="space-y-4">
-            <div className="text-sm font-semibold text-slate-700 border-b pb-2">מצב שבת</div>
+            <div className="text-sm font-semibold text-slate-700 border-b border-slate-200 pb-2">מצב שבת</div>
             <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
               <p className="text-xs text-slate-700">🕎 המערכת סגורה בשבת לכל הארגונים. שינוי ניתן רק בדף פרטי ארגון עבור מוסדות רפואיים.</p>
             </div>
