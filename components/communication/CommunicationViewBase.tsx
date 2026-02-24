@@ -116,7 +116,8 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
   const [selectedSendChannel, setSelectedSendChannel] = useState<SendChannel>('whatsapp');
   const [isDrafting, setIsDrafting] = useState(false);
-  const [sendingStatus, setSendingStatus] = useState<Record<string, 'sending' | 'sent' | 'delivered'>>({});
+  const [sendingStatus, setSendingStatus] = useState<Record<string, 'sending' | 'sent' | 'delivered' | 'failed'>>({});
+  const [isSending, setIsSending] = useState(false);
 
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setShowMoreMenu(false));
 
@@ -330,16 +331,53 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
   const handleSendMessage = async (e: SendMessageEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || !selectedChatId) return;
+    if (!chatInput.trim() || !selectedChatId || isSending) return;
 
     const msgId = Date.now().toString();
+    const messageText = chatInput;
     setSendingStatus((prev) => ({ ...prev, [msgId]: 'sending' }));
+    setIsSending(true);
+    setChatInput('');
 
-    setTimeout(() => {
+    // Determine recipient based on channel
+    const recipient = selectedSendChannel === 'email'
+      ? activeLead?.email || ''
+      : activeLead?.phone || '';
+
+    if (!recipient) {
+      addToast(`חסר ${selectedSendChannel === 'email' ? 'אימייל' : 'מספר טלפון'} לליד הזה`, 'error');
+      setSendingStatus((prev) => ({ ...prev, [msgId]: 'failed' }));
+      setIsSending(false);
+      setChatInput(messageText);
+      return;
+    }
+
+    try {
+      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (orgSlug) headers['x-org-id'] = encodeURIComponent(orgSlug);
+
+      const response = await fetch('/api/messaging/send', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          channel: selectedSendChannel,
+          to: recipient,
+          message: messageText,
+          ...(selectedSendChannel === 'email' ? { subject: `הודעה מ-MISRAD AI` } : {}),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'שגיאה בשליחה' }));
+        throw new Error(errorData.error || 'שגיאה בשליחת הודעה');
+      }
+
+      // Success — add activity to local state
       onAddActivity(selectedChatId, {
         id: msgId,
         type: selectedSendChannel,
-        content: chatInput,
+        content: messageText,
         timestamp: new Date(),
         direction: 'outbound',
       });
@@ -348,9 +386,15 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
       setTimeout(() => {
         setSendingStatus((prev) => ({ ...prev, [msgId]: 'delivered' }));
       }, 1500);
-    }, 600);
-
-    setChatInput('');
+    } catch (error: unknown) {
+      console.error('Error sending message:', error);
+      const msg = error instanceof Error ? error.message : 'שגיאה בשליחת הודעה';
+      addToast(msg, 'error');
+      setSendingStatus((prev) => ({ ...prev, [msgId]: 'failed' }));
+      setChatInput(messageText); // Restore message on failure
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleQuickLinkSelect = (value: string) => {
@@ -425,10 +469,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                   {(
                     [
                       { id: 'all', label: 'הכל', icon: Layers },
-                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, soon: true },
-                      { id: 'sms', label: 'SMS', icon: Smartphone, soon: true },
-                      { id: 'email', label: 'Email', icon: Mail, soon: true },
-                    ] satisfies Array<{ id: ChannelFilter; label: string; icon: LucideIcon; soon?: boolean }>
+                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+                      { id: 'sms', label: 'SMS', icon: Smartphone },
+                      { id: 'email', label: 'Email', icon: Mail },
+                    ] satisfies Array<{ id: ChannelFilter; label: string; icon: LucideIcon }>
                   ).map((filter) => (
                     <button
                       key={filter.id}
@@ -441,7 +485,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                     >
                       <filter.icon size={12} />
                       {filter.label}
-                      {filter.soon && <span className="px-1 py-px rounded text-[7px] font-black bg-amber-100 text-amber-700 border border-amber-200 leading-none">בקרוב</span>}
                     </button>
                   ))}
                 </div>
@@ -667,10 +710,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                     <div className="flex gap-2 mb-3 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit mx-auto md:mx-0">
                       {(
                         [
-                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100', soon: true },
-                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100', soon: true },
-                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100', soon: true },
-                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string; soon?: boolean }>
+                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100' },
+                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100' },
+                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100' },
+                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string }>
                       ).map((channel) => (
                         <button
                           key={channel.id}
@@ -684,7 +727,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                         >
                           <channel.icon size={12} />
                           {channel.label}
-                          {channel.soon && <span className="px-1 py-px rounded text-[7px] font-black bg-amber-100 text-amber-700 border border-amber-200 leading-none">בקרוב</span>}
                         </button>
                       ))}
                     </div>
@@ -753,7 +795,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
                       <button
                         type="submit"
-                        disabled={!chatInput.trim()}
+                        disabled={!chatInput.trim() || isSending}
                         className={`w-14 h-14 text-white rounded-[24px] shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
                           selectedSendChannel === 'whatsapp'
                             ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'

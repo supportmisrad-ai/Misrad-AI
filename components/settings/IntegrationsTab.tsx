@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, TriangleAlert, Video, CircleCheck } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
 import { Skeleton } from '@/components/ui/skeletons';
+import { MessagingConfigForm } from './MessagingConfigForm';
+import { TelephonyConfigForm } from './TelephonyConfigForm';
+import { VoicenterOnboardingPanel } from './VoicenterOnboardingPanel';
 
 export const IntegrationsTab: React.FC = () => {
     const { isCalendarConnected, connectGoogleCalendar, isGreenInvoiceConnected, connectGreenInvoice } = useData();
@@ -380,6 +383,21 @@ export const IntegrationsTab: React.FC = () => {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Telephony (Cloud PBX) Section */}
+            <div className="bg-gradient-to-br from-rose-50 via-slate-50 to-blue-50 p-6 rounded-2xl border border-rose-200">
+                <TelephonyConfigForm />
+            </div>
+
+            {/* Messaging Channels Section */}
+            <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-amber-50 p-6 rounded-2xl border border-emerald-200">
+                <MessagingConfigForm />
+            </div>
+
+            {/* Voicenter Onboarding */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <VoicenterOnboardingPanel />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
