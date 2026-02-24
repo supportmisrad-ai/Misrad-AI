@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type {
   CustomerAnalyticsOverview, CustomerActivityEntry, AIGeneratedInsight,
+  RealtimeActivity,
 } from '@/app/actions/admin-analytics-ai';
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -186,9 +187,10 @@ function InsightCard({ insight }: { insight: AIGeneratedInsight }) {
 
 // ── Tabs ─────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'organizations' | 'modules' | 'insights';
+type Tab = 'live' | 'overview' | 'organizations' | 'modules' | 'insights';
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  { key: 'live', label: 'פעילות חיה', icon: <Activity size={16} /> },
   { key: 'overview', label: 'סקירה כללית', icon: <BarChart3 size={16} /> },
   { key: 'organizations', label: 'ארגונים', icon: <Building2 size={16} /> },
   { key: 'modules', label: 'מודולים וחבילות', icon: <Package size={16} /> },
@@ -201,14 +203,16 @@ export default function CustomerAnalyticsClient({
   overview,
   activity,
   insights,
+  realtime,
   error,
 }: {
   overview: CustomerAnalyticsOverview | null;
   activity: CustomerActivityEntry[];
   insights: AIGeneratedInsight[];
+  realtime: RealtimeActivity | null;
   error: string | null;
 }) {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('live');
 
   if (error && !overview) {
     return (
@@ -261,10 +265,196 @@ export default function CustomerAnalyticsClient({
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'live' && <LiveTab realtime={realtime} />}
       {activeTab === 'overview' && overview && <OverviewTab overview={overview} />}
       {activeTab === 'organizations' && <OrganizationsTab activity={activity} overview={overview} />}
       {activeTab === 'modules' && overview && <ModulesTab overview={overview} />}
       {activeTab === 'insights' && <InsightsTab insights={insights} overview={overview} />}
+    </div>
+  );
+}
+
+// ── Live Tab ─────────────────────────────────────────────────────
+
+function LiveTab({ realtime }: { realtime: RealtimeActivity | null }) {
+  if (!realtime) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+        <div className="text-slate-400 font-bold">אין נתוני פעילות חיה</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Live Indicator */}
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+        </span>
+        <span className="text-sm font-black text-emerald-600">פעילות בזמן אמת</span>
+        <span className="text-xs font-bold text-slate-400">(15 דקות אחרונות)</span>
+      </div>
+
+      {/* Realtime KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-2xl p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-black text-emerald-600">משתמשי AI מחוברים</span>
+          </div>
+          <div className="text-5xl font-black text-emerald-700">{realtime.activeUsersNow}</div>
+          <div className="text-[11px] font-bold text-emerald-500 mt-1">ב-{realtime.activeOrgsNow} ארגונים</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500" />
+            </span>
+            <span className="text-xs font-black text-blue-600">ארגונים פעילים</span>
+          </div>
+          <div className="text-5xl font-black text-blue-700">{realtime.activeOrgsNow}</div>
+          <div className="text-[11px] font-bold text-blue-500 mt-1">השתמשו ב-AI ב-15 דק׳ אחרונות</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-2xl p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500" />
+            </span>
+            <span className="text-xs font-black text-violet-600">מבקרי אתר</span>
+          </div>
+          <div className="text-5xl font-black text-violet-700">{realtime.activeSiteVisitorsNow}</div>
+          <div className="text-[11px] font-bold text-violet-500 mt-1">גולשים פעילים באתר</div>
+        </div>
+      </div>
+
+      {/* 24-Hour Activity Graph */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <h3 className="text-lg font-black text-slate-900 mb-1">פעילות 24 שעות אחרונות</h3>
+        <p className="text-xs font-bold text-slate-500 mb-4">בקשות AI ומבקרי אתר לפי שעה</p>
+
+        {realtime.hourlyActivity.length > 0 ? (
+          <div className="space-y-4">
+            {/* AI Requests bars */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded bg-violet-400" />
+                <span className="text-xs font-black text-slate-600">בקשות AI</span>
+              </div>
+              <HourlyBarChart
+                data={realtime.hourlyActivity.map((h) => ({
+                  label: h.hour.replace(':00', ''),
+                  value: h.aiRequests,
+                  color: 'bg-violet-400',
+                }))}
+                height={140}
+              />
+            </div>
+
+            {/* Site Visitors bars */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded bg-blue-400" />
+                <span className="text-xs font-black text-slate-600">מבקרי אתר</span>
+              </div>
+              <HourlyBarChart
+                data={realtime.hourlyActivity.map((h) => ({
+                  label: h.hour.replace(':00', ''),
+                  value: h.siteVisitors,
+                  color: 'bg-blue-400',
+                }))}
+                height={100}
+              />
+            </div>
+
+            {/* Unique Users bars */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 rounded bg-emerald-400" />
+                <span className="text-xs font-black text-slate-600">משתמשי AI ייחודיים</span>
+              </div>
+              <HourlyBarChart
+                data={realtime.hourlyActivity.map((h) => ({
+                  label: h.hour.replace(':00', ''),
+                  value: h.uniqueUsers,
+                  color: 'bg-emerald-400',
+                }))}
+                height={80}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-slate-400 font-bold py-12">אין נתונים ב-24 השעות האחרונות</div>
+        )}
+      </div>
+
+      {/* Recent Active Users */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6">
+        <h3 className="text-lg font-black text-slate-900 mb-1">משתמשים פעילים עכשיו</h3>
+        <p className="text-xs font-bold text-slate-500 mb-4">משתמשים שביצעו בקשת AI ב-15 דקות אחרונות</p>
+
+        {realtime.recentActiveUsers.length > 0 ? (
+          <div className="space-y-3">
+            {realtime.recentActiveUsers.map((user) => (
+              <div key={user.userId} className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">
+                  {(user.userName || user.email || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-black text-slate-900">
+                    {user.userName || user.email || user.userId.slice(0, 12)}
+                  </div>
+                  <div className="flex gap-3 text-[11px] font-bold text-slate-500">
+                    <span>{user.orgName}</span>
+                    {user.email && user.userName && <span className="truncate">{user.email}</span>}
+                  </div>
+                </div>
+                <div className="text-left shrink-0">
+                  <span className="relative flex h-2 w-2 mr-auto">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-slate-400 font-bold py-8">אין משתמשים פעילים כרגע</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HourlyBarChart({ data, height = 120 }: {
+  data: { label: string; value: number; color?: string }[];
+  height?: number;
+}) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+  return (
+    <div className="flex items-end gap-[2px]" style={{ height }}>
+      {data.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-7 bg-slate-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
+            {d.label}:00 — {d.value}
+          </div>
+          <div
+            className={`w-full rounded-t-sm transition-all hover:opacity-80 ${d.color || 'bg-blue-400'}`}
+            style={{ height: `${Math.max((d.value / max) * 100, 1)}%`, minHeight: 1 }}
+          />
+          {i % 3 === 0 && (
+            <span className="text-[8px] font-bold text-slate-400">{d.label}</span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

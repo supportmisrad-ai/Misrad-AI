@@ -1,23 +1,27 @@
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import CustomerAnalyticsClient from './CustomerAnalyticsClient';
-import { getCustomerAnalyticsOverview, getCustomerActivityList, generateAIInsights } from '@/app/actions/admin-analytics-ai';
+import { getCustomerAnalyticsOverview, getCustomerActivityList, generateAIInsights, getRealtimeActivity } from '@/app/actions/admin-analytics-ai';
 
 export const metadata = {
   title: 'אנליטיקס לקוחות | Admin',
 };
 
 async function loadCustomerAnalyticsData() {
-  const [overviewRes, activityRes, insightsRes] = await Promise.all([
-    getCustomerAnalyticsOverview(90),
-    getCustomerActivityList(),
-    generateAIInsights(30),
+  const overviewP = getCustomerAnalyticsOverview(90);
+  const activityP = getCustomerActivityList();
+  const insightsP = generateAIInsights(30);
+  const realtimeP = getRealtimeActivity();
+
+  const [overviewRes, activityRes, insightsRes, realtimeRes] = await Promise.all([
+    overviewP, activityP, insightsP, realtimeP,
   ]);
 
   return {
     overview: overviewRes.success ? overviewRes.data! : null,
     activity: activityRes.success ? activityRes.data! : [],
     insights: insightsRes.success ? insightsRes.data! : [],
+    realtime: realtimeRes.success ? realtimeRes.data! : null,
     error: overviewRes.error || activityRes.error || insightsRes.error || null,
   };
 }
@@ -35,6 +39,7 @@ export default async function AdminCustomerAnalyticsPage() {
         overview={data.overview}
         activity={data.activity}
         insights={data.insights}
+        realtime={data.realtime}
         error={data.error}
       />
     </Suspense>

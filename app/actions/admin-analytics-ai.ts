@@ -663,6 +663,145 @@ export async function getCustomerActivityList(): Promise<{
   }
 }
 
+// ── Realtime Activity ────────────────────────────────────────────
+
+export interface RealtimeActivity {
+  activeUsersNow: number;
+  activeOrgsNow: number;
+  activeSiteVisitorsNow: number;
+  hourlyActivity: { hour: string; aiRequests: number; siteVisitors: number; uniqueUsers: number }[];
+  recentActiveUsers: { userId: string; userName: string | null; email: string | null; orgName: string; lastActivityAt: string }[];
+}
+
+export async function getRealtimeActivity(): Promise<{
+  success: boolean;
+  data?: RealtimeActivity;
+  error?: string;
+}> {
+  try {
+    await ensureAdmin();
+
+    const now = new Date();
+    const fifteenMinAgo = new Date(now.getTime() - 15 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const recentAiLogsP = prisma.ai_usage_logs.findMany({
+      where: { created_at: { gte: fifteenMinAgo } },
+      select: {
+        user_id: true,
+        organization_id: true,
+        created_at: true,
+        organizations: { select: { name: true } },
+      },
+    });
+    const recentSiteSessionsP = prisma.siteAnalyticsSession.findMany({
+      where: { updated_at: { gte: fifteenMinAgo } },
+      select: { visitor_id: true },
+    });
+    const last24hAiLogsP = prisma.ai_usage_logs.findMany({
+      where: { created_at: { gte: twentyFourHoursAgo } },
+      select: {
+        user_id: true,
+        organization_id: true,
+        created_at: true,
+        organizations: { select: { name: true } },
+      },
+    });
+    const last24hSiteSessionsP = prisma.siteAnalyticsSession.findMany({
+      where: { created_at: { gte: twentyFourHoursAgo } },
+      select: { visitor_id: true, created_at: true },
+    });
+
+    const recentAiLogs = await recentAiLogsP;
+    const recentSiteSessions = await recentSiteSessionsP;
+    const last24hAiLogs = await last24hAiLogsP;
+    const last24hSiteSessions = await last24hSiteSessionsP;
+
+    // Active now (last 15 min)
+    const activeUserIds = new Set<string>(recentAiLogs.map((l) => l.user_id));
+    const activeOrgIds = new Set<string>(recentAiLogs.map((l) => l.organization_id));
+    const activeSiteVisitors = new Set<string>(recentSiteSessions.map((s) => s.visitor_id));
+
+    // Recent active users (last 15 min) — fetch names
+    const userIds: string[] = [...activeUserIds];
+    const userInfos = userIds.length > 0
+      ? await prisma.organizationUser.findMany({
+          where: { clerk_user_id: { in: userIds } },
+          select: { clerk_user_id: true, full_name: true, email: true },
+        })
+      : [];
+    const userInfoMap = new Map(userInfos.map((u) => [u.clerk_user_id, u]));
+
+    // Build recent active users list (deduplicated, sorted by most recent)
+    const userLastActivity = new Map<string, { orgName: string; lastAt: Date }>();
+    for (const l of recentAiLogs) {
+      const existing = userLastActivity.get(l.user_id);
+      if (!existing || l.created_at > existing.lastAt) {
+        userLastActivity.set(l.user_id, { orgName: l.organizations.name, lastAt: l.created_at });
+      }
+    }
+    const recentActiveUsers = Array.from(userLastActivity.entries())
+      .sort((a, b) => b[1].lastAt.getTime() - a[1].lastAt.getTime())
+      .slice(0, 10)
+      .map(([uid, data]) => {
+        const info = userInfoMap.get(uid);
+        return {
+          userId: uid,
+          userName: info?.full_name || null,
+          email: info?.email || null,
+          orgName: data.orgName,
+          lastActivityAt: data.lastAt.toISOString(),
+        };
+      });
+
+    // 24-hour hourly breakdown
+    const hourlyMap = new Map<string, { aiRequests: number; siteVisitors: Set<string>; uniqueUsers: Set<string> }>();
+    // Initialize all 24 hours
+    for (let i = 0; i < 24; i++) {
+      const h = new Date(now.getTime() - (23 - i) * 60 * 60 * 1000);
+      const key = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}T${String(h.getHours()).padStart(2, '0')}`;
+      hourlyMap.set(key, { aiRequests: 0, siteVisitors: new Set(), uniqueUsers: new Set() });
+    }
+
+    for (const l of last24hAiLogs) {
+      const d = l.created_at;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}`;
+      const existing = hourlyMap.get(key);
+      if (existing) {
+        existing.aiRequests++;
+        existing.uniqueUsers.add(l.user_id);
+      }
+    }
+
+    for (const s of last24hSiteSessions) {
+      const d = s.created_at;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}`;
+      const existing = hourlyMap.get(key);
+      if (existing) {
+        existing.siteVisitors.add(s.visitor_id);
+      }
+    }
+
+    const hourlyActivity = Array.from(hourlyMap.entries())
+      .map(([key, data]) => ({
+        hour: key.split('T')[1] + ':00',
+        aiRequests: data.aiRequests,
+        siteVisitors: data.siteVisitors.size,
+        uniqueUsers: data.uniqueUsers.size,
+      }));
+
+    return createSuccessResponse({
+      activeUsersNow: activeUserIds.size,
+      activeOrgsNow: activeOrgIds.size,
+      activeSiteVisitorsNow: activeSiteVisitors.size,
+      hourlyActivity,
+      recentActiveUsers,
+    });
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה בטעינת נתוני פעילות בזמן אמת');
+  }
+}
+
 // ── AI Insights Generator ────────────────────────────────────────
 
 export interface AIGeneratedInsight {
