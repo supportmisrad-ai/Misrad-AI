@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ArrowRight, Check, Users, Minus, Plus } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowRight, Check, Users, Minus, Plus, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -28,30 +28,52 @@ const PACKAGES: { key: PackageKey; emoji: string; label: string; who: string; pr
 
 export default function PricingSection({ 
   isAuthenticated,
-  billingCycle: _billingCycle, 
-  onBillingCycleChange: _onBillingCycleChange,
+  billingCycle: externalBillingCycle, 
+  onBillingCycleChange,
   onSelectPlan 
 }: PricingSectionProps) {
   const router = useRouter();
   const [selectedPkg, setSelectedPkg] = useState<PackageKey>('the_empire');
   const [selectedSoloModule, setSelectedSoloModule] = useState<OSModuleKey>('system');
   const [users, setUsers] = useState<number>(1);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(externalBillingCycle || 'monthly');
+
+  const toggleBilling = () => {
+    const next = billingCycle === 'monthly' ? 'yearly' : 'monthly';
+    setBillingCycle(next);
+    onBillingCycleChange?.(next);
+  };
 
   const pkg = PACKAGES.find((p) => p.key === selectedPkg) || PACKAGES[4];
   const isSolo = selectedPkg === 'solo';
 
-  const pricing = (() => {
+  const pricing = useMemo(() => {
+    try {
+      return calculateOrderAmount({
+        packageType: selectedPkg,
+        soloModuleKey: isSolo ? selectedSoloModule : undefined,
+        billingCycle,
+        seats: users,
+      });
+    } catch {
+      return { amount: pkg.price, modules: BILLING_PACKAGES[selectedPkg].modules, includedSeats: pkg.freeUsers, extraSeats: 0 };
+    }
+  }, [selectedPkg, isSolo, selectedSoloModule, billingCycle, users, pkg.price, pkg.freeUsers]);
+
+  const monthlyPrice = useMemo(() => {
     try {
       return calculateOrderAmount({
         packageType: selectedPkg,
         soloModuleKey: isSolo ? selectedSoloModule : undefined,
         billingCycle: 'monthly',
         seats: users,
-      });
+      }).amount;
     } catch {
-      return { amount: pkg.price, modules: BILLING_PACKAGES[selectedPkg].modules, includedSeats: pkg.freeUsers, extraSeats: 0 };
+      return pkg.price;
     }
-  })();
+  }, [selectedPkg, isSolo, selectedSoloModule, users, pkg.price]);
+
+  const yearlySavings = billingCycle === 'yearly' ? (monthlyPrice * 12) - (pricing.amount * 12) : 0;
 
   const goToTrial = () => {
     const planParams = new URLSearchParams();
@@ -61,8 +83,6 @@ export default function PricingSection({
 
     const destination = `/workspaces/onboarding?${planParams.toString()}`;
     if (isAuthenticated) {
-      // Authenticated users already have a workspace — send them there.
-      // The onboarding page itself will redirect provisioned orgs to /w/[slug].
       router.push('/me');
       return;
     }
@@ -73,6 +93,16 @@ export default function PricingSection({
     if (isSolo) loginParams.set('module', selectedSoloModule);
     loginParams.set('redirect', destination);
     router.push(`/login?${loginParams.toString()}`);
+  };
+
+  const goToCheckout = () => {
+    const params = new URLSearchParams();
+    params.set('package', selectedPkg);
+    params.set('billing', billingCycle);
+    params.set('seats', String(users));
+    if (isSolo) params.set('module', selectedSoloModule);
+    params.set('product', BILLING_PACKAGES[selectedPkg].labelHe);
+    router.push(`/subscribe/checkout?${params.toString()}`);
   };
 
   const incrementUsers = () => setUsers((u) => Math.min(50, u + 1));
@@ -97,6 +127,28 @@ export default function PricingSection({
           <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">
             לחץ על החבילה שמתאימה — התמחור מתעדכן מיד.
           </p>
+
+          {/* Billing Cycle Toggle */}
+          <div className="flex items-center justify-center gap-4 mt-6">
+            <span className={`text-sm font-bold transition-colors ${billingCycle === 'monthly' ? 'text-slate-900' : 'text-slate-400'}`}>
+              חודשי
+            </span>
+            <button
+              onClick={toggleBilling}
+              className={`relative w-14 h-8 rounded-full transition-all duration-300 ${billingCycle === 'yearly' ? 'bg-indigo-600' : 'bg-slate-200'}`}
+              aria-label="Toggle billing cycle"
+            >
+              <div
+                className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300 ${billingCycle === 'yearly' ? 'left-7' : 'left-1'}`}
+              />
+            </button>
+            <span className={`text-sm font-bold transition-colors ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-400'}`}>
+              שנתי
+              <span className="mr-2 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-black rounded-full border border-emerald-200">
+                חסוך 20%
+              </span>
+            </span>
+          </div>
         </div>
 
         {/* Package selector — pill buttons */}
@@ -154,7 +206,17 @@ export default function PricingSection({
                       ₪{pricing.amount}
                     </span>
                     <span className="text-slate-500 text-lg font-bold">/חודש</span>
+                    <span className="text-xs font-bold text-slate-400">(כולל מע&quot;מ)</span>
                   </div>
+                  {billingCycle === 'yearly' && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700">
+                        <TrendingUp size={12} />
+                        חסוך ₪{monthlyPrice - pricing.amount}/חודש
+                      </span>
+                      <span className="text-xs text-slate-400 line-through">₪{monthlyPrice}</span>
+                    </div>
+                  )}
                 </div>
                 {/* Free users badge */}
                 <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-50 border-2 border-emerald-200">
@@ -261,22 +323,35 @@ export default function PricingSection({
               <div className="rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 px-5 py-3 mb-6 text-center">
                 <span className="text-sm font-bold text-slate-700">
                   סה״כ: <strong className="text-indigo-700 text-base">₪{pricing.amount}/חודש</strong>
+                  {billingCycle === 'yearly' && <span className="text-xs text-slate-500"> (₪{pricing.amount * 12} לשנה)</span>}
                   {' · '}
                   {isSolo ? getModuleLabelHe(selectedSoloModule) : pkg.modules}
                   {' · '}
                   {users} {users === 1 ? 'משתמש' : 'משתמשים'}
+                  {billingCycle === 'yearly' && yearlySavings > 0 && (
+                    <span className="text-emerald-700 mr-1"> · חיסכון שנתי ₪{yearlySavings}</span>
+                  )}
                 </span>
               </div>
 
-              {/* CTA */}
-              <button
-                onClick={() => { onSelectPlan('starter'); goToTrial(); }}
-                className="w-full py-4 rounded-full font-black text-base bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-              >
-                התחל 7 ימי ניסיון חינם
-                <ArrowRight size={18} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
-              </button>
-              <div className="text-[11px] text-slate-400 text-center mt-2">ללא כרטיס אשראי · בטל בכל עת · כל המחירים כוללים מע&quot;מ</div>
+              {/* CTA — Trial + Buy Now */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => { onSelectPlan('starter'); goToTrial(); }}
+                  className="py-4 rounded-full font-black text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                >
+                  התחל 7 ימי ניסיון חינם
+                  <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={goToCheckout}
+                  className="py-4 rounded-full font-black text-sm bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                >
+                  <ShoppingCart size={16} />
+                  רכוש עכשיו
+                </button>
+              </div>
+              <div className="text-[11px] text-slate-400 text-center mt-2">ללא כרטיס אשראי לניסיון · ביטול בכל עת · כל המחירים כוללים מע&quot;מ</div>
             </div>
           </div>
         </div>

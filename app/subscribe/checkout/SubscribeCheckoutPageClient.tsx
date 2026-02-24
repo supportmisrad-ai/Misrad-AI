@@ -290,7 +290,9 @@ function SubscribeCheckoutContent({
 
   const bitPayText = useMemo(() => {
     const lines = [
-      `סכום לתשלום: ₪${amountToPay} (כולל מע"מ)`,
+      billingCycle === 'yearly'
+        ? `סכום לתשלום: ₪${amountToPay * 12} לשנה (₪${amountToPay}/חודש, כולל מע"מ)`
+        : `סכום לתשלום: ₪${amountToPay}/חודש (כולל מע"מ)`,
       productLabel ? `חבילה: ${productLabel}` : null,
       seats ? `משתמשים: ${seats}` : null,
       `מחזור חיוב: ${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}`,
@@ -380,7 +382,15 @@ function SubscribeCheckoutContent({
               <div className="text-slate-900 font-black text-2xl">
                 ₪{amountToPay}<span className="text-sm font-bold text-slate-500 mr-1">/חודש</span>
                 <span className="text-xs font-medium text-slate-400 mr-2">(כולל מע&quot;מ)</span>
+                {billingCycle === 'yearly' && monthlyBasePrice > amountToPay && (
+                  <span className="text-xs text-slate-400 line-through mr-1">₪{monthlyBasePrice}</span>
+                )}
               </div>
+              {billingCycle === 'yearly' && (
+                <div className="mt-1.5 text-xs font-bold text-slate-600">
+                  סה״כ לשנה: <span className="text-indigo-700">₪{amountToPay * 12}</span> (חיוב שנתי מראש)
+                </div>
+              )}
               <div className="mt-2 text-sm font-bold text-slate-800">
                 {productLabel}{seats ? ` · ${seats} משתמשים` : ''}
               </div>
@@ -398,7 +408,7 @@ function SubscribeCheckoutContent({
               )}
               {billingCycle === 'yearly' && yearlySavings > 0 && (
                 <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
-                  חיסכון שנתי: ₪{yearlySavings}
+                  ✅ חיסכון שנתי: ₪{yearlySavings} (לעומת חודשי)
                 </div>
               )}
             </div>
