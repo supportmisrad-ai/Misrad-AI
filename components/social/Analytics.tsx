@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CircleCheck, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Pin, MessageSquare, Briefcase, DollarSign, Clock, TriangleAlert, Sparkles, Zap } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CircleCheck, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Pin, MessageSquare, Briefcase, DollarSign, Clock, TriangleAlert, Sparkles, Zap, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform, SocialPost, Client } from '@/types/social';
@@ -117,6 +117,17 @@ export default function Analytics() {
 
   const renderSocialView = () => (
     <div className="flex flex-col gap-8 animate-in fade-in">
+      <div className="flex items-start gap-4 p-6 bg-blue-50 rounded-3xl border border-blue-100">
+        <Info className="shrink-0 text-blue-600 mt-0.5" size={20} />
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-black text-blue-900">נתונים פנימיים בלבד</p>
+          <p className="text-xs font-bold text-blue-700 leading-relaxed">
+            הנתונים המוצגים כאן מחושבים מפעילות הפוסטים במערכת (כמות, סטטוס, פלטפורמות).
+            נתוני engagement אמיתיים (לייקים, תגובות, חשיפות) מהרשתות החברתיות יהיו זמינים
+            כשתחובר אינטגרציה ישירה עם Meta / LinkedIn / TikTok API.
+          </p>
+        </div>
+      </div>
       {!hasData && (
         <div className="bg-amber-50 border border-amber-200 rounded-3xl p-8 text-center">
           <p className="text-amber-800 font-bold text-lg">אין נתונים להצגה</p>

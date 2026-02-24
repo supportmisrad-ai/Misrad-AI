@@ -1,29 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Lock, ArrowUpRight, Phone } from 'lucide-react';
+import React from 'react';
+import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Lock, ArrowUpRight, Phone, Settings } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
 
 export default function CollectionCockpit() {
-  const { clients, setIsPaymentModalOpen, setActiveClientId, addToast } = useApp();
-  const [isSyncing, setIsSyncing] = useState(false);
+  const { clients, setIsPaymentModalOpen, setActiveClientId, setSettingsSubView, addToast } = useApp();
   const overdueClients = clients.filter(c => c.paymentStatus === 'overdue' || (c.businessMetrics.daysOverdue && c.businessMetrics.daysOverdue > 0));
   
   const totalDebt = overdueClients.reduce((sum, c) => sum + (c.nextPaymentAmount || 0), 0);
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      // TODO: Implement real Morning API sync
-      // This is a placeholder - needs actual API integration
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsSyncing(false);
-      addToast('תכונה בפיתוח - סנכרון אוטומטי עם מורנינג יושם בקרוב', 'info');
-    } catch (error) {
-      setIsSyncing(false);
-      addToast('שגיאה בסנכרון', 'error');
-    }
+  const handleGoToMorningSettings = () => {
+    setSettingsSubView('integrations');
+    addToast('עבור להגדרות אינטגרציות כדי לחבר את חשבון Morning', 'info');
   };
 
   const handleManualNudge = (client: typeof clients[0]) => {
@@ -49,12 +39,11 @@ export default function CollectionCockpit() {
             </p>
             <div className="flex gap-3">
               <button
-                onClick={handleSync}
-                disabled={isSyncing}
+                onClick={handleGoToMorningSettings}
                 className="bg-white text-rose-600 px-6 py-3 rounded-xl font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2 shadow-md"
               >
-                <Zap size={18} className={isSyncing ? 'opacity-60' : undefined} />
-                {isSyncing ? 'מסנכרן...' : 'סנכרן חשבוניות מורנינג'}
+                <Settings size={18} />
+                חבר את Morning בהגדרות
               </button>
             </div>
           </div>

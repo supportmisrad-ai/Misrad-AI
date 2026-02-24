@@ -1,48 +1,49 @@
-
-'use client';
-
-import { SocialPost } from "@/types/social";
-
 /**
- * Social Media Infrastructure API Service (Advanced Simulation)
- * Handles multi-platform broadcasting using a central infra key + client tokens.
+ * Social Media Publishing Service
+ *
+ * Architecture:
+ *   Publishing is handled server-side via Webhooks (Make.com / Zapier).
+ *   The actual publish flow lives in `app/actions/posts.ts` → `publishPost()`,
+ *   which calls `triggerWebhookEvent({ eventType: 'post_published', payload })`.
+ *
+ *   This client-side module exposes helpers for UI components that need to
+ *   reference the publishing status or metrics. Real engagement data
+ *   (likes, comments, reach) will become available when a direct Meta /
+ *   LinkedIn / TikTok API integration is connected.
+ *
+ * See also:
+ *   - `app/actions/posts.ts`         → Server Actions (create / update / publish / delete)
+ *   - `app/actions/integrations.ts`  → Webhook configuration (Make, Zapier, Morning, etc.)
+ *   - `components/social/settings/SocialConnectionsTab.tsx` → UI for API connections
  */
 
-export const publishToSocialMedia = async (post: SocialPost): Promise<{ success: boolean; url?: string; error?: string; statusId?: string }> => {
-  // Simulating the delay of a high-performance external API call (Ayrshare/Buffer style)
-  await new Promise(resolve => setTimeout(resolve, 2000));
+export type PublishStatus = 'pending' | 'sent_to_webhook' | 'published' | 'failed';
 
-  const isRandomFailure = Math.random() < 0.02; // 2% chance of API error
-  
-  if (isRandomFailure) {
-    return { 
-      success: false, 
-      error: "Infrastructure Error: The Global Social API returned a 429 (Rate Limit Exceeded). Please retry in 60s." 
-    };
-  }
+export interface PostPublishResult {
+  status: PublishStatus;
+  webhookDelivered: boolean;
+  error?: string;
+}
 
-  return { 
-    success: true, 
-    statusId: `soc_broadcast_${Math.random().toString(36).substr(2, 12)}`,
-    url: post.platforms.includes('instagram') ? `https://instagram.com/p/simulated_${post.id}` : undefined
-  };
-};
+export interface PostMetrics {
+  likes: number;
+  comments: number;
+  shares: number;
+  reach: number;
+  dataSource: 'platform_api' | 'internal_estimate' | 'unavailable';
+}
 
-export const checkPostStatus = async (statusId: string) => {
+/**
+ * Returns empty metrics with an 'unavailable' data source indicator.
+ * When a real platform API integration is connected, this will fetch
+ * actual engagement data from Facebook / Instagram / LinkedIn / TikTok.
+ */
+export function getPostMetricsPlaceholder(): PostMetrics {
   return {
-    status: 'published',
-    pushedTo: ['facebook', 'instagram', 'linkedin', 'tiktok'],
-    latency: '142ms',
-    errors: []
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    reach: 0,
+    dataSource: 'unavailable',
   };
-};
-
-export const fetchRealTimeMetrics = async (postId: string) => {
-  return {
-    likes: Math.floor(Math.random() * 1200),
-    comments: Math.floor(Math.random() * 150),
-    shares: Math.floor(Math.random() * 80),
-    reach: Math.floor(Math.random() * 15000),
-  };
-};
-
+}

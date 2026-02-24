@@ -5,11 +5,11 @@ import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Rocket } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
-import { openComingSoon } from '@/components/shared/coming-soon';
+import { createCampaign } from '@/app/actions/campaigns';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function CampaignWizard() {
-  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients } = useApp();
+  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients, addToast } = useApp();
   useBackButtonClose(isCampaignWizardOpen, () => setIsCampaignWizardOpen(false));
   const [step, setStep] = useState(1);
   const [clientId, setClientId] = useState(clients[0]?.id || '');
@@ -19,11 +19,29 @@ export default function CampaignWizard() {
 
   if (!isCampaignWizardOpen) return null;
 
-  const handleNext = () => {
-    if (step < 3) setStep(step + 1);
-    else {
-      setIsSubmitting(true);
-      openComingSoon();
+  const handleNext = async () => {
+    if (step < 3) { setStep(step + 1); return; }
+
+    setIsSubmitting(true);
+    try {
+      const result = await createCampaign({
+        clientId,
+        name: `קמפיין ${objective}`,
+        status: 'active',
+        objective: objective as 'sales' | 'traffic' | 'awareness' | 'engagement',
+        budget,
+        spent: 0,
+        roas: 0,
+      });
+
+      if (result.success) {
+        addToast('הקמפיין נוצר בהצלחה!', 'success');
+      } else {
+        addToast(result.error || 'שגיאה ביצירת קמפיין', 'error');
+      }
+    } catch {
+      addToast('שגיאה ביצירת קמפיין', 'error');
+    } finally {
       setIsSubmitting(false);
       setIsCampaignWizardOpen(false);
       setStep(1);
