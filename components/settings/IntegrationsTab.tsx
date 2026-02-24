@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeletons';
 import { MessagingConfigForm } from './MessagingConfigForm';
 import { TelephonyConfigForm } from './TelephonyConfigForm';
 import { VoicenterOnboardingPanel } from './VoicenterOnboardingPanel';
+import { VoicenterClientInfoPage } from './VoicenterClientInfoPage';
 
 export const IntegrationsTab: React.FC = () => {
     const { isCalendarConnected, connectGoogleCalendar, isGreenInvoiceConnected, connectGreenInvoice } = useData();
@@ -395,9 +396,9 @@ export const IntegrationsTab: React.FC = () => {
                 <MessagingConfigForm />
             </div>
 
-            {/* Voicenter Onboarding */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <VoicenterOnboardingPanel />
+            {/* Voicenter Client Info & Onboarding */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <VoicenterClientInfoPage isEmbedded />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
