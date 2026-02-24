@@ -2825,6 +2825,7 @@ model OrganizationUser {
   Organization     Organization?   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
   owned_organizations      Organization[]  @relation("OrganizationOwner")
   business_client_contacts BusinessClientContact[]
+  customerRatings          CustomerRating[]
 
   @@index([clerk_user_id], map: "idx_social_users_clerk_user_id")
   @@index([organization_id], map: "users_organization_id_idx")
@@ -3140,6 +3141,7 @@ model Organization {
   attendanceMonthlyReports                                             AttendanceMonthlyReport[]
   attendanceSalaryConfig                                               AttendanceSalaryConfig?
   botLeads                                                             BotLead[]
+  customerRatings                                                      CustomerRating[]
   @@index([owner_id])
   @@index([partnerId])
   @@map("organizations")
@@ -4859,6 +4861,46 @@ model SiteAnalyticsEvent {
   @@index([event_type])
   @@index([created_at])
   @@map("site_analytics_events")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CUSTOMER RATINGS & EMAIL TRACKING
+// ═══════════════════════════════════════════════════════════════════
+
+model CustomerRating {
+  id              String    @id @default(cuid())
+  organization_id String    @db.Uuid
+  user_id         String    @db.Uuid
+  rating          Int       // 1-5 stars
+  feedback        String?   // Optional text feedback
+  google_clicked  Boolean   @default(false)
+  source          String    @default("in_app") // in_app | email | direct
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  organization    Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user            OrganizationUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, user_id])
+  @@index([organization_id])
+  @@index([created_at])
+  @@map("customer_ratings")
+}
+
+model EmailSentLog {
+  id              String    @id @default(cuid())
+  email_type_id   String    // matches EMAIL_CATALOG id
+  recipient_email String
+  organization_id String?   @db.Uuid
+  user_id         String?   @db.Uuid
+  status          String    @default("sent") // sent | failed | bounced
+  metadata        Json?     @default("{}")
+  sent_at         DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([email_type_id])
+  @@index([organization_id])
+  @@index([recipient_email])
+  @@index([sent_at])
+  @@map("email_sent_logs")
 }
 
 // ═══════════════════════════════════════════════════════════════════

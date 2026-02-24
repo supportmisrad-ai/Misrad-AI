@@ -6,6 +6,8 @@ import { DataProvider } from '@/context/DataContext';
 import AdminShell from './AdminShell';
 import { getSystemMetadata } from '@/lib/metadata';
 import { hasAuditLogAccess } from '@/lib/auth';
+import AdminBiometricGate from '@/components/admin/AdminBiometricGate';
+import AdminPushSetup from '@/components/admin/AdminPushSetup';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -56,7 +58,10 @@ export default async function AdminLayout({
   return (
     <DataProvider initialCurrentUser={initialCurrentUser}>
       {canAccessAdmin ? (
-        <AdminShell>{children}</AdminShell>
+        <AdminBiometricGate>
+          <AdminPushSetup />
+          <AdminShell>{children}</AdminShell>
+        </AdminBiometricGate>
       ) : (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
           <div className="max-w-lg w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

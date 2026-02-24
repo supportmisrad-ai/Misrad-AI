@@ -6,7 +6,8 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Priority, Task, Status, TaskCreationDefaults, User, Template, Client, WorkflowStage } from '../types';
 import { Avatar } from '../components/Avatar';
 import { useData } from '../context/DataContext';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeletons';
 import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
 import { TaskItem } from '../components/nexus/TaskItem';
 import { TaskCard } from '../components/nexus/TaskCard';
@@ -48,6 +49,7 @@ export const TasksView: React.FC = () => {
       staleTime: 5_000,
       refetchInterval: 30_000,
       retry: 1,
+      placeholderData: keepPreviousData,
   });
 
   const refetchTasks = tasksQuery.refetch;
@@ -62,6 +64,9 @@ export const TasksView: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(contextTasks || []);
   const [cachedTasks, setCachedTasks] = useState<Task[]>(contextTasks || []);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // True only on the very first fetch when we have zero tasks to show
+  const isInitialLoading = tasksQuery.isLoading && tasks.length === 0 && (!contextTasks || contextTasks.length === 0);
 
   // Track in-flight optimistic mutations so sync effects never overwrite them
   const pendingMutationsRef = useRef<Map<string, Partial<Task>>>(new Map());
@@ -1134,7 +1139,22 @@ export const TasksView: React.FC = () => {
         <div
           className={`block md:hidden h-full overflow-y-auto px-2 pt-4 min-h-0 ${isTaskStatusSheetOpen ? 'pb-24' : 'pb-12'}`}
         >
-             {filteredTasks.length > 0 ? filteredTasks.map(task => (
+             {isInitialLoading ? (
+                <div className="space-y-3 px-2 animate-pulse">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                                <Skeleton className="h-4 w-3/5 rounded-lg" />
+                                <Skeleton className="h-5 w-14 rounded-full" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Skeleton className="h-3 w-20 rounded" />
+                                <Skeleton className="h-3 w-16 rounded" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : filteredTasks.length > 0 ? filteredTasks.map(task => (
                 <TaskItem 
                     key={task.id} 
                     task={task} 
@@ -1163,7 +1183,20 @@ export const TasksView: React.FC = () => {
                     </div>
             
                     <div className="overflow-y-auto max-h-[calc(100vh-320px)] no-scrollbar p-2">
-                        {filteredTasks.length > 0 ? filteredTasks.map(task => (
+                        {isInitialLoading ? (
+                            <div className="space-y-2 animate-pulse">
+                                {Array.from({ length: 8 }).map((_, i) => (
+                                    <div key={i} className="flex items-center gap-4 px-4 py-3 bg-white rounded-xl border border-gray-100">
+                                        <Skeleton className="w-5 h-5 rounded" />
+                                        <Skeleton className="h-4 flex-1 rounded-lg" />
+                                        <Skeleton className="h-3 w-16 rounded" />
+                                        <Skeleton className="h-5 w-14 rounded-full" />
+                                        <Skeleton className="h-3 w-20 rounded" />
+                                        <Skeleton className="w-6 h-6 rounded-full" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : filteredTasks.length > 0 ? filteredTasks.map(task => (
                             <TaskItem 
                                 key={task.id} 
                                 task={task} 
@@ -1176,6 +1209,35 @@ export const TasksView: React.FC = () => {
                                 {isFocusMode ? 'אין משימות דחופות כרגע! 🎉' : 'אין משימות להצגה'}
                             </div>
                         )}
+                    </div>
+                </div>
+            ) : isInitialLoading ? (
+                <div className="h-full overflow-x-auto overflow-y-hidden pb-4">
+                    <div className="flex h-full min-w-max gap-3 px-4 animate-pulse">
+                        {Array.from({ length: 4 }).map((_, colIdx) => (
+                            <div key={colIdx} className="w-[260px] min-w-[260px] flex flex-col h-full rounded-2xl bg-gray-50/40">
+                                <div className="p-4 flex items-center gap-2">
+                                    <Skeleton className="w-2 h-2 rounded-full" />
+                                    <Skeleton className="h-4 w-20 rounded" />
+                                    <Skeleton className="h-5 w-8 rounded-full" />
+                                </div>
+                                <div className="flex-1 px-2 space-y-3">
+                                    {Array.from({ length: 3 - colIdx % 2 }).map((_, cardIdx) => (
+                                        <div key={cardIdx} className="bg-white rounded-xl border border-gray-100 p-3 space-y-2">
+                                            <Skeleton className="h-4 w-4/5 rounded" />
+                                            <div className="flex gap-2">
+                                                <Skeleton className="h-3 w-14 rounded" />
+                                                <Skeleton className="h-3 w-10 rounded" />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <Skeleton className="h-5 w-16 rounded-full" />
+                                                <Skeleton className="w-6 h-6 rounded-full" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             ) : (

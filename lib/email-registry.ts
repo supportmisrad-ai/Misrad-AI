@@ -67,6 +67,31 @@ export const EMAIL_SENDERS = {
         name: 'איציק דהן — MISRAD AI',
         description: 'הודעות אישיות מהמייסד',
     },
+    customer_service: {
+        address: 'itzhak@misrad-ai.com',
+        name: 'MISRAD AI שירות לקוחות',
+        description: 'שירות לקוחות — מענה אישי',
+    },
+    info: {
+        address: 'info@misrad-ai.com',
+        name: 'MISRAD AI מידע',
+        description: 'מידע כללי ופניות',
+    },
+    everybody: {
+        address: 'everybody@misrad-ai.com',
+        name: 'Misrad-ai כולם',
+        description: 'הודעות כלליות לכולם',
+    },
+    newsletter: {
+        address: 'newsletter@misrad-ai.com',
+        name: 'newsletter ניוזלטר',
+        description: 'ניוזלטר תקופתי',
+    },
+    tips: {
+        address: 'tips@misrad-ai.com',
+        name: 'tips טיפים',
+        description: 'טיפים ומדריכים',
+    },
 } as const;
 
 export type SenderKey = keyof typeof EMAIL_SENDERS;
@@ -205,26 +230,40 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
         trigger: 'יצירת ארגון חדש',
     },
     {
-        id: 'onboarding_day3_tips',
-        label: 'טיפים — 3 ימים',
+        id: 'onboarding_day2_checkin',
+        label: 'בדיקה — יומיים',
         category: 'onboarding',
+        senderKey: 'founder',
         audience: 'owner',
         canUnsubscribe: true,
         preferenceKey: 'onboarding_tips',
-        description: 'טיפים לשימוש יעיל במערכת (3 ימים לאחר הרשמה)',
-        implemented: false,
-        trigger: 'Cron — 3 ימים אחרי הרשמה',
+        description: 'מייל אישי מהמייסד — האם הכל בסדר? צריך עזרה? + פרטי קשר תמיכה',
+        implemented: true,
+        trigger: 'Cron — 2 ימים אחרי יצירת ארגון',
     },
     {
         id: 'onboarding_day7_checkin',
         label: 'בדיקת שביעות רצון — שבוע',
         category: 'onboarding',
+        senderKey: 'founder',
         audience: 'owner',
         canUnsubscribe: true,
         preferenceKey: 'onboarding_tips',
-        description: 'שאלון קצר אחרי שבוע שימוש',
-        implemented: false,
-        trigger: 'Cron — 7 ימים אחרי הרשמה',
+        description: 'מייל ידידותי — מסתדרים? טיפים לשימוש יעיל + קישור לתמיכה',
+        implemented: true,
+        trigger: 'Cron — 7 ימים אחרי יצירת ארגון',
+    },
+    {
+        id: 'onboarding_day45_feedback',
+        label: 'בקשת משוב — 45 יום',
+        category: 'onboarding',
+        senderKey: 'founder',
+        audience: 'owner',
+        canUnsubscribe: true,
+        preferenceKey: 'onboarding_tips',
+        description: 'בקשת פידבק כנה לאחר חודש וחצי + אפשרות לדרג + קישור לגוגל',
+        implemented: true,
+        trigger: 'Cron — 45 ימים אחרי יצירת ארגון',
     },
     {
         id: 'onboarding_abandoned_signup',
@@ -434,7 +473,7 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
         canUnsubscribe: false,
         preferenceKey: 'billing_trial',
         description: 'הניסיון הסתיים — הגישה נחסמת',
-        implemented: false,
+        implemented: true,
         trigger: 'Cron — trial_end_date עבר',
     },
     {
@@ -738,6 +777,48 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
         description: 'הצעה מיוחדת ללקוח שביטל מנוי',
         implemented: false,
         trigger: '30 ימים אחרי ביטול',
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // ADMIN — Internal notifications (Super Admin)
+    // ══════════════════════════════════════════════════════════════════
+    {
+        id: 'admin_new_signup',
+        label: 'אדמין — לקוח חדש נרשם',
+        category: 'system',
+        audience: 'admin',
+        canUnsubscribe: true,
+        preferenceKey: 'system_admin_alerts',
+        description: 'התראת Super Admin — לקוח חדש נרשם למערכת',
+        implemented: true,
+        trigger: 'Webhook — user.created (Clerk)',
+    },
+    {
+        id: 'admin_payment_received',
+        label: 'אדמין — תשלום התקבל',
+        category: 'system',
+        audience: 'admin',
+        canUnsubscribe: true,
+        preferenceKey: 'system_admin_alerts',
+        description: 'התראת Super Admin — לקוח שילם וממתין לאישור',
+        implemented: true,
+        trigger: 'הגשת הוכחת תשלום מלקוח',
+    },
+
+    // ══════════════════════════════════════════════════════════════════
+    // RATING — Customer feedback & reviews
+    // ══════════════════════════════════════════════════════════════════
+    {
+        id: 'rating_request',
+        label: 'בקשת דירוג ומשוב',
+        category: 'onboarding',
+        senderKey: 'founder',
+        audience: 'owner',
+        canUnsubscribe: true,
+        preferenceKey: 'onboarding_tips',
+        description: 'בקשת דירוג פנימי + קישור לדירוג בגוגל — אחרי 45 יום',
+        implemented: true,
+        trigger: 'Cron — 45 ימים אחרי יצירת ארגון (ביחד עם onboarding_day45_feedback)',
     },
 ];
 

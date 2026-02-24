@@ -48,6 +48,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
 
   // content
   if (p.startsWith('/app/admin/landing')) return 'content';
+  if (p.startsWith('/app/admin/global/emails')) return 'content';
   if (p.startsWith('/app/admin/global/email-assets')) return 'content';
   if (p.startsWith('/app/admin/global/help-videos')) return 'content';
   if (p.startsWith('/app/admin/global/kb-videos')) return 'content';
@@ -241,6 +242,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/landing/videos', label: 'סרטונים', icon: Globe },
       { href: '/app/admin/landing/partners', label: 'שותפים', icon: Globe },
       { href: '/app/admin/landing/payment-links', label: 'קישורי תשלום', icon: Globe },
+      { href: '/app/admin/global/emails', label: 'רישום מיילים', icon: Globe },
       { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: Globe },
       { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: Globe },
       { href: '/app/admin/global/kb-videos', label: 'סרטוני מאגר ידע', icon: Globe },
