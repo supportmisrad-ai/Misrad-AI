@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         data: {
           session_id: body.session_id,
           event_type: body.event_type,
-          event_data: (body.event_data ?? undefined) as Record<string, unknown> | undefined,
+          event_data: body.event_data ? (body.event_data as unknown as import('@prisma/client').Prisma.InputJsonValue) : undefined,
           page_path: body.page_path || null,
         },
       });
