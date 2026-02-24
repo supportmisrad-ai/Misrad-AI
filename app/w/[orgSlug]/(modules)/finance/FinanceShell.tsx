@@ -409,10 +409,7 @@ export default function FinanceShell(props: {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                <div className="space-y-3">
-                  <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
-                </div>
+                <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
               </div>
             </motion.div>
           </>

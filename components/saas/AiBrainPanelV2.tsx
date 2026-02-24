@@ -50,9 +50,18 @@ function getFeatureMeta(key: string): { label: string; description: string; modu
 }
 
 type CreditStatus = {
-  quota_cents?: number;
-  used_cents?: number;
-  remaining_cents?: number;
+  quota_cents?: string | null;
+  used_cents?: string | null;
+  remaining_cents?: string | null;
+};
+
+type MergedFeature = {
+  key: string;
+  label: string;
+  description: string;
+  module: string;
+  configured: boolean;
+  row: FeatureRow | null;
 };
 
 type OrganizationLite = {
@@ -190,19 +199,22 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
     }
   }, [featureQuery, selectedOrgKey, selectedOrgId]);
 
-  const loadProviderKeys = useCallback(async (scope: 'org' | 'global' = 'org') => {
+  const loadProviderKeys = useCallback(async () => {
     if (!selectedOrgId) return;
     setLoadingProviders(true);
     try {
-      const url = new URL('/api/admin/ai/provider-keys', window.location.origin);
-      url.searchParams.set('scope', scope);
-
-      const res = await fetch(url.toString(), {
-        headers: selectedOrgKey ? { 'x-org-id': selectedOrgKey } : undefined,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'שגיאה בטעינת API Keys');
-      setProviderKeys(Array.isArray(data.rows) ? data.rows : []);
+      const results = await Promise.all(
+        (['org', 'global'] as const).map(async (scope) => {
+          const url = new URL('/api/admin/ai/provider-keys', window.location.origin);
+          url.searchParams.set('scope', scope);
+          const res = await fetch(url.toString(), {
+            headers: selectedOrgKey ? { 'x-org-id': selectedOrgKey } : undefined,
+          });
+          const data = await res.json().catch(() => ({}));
+          return res.ok && Array.isArray(data.rows) ? (data.rows as ProviderKeyRow[]) : [];
+        })
+      );
+      setProviderKeys(results.flat());
     } finally {
       setLoadingProviders(false);
     }
@@ -266,20 +278,34 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
     void loadCreditStatus();
   }, [selectedOrgId, activeTab, loadFeatureSettings, loadProviderKeys, loadModelAliases, loadCreditStatus]);
 
-  const featuresByModule = useMemo(() => {
-    const groups: Record<string, FeatureRow[]> = {};
+  const allFeatures = useMemo(() => {
+    const configuredKeys = new Set(featureRows.map((r) => r.feature_key));
+    const merged: MergedFeature[] = [];
     for (const row of featureRows) {
       const meta = getFeatureMeta(row.feature_key);
-      if (!groups[meta.module]) groups[meta.module] = [];
-      groups[meta.module].push(row);
+      merged.push({ key: row.feature_key, ...meta, configured: true, row });
     }
-    return groups;
+    for (const [key, meta] of Object.entries(KNOWN_FEATURES)) {
+      if (!configuredKeys.has(key)) {
+        merged.push({ key, ...meta, configured: false, row: null });
+      }
+    }
+    return merged;
   }, [featureRows]);
 
+  const allByModule = useMemo(() => {
+    const groups: Record<string, MergedFeature[]> = {};
+    for (const f of allFeatures) {
+      if (!groups[f.module]) groups[f.module] = [];
+      groups[f.module].push(f);
+    }
+    return groups;
+  }, [allFeatures]);
+
   const sortedModules = useMemo(() => {
-    const mods = Object.keys(featuresByModule);
+    const mods = Object.keys(allByModule);
     return MODULE_ORDER.filter((m) => mods.includes(m)).concat(mods.filter((m) => !MODULE_ORDER.includes(m)));
-  }, [featuresByModule]);
+  }, [allByModule]);
 
   const updateFeatureLocal = (featureKey: string, patch: Partial<FeatureRow>) => {
     setFeatureRows((prev) => prev.map((r) => (r.feature_key === featureKey ? ({ ...r, ...patch } as FeatureRow) : r)));
@@ -341,6 +367,24 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
     await loadFeatureSettings();
   };
 
+  const quickCreateFeature = async (featureKey: string) => {
+    const newRow: FeatureRow = {
+      id: '',
+      organization_id: selectedOrgId,
+      feature_key: featureKey,
+      enabled: true,
+      primary_provider: 'google',
+      primary_model: 'gemini-2.5-flash',
+      fallback_provider: null,
+      fallback_model: null,
+      base_prompt: null,
+      reserve_cost_cents: 25,
+      timeout_ms: 30000,
+    };
+    await saveFeature(newRow);
+    await loadFeatureSettings();
+  };
+
   const addProviderKey = async () => {
     if (!newProviderKey.provider || !newProviderKey.api_key) {
       addToast('יש למלא Provider ו-API Key', 'error');
@@ -355,7 +399,7 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בהוספת API Key');
       setNewProviderKey({ provider: '', api_key: '', scope: 'org' });
-      await loadProviderKeys(newProviderKey.scope as 'org' | 'global');
+      await loadProviderKeys();
       addToast('API Key נוסף בהצלחה! (Cache נוקה אוטומטית)', 'success');
     } catch (e: unknown) {
       addToast(String(e instanceof Error ? e.message : e), 'error');
@@ -404,7 +448,7 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בהוספת Alias');
       setNewAlias({ provider: '', model: '', display_name: '', scope: 'org' });
-      await loadModelAliases(newAlias.scope as 'org' | 'global');
+      await loadModelAliases();
       addToast('Alias נוסף בהצלחה!', 'success');
     } catch (e: unknown) {
       addToast(String(e instanceof Error ? e.message : e), 'error');
@@ -511,7 +555,9 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
             <div className="text-xs text-slate-600 bg-white/80 border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2">
               <span>יתרה:</span>
               <span className="text-slate-900 font-bold">
-                {creditStatus && creditStatus.remaining_cents !== undefined ? `${creditStatus.remaining_cents} / ${creditStatus.quota_cents ?? '—'}` : '—'}
+                {creditStatus && creditStatus.remaining_cents != null
+                  ? `${creditStatus.remaining_cents} / ${creditStatus.quota_cents ?? '∞'} סנט`
+                  : creditStatus ? 'לא מוגדר' : '—'}
               </span>
               <Button type="button" variant="outline" size="sm" onClick={() => { if (selectedOrgId) void loadCreditStatus(); }} disabled={!selectedOrgId} className="h-7 w-7 p-0 mr-auto">
                 <RefreshCw size={12} />
@@ -593,70 +639,81 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
 
               {loadingFeatures ? (
                 <div className="text-slate-600 text-sm inline-flex items-center gap-2"><Skeleton className="w-4 h-4 rounded-full" /> טוען הגדרות...</div>
-              ) : featureRows.length === 0 ? (
-                <div className="bg-white/70 border border-slate-200/70 rounded-2xl p-8 text-center">
-                  <Settings size={32} className="mx-auto text-slate-300 mb-3" />
-                  <div className="text-sm font-bold text-slate-500">אין הגדרות AI לארגון זה עדיין</div>
-                  <div className="text-xs text-slate-400 mt-1">לחץ על &quot;חדש&quot; כדי להוסיף פיצ'ר AI ראשון</div>
-                </div>
               ) : (
                 <div className="space-y-6">
+                  <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                    <span className="font-bold">{featureRows.length}</span> פיצ'רים מוגדרים | <span className="font-bold">{allFeatures.filter((f) => !f.configured).length}</span> פיצ'רים זמינים להפעלה
+                  </div>
                   {sortedModules.map((mod) => (
                     <div key={mod}>
                       <div className="flex items-center gap-2 mb-3">
                         <span className={`text-[11px] font-black px-2.5 py-1 rounded-lg ${MODULE_BADGE_COLORS[mod] || 'bg-slate-100 text-slate-700'}`}>{mod}</span>
                         <div className="flex-1 h-px bg-slate-200" />
-                        <span className="text-[11px] text-slate-400">{featuresByModule[mod]?.length || 0} פיצ'רים</span>
+                        <span className="text-[11px] text-slate-400">{allByModule[mod]?.filter((f) => f.configured).length || 0}/{allByModule[mod]?.length || 0} מוגדרים</span>
                       </div>
                       <div className="space-y-3">
-                        {featuresByModule[mod]?.map((r) => {
-                          const meta = getFeatureMeta(r.feature_key);
-                          return (
-                            <div key={r.feature_key} className={`bg-white border rounded-2xl p-4 transition-all ${r.enabled ? 'border-slate-200 shadow-sm' : 'border-red-200/60 bg-red-50/20'}`}>
-                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
-                                <div className="flex items-center gap-3">
-                                  <input type="checkbox" checked={Boolean(r.enabled)} onChange={(e) => updateFeatureLocal(r.feature_key, { enabled: e.target.checked })} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                        {allByModule[mod]?.map((f) => {
+                          if (f.configured && f.row) {
+                            const r = f.row;
+                            return (
+                              <div key={f.key} className={`bg-white border rounded-2xl p-4 transition-all ${r.enabled ? 'border-slate-200 shadow-sm' : 'border-red-200/60 bg-red-50/20'}`}>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <input type="checkbox" checked={Boolean(r.enabled)} onChange={(e) => updateFeatureLocal(r.feature_key, { enabled: e.target.checked })} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                    <div>
+                                      <div className="text-sm font-black text-slate-900">{f.label}</div>
+                                      <div className="text-[11px] text-slate-400">{f.key}{f.description ? ` — ${f.description}` : ''}</div>
+                                    </div>
+                                  </div>
+                                  <Button onClick={() => saveFeature(r)} disabled={savingKey === r.feature_key} className="bg-emerald-600/80 hover:bg-emerald-600 text-white" size="sm">
+                                    {savingKey === r.feature_key ? <span className="inline-flex items-center gap-1"><Skeleton className="w-3 h-3 rounded-full bg-white/30" /> שומר...</span> : <span className="inline-flex items-center gap-1"><Save size={14} /> שמור</span>}
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                   <div>
-                                    <div className="text-sm font-black text-slate-900">{meta.label}</div>
-                                    <div className="text-[11px] text-slate-400">{r.feature_key}{meta.description ? ` — ${meta.description}` : ''}</div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">ספק ראשי</label>
+                                    <CustomSelect value={r.primary_provider || ''} onChange={(val) => { if (val) updateFeatureLocal(r.feature_key, { primary_provider: val }); }} placeholder="בחר ספק" options={providers} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">מודל ראשי</label>
+                                    <CustomSelect value={getModelsForProvider(r.primary_provider).includes(r.primary_model) ? r.primary_model : ''} onChange={(val) => { if (val) updateFeatureLocal(r.feature_key, { primary_model: val }); }} placeholder="בחר מודל" options={getModelsForProvider(r.primary_provider).map((m) => ({ value: m, label: m }))} />
+                                    <input value={r.primary_model || ''} onChange={(e) => updateFeatureLocal(r.feature_key, { primary_model: e.target.value })} placeholder="או הקלד ידנית" className="mt-1 w-full bg-white/80 border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 outline-none" />
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">ספק גיבוי</label>
+                                    <CustomSelect value={r.fallback_provider || ''} onChange={(val) => updateFeatureLocal(r.feature_key, { fallback_provider: val || null })} placeholder="ללא" options={[{ value: '', label: 'ללא' }, ...providers]} />
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">מודל גיבוי</label>
+                                    <CustomSelect value={r.fallback_provider && getModelsForProvider(r.fallback_provider).includes(r.fallback_model || '') ? r.fallback_model || '' : ''} onChange={(val) => updateFeatureLocal(r.feature_key, { fallback_model: val || null })} placeholder="ללא" options={r.fallback_provider ? getModelsForProvider(r.fallback_provider).map((m) => ({ value: m, label: m })) : []} />
+                                    {r.fallback_provider && (
+                                      <input value={r.fallback_model || ''} onChange={(e) => updateFeatureLocal(r.feature_key, { fallback_model: e.target.value || null })} placeholder="או הקלד ידנית" className="mt-1 w-full bg-white/80 border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 outline-none" />
+                                    )}
                                   </div>
                                 </div>
-                                <Button onClick={() => saveFeature(r)} disabled={savingKey === r.feature_key} className="bg-emerald-600/80 hover:bg-emerald-600 text-white" size="sm">
-                                  {savingKey === r.feature_key ? <span className="inline-flex items-center gap-1"><Skeleton className="w-3 h-3 rounded-full bg-white/30" /> שומר...</span> : <span className="inline-flex items-center gap-1"><Save size={14} /> שמור</span>}
-                                </Button>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">ספק ראשי</label>
-                                  <CustomSelect value={r.primary_provider || ''} onChange={(val) => { if (val) updateFeatureLocal(r.feature_key, { primary_provider: val }); }} placeholder="בחר ספק" options={providers} />
-                                </div>
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">מודל ראשי</label>
-                                  <CustomSelect value={getModelsForProvider(r.primary_provider).includes(r.primary_model) ? r.primary_model : ''} onChange={(val) => { if (val) updateFeatureLocal(r.feature_key, { primary_model: val }); }} placeholder="בחר מודל" options={getModelsForProvider(r.primary_provider).map((m) => ({ value: m, label: m }))} />
-                                  <input value={r.primary_model || ''} onChange={(e) => updateFeatureLocal(r.feature_key, { primary_model: e.target.value })} placeholder="או הקלד ידנית" className="mt-1 w-full bg-white/80 border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 outline-none" />
-                                </div>
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">ספק גיבוי</label>
-                                  <CustomSelect value={r.fallback_provider || ''} onChange={(val) => updateFeatureLocal(r.feature_key, { fallback_provider: val || null })} placeholder="ללא" options={[{ value: '', label: 'ללא' }, ...providers]} />
-                                </div>
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">מודל גיבוי</label>
-                                  <CustomSelect value={r.fallback_provider && getModelsForProvider(r.fallback_provider).includes(r.fallback_model || '') ? r.fallback_model || '' : ''} onChange={(val) => updateFeatureLocal(r.feature_key, { fallback_model: val || null })} placeholder="ללא" options={r.fallback_provider ? getModelsForProvider(r.fallback_provider).map((m) => ({ value: m, label: m })) : []} />
-                                  {r.fallback_provider && (
-                                    <input value={r.fallback_model || ''} onChange={(e) => updateFeatureLocal(r.feature_key, { fallback_model: e.target.value || null })} placeholder="או הקלד ידנית" className="mt-1 w-full bg-white/80 border border-slate-200 rounded-lg px-2 py-1 text-[11px] text-slate-700 outline-none" />
-                                  )}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                                  <div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">עלות לשימוש (סנט)</label>
+                                    <input value={String(r.reserve_cost_cents ?? '')} onChange={(e) => updateFeatureLocal(r.feature_key, { reserve_cost_cents: Math.max(0, Math.floor(Number(e.target.value || 0))) })} placeholder="25" className="w-full bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none" />
+                                  </div>
+                                  <div>
+                                    <label className="text-[11px] text-slate-500 block mb-1 font-bold">Timeout (מ&quot;ש)</label>
+                                    <input value={String(r.timeout_ms ?? '')} onChange={(e) => updateFeatureLocal(r.feature_key, { timeout_ms: Math.max(1000, Math.floor(Number(e.target.value || 0))) })} placeholder="30000" className="w-full bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none" />
+                                  </div>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">עלות לשימוש (סנט)</label>
-                                  <input value={String(r.reserve_cost_cents ?? '')} onChange={(e) => updateFeatureLocal(r.feature_key, { reserve_cost_cents: Math.max(0, Math.floor(Number(e.target.value || 0))) })} placeholder="25" className="w-full bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none" />
-                                </div>
-                                <div>
-                                  <label className="text-[11px] text-slate-500 block mb-1 font-bold">Timeout (מ&quot;ש)</label>
-                                  <input value={String(r.timeout_ms ?? '')} onChange={(e) => updateFeatureLocal(r.feature_key, { timeout_ms: Math.max(1000, Math.floor(Number(e.target.value || 0))) })} placeholder="30000" className="w-full bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 outline-none" />
-                                </div>
+                            );
+                          }
+                          return (
+                            <div key={f.key} className="bg-slate-50/70 border border-dashed border-slate-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-bold text-slate-500">{f.label}</div>
+                                <div className="text-[11px] text-slate-400">{f.key}{f.description ? ` — ${f.description}` : ''}</div>
+                                <div className="text-[10px] text-slate-400 mt-1">ברירת מחדל: Google / gemini-2.5-flash — לחץ להגדרה מותאמת</div>
                               </div>
+                              <Button onClick={() => quickCreateFeature(f.key)} disabled={savingKey === f.key} size="sm" className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
+                                {savingKey === f.key ? 'יוצר...' : <><Plus size={14} className="ml-1" /> הפעל ושנה</>}
+                              </Button>
                             </div>
                           );
                         })}

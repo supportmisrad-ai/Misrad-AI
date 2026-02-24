@@ -214,7 +214,7 @@ export default function MobileMenuAttendanceButton() {
           type="button"
           onClick={handleClockIn}
           disabled={isBusy}
-          className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Fingerprint size={20} strokeWidth={2.5} />
           <span className="text-sm font-black">כניסה למשמרת</span>
