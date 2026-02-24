@@ -6,7 +6,7 @@ import { ArrowLeft, Copy, CircleCheckBig } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { createSubscriptionOrder, getSubscriptionPaymentConfig, submitSubscriptionPaymentProof } from '@/app/actions/subscription-orders';
-import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import { getModuleLabelHe, modulesRegistry } from '@/lib/os/modules/registry';
 import type { SystemFeatureFlags } from '@/lib/server/featureFlags';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { BILLING_PACKAGES, calculateOrderAmount, PackageType } from '@/lib/billing/pricing';
@@ -67,10 +67,30 @@ function SubscribeCheckoutContent({
 
   const productLabel = useMemo(() => {
     if (packageType === 'solo') {
-      return soloModuleKey ? getModuleLabelHe(soloModuleKey) : 'Solo';
+      return soloModuleKey ? getModuleLabelHe(soloModuleKey) : 'מודול בודד';
     }
     return BILLING_PACKAGES[packageType]?.labelHe || packageType;
   }, [packageType, soloModuleKey]);
+
+  const includedModulesLabels = useMemo(() => {
+    const pkg = BILLING_PACKAGES[packageType];
+    if (!pkg?.modules?.length) {
+      if (packageType === 'solo' && soloModuleKey) {
+        return [modulesRegistry[soloModuleKey]?.labelHe || soloModuleKey];
+      }
+      return [];
+    }
+    return pkg.modules.map(m => modulesRegistry[m]?.labelHe || m);
+  }, [packageType, soloModuleKey]);
+
+  const monthlyBasePrice = useMemo(() => {
+    return packageType === 'solo' ? 149 : (BILLING_PACKAGES[packageType]?.monthlyPrice || 0);
+  }, [packageType]);
+
+  const yearlySavings = useMemo(() => {
+    if (billingCycle !== 'yearly') return 0;
+    return (monthlyBasePrice * 12) - (Math.round(monthlyBasePrice * 0.8) * 12);
+  }, [billingCycle, monthlyBasePrice]);
 
   const seats = useMemo(() => {
     const seatsParam = searchParams.get('seats');
@@ -270,25 +290,24 @@ function SubscribeCheckoutContent({
 
   const bitPayText = useMemo(() => {
     const lines = [
-      `סכום לתשלום: ₪${amountToPay}`,
-      productLabel ? `מוצר: ${productLabel}` : null,
+      `סכום לתשלום: ₪${amountToPay} (כולל מע"מ)`,
+      productLabel ? `חבילה: ${productLabel}` : null,
       seats ? `משתמשים: ${seats}` : null,
-      `תוכנית: ${plan}`,
-      `חיוב: ${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}`,
+      `מחזור חיוב: ${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}`,
       orderId ? `מספר הזמנה: ${orderId}` : null,
     ].filter(Boolean);
     return lines.join('\n');
-  }, [amountToPay, billingCycle, orderId, plan, productLabel, seats]);
+  }, [amountToPay, billingCycle, orderId, productLabel, seats]);
 
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
           <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-            <CircleCheckBig className="w-20 h-20 text-emerald-400 mx-auto mb-6" />
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">הבקשה נשלחה בהצלחה! אנחנו מאמתים את התשלום כעת.</h1>
+            <CircleCheckBig className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">ההזמנה התקבלה בהצלחה</h1>
             <p className="text-sm sm:text-base text-slate-600 mb-6">
-              ברגע שנאשר, המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור.
+              אנו מאמתים את התשלום. ברגע שנאשר — המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור.
             </p>
 
             <button
@@ -353,14 +372,32 @@ function SubscribeCheckoutContent({
           </p>
 
           <div className="grid grid-cols-1 gap-4 mb-6">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">סיכום הזמנה</div>
-              <div className="mt-2 text-slate-900 font-bold text-lg">
-                ₪{amountToPay} <span className="text-xs font-medium text-slate-500">(כולל מע&quot;מ)</span>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-bold text-slate-700">סיכום הזמנה</div>
+                <div className="text-xs text-slate-500">{billingCycle === 'yearly' ? 'חיוב שנתי' : 'חיוב חודשי'}</div>
               </div>
-              <div className="mt-1 text-sm text-slate-600">
-                {productLabel || plan} • {billingCycle === 'yearly' ? 'חיוב שנתי' : 'חיוב חודשי'}{seats ? ` • ${seats} משתמשים` : ''}
+              <div className="text-slate-900 font-black text-2xl">
+                ₪{amountToPay}<span className="text-sm font-bold text-slate-500 mr-1">/חודש</span>
+                <span className="text-xs font-medium text-slate-400 mr-2">(כולל מע&quot;מ)</span>
               </div>
+              <div className="mt-2 text-sm font-bold text-slate-800">
+                {productLabel}{seats ? ` · ${seats} משתמשים` : ''}
+              </div>
+              {includedModulesLabels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {includedModulesLabels.map(label => (
+                    <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[11px] font-bold text-slate-600">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {billingCycle === 'yearly' && yearlySavings > 0 && (
+                <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
+                  חיסכון שנתי: ₪{yearlySavings}
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -478,7 +515,7 @@ function SubscribeCheckoutContent({
                 disabled={isCreating}
                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 shadow-sm"
               >
-                {isCreating ? 'יוצר הזמנה...' : 'קבל הוראות תשלום'}
+                {isCreating ? 'מעבד...' : 'אשר הזמנה'}
               </button>
             )}
 
@@ -512,7 +549,7 @@ function SubscribeCheckoutContent({
                 </div>
 
                 <div className="mt-3 text-xs text-slate-600">
-                  שלח/שלם בביט לפי הפרטים, ואז נחזור אליך לאישור. (בשלב הבא נוסיף אישור אוטומטי / קישור תשלום מלא)
+                  בצע את התשלום בהתאם לפרטים ונחזור אליך עם אישור.
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3">
@@ -579,19 +616,19 @@ function SubscribeCheckoutContent({
                         className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3"
                       >
                         {isPendingVerification
-                          ? 'נשלח! ממתין לאימות'
+                          ? 'נשלח — ממתין לאישור'
                           : isSubmittingProof
                             ? 'שולח...'
-                            : 'שלחתי כסף - אשר לי גישה'}
+                            : 'שלחתי תשלום — אשרו לי גישה'}
                       </button>
 
                       <div className="text-xs text-slate-400">
-                        אחרי הלחיצה ההזמנה תסומן כ־״ממתין לאימות״ ותופיע אצלך באדמין.
+                        לאחר הלחיצה ההזמנה תועבר לאישור. תקבל מייל ברגע שנאשר.
                       </div>
                     </>
                   ) : (
                     <div className="text-xs text-slate-400">
-                      לאחר ביצוע התשלום, נא לחזור לכאן. בשלב הבא נחבר Webhook לאישור אוטומטי.
+                      לאחר ביצוע התשלום, תקבל אישור במייל.
                     </div>
                   )}
                 </div>
