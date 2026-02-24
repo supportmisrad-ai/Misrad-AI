@@ -6,6 +6,7 @@ import { Zap, Download, Play, RefreshCw, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/CustomSelect';
+import { useData } from '@/context/DataContext';
 
 type OrganizationLite = {
   id: string;
@@ -28,6 +29,7 @@ type FeatureRow = {
 };
 
 export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
+  const { addToast } = useData();
   const [orgs, setOrgs] = useState<OrganizationLite[]>([]);
   const [orgQuery, setOrgQuery] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
@@ -200,10 +202,10 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בהרצת אינדוקס');
-      alert(`אינדוקס הסתיים\n\nSystem Leads: ${data.systemLeads?.succeeded || 0}/${data.systemLeads?.attempted || 0}\nNexus Clients: ${data.nexusClients?.succeeded || 0}/${data.nexusClients?.attempted || 0}`);
+      addToast(`אינדוקס הסתיים — Leads: ${data.systemLeads?.succeeded || 0}/${data.systemLeads?.attempted || 0}, Clients: ${data.nexusClients?.succeeded || 0}/${data.nexusClients?.attempted || 0}`, 'success');
       await loadCreditStatus(selectedOrgId);
     } catch (e: unknown) {
-      alert(String(e instanceof Error ? e.message : e));
+      addToast(String(e instanceof Error ? e.message : e), 'error');
     } finally {
       setRunningIngest(false);
     }
@@ -286,9 +288,9 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
             onClick={async () => {
               try {
                 await adjustCredits(1000);
-                alert('נוספו 10₪ קרדיטים (1000 סנט)');
+                addToast('נוספו 10₪ קרדיטים', 'success');
               } catch (e: unknown) {
-                alert(String(e instanceof Error ? e.message : e));
+                addToast(String(e instanceof Error ? e.message : e), 'error');
               }
             }}
             disabled={!selectedOrgId}
@@ -302,8 +304,9 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
             onClick={async () => {
               try {
                 await downloadAiBackup();
+                addToast('גיבוי הורד בהצלחה', 'success');
               } catch (e: unknown) {
-                alert(String(e instanceof Error ? e.message : e));
+                addToast(String(e instanceof Error ? e.message : e), 'error');
               }
             }}
             disabled={!selectedOrgId}
