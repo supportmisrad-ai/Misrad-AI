@@ -97,7 +97,7 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   infra: { label: 'מערכת', description: 'תשתית · לוגים · דאטה · CRON' },
   bot: { label: 'בוט', description: 'וואטסאפ · לידים · שיחות' },
   ai: { label: 'AI', description: 'ניהול AI · ספקים · מודלים · קרדיטים' },
-  analytics: { label: 'אנליטיקס', description: 'ביקורים · דפים · מסעות · הרשמות' },
+  analytics: { label: 'אנליטיקס', description: 'אתר · AI · לקוחות · תובנות' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -269,6 +269,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     ],
     analytics: [
       { href: '/app/admin/analytics', label: 'אנליטיקס אתר', icon: BarChart3 },
+      { href: '/app/admin/analytics/ai', label: 'אנליטיקס AI', icon: BrainCircuit },
+      { href: '/app/admin/analytics/customers', label: 'אנליטיקס לקוחות', icon: Users },
     ],
   }), []);
 
