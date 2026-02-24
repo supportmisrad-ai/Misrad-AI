@@ -23,14 +23,14 @@ function woUrl(base: string, id: string, extra = ''): string {
 
 export async function startAction(base: string, woId: string, orgSlug: string) {
   const result = await setOperationsWorkOrderStatus({ orgSlug, id: woId, status: 'IN_PROGRESS' });
-  if (result.success) redirect(woUrl(base, woId));
+  if (result.success) redirect(woUrl(base, woId, `?flash=${encodeURIComponent('הקריאה עודכנה לסטטוס בטיפול')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בעדכון סטטוס');
   redirect(woUrl(base, woId, `?error=${message}`));
 }
 
 export async function doneAction(base: string, woId: string, orgSlug: string) {
   const result = await setOperationsWorkOrderStatus({ orgSlug, id: woId, status: 'DONE' });
-  if (result.success) redirect(woUrl(base, woId));
+  if (result.success) redirect(woUrl(base, woId, `?flash=${encodeURIComponent('הקריאה סומנה כהושלמה')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בעדכון סטטוס');
   redirect(woUrl(base, woId, `?error=${message}`));
 }
@@ -48,7 +48,7 @@ export async function assignTechnicianAction(
       : String(technicianIdRaw);
 
   const result = await setOperationsWorkOrderAssignedTechnician({ orgSlug, id: woId, technicianId });
-  if (result.success) redirect(woUrl(base, woId));
+  if (result.success) redirect(woUrl(base, woId, `?flash=${encodeURIComponent('טכנאי שויך בהצלחה')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בשיוך טכנאי');
   redirect(woUrl(base, woId, `?error=${message}`));
 }
@@ -84,7 +84,7 @@ export async function completeWithSignatureAction(
     redirect(woUrl(base, woId, `?error=${encodeURIComponent(msg)}`));
   }
 
-  redirect(woUrl(base, woId));
+  redirect(woUrl(base, woId, `?flash=${encodeURIComponent('עבודה הושלמה וחתימה נשמרה')}`));
 }
 
 export async function uploadAction(
@@ -121,7 +121,7 @@ export async function uploadAction(
     redirect(woUrl(base, woId, `?error=${encodeURIComponent(msg)}`));
   }
 
-  redirect(woUrl(base, woId));
+  redirect(woUrl(base, woId, `?flash=${encodeURIComponent('קובץ הועלה בהצלחה')}`));
 }
 
 export async function checkinAction(
@@ -143,7 +143,7 @@ export async function checkinAction(
     const msg = result.error ? String(result.error) : 'שגיאה בשמירת מיקום';
     redirect(woUrl(base, woId, `?error=${encodeURIComponent(msg)}`));
   }
-  redirect(woUrl(base, woId));
+  redirect(woUrl(base, woId, `?flash=${encodeURIComponent('דיווח הגעה נשמר')}`));
 }
 
 export async function addMaterialAction(
@@ -157,7 +157,7 @@ export async function addMaterialAction(
 
   const result = await consumeOperationsInventoryForWorkOrder({ orgSlug, workOrderId: woId, inventoryId, qty });
 
-  if (result.success) redirect(woUrl(base, woId, '?tab=materials'));
+  if (result.success) redirect(woUrl(base, woId, `?tab=materials&flash=${encodeURIComponent('חומר נוסף בהצלחה')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בהוספת חומר');
   redirect(woUrl(base, woId, `?tab=materials&error=${message}`));
 }
@@ -170,7 +170,7 @@ export async function setStockSourceAction(
 ) {
   const holderId = String(formData.get('holderId') || '').trim();
   const result = await setOperationsWorkOrderStockSource({ orgSlug, workOrderId: woId, holderId });
-  if (result.success) redirect(woUrl(base, woId, '?tab=materials'));
+  if (result.success) redirect(woUrl(base, woId, `?tab=materials&flash=${encodeURIComponent('מקור מלאי נשמר')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בשמירת מקור מלאי');
   redirect(woUrl(base, woId, `?tab=materials&error=${message}`));
 }
@@ -181,7 +181,7 @@ export async function useMyActiveVehicleSourceAction(
   orgSlug: string,
 ) {
   const result = await setOperationsWorkOrderStockSourceToMyActiveVehicle({ orgSlug, workOrderId: woId });
-  if (result.success) redirect(woUrl(base, woId, '?tab=materials'));
+  if (result.success) redirect(woUrl(base, woId, `?tab=materials&flash=${encodeURIComponent('מקור מלאי עודכן לרכב הפעיל')}`));
   const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בקביעת מקור מלאי');
   redirect(woUrl(base, woId, `?tab=materials&error=${message}`));
 }

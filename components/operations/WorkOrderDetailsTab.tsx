@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Select } from '@/components/ui/select';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
 import WorkOrderAiSummary from '@/components/operations/WorkOrderAiSummary';
@@ -137,12 +138,12 @@ export default function WorkOrderDetailsTab({
           </div>
 
           <div>
-            <button
-              type="submit"
-              className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
+            <FormPendingButton
+              pendingText="שומר..."
+              className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150 disabled:opacity-50"
             >
               שמור שיוך
-            </button>
+            </FormPendingButton>
           </div>
         </form>
       </div>
@@ -163,12 +164,12 @@ export default function WorkOrderDetailsTab({
 
         <form action={uploadAction} className="mt-3 space-y-2">
           <input type="file" name="file" accept="image/*,application/pdf" capture="environment" className="block w-full text-sm" required />
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors"
+          <FormPendingButton
+            pendingText="מעלה..."
+            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-50"
           >
             העלה תמונה/מסמך
-          </button>
+          </FormPendingButton>
         </form>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -214,13 +215,13 @@ export default function WorkOrderDetailsTab({
 
         <form action={completeWithSignatureAction} className="mt-3 space-y-3">
           <SignaturePad inputName="signatureDataUrl" />
-          <button
-            type="submit"
+          <FormPendingButton
             disabled={w.status === 'DONE'}
+            pendingText="שומר חתימה..."
             className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             סיים עבודה ושמור חתימה
-          </button>
+          </FormPendingButton>
         </form>
       </div>
 

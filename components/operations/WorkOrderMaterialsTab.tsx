@@ -1,4 +1,5 @@
 import { Select } from '@/components/ui/select';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import type {
   OperationsInventoryOption,
   OperationsStockSourceOption,
@@ -90,22 +91,22 @@ export default function WorkOrderMaterialsTab({
           </div>
 
           <div>
-            <button
-              type="submit"
-              className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-medium text-slate-700 bg-white border border-slate-200/80 shadow-sm hover:shadow hover:border-slate-300 transition-all duration-150"
+            <FormPendingButton
+              pendingText="שומר..."
+              className="w-full h-11 inline-flex items-center justify-center rounded-xl px-4 text-sm font-medium text-slate-700 bg-white border border-slate-200/80 shadow-sm hover:shadow hover:border-slate-300 transition-all duration-150 disabled:opacity-50"
             >
               שמור מקור
-            </button>
+            </FormPendingButton>
           </div>
         </form>
 
         <form action={useMyActiveVehicleSourceAction} className="mt-3">
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          <FormPendingButton
+            pendingText="מעדכן..."
+            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             השתמש ברכב הפעיל שלי
-          </button>
+          </FormPendingButton>
         </form>
       </div>
 
@@ -170,12 +171,12 @@ export default function WorkOrderMaterialsTab({
           </div>
 
           <div className="md:col-span-3">
-            <button
-              type="submit"
-              className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+            <FormPendingButton
+              pendingText="מוסיף חומר..."
+              className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               הוסף חומר והורד מהמלאי
-            </button>
+            </FormPendingButton>
           </div>
         </form>
       </div>

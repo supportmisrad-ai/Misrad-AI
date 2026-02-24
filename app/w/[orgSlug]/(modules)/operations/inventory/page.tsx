@@ -2,6 +2,7 @@
 
 import { createOperationsItem, getOperationsInventoryData } from '@/app/actions/operations';
 import { ExportInventoryCsvButton } from '@/components/operations/ExportButtons';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import { InventoryItemActions } from '@/components/operations/InventoryItemActions';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
 import { redirect } from 'next/navigation';
@@ -114,12 +115,12 @@ export default async function OperationsInventoryPage({
               />
             </div>
             <div className="md:col-span-4">
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors"
+              <FormPendingButton
+                pendingText="יוצר פריט..."
+                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors disabled:opacity-50"
               >
                 צור פריט
-              </button>
+              </FormPendingButton>
             </div>
           </form>
         </div>

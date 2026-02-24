@@ -18,6 +18,7 @@ import {
 } from '@/app/actions/operations';
 import WorkOrderChat from '@/components/operations/WorkOrderChat';
 import WorkOrderDetailsTab from '@/components/operations/WorkOrderDetailsTab';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import WorkOrderEditButton from '@/components/operations/WorkOrderEditButton';
 import WorkOrderMaterialsTab from '@/components/operations/WorkOrderMaterialsTab';
 import { auth } from '@clerk/nextjs/server';
@@ -58,6 +59,8 @@ export default async function OperationsWorkOrderDetailsPage({
   const tab = tabVal === 'materials' ? 'materials' : tabVal === 'chat' ? 'chat' : 'details';
   const errorRaw = sp.error;
   const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
+  const flashRaw = sp.flash;
+  const flash = flashRaw ? String(Array.isArray(flashRaw) ? flashRaw[0] : flashRaw) : null;
 
   type MaterialsRes = Awaited<ReturnType<typeof getOperationsMaterialsForWorkOrder>>;
   type AttachmentsRes = Awaited<ReturnType<typeof getOperationsWorkOrderAttachments>>;
@@ -161,6 +164,9 @@ export default async function OperationsWorkOrderDetailsPage({
           </div>
         </div>
 
+        {flash ? (
+          <div className="p-4 border-b border-emerald-100 bg-emerald-50 text-emerald-800 text-sm font-bold">{flash}</div>
+        ) : null}
         {error ? (
           <div className="p-4 border-b border-rose-100 bg-rose-50 text-rose-800 text-sm font-bold">{error}</div>
         ) : null}
@@ -197,13 +203,13 @@ export default async function OperationsWorkOrderDetailsPage({
 
             <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
               <form action={boundStartAction}>
-                <button
-                  type="submit"
+                <FormPendingButton
                   disabled={w.status === 'IN_PROGRESS' || w.status === 'DONE'}
+                  pendingText="מעדכן..."
                   className="w-full h-10 inline-flex items-center justify-center rounded-xl px-4 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   התחל עבודה
-                </button>
+                </FormPendingButton>
               </form>
               <a
                 href="#completion-signature"

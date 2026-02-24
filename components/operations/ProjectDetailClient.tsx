@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
+import { useOpsToast } from '@/components/operations/OperationsToastProvider';
 
 import { formatWorkOrderStatus, formatPriority } from '@/lib/services/operations/format';
 
@@ -81,6 +82,7 @@ export default function ProjectDetailClient({
   }) => Promise<{ success: boolean; error?: string }>;
 }) {
   const router = useRouter();
+  const { toast } = useOpsToast();
   const [isPending, startTransition] = useTransition();
 
   const [editing, setEditing] = useState(false);
@@ -101,6 +103,7 @@ export default function ProjectDetailClient({
       });
       if (result.success) {
         setEditing(false);
+        toast('פרויקט עודכן בהצלחה', 'success');
         router.refresh();
       } else {
         setError(result.error ?? 'שגיאה בעדכון');

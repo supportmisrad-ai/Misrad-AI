@@ -21,6 +21,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { OperationsToastProvider } from '@/components/operations/OperationsToastProvider';
 
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
@@ -263,9 +264,11 @@ export default function OperationsShell({
           className="bg-transparent"
         />
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
-          <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
-        </div>
+        <OperationsToastProvider>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
+            <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
+          </div>
+        </OperationsToastProvider>
       </main>
 
       <MobileBottomNav

@@ -4,6 +4,7 @@ import { Loader2, Pencil } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateOperationsWorkOrder } from '@/app/actions/operations';
+import { useOpsToast } from '@/components/operations/OperationsToastProvider';
 
 const PRIORITY_OPTIONS = [
   { value: 'NORMAL', label: 'רגיל' },
@@ -25,6 +26,7 @@ export default function WorkOrderEditButton({
   };
 }) {
   const router = useRouter();
+  const { toast } = useOpsToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +48,12 @@ export default function WorkOrderEditButton({
     setLoading(false);
     if (res.success) {
       setOpen(false);
+      toast('קריאה עודכנה בהצלחה', 'success');
       router.refresh();
     } else {
       setError(res.error || 'שגיאה בעדכון');
     }
-  }, [orgSlug, workOrder.id, title, description, priority, router]);
+  }, [orgSlug, workOrder.id, title, description, priority, router, toast]);
 
   const handleCancel = useCallback(() => {
     setTitle(workOrder.title);

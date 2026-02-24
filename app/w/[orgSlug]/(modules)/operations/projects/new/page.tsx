@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { createOperationsProject, getOperationsClientOptions } from '@/app/actions/operations';
 import { FormCustomSelect } from '@/components/FormCustomSelect';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 
 export default async function OperationsNewProjectPage({
   params,
@@ -105,12 +106,12 @@ export default async function OperationsNewProjectPage({
               >
                 ביטול
               </Link>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors"
+              <FormPendingButton
+                pendingText="יוצר פרויקט..."
+                className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-colors disabled:opacity-50"
               >
                 צור פרויקט
-              </button>
+              </FormPendingButton>
             </div>
           </form>
       </section>

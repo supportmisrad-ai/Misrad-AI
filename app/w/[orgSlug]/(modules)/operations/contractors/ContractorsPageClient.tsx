@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { Users, Package } from 'lucide-react';
 import ContractorPortalLinkCopy from '@/components/operations/ContractorPortalLinkCopy';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
+import { ConfirmDeleteButton } from '@/components/operations/ConfirmDeleteButton';
 import type { OperationsSupplierRow } from '@/app/actions/operations';
 
 interface ContractorsPageClientProps {
@@ -117,7 +119,7 @@ export default function ContractorsPageClient({
                     ]}
                   />
                 </div>
-                <button type="submit" className={btnAddCls}>צור קישור</button>
+                <FormPendingButton pendingText="יוצר..." className={btnAddCls}>צור קישור</FormPendingButton>
               </form>
             </div>
 
@@ -153,7 +155,7 @@ export default function ContractorsPageClient({
                   <input name="phone" type="tel" placeholder="טלפון" className={`${inputCls} max-w-[200px]`} />
                   <input name="email" type="email" placeholder="אימייל" className={`${inputCls} max-w-[240px]`} />
                   <input name="notes" placeholder="הערות" className={inputCls} />
-                  <button type="submit" className={btnAddCls}>הוסף ספק</button>
+                  <FormPendingButton pendingText="מוסיף..." className={btnAddCls}>הוסף ספק</FormPendingButton>
                 </div>
               </form>
             </div>
@@ -170,10 +172,12 @@ export default function ContractorsPageClient({
                       {s.notes ? <span className="text-slate-400">{s.notes}</span> : null}
                     </div>
                   </div>
-                  <form action={deleteSupplierAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <button type="submit" className={btnDelCls}>מחק</button>
-                  </form>
+                  <ConfirmDeleteButton
+                    id={s.id}
+                    action={deleteSupplierAction}
+                    className={btnDelCls}
+                    confirmMessage={`האם למחוק את הספק "${s.name}"?`}
+                  />
                 </div>
               )) : <div className="text-sm text-slate-500">אין עדיין ספקים</div>}
             </div>

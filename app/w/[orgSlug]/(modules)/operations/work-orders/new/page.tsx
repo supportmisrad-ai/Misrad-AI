@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { FormPendingButton } from '@/components/operations/FormPendingButton';
 import TechnicianSelector from '@/components/operations/TechnicianSelector';
 
 const labelCls = 'block text-xs font-semibold text-slate-500 mb-1.5';
@@ -256,9 +256,12 @@ export default async function OperationsNewWorkOrderPage({
             >
               ביטול
             </Link>
-            <Button type="submit" variant="default" className="rounded-xl h-11 px-6 text-sm font-bold bg-sky-500 hover:bg-sky-600 shadow-sm">
+            <FormPendingButton
+              pendingText="פותח קריאה..."
+              className="rounded-xl h-11 px-6 text-sm font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all duration-150 disabled:opacity-50 inline-flex items-center justify-center"
+            >
               פתח קריאה
-            </Button>
+            </FormPendingButton>
           </div>
         </form>
       </section>

@@ -4,6 +4,7 @@ import { Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateOperationsItem, deleteOperationsItem } from '@/app/actions/operations';
+import { useOpsToast } from '@/components/operations/OperationsToastProvider';
 
 type InventoryItemRow = {
   id: string;
@@ -21,6 +22,7 @@ export function InventoryItemActions({
   orgSlug: string;
 }) {
   const router = useRouter();
+  const { toast } = useOpsToast();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,9 +43,12 @@ export function InventoryItemActions({
     setLoading(false);
     if (res.success) {
       setEditing(false);
+      toast('פריט עודכן בהצלחה', 'success');
       router.refresh();
+    } else {
+      toast(res.error || 'שגיאה בעדכון פריט', 'error');
     }
-  }, [orgSlug, item.id, name, sku, minLevel, router]);
+  }, [orgSlug, item.id, name, sku, minLevel, router, toast]);
 
   const handleDelete = useCallback(async () => {
     setLoading(true);
@@ -51,9 +56,12 @@ export function InventoryItemActions({
     setLoading(false);
     if (res.success) {
       setConfirmDelete(false);
+      toast('פריט נמחק בהצלחה', 'success');
       router.refresh();
+    } else {
+      toast(res.error || 'שגיאה במחיקת פריט', 'error');
     }
-  }, [orgSlug, item.id, router]);
+  }, [orgSlug, item.id, router, toast]);
 
   if (confirmDelete) {
     return (
