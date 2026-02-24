@@ -1,5 +1,5 @@
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { DetailContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function SystemCallAnalyzerLoading() {
-  return <DashboardContentSkeleton moduleKey="system" />;
+  return <DetailContentSkeleton moduleKey="system" />;
 }

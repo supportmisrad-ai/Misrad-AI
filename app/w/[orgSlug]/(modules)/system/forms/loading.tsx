@@ -1,5 +1,5 @@
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { NewFormContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function SystemFormsLoading() {
-  return <DashboardContentSkeleton moduleKey="system" />;
+  return <NewFormContentSkeleton moduleKey="system" />;
 }

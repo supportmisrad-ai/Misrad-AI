@@ -10,7 +10,11 @@ export default async function SystemSalesLeadsPage({
 }) {
   const { orgSlug } = await params;
 
-  const res = await getSystemLeadsPage({ orgSlug, pageSize: 50 });
+  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
+  const res = await getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
+    success: false,
+    error: 'שגיאה בטעינת לידים',
+  }));
   const initialLeads = res.success ? res.data.leads : [];
   const initialNextCursor = res.success ? res.data.nextCursor : null;
   const initialHasMore = res.success ? res.data.hasMore : false;

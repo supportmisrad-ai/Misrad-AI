@@ -11,10 +11,14 @@ export default async function SystemDialerPage({
 }) {
   const { orgSlug } = await params;
 
+  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
   const [leadsRes, callHistory, initialStages] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
-    getSystemCallHistory({ orgSlug, take: 200 }),
-    getSystemPipelineStages({ orgSlug }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
+      success: false,
+      error: 'שגיאה בטעינת לידים',
+    })),
+    getSystemCallHistory({ orgSlug, take: 200 }).catch(() => []),
+    getSystemPipelineStages({ orgSlug }).catch(() => []),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];

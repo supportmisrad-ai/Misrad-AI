@@ -1,5 +1,5 @@
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { HubContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function SystemFieldMapLoading() {
-  return <DashboardContentSkeleton moduleKey="system" />;
+  return <HubContentSkeleton moduleKey="system" />;
 }

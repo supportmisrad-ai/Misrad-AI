@@ -1,5 +1,5 @@
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { TeamContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function SystemPartnersLoading() {
-  return <DashboardContentSkeleton moduleKey="system" />;
+  return <TeamContentSkeleton moduleKey="system" />;
 }

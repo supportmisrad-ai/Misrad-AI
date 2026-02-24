@@ -1,5 +1,5 @@
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { WorkflowsContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 export default function SystemAutomationsLoading() {
-  return <DashboardContentSkeleton moduleKey="system" />;
+  return <WorkflowsContentSkeleton moduleKey="system" />;
 }

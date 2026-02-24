@@ -11,9 +11,13 @@ export default async function SystemSalesPipelinePage({
 }) {
   const { orgSlug } = await params;
 
+  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
   const [leadsRes, initialStages] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
-    getSystemPipelineStages({ orgSlug }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
+      success: false,
+      error: 'שגיאה בטעינת לידים',
+    })),
+    getSystemPipelineStages({ orgSlug }).catch(() => []),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];

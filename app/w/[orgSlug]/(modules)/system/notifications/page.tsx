@@ -10,7 +10,7 @@ export default async function SystemNotificationsPage({
 }) {
   const { orgSlug } = await params;
 
-  const initialNotifications = await getSystemNotifications({ orgSlug, limit: 200 });
+  const initialNotifications = await getSystemNotifications({ orgSlug, limit: 200 }).catch(() => []);
 
   return <NotificationsView orgSlug={orgSlug} initialNotifications={initialNotifications} />;
 }

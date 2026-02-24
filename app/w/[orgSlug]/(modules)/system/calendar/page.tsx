@@ -14,9 +14,13 @@ export default async function SystemCalendarPage({
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
   const [leadsRes, initialEvents] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
-    getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 200 }),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
+      success: false,
+      error: '\u05e9\u05d2\u05d9\u05d0\u05d4 \u05d1\u05d8\u05e2\u05d9\u05e0\u05ea \u05dc\u05d9\u05d3\u05d9\u05dd',
+    })),
+    getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 200 }).catch(() => []),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
