@@ -1,19 +1,24 @@
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
+import { useUser } from '@clerk/nextjs';
 import { Shield, QrCode, ChevronRight, ShieldCheck, Check, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { BiometricSetup } from '../nexus/BiometricSetup';
+import { SetPasswordInline } from '../shared/SetPasswordInline';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
 
 export const SecuritySettings: React.FC = () => {
     const { currentUser, updateUser, addToast } = useData();
+    const { user: clerkUser } = useUser();
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [is2FASetup, setIs2FASetup] = useState(false);
+    const [showSetPassword, setShowSetPassword] = useState(false);
+    const hasPassword = clerkUser?.passwordEnabled ?? true;
     const [verifyCode, setVerifyCode] = useState('');
     const [showDisableConfirm, setShowDisableConfirm] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -73,52 +78,84 @@ export const SecuritySettings: React.FC = () => {
                 confirmText="כבה הגנה"
             />
 
-            <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-100">
-                <div className="p-2 bg-white rounded-full shadow-sm"><Shield size={16} className="text-yellow-600" /></div>
-                <div>
-                    <p className="text-sm font-bold">אבטחת חשבון</p>
-                    <p className="text-xs opacity-80">הסיסמה שונתה לאחרונה לפני 3 חודשים.</p>
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה נוכחית</label>
-                <div className="relative">
-                    <input
-                        type={showCurrentPassword ? 'text' : 'password'}
-                        value="********"
-                        readOnly
-                        className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowCurrentPassword((v) => !v)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                        aria-label={showCurrentPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
-                    >
-                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה חדשה</label>
-                <div className="relative">
-                    <input
-                        type={showNewPassword ? 'text' : 'password'}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="הקלד סיסמה חזקה..."
-                        className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowNewPassword((v) => !v)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                        aria-label={showNewPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
-                    >
-                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-            </div>
+            {hasPassword ? (
+                <>
+                    <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-xl border border-yellow-100">
+                        <div className="p-2 bg-white rounded-full shadow-sm"><Shield size={16} className="text-yellow-600" /></div>
+                        <div>
+                            <p className="text-sm font-bold">אבטחת חשבון</p>
+                            <p className="text-xs opacity-80">סיסמה מוגדרת לחשבון.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה נוכחית</label>
+                        <div className="relative">
+                            <input
+                                type={showCurrentPassword ? 'text' : 'password'}
+                                value="********"
+                                readOnly
+                                className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurrentPassword((v) => !v)}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                                aria-label={showCurrentPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                            >
+                                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה חדשה</label>
+                        <div className="relative">
+                            <input
+                                type={showNewPassword ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="הקלד סיסמה חזקה..."
+                                className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNewPassword((v) => !v)}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                                aria-label={showNewPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                            >
+                                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {!showSetPassword ? (
+                        <div className="flex items-center gap-3 p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-100">
+                            <div className="p-2 bg-white rounded-full shadow-sm"><Shield size={16} className="text-amber-600" /></div>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold">לא הוגדרה סיסמה</p>
+                                <p className="text-xs opacity-80">נרשמת באמצעות Google. הגדר סיסמה לאבטחה נוספת ולהפעלת זיהוי ביומטרי.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowSetPassword(true)}
+                                className="px-4 py-2 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition-all text-sm flex-shrink-0"
+                            >
+                                הגדר סיסמה
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <SetPasswordInline
+                                onSuccess={() => {
+                                    setShowSetPassword(false);
+                                    addToast('סיסמה הוגדרה בהצלחה!', 'success');
+                                }}
+                                onCancel={() => setShowSetPassword(false)}
+                            />
+                        </div>
+                    )}
+                </>
+            )}
             
             {/* Biometric Setup (Passkeys) */}
             <div className="pt-4 border-t border-gray-100">

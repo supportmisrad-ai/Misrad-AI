@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { useUser, useSignIn } from '@clerk/nextjs';
-import { CircleCheckBig, CircleAlert, Scan, Lock, KeyRound, ArrowRight } from 'lucide-react';
+import { CircleCheckBig, CircleAlert, Scan, Lock } from 'lucide-react';
+import { SetPasswordInline } from '@/components/shared/SetPasswordInline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -287,31 +288,30 @@ export const BiometricSetup: React.FC = () => {
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0 }}
-                                className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3"
+                                className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl"
                             >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <KeyRound size={16} className="text-amber-600" />
-                                    <p className="text-sm font-bold text-amber-800">נדרשת הגדרת סיסמה</p>
-                                </div>
-                                <p className="text-xs text-amber-700">
-                                    נרשמת באמצעות Google ועדיין לא הגדרת סיסמה.
-                                    כדי להפעיל זיהוי ביומטרי, הגדר סיסמה תחילה ולאחר מכן חזור לכאן.
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <a
-                                        href={`/reset-password?email=${encodeURIComponent(userEmail)}&source=passkey`}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition-all text-sm"
-                                    >
-                                        הגדר סיסמה <ArrowRight size={14} />
-                                    </a>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setFlowStep('idle'); setErrorMessage(''); }}
-                                        className="px-4 py-2.5 text-gray-600 font-bold rounded-lg hover:bg-gray-100 transition-all text-sm"
-                                    >
-                                        ביטול
-                                    </button>
-                                </div>
+                                <SetPasswordInline
+                                    title="נדרשת הגדרת סיסמה"
+                                    description="נרשמת באמצעות Google ועדיין לא הגדרת סיסמה. הגדר סיסמה כדי להפעיל זיהוי ביומטרי."
+                                    onSuccess={async () => {
+                                        // Password was set + fresh session created → retry passkey creation
+                                        setFlowStep('creating');
+                                        try {
+                                            const result = await attemptCreatePasskey();
+                                            if (result === true) {
+                                                setFlowStep('success');
+                                                setTimeout(() => setFlowStep('idle'), 3000);
+                                            } else {
+                                                setErrorMessage('הסיסמה הוגדרה בהצלחה! כעת התנתק והתחבר מחדש, ואז נסה שוב להפעיל זיהוי ביומטרי.');
+                                                setFlowStep('error');
+                                            }
+                                        } catch {
+                                            setErrorMessage('הסיסמה הוגדרה בהצלחה! כעת תוכל להפעיל זיהוי ביומטרי.');
+                                            setFlowStep('idle');
+                                        }
+                                    }}
+                                    onCancel={() => { setFlowStep('idle'); setErrorMessage(''); }}
+                                />
                             </motion.div>
                         )}
                     </AnimatePresence>
