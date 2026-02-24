@@ -54,6 +54,19 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   navigate,
   plusGradient,
 }) => {
+  const hasCrm = hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden';
+
+  // Compute a single active bottom-nav ID to guarantee mutual exclusivity.
+  // Priority: page match first, then menu/settings state.
+  const activeBottomId: string | null = (() => {
+    if (isActive('/tasks')) return 'tasks';
+    if (hasCrm ? isActive('/clients') : isActive('/me')) return 'clients';
+    if (isActive('/')) return 'home';
+    if (isMobileMenuOpen) return 'menu';
+    if (isActive('/settings')) return 'menu';
+    return null;
+  })();
+
   return (
     <>
       {/* Mobile Action Menu Overlay */}
@@ -220,36 +233,30 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
             id: 'home',
             label: 'לוח בקרה',
             icon: Home,
-            active: isActive('/'),
+            active: activeBottomId === 'home',
             onClick: () => handleNavClick('/'),
           },
           {
             id: 'tasks',
             label: 'משימות',
             icon: CheckSquare,
-            active: isActive('/tasks'),
+            active: activeBottomId === 'tasks',
             onClick: () => handleNavClick('/tasks'),
           },
         ]}
         leftItems={[
           {
             id: 'clients',
-            label: hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden' ? 'לקוחות' : 'פרופיל',
-            icon: hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden' ? Briefcase : User,
-            active:
-              hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden'
-                ? isActive('/clients')
-                : isActive('/me'),
-            onClick: () =>
-              hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden'
-                ? handleNavClick('/clients')
-                : handleNavClick('/me'),
+            label: hasCrm ? 'לקוחות' : 'פרופיל',
+            icon: hasCrm ? Briefcase : User,
+            active: activeBottomId === 'clients',
+            onClick: () => hasCrm ? handleNavClick('/clients') : handleNavClick('/me'),
           },
           {
             id: 'menu',
             label: 'תפריט',
             icon: SquareMousePointer,
-            active: Boolean(isMobileMenuOpen || isActive('/settings')),
+            active: activeBottomId === 'menu',
             onClick: () => toggleMobileMenu(),
           },
         ]}

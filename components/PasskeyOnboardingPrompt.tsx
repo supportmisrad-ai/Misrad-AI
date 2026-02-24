@@ -3,18 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { ScanFace, X } from 'lucide-react';
-
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false;
-
-  const ua = navigator.userAgent || '';
-  const uaIsMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-  const coarsePointer = typeof window.matchMedia === 'function'
-    ? window.matchMedia('(pointer: coarse)').matches
-    : false;
-
-  return uaIsMobile || coarsePointer;
-};
+import { useRouter } from 'next/navigation';
 
 const isPasskeySupported = () => {
   if (typeof window === 'undefined') return false;
@@ -27,6 +16,7 @@ const isPasskeySupported = () => {
 
 export function PasskeyOnboardingPrompt() {
   const { user, isLoaded } = useUser();
+  const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -51,11 +41,7 @@ export function PasskeyOnboardingPrompt() {
           return;
         }
 
-        if (!isMobileDevice()) {
-          setIsOpen(false);
-          return;
-        }
-
+        // Show on ALL devices that support WebAuthn (mobile + desktop PWA + desktop browser)
         if (!isPasskeySupported()) {
           setIsOpen(false);
           return;
@@ -72,8 +58,8 @@ export function PasskeyOnboardingPrompt() {
         } catch {
         }
 
-        const userMeta = (user?.publicMetadata && typeof user.publicMetadata === 'object' ? user.publicMetadata : {}) as Record<string, unknown>;
-        const hasPasskeys = userMeta?.passkeys && Array.isArray(userMeta.passkeys) && userMeta.passkeys.length > 0;
+        // Check actual passkeys array from Clerk user object
+        const hasPasskeys = user.passkeys && user.passkeys.length > 0;
         setIsOpen(!hasPasskeys);
       } finally {
         setIsChecking(false);
@@ -118,8 +104,25 @@ export function PasskeyOnboardingPrompt() {
       dismiss();
     } catch (e: unknown) {
       const clerkErr = e as { errors?: Array<{ message?: string }>; message?: string };
-                const msg = clerkErr?.errors?.[0]?.message || clerkErr?.message || 'שגיאה בהפעלת זיהוי ביומטרי';
-      setError(String(msg));
+      const msg = String(clerkErr?.errors?.[0]?.message || clerkErr?.message || '');
+
+      // Handle reverification requirement gracefully
+      if (msg.includes('additional verification') || msg.includes('verification required') || msg.includes('need to provide additional')) {
+        const hasPassword = user?.passwordEnabled ?? false;
+        if (hasPassword) {
+          setError('נדרש אימות נוסף. עבור להגדרות אבטחה כדי להפעיל זיהוי ביומטרי.');
+        } else {
+          setError('נדרשת הגדרת סיסמה לפני הפעלת זיהוי ביומטרי. עבור להגדרות אבטחה.');
+        }
+        // Auto-redirect to security settings after a short delay
+        setTimeout(() => {
+          dismiss();
+          router.push('/app/me?tab=security');
+        }, 3000);
+        return;
+      }
+
+      setError(msg || 'שגיאה בהפעלת זיהוי ביומטרי');
     } finally {
       setIsCreating(false);
     }
@@ -128,7 +131,7 @@ export function PasskeyOnboardingPrompt() {
   if (!isLoaded || isChecking || !isOpen) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 md:hidden" dir="rtl">
+    <div className="fixed bottom-20 left-4 right-4 z-50" dir="rtl">
       <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-xl shadow-2xl p-4">
         <div className="flex items-start gap-3">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white flex-shrink-0">

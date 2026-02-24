@@ -7,12 +7,17 @@ import { redirect } from 'next/navigation';
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 export const runtime = 'nodejs';
 
-export default async function ResetPasswordPage() {
-  // Use server-side auth to check session state
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ source?: string; email?: string }>;
+}) {
   const { userId } = await auth();
+  const params = await searchParams;
   
-  // If user is already signed in, redirect them away from reset password
-  if (userId) {
+  // Allow signed-in users to access reset-password if coming from passkey setup
+  // (OAuth users need to set a password before enabling biometric)
+  if (userId && params.source !== 'passkey') {
     redirect('/');
   }
 

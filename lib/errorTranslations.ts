@@ -29,6 +29,15 @@ export function translateClerkError(errorMessage: string): string {
     'Passkey not found': 'לא נמצאה טביעת אצבע',
     'Passkey authentication failed': 'האימות עם טביעת אצבע נכשל',
     'WebAuthn not supported': 'WebAuthn לא נתמך בדפדפן שלך',
+    'You need to provide additional verification': 'נדרש אימות נוסף. הזן את הסיסמה שלך או התחבר מחדש.',
+    'additional verification': 'נדרש אימות נוסף לפני ביצוע פעולה זו.',
+    
+    // Password reset errors
+    'form_code_incorrect': 'קוד אימות שגוי. בדוק את הקוד ונסה שוב.',
+    'verification_expired': 'קוד האימות פג תוקף. לחץ על "שלח קוד חדש".',
+    'form_password_pwned': 'סיסמה זו נמצאה ברשימת סיסמאות שנפרצו. בחר סיסמה אחרת.',
+    'form_password_length_too_short': 'הסיסמה קצרה מדי. יש להזין לפחות 8 תווים.',
+    'Couldn\'t find your account': 'לא נמצא חשבון עם כתובת אימייל זו.',
     
     // OAuth errors
     'OAuth authentication failed': 'האימות עם OAuth נכשל',

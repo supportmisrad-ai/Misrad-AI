@@ -55,10 +55,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         setEmail(String(urlEmail));
       }
 
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
+      // Passkey sign-in works on all platforms (mobile APK, Chrome PWA, desktop browser)
       setIsPasskeySupported(
-        isMobile &&
         typeof window.PublicKeyCredential !== 'undefined' &&
         typeof navigator.credentials !== 'undefined' &&
         typeof navigator.credentials.create !== 'undefined'

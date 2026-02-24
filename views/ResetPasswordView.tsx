@@ -7,6 +7,7 @@ import { ArrowLeft, Mail, ShieldCheck, Zap, Globe, Cpu, Lock, CircleCheck, Arrow
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import { getSystemIconUrl } from '@/lib/metadata';
+import { translateClerkError } from '@/lib/errorTranslations';
 
 type Step = 'email' | 'code' | 'password';
 
@@ -103,8 +104,23 @@ export const ResetPasswordView: React.FC = () => {
       setError(''); // Clear any previous errors
     } catch (err: unknown) {
       console.error('[ResetPassword] Send code error:', err);
-      const clerkErr = err as { errors?: Array<{ message?: string }>; message?: string };
-      const errorMessage = clerkErr.errors?.[0]?.message || (err as Record<string, unknown>)?.message as string || 'שגיאה בשליחת קוד אימות. נא לנסות שוב.';
+      const clerkErr = err as { errors?: Array<{ message?: string; code?: string }>; message?: string };
+      const errCode = clerkErr?.errors?.[0]?.code ?? '';
+      const errMsg = clerkErr?.errors?.[0]?.message || (err as Record<string, unknown>)?.message as string || '';
+      
+      // Translate Clerk errors to Hebrew with specific handling for OAuth users
+      let errorMessage: string;
+      if (errCode === 'form_identifier_not_found' || errMsg.includes('Couldn\'t find your account')) {
+        errorMessage = 'לא נמצא חשבון עם כתובת אימייל זו. בדוק את הכתובת ונסה שוב.';
+      } else if (errCode === 'strategy_for_user_invalid') {
+        errorMessage = 'לא ניתן לאפס סיסמה עבור חשבון זה. ייתכן ששיטת הסיסמה אינה פעילה. פנה למנהל המערכת.';
+      } else if (errCode === 'form_password_not_set') {
+        errorMessage = 'עדיין לא הוגדרה סיסמה לחשבון זה. קוד אימות יישלח לאימייל שלך כדי להגדיר סיסמה חדשה.';
+      } else if (errMsg) {
+        errorMessage = translateClerkError(errMsg);
+      } else {
+        errorMessage = 'שגיאה בשליחת קוד אימות. נא לנסות שוב.';
+      }
       setError(errorMessage);
       setSuccess(''); // Clear success message on error
       // Reset auto-send flag on error so user can retry
@@ -208,8 +224,17 @@ export const ResetPasswordView: React.FC = () => {
       }
     } catch (err: unknown) {
       console.error('Verify code error:', err);
-      const clerkErr2 = err as { errors?: Array<{ message?: string }> };
-      setError(clerkErr2.errors?.[0]?.message || 'קוד אימות שגוי. נא לנסות שוב.');
+      const clerkErr2 = err as { errors?: Array<{ message?: string; code?: string }> };
+      const verifyErrMsg = clerkErr2?.errors?.[0]?.message;
+      const verifyErrCode = clerkErr2?.errors?.[0]?.code ?? '';
+      
+      if (verifyErrCode === 'form_code_incorrect' || verifyErrMsg?.includes('incorrect')) {
+        setError('קוד אימות שגוי. בדוק את הקוד ונסה שוב.');
+      } else if (verifyErrCode === 'verification_expired') {
+        setError('קוד האימות פג תוקף. לחץ על "שלח קוד חדש".');
+      } else {
+        setError(verifyErrMsg ? translateClerkError(verifyErrMsg) : 'קוד אימות שגוי. נא לנסות שוב.');
+      }
       codeInputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -260,8 +285,17 @@ export const ResetPasswordView: React.FC = () => {
       }
     } catch (err: unknown) {
       console.error('Reset password error:', err);
-      const errObj = err as { errors?: Array<{ message?: string }> };
-      setError(errObj.errors?.[0]?.message || 'שגיאה באיפוס הסיסמה. נא לנסות שוב.');
+      const errObj = err as { errors?: Array<{ message?: string; code?: string }> };
+      const resetErrMsg = errObj?.errors?.[0]?.message;
+      const resetErrCode = errObj?.errors?.[0]?.code ?? '';
+      
+      if (resetErrCode === 'form_password_pwned' || resetErrMsg?.includes('pwned') || resetErrMsg?.includes('compromised')) {
+        setError('סיסמה זו נמצאה ברשימת סיסמאות שנפרצו. בחר סיסמה אחרת.');
+      } else if (resetErrCode === 'form_password_length_too_short') {
+        setError('הסיסמה קצרה מדי. יש להזין לפחות 8 תווים.');
+      } else {
+        setError(resetErrMsg ? translateClerkError(resetErrMsg) : 'שגיאה באיפוס הסיסמה. נא לנסות שוב.');
+      }
     } finally {
       setIsLoading(false);
     }

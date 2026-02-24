@@ -1,167 +1,181 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useUser, useClerk } from '@clerk/nextjs';
-import { Shield, Smartphone, CircleCheckBig, CircleAlert, Loader2, X, Scan } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { useUser, useSignIn } from '@clerk/nextjs';
+import { CircleCheckBig, CircleAlert, Scan, Lock, KeyRound, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
+type FlowStep = 'idle' | 'creating' | 'verify_password' | 'no_password' | 'success' | 'error';
+
 export const BiometricSetup: React.FC = () => {
     const { user } = useUser();
-    const clerk = useClerk();
-    const [isLoading, setIsLoading] = useState(false);
-    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
+    const [flowStep, setFlowStep] = useState<FlowStep>('idle');
     const [errorMessage, setErrorMessage] = useState<string>('');
+    const [password, setPassword] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
 
-    const handleSetupPasskey = async () => {
-        if (!user) {
-            setStatus('error');
-            setErrorMessage('משתמש לא מחובר');
-            return;
-        }
+    const hasPasskeys = user?.passkeys && user.passkeys.length > 0;
+    const hasPassword = user?.passwordEnabled ?? false;
+    const userEmail = user?.primaryEmailAddress?.emailAddress ?? '';
 
-        setIsLoading(true);
-        setStatus('idle');
-        setErrorMessage('');
+    /** Attempt to create a passkey. Returns true on success, 'needs_verification' if reverification required, or throws. */
+    const attemptCreatePasskey = useCallback(async (): Promise<true | 'needs_verification'> => {
+        if (!user) throw new Error('משתמש לא מחובר');
 
-        try {
-            // Check if WebAuthn is supported
-            if (!window.PublicKeyCredential) {
-                throw new Error('המכשיר או הדפדפן שלך לא תומכים בזיהוי ביומטרי');
-            }
+        const userRecord = user as unknown as Record<string, unknown>;
+        const createFn = userRecord.createPasskey;
 
-            if (!user) {
-                throw new Error('משתמש לא מחובר');
-            }
-
-            // Clerk Passkeys API - try multiple methods
-            // Note: Clerk's Passkey API might vary by version
-            let passkeyCreated = false;
-            let lastError: unknown = null;
-
-            // Method 1: Try user.createPasskey() - Clerk's standard method
-            const userRecord = user as unknown as Record<string, unknown>;
-            if (user && typeof userRecord.createPasskey === 'function') {
+        if (typeof createFn !== 'function') {
+            // Fallback: try user.passkeys.create()
+            const passkeysRecord = user.passkeys as unknown as Record<string, unknown> | undefined;
+            if (passkeysRecord && typeof passkeysRecord.create === 'function') {
                 try {
-                    console.log('Trying user.createPasskey()...');
-                    await (userRecord.createPasskey as (opts: { name: string }) => Promise<unknown>)({
-                        name: 'MISRAD AI - זיהוי ביומטרי',
-                    });
-                    passkeyCreated = true;
-                } catch (err: unknown) {
-                    console.error('user.createPasskey() failed:', err);
-                    lastError = err;
-                }
-            }
-
-            // Method 2: Try user.passkeys.create() - alternative API
-            const passkeysRecord = user?.passkeys as unknown as Record<string, unknown> | undefined;
-            if (!passkeyCreated && passkeysRecord && typeof passkeysRecord.create === 'function') {
-                try {
-                    console.log('Trying user.passkeys.create()...');
                     await (passkeysRecord.create as (opts: { name: string }) => Promise<unknown>)({
                         name: 'MISRAD AI - זיהוי ביומטרי',
                     });
-                    passkeyCreated = true;
+                    return true;
                 } catch (err: unknown) {
-                    console.error('user.passkeys.create() failed:', err);
-                    lastError = err;
-                }
-            }
-
-            // Method 3: Try using Clerk client directly
-            if (!passkeyCreated && clerk) {
-                try {
-                    console.log('Trying clerk.user.createPasskey()...');
-                    const clerkRecord = clerk as unknown as Record<string, unknown>;
-                    const clerkUser = clerkRecord.user as Record<string, unknown> | undefined;
-                    if (clerkUser && typeof clerkUser.createPasskey === 'function') {
-                        await (clerkUser.createPasskey as (opts: { name: string }) => Promise<unknown>)({
-                            name: 'MISRAD AI - זיהוי ביומטרי',
-                        });
-                        passkeyCreated = true;
+                    const msg = String((err as Record<string, unknown>)?.message ?? err);
+                    if (msg.includes('additional verification') || msg.includes('verification required') || msg.includes('need to provide additional')) {
+                        return 'needs_verification';
                     }
-                } catch (err: unknown) {
-                    console.error('clerk.user.createPasskey() failed:', err);
-                    lastError = err;
+                    throw err;
                 }
             }
+            throw new Error('Passkey creation not available on this Clerk version');
+        }
 
-            // If all methods fail, provide helpful error message
-            if (!passkeyCreated) {
-                const errorDetails = lastError instanceof Error ? lastError.message : String(lastError || 'לא ידוע');
-                console.error('All passkey creation methods failed. Last error:', errorDetails);
-                
-                // Check if it's a specific Clerk error
-                if (errorDetails.includes('not enabled') || errorDetails.includes('not enabled on this instance')) {
-                    throw new Error('מפתחות אבטחה (Passkeys) לא מופעלים במערכת כרגע. אנא פנה למנהל המערכת להפעלת הפיצ\'ר.');
-                } else if (errorDetails.includes('additional verification') || errorDetails.includes('verification required') || errorDetails.includes('need to provide additional')) {
-                    throw new Error('נדרש אימות נוסף. אנא ודא שיש לך אימות דו-שלבי (2FA) מופעל, או התחבר מחדש עם אימות נוסף לפני יצירת מפתח אבטחה.');
-                } else if (errorDetails.includes('passkey') || errorDetails.includes('webauthn')) {
-                    throw new Error(`שגיאה ביצירת מפתח אבטחה: ${errorDetails}. אנא פנה למנהל המערכת.`);
-                } else if (errorDetails.includes('not supported') || errorDetails.includes('unsupported')) {
-                    throw new Error('הדפדפן או המכשיר שלך לא תומכים במפתחות אבטחה. נסה בדפדפן אחר או במכשיר אחר.');
-                } else {
-                    throw new Error(`לא ניתן ליצור מפתח אבטחה. שגיאה: ${errorDetails}. אנא בדוק את הקונסול לפרטים נוספים.`);
-                }
-            }
-
-            setStatus('success');
-            
-            // Reset success message after 3 seconds
-            setTimeout(() => {
-                setStatus('idle');
-            }, 3000);
-
-        } catch (error: unknown) {
-            console.error('Passkey creation error:', error);
-            const errorObj = error instanceof Error ? error : null;
-            console.error('Error details:', {
-                message: errorObj?.message,
-                name: errorObj?.name,
-                stack: errorObj?.stack,
-                user: user ? 'exists' : 'missing',
-                clerk: clerk ? 'exists' : 'missing',
+        try {
+            await (createFn as (opts: { name: string }) => Promise<unknown>).call(user, {
+                name: 'MISRAD AI - זיהוי ביומטרי',
             });
-            
-            let errorMsg = 'שגיאה בהפעלת זיהוי ביומטרי';
-            
-            if (errorObj?.message) {
-                const msg = errorObj.message.toLowerCase();
-                
-                if (msg.includes('not supported') || msg.includes('לא תומך') || msg.includes('unsupported')) {
-                    errorMsg = 'המכשיר או הדפדפן שלך לא תומכים בזיהוי ביומטרי. נסה ב-Chrome, Safari או Edge.';
-                } else if (msg.includes('additional verification') || msg.includes('verification required') || msg.includes('need to provide additional')) {
-                    errorMsg = 'נדרש אימות נוסף. אנא הפעל אימות דו-שלבי (2FA) או התחבר מחדש עם אימות נוסף לפני יצירת Passkey.';
-                } else if (msg.includes('cancelled') || msg.includes('בוטל') || msg.includes('abort')) {
-                    errorMsg = 'הפעולה בוטלה על ידך';
-                } else if (msg.includes('timeout')) {
-                    errorMsg = 'הפעולה ארכה יותר מדי זמן. נסה שוב';
-                } else if (msg.includes('not allowed') || msg.includes('permission')) {
-                    errorMsg = 'אין הרשאה ליצור Passkey. אנא בדוק את הגדרות הדפדפן.';
-                } else if (msg.includes('passkey') || msg.includes('webauthn')) {
-                    errorMsg = `בעיה ביצירת Passkey: ${errorObj.message}`;
-                } else {
-                    errorMsg = errorObj.message;
-                }
+            return true;
+        } catch (err: unknown) {
+            const msg = String((err as Record<string, unknown>)?.message ?? err);
+            if (msg.includes('additional verification') || msg.includes('verification required') || msg.includes('need to provide additional')) {
+                return 'needs_verification';
+            }
+            throw err;
+        }
+    }, [user]);
+
+    const handleSetupPasskey = async () => {
+        if (!user) {
+            setErrorMessage('משתמש לא מחובר');
+            setFlowStep('error');
+            return;
+        }
+
+        if (typeof window !== 'undefined' && !window.PublicKeyCredential) {
+            setErrorMessage('המכשיר או הדפדפן שלך לא תומכים בזיהוי ביומטרי. נסה ב-Chrome, Safari או Edge.');
+            setFlowStep('error');
+            return;
+        }
+
+        setFlowStep('creating');
+        setErrorMessage('');
+        setPassword('');
+
+        try {
+            const result = await attemptCreatePasskey();
+            if (result === true) {
+                setFlowStep('success');
+                setTimeout(() => setFlowStep('idle'), 3000);
+                return;
+            }
+            // needs_verification - route to the correct sub-flow
+            if (hasPassword) {
+                setFlowStep('verify_password');
             } else {
-                errorMsg = `שגיאה לא ידועה: ${String(error)}`;
+                setFlowStep('no_password');
             }
-            
-            // Add debugging info for developer
-            if (process.env.NODE_ENV === 'development') {
-                errorMsg += ` (פרטים בקונסול)`;
-            }
-            
-            setErrorMessage(errorMsg);
-            setStatus('error');
-        } finally {
-            setIsLoading(false);
+        } catch (err: unknown) {
+            handlePasskeyError(err);
         }
     };
 
-    // Check if user already has passkeys
-    const hasPasskeys = user?.passkeys && user.passkeys.length > 0;
+    /** User has a password → verify it to get a fresh L2 session, then retry passkey creation */
+    const handlePasswordVerifyAndCreate = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!signInLoaded || !signIn || !password.trim() || !userEmail) return;
+
+        setIsProcessing(true);
+        setErrorMessage('');
+
+        try {
+            // Create a fresh sign-in to get a verified (L2) session
+            const result = await signIn.create({
+                identifier: userEmail,
+                password: password.trim(),
+            });
+
+            if (result.status === 'complete' && result.createdSessionId) {
+                await setActive({ session: result.createdSessionId });
+                // Wait for Clerk context to propagate the new session
+                await new Promise(r => setTimeout(r, 1200));
+                try { await user?.reload(); } catch { /* ignore */ }
+
+                // Retry passkey creation with fresh session
+                setFlowStep('creating');
+                const createResult = await attemptCreatePasskey();
+                if (createResult === true) {
+                    setFlowStep('success');
+                    setPassword('');
+                    setTimeout(() => setFlowStep('idle'), 3000);
+                } else {
+                    setErrorMessage('האימות הצליח אך יצירת ה-Passkey עדיין נכשלה. נסה להתנתק ולהתחבר מחדש ואז לנסות שוב.');
+                    setFlowStep('error');
+                }
+            } else if (result.status === 'needs_second_factor') {
+                setErrorMessage('נדרש אימות דו-שלבי (2FA). התנתק והתחבר מחדש עם אימות מלא, ואז נסה שוב.');
+                setFlowStep('error');
+            } else {
+                setErrorMessage('האימות לא הושלם. בדוק את הסיסמה ונסה שוב.');
+            }
+        } catch (err: unknown) {
+            const clerkErr = err as { errors?: Array<{ message?: string; code?: string }> };
+            const code = clerkErr?.errors?.[0]?.code ?? '';
+            const msg = String(clerkErr?.errors?.[0]?.message ?? (err as Error)?.message ?? err);
+
+            if (code === 'form_password_incorrect' || msg.includes('incorrect') || msg.includes('password')) {
+                setErrorMessage('סיסמה שגויה. נסה שוב.');
+            } else {
+                setErrorMessage(`שגיאה באימות: ${msg}`);
+            }
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handlePasskeyError = (err: unknown) => {
+        const errObj = err instanceof Error ? err : null;
+        const msg = errObj?.message?.toLowerCase() ?? String(err).toLowerCase();
+        let errorMsg = 'שגיאה בהפעלת זיהוי ביומטרי';
+
+        if (msg.includes('not supported') || msg.includes('לא תומך') || msg.includes('unsupported')) {
+            errorMsg = 'המכשיר או הדפדפן שלך לא תומכים בזיהוי ביומטרי. נסה ב-Chrome, Safari או Edge.';
+        } else if (msg.includes('cancelled') || msg.includes('בוטל') || msg.includes('abort')) {
+            // User cancelled - silently return to idle
+            setFlowStep('idle');
+            return;
+        } else if (msg.includes('timeout')) {
+            errorMsg = 'הפעולה ארכה יותר מדי זמן. נסה שוב.';
+        } else if (msg.includes('not allowed') || msg.includes('permission')) {
+            errorMsg = 'אין הרשאה ליצור Passkey. בדוק את הגדרות הדפדפן.';
+        } else if (msg.includes('not enabled')) {
+            errorMsg = 'Passkeys לא מופעלים במערכת. פנה למנהל המערכת.';
+        } else if (errObj?.message) {
+            errorMsg = errObj.message;
+        }
+
+        console.error('Passkey creation error:', err);
+        setErrorMessage(errorMsg);
+        setFlowStep('error');
+    };
+
+    const isLoading = flowStep === 'creating';
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
@@ -187,7 +201,7 @@ export const BiometricSetup: React.FC = () => {
                     </p>
 
                     <AnimatePresence mode="wait">
-                        {status === 'success' && (
+                        {flowStep === 'success' && (
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -201,7 +215,7 @@ export const BiometricSetup: React.FC = () => {
                             </motion.div>
                         )}
 
-                        {status === 'error' && (
+                        {flowStep === 'error' && (
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -219,38 +233,121 @@ export const BiometricSetup: React.FC = () => {
                                 </div>
                             </motion.div>
                         )}
+
+                        {flowStep === 'verify_password' && (
+                            <motion.form
+                                key="verify-password"
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                onSubmit={handlePasswordVerifyAndCreate}
+                                className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3"
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Lock size={16} className="text-blue-600" />
+                                    <p className="text-sm font-bold text-blue-800">אימות נדרש</p>
+                                </div>
+                                <p className="text-xs text-blue-700">
+                                    לאבטחת חשבונך, הזן את הסיסמה שלך כדי להפעיל זיהוי ביומטרי.
+                                </p>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="הזן סיסמה"
+                                    autoFocus
+                                    className="w-full bg-white border border-blue-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-bold"
+                                    dir="ltr"
+                                />
+                                {errorMessage && (
+                                    <p className="text-xs text-red-600 font-bold">{errorMessage}</p>
+                                )}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="submit"
+                                        disabled={isProcessing || !password.trim()}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                    >
+                                        {isProcessing ? 'מאמת...' : 'אמת והפעל'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setFlowStep('idle'); setPassword(''); setErrorMessage(''); }}
+                                        className="px-4 py-2.5 text-gray-600 font-bold rounded-lg hover:bg-gray-100 transition-all text-sm"
+                                    >
+                                        ביטול
+                                    </button>
+                                </div>
+                            </motion.form>
+                        )}
+
+                        {flowStep === 'no_password' && (
+                            <motion.div
+                                key="no-password"
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3"
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <KeyRound size={16} className="text-amber-600" />
+                                    <p className="text-sm font-bold text-amber-800">נדרשת הגדרת סיסמה</p>
+                                </div>
+                                <p className="text-xs text-amber-700">
+                                    נרשמת באמצעות Google ועדיין לא הגדרת סיסמה.
+                                    כדי להפעיל זיהוי ביומטרי, הגדר סיסמה תחילה ולאחר מכן חזור לכאן.
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <a
+                                        href={`/reset-password?email=${encodeURIComponent(userEmail)}&source=passkey`}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition-all text-sm"
+                                    >
+                                        הגדר סיסמה <ArrowRight size={14} />
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setFlowStep('idle'); setErrorMessage(''); }}
+                                        className="px-4 py-2.5 text-gray-600 font-bold rounded-lg hover:bg-gray-100 transition-all text-sm"
+                                    >
+                                        ביטול
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleSetupPasskey}
-                            disabled={isLoading}
-                            className="flex items-center gap-2 px-6 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-gray-200"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" />
-                                    <span>מפעיל...</span>
-                                </>
-                            ) : hasPasskeys ? (
-                                <>
-                                    <Scan size={18} />
-                                    <span>הוסף מפתח נוסף</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Scan size={18} />
-                                    <span>הפעל זיהוי ביומטרי (FaceID/TouchID)</span>
-                                </>
-                            )}
-                        </button>
+                    {(flowStep === 'idle' || flowStep === 'creating' || flowStep === 'success' || flowStep === 'error') && (
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleSetupPasskey}
+                                disabled={isLoading}
+                                className="flex items-center gap-2 px-6 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-gray-200"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" />
+                                        <span>מפעיל...</span>
+                                    </>
+                                ) : hasPasskeys ? (
+                                    <>
+                                        <Scan size={18} />
+                                        <span>הוסף מפתח נוסף</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Scan size={18} />
+                                        <span>הפעל זיהוי ביומטרי (FaceID/TouchID)</span>
+                                    </>
+                                )}
+                            </button>
 
-                        {hasPasskeys && (
-                            <div className="text-xs text-gray-500">
-                                {user.passkeys.length} מפתח{user.passkeys.length > 1 ? 'ות' : ''} פעיל{user.passkeys.length > 1 ? 'ים' : ''}
-                            </div>
-                        )}
-                    </div>
+                            {hasPasskeys && (
+                                <div className="text-xs text-gray-500">
+                                    {user.passkeys.length} מפתח{user.passkeys.length > 1 ? 'ות' : ''} פעיל{user.passkeys.length > 1 ? 'ים' : ''}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-start gap-2 text-xs text-gray-500">
@@ -262,7 +359,6 @@ export const BiometricSetup: React.FC = () => {
                                     <li>במחשב, תוכל להשתמש במפתח אבטחה פיזי</li>
                                     <li>במכשיר נייד, תוכל להשתמש ב-Face ID או Touch ID</li>
                                     <li>תמיד תוכל להתחבר גם עם סיסמה</li>
-                                    <li className="font-bold text-orange-600">נדרש אימות דו-שלבי (2FA) פעיל לפני יצירת Passkey</li>
                                 </ul>
                             </div>
                         </div>

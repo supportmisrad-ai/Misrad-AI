@@ -574,7 +574,7 @@ export const Layout = ({ children }: LayoutProps) => {
             openSupport={openSupport}
             startTutorial={startTutorial}
             navigate={navigate}
-            plusGradient={moduleDef.theme.gradient}
+            plusGradient="from-slate-900 to-slate-700"
           />
         )}
       </main>

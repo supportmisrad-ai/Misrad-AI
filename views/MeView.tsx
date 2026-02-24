@@ -1039,20 +1039,26 @@ export const MeView: React.FC<{
                 type="button"
                 onClick={() => {
                   if (typeof window !== 'undefined') {
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                    const isAndroid = /Android/.test(navigator.userAgent);
-                    if (isIOS || isAndroid) {
-                      // PWA install hint — on mobile, prompt to add to home screen
-                      addToast('הוסף למסך הבית: לחץ על כפתור השיתוף ובחר "הוסף למסך הבית"', 'info');
-                    } else {
-                      // Desktop — trigger PWA install if available
-                      const deferredPrompt = (window as unknown as Record<string, unknown>).__pwaInstallPrompt;
-                      if (deferredPrompt && typeof (deferredPrompt as { prompt?: () => void }).prompt === 'function') {
-                        (deferredPrompt as { prompt: () => void }).prompt();
-                      } else {
-                        addToast('ניתן להתקין את האפליקציה מתפריט הדפדפן → "התקן אפליקציה"', 'info');
-                      }
+                    // Try native PWA install prompt first (desktop)
+                    const deferredPrompt = (window as unknown as Record<string, unknown>).__pwaInstallPrompt;
+                    if (deferredPrompt && typeof (deferredPrompt as { prompt?: () => void }).prompt === 'function') {
+                      (deferredPrompt as { prompt: () => void }).prompt();
+                      return;
                     }
+                    // Fallback: direct APK download
+                    void (async () => {
+                      try {
+                        const res = await fetch('/api/download-links');
+                        if (res.ok) {
+                          const links = await res.json() as { androidDownloadUrl?: string | null };
+                          if (links.androidDownloadUrl) {
+                            window.open(links.androidDownloadUrl, '_blank', 'noopener');
+                            return;
+                          }
+                        }
+                      } catch { /* ignore */ }
+                      addToast('קישור הורדה לא זמין כרגע, נסה שוב מאוחר יותר', 'info');
+                    })();
                   }
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all"
@@ -1063,7 +1069,7 @@ export const MeView: React.FC<{
           </div>
 
           <div className="text-center text-xs text-gray-600 mt-2">
-              Misrad v2.5.0 • <span className="underline cursor-pointer hover:text-gray-800">תנאי שימוש</span> • <span className="underline cursor-pointer hover:text-gray-800">מדיניות פרטיות</span>
+              Misrad v2.5.0 • <a href="https://misrad-ai.com/terms" target="_blank" rel="noopener noreferrer" className="underline cursor-pointer hover:text-gray-800">תנאי שימוש</a> • <a href="https://misrad-ai.com/privacy" target="_blank" rel="noopener noreferrer" className="underline cursor-pointer hover:text-gray-800">מדיניות פרטיות</a>
           </div>
 
       </div>

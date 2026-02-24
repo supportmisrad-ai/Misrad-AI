@@ -826,48 +826,64 @@ export class AIService {
 
     try {
       if (feature.settings.primary_provider === 'deepgram') {
-        const key = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
-        const deepgram = new DeepgramProvider(key);
+        let deepgramKey: string | null = null;
+        try {
+          deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
+        } catch {
+          // Deepgram key missing — fall through to Google fallback below
+        }
 
-        const out = await deepgram.transcribe({
-          audioBuffer: params.audioBuffer,
-          mimeType: params.mimeType,
-          timeoutMs: feature.settings.timeout_ms,
-        });
+        if (deepgramKey) {
+          const deepgram = new DeepgramProvider(deepgramKey);
 
-        providerUsed = 'deepgram';
-        modelUsed = feature.settings.primary_model;
+          const out = await deepgram.transcribe({
+            audioBuffer: params.audioBuffer,
+            mimeType: params.mimeType,
+            timeoutMs: feature.settings.timeout_ms,
+          });
 
-        this.logUsage({
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          featureKey: params.featureKey,
-          taskKind: 'transcription',
-          provider: providerUsed,
-          model: modelUsed,
-          modelDisplayName: null,
-          chargedCents,
-          latencyMs: Date.now() - start,
-          status: 'success',
-          meta: params.meta,
-        });
+          providerUsed = 'deepgram';
+          modelUsed = feature.settings.primary_model;
 
-        return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
+          this.logUsage({
+            organizationId: ctx.organizationId,
+            userId: ctx.userId,
+            featureKey: params.featureKey,
+            taskKind: 'transcription',
+            provider: providerUsed,
+            model: modelUsed,
+            modelDisplayName: null,
+            chargedCents,
+            latencyMs: Date.now() - start,
+            status: 'success',
+            meta: params.meta,
+          });
+
+          return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
+        }
+
+        // Deepgram key not available — fallback to Google
+        console.warn('[AIService] Deepgram key not configured, falling back to Google for transcription');
       }
 
-      if (feature.settings.primary_provider === 'google') {
+      // Google provider (primary or fallback from Deepgram)
+      {
         const apiKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
         const gemini = new GeminiProvider(apiKey);
 
+        const geminiModel = feature.settings.primary_provider === 'google'
+          ? feature.settings.primary_model
+          : 'gemini-2.5-flash';
+
         const out = await gemini.transcribe({
-          model: feature.settings.primary_model,
+          model: geminiModel,
           audioBuffer: params.audioBuffer,
           mimeType: params.mimeType,
           timeoutMs: feature.settings.timeout_ms,
         });
 
         providerUsed = 'google';
-        modelUsed = feature.settings.primary_model;
+        modelUsed = geminiModel;
 
         this.logUsage({
           organizationId: ctx.organizationId,
@@ -880,13 +896,11 @@ export class AIService {
           chargedCents,
           latencyMs: Date.now() - start,
           status: 'success',
-          meta: params.meta,
+          meta: { ...params.meta, fallbackFromDeepgram: feature.settings.primary_provider === 'deepgram' },
         });
 
         return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
       }
-
-      throw new AIProviderError({ provider: feature.settings.primary_provider, message: 'Transcription provider not supported yet' });
     } catch (err: unknown) {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
@@ -961,14 +975,15 @@ export class AIService {
     if (!settings) {
       const fk = String(params.featureKey || '').toLowerCase();
       const isTranscription = fk.includes('transcription') || fk.includes('transcribe');
-      const isClientMeetingsTranscription = fk.includes('client_os.meetings.transcription') || fk.includes('client-os.meetings.transcription');
       const isClientMeetings = fk.startsWith('client_os.meetings.') || fk.startsWith('client-os.meetings.') || fk.startsWith('client.meetings.');
+      const isClientMeetingsTranscription = fk.includes('client_os.meetings.transcription') || fk.includes('client-os.meetings.transcription') || (isClientMeetings && isTranscription);
       const isClientMeetingsAnalyze = fk.includes('client_os.meetings.analyze') || fk.includes('client-os.meetings.analyze');
       const isObjection = fk.includes('objection') || fk.includes('objections') || fk.includes('handler');
       const isEmbedding = fk.includes('embedding') || fk.includes('embed') || fk.includes('vector');
       const isVision = fk.includes('vision');
 
-      const defaultTimeoutMs = isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : 30000;
+      const isLiveTranscription = fk.includes('live_transcribe') || fk.includes('live.transcribe');
+      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : 30000;
 
       settings = {
         id: 'default',
@@ -1266,6 +1281,10 @@ export class AIService {
       if (lower.includes('insufficient') || lower.includes('credit')) {
         throw new UpgradeRequiredError();
       }
+      if (lower.includes('does not exist') || lower.includes('function') || lower.includes('not found')) {
+        console.warn('[AIService] ai_debit_credits function not available, skipping credit reservation');
+        return 0;
+      }
       throw new Error(`Failed to debit credits: ${msg || String(err)}`);
     }
 
@@ -1276,18 +1295,27 @@ export class AIService {
     const delta = Math.floor(params.deltaCents || 0);
     if (delta === 0) return;
 
-    await executeRawOrgScoped(prisma, {
-      organizationId: params.organizationId,
-      reason: 'ai_adjust_credits',
-      query:
-        'select ai_adjust_credits(\n' +
-        '  p_organization_id := scope.organization_id,\n' +
-        '  p_delta_cents := $2::int\n' +
-        ')\n' +
-        'from (select $1::uuid as organization_id) scope\n' +
-        'where scope.organization_id = $1::uuid',
-      values: [params.organizationId, delta],
-    });
+    try {
+      await executeRawOrgScoped(prisma, {
+        organizationId: params.organizationId,
+        reason: 'ai_adjust_credits',
+        query:
+          'select ai_adjust_credits(\n' +
+          '  p_organization_id := scope.organization_id,\n' +
+          '  p_delta_cents := $2::int\n' +
+          ')\n' +
+          'from (select $1::uuid as organization_id) scope\n' +
+          'where scope.organization_id = $1::uuid',
+        values: [params.organizationId, delta],
+      });
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err).toLowerCase();
+      if (msg.includes('does not exist') || msg.includes('function') || msg.includes('not found')) {
+        console.warn('[AIService] ai_adjust_credits function not available, skipping credit adjustment');
+        return;
+      }
+      console.error('[AIService] adjustCredits failed:', getErrorMessage(err));
+    }
   }
 
   private vectorToPgText(vec: number[]): string {

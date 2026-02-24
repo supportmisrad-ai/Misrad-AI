@@ -46,7 +46,22 @@ function assertClerkSupabaseJwtHasOrganizationId(token: string, context: string)
   }
 }
 
+// ---------------------------------------------------------------------------
+// Singleton: one GoTrueClient per browser tab.
+// The tokenProvider is kept as a mutable ref so the fetch wrapper always
+// resolves the latest Clerk token without recreating the Supabase client.
+// ---------------------------------------------------------------------------
+let _browserClientSingleton: SupabaseClient | null = null;
+let _latestTokenProvider: ClerkTokenProvider = async () => null;
+
 export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseClient {
+  // Always update the token provider ref so the latest getToken is used.
+  _latestTokenProvider = tokenProvider;
+
+  if (_browserClientSingleton) {
+    return _browserClientSingleton;
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -58,14 +73,14 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
     throw new Error('Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 
-  return createSupabaseClient(url, anonKey, {
+  _browserClientSingleton = createSupabaseClient(url, anonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
     global: {
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const token = await tokenProvider();
+        const token = await _latestTokenProvider();
         const headers = new Headers(init?.headers);
         if (token && String(token).length > 0) {
           assertClerkSupabaseJwtHasOrganizationId(String(token), 'browser_client_with_clerk');
@@ -75,6 +90,8 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
       },
     },
   });
+
+  return _browserClientSingleton;
 }
 
 function wrapBrowserStorageOnlyClient(client: SupabaseClient, label: string): SupabaseBrowserStorageClient {
@@ -122,7 +139,16 @@ function wrapBrowserStorageOnlyClient(client: SupabaseClient, label: string): Su
   }) as SupabaseBrowserStorageClient;
 }
 
+let _browserStorageSingleton: SupabaseBrowserStorageClient | null = null;
+
 export function createBrowserStorageClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseBrowserStorageClient {
+  // Delegate to createBrowserClientWithClerk which updates the token ref.
   const client = createBrowserClientWithClerk(tokenProvider);
-  return wrapBrowserStorageOnlyClient(client, 'createBrowserStorageClientWithClerk');
+
+  if (_browserStorageSingleton) {
+    return _browserStorageSingleton;
+  }
+
+  _browserStorageSingleton = wrapBrowserStorageOnlyClient(client, 'createBrowserStorageClientWithClerk');
+  return _browserStorageSingleton;
 }

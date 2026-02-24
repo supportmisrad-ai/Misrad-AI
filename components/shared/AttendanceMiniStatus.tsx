@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock, LogOut } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getActiveShift, punchOut, updateEntryLocation } from '@/app/actions/attendance';
@@ -25,6 +25,7 @@ function formatDuration(ms: number) {
 
 export default function AttendanceMiniStatus() {
   const pathname = usePathname();
+  const router = useRouter();
   const { orgSlug } = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
   let isClerkLoaded = false;
   let isSignedIn = false;
@@ -68,8 +69,11 @@ export default function AttendanceMiniStatus() {
 
         const shift = (shiftRes as { activeShift: { id: string; startTime: string } | null })?.activeShift;
         if (shift?.id && shift?.startTime) {
-          setEntryId(shift.id);
-          setStartTime(shift.startTime);
+          // Only set from server if no broadcast was received yet (broadcast is more accurate)
+          if (Date.now() - lastBroadcastRef.current > 5_000) {
+            setEntryId(shift.id);
+            setStartTime(shift.startTime);
+          }
         }
       } catch {
         setHasNexus(false);
@@ -236,12 +240,22 @@ export default function AttendanceMiniStatus() {
 
   const elapsed = now - new Date(startTime).getTime();
 
+  const meHref = orgSlug ? `/w/${encodeURIComponent(orgSlug)}/nexus/me` : '/me';
+
   return (
     <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-full bg-white/60 border border-white/40 shadow-sm">
       <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
       <Clock size={14} className="text-emerald-700" />
       <span className="hidden md:inline text-xs font-black text-emerald-800">פעיל</span>
-      <span className="text-xs font-bold text-slate-700 tabular-nums">{formatDuration(elapsed)}</span>
+      <button
+        type="button"
+        onClick={() => router.push(meHref)}
+        className="text-xs font-bold text-slate-700 tabular-nums hover:text-emerald-700 transition-colors cursor-pointer bg-transparent border-none p-0"
+        aria-label="מעבר לשעון נוכחות"
+        title="מעבר לשעון נוכחות"
+      >
+        {formatDuration(elapsed)}
+      </button>
       {errorMessage && (
         <span className="hidden md:inline text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
           {errorMessage}
