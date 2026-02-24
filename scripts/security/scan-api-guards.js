@@ -10,6 +10,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/shabbat/status/route.ts',
   'app/api/version/route.ts',
   'app/api/download/android/route.ts',
+  'app/api/download/admin-android/route.ts',
   'app/api/download/windows/route.ts',
   'app/api/os/module-icons/route.ts',
   'app/api/landing/social-stats/route.ts',
