@@ -30,28 +30,100 @@ function ShimmerBlock({ className, style }: { className?: string; style?: React.
   );
 }
 
-/* ─── Full-screen loading — minimal & clean, used as Suspense fallback in module layouts ─── */
+/* ─── Full-screen shell skeleton — used as Suspense fallback in module layouts ─── */
 export function ModuleLoadingScreen({ moduleKey }: { moduleKey?: string }) {
   const c = getColors(moduleKey);
 
   return (
-    <div className="min-h-screen flex items-center justify-center" dir="rtl" style={{ backgroundColor: c.bg }}>
-      <div className="flex flex-col items-center gap-4">
-        <div
-          className="w-10 h-10 rounded-2xl animate-pulse"
-          style={{ backgroundColor: c.accentLight, boxShadow: `0 0 24px ${c.accent}20` }}
-        />
-        <div className="flex gap-1.5">
-          {[0, 1, 2].map(i => (
+    <div className="flex h-screen w-full overflow-hidden" dir="rtl" style={{ backgroundColor: c.bg }}>
+      <style>{shimmerStyle}</style>
+
+      {/* Desktop sidebar skeleton */}
+      <aside className="hidden md:flex flex-col w-[260px] shrink-0 border-l border-slate-100 bg-white/80 h-full">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+          <ShimmerBlock className="rounded-2xl shrink-0" style={{ width: 40, height: 40, backgroundColor: c.accentLight }} />
+          <div className="flex-1 space-y-1.5">
+            <ShimmerBlock className="rounded-md" style={{ width: 100, height: 14, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md" style={{ width: 60, height: 10, backgroundColor: '#F8FAFC' }} />
+          </div>
+        </div>
+        <div className="px-4 py-3 space-y-2">
+          <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 36, backgroundColor: '#F8FAFC' }} />
+        </div>
+        <nav className="flex-1 px-3 py-2 space-y-1 overflow-hidden">
+          {[{ w: 80, active: true }, { w: 60 }, { w: 90 }, { w: 70 }, { w: 55 }, { w: 85 }].map((item, i) => (
             <div
               key={i}
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{
-                backgroundColor: c.accent,
-                opacity: 0.5,
-                animationDelay: `${i * 200}ms`,
-              }}
-            />
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${'active' in item ? `bg-[${c.accent}]` : ''}`}
+              style={'active' in item ? { background: `linear-gradient(135deg, ${c.accent}, ${c.accent}dd)` } : undefined}
+            >
+              <ShimmerBlock className="rounded-lg shrink-0" style={{ width: 20, height: 20, backgroundColor: 'active' in item ? 'rgba(255,255,255,0.3)' : '#F1F5F9' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: item.w, height: 12, backgroundColor: 'active' in item ? 'rgba(255,255,255,0.3)' : '#F1F5F9' }} />
+            </div>
+          ))}
+        </nav>
+        <div className="px-4 py-4 border-t border-slate-100">
+          <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 36, backgroundColor: c.accentLight }} />
+        </div>
+      </aside>
+
+      {/* Main area */}
+      <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
+        {/* Header skeleton */}
+        <header className="flex items-center justify-between px-4 md:px-8 py-3 border-b border-slate-100/50">
+          <div className="flex items-center gap-3">
+            <ShimmerBlock className="rounded-lg" style={{ width: 80, height: 20, backgroundColor: c.accentLight }} />
+            <ShimmerBlock className="rounded-md hidden md:block" style={{ width: 60, height: 14, backgroundColor: '#F1F5F9' }} />
+          </div>
+          <div className="flex items-center gap-2">
+            <ShimmerBlock className="rounded-full" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-full" style={{ width: 36, height: 36, backgroundColor: c.accentLight }} />
+          </div>
+        </header>
+
+        {/* Content skeleton */}
+        <div className="flex-1 p-4 md:p-8 space-y-5 animate-in fade-in duration-200 overflow-hidden">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+                <ShimmerBlock className="rounded-lg" style={{ width: 80, height: 12, backgroundColor: '#F1F5F9' }} />
+                <ShimmerBlock className="rounded-lg" style={{ width: 48, height: 24, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+              <ShimmerBlock className="rounded-lg" style={{ width: 120, height: 16, backgroundColor: c.accentLight }} />
+              <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 140, backgroundColor: '#F1F5F9' }} />
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
+              <ShimmerBlock className="rounded-lg" style={{ width: 100, height: 16, backgroundColor: c.accentLight }} />
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <ShimmerBlock className="rounded-full shrink-0" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
+                  <ShimmerBlock className="rounded-md flex-1" style={{ height: 11, backgroundColor: '#F1F5F9' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Mobile bottom nav skeleton */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 border-t border-slate-100 px-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex items-center justify-around py-2.5">
+          {[1, 2].map(i => (
+            <div key={`r-${i}`} className="flex flex-col items-center gap-1">
+              <ShimmerBlock className="rounded-lg" style={{ width: 24, height: 24, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: 32, height: 8, backgroundColor: '#F8FAFC' }} />
+            </div>
+          ))}
+          <div className="w-14 h-14 rounded-full opacity-30" style={{ background: `linear-gradient(135deg, ${c.accent}, ${c.accent}aa)` }} />
+          {[3, 4].map(i => (
+            <div key={`l-${i}`} className="flex flex-col items-center gap-1">
+              <ShimmerBlock className="rounded-lg" style={{ width: 24, height: 24, backgroundColor: '#F1F5F9' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: 32, height: 8, backgroundColor: '#F8FAFC' }} />
+            </div>
           ))}
         </div>
       </div>

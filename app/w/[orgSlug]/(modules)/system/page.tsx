@@ -17,25 +17,27 @@ export default async function SystemModuleHome({
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
-  type CampaignsRes = Awaited<ReturnType<typeof getCampaigns>>;
-
+  // Dashboard loads 4 independent data sources in parallel.
+  // Actions with internal try/catch (getSystemLeadsPage, getCampaigns) never throw.
+  // Actions without (getSystemCalendarEventsRange, getSystemNotifications) have
+  // .catch() for graceful degradation — the dashboard shows partial data rather
+  // than a full error page when a non-critical source fails after retries.
   const [leadsRes, initialEvents, campaignsRes, initialNotifications] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
-      success: false,
-      error: 'שגיאה בטעינת לידים',
-    })),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
     getSystemCalendarEventsRange({
       orgSlug,
       from: startOfMonth.toISOString(),
       to: startOfNextMonth.toISOString(),
       take: 50,
-    }).catch(() => []),
-    getCampaigns(undefined, orgSlug).catch((): CampaignsRes => ({
-      success: false,
-      error: 'שגיאה בטעינת קמפיינים',
-    })),
-    getSystemNotifications({ orgSlug, limit: 20 }).catch(() => []),
+    }).catch((e: unknown) => {
+      console.error('[SystemHome] getSystemCalendarEventsRange failed after retries:', e instanceof Error ? e.message : e);
+      return [];
+    }),
+    getCampaigns(undefined, orgSlug),
+    getSystemNotifications({ orgSlug, limit: 20 }).catch((e: unknown) => {
+      console.error('[SystemHome] getSystemNotifications failed after retries:', e instanceof Error ? e.message : e);
+      return [];
+    }),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
