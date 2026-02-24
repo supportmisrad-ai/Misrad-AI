@@ -8,6 +8,7 @@ import { getSystemMetadata } from '@/lib/metadata';
 import { hasAuditLogAccess } from '@/lib/auth';
 import AdminBiometricGate from '@/components/admin/AdminBiometricGate';
 import AdminPushSetup from '@/components/admin/AdminPushSetup';
+import AdminNativeUpdatePrompt from '@/components/admin/AdminNativeUpdatePrompt';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -60,6 +61,7 @@ export default async function AdminLayout({
       {canAccessAdmin ? (
         <AdminBiometricGate>
           <AdminPushSetup />
+          <AdminNativeUpdatePrompt />
           <AdminShell>{children}</AdminShell>
         </AdminBiometricGate>
       ) : (

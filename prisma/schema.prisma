@@ -1075,11 +1075,12 @@ model finance_whatsapp_reminder_events {
 }
 
 model global_settings {
-  id                   String   @id @default("global")
-  windows_download_url String?
-  android_download_url String?
-  created_at           DateTime @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+  id                         String   @id @default("global")
+  windows_download_url       String?
+  android_download_url       String?
+  admin_android_download_url String?
+  created_at                 DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime @default(now()) @db.Timestamptz(6)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

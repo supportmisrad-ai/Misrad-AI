@@ -33,11 +33,13 @@ async function requireSuperAdminOrFail(): Promise<
 export type GlobalDownloadLinksDTO = {
   windowsDownloadUrl: string | null;
   androidDownloadUrl: string | null;
+  adminAndroidDownloadUrl: string | null;
 };
 
 const updateSchema = z.object({
   windowsDownloadUrl: z.string().trim().min(1).nullable().optional(),
   androidDownloadUrl: z.string().trim().min(1).nullable().optional(),
+  adminAndroidDownloadUrl: z.string().trim().min(1).nullable().optional(),
 });
 
 export async function adminGetGlobalDownloadLinks(): Promise<{
@@ -55,6 +57,7 @@ export async function adminGetGlobalDownloadLinks(): Promise<{
     return createSuccessResponse({
       windowsDownloadUrl: links.windowsDownloadUrl,
       androidDownloadUrl: links.androidDownloadUrl,
+      adminAndroidDownloadUrl: links.adminAndroidDownloadUrl,
     });
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בטעינת לינקים להורדה');
@@ -64,6 +67,7 @@ export async function adminGetGlobalDownloadLinks(): Promise<{
 export async function adminUpdateGlobalDownloadLinks(input: {
   windowsDownloadUrl?: string | null;
   androidDownloadUrl?: string | null;
+  adminAndroidDownloadUrl?: string | null;
 }): Promise<{ success: boolean; data?: GlobalDownloadLinksDTO; error?: string }> {
   try {
     const guard = await requireSuperAdminOrFail();
@@ -86,12 +90,14 @@ export async function adminUpdateGlobalDownloadLinks(input: {
         await setGlobalDownloadLinksUnsafe({
           windowsDownloadUrl: parsed.data.windowsDownloadUrl,
           androidDownloadUrl: parsed.data.androidDownloadUrl,
+          adminAndroidDownloadUrl: parsed.data.adminAndroidDownloadUrl,
         })
     );
 
     return createSuccessResponse({
       windowsDownloadUrl: next.windowsDownloadUrl,
       androidDownloadUrl: next.androidDownloadUrl,
+      adminAndroidDownloadUrl: next.adminAndroidDownloadUrl,
     });
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בשמירת לינקים להורדה');

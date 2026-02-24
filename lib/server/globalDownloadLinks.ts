@@ -9,6 +9,7 @@ import { ALLOW_SCHEMA_FALLBACKS, reportSchemaFallback } from '@/lib/server/schem
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
   androidDownloadUrl: string | null;
+  adminAndroidDownloadUrl: string | null;
 };
 
 const LEGACY_KEY = 'global_download_links';
@@ -32,7 +33,8 @@ function safeJsonParseObject(value: string): Record<string, unknown> | null {
 function fallbackFromEnv(): GlobalDownloadLinks {
   const windowsDownloadUrl = (process.env.MISRAD_WINDOWS_DOWNLOAD_URL || '').trim() || null;
   const androidDownloadUrl = (process.env.MISRAD_ANDROID_DOWNLOAD_URL || '').trim() || null;
-  return { windowsDownloadUrl, androidDownloadUrl };
+  const adminAndroidDownloadUrl = (process.env.MISRAD_ADMIN_ANDROID_DOWNLOAD_URL || '').trim() || null;
+  return { windowsDownloadUrl, androidDownloadUrl, adminAndroidDownloadUrl };
 }
 
 export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLinks> {
@@ -42,15 +44,16 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     // Preferred storage: global_settings singleton row
     const row = await prisma.global_settings.findUnique({
       where: { id: 'global' },
-      select: { windows_download_url: true, android_download_url: true },
+      select: { windows_download_url: true, android_download_url: true, admin_android_download_url: true },
       ...accelerateCache({ ttl: 120, swr: 300 }),
     });
 
     if (row) {
       const windowsDownloadUrl = String(row.windows_download_url ?? '').trim() || null;
       const androidDownloadUrl = String(row.android_download_url ?? '').trim() || null;
-      if (windowsDownloadUrl || androidDownloadUrl) {
-        return { windowsDownloadUrl, androidDownloadUrl };
+      const adminAndroidDownloadUrl = String(row.admin_android_download_url ?? '').trim() || null;
+      if (windowsDownloadUrl || androidDownloadUrl || adminAndroidDownloadUrl) {
+        return { windowsDownloadUrl, androidDownloadUrl, adminAndroidDownloadUrl };
       }
       return envFallback;
     }
@@ -83,8 +86,10 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
       String(legacyValue?.windowsDownloadUrl ?? legacyValue?.windows_download_url ?? '').trim() || null;
     const androidDownloadUrl =
       String(legacyValue?.androidDownloadUrl ?? legacyValue?.android_download_url ?? '').trim() || null;
-    if (windowsDownloadUrl || androidDownloadUrl) {
-      return { windowsDownloadUrl, androidDownloadUrl };
+    const adminAndroidDownloadUrl =
+      String(legacyValue?.adminAndroidDownloadUrl ?? legacyValue?.admin_android_download_url ?? '').trim() || null;
+    if (windowsDownloadUrl || androidDownloadUrl || adminAndroidDownloadUrl) {
+      return { windowsDownloadUrl, androidDownloadUrl, adminAndroidDownloadUrl };
     }
 
     return envFallback;
@@ -107,14 +112,17 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
 export async function setGlobalDownloadLinksUnsafe(input: {
   windowsDownloadUrl?: string | null;
   androidDownloadUrl?: string | null;
+  adminAndroidDownloadUrl?: string | null;
 }): Promise<GlobalDownloadLinks> {
   const nextWindows = input.windowsDownloadUrl === undefined ? undefined : input.windowsDownloadUrl ? String(input.windowsDownloadUrl).trim() : null;
   const nextAndroid = input.androidDownloadUrl === undefined ? undefined : input.androidDownloadUrl ? String(input.androidDownloadUrl).trim() : null;
+  const nextAdminAndroid = input.adminAndroidDownloadUrl === undefined ? undefined : input.adminAndroidDownloadUrl ? String(input.adminAndroidDownloadUrl).trim() : null;
 
   const current = await getGlobalDownloadLinksUnsafe();
   const next: GlobalDownloadLinks = {
     windowsDownloadUrl: nextWindows === undefined ? current.windowsDownloadUrl : nextWindows,
     androidDownloadUrl: nextAndroid === undefined ? current.androidDownloadUrl : nextAndroid,
+    adminAndroidDownloadUrl: nextAdminAndroid === undefined ? current.adminAndroidDownloadUrl : nextAdminAndroid,
   };
 
   const now = new Date();
@@ -126,12 +134,14 @@ export async function setGlobalDownloadLinksUnsafe(input: {
       update: {
         windows_download_url: next.windowsDownloadUrl,
         android_download_url: next.androidDownloadUrl,
+        admin_android_download_url: next.adminAndroidDownloadUrl,
         updated_at: now,
       },
       create: {
         id: 'global',
         windows_download_url: next.windowsDownloadUrl,
         android_download_url: next.androidDownloadUrl,
+        admin_android_download_url: next.adminAndroidDownloadUrl,
         updated_at: now,
       },
     });
@@ -154,6 +164,7 @@ export async function setGlobalDownloadLinksUnsafe(input: {
             value: {
               windowsDownloadUrl: next.windowsDownloadUrl,
               androidDownloadUrl: next.androidDownloadUrl,
+              adminAndroidDownloadUrl: next.adminAndroidDownloadUrl,
             } as Prisma.InputJsonValue,
             updated_at: now,
           },
@@ -162,6 +173,7 @@ export async function setGlobalDownloadLinksUnsafe(input: {
             value: {
               windowsDownloadUrl: next.windowsDownloadUrl,
               androidDownloadUrl: next.androidDownloadUrl,
+              adminAndroidDownloadUrl: next.adminAndroidDownloadUrl,
             } as Prisma.InputJsonValue,
             updated_at: now,
           },

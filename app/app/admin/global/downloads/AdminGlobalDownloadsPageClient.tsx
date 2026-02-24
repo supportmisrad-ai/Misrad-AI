@@ -15,6 +15,7 @@ export default function AdminGlobalDownloadsPageClient() {
 
   const [windowsDownloadUrl, setWindowsDownloadUrl] = useState('');
   const [androidDownloadUrl, setAndroidDownloadUrl] = useState('');
+  const [adminAndroidDownloadUrl, setAdminAndroidDownloadUrl] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -29,6 +30,7 @@ export default function AdminGlobalDownloadsPageClient() {
       }
       setWindowsDownloadUrl(String(res.data?.windowsDownloadUrl || ''));
       setAndroidDownloadUrl(String(res.data?.androidDownloadUrl || ''));
+      setAdminAndroidDownloadUrl(String(res.data?.adminAndroidDownloadUrl || ''));
     } catch (e: unknown) {
       addToast(getErrorMessage(e) || 'שגיאה בטעינת לינקים', 'error');
     } finally {
@@ -47,6 +49,7 @@ export default function AdminGlobalDownloadsPageClient() {
       const res = await adminUpdateGlobalDownloadLinks({
         windowsDownloadUrl: windowsDownloadUrl.trim() ? windowsDownloadUrl.trim() : null,
         androidDownloadUrl: androidDownloadUrl.trim() ? androidDownloadUrl.trim() : null,
+        adminAndroidDownloadUrl: adminAndroidDownloadUrl.trim() ? adminAndroidDownloadUrl.trim() : null,
       });
       if (!res.success) {
         addToast(res.error || 'שגיאה בשמירה', 'error');
@@ -54,6 +57,7 @@ export default function AdminGlobalDownloadsPageClient() {
       }
       setWindowsDownloadUrl(String(res.data?.windowsDownloadUrl || ''));
       setAndroidDownloadUrl(String(res.data?.androidDownloadUrl || ''));
+      setAdminAndroidDownloadUrl(String(res.data?.adminAndroidDownloadUrl || ''));
       addToast('נשמר בהצלחה', 'success');
     } catch (e: unknown) {
       addToast(getErrorMessage(e) || 'שגיאה בשמירה', 'error');
@@ -86,7 +90,7 @@ export default function AdminGlobalDownloadsPageClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <div className="text-xs font-black text-slate-700">Windows Download URL</div>
           <Input
@@ -107,6 +111,17 @@ export default function AdminGlobalDownloadsPageClient() {
             disabled={loading || saving}
           />
           <div className="text-[11px] font-bold text-slate-500">השאר ריק כדי להסיר לינק (fallback ל-ENV אם קיים).</div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-xs font-black text-slate-700">Admin APK Download URL</div>
+          <Input
+            value={adminAndroidDownloadUrl}
+            onChange={(e) => setAdminAndroidDownloadUrl(e.target.value)}
+            placeholder="https://.../misrad-admin.apk"
+            disabled={loading || saving}
+          />
+          <div className="text-[11px] font-bold text-slate-500">APK אדמין נפרד עם טביעת אצבע (fallback ל-ENV אם קיים).</div>
         </div>
       </div>
     </div>
