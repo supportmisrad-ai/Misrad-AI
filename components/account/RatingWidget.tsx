@@ -3,14 +3,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Star, ExternalLink, CheckCircle2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { submitRating, getMyRating } from '@/app/actions/rating';
+import { submitRating, getMyRating, getMyOrganizationId } from '@/app/actions/rating';
 
 interface RatingWidgetProps {
-  organizationId: string;
+  organizationId?: string;
   googleReviewUrl?: string;
 }
 
-export default function RatingWidget({ organizationId, googleReviewUrl }: RatingWidgetProps) {
+export default function RatingWidget({ organizationId: orgIdProp, googleReviewUrl }: RatingWidgetProps) {
+  const [resolvedOrgId, setResolvedOrgId] = useState<string | null>(orgIdProp || null);
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [feedback, setFeedback] = useState('');
@@ -21,13 +22,20 @@ export default function RatingWidget({ organizationId, googleReviewUrl }: Rating
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const googleUrl = googleReviewUrl || (typeof window !== 'undefined' ? '' : '');
+  const googleUrl = googleReviewUrl || process.env.NEXT_PUBLIC_MISRAD_GOOGLE_REVIEW_URL || '';
 
   useEffect(() => {
     let cancelled = false;
     async function check() {
       try {
-        const result = await getMyRating(organizationId);
+        let orgId = orgIdProp || null;
+        if (!orgId) {
+          orgId = await getMyOrganizationId();
+          if (cancelled) return;
+          if (!orgId) { setChecking(false); return; }
+          setResolvedOrgId(orgId);
+        }
+        const result = await getMyRating(orgId);
         if (cancelled) return;
         if (result) {
           setAlreadyRated(true);
@@ -41,15 +49,21 @@ export default function RatingWidget({ organizationId, googleReviewUrl }: Rating
     }
     check();
     return () => { cancelled = true; };
-  }, [organizationId]);
+  }, [orgIdProp]);
 
   const handleSubmit = useCallback(async () => {
     if (rating === 0) return;
     setLoading(true);
     setError(null);
 
+    if (!resolvedOrgId) {
+      setError('לא נמצא ארגון');
+      setLoading(false);
+      return;
+    }
+
     const result = await submitRating({
-      organizationId,
+      organizationId: resolvedOrgId,
       rating,
       feedback: feedback.trim() || undefined,
       source: 'in_app',
@@ -69,7 +83,7 @@ export default function RatingWidget({ organizationId, googleReviewUrl }: Rating
     }
 
     setSubmitted(true);
-  }, [organizationId, rating, feedback]);
+  }, [resolvedOrgId, rating, feedback]);
 
   if (checking) {
     return (

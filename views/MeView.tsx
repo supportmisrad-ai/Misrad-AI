@@ -28,6 +28,7 @@ import { Avatar } from '../components/Avatar';
 import { LeaveRequestModal } from '../components/nexus/team/LeaveRequestModal';
 import { EventRequestModal } from '../components/nexus/team/EventRequestModal';
 import { MeSettingsGrid, MeAttendancePanel } from './me';
+import RatingWidget from '@/components/account/RatingWidget';
 
 type MeModuleCard = {
   title: string;
@@ -1024,6 +1025,11 @@ export const MeView: React.FC<{
               </div>
             </div>
           )}
+
+          {/* Rating Widget */}
+          <div className="mt-4">
+            <RatingWidget />
+          </div>
 
           {resolvedModuleCards.length ? (
             <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-6">

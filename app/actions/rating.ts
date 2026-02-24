@@ -102,6 +102,22 @@ export async function getMyRating(organizationId: string): Promise<{
   }
 }
 
+export async function getMyOrganizationId(): Promise<string | null> {
+  try {
+    const clerk = await currentUser();
+    if (!clerk?.id) return null;
+
+    const user = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: clerk.id },
+      select: { organization_id: true },
+    });
+
+    return user?.organization_id || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getOrganizationRatings(organizationId: string): Promise<{
   averageRating: number;
   totalRatings: number;
