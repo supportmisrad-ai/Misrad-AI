@@ -336,6 +336,147 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
   }
 }
 
+// ============================================================
+// Coupon CRUD — Admin Management
+// ============================================================
+
+export async function createCoupon(params: {
+  code: string;
+  name?: string;
+  discountType: 'PERCENT' | 'FIXED_AMOUNT';
+  discountPercent?: number;
+  discountAmount?: number;
+  minOrderAmount?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  maxRedemptionsTotal?: number | null;
+}) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const code = String(params.code || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!code || code.length < 3) return { ok: false, error: 'קוד קופון חייב להכיל לפחות 3 תווים' };
+
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const codeLast4 = code.slice(-4);
+
+    const existing = await prisma.coupons.findUnique({ where: { code_hash: codeHash }, select: { id: true } });
+    if (existing) return { ok: false, error: 'קוד קופון כבר קיים במערכת' };
+
+    const coupon = await prisma.coupons.create({
+      data: {
+        code_hash: codeHash,
+        code_last4: codeLast4.length === 4 ? codeLast4 : null,
+        name: params.name?.trim() || null,
+        status: 'active',
+        discount_type: params.discountType,
+        discount_percent: params.discountType === 'PERCENT' ? (params.discountPercent ?? 0) : null,
+        discount_amount: params.discountType === 'FIXED_AMOUNT' ? (params.discountAmount ?? 0) : null,
+        min_order_amount: params.minOrderAmount ? new Prisma.Decimal(params.minOrderAmount) : null,
+        starts_at: params.startsAt ? new Date(params.startsAt) : null,
+        ends_at: params.endsAt ? new Date(params.endsAt) : null,
+        max_redemptions_total: params.maxRedemptionsTotal ?? null,
+      },
+    });
+
+    revalidatePath('/app/admin/coupons');
+    return { ok: true, data: { id: coupon.id, codeLast4 } };
+  } catch (error) {
+    logger.error('createCoupon', 'Error:', error);
+    return { ok: false, error: 'שגיאה ביצירת קופון' };
+  }
+}
+
+export async function listCoupons() {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const coupons = await prisma.coupons.findMany({
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        code_last4: true,
+        name: true,
+        status: true,
+        discount_type: true,
+        discount_percent: true,
+        discount_amount: true,
+        min_order_amount: true,
+        starts_at: true,
+        ends_at: true,
+        max_redemptions_total: true,
+        created_at: true,
+        coupon_redemptions: {
+          select: { id: true, organization_id: true, redeemed_at: true },
+          orderBy: { redeemed_at: 'desc' },
+        },
+      },
+    });
+
+    return {
+      ok: true,
+      data: coupons.map(c => ({
+        id: c.id,
+        codeLast4: c.code_last4,
+        name: c.name,
+        status: c.status,
+        discountType: c.discount_type,
+        discountPercent: c.discount_percent,
+        discountAmount: c.discount_amount ? Number(c.discount_amount) : null,
+        minOrderAmount: c.min_order_amount ? Number(c.min_order_amount) : null,
+        startsAt: c.starts_at?.toISOString() ?? null,
+        endsAt: c.ends_at?.toISOString() ?? null,
+        maxRedemptionsTotal: c.max_redemptions_total,
+        currentRedemptions: c.coupon_redemptions.length,
+        createdAt: c.created_at?.toISOString() ?? null,
+      })),
+    };
+  } catch (error) {
+    logger.error('listCoupons', 'Error:', error);
+    return { ok: false, error: 'שגיאה בטעינת קופונים' };
+  }
+}
+
+export async function updateCouponStatus(couponId: string, newStatus: 'active' | 'disabled') {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    await prisma.coupons.update({
+      where: { id: couponId },
+      data: { status: newStatus, updated_at: new Date() },
+    });
+
+    revalidatePath('/app/admin/coupons');
+    return { ok: true };
+  } catch (error) {
+    logger.error('updateCouponStatus', 'Error:', error);
+    return { ok: false, error: 'שגיאה בעדכון סטטוס קופון' };
+  }
+}
+
+export async function deleteCoupon(couponId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const redemptions = await prisma.coupon_redemptions.count({ where: { coupon_id: couponId } });
+    if (redemptions > 0) {
+      return { ok: false, error: `לא ניתן למחוק קופון שכבר מומש (${redemptions} מימושים). השבת אותו במקום.` };
+    }
+
+    await prisma.coupons.delete({ where: { id: couponId } });
+
+    revalidatePath('/app/admin/coupons');
+    return { ok: true };
+  } catch (error) {
+    logger.error('deleteCoupon', 'Error:', error);
+    return { ok: false, error: 'שגיאה במחיקת קופון' };
+  }
+}
+
 export async function removeCouponFromOrganization(orgId: string) {
   try {
     const guard = await requireSuperAdminOrReturn();

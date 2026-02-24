@@ -160,6 +160,9 @@ export default function PackageLandingPage({
                 <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
                 ללא כרטיס אשראי
               </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-xs font-bold text-amber-700">
+                🎁 מודול כספים בחינם
+              </span>
             </div>
           </div>
         </section>

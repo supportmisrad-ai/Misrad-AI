@@ -302,12 +302,17 @@ export default function OperationsMarketingPage() {
                 <div className="text-[10px] text-slate-500 mt-1">6 מודולים + 5 משתמשים</div>
               </div>
             </div>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all"
-            >
-              ראה את כל החבילות
-            </Link>
+            <div className="mb-8 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 inline-block">
+              🎁 מודול כספים בחינם עם כל חבילה · כל המחירים כוללים מע&quot;מ
+            </div>
+            <div>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-slate-900 text-white font-bold shadow-xl hover:bg-slate-800 transition-all"
+              >
+                ראה את כל החבילות
+              </Link>
+            </div>
           </div>
         </section>
 

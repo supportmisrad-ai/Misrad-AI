@@ -315,7 +315,8 @@ export default function SystemOSLandingPage() {
                   'ניהול לידים + Pipeline מכירות',
                   'מרכז תקשורת + חייגן מרכזיית ענן',
                   'משימות Follow Up',
-                  'תמיכה בעברית'
+                  'תמיכה בעברית',
+                  '🎁 מודול כספים — בונוס חינם'
                 ]}
                 recommended={true}
                 onSelect={() => router.push(`/subscribe/checkout?package=solo&module=system&billing=${billingCycle}&product=${encodeURIComponent(getModuleLabelHe('system'))}`)}
@@ -329,7 +330,8 @@ export default function SystemOSLandingPage() {
                   getModuleLabelHe('system'),
                   getModuleLabelHe('nexus'),
                   'ניהול לידים + ניהול צוות + מרכז תקשורת',
-                  'סנכרון בין המודולים'
+                  'סנכרון בין המודולים',
+                  '🎁 מודול כספים — בונוס חינם'
                 ]}
                 recommended={false}
                 onSelect={() => router.push(`/subscribe/checkout?package=the_closer&billing=${billingCycle}&product=${encodeURIComponent('חבילת מכירות')}`)}
@@ -344,7 +346,8 @@ export default function SystemOSLandingPage() {
                   getModuleLabelHe('system'),
                   getModuleLabelHe('social'),
                   getModuleLabelHe('client'),
-                  'כל המודולים + סנכרון מלא'
+                  'כל המודולים + סנכרון מלא',
+                  '🎁 מודול כספים כלול'
                 ]}
                 recommended={false}
                 onSelect={() => router.push(`/subscribe/checkout?package=the_empire&billing=${billingCycle}&seats=5&product=${encodeURIComponent('הכל כלול')}`)}
@@ -355,7 +358,7 @@ export default function SystemOSLandingPage() {
 
           <div className="mt-16 text-center">
             <p className="text-slate-600 text-sm mb-4">
-              כל התוכניות כוללות: <span className="text-slate-900 font-bold">7 ימים ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span>
+              כל התוכניות כוללות: <span className="text-slate-900 font-bold">7 ימים ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span> • <span className="text-amber-700 font-bold">מודול כספים בחינם</span>
             </p>
           </div>
         </div>

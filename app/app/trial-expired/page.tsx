@@ -149,6 +149,9 @@ export default function TrialExpiredPage() {
                   </div>
                 ))}
               </div>
+              <div className="mt-3 text-[11px] text-amber-700 font-bold bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                🎁 מודול כספים בחינם עם כל חבילה &bull; כל המחירים כוללים מע&quot;מ
+              </div>
             </div>
 
             {/* Back to Login */}
@@ -166,7 +169,7 @@ export default function TrialExpiredPage() {
         <div className="text-center mt-6">
           <p className="text-sm text-slate-600" dir="rtl">
             <Calendar className="inline-block w-4 h-4 ml-1" />
-            MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com
+            MISRAD AI &bull; ע.מ 314885518 &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; 051-2239520
           </p>
         </div>
       </div>

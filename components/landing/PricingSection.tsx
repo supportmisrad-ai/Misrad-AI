@@ -196,13 +196,19 @@ export default function PricingSection({
                         {getModuleLabelHe(m)}
                       </span>
                     ))}
-                    {(selectedPkg === 'the_operator' || selectedPkg === 'the_empire') ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-xs font-bold text-amber-700">
-                        🎁 Finance (מתנה)
-                      </span>
-                    ) : null}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-xs font-bold text-amber-700">
+                      🎁 כספים — בונוס חינם
+                    </span>
                   </div>
                 )}
+              </div>
+
+              {/* Finance Bonus Note */}
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 mb-4">
+                <span className="text-sm">🎁</span>
+                <span className="text-xs font-bold text-amber-800">
+                  מודול כספים בחינם עם כל חבילה — AI מנתח חשבוניות, מעקב תשלומים ותזרים. דורש אינטגרציה עם מערכת חשבוניות קיימת (חשבונית ירוקה, iCount ודומיהם).
+                </span>
               </div>
 
               {/* AI Credits */}
@@ -279,7 +285,7 @@ export default function PricingSection({
         <div className="mt-12 sm:mt-16 text-center space-y-3">
           <div className="inline-block bg-white border border-slate-200 rounded-full px-6 py-3 shadow-md">
             <span className="text-sm text-slate-600 font-bold">
-              כל החבילות כוללות <strong className="text-indigo-700">ניסיון חינם 7 ימים</strong> + <strong className="text-emerald-700">משתמשים כלולים במחיר</strong>
+              כל החבילות כוללות <strong className="text-indigo-700">ניסיון חינם 7 ימים</strong> + <strong className="text-emerald-700">משתמשים כלולים</strong> + <strong className="text-amber-700">מודול כספים בחינם</strong>
             </span>
           </div>
           <div className="text-xs text-slate-400 font-bold">כל המחירים כוללים מע&quot;מ</div>

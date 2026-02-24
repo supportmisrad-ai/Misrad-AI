@@ -26,6 +26,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/org/')) return 'customers';
   if (p.startsWith('/app/admin/business-clients')) return 'customers';
   if (p.startsWith('/app/admin/billing-management')) return 'customers';
+  if (p.startsWith('/app/admin/coupons')) return 'customers';
 
   // users
   if (p.startsWith('/app/admin/global/users')) return 'users';
@@ -215,6 +216,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Network },
       { href: '/app/admin/setup-customer', label: 'הקמת לקוח', icon: UserPlus },
       { href: '/app/admin/billing-management', label: 'ניהול גבייה', icon: DollarSign },
+      { href: '/app/admin/coupons', label: 'קופונים', icon: Zap },
     ],
     users: [
       { href: '/app/admin/global/users', label: 'כל המשתמשים', icon: Users },
