@@ -117,7 +117,7 @@ export default function TrialExpiredPage() {
                 </a>
 
                 <a
-                  href="https://wa.me/972547700700" target="_blank" rel="noreferrer"
+                  href="https://wa.me/972512239520" target="_blank" rel="noreferrer"
                   className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
@@ -126,7 +126,7 @@ export default function TrialExpiredPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-slate-600">טלפון</p>
                     <p className="font-bold text-slate-900 group-hover:text-green-600 transition-colors" dir="ltr">
-                      054-770-0700
+                      051-2239520
                     </p>
                   </div>
                 </a>

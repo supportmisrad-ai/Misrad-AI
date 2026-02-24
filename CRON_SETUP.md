@@ -263,8 +263,8 @@ Authorization: Bearer <CRON_SECRET>
 ## 📞 תמיכה
 
 אם נתקלת בבעיות או שאלות, פנה ליצחק:
-- 📧 Email: yitzhak@misrad.ai
-- 📱 Phone: 054-123-4567
+- 📧 Email: support@misrad-ai.com
+- 📱 Phone: 051-2239520
 
 ---
 

@@ -59,8 +59,8 @@ export default function ContactPage() {
                     <div>
                       <div className="text-sm sm:text-base font-bold text-slate-900">טלפון / WhatsApp</div>
                       <div className="text-sm sm:text-base text-slate-600 mt-1">
-                        <a href="https://wa.me/972547700700" target="_blank" rel="noreferrer" className="text-emerald-700 hover:text-emerald-800 font-bold underline underline-offset-2">
-                          054-770-0700
+                        <a href="https://wa.me/972512239520" target="_blank" rel="noreferrer" className="text-emerald-700 hover:text-emerald-800 font-bold underline underline-offset-2">
+                          051-2239520
                         </a>
                       </div>
                     </div>
