@@ -70,7 +70,7 @@ export default function AccessibilityPage() {
                   <div><strong>שם מלא:</strong> צוות MISRAD AI</div>
                   <div><strong>תפקיד:</strong> רכז נגישות</div>
                   <div><strong>דוא"ל:</strong> <a href="mailto:support@misrad-ai.com" className="text-indigo-600 hover:text-indigo-700">support@misrad-ai.com</a></div>
-                  <div><strong>טלפון (כולל וואטסאפ):</strong> <a href="tel:054-1234567" className="text-indigo-600 hover:text-indigo-700" dir="ltr">054-1234567</a></div>
+                  <div><strong>טלפון (כולל וואטסאפ):</strong> <a href="https://wa.me/972512239520" className="text-indigo-600 hover:text-indigo-700" dir="ltr">051-2239520</a></div>
                 </div>
                 
                 <p className="text-slate-700 leading-relaxed mt-6">

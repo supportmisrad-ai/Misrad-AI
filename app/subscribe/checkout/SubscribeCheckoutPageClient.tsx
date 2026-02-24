@@ -354,9 +354,12 @@ function SubscribeCheckoutContent({
 
           <div className="grid grid-cols-1 gap-4 mb-6">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">סיכום</div>
-              <div className="mt-2 text-slate-900 font-bold">
-                ₪{amountToPay} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {productLabel || plan}{seats ? ` • ${seats} משתמשים` : ''}
+              <div className="text-sm text-slate-500">סיכום הזמנה</div>
+              <div className="mt-2 text-slate-900 font-bold text-lg">
+                ₪{amountToPay} <span className="text-xs font-medium text-slate-500">(כולל מע&quot;מ)</span>
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                {productLabel || plan} • {billingCycle === 'yearly' ? 'חיוב שנתי' : 'חיוב חודשי'}{seats ? ` • ${seats} משתמשים` : ''}
               </div>
             </div>
 
@@ -479,7 +482,17 @@ function SubscribeCheckoutContent({
               </button>
             )}
 
-            {error && <div className="text-sm text-red-400">{error}</div>}
+            {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 font-medium">{error}</div>}
+
+            {/* Cancellation Rights Notice - required by Israeli Consumer Protection Law */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 leading-relaxed">
+              <div className="font-bold mb-1">זכות ביטול לפי חוק הגנת הצרכן</div>
+              ניתן לבטל את העסקה תוך 14 ימים ממועד ביצועה. דמי ביטול: עד 5% מסכום העסקה או 100 ₪ — הנמוך מביניהם.
+              {' '}
+              <Link href="/cancel" className="text-indigo-700 hover:text-indigo-900 underline underline-offset-2 font-bold">פרטים מלאים על ביטול עסקה</Link>
+              {' | '}
+              <Link href="/refund-policy" className="text-indigo-700 hover:text-indigo-900 underline underline-offset-2 font-bold">מדיניות החזרים</Link>
+            </div>
 
             {orderId && (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-4">
@@ -586,17 +599,43 @@ function SubscribeCheckoutContent({
             )}
           </div>
 
-          {/* Business Details Footer - required by payment processor */}
-          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 text-center text-xs text-slate-500 space-y-1">
-            <div className="font-bold text-slate-600">MISRAD AI</div>
+          {/* Trust Badges */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-700">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+              SSL מאובטח
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-bold text-blue-700">
+              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+              הצפנת AES-256
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[11px] font-bold text-purple-700">
+              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+              חוק הגנת הפרטיות
+            </span>
+          </div>
+
+          {/* Business Details Footer - required by Israeli law + payment processor */}
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-center text-xs text-slate-500 space-y-2">
+            <div className="font-bold text-slate-700 text-sm">MISRAD AI</div>
             <div>הפסנתר 9, ראשון לציון, ישראל</div>
-            <div>support@misrad-ai.com &bull; misrad-ai.com</div>
-            <div className="flex items-center justify-center gap-3 pt-1">
+            <div>
+              <a href="mailto:support@misrad-ai.com" className="hover:text-slate-700">support@misrad-ai.com</a>
+              {' '}&bull;{' '}
+              <a href="https://wa.me/972512239520" target="_blank" rel="noreferrer" className="hover:text-slate-700" dir="ltr">051-2239520</a>
+              {' '}&bull;{' '}
+              <a href="https://misrad-ai.com" className="hover:text-slate-700">misrad-ai.com</a>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               <Link href="/terms" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">תנאי שימוש</Link>
               <span>&bull;</span>
               <Link href="/privacy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">פרטיות</Link>
               <span>&bull;</span>
               <Link href="/refund-policy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">מדיניות החזרים</Link>
+              <span>&bull;</span>
+              <Link href="/cancel" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">ביטול עסקה</Link>
+              <span>&bull;</span>
+              <Link href="/accessibility" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">נגישות</Link>
             </div>
           </div>
         </div>

@@ -188,6 +188,9 @@ export const Footer = () => {
                         <Link href="/accessibility" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
                             נגישות
                         </Link>
+                        <Link href="/cancel" className="px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/5 text-xs font-bold text-red-400 hover:text-white hover:border-red-500/30 hover:bg-red-500/10 transition-all">
+                            ביטול עסקה
+                        </Link>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
@@ -226,7 +229,7 @@ export const Footer = () => {
                     </div>
 
                     <div className="text-xs text-slate-600 text-center leading-relaxed">
-                        MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; misrad-ai.com
+                        MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; 051-2239520 &bull; misrad-ai.com
                     </div>
                 </div>
             </div>
