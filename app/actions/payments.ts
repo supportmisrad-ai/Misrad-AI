@@ -16,6 +16,7 @@ import { z } from 'zod';
 
 
 import { asObject } from '@/lib/shared/unknown';
+import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
 function asRecord(value: unknown): Record<string, unknown> | null {
   return asObject(value);
 }
@@ -308,6 +309,23 @@ export async function processPayment(
 
         // Create internal payment record (NOT a tax invoice — just a DB record for payment tracking)
         await createPaymentRecord(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
+
+        // Notify org owner about successful payment
+        try {
+          const orgOwner = await prisma.organization.findFirst({
+            where: { id: organizationId },
+            select: { owner_id: true },
+          });
+          if (orgOwner?.owner_id) {
+            insertMisradNotificationsForOrganizationId({
+              organizationId,
+              recipientIds: [String(orgOwner.owner_id)],
+              type: 'FINANCE',
+              text: `תשלום התקבל: ₪${totalAmount.toLocaleString()} — ${String(order.description || '')}`,
+              reason: 'payment_received',
+            }).catch(() => {});
+          }
+        } catch { /* best-effort */ }
 
         revalidatePath('/', 'layout');
 

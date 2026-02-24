@@ -12,6 +12,7 @@ import type { Client } from '@/types/social';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import {
   decodeSystemLeadsCursor,
@@ -624,7 +625,26 @@ export async function createSystemLead(
       });
 
       revalidatePath('/', 'layout');
-      return toDto(row);
+      const dto = toDto(row);
+
+      // Notify org members about new lead
+      try {
+        const orgOwner = await prisma.organization.findFirst({
+          where: { id: organizationId },
+          select: { owner_id: true },
+        });
+        if (orgOwner?.owner_id) {
+          insertMisradNotificationsForOrganizationId({
+            organizationId,
+            recipientIds: [String(orgOwner.owner_id)],
+            type: 'LEAD',
+            text: `ליד חדש: ${name}${company ? ` (${company})` : ''}${isHot ? ' 🔥' : ''}`,
+            reason: 'system_lead_created',
+          }).catch(() => {});
+        }
+      } catch { /* best-effort */ }
+
+      return dto;
     },
     { source: 'server_actions_system_leads', reason: 'createSystemLead' }
   );
@@ -1191,7 +1211,34 @@ export async function updateSystemLeadStatus(params: {
           throw new Error('Lead not found');
         }
 
-        return { ok: true, lead: toDto(row), syncedClientId: null };
+        const leadDto = toDto(row);
+
+        // Notify on important status changes
+        const STATUS_LABELS: Record<string, string> = {
+          contacted: 'נוצר קשר',
+          qualified: 'מתאים',
+          proposal: 'הצעת מחיר',
+          negotiation: 'משא ומתן',
+          lost: 'אבוד',
+        };
+        const statusLabel = STATUS_LABELS[status] || status;
+        try {
+          const orgOwner = await prisma.organization.findFirst({
+            where: { id: organizationId },
+            select: { owner_id: true },
+          });
+          if (orgOwner?.owner_id) {
+            insertMisradNotificationsForOrganizationId({
+              organizationId,
+              recipientIds: [String(orgOwner.owner_id)],
+              type: 'LEAD',
+              text: `ליד ${existing.name} עבר לסטטוס: ${statusLabel}`,
+              reason: 'system_lead_status_changed',
+            }).catch(() => {});
+          }
+        } catch { /* best-effort */ }
+
+        return { ok: true, lead: leadDto, syncedClientId: null };
       }
 
       const email = String(existing.email || '').trim();
@@ -1343,6 +1390,24 @@ export async function updateSystemLeadStatus(params: {
           logger.error('system-leads', 'failed to auto-create system invoice', e);
         }
       }
+
+      // Notify: deal won!
+      try {
+        const orgOwner = await prisma.organization.findFirst({
+          where: { id: organizationId },
+          select: { owner_id: true },
+        });
+        if (orgOwner?.owner_id) {
+          const valueStr = lead.value ? ` (₪${Number(lead.value).toLocaleString()})` : '';
+          insertMisradNotificationsForOrganizationId({
+            organizationId,
+            recipientIds: [String(orgOwner.owner_id)],
+            type: 'LEAD',
+            text: `עסקה נסגרה! ${lead.name}${valueStr} הפך ללקוח`,
+            reason: 'system_lead_won',
+          }).catch(() => {});
+        }
+      } catch { /* best-effort */ }
 
       return { ok: true, lead, syncedClientId: syncedClientId || nexusClientId };
     },

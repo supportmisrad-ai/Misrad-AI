@@ -3,6 +3,7 @@ import 'server-only';
 import prisma from '@/lib/prisma';
 import { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import type { MisradNotificationType } from '@prisma/client';
+import { sendWebPushNotificationToEmails } from '@/lib/server/web-push';
 
 import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
@@ -192,6 +193,78 @@ export async function deleteSystemNotificationForOrganizationId(params: {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+const NOTIFICATION_TYPE_TO_PUSH_CATEGORY: Record<string, 'alerts' | 'tasks' | 'events' | 'system' | 'marketing'> = {
+  ALERT: 'alerts',
+  TASK: 'tasks',
+  MESSAGE: 'alerts',
+  SUCCESS: 'system',
+  SYSTEM: 'system',
+  INVENTORY_ALERT: 'alerts',
+  WORK_ORDER: 'tasks',
+  LEAD: 'alerts',
+  CLIENT: 'alerts',
+  FINANCE: 'alerts',
+};
+
+// Map custom notification types to valid DB enum values (MisradNotificationType)
+// The DB enum only supports: ALERT, MESSAGE, SUCCESS, TASK, SYSTEM
+const CUSTOM_TYPE_TO_DB_ENUM: Record<string, string> = {
+  LEAD: 'ALERT',
+  CLIENT: 'MESSAGE',
+  FINANCE: 'SUCCESS',
+  INVENTORY_ALERT: 'ALERT',
+  WORK_ORDER: 'TASK',
+};
+
+async function resolveEmailsAndSendPush(params: {
+  organizationId: string;
+  recipientIds: string[];
+  type: string;
+  text: string;
+}): Promise<void> {
+  const { organizationId, recipientIds, type, text } = params;
+  if (!recipientIds.length) return;
+
+  try {
+    // recipientIds can be NexusUser IDs or OrganizationUser IDs — query both tables
+    const [nexusRows, orgRows] = await Promise.all([
+      prisma.nexusUser.findMany({
+        where: { id: { in: recipientIds }, organizationId },
+        select: { email: true },
+      }).catch(() => [] as { email: string | null }[]),
+      prisma.organizationUser.findMany({
+        where: { id: { in: recipientIds }, organization_id: organizationId },
+        select: { email: true },
+      }).catch(() => [] as { email: string | null }[]),
+    ]);
+
+    const allRows = [...nexusRows, ...orgRows];
+    const emails = Array.from(new Set(
+      allRows
+        .map((r) => String(r.email || '').trim().toLowerCase())
+        .filter(Boolean)
+    ));
+
+    if (!emails.length) return;
+
+    const category = NOTIFICATION_TYPE_TO_PUSH_CATEGORY[type] ?? 'system';
+
+    await sendWebPushNotificationToEmails({
+      organizationId,
+      emails,
+      payload: {
+        title: 'MISRAD AI',
+        body: text,
+        url: '/',
+        tag: `misrad-${type.toLowerCase()}-${Date.now()}`,
+        category,
+      },
+    });
+  } catch {
+    // best-effort — push failure should never affect in-app notifications
+  }
+}
+
 export async function insertMisradNotificationsForOrganizationId(params: {
   organizationId: string;
   recipientIds: string[];
@@ -202,7 +275,8 @@ export async function insertMisradNotificationsForOrganizationId(params: {
   try {
     const organizationId = String(params.organizationId || '').trim();
     const text = String(params.text || '').trim();
-    const type = String(params.type || '').trim().toUpperCase();
+    const originalType = String(params.type || '').trim().toUpperCase();
+    const dbType = CUSTOM_TYPE_TO_DB_ENUM[originalType] || originalType;
     const reason = String(params.reason || '').trim();
     const recipientIds = Array.from(new Set((params.recipientIds || []).map((x) => String(x || '').trim()).filter((x) => UUID_RE.test(x))));
 
@@ -219,8 +293,17 @@ export async function insertMisradNotificationsForOrganizationId(params: {
         select $1::uuid, rid::uuid, $3::text, $4::text, $4::text, to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), false, now(), now()
         from unnest($2::uuid[]) as rid
       `,
-      values: [organizationId, recipientIds, type, text],
+      values: [organizationId, recipientIds, dbType, text],
     });
+
+    // Fire-and-forget: also send web push notification to recipients
+    // Use originalType for push category mapping (more specific than dbType)
+    resolveEmailsAndSendPush({
+      organizationId,
+      recipientIds,
+      type: originalType,
+      text,
+    }).catch(() => { /* best-effort — never block in-app notification */ });
 
     return { ok: true };
   } catch (e: unknown) {

@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 
 import { getErrorMessageFromErrorOr as getErrorMessage } from '@/lib/shared/unknown';
 import { getOrganizationEntitlements } from '@/lib/server/workspace-access/entitlements';
+import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
 type ClientClientsRow = {
   id: string;
   organization_id: string;
@@ -460,6 +461,23 @@ export async function createClient(
         console.warn('[client-clients] ClientClient→NexusClient sync failed (ignored):', getErrorMessage(syncErr, 'unknown sync error'));
       }
     }
+
+    // Notify org owner about new client
+    try {
+      const orgOwner = await prisma.organization.findFirst({
+        where: { id: organizationId },
+        select: { owner_id: true },
+      });
+      if (orgOwner?.owner_id) {
+        insertMisradNotificationsForOrganizationId({
+          organizationId,
+          recipientIds: [String(orgOwner.owner_id)],
+          type: 'CLIENT',
+          text: `לקוח חדש נוסף: ${name || companyName}`,
+          reason: 'client_created',
+        }).catch(() => {});
+      }
+    } catch { /* best-effort */ }
 
     return {
       success: true,
