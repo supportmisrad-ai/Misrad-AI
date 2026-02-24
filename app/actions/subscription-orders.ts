@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 import type { PackageType } from '@/lib/server/workspace';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { uploadFile } from '@/app/actions/files';
-import { calculateOrderAmount } from '@/lib/billing/pricing';
+import { calculateOrderAmount, BILLING_PACKAGES } from '@/lib/billing/pricing';
 import { CouponEngine } from '@/lib/server/couponEngine';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
@@ -21,6 +21,7 @@ import { isTenantAdminRole } from '@/lib/constants/roles';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { sendAdminPaymentReceivedNotification } from '@/lib/email';
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
@@ -751,6 +752,68 @@ export async function submitSubscriptionPaymentProof(input: {
     } catch (updateError: unknown) {
       captureActionException(updateError, { action: 'submitSubscriptionPaymentProof', stage: 'update_order', orderId });
       return createErrorResponse(updateError, 'שגיאה בעדכון הזמנה');
+    }
+
+    // Fire-and-forget: send admin notification about payment proof submission
+    try {
+      const fullOrder = await withTenantIsolationContext(
+        { source: 'app/actions/subscription-orders.submitSubscriptionPaymentProof.notify', mode: 'global_admin', isSuperAdmin: true },
+        async () =>
+          prisma.subscription_orders.findUnique({
+            where: { id: orderId },
+            select: {
+              id: true,
+              customer_name: true,
+              customer_email: true,
+              customer_phone: true,
+              package_type: true,
+              billing_cycle: true,
+              amount: true,
+              currency: true,
+              organization_id: true,
+            },
+          })
+      );
+
+      if (fullOrder) {
+        let orgName: string | null = null;
+        if (fullOrder.organization_id) {
+          try {
+            const org = await withTenantIsolationContext(
+              { source: 'app/actions/subscription-orders.submitSubscriptionPaymentProof.orgName', mode: 'global_admin', isSuperAdmin: true },
+              async () =>
+                prisma.organization.findUnique({
+                  where: { id: String(fullOrder.organization_id) },
+                  select: { name: true },
+                })
+            );
+            orgName = org?.name ? String(org.name) : null;
+          } catch {
+            // ignore
+          }
+        }
+
+        const pkgType = String(fullOrder.package_type || 'solo');
+        const pkgConfig = BILLING_PACKAGES[pkgType as keyof typeof BILLING_PACKAGES];
+        const packageLabel = pkgConfig?.labelHe || pkgType;
+
+        sendAdminPaymentReceivedNotification({
+          customerName: String(fullOrder.customer_name || ''),
+          customerEmail: String(fullOrder.customer_email || ''),
+          customerPhone: String(fullOrder.customer_phone || ''),
+          organizationName: orgName,
+          packageLabel,
+          billingCycle: String(fullOrder.billing_cycle || 'monthly'),
+          amount: Number(fullOrder.amount) || 0,
+          currency: String(fullOrder.currency || 'ILS'),
+          orderId: String(fullOrder.id),
+          hasProofImage: Boolean(proof.url),
+        }).catch((err) => {
+          console.error('[subscription-orders] admin payment notification failed (ignored):', err instanceof Error ? err.message : '');
+        });
+      }
+    } catch {
+      // Never fail the main flow due to notification
     }
 
     revalidatePath('/', 'layout');
