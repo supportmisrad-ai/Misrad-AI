@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://img.clerk.com https://images.clerk.dev https://clerk.misrad-ai.com https://*.googleusercontent.com https://images.unsplash.com https://*.supabase.co",
               "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
-              "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.misrad-ai.com https://challenges.cloudflare.com https://*.sentry.io https://*.ingest.sentry.io https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com",
+              "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.misrad-ai.com https://challenges.cloudflare.com https://*.sentry.io https://*.ingest.sentry.io https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com https://nominatim.openstreetmap.org",
               "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.misrad-ai.com",
               "media-src 'self' blob:",
               "worker-src 'self' blob:",

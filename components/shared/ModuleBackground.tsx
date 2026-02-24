@@ -54,15 +54,15 @@ export function ModuleBackground({ moduleKey }: { moduleKey: string }) {
   const colors = MODULE_BLOB_COLORS[moduleKey as ModuleKey] ?? MODULE_BLOB_COLORS.nexus;
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-70 md:opacity-100" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 hidden md:block" aria-hidden="true">
       <div
-        className={`absolute top-[-10%] right-[-5%] w-[500px] h-[500px] ${colors.a} rounded-full blur-[100px] animate-blob mix-blend-multiply`}
+        className={`absolute top-[-10%] right-[-5%] w-[320px] h-[320px] ${colors.a} rounded-full blur-[120px] opacity-40 gpu-blur`}
       />
       <div
-        className={`absolute top-[-10%] left-[-10%] w-[400px] h-[400px] ${colors.b} rounded-full blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply`}
+        className={`absolute top-[5%] left-[-10%] w-[260px] h-[260px] ${colors.b} rounded-full blur-[120px] opacity-30 gpu-blur`}
       />
       <div
-        className={`absolute bottom-[-10%] left-[20%] w-[500px] h-[500px] ${colors.c} rounded-full blur-[100px] animate-blob animation-delay-4000 mix-blend-multiply`}
+        className={`absolute bottom-[-10%] left-[20%] w-[300px] h-[300px] ${colors.c} rounded-full blur-[120px] opacity-30 gpu-blur`}
       />
     </div>
   );
