@@ -1150,6 +1150,73 @@ export function generateReengagementEmailHTML(params: {
 }
 
 // ══════════════════════════════════════════════════════════════════════
+// AI REPORTS
+// ══════════════════════════════════════════════════════════════════════
+
+export function generateAiMonthlyReportReadyEmailHTML(params: {
+    adminName?: string | null;
+    organizationName: string;
+    periodLabel: string;
+    score: number;
+    summary: string;
+    insightCount: number;
+    recommendationCount: number;
+    reportUrl: string;
+}): string {
+    const greeting = params.adminName ? `${params.adminName},` : 'שלום,';
+    const scoreColor = params.score >= 70 ? '#059669' : params.score >= 40 ? '#d97706' : '#dc2626';
+    const scoreBg = params.score >= 70 ? '#ecfdf5' : params.score >= 40 ? '#fffbeb' : '#fef2f2';
+    const scoreBorder = params.score >= 70 ? '#a7f3d0' : params.score >= 40 ? '#fde68a' : '#fecaca';
+
+    const bodyContent = `
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            הדוח החודשי של <strong style="color:#6366f1;">"${params.organizationName}"</strong> מוכן.
+            <br /><span style="color:#94a3b8;font-size:14px;">תקופה: ${params.periodLabel}</span>
+        </div>
+
+        <div style="margin:24px 0;background:${scoreBg};border:2px solid ${scoreBorder};border-radius:14px;padding:24px;text-align:center;">
+            <div style="font-size:12px;font-weight:800;color:${scoreColor};letter-spacing:0.5px;margin-bottom:8px;">ציון בריאות ארגוני</div>
+            <div style="font-size:48px;font-weight:900;color:${scoreColor};">${params.score}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:4px;">מתוך 100</div>
+        </div>
+
+        <div style="margin:20px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 22px;font-size:15px;color:#334155;line-height:1.8;">
+            ${params.summary}
+        </div>
+
+        <div style="margin:20px 0;display:flex;gap:12px;">
+            <div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:24px;font-weight:900;color:#1d4ed8;">${params.insightCount}</div>
+                <div style="font-size:12px;font-weight:700;color:#3b82f6;">תובנות</div>
+            </div>
+            <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;text-align:center;">
+                <div style="font-size:24px;font-weight:900;color:#16a34a;">${params.recommendationCount}</div>
+                <div style="font-size:12px;font-weight:700;color:#22c55e;">המלצות</div>
+            </div>
+        </div>
+
+        ${EmailTemplateComponents.generateCTAButton({
+            text: 'צפייה בדוח המלא →',
+            url: params.reportUrl,
+        })}
+
+        <div style="margin-top:24px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
+            הדוח נוצר אוטומטית על בסיס נתוני המערכת בלבד.
+        </div>
+    `;
+
+    return generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'דוח AI חודשי מוכן',
+        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        bodyContent,
+        showSocialLinks: false,
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // ADMIN NOTIFICATION EMAILS
 // ══════════════════════════════════════════════════════════════════════
 

@@ -626,6 +626,17 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
         trigger: 'Cron — 1 בחודש',
     },
     {
+        id: 'ai_monthly_report_ready',
+        label: 'דוח AI חודשי מוכן',
+        category: 'system',
+        audience: 'admin',
+        canUnsubscribe: true,
+        preferenceKey: 'system_reports',
+        description: 'התראה שהדוח החודשי של AI מוכן לצפייה במערכת',
+        implemented: true,
+        trigger: 'Cron — סוף כל חודש',
+    },
+    {
         id: 'system_admin_org_created',
         label: 'אדמין — ארגון חדש במערכת',
         category: 'system',

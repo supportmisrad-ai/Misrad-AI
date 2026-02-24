@@ -57,6 +57,23 @@ export function slaLabel(deadline: string | null): { text: string; cls: string }
   return { text: `${Math.floor(hrs / 24)} ימים`, cls: 'text-slate-600' };
 }
 
+export function formatPurchaseOrderStatus(status: string): { label: string; cls: string } {
+  switch (status) {
+    case 'DRAFT':
+      return { label: 'טיוטה', cls: 'bg-slate-50 text-slate-700 border border-slate-200' };
+    case 'SENT':
+      return { label: 'נשלח לספק', cls: 'bg-sky-50 text-sky-700 border border-sky-100' };
+    case 'PARTIALLY_RECEIVED':
+      return { label: 'התקבל חלקית', cls: 'bg-amber-50 text-amber-700 border border-amber-100' };
+    case 'RECEIVED':
+      return { label: 'התקבל', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
+    case 'CANCELLED':
+      return { label: 'בוטל', cls: 'bg-red-50 text-red-600 border border-red-100' };
+    default:
+      return { label: status, cls: 'bg-slate-50 text-slate-700 border border-slate-200' };
+  }
+}
+
 export function formatSla(minutes: number | null): string | null {
   if (!minutes) return null;
   if (minutes < 60) return `${minutes} דק׳`;

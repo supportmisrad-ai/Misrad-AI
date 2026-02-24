@@ -6,6 +6,9 @@ import { AIService } from '@/lib/services/ai/AIService';
 import { Type } from '@google/genai';
 import { cronGuard } from '@/lib/api-cron-guard';
 import { asObject } from '@/lib/shared/unknown';
+import { sendEmail } from '@/lib/email-sender';
+import { generateAiMonthlyReportReadyEmailHTML } from '@/lib/email-generators';
+import { getBaseUrl } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -274,14 +277,56 @@ async function POSTHandler(req: NextRequest) {
           }
         }
 
-        // Email notification is non-critical — log intent for now
-        // TODO: Wire up email notification when email template 'ai_monthly_report_ready' is created
-        if (!IS_PROD) {
+        // Send email notification to admin members
+        try {
           const adminMembers = members.filter(m => {
             const role = String(m.role || '').toLowerCase();
             return role === 'admin' || role === 'ceo' || role === 'owner' || role === 'super_admin';
           });
-          console.log(`[ai-monthly-digest] Would notify ${adminMembers.length} admins for org ${org.slug}, period ${periodLabel}`);
+
+          if (adminMembers.length > 0) {
+            const baseUrl = getBaseUrl();
+            const reportUrl = `${baseUrl}/w/${encodeURIComponent(org.slug || '')}/nexus/ai-reports`;
+
+            for (const admin of adminMembers) {
+              try {
+                // Resolve admin email from profiles
+                const profileRows = await queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
+                  organizationId: orgId,
+                  reason: 'cron_resolve_admin_email',
+                  query: `SELECT email, first_name FROM profiles WHERE clerk_user_id = $1 LIMIT 1`,
+                  values: [String(admin.clerk_user_id)],
+                });
+                const profile = asObject(Array.isArray(profileRows) ? profileRows[0] : null);
+                const adminEmail = profile?.email ? String(profile.email) : null;
+                if (!adminEmail) continue;
+
+                const adminName = profile?.first_name ? String(profile.first_name) : null;
+
+                const emailHtml = generateAiMonthlyReportReadyEmailHTML({
+                  adminName,
+                  organizationName: org.name || '',
+                  periodLabel,
+                  score: adminResult.score ?? 0,
+                  summary: adminResult.summary || 'לא ניתן היה להפיק סיכום',
+                  insightCount: Array.isArray(adminResult.insights) ? adminResult.insights.length : 0,
+                  recommendationCount: Array.isArray(adminResult.recommendations) ? adminResult.recommendations.length : 0,
+                  reportUrl,
+                });
+
+                await sendEmail({
+                  emailTypeId: 'ai_monthly_report_ready',
+                  to: adminEmail,
+                  subject: `דוח AI חודשי ${periodLabel} — ${org.name}`,
+                  html: emailHtml,
+                });
+              } catch (adminEmailErr: unknown) {
+                if (!IS_PROD) console.error(`[ai-monthly-digest] Email error for admin ${admin.clerk_user_id}:`, adminEmailErr);
+              }
+            }
+          }
+        } catch (emailBatchErr: unknown) {
+          if (!IS_PROD) console.error(`[ai-monthly-digest] Email batch error for org ${org.slug}:`, emailBatchErr);
         }
 
         processed++;

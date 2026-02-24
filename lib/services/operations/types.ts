@@ -237,3 +237,56 @@ export type OperationsSupplierRow = {
   notes: string | null;
   createdAt: string;
 };
+
+export type OperationsPurchaseOrderStatus = 'DRAFT' | 'SENT' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
+
+export type OperationsPurchaseOrderRow = {
+  id: string;
+  poNumber: string;
+  status: OperationsPurchaseOrderStatus;
+  supplierId: string | null;
+  supplierName: string | null;
+  notes: string | null;
+  totalAmount: number | null;
+  currency: string;
+  expectedDelivery: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  itemCount: number;
+};
+
+export type OperationsPurchaseOrderDetail = {
+  id: string;
+  poNumber: string;
+  status: OperationsPurchaseOrderStatus;
+  supplierId: string | null;
+  supplierName: string | null;
+  notes: string | null;
+  totalAmount: number | null;
+  currency: string;
+  expectedDelivery: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lineItems: OperationsPurchaseOrderLineItem[];
+};
+
+export type OperationsPurchaseOrderLineItem = {
+  id: string;
+  itemId: string | null;
+  itemName: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  receivedQty: number;
+};
+
+export type OperationsPurchaseOrdersData = {
+  orders: OperationsPurchaseOrderRow[];
+  totalCount: number;
+};

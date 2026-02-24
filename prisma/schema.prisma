@@ -2537,9 +2537,10 @@ model OperationsItem {
   imageVector    Unsupported("vector")? @map("image_vector")
   createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  inventory      OperationsInventory[]
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  supplier       OperationsSupplier?    @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
+  inventory           OperationsInventory[]
+  purchaseOrderItems  OperationsPurchaseOrderItem[]
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  supplier            OperationsSupplier?    @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
 
   @@index([imageVector], map: "idx_operations_items_image_vector")
   @@index([organizationId], map: "idx_operations_items_org")
@@ -2579,10 +2580,53 @@ model OperationsSupplier {
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   items          OperationsItem[]
+  purchaseOrders OperationsPurchaseOrder[]
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organizationId], map: "idx_operations_suppliers_org")
   @@map("operations_suppliers")
+}
+
+model OperationsPurchaseOrder {
+  id               String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId   String                        @map("organization_id") @db.Uuid
+  supplierId       String?                       @map("supplier_id") @db.Uuid
+  poNumber         String                        @map("po_number")
+  status           String                        @default("DRAFT")
+  notes            String?
+  totalAmount      Decimal?                      @map("total_amount") @db.Decimal(12, 2)
+  currency         String                        @default("ILS")
+  expectedDelivery DateTime?                     @map("expected_delivery") @db.Timestamptz(6)
+  sentAt           DateTime?                     @map("sent_at") @db.Timestamptz(6)
+  receivedAt       DateTime?                     @map("received_at") @db.Timestamptz(6)
+  createdBy        String?                       @map("created_by")
+  createdAt        DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lineItems        OperationsPurchaseOrderItem[]
+  supplier         OperationsSupplier?            @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
+  organization     Organization                  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organizationId, poNumber], map: "operations_po_unique_number_per_org")
+  @@index([organizationId], map: "idx_operations_po_org")
+  @@index([organizationId, status], map: "idx_operations_po_org_status")
+  @@map("operations_purchase_orders")
+}
+
+model OperationsPurchaseOrderItem {
+  id              String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  purchaseOrderId String                    @map("purchase_order_id") @db.Uuid
+  itemId          String?                   @map("item_id") @db.Uuid
+  description     String
+  quantity        Decimal                   @db.Decimal(12, 3)
+  unitPrice       Decimal                   @map("unit_price") @db.Decimal(12, 2)
+  totalPrice      Decimal                   @map("total_price") @db.Decimal(12, 2)
+  receivedQty     Decimal                   @default(0) @map("received_qty") @db.Decimal(12, 3)
+  createdAt       DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  purchaseOrder   OperationsPurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  item            OperationsItem?           @relation(fields: [itemId], references: [id], onUpdate: NoAction)
+
+  @@index([purchaseOrderId], map: "idx_operations_po_items_po")
+  @@map("operations_purchase_order_items")
 }
 
 model OperationsContractorToken {
@@ -3063,6 +3107,7 @@ model Organization {
   operationsProjects               OperationsProject[]
   operationsSuppliers              OperationsSupplier[]
   operationsContractorTokens       OperationsContractorToken[]
+  operationsPurchaseOrders         OperationsPurchaseOrder[]
   operationsWorkOrders             OperationsWorkOrder[]
   operationsBuildings              OperationsBuilding[]
   operationsCallCategories         OperationsCallCategory[]

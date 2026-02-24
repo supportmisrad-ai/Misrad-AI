@@ -2,7 +2,7 @@
 
 import React, { useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { SquareMousePointer, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, Users } from 'lucide-react';
+import { SquareMousePointer, Briefcase, ClipboardList, LayoutDashboard, Mic, Package, Plus, Settings, ShoppingCart, Users } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -26,6 +26,7 @@ import { OperationsToastProvider } from '@/components/operations/OperationsToast
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -38,6 +39,8 @@ function buildTitle(pathname: string, basePath: string): string {
   if (relative === '/work-orders/new') return 'קריאה חדשה';
   if (relative.startsWith('/work-orders/')) return 'קריאות שירות';
   if (relative === '/contractors') return 'ספקים וקבלנים';
+  if (relative === '/purchase-orders') return 'הזמנות רכש';
+  if (relative.startsWith('/purchase-orders/')) return 'הזמנות רכש';
   if (relative === '/inventory') return 'מלאי';
   if (relative.startsWith('/inventory/')) return 'מלאי';
   if (relative === '/attendance-reports') return 'דוחות נוכחות';
@@ -91,6 +94,7 @@ export default function OperationsShell({
       { label: 'פרויקטים', path: '/projects', icon: Briefcase, separatorBefore: true },
       { label: 'מלאי', path: '/inventory', icon: Package },
       { label: 'ספקים וקבלנים', path: '/contractors', icon: Users },
+      { label: 'הזמנות רכש', path: '/purchase-orders', icon: ShoppingCart },
       { label: 'הגדרות', path: '/settings', icon: Settings, separatorBefore: true },
     ],
     []
@@ -228,15 +232,18 @@ export default function OperationsShell({
         onNavigateAction={onSidebarItemClick}
         linkHrefPrefix={basePath}
         bottomSlot={
-          <OSAppSwitcher
-            compact={true}
-            buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
-            buttonLabel="מודולים"
-            className={isSidebarOpen ? '' : 'w-full flex justify-center'}
-            entitlements={entitlements}
-            orgSlug={orgSlug}
-            currentModule="operations"
-          />
+          <div className="space-y-3">
+            <AttendanceMiniStatus />
+            <OSAppSwitcher
+              compact={true}
+              buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+              buttonLabel="מודולים"
+              className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+              entitlements={entitlements}
+              orgSlug={orgSlug}
+              currentModule="operations"
+            />
+          </div>
         }
       />
 
@@ -433,7 +440,10 @@ export default function OperationsShell({
 
                 <div className="space-y-3">
                   <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                  <div className="space-y-3">
+                    <AttendanceMiniStatus />
+                    <OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                  </div>
                 </div>
               </div>
             </motion.div>
