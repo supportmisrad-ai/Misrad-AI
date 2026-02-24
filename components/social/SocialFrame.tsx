@@ -41,7 +41,6 @@ import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
-import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
@@ -433,10 +432,6 @@ export default function SocialFrame({
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
               <div className="space-y-6">
-                <MobileMenuAttendanceButton />
-
-                <div className="h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent"></div>
-
                 <div className="grid grid-cols-4 gap-4">
                   {menuItems.filter(i => ['inbox','content-bank'].includes(i.id)).map((item) => {
                     const isActiveItem = currentView === item.view;

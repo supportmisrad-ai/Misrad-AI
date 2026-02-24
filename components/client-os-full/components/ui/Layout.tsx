@@ -22,7 +22,6 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
-import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 interface LayoutProps {
@@ -499,10 +498,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
             <div className="space-y-6">
-              <MobileMenuAttendanceButton />
-
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
               <div className="grid grid-cols-4 gap-4">
                 {navItems.filter((item) => !['dashboard', 'clients', 'intelligence'].includes(item.id)).map((item) => {
                   const isActiveItem = item.id === activeView;
