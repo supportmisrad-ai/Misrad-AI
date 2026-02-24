@@ -131,6 +131,30 @@ export function OperationsDashboard({
         </Link>
       </div>
 
+      {/* ──── Closure Stats ──── */}
+      {woStats && (woStats.doneThisWeek > 0 || woStats.doneThisMonth > 0 || woStats.avgResolutionMinutes !== null) ? (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-5">
+            <div className="text-2xl font-extrabold text-emerald-700">{woStats.doneThisWeek}</div>
+            <div className="text-xs font-medium text-emerald-600 mt-1">הושלמו השבוע</div>
+          </div>
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-5">
+            <div className="text-2xl font-extrabold text-emerald-700">{woStats.doneThisMonth}</div>
+            <div className="text-xs font-medium text-emerald-600 mt-1">הושלמו החודש</div>
+          </div>
+          <div className="rounded-2xl border border-sky-200/60 bg-sky-50/50 p-5">
+            <div className="text-2xl font-extrabold text-sky-700">
+              {woStats.avgResolutionMinutes !== null
+                ? woStats.avgResolutionMinutes >= 60
+                  ? `${Math.round(woStats.avgResolutionMinutes / 60)} שעות`
+                  : `${woStats.avgResolutionMinutes} דק׳`
+                : '—'}
+            </div>
+            <div className="text-xs font-medium text-sky-600 mt-1">ממוצע זמן טיפול</div>
+          </div>
+        </div>
+      ) : null}
+
       {/* ──── Alerts Row ──── */}
       {hasUrgent ? (
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">

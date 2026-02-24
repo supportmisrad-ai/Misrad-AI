@@ -565,7 +565,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
               <div className="space-y-3">
                 <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
               </div>
             </div>
           </div>

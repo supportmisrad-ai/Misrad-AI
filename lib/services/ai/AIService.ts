@@ -966,10 +966,14 @@ export class AIService {
     let settings = coerceFeatureSettingsRow(orgRow);
 
     if (!settings) {
-      const globalRow = await prisma.ai_feature_settings.findFirst({
-        where: { organization_id: null, feature_key: params.featureKey, enabled: true },
-      });
-      settings = coerceFeatureSettingsRow(globalRow);
+      try {
+        const globalRow = await prisma.ai_feature_settings.findFirst({
+          where: { organization_id: null, feature_key: params.featureKey, enabled: true },
+        });
+        settings = coerceFeatureSettingsRow(globalRow);
+      } catch {
+        // Tenant guard blocks organization_id:null queries — fall through to defaults
+      }
     }
 
     if (!settings) {
@@ -1157,12 +1161,16 @@ export class AIService {
       return orgName;
     }
 
-    const globalRow = await prisma.ai_model_aliases.findFirst({
-      where: { organization_id: null, provider: params.provider, model: params.model },
-      select: { display_name: true },
-    });
-
-    const globalName = globalRow?.display_name ? String(globalRow.display_name) : null;
+    let globalName: string | null = null;
+    try {
+      const globalRow = await prisma.ai_model_aliases.findFirst({
+        where: { organization_id: null, provider: params.provider, model: params.model },
+        select: { display_name: true },
+      });
+      globalName = globalRow?.display_name ? String(globalRow.display_name) : null;
+    } catch {
+      // Tenant guard blocks organization_id:null queries — fall through to null
+    }
     ttlSet(AIService._modelDisplayNameCache, cacheKey, globalName, CACHE_TTL.MODEL_DISPLAY_NAME);
     return globalName;
   }
@@ -1217,12 +1225,16 @@ export class AIService {
       return decrypted;
     }
 
-    const globalKeyRow = await prisma.ai_provider_keys.findFirst({
-      where: { provider: params.provider, organization_id: null, enabled: true },
-      select: { api_key: true },
-    });
-
-    const globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
+    let globalKey: string | null = null;
+    try {
+      const globalKeyRow = await prisma.ai_provider_keys.findFirst({
+        where: { provider: params.provider, organization_id: null, enabled: true },
+        select: { api_key: true },
+      });
+      globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
+    } catch {
+      // Tenant guard blocks organization_id:null queries — fall through to env vars
+    }
 
     if (globalKey) {
       const decrypted = await this.decryptKeyOrPlaintext(globalKey);

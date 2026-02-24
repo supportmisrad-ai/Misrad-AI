@@ -556,7 +556,7 @@ export default function SocialFrame({
 
                 <div className="space-y-3">
                   <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="social" />
+                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
                 </div>
               </div>
             </motion.div>

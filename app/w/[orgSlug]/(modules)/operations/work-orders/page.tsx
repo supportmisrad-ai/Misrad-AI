@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { ExportWorkOrdersCsvButton } from '@/components/operations/ExportButtons';
-import { getOperationsProjectOptions, getOperationsWorkOrdersData, bulkUpdateOperationsWorkOrderStatus } from '@/app/actions/operations';
+import { getOperationsDepartments, getOperationsProjectOptions, getOperationsWorkOrdersData, bulkUpdateOperationsWorkOrderStatus } from '@/app/actions/operations';
 import { Select } from '@/components/ui/select';
 import WorkOrdersSmartSortClient from '@/components/operations/WorkOrdersSmartSortClient';
 import WorkOrdersBulkActions from '@/components/operations/WorkOrdersBulkActions';
@@ -31,8 +31,10 @@ export default async function OperationsWorkOrdersPage({
   const onlyMineRaw = sp.onlyMine;
   const pageRaw = sp.page;
   const searchRaw = sp.q;
+  const departmentIdRaw = sp.departmentId;
   const statusParam = Array.isArray(statusParamRaw) ? statusParamRaw[0] : statusParamRaw;
   const projectId = Array.isArray(projectIdRaw) ? projectIdRaw[0] : projectIdRaw;
+  const departmentId = Array.isArray(departmentIdRaw) ? departmentIdRaw[0] : departmentIdRaw;
   const onlyMine = String(Array.isArray(onlyMineRaw) ? onlyMineRaw[0] : onlyMineRaw) === '1';
   const page = Math.max(Number(Array.isArray(pageRaw) ? pageRaw[0] : pageRaw) || 1, 1);
   const search = searchRaw ? String(Array.isArray(searchRaw) ? searchRaw[0] : searchRaw).trim() : '';
@@ -49,10 +51,11 @@ export default async function OperationsWorkOrdersPage({
 
   const status = parseStatus(statusParam);
 
-  // Use cached workspace (layout already verified) + resolve project options in parallel
-  const [workspace, projectOptionsRes] = await Promise.all([
+  // Use cached workspace (layout already verified) + resolve project options + departments in parallel
+  const [workspace, projectOptionsRes, departmentsRes] = await Promise.all([
     requireWorkspaceAccessByOrgSlug(orgSlug),
     getOperationsProjectOptions({ orgSlug }),
+    getOperationsDepartments({ orgSlug }),
   ]);
 
   // When onlyMine is false, user resolution and work orders fetch are independent — run in parallel
@@ -65,6 +68,7 @@ export default async function OperationsWorkOrdersPage({
       orgSlug,
       status,
       projectId: projectId ? String(projectId) : undefined,
+      departmentId: departmentId ? String(departmentId) : undefined,
       assignedTechnicianId: user.id,
       search: search || undefined,
       page,
@@ -77,6 +81,7 @@ export default async function OperationsWorkOrdersPage({
         orgSlug,
         status,
         projectId: projectId ? String(projectId) : undefined,
+        departmentId: departmentId ? String(departmentId) : undefined,
         search: search || undefined,
         page,
         limit: PAGE_SIZE,
@@ -90,6 +95,7 @@ export default async function OperationsWorkOrdersPage({
   const totalCount = workOrdersRes.success ? workOrdersRes.data?.totalCount ?? 0 : 0;
   const totalPages = Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
   const projectOptions = projectOptionsRes.success ? projectOptionsRes.data ?? [] : [];
+  const departments = departmentsRes.success ? departmentsRes.data ?? [] : [];
 
   async function bulkStatusAction(ids: string[], newStatus: string) {
     'use server';
@@ -104,6 +110,7 @@ export default async function OperationsWorkOrdersPage({
     const params = new URLSearchParams();
     if (statusParam) params.set('status', String(statusParam));
     if (projectId) params.set('projectId', String(projectId));
+    if (departmentId) params.set('departmentId', String(departmentId));
     if (onlyMine) params.set('onlyMine', '1');
     if (search) params.set('q', search);
     if (p > 1) params.set('page', String(p));
@@ -134,8 +141,8 @@ export default async function OperationsWorkOrdersPage({
         </div>
 
         <div className="p-5 space-y-4">
-          <form method="get" className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-            <div className="md:col-span-2">
+          <form method="get" className="grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
+            <div className="col-span-2">
               <label htmlFor="q" className="block text-xs font-semibold text-slate-500 mb-1.5">
                 חיפוש
               </label>
@@ -177,6 +184,24 @@ export default async function OperationsWorkOrdersPage({
                 {projectOptions.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.title}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div>
+              <label htmlFor="departmentId" className="block text-xs font-semibold text-slate-500 mb-1.5">
+                מחלקה
+              </label>
+              <Select
+                id="departmentId"
+                name="departmentId"
+                defaultValue={departmentId ? String(departmentId) : ''}
+              >
+                <option value="">כל המחלקות</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
                   </option>
                 ))}
               </Select>

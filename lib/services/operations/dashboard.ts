@@ -38,6 +38,9 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
             COUNT(*) FILTER (WHERE status IN ('NEW','OPEN')) AS open_count,
             COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') AS in_progress_count,
             COUNT(*) FILTER (WHERE status = 'DONE' AND completed_at >= CURRENT_DATE) AS done_today_count,
+            COUNT(*) FILTER (WHERE status = 'DONE' AND completed_at >= date_trunc('week', CURRENT_DATE)) AS done_this_week,
+            COUNT(*) FILTER (WHERE status = 'DONE' AND completed_at >= date_trunc('month', CURRENT_DATE)) AS done_this_month,
+            ROUND(AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 60) FILTER (WHERE status = 'DONE' AND completed_at IS NOT NULL))::int AS avg_resolution_minutes,
             COUNT(*) AS total_count,
             COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL AND sla_deadline < NOW() AND status NOT IN ('DONE')) AS sla_breach_count,
             COUNT(*) FILTER (WHERE assigned_technician_id IS NULL AND status NOT IN ('DONE')) AS unassigned_count,
@@ -111,10 +114,14 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
 
     // Work order stats
     const statsRow = asObject((woStatsRows || [])[0]) ?? {};
+    const avgRaw = statsRow.avg_resolution_minutes;
     const woStats = {
       open: Number(statsRow.open_count ?? 0),
       inProgress: Number(statsRow.in_progress_count ?? 0),
       doneToday: Number(statsRow.done_today_count ?? 0),
+      doneThisWeek: Number(statsRow.done_this_week ?? 0),
+      doneThisMonth: Number(statsRow.done_this_month ?? 0),
+      avgResolutionMinutes: avgRaw != null && Number.isFinite(Number(avgRaw)) ? Number(avgRaw) : null,
       total: Number(statsRow.total_count ?? 0),
       slaBreach: Number(statsRow.sla_breach_count ?? 0),
       unassigned: Number(statsRow.unassigned_count ?? 0),

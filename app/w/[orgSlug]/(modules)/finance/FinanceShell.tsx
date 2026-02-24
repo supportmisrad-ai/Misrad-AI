@@ -405,7 +405,7 @@ export default function FinanceShell(props: {
 
                 <div className="space-y-3">
                   <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
                 </div>
               </div>
             </motion.div>

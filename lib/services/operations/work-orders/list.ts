@@ -16,6 +16,7 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
   status?: 'OPEN' | 'ALL' | OperationsWorkOrderStatus;
   projectId?: string;
   assignedTechnicianId?: string;
+  departmentId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -51,6 +52,13 @@ export async function getOperationsWorkOrdersDataForOrganizationId(params: {
       idx += 1;
       values.push(assignedTechnicianId);
       whereSql += ` AND wo.assigned_technician_id = $${idx}::uuid`;
+    }
+
+    const departmentId = params.departmentId ? String(params.departmentId).trim() : '';
+    if (departmentId) {
+      idx += 1;
+      values.push(departmentId);
+      whereSql += ` AND wo.department_id = $${idx}::uuid`;
     }
 
     const searchTerm = params.search ? String(params.search).trim() : '';

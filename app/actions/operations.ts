@@ -3,6 +3,7 @@
 
 import { logger } from '@/lib/server/logger';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
+import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
  
 
 import {
@@ -622,12 +623,23 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
   try {
     return await withWorkspaceTenantContext(
       params.orgSlug,
-      async ({ organizationId }) =>
-        await setOperationsWorkOrderAssignedTechnicianForOrganizationId({
+      async ({ organizationId }) => {
+        const result = await setOperationsWorkOrderAssignedTechnicianForOrganizationId({
           organizationId,
           id: params.id,
           technicianId: params.technicianId,
-        }),
+        });
+        if (result.success && params.technicianId) {
+          insertMisradNotificationsForOrganizationId({
+            organizationId,
+            recipientIds: [params.technicianId],
+            type: 'WORK_ORDER',
+            text: `שויכת לקריאת שירות חדשה`,
+            reason: 'ops_work_order_assigned',
+          }).catch(() => null);
+        }
+        return result;
+      },
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderAssignedTechnician' }
     );
   } catch (e: unknown) {
@@ -1010,6 +1022,7 @@ export async function getOperationsWorkOrdersData(params: {
   status?: 'OPEN' | 'ALL' | OperationsWorkOrderStatus;
   projectId?: string;
   assignedTechnicianId?: string;
+  departmentId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -1023,6 +1036,7 @@ export async function getOperationsWorkOrdersData(params: {
           status: params.status,
           projectId: params.projectId,
           assignedTechnicianId: params.assignedTechnicianId,
+          departmentId: params.departmentId,
           search: params.search,
           page: params.page,
           limit: params.limit,
@@ -1089,8 +1103,8 @@ export async function createOperationsWorkOrder(params: {
   try {
     return await withWorkspaceTenantContext(
       params.orgSlug,
-      async ({ organizationId }) =>
-        await createOperationsWorkOrderForOrganizationId({
+      async ({ organizationId }) => {
+        const result = await createOperationsWorkOrderForOrganizationId({
           organizationId,
           projectId: params.projectId,
           title: params.title,
@@ -1105,7 +1119,19 @@ export async function createOperationsWorkOrder(params: {
           reporterName: params.reporterName,
           reporterPhone: params.reporterPhone,
           assignedTechnicianId: params.assignedTechnicianId,
-        }),
+        });
+        if (result.success && params.assignedTechnicianId) {
+          const priorityLabel = params.priority === 'CRITICAL' ? ' (קריטי!)' : params.priority === 'URGENT' ? ' (דחוף)' : '';
+          insertMisradNotificationsForOrganizationId({
+            organizationId,
+            recipientIds: [params.assignedTechnicianId],
+            type: 'WORK_ORDER',
+            text: `קריאת שירות חדשה שויכה אליך: ${params.title}${priorityLabel}`,
+            reason: 'ops_work_order_created_assigned',
+          }).catch(() => null);
+        }
+        return result;
+      },
       { source: 'server_actions_operations', reason: 'createOperationsWorkOrder' }
     );
   } catch (e: unknown) {
@@ -1182,12 +1208,36 @@ export async function setOperationsWorkOrderStatus(params: {
   try {
     return await withWorkspaceTenantContext(
       params.orgSlug,
-      async ({ organizationId }) =>
-        await setOperationsWorkOrderStatusForOrganizationId({
+      async ({ organizationId }) => {
+        const result = await setOperationsWorkOrderStatusForOrganizationId({
           organizationId,
           id: params.id,
           status: params.status,
-        }),
+        });
+        if (result.success) {
+          try {
+            const woRes = await getOperationsWorkOrderByIdForOrganizationId({ organizationId, orgSlug: params.orgSlug, id: params.id });
+            const wo = woRes.success ? woRes.data : null;
+            if (wo) {
+              const statusLabel = params.status === 'DONE' ? 'הושלמה' : params.status === 'IN_PROGRESS' ? 'בטיפול' : 'חדשה';
+              const recipients: string[] = [];
+              if (wo.assignedTechnicianId) recipients.push(wo.assignedTechnicianId);
+              if (recipients.length > 0) {
+                insertMisradNotificationsForOrganizationId({
+                  organizationId,
+                  recipientIds: recipients,
+                  type: 'WORK_ORDER',
+                  text: `קריאה "${wo.title}" עודכנה לסטטוס: ${statusLabel}`,
+                  reason: 'ops_work_order_status_changed',
+                }).catch(() => null);
+              }
+            }
+          } catch {
+            // fire-and-forget notification
+          }
+        }
+        return result;
+      },
       { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStatus' }
     );
   } catch (e: unknown) {

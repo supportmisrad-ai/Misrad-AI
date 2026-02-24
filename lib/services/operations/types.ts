@@ -24,6 +24,9 @@ export type OperationsDashboardData = {
     open: number;
     inProgress: number;
     doneToday: number;
+    doneThisWeek: number;
+    doneThisMonth: number;
+    avgResolutionMinutes: number | null;
     total: number;
     slaBreach: number;
     unassigned: number;
