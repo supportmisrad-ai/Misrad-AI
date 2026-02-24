@@ -121,6 +121,7 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
 
   const [newProviderKey, setNewProviderKey] = useState({ provider: '', api_key: '', scope: 'org' });
   const [newAlias, setNewAlias] = useState({ provider: '', model: '', display_name: '', scope: 'org' });
+  const [envStatus, setEnvStatus] = useState<Record<string, { configured: boolean; envVar: string }> | null>(null);
 
   const providers = useMemo(
     () => [
@@ -242,6 +243,13 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
 
   useEffect(() => {
     void loadOrganizations();
+    void (async () => {
+      try {
+        const res = await fetch('/api/admin/ai/env-status');
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.providers) setEnvStatus(data.providers);
+      } catch { /* ignore */ }
+    })();
   }, [loadOrganizations]);
 
   useEffect(() => {
@@ -522,6 +530,18 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
             </div>
           </div>
         </div>
+        {envStatus && (
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-200/60">
+            <span className="text-[11px] font-bold text-slate-500 shrink-0">ספקים בסביבה:</span>
+            {Object.entries(envStatus).map(([provider, info]) => (
+              <div key={provider} className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg ${info.configured ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-500'}`}>
+                {info.configured ? <CircleCheck size={12} /> : <CircleAlert size={12} />}
+                {provider}
+                <span className="font-normal text-[10px] opacity-70">({info.envVar})</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── טאבים — תמיד נראים ── */}
