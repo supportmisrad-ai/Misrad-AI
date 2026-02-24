@@ -8,7 +8,7 @@ export default async function SystemFormsPage({
 }) {
   const { orgSlug } = await params;
 
-  const { forms } = await getSystemFormsAction(orgSlug).catch(() => ({ forms: [] as never[] }));
+  const { forms } = await getSystemFormsAction(orgSlug);
 
   return <SystemFormsClient orgSlug={orgSlug} initialForms={forms} />;
 }

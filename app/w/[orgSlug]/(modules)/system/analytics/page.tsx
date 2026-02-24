@@ -14,17 +14,9 @@ export default async function SystemAnalyticsPage({
   const tabRaw = sp.tab;
   const initialTab = tabRaw === 'reports' ? 'reports' as const : 'analytics' as const;
 
-  type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
-  type CampaignsRes = Awaited<ReturnType<typeof getCampaigns>>;
   const [leadsRes, campaignsRes] = await Promise.all([
-    getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
-      success: false,
-      error: 'שגיאה בטעינת לידים',
-    })),
-    getCampaigns(undefined, orgSlug).catch((): CampaignsRes => ({
-      success: false,
-      error: 'שגיאה בטעינת קמפיינים',
-    })),
+    getSystemLeadsPage({ orgSlug, pageSize: 50 }),
+    getCampaigns(undefined, orgSlug),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];

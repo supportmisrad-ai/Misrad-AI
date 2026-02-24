@@ -430,16 +430,6 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             fallbackIcon,
             badgeModuleKey: 'client',
           }}
-          mobileLeadingSlot={
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-full hover:bg-white/50 text-gray-600"
-              aria-label="פתח תפריט"
-              type="button"
-            >
-              <Menu size={18} />
-            </button>
-          }
           onOpenCommandPaletteAction={triggerCommand}
           onOpenSupportAction={openSupport}
           actionsSlot={<ModuleHelpVideos moduleKey="client" />}
