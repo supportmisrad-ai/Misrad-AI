@@ -1,14 +1,33 @@
-import React from 'react';
-import ClientsPageClient from '@/components/social/clients/ClientsPageClient';
+'use client';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+import nextDynamic from 'next/dynamic';
+import { Suspense, use } from 'react';
+import { SkeletonGrid } from '@/components/ui/skeletons';
 
+const ClientsPageClient = nextDynamic(() => import('@/components/social/clients/ClientsPageClient'), {
+  loading: () => (
+    <div className="min-h-[400px] p-6">
+      <SkeletonGrid cards={6} columns={3} />
+    </div>
+  ),
+  ssr: false,
+});
 
-export default async function ClientsPage({
+export default function ClientsPage({
   params,
 }: {
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
-  return <ClientsPageClient orgSlug={orgSlug} />;
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] p-6">
+          <SkeletonGrid cards={6} columns={3} />
+        </div>
+      }
+    >
+      <ClientsPageClient orgSlug={resolvedParams.orgSlug} />
+    </Suspense>
+  );
 }

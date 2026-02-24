@@ -140,11 +140,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export type AppProviderProps = {
   children: ReactNode;
   initialSocialData?: SocialInitialData;
+  initialIsTeamEnabled?: boolean;
 };
 
 export const AppProvider: React.FC<AppProviderProps> = ({
   children,
   initialSocialData,
+  initialIsTeamEnabled,
 }) => {
   let clerkUser: ReturnType<typeof useUser>['user'] | null = null;
   let clerkIsLoaded = true;
@@ -222,37 +224,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [isTeamManagementEnabled, setIsTeamManagementEnabled] = useState(false);
 
   useEffect(() => {
-    const run = async () => {
-      try {
-        if (!effectiveOrgSlug) {
-          setIsTeamManagementEnabled(false);
-          return;
-        }
-
-        const res = await fetch('/api/workspaces');
-        if (!res.ok) {
-          setIsTeamManagementEnabled(false);
-          return;
-        }
-
-        const data = await res.json().catch(() => null);
-        const workspaces = (data?.workspaces || []) as Array<{ slug: string; id: string; entitlements?: Record<string, boolean>; capabilities?: { isTeamManagementEnabled?: boolean } }>;
-        const ws = workspaces.find((w) => String(w.slug) === String(effectiveOrgSlug) || String(w.id) === String(effectiveOrgSlug));
-        const capTeamEnabled = ws?.capabilities?.isTeamManagementEnabled;
-        if (typeof capTeamEnabled === 'boolean') {
-          setIsTeamManagementEnabled(Boolean(capTeamEnabled));
-          return;
-        }
-
-        const ent = ws?.entitlements;
-        setIsTeamManagementEnabled(Boolean(ent?.nexus));
-      } catch {
-        setIsTeamManagementEnabled(false);
-      }
-    };
-
-    run();
-  }, [effectiveOrgSlug]);
+    if (typeof initialIsTeamEnabled === 'boolean') {
+      setIsTeamManagementEnabled(initialIsTeamEnabled);
+    }
+  }, [initialIsTeamEnabled]);
   
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);

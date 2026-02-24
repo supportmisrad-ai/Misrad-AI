@@ -49,7 +49,7 @@ export default function SocialShellClient({
 
   return (
     <ReactQueryProvider>
-      <AppProvider initialSocialData={initialSocialData}>
+      <AppProvider initialSocialData={initialSocialData} initialIsTeamEnabled={isTeamEnabled}>
         <AuthProvider>
           <ToastProvider>
             <BrandProvider>

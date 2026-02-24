@@ -1,8 +1,28 @@
-import Analytics from '@/components/social/Analytics';
+'use client';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+import nextDynamic from 'next/dynamic';
+import { Suspense } from 'react';
+import { SkeletonGrid } from '@/components/ui/skeletons';
 
+const Analytics = nextDynamic(() => import('@/components/social/Analytics'), {
+  loading: () => (
+    <div className="min-h-[400px] p-6">
+      <SkeletonGrid cards={4} columns={2} />
+    </div>
+  ),
+  ssr: false,
+});
 
-export default async function AnalyticsPage() {
-  return <Analytics />;
+export default function AnalyticsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] p-6">
+          <SkeletonGrid cards={4} columns={2} />
+        </div>
+      }
+    >
+      <Analytics />
+    </Suspense>
+  );
 }

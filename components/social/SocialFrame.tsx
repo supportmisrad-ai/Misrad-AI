@@ -7,18 +7,20 @@ import * as Icons from 'lucide-react';
 import { SquareMousePointer, Bell, Calendar, Home, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+import nextDynamic from 'next/dynamic';
 import ToastContainer from '@/components/social/ToastContainer';
-import AddClientModal from '@/components/social/modals/AddClientModal';
-import InviteClientModal from '@/components/social/modals/InviteClientModal';
-import PaymentLinkModal from '@/components/social/modals/PaymentLinkModal';
-import TaskModal from '@/components/social/modals/TaskModal';
-import CampaignWizard from '@/components/social/modals/CampaignWizard';
-import ReportModal from '@/components/social/modals/ReportModal';
-import HelpModal from '@/components/social/modals/HelpModal';
-import CommandPalette from '@/components/social/CommandPalette';
-import NotificationCenter from '@/components/social/NotificationCenter';
-import OnboardingTour from '@/components/social/OnboardingTour';
-import ClientOnboardingPortal from '@/components/social/ClientOnboardingPortal';
+
+const AddClientModal = nextDynamic(() => import('@/components/social/modals/AddClientModal'), { ssr: false });
+const InviteClientModal = nextDynamic(() => import('@/components/social/modals/InviteClientModal'), { ssr: false });
+const PaymentLinkModal = nextDynamic(() => import('@/components/social/modals/PaymentLinkModal'), { ssr: false });
+const TaskModal = nextDynamic(() => import('@/components/social/modals/TaskModal'), { ssr: false });
+const CampaignWizard = nextDynamic(() => import('@/components/social/modals/CampaignWizard'), { ssr: false });
+const ReportModal = nextDynamic(() => import('@/components/social/modals/ReportModal'), { ssr: false });
+const HelpModal = nextDynamic(() => import('@/components/social/modals/HelpModal'), { ssr: false });
+const CommandPalette = nextDynamic(() => import('@/components/social/CommandPalette'), { ssr: false });
+const NotificationCenter = nextDynamic(() => import('@/components/social/NotificationCenter'), { ssr: false });
+const OnboardingTour = nextDynamic(() => import('@/components/social/OnboardingTour'), { ssr: false });
+const ClientOnboardingPortal = nextDynamic(() => import('@/components/social/ClientOnboardingPortal'), { ssr: false });
 
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';

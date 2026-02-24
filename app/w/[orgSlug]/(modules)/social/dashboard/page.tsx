@@ -1,21 +1,33 @@
-import Dashboard from '@/components/social/Dashboard';
-import prisma from '@/lib/prisma';
+'use client';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+import nextDynamic from 'next/dynamic';
+import { Suspense, use } from 'react';
+import { SkeletonGrid } from '@/components/ui/skeletons';
 
+const Dashboard = nextDynamic(() => import('@/components/social/Dashboard'), {
+  loading: () => (
+    <div className="min-h-[400px] p-6">
+      <SkeletonGrid cards={6} columns={3} />
+    </div>
+  ),
+  ssr: false,
+});
 
-export default async function DashboardPage({
+export default function DashboardPage({
   params,
 }: {
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
-
-  const initialScripts = await prisma.strategic_content.findMany({
-    where: { module_id: 'social', category: 'scripts' },
-    select: { id: true, category: true, title: true, content: true, module_id: true },
-    orderBy: [{ category: 'asc' }, { title: 'asc' }],
-  }).catch(() => []);
-
-  return <Dashboard orgSlug={orgSlug} initialScripts={initialScripts} />;
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[400px] p-6">
+          <SkeletonGrid cards={6} columns={3} />
+        </div>
+      }
+    >
+      <Dashboard orgSlug={resolvedParams.orgSlug} />
+    </Suspense>
+  );
 }

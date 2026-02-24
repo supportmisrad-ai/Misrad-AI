@@ -175,15 +175,11 @@ export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]>
   }
 }
 
-export async function getSocialPosts(params: {
-  orgSlug: string;
+async function getSocialPostsInternal(params: {
+  organizationId: string;
   clientId?: string;
 }): Promise<SocialPost[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const organizationId = String(workspace?.id || '').trim();
-  if (!organizationId) {
-    throw new Error('Missing organizationId');
-  }
+  const organizationId = params.organizationId;
 
   const posts = (await prisma.socialPost.findMany({
     where: {
@@ -258,12 +254,20 @@ export async function getSocialPosts(params: {
   });
 }
 
-export async function getSocialActivity(params: { orgSlug: string; limit?: number }): Promise<ActivityLog[]> {
+export async function getSocialPosts(params: {
+  orgSlug: string;
+  clientId?: string;
+}): Promise<SocialPost[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   const organizationId = String(workspace?.id || '').trim();
   if (!organizationId) {
     throw new Error('Missing organizationId');
   }
+  return getSocialPostsInternal({ organizationId, clientId: params.clientId });
+}
+
+async function getSocialActivityInternal(params: { organizationId: string; limit?: number }): Promise<ActivityLog[]> {
+  const organizationId = params.organizationId;
 
   // NOTE: social_activity_logs is keyed by team_member_id. We don't have org_id on the table,
   // so we join via social_team_members (organization_id) to scope to the workspace.
@@ -293,6 +297,15 @@ export async function getSocialActivity(params: { orgSlug: string; limit?: numbe
     targetType: isActivityTargetType(row.target_type) ? row.target_type : 'system',
     timestamp: String(row.created_at || ''),
   }));
+}
+
+export async function getSocialActivity(params: { orgSlug: string; limit?: number }): Promise<ActivityLog[]> {
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  const organizationId = String(workspace?.id || '').trim();
+  if (!organizationId) {
+    throw new Error('Missing organizationId');
+  }
+  return getSocialActivityInternal({ organizationId, limit: params.limit });
 }
 
 async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: string }) {
@@ -649,22 +662,31 @@ export async function getSocialInitialData(params: {
   orgSlug: string;
   clerkUserId?: string | null;
 }): Promise<SocialInitialData> {
-  const workspacePromise = requireWorkspaceAccessByOrgSlug(params.orgSlug);
-
-  const [workspace, clientsResult, teamResult, postsResult, activityResult] = await Promise.all([
-    workspacePromise,
-    getClientsPage({ orgSlug: params.orgSlug, pageSize: 200 }),
-    getTeamMembers(params.orgSlug),
-    getSocialPosts({ orgSlug: params.orgSlug }),
-    getSocialActivity({ orgSlug: params.orgSlug, limit: 50 }),
-  ]);
-
+  // Phase 1: Resolve workspace FIRST — single fast cached call
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   const organizationId = String(workspace?.id || '').trim();
   if (!organizationId) {
     throw new Error('Missing organizationId');
   }
 
-  const [tasks, conversations, clientRequests, managerRequests, ideas] = await Promise.all([
+  // Phase 2: Run ALL data fetches in a SINGLE parallel batch
+  // Previously this was split into 3 sequential phases — now flattened.
+  // Internal variants bypass redundant workspace resolution.
+  const [
+    clientsResult,
+    teamResult,
+    postsResult,
+    activityResult,
+    tasks,
+    conversations,
+    clientRequests,
+    managerRequests,
+    ideas,
+  ] = await Promise.all([
+    getClientsPage({ orgSlug: params.orgSlug, pageSize: 200 }),
+    getTeamMembers(params.orgSlug),
+    getSocialPostsInternal({ organizationId }),
+    getSocialActivityInternal({ organizationId, limit: 50 }),
     getSocialTasksForOrg({ orgSlug: params.orgSlug, organizationId }),
     getSocialConversationsForOrg({ orgSlug: params.orgSlug, organizationId }),
     getSocialClientRequestsForOrg({ organizationId }),
@@ -674,7 +696,7 @@ export async function getSocialInitialData(params: {
 
   const clients = clientsResult.success ? clientsResult.data.clients : [];
 
-  // Run platform attachment and conversation avatar signing in parallel
+  // Phase 3: Platform attachment + conversation avatar signing in parallel
   const ttlSeconds = 60 * 60;
   const conversationsArr = Array.isArray(conversations) ? conversations : [];
   const [clientsWithPlatforms, resolvedConversationAvatars] = await Promise.all([
@@ -685,7 +707,7 @@ export async function getSocialInitialData(params: {
       { organizationId }
     ),
   ]);
-  const resolvedConversations = (Array.isArray(conversations) ? conversations : []).map((c, idx) => {
+  const resolvedConversations = conversationsArr.map((c, idx) => {
     const signed = resolvedConversationAvatars[idx] ?? null;
     if (signed) return { ...c, userAvatar: signed };
     if (typeof c.userAvatar === 'string' && c.userAvatar.startsWith('sb://')) {
