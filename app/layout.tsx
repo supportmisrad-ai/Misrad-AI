@@ -4,7 +4,7 @@ import "./globals.css";
 import { getSystemMetadata, getThemeColor } from '@/lib/metadata';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
-import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets } from './ClientOnlyWidgets';
+import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets, ClientOnlyPwaBiometricGuard } from './ClientOnlyWidgets';
 import { ClerkProviderWithRouter } from './ClerkProviderWithRouter';
 
 // Heebo - Main text font (font-sans)
@@ -73,7 +73,9 @@ export default function RootLayout({
               signInFallbackRedirectUrl={signInFallbackRedirectUrl}
               signUpFallbackRedirectUrl={signUpFallbackRedirectUrl}
             >
-              {children}
+              <ClientOnlyPwaBiometricGuard>
+                {children}
+              </ClientOnlyPwaBiometricGuard>
               <ClientOnlyClerkWidgets />
             </ClerkProviderWithRouter>
           ) : (

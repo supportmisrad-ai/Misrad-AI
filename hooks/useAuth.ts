@@ -216,7 +216,7 @@ export const useAuth = (
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
-                    timeout: 8000,
+                    timeout: 5000,
                     maximumAge: 60000,
                 });
             });
@@ -733,22 +733,158 @@ export const useAuth = (
 
     const restoreUser = (id: string) => {
         const user = trashUsers.find(u => u.id === id);
-
-    // OPTIMISTIC: immediately show active shift so clock starts counting
-    const optimisticId = `optimistic-${Date.now()}`;
-    const optimisticStart = new Date().toISOString();
-    const optimisticEntry: TimeEntry = {
-        id: optimisticId,
-        userId: currentUser.id,
-        date: optimisticStart.slice(0, 10),
-        startTime: optimisticStart,
+        if (user) {
+            setUsers(prev => [...prev, user]);
+            setTrashUsers(prev => prev.filter(u => u.id !== id));
+            addToast('משתמש שוחזר בהצלחה', 'success');
+        }
     };
-    const prevEntries = timeEntries;
-    setTimeEntries(prev => [optimisticEntry, ...prev]);
-    broadcastAttendanceUpdate(orgSlug, optimisticId, optimisticStart);
 
-    const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-    addToast(`נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
+    const permanentlyDeleteUser = (id: string) => {
+        setTrashUsers(prev => prev.filter(u => u.id !== id));
+        addToast('משתמש נמחק לצמיתות', 'warning');
+    };
+
+    const clockIn = () => {
+        if (!orgSlug) { addToast('חסר ארגון פעיל', 'error'); return; }
+
+        // START GPS IMMEDIATELY — runs in parallel with server call
+        const gpsPromise = getLocation().catch(() => null);
+
+        // OPTIMISTIC: immediately show active shift so clock starts counting
+        const optimisticId = `optimistic-${Date.now()}`;
+        const optimisticStart = new Date().toISOString();
+        const optimisticEntry: TimeEntry = {
+            id: optimisticId,
+            userId: currentUser.id,
+            date: optimisticStart.slice(0, 10),
+            startTime: optimisticStart,
+        };
+        const prevEntries = timeEntries;
+        setTimeEntries(prev => [optimisticEntry, ...prev]);
+        broadcastAttendanceUpdate(orgSlug, optimisticId, optimisticStart);
+
+        const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        addToast(`נכנסת למשמרת ב-${timeStr}. עבודה נעימה!`, 'success');
+
+        const capturedOrgSlug = orgSlug;
+
+        // Server call + GPS update (GPS already acquiring in parallel)
+        void (async () => {
+            try {
+                const res = await punchIn(capturedOrgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
+
+                await refreshTimeEntries();
+
+                const entryId = res?.activeShift?.id;
+                if (entryId && res?.activeShift?.startTime) {
+                    broadcastAttendanceUpdate(capturedOrgSlug, entryId, new Date(res.activeShift.startTime).toISOString());
+                }
+                if (res?.alreadyActive) {
+                    addToast('כבר יש משמרת פעילה.', 'info');
+                }
+
+                // GPS was acquiring in parallel — use result now
+                if (entryId) {
+                    const location = await gpsPromise;
+                    if (location && (location.lat !== 0 || location.lng !== 0)) {
+                        try {
+                            await updateEntryLocation(capturedOrgSlug, entryId, 'start', location);
+                        } catch (updErr) {
+                            console.warn('[Attendance] updateEntryLocation failed (clockIn):', updErr instanceof Error ? updErr.message : updErr);
+                        }
+                    } else {
+                        console.warn('[Attendance] GPS unavailable for clockIn — entry saved without location');
+                    }
+                }
+            } catch (e: unknown) {
+                // ROLLBACK optimistic entry — only on actual server failure
+                setTimeEntries(prevEntries);
+                broadcastAttendanceUpdate(capturedOrgSlug, null, null);
+                const msg = String(e instanceof Error ? e.message : e);
+                addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
+            }
+        })();
+    };
+
+    const clockOut = () => {
+        if (!orgSlug) { addToast('חסר ארגון פעיל', 'error'); return; }
+        if (!activeShift) { addToast('אין משמרת פעילה לסגירה.', 'info'); return; }
+
+        // START GPS IMMEDIATELY — runs in parallel with server call
+        const gpsPromise = getLocation().catch(() => null);
+
+        // OPTIMISTIC: immediately mark shift as ended so clock stops
+        const prevEntries = timeEntries;
+        const capturedShift = activeShift;
+        const nowIso = new Date().toISOString();
+        setTimeEntries(prev => prev.map(t =>
+            t.id === capturedShift.id
+                ? { ...t, endTime: nowIso, durationMinutes: Math.round((Date.now() - new Date(t.startTime).getTime()) / 60000) }
+                : t
+        ));
+        broadcastAttendanceUpdate(orgSlug, null, null);
+
+        const outTimeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        addToast(`יצאת ממשמרת ב-${outTimeStr}. תודה!`, 'info');
+
+        const capturedOrgSlug = orgSlug;
+
+        // Server call + GPS update (GPS already acquiring in parallel)
+        void (async () => {
+            try {
+                const res = await punchOut(capturedOrgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
+
+                await refreshTimeEntries();
+
+                if (res?.noActiveShift) {
+                    addToast('אין משמרת פעילה לסגירה.', 'info');
+                }
+
+                // Confirm clock-out broadcast after server success
+                broadcastAttendanceUpdate(capturedOrgSlug, null, null);
+
+                // GPS was acquiring in parallel — use result now
+                const closedEntryId = res?.entryId || capturedShift.id;
+                if (closedEntryId) {
+                    const location = await gpsPromise;
+                    if (location && (location.lat !== 0 || location.lng !== 0)) {
+                        try {
+                            await updateEntryLocation(capturedOrgSlug, closedEntryId, 'end', location);
+                        } catch (updErr) {
+                            console.warn('[Attendance] updateEntryLocation failed (clockOut):', updErr instanceof Error ? updErr.message : updErr);
+                        }
+                    } else {
+                        console.warn('[Attendance] GPS unavailable for clockOut — entry saved without location');
+                    }
+                }
+            } catch (e: unknown) {
+                // ROLLBACK — restore active shift
+                setTimeEntries(prevEntries);
+                broadcastAttendanceUpdate(capturedOrgSlug, capturedShift.id, capturedShift.startTime);
+                const msg = String(e instanceof Error ? e.message : e);
+                addToast(msg || 'שגיאה ביציאה ממשמרת — המשמרת עדיין פעילה', 'error');
+            }
+        })();
+    };
+
+    const addManualTimeEntry = (entry: TimeEntry) => {
+        let durationMinutes = 0;
+        if (entry.endTime) {
+            const start = new Date(entry.startTime).getTime();
+            const end = new Date(entry.endTime).getTime();
+            durationMinutes = Math.round((end - start) / 60000);
+        }
+
+        const newEntry = { ...entry, durationMinutes };
+        setTimeEntries(prev => [newEntry, ...prev]);
+        addToast('דיווח שעות ידני נוסף בהצלחה', 'success');
+    };
+
+    const updateTimeEntry = (id: string, updates: Partial<TimeEntry>) => {
+        setTimeEntries(prev => prev.map(t => {
+            if (t.id === id) {
+                const updatedEntry = { ...t, ...updates };
                 
                 // Recalculate duration if times changed
                 if (updatedEntry.endTime) {

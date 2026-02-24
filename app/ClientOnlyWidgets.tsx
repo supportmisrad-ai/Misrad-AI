@@ -12,6 +12,11 @@ const PasskeyOnboardingPrompt = dynamic(
   { ssr: false, loading: () => null }
 );
 
+const PwaBiometricGuard = dynamic(
+  () => import('@/components/PwaBiometricGuard').then((m) => m.PwaBiometricGuard),
+  { ssr: false, loading: () => null }
+);
+
 const VoiceCommandFab = dynamic(
   () => import('@/components/voice/VoiceCommandFab').then((m) => m.VoiceCommandFab),
   { ssr: false, loading: () => null }
@@ -218,6 +223,12 @@ export function ClientOnlyClerkWidgets() {
       {shouldLoad && mounted && showFAB && enableAiAssistant && <AiAssistantWidget />}
     </>
   );
+}
+
+export function ClientOnlyPwaBiometricGuard({ children }: { children: React.ReactNode }) {
+  const mounted = useMounted();
+  if (!mounted) return <>{children}</>;
+  return <PwaBiometricGuard>{children}</PwaBiometricGuard>;
 }
 
 export function ClientOnlyGlobalWidgets() {

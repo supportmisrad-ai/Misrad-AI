@@ -1,6 +1,5 @@
-import { asObject } from '@/lib/shared/unknown';
-// Service Worker for Nexus PWA
-const CACHE_NAME = 'nexus-v1';
+// Service Worker for MISRAD AI PWA
+const CACHE_NAME = 'misrad-ai-v2';
 
 function getString(obj, key, fallback) {
   const v = obj && obj[key];
@@ -8,8 +7,12 @@ function getString(obj, key, fallback) {
   return v == null ? (fallback || '') : String(v);
 }
 
+function asObject(v) {
+  if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+  return undefined;
+}
+
 function resolveVibratePattern(behavior) {
-  // Android Chrome supports vibration pattern. iOS may ignore.
   if (behavior === 'vibrate' || behavior === 'vibrate_sound') {
     return [30, 40, 30];
   }
@@ -17,8 +20,6 @@ function resolveVibratePattern(behavior) {
 }
 
 function resolveSilent(behavior) {
-  // For web push, sound is controlled by OS/browser, but we can hint.
-  // When behavior is 'vibrate' we mark silent to avoid sound where possible.
   return behavior === 'vibrate';
 }
 
@@ -27,7 +28,8 @@ self.addEventListener('push', (event) => {
   let payload = {};
   try {
     const text = event && event.data ? event.data.text() : '';
-    payload = asObject(text ? JSON.parse(text) : {}) || {};
+    const parsed = text ? JSON.parse(text) : {};
+    payload = asObject(parsed) || {};
   } catch {
     payload = {};
   }
@@ -92,9 +94,10 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         // Only cache essential resources, don't fail on errors
         return Promise.allSettled([
-          cache.add('/').catch(() => {}),
+          cache.add('/me').catch(() => {}),
           cache.add('/login').catch(() => {}),
-          cache.add('/manifest.json').catch(() => {})
+          cache.add('/manifest.json').catch(() => {}),
+          cache.add('/icon-192.png').catch(() => {})
         ]);
       })
       .catch((err) => {

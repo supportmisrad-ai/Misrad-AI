@@ -343,47 +343,20 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
       document.body.appendChild(div);
     }
 
-    const origin = window.location.origin;
-    const loginReturnUrl = `${origin}${getLoginReturnUrl()}`;
+    const returnPath = getLoginReturnUrl();
 
     try {
-      // ניסוי ראשון: Redirect (העדפה כי זה ה-flow המלא)
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `${origin}/sso-callback`,
-        redirectUrlComplete: loginReturnUrl,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: returnPath,
       });
-      // אם ה-redirect מצליח, לא נגיע לכאן כי הדפדפן ינותב.
     } catch (errRedirect: unknown) {
-      console.warn('Redirect Google failed, trying popup', errRedirect);
-      try {
-        // ניסוי שני: Popup
-        const resultRaw = await signIn.authenticateWithPopup({
-          strategy: 'oauth_google',
-          redirectUrl: loginReturnUrl,
-          redirectUrlComplete: loginReturnUrl,
-          popup: window,
-        });
-        const result = asObj(resultRaw);
-        if (result?.createdSessionId) {
-          await setActive({ session: result.createdSessionId as string });
-          const returnUrl = getLoginReturnUrl();
-          router.push(returnUrl);
-        } else {
-          setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');
-        }
-      } catch (errPopup: unknown) {
-        console.error('Google popup error:', errPopup);
-        const popupErrs = Array.isArray(asObj(errPopup)?.errors) ? (asObj(errPopup)?.errors as unknown[]) : [];
-        const redirErrs = Array.isArray(asObj(errRedirect)?.errors) ? (asObj(errRedirect)?.errors as unknown[]) : [];
-        setError(
-          String(asObj(popupErrs[0])?.message || '') ||
-            String(asObj(redirErrs[0])?.message || '') ||
-            'שגיאה בהתחברות עם Google. נא לנסות שוב.'
-        );
-      } finally {
-        setIsLoading(false);
-      }
+      console.warn('[LoginView] Google redirect failed:', errRedirect);
+      const redirErrs = Array.isArray(asObj(errRedirect)?.errors) ? (asObj(errRedirect)?.errors as unknown[]) : [];
+      const errorMsg = String(asObj(redirErrs[0])?.message || '') || 'שגיאה בהתחברות עם Google. נא לנסות שוב.';
+      setError(translateClerkError(errorMsg));
+      setIsLoading(false);
     }
   };
 

@@ -164,6 +164,35 @@ export default function AttendanceMiniStatus() {
   const clockOutQuick = useCallback(() => {
     if (!entryId || !orgSlug) return;
 
+    // START GPS IMMEDIATELY — runs in parallel with server call
+    let gpsPromise: Promise<{ lat: number; lng: number; accuracy: number; city?: string } | null> = Promise.resolve(null);
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      gpsPromise = (async () => {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 60000,
+            });
+          });
+          let city: string | undefined;
+          try {
+            const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&accept-language=he`;
+            const geocodeRes = await Promise.race([
+              fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
+              new Promise<Response>((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
+            ]);
+            if (geocodeRes.ok) {
+              const geocodeData = await geocodeRes.json();
+              city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
+            }
+          } catch { /* geocoding non-critical */ }
+          return { lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy, city };
+        } catch { return null; }
+      })();
+    }
+
     // Snapshot for rollback
     const prevEntryId = entryId;
     const prevStartTime = startTime;
@@ -175,7 +204,7 @@ export default function AttendanceMiniStatus() {
     setStartTime(null);
     broadcast({ orgSlug, entryId: null, startTime: null });
 
-    // INSTANT server call with lat:0 — GPS updates location in background
+    // Server call + GPS update (GPS already acquiring in parallel)
     void (async () => {
       try {
         const res = await punchOut(orgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
@@ -186,40 +215,15 @@ export default function AttendanceMiniStatus() {
 
         void loadActiveShift();
 
-        // BACKGROUND GPS — fire-and-forget, updates DB after punch out
+        // GPS was acquiring in parallel — use result now
         const closedEntryId = res?.entryId || prevEntryId;
         if (closedEntryId && orgSlug) {
-          const capturedSlug = orgSlug;
-          void (async () => {
+          const location = await gpsPromise;
+          if (location && (location.lat !== 0 || location.lng !== 0)) {
             try {
-              if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
-              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                  enableHighAccuracy: true,
-                  timeout: 8000,
-                  maximumAge: 30000,
-                });
-              });
-              let city: string | undefined;
-              try {
-                const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}&accept-language=he`;
-                const geocodeRes = await Promise.race([
-                  fetch(geocodeUrl, { headers: { 'User-Agent': 'MisradAI-Attendance/1.0' } }),
-                  new Promise<Response>((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
-                ]);
-                if (geocodeRes.ok) {
-                  const geocodeData = await geocodeRes.json();
-                  city = geocodeData?.address?.city || geocodeData?.address?.town || geocodeData?.address?.village || undefined;
-                }
-              } catch { /* geocoding non-critical */ }
-              await updateEntryLocation(capturedSlug, closedEntryId, 'end', {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-                accuracy: position.coords.accuracy,
-                city,
-              });
-            } catch { /* GPS unavailable — entry saved without location */ }
-          })();
+              await updateEntryLocation(orgSlug, closedEntryId, 'end', location);
+            } catch { /* updateEntryLocation failed */ }
+          }
         }
       } catch (e: unknown) {
         // ROLLBACK — restore previous state

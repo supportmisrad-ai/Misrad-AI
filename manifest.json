@@ -1,22 +1,39 @@
-
 {
+  "id": "/me",
   "name": "MISRAD AI",
   "short_name": "MISRAD AI",
-  "start_url": "/",
+  "description": "מערכת AI לניהול הארגון שלך",
+  "start_url": "/me",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/icons/misrad-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/misrad-icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ]
 }

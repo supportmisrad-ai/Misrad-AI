@@ -294,11 +294,13 @@ function KioskHomePageInner() {
                   onClick={async () => {
                     if (isAttendanceBusy) return; // Prevent double-click
 
+                    // START GPS IMMEDIATELY — runs in parallel with server call
+                    const gpsPromise = getLocation().catch(() => null);
+
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
 
                     try {
-                      // INSTANT server call with lat:0 — GPS updates in background
                       const res = await punchIn(orgSlug, attendanceNote, { lat: 0, lng: 0, accuracy: 0 });
 
                       if (res?.activeShift) {
@@ -310,16 +312,15 @@ function KioskHomePageInner() {
                       const inTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${inTime}. עבודה נעימה!`);
 
-                      // BACKGROUND GPS — fire-and-forget
+                      // GPS was acquiring in parallel — use result now
                       const entryId = res?.activeShift?.id;
                       if (entryId && orgSlug) {
-                        const capturedSlug = orgSlug;
-                        void (async () => {
+                        const location = await gpsPromise;
+                        if (location && (location.lat !== 0 || location.lng !== 0)) {
                           try {
-                            const location = await getLocation();
-                            await updateEntryLocation(capturedSlug, entryId, 'start', location);
-                          } catch { /* GPS unavailable */ }
-                        })();
+                            await updateEntryLocation(orgSlug, entryId, 'start', location);
+                          } catch { /* updateEntryLocation failed */ }
+                        }
                       }
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
@@ -341,11 +342,13 @@ function KioskHomePageInner() {
                   onClick={async () => {
                     if (isAttendanceBusy) return; // Prevent double-click
 
+                    // START GPS IMMEDIATELY — runs in parallel with server call
+                    const gpsPromise = getLocation().catch(() => null);
+
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
 
                     try {
-                      // INSTANT server call with lat:0 — GPS updates in background
                       const res = await punchOut(orgSlug, attendanceNote, { lat: 0, lng: 0, accuracy: 0 });
 
                       setActiveShift(null);
@@ -355,16 +358,15 @@ function KioskHomePageInner() {
                       const outTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTime}. תודה!`);
 
-                      // BACKGROUND GPS — fire-and-forget
+                      // GPS was acquiring in parallel — use result now
                       const closedId = res?.entryId;
                       if (closedId && orgSlug) {
-                        const capturedSlug = orgSlug;
-                        void (async () => {
+                        const location = await gpsPromise;
+                        if (location && (location.lat !== 0 || location.lng !== 0)) {
                           try {
-                            const location = await getLocation();
-                            await updateEntryLocation(capturedSlug, closedId, 'end', location);
-                          } catch { /* GPS unavailable */ }
-                        })();
+                            await updateEntryLocation(orgSlug, closedId, 'end', location);
+                          } catch { /* updateEntryLocation failed */ }
+                        }
                       }
                     } catch (e: unknown) {
                       const msg = String(e instanceof Error ? e.message : e);
