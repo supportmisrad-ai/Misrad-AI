@@ -24,6 +24,7 @@ import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -344,8 +345,12 @@ export default function FinanceShell(props: {
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
               <div className="space-y-6">
-                <div className="grid grid-cols-4 gap-4">
-                  {mobileMenuItems.filter(i => i.id !== 'me').map((item) => {
+                <MobileMenuAttendanceButton />
+
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
+
+              <div className="grid grid-cols-4 gap-4">
+                  {mobileMenuItems.filter(i => i.id !== 'me' && i.id !== 'overview' && i.id !== 'invoices' && i.id !== 'expenses').map((item) => {
                     const isActiveItem = isActiveAction(item.path);
                     const IconComponent = item.icon;
                     return (

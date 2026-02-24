@@ -26,6 +26,7 @@ import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -373,8 +374,12 @@ function SystemShellGateClientCore({
                       >
                         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
                         <div className="space-y-6">
+                          <MobileMenuAttendanceButton />
+
+                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
                           <div className="grid grid-cols-4 gap-4">
-                            {NAV_GROUPS[0]?.items.map((item) => {
+                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'sales_leads', 'tasks'].includes(item.id)).map((item) => {
                               const path = item.id === 'workspace' ? '/' : `/${item.id}`;
                               const isActiveItem = isActiveAction(path);
                               return (

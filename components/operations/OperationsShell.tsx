@@ -24,6 +24,7 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -377,8 +378,12 @@ export default function OperationsShell({
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
               <div className="space-y-6">
+                <MobileMenuAttendanceButton />
+
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
+
                 <div className="grid grid-cols-4 gap-4">
-                  {navItems.filter(i => i.path !== '/settings' && i.path !== '/me').map((item) => {
+                  {navItems.filter(i => i.path !== '/settings' && i.path !== '/me' && i.path !== '/' && i.path !== '/work-orders' && i.path !== '/inventory').map((item) => {
                     const isActiveItem = isActiveAction(item.path);
                     const IconComponent = item.icon;
                     return (

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Trash2, UserCog, AlertTriangle, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2 } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,9 @@ import ManageBillingModal from '@/components/admin/ManageBillingModal';
 import ApplyCouponModal from '@/components/admin/ApplyCouponModal';
 import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
-import EditOrganizationModal from '@/components/admin/EditOrganizationModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, deleteBusinessClient, removeContactFromClient, syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
+import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -95,12 +94,8 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
   
   // Edit modals
   const [selectedClientForEdit, setSelectedClientForEdit] = useState<BusinessClient | null>(null);
-  const [selectedOrgForEdit, setSelectedOrgForEdit] = useState<BusinessOrg | null>(null);
   const [selectedContactForEdit, setSelectedContactForEdit] = useState<{ contact: BusinessContact; clientId: string; clientName: string } | null>(null);
 
-  // Delete client confirmation
-  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -181,20 +176,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
     setExpandedClientId(expandedClientId === clientId ? null : clientId);
   };
 
-  const handleDeleteClient = async (clientId: string) => {
-    setIsDeleting(true);
-    try {
-      const result = await deleteBusinessClient(clientId);
-      if (result.ok) {
-        setDeletingClientId(null);
-        loadClients();
-      }
-    } catch (error) {
-      console.error('Failed to delete client:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   const handleRemoveContact = async (clientId: string, userId: string) => {
     try {
@@ -483,18 +464,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                         <Building2 className="w-3.5 h-3.5 mr-1" />
                         <span className="hidden sm:inline">הוסף </span>ארגון
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingClientId(client.id);
-                        }}
-                        className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        מחק
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -635,12 +604,12 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedOrgForEdit(o as BusinessOrg);
+                                      window.location.href = `/app/admin/organizations/${String(o.id || '')}`;
                                     }}
                                     className="text-xs"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
-                                    ערוך
+                                    נהל ארגון
                                   </Button>
                                   <Button
                                     size="sm"
@@ -788,40 +757,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
         />
       )}
 
-      {/* Delete Client Confirmation Modal */}
-      {deletingClientId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" dir="rtl">
-          <div className="bg-white rounded-2xl shadow-xl p-6 mx-4 w-full max-w-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">מחיקת לקוח עסקי</h3>
-            </div>
-            <p className="text-sm text-slate-600 mb-6">
-              האם אתה בטוח שברצונך למחוק לקוח זה? הפעולה ניתנת לביטול על ידי תמיכה.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="destructive"
-                disabled={isDeleting}
-                onClick={() => handleDeleteClient(deletingClientId)}
-                className="flex-1"
-              >
-                {isDeleting ? 'מוחק...' : 'כן, מחק'}
-              </Button>
-              <Button
-                variant="outline"
-                disabled={isDeleting}
-                onClick={() => setDeletingClientId(null)}
-                className="flex-1"
-              >
-                ביטול
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Edit Modals */}
       {selectedClientForEdit && (
@@ -836,17 +771,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
         />
       )}
 
-      {selectedOrgForEdit && (
-        <EditOrganizationModal
-          isOpen={true}
-          organization={{ ...selectedOrgForEdit, name: selectedOrgForEdit.name || '' }}
-          onClose={() => setSelectedOrgForEdit(null)}
-          onSuccess={() => {
-            setSelectedOrgForEdit(null);
-            loadClients();
-          }}
-        />
-      )}
 
       {selectedContactForEdit && (
         <EditContactModal

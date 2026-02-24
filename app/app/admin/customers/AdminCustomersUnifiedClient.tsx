@@ -253,7 +253,7 @@ function OrganizationsTable({ orgs }: { orgs: OrganizationWithOwner[] }) {
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <StatusBadge status={o.subscription_status} />
-                  <Link href={`/app/admin/org/${o.id}`} className="p-1.5 rounded-lg hover:bg-slate-100">
+                  <Link href={`/app/admin/organizations/${o.id}`} className="p-1.5 rounded-lg hover:bg-slate-100">
                     <Settings className="w-4 h-4 text-slate-500" />
                   </Link>
                 </div>
@@ -301,7 +301,7 @@ function OrganizationsTable({ orgs }: { orgs: OrganizationWithOwner[] }) {
                     <td className="px-4 py-3 text-sm text-slate-700">{mods.join(', ') || '-'}</td>
                     <td className="px-4 py-3 text-center">
                       <Link
-                        href={`/app/admin/org/${o.id}`}
+                        href={`/app/admin/organizations/${o.id}`}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -381,7 +381,7 @@ function OwnersView({
                           )}
                         </div>
                         <Link
-                          href={`/app/admin/org/${org.id}`}
+                          href={`/app/admin/organizations/${org.id}`}
                           className="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition-colors"
                         >
                           <ExternalLink size={16} className="text-slate-500" />

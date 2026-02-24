@@ -348,7 +348,7 @@ export default function AdminCustomersClient(props: { groups: CustomerOwnerGroup
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => router.push(`/app/admin/org/${orgId}`)}
+                                    onClick={() => router.push(`/app/admin/organizations/${orgId}`)}
                                     title="פרטי ארגון"
                                   >
                                     <ExternalLink size={16} />

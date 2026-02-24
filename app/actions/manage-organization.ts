@@ -341,34 +341,30 @@ export async function extendOrganizationTrial(
 }
 
 // ============================================================
-// Delete Organization (Hard Delete with CASCADE)
+// Deactivate Organization (Soft — marks as cancelled, preserves all data)
 // ============================================================
 
-export async function deleteOrganization(organizationId: string) {
+export async function deactivateOrganization(organizationId: string) {
   try {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
     const result = await withTenantIsolationContext(
       {
-        source: 'app/actions/manage-organization.deleteOrganization',
-        reason: 'global_admin_delete_organization',
+        source: 'app/actions/manage-organization.deactivateOrganization',
+        reason: 'global_admin_deactivate_organization',
         mode: 'global_admin',
         isSuperAdmin: true,
         suppressReporting: true,
       },
       async () => {
-        // Get organization details before deletion
         const org = await prisma.organization.findUnique({
           where: { id: organizationId },
           select: {
             id: true,
             name: true,
             slug: true,
-            owner_id: true,
-            organizationUsers: {
-              select: { id: true },
-            },
+            subscription_status: true,
           },
         });
 
@@ -376,30 +372,27 @@ export async function deleteOrganization(organizationId: string) {
           throw new Error('ארגון לא נמצא');
         }
 
-        // Store info for logging
-        const deletionInfo = {
-          organizationId: org.id,
-          organizationName: org.name,
-          organizationSlug: org.slug,
-          usersCount: org.organizationUsers.length,
-        };
+        if (org.subscription_status === 'cancelled') {
+          throw new Error('הארגון כבר מבוטל');
+        }
 
-        // Hard delete the organization
-        // CASCADE rules in the database will automatically delete:
-        // - organizationUsers
-        // - billing_events
-        // - nexus_time_entries
-        // - tasks
-        // - and all other related records
-        await prisma.organization.delete({
+        await prisma.organization.update({
           where: { id: organizationId },
+          data: {
+            subscription_status: 'cancelled',
+            updated_at: new Date(),
+          },
         });
 
-        return deletionInfo;
+        return {
+          organizationId: org.id,
+          organizationName: org.name,
+          previousStatus: org.subscription_status,
+        };
       }
     );
 
-    logger.info('deleteOrganization', 'Organization permanently deleted', {
+    logger.info('deactivateOrganization', 'Organization deactivated (soft)', {
       organizationId,
       result,
     });
@@ -408,8 +401,66 @@ export async function deleteOrganization(organizationId: string) {
 
     return { ok: true, data: result };
   } catch (error) {
-    logger.error('deleteOrganization', 'Error deleting organization', error);
-    const errorMessage = error instanceof Error ? error.message : 'שגיאה במחיקת ארגון';
+    logger.error('deactivateOrganization', 'Error deactivating organization', error);
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה בביטול ארגון';
+    return { ok: false, error: errorMessage };
+  }
+}
+
+// ============================================================
+// Reactivate Organization (restore from cancelled)
+// ============================================================
+
+export async function reactivateOrganization(organizationId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/manage-organization.reactivateOrganization',
+        reason: 'global_admin_reactivate_organization',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { id: true, name: true, subscription_status: true },
+        });
+
+        if (!org) {
+          throw new Error('ארגון לא נמצא');
+        }
+
+        if (org.subscription_status !== 'cancelled') {
+          throw new Error('ארגון זה אינו מבוטל — לא ניתן לשחזר');
+        }
+
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: {
+            subscription_status: 'active',
+            updated_at: new Date(),
+          },
+        });
+
+        return { organizationId: org.id, organizationName: org.name };
+      }
+    );
+
+    logger.info('reactivateOrganization', 'Organization reactivated', {
+      organizationId,
+      result,
+    });
+
+    revalidatePath('/', 'layout');
+
+    return { ok: true, data: result };
+  } catch (error) {
+    logger.error('reactivateOrganization', 'Error reactivating organization', error);
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה בשחזור ארגון';
     return { ok: false, error: errorMessage };
   }
 }

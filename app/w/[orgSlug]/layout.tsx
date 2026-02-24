@@ -28,7 +28,7 @@ export default async function WorkspaceLayout({
     <div
       data-workspace-id={workspace.id}
       data-workspace-slug={decodedOrgSlug}
-      className="min-h-screen"
+      className="min-h-screen bg-[#F8FAFC]"
     >
       <WorkspaceCanonicalRedirect currentOrgSlug={decodedOrgSlug} canonicalSlug={workspace.slug ?? null} />
       {children}

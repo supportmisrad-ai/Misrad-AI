@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { ListContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
@@ -48,7 +49,7 @@ export default async function SocialTeamLayout({
   const { orgSlug } = await params;
 
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<ListContentSkeleton moduleKey="social" />}>
       <TeamAccessGate orgSlug={orgSlug}>
         {children}
       </TeamAccessGate>

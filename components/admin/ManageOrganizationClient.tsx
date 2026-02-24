@@ -35,7 +35,8 @@ import {
   removeUserFromOrganization,
   extendOrganizationTrial,
   updateOrganizationBusinessClientDetails,
-  deleteOrganization,
+  deactivateOrganization,
+  reactivateOrganization,
 } from '@/app/actions/manage-organization';
 import { generatePaymentLink, adjustBalanceManually, getOrganizationInvoices, createOrganizationInvoice, type AdminInvoice } from '@/app/actions/app-billing';
 
@@ -162,10 +163,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
     billing_contact_name: initialData.business_client?.billing_contact_name || '',
   });
 
-  // Delete Organization
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
+  // Deactivate Organization (soft)
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const tabs = [
     { id: 'settings' as Tab, label: 'הגדרות', icon: Settings },
@@ -416,31 +415,39 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
     }
   };
 
-  const handleDeleteOrganization = async () => {
-    // Confirm with exact name match
-    if (deleteConfirmText !== initialData.name) {
-      showMessage('error', 'שם הארגון אינו תואם');
-      return;
-    }
+  const handleDeactivateOrganization = async () => {
+    if (!confirm(`האם לבטל את הארגון "${initialData.name}"? הנתונים יישמרו ותוכל לשחזר בכל עת.`)) return;
 
-    setIsDeleting(true);
+    setIsDeactivating(true);
     try {
-      const result = await deleteOrganization(initialData.id);
+      const result = await deactivateOrganization(initialData.id);
       if (result.ok) {
-        showMessage('success', 'הארגון נמחק בהצלחה');
-        // Redirect to organizations list after a short delay
-        setTimeout(() => {
-          router.push('/app/admin/organizations');
-        }, 2000);
+        showMessage('success', 'הארגון בוטל בהצלחה — ניתן לשחזר אותו בכל עת');
+        router.refresh();
       } else {
-        showMessage('error', result.error || 'שגיאה במחיקת ארגון');
+        showMessage('error', result.error || 'שגיאה בביטול ארגון');
       }
     } catch (error) {
-      showMessage('error', 'שגיאה במחיקת ארגון');
+      showMessage('error', 'שגיאה בביטול ארגון');
     } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-      setDeleteConfirmText('');
+      setIsDeactivating(false);
+    }
+  };
+
+  const handleReactivateOrganization = async () => {
+    setIsDeactivating(true);
+    try {
+      const result = await reactivateOrganization(initialData.id);
+      if (result.ok) {
+        showMessage('success', 'הארגון שוחזר בהצלחה!');
+        router.refresh();
+      } else {
+        showMessage('error', result.error || 'שגיאה בשחזור ארגון');
+      }
+    } catch (error) {
+      showMessage('error', 'שגיאה בשחזור ארגון');
+    } finally {
+      setIsDeactivating(false);
     }
   };
 
@@ -582,76 +589,71 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   )}
                 </Button>
 
-                {/* Delete Organization Section */}
-                <div className="mt-12 pt-8 border-t-2 border-red-200">
-                  <div className="p-6 bg-gradient-to-br from-red-50 to-rose-50 border-2 border-red-200 rounded-xl space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-red-100">
-                        <CircleAlert className="w-6 h-6 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-black text-red-900 mb-2">⚠️ מחיקת ארגון (פעולה בלתי הפיכה)</h4>
-                        <p className="text-sm text-red-700 mb-4">
-                          מחיקת הארגון תסגור את כל הגישה למערכת ותסמן את הארגון כמבוטל.
-                          <br />
-                          <strong>פעולה זו בטוחה</strong> - הנתונים לא יימחקו לצמיתות ויישמרו למטרות audit.
-                        </p>
-
-                        {!showDeleteConfirm ? (
+                {/* Deactivate / Reactivate Organization Section */}
+                <div className="mt-12 pt-8 border-t-2 border-slate-200">
+                  {initialData.subscription_status === 'cancelled' ? (
+                    <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-emerald-100">
+                          <CircleCheckBig className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-black text-emerald-900 mb-2">ארגון מבוטל — ניתן לשחזר</h4>
+                          <p className="text-sm text-emerald-700 mb-4">
+                            הארגון כרגע במצב מבוטל. כל הנתונים שמורים. ניתן לשחזר אותו ולהחזיר את הגישה לכל המשתמשים.
+                          </p>
                           <Button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            disabled={saving || isDeleting}
-                            className="bg-red-600 hover:bg-red-700"
+                            onClick={handleReactivateOrganization}
+                            disabled={saving || isDeactivating}
+                            className="bg-emerald-600 hover:bg-emerald-700"
                           >
-                            <Trash2 className="w-4 h-4 ml-2" />
-                            מחק ארגון
+                            {isDeactivating ? (
+                              <>
+                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                                משחזר...
+                              </>
+                            ) : (
+                              <>
+                                <CircleCheckBig className="w-4 h-4 ml-2" />
+                                שחזר ארגון
+                              </>
+                            )}
                           </Button>
-                        ) : (
-                          <div className="space-y-4 p-4 bg-white border border-red-300 rounded-lg">
-                            <p className="text-sm font-bold text-red-900">
-                              אישור מחיקה - הקלד את שם הארגון: <span className="font-mono text-red-700">{initialData.name}</span>
-                            </p>
-                            <Input
-                              value={deleteConfirmText}
-                              onChange={(e) => setDeleteConfirmText(e.target.value)}
-                              placeholder={initialData.name}
-                              className="font-mono"
-                              disabled={isDeleting}
-                            />
-                            <div className="flex gap-3">
-                              <Button
-                                onClick={handleDeleteOrganization}
-                                disabled={isDeleting || deleteConfirmText !== initialData.name}
-                                className="flex-1 bg-red-600 hover:bg-red-700"
-                              >
-                                {isDeleting ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                                    מוחק...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Trash2 className="w-4 h-4 ml-2" />
-                                    אישור מחיקה
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setShowDeleteConfirm(false);
-                                  setDeleteConfirmText('');
-                                }}
-                                disabled={isDeleting}
-                              >
-                                ביטול
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-amber-100">
+                          <CircleAlert className="w-6 h-6 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-black text-amber-900 mb-2">ביטול ארגון</h4>
+                          <p className="text-sm text-amber-700 mb-4">
+                            ביטול הארגון יסגור את הגישה למערכת לכל המשתמשים.
+                            <br />
+                            <strong>הנתונים נשמרים</strong> — ניתן לשחזר את הארגון בכל עת מעמוד זה.
+                          </p>
+                          <Button
+                            onClick={handleDeactivateOrganization}
+                            disabled={saving || isDeactivating}
+                            variant="outline"
+                            className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                          >
+                            {isDeactivating ? (
+                              <>
+                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                                מבטל...
+                              </>
+                            ) : (
+                              'בטל ארגון'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
