@@ -43,9 +43,20 @@ const getPriorityLabel = (p: TaskPriority) => {
 interface TaskCardProps {
     task: Task;
     onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
+    currentUserId?: string;
+    currentUserName?: string;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => {
+function getAssigneeInitials(name: string | undefined, id: string): string {
+    if (name) {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return name.slice(0, 2).toUpperCase();
+    }
+    return id.slice(0, 2).toUpperCase();
+}
+
+const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange, currentUserId, currentUserName }) => {
     const isSOP = task.tags.includes('SOP');
     const isCall = task.tags.includes('Call') || task.title.includes('Call') || task.title.includes('שיחה');
     
@@ -123,8 +134,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => {
 
             <div className="flex items-center justify-between border-t border-slate-50 pt-3 pl-2">
                 <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-bold border border-slate-200" title={task.assigneeId === 'u1' ? 'איתמר' : 'אני'}>
-                        {task.assigneeId === 'u1' ? 'IT' : 'ME'}
+                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-bold border border-slate-200" title={task.assigneeId === currentUserId ? (currentUserName || 'אני') : 'משתמש'}>
+                        {task.assigneeId === currentUserId ? getAssigneeInitials(currentUserName, task.assigneeId) : <User size={12} />}
                     </div>
                     {task.dueDate && (
                         <div className={`flex items-center gap-1 text-[10px] font-bold ${
@@ -275,7 +286,9 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
                                             <TaskCard 
                                                 key={task.id} 
                                                 task={task} 
-                                                onStatusChange={handleStatusChange} 
+                                                onStatusChange={handleStatusChange}
+                                                currentUserId={user?.id}
+                                                currentUserName={user?.name}
                                             />
                                         ))}
                                         {colTasks.length === 0 && (
@@ -326,10 +339,10 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
                                 </div>
                                 <div className="col-span-2 flex items-center gap-2">
                                     <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[10px] font-bold border border-slate-200">
-                                        {task.assigneeId === 'u1' ? 'IT' : 'ME'}
+                                        {task.assigneeId === user?.id ? getAssigneeInitials(user?.name, task.assigneeId) : <User size={12} />}
                                     </div>
                                     <span className="text-xs text-slate-600 font-bold">
-                                        {task.assigneeId === 'u1' ? 'איתמר' : 'אני'}
+                                        {task.assigneeId === user?.id ? (user?.name || 'אני') : 'משתמש'}
                                     </span>
                                 </div>
                                 <div className="col-span-2 text-xs font-mono text-slate-500 font-bold">

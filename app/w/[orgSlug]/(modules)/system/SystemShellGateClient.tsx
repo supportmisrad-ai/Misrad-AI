@@ -27,6 +27,7 @@ import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -292,14 +293,17 @@ function SystemShellGateClientCore({
                   onNavigateAction={onSidebarItemClick}
                   linkHrefPrefix={basePath}
                   bottomSlot={
-                    <OSAppSwitcher
-                      compact={true}
-                      buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
-                      buttonLabel="מודולים"
-                      className={isSidebarOpen ? '' : 'w-full flex justify-center'}
-                      orgSlug={orgSlug}
-                      currentModule="system"
-                    />
+                    <div className="space-y-3">
+                      <AttendanceMiniStatus />
+                      <OSAppSwitcher
+                        compact={true}
+                        buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+                        buttonLabel="מודולים"
+                        className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+                        orgSlug={orgSlug}
+                        currentModule="system"
+                      />
+                    </div>
                   }
                 />
 
@@ -482,7 +486,10 @@ function SystemShellGateClientCore({
 
                           <div className="space-y-3">
                             <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                            <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
+                            <div className="space-y-3">
+                              <AttendanceMiniStatus />
+                              <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
+                            </div>
                           </div>
                         </div>
                       </motion.div>

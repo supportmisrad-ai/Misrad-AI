@@ -25,6 +25,7 @@ import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -184,7 +185,12 @@ export default function FinanceShell(props: {
         isActiveAction={isActiveAction}
         onNavigateAction={onSidebarItemClick}
         linkHrefPrefix={basePath}
-        bottomSlot={<OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug || undefined} currentModule="finance" />}
+        bottomSlot={
+          <div className="space-y-3">
+            <AttendanceMiniStatus />
+            <OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug || undefined} currentModule="finance" />
+          </div>
+        }
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">

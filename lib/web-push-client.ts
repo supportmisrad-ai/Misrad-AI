@@ -73,7 +73,18 @@ async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     throw new Error('Service worker is not supported');
   }
-  return await navigator.serviceWorker.ready;
+
+  // Ensure SW is registered (PWAInstaller is dead code, so register here if needed)
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  if (registrations.length === 0) {
+    await navigator.serviceWorker.register('/sw.js');
+  }
+
+  // Timeout after 10s to avoid hanging forever if SW never activates
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Service worker ready timeout')), 10_000),
+  );
+  return await Promise.race([navigator.serviceWorker.ready, timeout]);
 }
 
 async function postSubscription(params: { orgSlug: string; subscription: PushSubscription }): Promise<void> {

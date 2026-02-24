@@ -23,6 +23,7 @@ import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -404,12 +405,15 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         isActiveAction={isActiveAction}
         onNavigateAction={onNavigateAction}
         bottomSlot={
-          <div className={isSidebarOpen ? 'w-full px-1' : 'w-full'}>
+          <div className="space-y-3">
+            <AttendanceMiniStatus />
             <OSAppSwitcher
               compact={true}
               buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
               buttonLabel="מודולים"
               className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+              orgSlug={orgSlug || undefined}
+              currentModule="client"
             />
           </div>
         }

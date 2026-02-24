@@ -291,7 +291,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
 
     return (
       <div className={className} aria-label="מעבר בין מערכות">
-        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${compact ? 'gap-2 md:gap-3' : 'gap-3 md:gap-4'}`}>
+        <div className={`grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-5 ${compact ? 'gap-2 md:gap-3' : 'gap-3 md:gap-4'}`}>
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
             const enabled = key === 'nexus' ? true : (!entitlementsLoaded || Boolean(entitlements?.[key]));

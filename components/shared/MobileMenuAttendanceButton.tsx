@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clock, LogIn, LogOut } from 'lucide-react';
+import { Clock, Fingerprint, LogOut } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute, encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
@@ -192,39 +192,21 @@ export default function MobileMenuAttendanceButton() {
 
   return (
     <div className="w-full">
-      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">שעון נוכחות</div>
       {isActive ? (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/80 border border-emerald-200/70 shadow-md shadow-emerald-100/50 p-4">
-          {/* Subtle background glow */}
-          <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
-
-          <div className="relative flex items-center gap-4">
-            {/* Status indicator */}
-            <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-200/60">
-              <div className="relative">
-                <Clock size={22} className="text-emerald-700" />
-                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse ring-2 ring-emerald-50" />
-              </div>
-            </div>
-
-            {/* Timer display */}
-            <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-0.5">משמרת פעילה</div>
-              <div className="text-2xl font-black text-emerald-900 tabular-nums tracking-tight leading-none">
-                {formatDuration(elapsed)}
-              </div>
-            </div>
-
-            {/* Clock out button */}
-            <button
-              type="button"
-              onClick={handleClockOut}
-              disabled={isBusy}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500 text-white shadow-md shadow-rose-500/25 hover:bg-rose-600 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <LogOut size={16} strokeWidth={2.5} />
-              <span className="text-xs font-black">יציאה</span>
-            </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClockOut}
+            disabled={isBusy}
+            className="flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut size={18} strokeWidth={2.5} />
+            <span className="text-sm font-black">יציאה</span>
+          </button>
+          <div className="flex items-center gap-2 px-4 py-3.5 rounded-full bg-emerald-50 border border-emerald-200">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <Clock size={16} className="text-emerald-700" />
+            <span className="text-sm font-black text-emerald-900 tabular-nums">{formatDuration(elapsed)}</span>
           </div>
         </div>
       ) : (
@@ -232,11 +214,10 @@ export default function MobileMenuAttendanceButton() {
           type="button"
           onClick={handleClockIn}
           disabled={isBusy}
-          className="relative w-full overflow-hidden flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-600 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2" />
-          <LogIn size={20} strokeWidth={2.5} className="relative" />
-          <span className="text-sm font-black relative">כניסה למשמרת</span>
+          <Fingerprint size={20} strokeWidth={2.5} />
+          <span className="text-sm font-black">כניסה למשמרת</span>
         </button>
       )}
     </div>

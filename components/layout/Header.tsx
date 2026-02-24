@@ -109,6 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
           className="border-2 border-white shadow-sm"
         />
       }
+      className="bg-transparent"
     />
   );
 };

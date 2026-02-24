@@ -42,6 +42,7 @@ import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useSocialData } from '@/contexts/SocialDataContext';
@@ -349,14 +350,17 @@ export default function SocialFrame({
           isActiveAction={isActiveAction}
           onNavigateAction={onNavigateAction}
           bottomSlot={
-            <OSAppSwitcher
-              compact={true}
-              buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
-              buttonLabel="מודולים"
-              className={isSidebarOpen ? '' : 'w-full flex justify-center'}
-              orgSlug={orgSlug}
-              currentModule="social"
-            />
+            <div className="space-y-3">
+              <AttendanceMiniStatus />
+              <OSAppSwitcher
+                compact={true}
+                buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+                buttonLabel="מודולים"
+                className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+                orgSlug={orgSlug}
+                currentModule="social"
+              />
+            </div>
           }
         />
 
@@ -556,7 +560,10 @@ export default function SocialFrame({
 
                 <div className="space-y-3">
                   <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
+                  <div className="space-y-3">
+                    <AttendanceMiniStatus />
+                    <OSAppSwitcher compact={true} buttonLabel="מודולים" orgSlug={orgSlug} currentModule="social" />
+                  </div>
                 </div>
               </div>
             </motion.div>
