@@ -91,7 +91,7 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   content: { label: 'תוכן', description: 'נחיתה · מיילים · סרטונים' },
   infra: { label: 'מערכת', description: 'תשתית · לוגים · דאטה · CRON' },
   bot: { label: 'בוט', description: 'וואטסאפ · לידים · שיחות' },
-  ai: { label: 'AI', description: 'מוח AI · ספקים · מודלים · קרדיטים' },
+  ai: { label: 'AI', description: 'ניהול AI · ספקים · מודלים · קרדיטים' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -257,8 +257,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/bot', label: 'דשבורד בוט', icon: MessageSquare },
     ],
     ai: [
-      { href: '/app/admin/ai', label: 'ניתוח AI', icon: BrainCircuit },
-      { href: '/app/admin/global/ai', label: 'מוח AI', icon: BrainCircuit },
+      { href: '/app/admin/ai', label: 'ניהול AI', icon: BrainCircuit },
     ],
   }), []);
 
@@ -424,8 +423,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-                  title="ניתוח AI"
-                  aria-label="ניתוח AI"
+                  title="ניהול AI"
+                  aria-label="ניהול AI"
                 >
                   <BrainCircuit size={18} />
                 </Button>

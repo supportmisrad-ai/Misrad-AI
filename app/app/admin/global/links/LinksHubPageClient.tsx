@@ -427,8 +427,8 @@ function getLinks(): HubLink[] {
     },
     {
       id: 'admin-global-ai',
-      title: 'Admin · גלובלי · מוח AI',
-      href: '/app/admin/global/ai',
+      title: 'Admin · ניהול AI',
+      href: '/app/admin/ai',
       category: 'אדמין ודשבורדים',
       icon: Shield,
     },

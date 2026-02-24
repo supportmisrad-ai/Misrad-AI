@@ -65,11 +65,10 @@ export default function ModulesAdminPageClient() {
     },
     {
       title: 'בינה מלאכותית',
-      description: 'ניתוח AI ומוח AI גלובלי.',
+      description: 'ניהול ספקים, מודלים, הגדרות וקרדיטים.',
       icon: BrainCircuit,
       actions: [
-        { label: 'ניתוח AI', href: '/app/admin/ai' },
-        { label: 'מוח AI (גלובלי)', href: '/app/admin/global/ai' },
+        { label: 'ניהול AI', href: '/app/admin/ai' },
       ],
     },
   ];

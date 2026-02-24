@@ -82,7 +82,7 @@ const AREA_CARDS: AreaCard[] = [
     items: [
       { label: 'בקרת פלטפורמה', href: '/app/admin/global/control' },
       { label: 'מתגי מערכת', href: '/app/admin/system-flags' },
-      { label: 'ניתוח AI', href: '/app/admin/ai' },
+      { label: 'ניהול AI', href: '/app/admin/ai' },
       { label: 'יומני אירועים', href: '/app/admin/logs' },
     ],
   },
