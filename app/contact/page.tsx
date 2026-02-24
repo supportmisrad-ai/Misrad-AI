@@ -72,7 +72,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <div className="text-sm sm:text-base font-bold text-slate-900">כתובת</div>
-                      <div className="text-sm sm:text-base text-slate-600 mt-1">הפסנתר 9, ראשון לציון</div>
+                      <div className="text-sm sm:text-base text-slate-600 mt-1">MISRAD AI · ע.מ 314885518</div>
+                      <div className="text-sm sm:text-base text-slate-600">הפסנתר 9, ראשון לציון</div>
                     </div>
                   </div>
                 <div className="mt-8 pt-6 border-t border-slate-100 flex gap-4">

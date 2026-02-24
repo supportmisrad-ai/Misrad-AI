@@ -229,7 +229,7 @@ export const Footer = () => {
                     </div>
 
                     <div className="text-xs text-slate-600 text-center leading-relaxed">
-                        MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; 051-2239520 &bull; misrad-ai.com
+                        MISRAD AI &bull; ע.מ 314885518 &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; 051-2239520 &bull; misrad-ai.com
                     </div>
                 </div>
             </div>

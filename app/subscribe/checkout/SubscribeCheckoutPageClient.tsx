@@ -344,12 +344,12 @@ function SubscribeCheckoutContent({
 
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">
-            {selectedPaymentOption === 'credit_card' ? 'תשלום באשראי' : 'תשלום ידני'}
+            {selectedPaymentOption === 'credit_card' ? 'תשלום באשראי' : 'השלמת רכישה'}
           </h1>
           <p className="text-sm text-slate-600 mb-6">
             {selectedPaymentOption === 'credit_card'
               ? 'תשלום מאובטח באשראי דרך סליקה ישראלית.'
-              : 'כרגע התשלום ידני. אחרי שתשלם אנחנו נאשר ונפתח לך גישה.'}
+              : 'מלא את הפרטים, בצע הזמנה ונפתח לך גישה מלאה למערכת.'}
           </p>
 
           <div className="grid grid-cols-1 gap-4 mb-6">
@@ -436,7 +436,7 @@ function SubscribeCheckoutContent({
                         : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="font-bold">תשלום ידני (Bit/העברה)</div>
+                    <div className="font-bold">העברה בנקאית / Bit</div>
                     <div className="text-xs text-slate-500 mt-1">הוראות + העלאת אישור</div>
                   </button>
 
@@ -618,7 +618,7 @@ function SubscribeCheckoutContent({
           {/* Business Details Footer - required by Israeli law + payment processor */}
           <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-center text-xs text-slate-500 space-y-2">
             <div className="font-bold text-slate-700 text-sm">MISRAD AI</div>
-            <div>הפסנתר 9, ראשון לציון, ישראל</div>
+            <div>ע.מ 314885518 &bull; הפסנתר 9, ראשון לציון, ישראל</div>
             <div>
               <a href="mailto:support@misrad-ai.com" className="hover:text-slate-700">support@misrad-ai.com</a>
               {' '}&bull;{' '}

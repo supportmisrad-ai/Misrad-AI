@@ -78,6 +78,7 @@ export default function CancelPage() {
                 <div className="bg-slate-50 rounded-xl p-6 space-y-3 mt-8">
                   <div className="font-black text-slate-900 text-lg">פרטי יצירת קשר</div>
                   <div><strong>שם העסק:</strong> MISRAD AI</div>
+                  <div><strong>ע.מ:</strong> 314885518</div>
                   <div><strong>כתובת:</strong> הפסנתר 9, ראשון לציון, ישראל</div>
                   <div><strong>דוא&quot;ל:</strong>{' '}
                     <a href="mailto:support@misrad-ai.com" className="text-indigo-600 hover:text-indigo-700">support@misrad-ai.com</a>
