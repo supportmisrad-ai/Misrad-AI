@@ -1,6 +1,5 @@
 import { getSystemLeadsPage, getSystemCalendarEventsRange } from '@/app/actions/system-leads';
 import { getCampaigns } from '@/app/actions/campaigns';
-import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import { getSystemNotifications } from '@/app/actions/system-notifications';
 import SystemWorkspaceClient from './SystemWorkspaceClient';
 
@@ -19,11 +18,9 @@ export default async function SystemModuleHome({
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
   type LeadsRes = Awaited<ReturnType<typeof getSystemLeadsPage>>;
-  type TasksRes = Awaited<ReturnType<typeof listNexusTasksByOrgSlug>>;
   type CampaignsRes = Awaited<ReturnType<typeof getCampaigns>>;
 
-  // Run ALL data fetches in parallel instead of sequentially
-  const [leadsRes, initialEvents, tasksRes, campaignsRes, initialNotifications] = await Promise.all([
+  const [leadsRes, initialEvents, campaignsRes, initialNotifications] = await Promise.all([
     getSystemLeadsPage({ orgSlug, pageSize: 50 }).catch((): LeadsRes => ({
       success: false,
       error: 'שגיאה בטעינת לידים',
@@ -34,12 +31,6 @@ export default async function SystemModuleHome({
       to: startOfNextMonth.toISOString(),
       take: 50,
     }).catch(() => []),
-    listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 50 }).catch((): TasksRes => ({
-      tasks: [],
-      page: 1,
-      pageSize: 50,
-      hasMore: false,
-    })),
     getCampaigns(undefined, orgSlug).catch((): CampaignsRes => ({
       success: false,
       error: 'שגיאה בטעינת קמפיינים',
@@ -48,7 +39,6 @@ export default async function SystemModuleHome({
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
-  const initialTasks = tasksRes.tasks;
   const initialCampaigns = campaignsRes.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
 
   return (
@@ -56,7 +46,6 @@ export default async function SystemModuleHome({
       orgSlug={orgSlug}
       initialLeads={initialLeads}
       initialEvents={initialEvents}
-      initialTasks={initialTasks}
       initialCampaigns={initialCampaigns}
       initialNotifications={initialNotifications}
     />

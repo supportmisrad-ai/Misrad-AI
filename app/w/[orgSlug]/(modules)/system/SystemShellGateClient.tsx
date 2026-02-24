@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users, PhoneCall, Network, Map, BarChart3, Settings, SquareMousePointer } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, Menu, Mic, Users, PhoneCall, Network, Map, BarChart3, Settings, SquareMousePointer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
@@ -36,7 +36,6 @@ const SHELL_TABS = new Set([
   'calendar',
   'dialer',
   'reports',
-  'tasks',
   'me',
   'settings',
   'notifications',
@@ -178,7 +177,7 @@ function SystemShellGateClientCore({
       ...(gi > 0 && ii === 0 ? { separatorBefore: true, sectionLabel: group.title || undefined } : {}),
     }))
   );
-  const primaryNavPaths = ['/', '/sales_pipeline', '/tasks', '/calendar'];
+  const primaryNavPaths = ['/', '/sales_pipeline', '/dialer', '/calendar'];
 
   const isActiveAction = (path: string) => {
     const href = `${basePath}${path === '/' ? '' : path}`;
@@ -235,13 +234,6 @@ function SystemShellGateClientCore({
       return;
     }
 
-    if (tab === 'tasks') {
-      setIsPlusFanOpen(false);
-      setIsCalendarPlusOpen(false);
-      dispatchSystemEvent('system:new-task');
-      return;
-    }
-
     if (tab === 'calendar') {
       setIsPlusFanOpen(false);
       setIsCalendarPlusOpen((v) => !v);
@@ -251,13 +243,6 @@ function SystemShellGateClientCore({
     setIsPlusFanOpen(false);
     setIsCalendarPlusOpen(false);
     setIsMobileMenuOpen(true);
-  };
-
-  const goToTasksAndCreate = () => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage?.setItem('system:pending-action', 'new-task');
-    }
-    onNavigateAction('/tasks');
   };
 
   const notificationsSlot = <GlobalNotificationsBell />;
@@ -383,7 +368,7 @@ function SystemShellGateClientCore({
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
                           <div className="grid grid-cols-4 gap-4">
-                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'sales_leads', 'tasks'].includes(item.id)).map((item) => {
+                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'sales_leads', 'dialer'].includes(item.id)).map((item) => {
                               const path = item.id === 'workspace' ? '/' : `/${item.id}`;
                               const isActiveItem = isActiveAction(path);
                               return (
@@ -520,11 +505,11 @@ function SystemShellGateClientCore({
                             type="button"
                             onClick={() => {
                               setIsPlusFanOpen(false);
-                              goToTasksAndCreate();
+                              dispatchSystemEvent('system:calendar:new-meeting');
                             }}
                             className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
                           >
-                            משימה חדשה
+                            פגישה חדשה
                           </button>
                         </div>
 
@@ -610,11 +595,11 @@ function SystemShellGateClientCore({
                   ]}
                   leftItems={[
                     {
-                      id: 'tasks',
-                      label: 'משימות',
-                      icon: CheckSquare,
-                      active: isActiveAction('/tasks'),
-                      onClick: () => onNavigateAction('/tasks'),
+                      id: 'dialer',
+                      label: 'חייגן',
+                      icon: PhoneCall,
+                      active: isActiveAction('/dialer'),
+                      onClick: () => onNavigateAction('/dialer'),
                     },
                     {
                       id: 'menu',
@@ -630,11 +615,9 @@ function SystemShellGateClientCore({
                       ? 'פעולות מהירות'
                       : activeTab === 'sales_pipeline' || activeTab === 'sales_leads'
                         ? 'ליד חדש'
-                        : activeTab === 'tasks'
-                          ? 'משימה חדשה'
-                          : activeTab === 'calendar'
-                            ? 'הוסף ליומן'
-                            : 'תפריט'
+                        : activeTab === 'calendar'
+                          ? 'הוסף ליומן'
+                          : 'תפריט'
                   }
                   plusActive={isPlusFanOpen || isCalendarPlusOpen}
                   plusGradient={getOSModule('system')?.gradient}

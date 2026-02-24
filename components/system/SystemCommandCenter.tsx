@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Lead, ContentItem, Student, Campaign, Task, CalendarEvent } from './types';
+import { Lead, ContentItem, Student, Campaign, CalendarEvent } from './types';
 import { 
     Flame, CircleCheck, Video, Target, Phone, ChevronRight, TriangleAlert, 
     Users, Coins, Plus, Calendar, Check,
@@ -33,7 +33,6 @@ interface SystemCommandCenterProps {
   content?: ContentItem[];
   students?: Student[];
   campaigns?: Campaign[];
-  tasks?: Task[];
   events?: CalendarEvent[];
   notifications?: Array<{
     id: string;
@@ -45,19 +44,16 @@ interface SystemCommandCenterProps {
   }>;
   onLeadClick: (lead: Lead) => void;
   onNavigate: (tabId: string) => void;
-  onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
+  onQuickAction: (action: 'lead' | 'meeting') => void;
 }
 
-type VelocityItem = 
-  | { type: 'lead'; data: Lead; id: string; score: number; date: Date }
-  | { type: 'task'; data: Task; id: string; score: number; date: Date };
+type VelocityItem = { type: 'lead'; data: Lead; id: string; score: number; date: Date };
 
 const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({ 
     leads, 
     content = [], 
     students = [], 
     campaigns = [],
-    tasks = [],
     events = [],
     notifications = [],
     onLeadClick, 
@@ -77,7 +73,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
       else setGreeting('ערב טוב');
   }, []);
 
-  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+  const [completedIds, setCompletedIds] = useState<string[]>([]);
 
   const myLeads = useMemo(() => isAgent && user
     ? leads.filter(l => l.assignedAgentId === user.id || !l.assignedAgentId) 
@@ -85,22 +81,12 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
 
   const hitListLeads = useMemo(() => myLeads.filter(l => (l.isHot || l.score > 70) && l.status !== 'won' && l.status !== 'lost'), [myLeads]);
 
-  const myTasks = useMemo(() => {
-    const todayMs = new Date().setHours(0,0,0,0);
-    return tasks.filter(t => 
-      t.status !== 'done' && 
-      (user && (t.assigneeId === user.id || t.assigneeId === 'current')) &&
-      new Date(t.dueDate).setHours(0,0,0,0) <= todayMs
-    );
-  }, [tasks, user]);
-
   const velocityList: VelocityItem[] = useMemo(() => {
-      return [
-          ...hitListLeads.map(l => ({ type: 'lead' as const, data: l, id: l.id, score: l.score, date: new Date(l.lastContact) })),
-          ...myTasks.map(t => ({ type: 'task' as const, data: t, id: t.id, score: t.priority === 'critical' ? 100 : t.priority === 'high' ? 90 : 80, date: t.dueDate }))
-      ].filter(item => !completedTaskIds.includes(item.id))
-       .sort((a, b) => b.score - a.score);
-  }, [hitListLeads, myTasks, completedTaskIds]);
+      return hitListLeads
+          .map(l => ({ type: 'lead' as const, data: l, id: l.id, score: l.score, date: new Date(l.lastContact) }))
+          .filter(item => !completedIds.includes(item.id))
+          .sort((a, b) => b.score - a.score);
+  }, [hitListLeads, completedIds]);
 
   const nextMeeting = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -122,13 +108,13 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
   }, [leads]);
 
   const velocityScore = useMemo(() => {
-      const initialLoad = velocityList.length + completedTaskIds.length;
+      const initialLoad = velocityList.length + completedIds.length;
       if (initialLoad === 0) return 100;
-      return Math.round(50 + ((completedTaskIds.length / initialLoad) * 50));
-  }, [velocityList.length, completedTaskIds.length]);
+      return Math.round(50 + ((completedIds.length / initialLoad) * 50));
+  }, [velocityList.length, completedIds.length]);
 
   const handleComplete = (id: string) => {
-      setCompletedTaskIds(prev => [...prev, id]);
+      setCompletedIds(prev => [...prev, id]);
       addToast('יפה! פחות אחד.', 'success');
   };
 
@@ -330,11 +316,11 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[11px] font-bold text-slate-400">{completedTaskIds.length}/{velocityList.length + completedTaskIds.length}</span>
+                <span className="text-[11px] font-bold text-slate-400">{completedIds.length}/{velocityList.length + completedIds.length}</span>
                 <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(completedTaskIds.length / (velocityList.length + completedTaskIds.length || 1)) * 100}%` }}
+                    animate={{ width: `${(completedIds.length / (velocityList.length + completedIds.length || 1)) * 100}%` }}
                     className="h-full bg-nexus-gradient rounded-full"
                   />
                 </div>
@@ -353,13 +339,12 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                       <Check size={32} strokeWidth={3} />
                     </div>
                     <h4 className="text-lg font-black text-slate-800">השולחן נקי!</h4>
-                    <p className="text-slate-500 font-medium text-sm max-w-xs mt-1">כל המשימות הדחופות טופלו. זמן מצוין ליזום שיחות מעקב.</p>
+                    <p className="text-slate-500 font-medium text-sm max-w-xs mt-1">כל הלידים הדחופים טופלו. זמן מצוין ליזום שיחות מעקב.</p>
                   </motion.div>
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {velocityList.map((item, index) => {
-                      const isTask = item.type === 'task';
-                      const data = item.data;
+                      const lead = item.data;
                       const isFirst = index === 0;
 
                       return (
@@ -370,7 +355,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -40, height: 0 }}
                           transition={{ duration: 0.25, delay: index * 0.03 }}
-                          onClick={() => !isTask ? onLeadClick(data as Lead) : null}
+                          onClick={() => onLeadClick(lead)}
                           className={`group flex items-center gap-4 px-6 py-4 cursor-pointer transition-colors ${
                             isFirst ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
                           }`}
@@ -389,28 +374,24 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
 
                           {/* Left accent */}
                           <div className={`w-1 self-stretch rounded-full shrink-0 ${
-                            isTask ? 'bg-indigo-400' : item.score >= 90 ? 'bg-rose-400' : 'bg-slate-200'
+                            item.score >= 90 ? 'bg-rose-400' : 'bg-slate-200'
                           }`} />
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              {isTask ? (
-                                <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded">משימה</span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">ליד</span>
-                              )}
+                              <span className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded">ליד</span>
                               <span className="text-[10px] font-bold text-slate-400">
-                                {isTask ? formatDate((data as Task).dueDate) : (data as Lead).company || formatRelativeTime((data as Lead).createdAt)}
+                                {lead.company || formatRelativeTime(lead.createdAt)}
                               </span>
                             </div>
                             <h4 className={`font-bold text-slate-900 truncate group-hover:text-primary transition-colors ${isFirst ? 'text-base' : 'text-sm'}`}>
-                              {isTask ? (data as Task).title : (data as Lead).name}
+                              {lead.name}
                             </h4>
-                            {!isTask && (data as Lead).playbookStep && (
+                            {lead.playbookStep && (
                               <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                {getPlaybookIcon((data as Lead).playbookStep)}
-                                {(data as Lead).playbookStep}
+                                {getPlaybookIcon(lead.playbookStep)}
+                                {lead.playbookStep}
                               </p>
                             )}
                           </div>
@@ -421,16 +402,12 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                               {item.score}
                             </div>
                             <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {!isTask && (
-                                <>
-                                  <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors">
-                                    <Phone size={14} />
-                                  </button>
-                                  <button className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">
-                                    <MessageSquare size={14} />
-                                  </button>
-                                </>
-                              )}
+                              <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors">
+                                <Phone size={14} />
+                              </button>
+                              <button className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors">
+                                <MessageSquare size={14} />
+                              </button>
                               <button className="p-2 bg-slate-900 text-white rounded-lg hover:bg-black transition-colors">
                                 <ArrowRight size={14} />
                               </button>
@@ -445,10 +422,10 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
             </div>
 
             <button
-              onClick={() => onNavigate('tasks')}
+              onClick={() => onNavigate('sales_pipeline')}
               className="px-6 py-3.5 text-center text-xs font-bold text-slate-400 hover:text-primary hover:bg-slate-50 transition-all border-t border-slate-100 group"
             >
-              ניהול משימות מלא <ChevronRight size={12} className="inline mr-1 transition-transform group-hover:-translate-x-1" />
+              כל הלידים <ChevronRight size={12} className="inline mr-1 transition-transform group-hover:-translate-x-1" />
             </button>
           </div>
 

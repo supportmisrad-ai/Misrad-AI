@@ -155,7 +155,7 @@ export default async function BillingPortalPage() {
 
               <div className="space-y-3">
                 <a
-                  href="mailto:yitzhak@misrad.ai"
+                  href="mailto:support@misrad-ai.com"
                   className="flex items-center gap-3 p-4 bg-white border border-blue-200 rounded-lg hover:shadow-md transition-shadow group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
@@ -164,13 +164,13 @@ export default async function BillingPortalPage() {
                   <div className="flex-1">
                     <p className="text-xs font-medium text-gray-600">מייל</p>
                     <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                      yitzhak@misrad.ai
+                      support@misrad-ai.com
                     </p>
                   </div>
                 </a>
 
                 <a
-                  href="tel:+972-54-123-4567"
+                  href="https://wa.me/972547700700" target="_blank" rel="noreferrer"
                   className="flex items-center gap-3 p-4 bg-white border border-blue-200 rounded-lg hover:shadow-md transition-shadow group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
@@ -179,11 +179,28 @@ export default async function BillingPortalPage() {
                   <div className="flex-1">
                     <p className="text-xs font-medium text-gray-600">טלפון</p>
                     <p className="font-bold text-gray-900 group-hover:text-green-600 transition-colors" dir="ltr">
-                      054-123-4567
+                      054-770-0700
                     </p>
                   </div>
                 </a>
               </div>
+            </div>
+
+            {/* Direct Checkout CTA */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6">
+              <div className="text-center mb-4">
+                <h3 className="font-black text-slate-900 text-xl mb-2">מוכנים להמשיך?</h3>
+                <p className="text-sm text-slate-600">השלם תשלום והמשך להשתמש במערכת באופן מיידי</p>
+              </div>
+              <Link href="/subscribe/checkout">
+                <Button
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-black text-lg py-6"
+                >
+                  <CreditCard className="w-6 h-6 ml-2" />
+                  הסדר תשלום עכשיו
+                </Button>
+              </Link>
             </div>
 
             {/* Trust Indicators */}
@@ -213,7 +230,7 @@ export default async function BillingPortalPage() {
 
         {/* Footer Note */}
         <p className="text-center text-sm text-gray-600 mt-6">
-          שאלות? אנחנו כאן לעזור! 📞 054-123-4567
+          MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com
         </p>
       </div>
     </div>

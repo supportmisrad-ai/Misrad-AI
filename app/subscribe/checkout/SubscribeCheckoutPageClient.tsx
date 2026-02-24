@@ -460,19 +460,13 @@ function SubscribeCheckoutContent({
             )}
 
             {enablePaymentCreditCard && selectedPaymentOption === 'credit_card' && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
-                <div className="text-slate-900 font-bold">תשלום באשראי</div>
-                <div className="text-sm text-slate-600">סליקה מאובטחת</div>
-                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
-                  <iframe
-                    title="Yaad Pay"
-                    srcDoc="<!doctype html><html lang='he'><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1' /></head><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;'><div style='text-align:center;color:#0f172a;padding:24px;'><div style='font-weight:800;font-size:16px;margin-bottom:8px;'>תשלום מאובטח</div><div style='font-size:13px;color:#475569;'>טוען טופס תשלום...</div></div></body></html>"
-                    className="w-full h-[340px]"
-                    sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-              </div>
+              <button
+                onClick={handleCreateOrder}
+                disabled={isCreating}
+                className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 shadow-sm"
+              >
+                {isCreating ? 'יוצר הזמנה...' : 'המשך לתשלום באשראי'}
+              </button>
             )}
 
             {enablePaymentManual && selectedPaymentOption === 'manual' && (
@@ -590,6 +584,20 @@ function SubscribeCheckoutContent({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Business Details Footer - required by payment processor */}
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 text-center text-xs text-slate-500 space-y-1">
+            <div className="font-bold text-slate-600">MISRAD AI</div>
+            <div>הפסנתר 9, ראשון לציון, ישראל</div>
+            <div>support@misrad-ai.com &bull; misrad-ai.com</div>
+            <div className="flex items-center justify-center gap-3 pt-1">
+              <Link href="/terms" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">תנאי שימוש</Link>
+              <span>&bull;</span>
+              <Link href="/privacy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">פרטיות</Link>
+              <span>&bull;</span>
+              <Link href="/refund-policy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">מדיניות החזרים</Link>
+            </div>
           </div>
         </div>
       </div>

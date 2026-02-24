@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lead, SystemStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
+import { Lead, SystemStage, FieldAgent, Campaign, Student, ContentItem, Invoice } from './types';
 import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, SquareCheck, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
 type NavItem = { id: string; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> };
@@ -24,14 +24,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: 'workspace', label: 'לוח בקרה', icon: LayoutDashboard },
       { id: 'sales_pipeline', label: 'לידים', icon: Users },
-      { id: 'tasks', label: 'משימות', icon: SquareCheck },
-      { id: 'calendar', label: 'אירועים', icon: CalendarDays },
-    ]
-  },
-  {
-    title: '',
-    items: [
       { id: 'dialer', label: 'חייגן', icon: PhoneCall },
+      { id: 'calendar', label: 'אירועים', icon: CalendarDays },
     ]
   },
   {
@@ -70,9 +64,6 @@ export const INITIAL_STUDENTS: Student[] = [
     
 ];
 
-export const INITIAL_TASKS: Task[] = [
-    
-];
 
 export const INITIAL_CONTENT: ContentItem[] = [
     

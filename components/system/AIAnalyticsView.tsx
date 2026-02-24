@@ -10,7 +10,7 @@ import {
   Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, AreaChart, Area, 
   LineChart, Line, ComposedChart
 } from 'recharts';
-import { Lead, Campaign, Task, Invoice } from './types';
+import { Lead, Campaign, Invoice } from './types';
 import { STAGES } from './constants';
 import { motion } from 'framer-motion';
 import { useToast } from './contexts/ToastContext';
@@ -18,7 +18,6 @@ import { useToast } from './contexts/ToastContext';
 interface AIAnalyticsViewProps {
   leads?: Lead[];
   campaigns?: Campaign[];
-  tasks?: Task[];
   invoices?: Invoice[];
 }
 
@@ -59,7 +58,6 @@ const renderActiveShape = (props: { cx: number; cy: number; innerRadius: number;
 const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ 
   leads = [], 
   campaigns = [], 
-  tasks = [],
   invoices = []
 }) => {
   const { addToast } = useToast();

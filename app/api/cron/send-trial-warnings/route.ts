@@ -25,7 +25,7 @@ import { sendTrialExpiryWarnings } from '@/lib/services/check-expired-trials';
  *
  * Recommended schedule: Twice daily at 9 AM and 5 PM (0 9,17 * * *)
  */
-export async function POST(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Security check: Verify CRON_SECRET
     const authHeader = request.headers.get('authorization');
@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Vercel Cron sends GET requests; also support POST for manual triggers
+export const GET = handler;
+export const POST = handler;
 
 // Prevent caching
 export const dynamic = 'force-dynamic';

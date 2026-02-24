@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Lead, CalendarEvent, Task } from '../types';
+import { Lead, CalendarEvent } from '../types';
 import { 
     Sun, Calendar, Clock, MapPin, Phone, ArrowRight, 
     CircleCheck, Coffee, TrendingUp, CircleAlert, ChevronRight, Play, CircleCheckBig
@@ -10,14 +10,12 @@ import { useToast } from '../contexts/ToastContext';
 interface MorningBriefingViewProps {
   leads: Lead[];
   events: CalendarEvent[];
-  tasks: Task[];
   onNavigate: (tab: string) => void;
   onLeadClick: (lead: Lead) => void;
-  onUpdateTask?: (task: Task) => void;
   onStartShift?: () => void;
 }
 
-const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events, tasks, onNavigate, onLeadClick, onUpdateTask, onStartShift }) => {
+const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events, onNavigate, onLeadClick, onStartShift }) => {
   const { addToast } = useToast();
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
 
@@ -27,26 +25,11 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
   const todaysEvents = events.filter(e => e.date === todayIso);
   const urgentLeads = leads.filter(l => l.isHot && l.status !== 'won').slice(0, 3);
   
-  const importantTasks = tasks
-    .filter(t => t.status !== 'done')
-    .sort((a,b) => {
-        const priorityOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3 };
-        return priorityOrder[a.priority as keyof typeof priorityOrder] - priorityOrder[b.priority as keyof typeof priorityOrder];
-    })
-    .slice(0, 4);
-
   const markEventDone = (id: string) => {
       if (completedSteps.includes(id)) {
           setCompletedSteps(completedSteps.filter(s => s !== id));
       } else {
           setCompletedSteps([...completedSteps, id]);
-      }
-  };
-
-  const handleTaskComplete = (task: Task) => {
-      if (onUpdateTask) {
-          onUpdateTask({ ...task, status: 'done' });
-          addToast('משימה הושלמה!', 'success');
       }
   };
 
@@ -130,40 +113,6 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
                               </div>
                           ))
                       )}
-                  </div>
-              </section>
-
-              {/* Tasks */}
-              <section>
-                  <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
-                          <CircleCheck size={22} className="text-indigo-600" />
-                          משימות מפתח
-                      </h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {importantTasks.map(task => (
-                          <div 
-                            key={task.id} 
-                            onClick={() => handleTaskComplete(task)}
-                            className="p-5 rounded-[28px] border bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer flex items-center gap-4 group"
-                          >
-                              <div className="w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all border-slate-200 group-hover:border-emerald-500 text-transparent group-hover:text-emerald-500">
-                                  <CircleCheck size={16} fill="currentColor" className="opacity-0 group-hover:opacity-100" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-slate-800 text-sm truncate">{task.title}</p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                      <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border ${
-                                          task.priority === 'critical' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-slate-50 text-slate-500 border-slate-100'
-                                      }`}>
-                                          {task.priority}
-                                      </span>
-                                  </div>
-                              </div>
-                          </div>
-                      ))}
                   </div>
               </section>
 

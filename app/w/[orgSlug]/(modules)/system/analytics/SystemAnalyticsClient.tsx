@@ -4,29 +4,24 @@ import React, { useMemo, useState } from 'react';
 import { BarChart3, FileText } from 'lucide-react';
 import AIAnalyticsView from '@/components/system/AIAnalyticsView';
 import ReportsView from '@/components/system/ReportsView';
-import type { Campaign, Lead, Task } from '@/components/system/types';
+import type { Campaign, Lead } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
-import { mapNexusTaskToUiTask } from '@/components/system/utils/mapTask';
 import { mapCampaignDto } from '@/components/system/utils/mapCampaign';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import type { Task as NexusTask } from '@/types';
 
 export default function SystemAnalyticsClient({
   initialLeads,
   initialCampaigns,
-  initialTasks,
   initialTab,
 }: {
   initialLeads: SystemLeadDTO[];
   initialCampaigns: WorkspaceCampaignDTO[];
-  initialTasks: NexusTask[];
   initialTab?: 'analytics' | 'reports';
 }) {
   const [activeTab, setActiveTab] = useState<'analytics' | 'reports'>(initialTab || 'analytics');
   const leads: Lead[] = useMemo(() => (initialLeads || []).map(mapDtoToLead), [initialLeads]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);
-  const tasks: Task[] = useMemo(() => (initialTasks || []).map(mapNexusTaskToUiTask), [initialTasks]);
 
   return (
     <div className="space-y-6">
@@ -58,9 +53,9 @@ export default function SystemAnalyticsClient({
       </div>
 
       {activeTab === 'analytics' ? (
-        <AIAnalyticsView leads={leads} campaigns={campaigns} tasks={tasks} invoices={[]} />
+        <AIAnalyticsView leads={leads} campaigns={campaigns} invoices={[]} />
       ) : (
-        <ReportsView leads={leads} campaigns={campaigns} tasks={tasks} />
+        <ReportsView leads={leads} campaigns={campaigns} />
       )}
     </div>
   );

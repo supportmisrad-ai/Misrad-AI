@@ -41,17 +41,31 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
   const [runningIngest, setRunningIngest] = useState(false);
   const [creditStatus, setCreditStatus] = useState<any>(null);
 
-  const knownModels = useMemo(
+  const providers = useMemo(
     () => [
-      'gemini-2.0-pro',
-      'gemini-2.5-flash',
-      'gemini-2.5-pro',
-      'nova-2',
-      'llama-3.1-70b-versatile',
-      'text-embedding-3-small',
+      { value: 'google', label: 'Google (Gemini)' },
+      { value: 'anthropic', label: 'Anthropic (Claude)' },
+      { value: 'deepgram', label: 'Deepgram (Transcription)' },
+      { value: 'openai', label: 'OpenAI (GPT/Embeddings)' },
+      { value: 'groq', label: 'Groq (Fast Inference)' },
     ],
     []
   );
+
+  const modelsByProvider = useMemo(
+    () => ({
+      google: ['gemini-2.0-flash-exp', 'gemini-2.0-pro', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+      anthropic: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
+      deepgram: ['nova-2', 'nova', 'whisper'],
+      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'text-embedding-3-small', 'text-embedding-3-large'],
+      groq: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+    }),
+    []
+  );
+
+  const getModelsForProvider = (provider: string) => {
+    return modelsByProvider[provider as keyof typeof modelsByProvider] || [];
+  };
 
   const selectedOrg = useMemo(() => orgs.find((o) => o.id === selectedOrgId) || null, [orgs, selectedOrgId]);
 
@@ -372,26 +386,29 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
                       פעיל
                     </label>
 
-                    <input
+                    <CustomSelect
                       value={r.primary_provider || ''}
-                      onChange={(e) => updateRowLocal(r.feature_key, { primary_provider: e.target.value })}
-                      placeholder="primary_provider"
-                      className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                      onChange={(val) => {
+                        if (!val) return;
+                        updateRowLocal(r.feature_key, { primary_provider: val });
+                      }}
+                      placeholder="בחר Provider ראשי"
+                      options={providers}
                     />
                     <div className="grid grid-cols-1 gap-2">
                       <CustomSelect
-                        value={knownModels.includes(r.primary_model) ? r.primary_model : ''}
+                        value={getModelsForProvider(r.primary_provider).includes(r.primary_model) ? r.primary_model : ''}
                         onChange={(val) => {
                           if (!val) return;
                           updateRowLocal(r.feature_key, { primary_model: val });
                         }}
-                        placeholder="בחר מודל מהרשימה (אופציונלי)"
-                        options={knownModels.map((m) => ({ value: m, label: m }))}
+                        placeholder={`בחר מודל ${r.primary_provider ? `(${r.primary_provider})` : ''}`}
+                        options={getModelsForProvider(r.primary_provider).map((m) => ({ value: m, label: m }))}
                       />
                       <input
                         value={r.primary_model || ''}
                         onChange={(e) => updateRowLocal(r.feature_key, { primary_model: e.target.value })}
-                        placeholder="primary_model (אפשר להקליד חופשי)"
+                        placeholder="או הקלד שם מודל חופשי"
                         className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
                       />
                     </div>
@@ -408,19 +425,27 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
                       placeholder="timeout_ms"
                       className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
                     />
-                    <input
+                    <CustomSelect
                       value={r.fallback_provider || ''}
-                      onChange={(e) => updateRowLocal(r.feature_key, { fallback_provider: e.target.value || null })}
-                      placeholder="fallback_provider"
-                      className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                      onChange={(val) => updateRowLocal(r.feature_key, { fallback_provider: val || null })}
+                      placeholder="Fallback Provider (אופציונלי)"
+                      options={[{ value: '', label: 'ללא' }, ...providers]}
                     />
 
-                    <input
-                      value={r.fallback_model || ''}
-                      onChange={(e) => updateRowLocal(r.feature_key, { fallback_model: e.target.value || null })}
-                      placeholder="fallback_model"
-                      className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
-                    />
+                    <div className="grid grid-cols-1 gap-2">
+                      <CustomSelect
+                        value={r.fallback_provider && getModelsForProvider(r.fallback_provider).includes(r.fallback_model || '') ? r.fallback_model || '' : ''}
+                        onChange={(val) => updateRowLocal(r.feature_key, { fallback_model: val || null })}
+                        placeholder={`Fallback Model ${r.fallback_provider ? `(${r.fallback_provider})` : ''}`}
+                        options={r.fallback_provider ? getModelsForProvider(r.fallback_provider).map((m) => ({ value: m, label: m })) : []}
+                      />
+                      <input
+                        value={r.fallback_model || ''}
+                        onChange={(e) => updateRowLocal(r.feature_key, { fallback_model: e.target.value || null })}
+                        placeholder="או הקלד שם מודל fallback חופשי"
+                        className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none"
+                      />
+                    </div>
                   </div>
 
                   <textarea

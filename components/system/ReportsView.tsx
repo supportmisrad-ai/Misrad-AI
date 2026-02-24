@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Lead, Campaign, Task } from './types';
+import { Lead, Campaign } from './types';
 import { 
     BarChart3, PieChart as PieChartIcon, TrendingUp, Calendar, 
     Download, Filter, FileText, ChevronDown, ArrowUpRight, 
@@ -18,10 +18,9 @@ import { useToast } from './contexts/ToastContext';
 interface ReportsViewProps {
     leads: Lead[];
     campaigns: Campaign[];
-    tasks: Task[];
 }
 
-const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) => {
+const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns }) => {
     const { addToast } = useToast();
     const [period, setPeriod] = useState<'month' | 'quarter' | 'year'>('month');
 

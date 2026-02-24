@@ -12,7 +12,7 @@ import { UserProfile, CalendarEvent, Lead } from './types';
 interface MobileFrontWingProps {
     user?: UserProfile | null;
     leads: Lead[];
-    onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
+    onQuickAction: (action: 'lead' | 'meeting') => void;
     onNavigate: (tab: string) => void;
     onLeadClick: (lead: Lead) => void;
     nextMeeting?: CalendarEvent;

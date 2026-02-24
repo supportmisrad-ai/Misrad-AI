@@ -75,7 +75,7 @@ export default function TrialExpiredPage() {
                   השלם תשלום והמשך להשתמש במערכת באופן מיידי
                 </p>
               </div>
-              <Link href="/app/billing-portal">
+              <Link href="/subscribe/checkout">
                 <Button
                   size="lg"
                   className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-black text-lg py-6"
@@ -102,7 +102,7 @@ export default function TrialExpiredPage() {
               <div className="space-y-3">
                 {/* Contact Info */}
                 <a
-                  href="mailto:yitzhak@misrad.ai"
+                  href="mailto:support@misrad-ai.com"
                   className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
@@ -111,13 +111,13 @@ export default function TrialExpiredPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-slate-600">מייל</p>
                     <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                      yitzhak@misrad.ai
+                      support@misrad-ai.com
                     </p>
                   </div>
                 </a>
 
                 <a
-                  href="tel:+972-54-123-4567"
+                  href="https://wa.me/972547700700" target="_blank" rel="noreferrer"
                   className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
@@ -126,7 +126,7 @@ export default function TrialExpiredPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-slate-600">טלפון</p>
                     <p className="font-bold text-slate-900 group-hover:text-green-600 transition-colors" dir="ltr">
-                      054-123-4567
+                      054-770-0700
                     </p>
                   </div>
                 </a>
@@ -166,7 +166,7 @@ export default function TrialExpiredPage() {
         <div className="text-center mt-6">
           <p className="text-sm text-slate-600" dir="rtl">
             <Calendar className="inline-block w-4 h-4 ml-1" />
-            רוצה תקופת ניסיון נוספת? צור קשר עם יצחק
+            MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com
           </p>
         </div>
       </div>

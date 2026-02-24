@@ -3,7 +3,7 @@
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
-import { sendTrialExpiryWarningEmail } from '@/lib/email';
+import { sendTrialExpiryWarningEmail, sendTrialExpiredEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
 
 /**
@@ -86,7 +86,7 @@ export async function sendTrialExpiryWarnings() {
             });
 
             if (!sentRecently) {
-              const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(org.slug || org.id)}/billing`;
+              const portalUrl = `${getBaseUrl()}/subscribe/checkout`;
 
               // Send warning email
               const emailResult = await sendTrialExpiryWarningEmail({
@@ -252,7 +252,8 @@ export async function checkAndDisableExpiredOrganizations() {
             },
           });
 
-          // Log each expired organization with details
+          // Log each expired organization and send expiry email
+          const portalUrl = `${getBaseUrl()}/subscribe/checkout`;
           for (const org of expiredOrganizations) {
             logger.info('checkAndDisableExpiredOrganizations', 'Disabled expired trial', {
               organizationId: org.id,
@@ -263,6 +264,23 @@ export async function checkAndDisableExpiredOrganizations() {
               trialEndDate: org.trialEndDate,
               daysExpired: org.daysExpired,
             });
+
+            // Send "trial expired" email (day 0)
+            if (org.owner?.email && org.daysExpired <= 1) {
+              try {
+                await sendTrialExpiredEmail({
+                  toEmail: org.owner.email,
+                  organizationName: org.name,
+                  ownerName: org.owner.full_name,
+                  portalUrl,
+                });
+              } catch (emailErr) {
+                logger.warn('checkAndDisableExpiredOrganizations', 'Failed to send trial expired email', {
+                  organizationId: org.id,
+                  error: emailErr instanceof Error ? emailErr.message : 'Unknown',
+                });
+              }
+            }
           }
         }
 

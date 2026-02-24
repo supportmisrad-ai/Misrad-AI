@@ -171,18 +171,24 @@ export const Footer = () => {
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                            <span className="text-xs font-bold text-emerald-400">פעיל</span>
+                <div className="pt-8 border-t border-white/10 flex flex-col items-center gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-center w-full gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                                <span className="text-xs font-bold text-emerald-400">פעיל</span>
+                            </div>
+                            <span className="text-xs text-slate-500">מערכת ישראלית</span>
                         </div>
-                        <span className="text-xs text-slate-500">מערכת ישראלית</span>
+
+                        <p className="text-xs text-slate-500">
+                            &copy; {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.
+                        </p>
                     </div>
 
-                    <p className="text-xs text-slate-500">
-                        &copy; {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.
-                    </p>
+                    <div className="text-xs text-slate-600 text-center leading-relaxed">
+                        MISRAD AI &bull; הפסנתר 9, ראשון לציון &bull; support@misrad-ai.com &bull; misrad-ai.com
+                    </div>
                 </div>
             </div>
         </footer>

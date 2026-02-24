@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, CalendarEvent, Task, SquareActivity, Campaign, Student, ContentItem } from '../types';
+import { Lead, CalendarEvent, SquareActivity, Campaign, Student, ContentItem } from '../types';
 import SystemCommandCenter from '../../SystemCommandCenter';
 import MorningBriefingView from './MorningBriefingView';
 
@@ -9,24 +9,21 @@ interface WorkspaceHubProps {
   content: ContentItem[];
   students: Student[];
   campaigns: Campaign[];
-  tasks: Task[];
   events: CalendarEvent[];
   onLeadClick: (lead: Lead) => void;
   onNavigate: (tabId: string) => void;
-  onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
+  onQuickAction: (action: 'lead' | 'meeting') => void;
   onAddEvent: (event: CalendarEvent) => void;
   onNewMeetingClick: () => void;
   onAddActivity: (leadId: string, SquareActivity: SquareActivity) => void;
   onAddContact?: (lead: Lead) => void;
-  onUpdateTask: (task: Task) => void;
-  onAddTask: (task: Task) => void;
   initialTab?: 'overview' | 'briefing';
 }
 
 const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ 
-    leads, content, students, campaigns, tasks, events,
+    leads, content, students, campaigns, events,
     onLeadClick, onNavigate, onQuickAction, onAddEvent, onNewMeetingClick,
-    onAddActivity, onAddContact, onUpdateTask, onAddTask,
+    onAddActivity, onAddContact,
     initialTab = 'overview'
 }) => {
   const [currentView, setCurrentView] = useState<'overview' | 'briefing'>(initialTab);
@@ -57,7 +54,6 @@ const WorkspaceHub: React.FC<WorkspaceHubProps> = ({
                         content={content}
                         students={students}
                         campaigns={campaigns}
-                        tasks={tasks}
                         events={events}
                         onLeadClick={onLeadClick}
                         onNavigate={handleInternalNavigate}
@@ -67,10 +63,8 @@ const WorkspaceHub: React.FC<WorkspaceHubProps> = ({
                     <MorningBriefingView 
                         leads={leads}
                         events={events}
-                        tasks={tasks}
                         onLeadClick={onLeadClick}
                         onNavigate={onNavigate}
-                        onUpdateTask={onUpdateTask}
                         onStartShift={() => setCurrentView('overview')}
                     />
                 )}

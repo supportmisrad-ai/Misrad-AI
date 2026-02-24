@@ -731,7 +731,7 @@ export default function SystemSalesPipelineClient({
           onOpenClientPortal={() => handleOpenClientPortal(selectedLead)}
           assignees={assignees}
           onUpdateLead={(p) => void handleUpdateLead(p)}
-          onAddTask={() => router.push(`${basePath}/tasks`)}
+          onAddTask={undefined}
         />
       ) : null}
 

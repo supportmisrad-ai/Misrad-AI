@@ -46,22 +46,16 @@ export default async function SystemMePage({
             iconId: 'target',
           },
           {
-            title: 'משימות',
-            subtitle: 'ניהול משימות ומעקב',
-            href: `${basePathOverride}/tasks`,
-            iconId: 'square_check',
+            title: 'חייגן',
+            subtitle: 'תקשורת עם לידים',
+            href: `${basePathOverride}/dialer`,
+            iconId: 'phone_call',
           },
           {
             title: 'אירועים',
             subtitle: 'לוח שנה ופגישות',
             href: `${basePathOverride}/calendar`,
             iconId: 'calendar_days',
-          },
-          {
-            title: 'חייגן',
-            subtitle: 'תקשורת עם לידים',
-            href: `${basePathOverride}/dialer`,
-            iconId: 'phone_call',
           },
           {
             title: 'דוחות',

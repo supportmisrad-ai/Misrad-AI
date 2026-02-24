@@ -6,7 +6,7 @@ import WorkspaceHub from '@/components/system/WorkspaceHub';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
-import type { Activity, Lead, CalendarEvent, Campaign, Task } from '@/components/system/types';
+import type { Activity, Lead, CalendarEvent, Campaign } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { mapDtoToCalendarEvent } from '@/components/system/utils/mapCalendarEvent';
 import { mapCampaignDto } from '@/components/system/utils/mapCampaign';
@@ -19,10 +19,8 @@ import {
   type SystemCalendarEventDTO,
 } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import { type Task as NexusTask } from '@/types';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
-import { useSystemTasks } from '@/hooks/useSystemTasks';
 
 import { getErrorMessage } from '@/lib/shared/unknown';
 
@@ -31,14 +29,12 @@ export default function SystemWorkspaceClient({
   orgSlug,
   initialLeads,
   initialEvents,
-  initialTasks,
   initialCampaigns,
   initialNotifications,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
   initialEvents: SystemCalendarEventDTO[];
-  initialTasks: NexusTask[];
   initialCampaigns: WorkspaceCampaignDTO[];
   initialNotifications: SystemNotificationDTO[];
 }) {
@@ -49,12 +45,6 @@ export default function SystemWorkspaceClient({
 
   const [leadsDto, setLeadsDto] = useState<SystemLeadDTO[]>(initialLeads);
   const [events, setEvents] = useState<CalendarEvent[]>(() => (initialEvents || []).map(mapDtoToCalendarEvent));
-
-  const { tasks, handleAddTask, handleUpdateTask } = useSystemTasks({
-    orgSlug,
-    initialTasks,
-    onError: (msg) => addToast(msg, 'error'),
-  });
 
   const leads: Lead[] = useMemo(() => (leadsDto || []).map(mapDtoToLead), [leadsDto]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);
@@ -192,7 +182,6 @@ export default function SystemWorkspaceClient({
         content={[]}
         students={[]}
         campaigns={campaigns}
-        tasks={tasks}
         events={events}
         notifications={initialNotifications}
         onLeadClick={(lead) => setSelectedLeadId(String(lead.id))}
@@ -207,7 +196,7 @@ export default function SystemWorkspaceClient({
             setShowNewMeetingModal(true);
             return;
           }
-          navigateToTab('tasks');
+          navigateToTab('sales_pipeline');
         }}
         onAddEvent={(event) => void handleAddEvent(event)}
         onNewMeetingClick={() => {
@@ -215,8 +204,6 @@ export default function SystemWorkspaceClient({
           setShowNewMeetingModal(true);
         }}
         onAddActivity={(leadId, activity) => void handleAddActivity(leadId, activity)}
-        onUpdateTask={(task) => void handleUpdateTask(task)}
-        onAddTask={(task) => void handleAddTask(task)}
       />
 
       {selectedLead ? (

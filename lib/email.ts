@@ -1293,6 +1293,123 @@ export async function sendTrialExpiryWarningEmail(params: {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// TRIAL EXPIRED EMAIL (day 0)
+// ═══════════════════════════════════════════════════════════════════
+
+function generateTrialExpiredEmailHTML(params: {
+    organizationName: string;
+    ownerName?: string | null;
+    portalUrl: string;
+}): string {
+    const assets = getEmailAssets();
+    const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
+
+    const bodyContent = `
+        ${EmailTemplateComponents.generateFeatureBanner({
+            emoji: '🔒',
+            title: 'תקופת הניסיון הסתיימה',
+            subtitle: 'הגישה למערכת הוגבלה',
+            gradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+        })}
+
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+            <strong style="color:#dc2626;">הסתיימה</strong>. הגישה למערכת הוגבלה עד להשלמת התשלום.
+        </div>
+
+        ${EmailTemplateComponents.generateCallout({
+            emoji: '💾',
+            title: 'המידע שלך בטוח',
+            text: 'כל הנתונים שלך נשמרים ומאובטחים. ברגע שתשלים תשלום — הגישה תחזור באופן מיידי עם כל המידע במקומו.',
+            bgColor: '#eff6ff',
+            borderColor: '#bfdbfe',
+            titleColor: '#1e40af',
+            textColor: '#1e3a5f',
+        })}
+
+        ${EmailTemplateComponents.generateCTAButton({
+            text: 'השלם תשלום והמשך להשתמש →',
+            url: params.portalUrl,
+        })}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'אם יש שאלות או צריך עזרה עם ההחלטה — השב למייל הזה ונחזור אליך.',
+            signatureText: assets.founderSignature,
+        })}
+    `;
+
+    return generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'תקופת הניסיון הסתיימה',
+        headerGradient: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+        bodyContent,
+        showSocialLinks: false,
+    });
+}
+
+export async function sendTrialExpiredEmail(params: {
+    toEmail: string;
+    organizationName: string;
+    ownerName?: string | null;
+    portalUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const resend = getResendClient();
+        if (!resend) {
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping trial expired email');
+            return { success: false, error: 'Email service not configured' };
+        }
+
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(params.toEmail);
+        const html = generateTrialExpiredEmailHTML(params);
+
+        const { data, error } = await resend.emails.send({
+            from: fromEmail,
+            to: toEmail,
+            subject: '🔒 תקופת הניסיון הסתיימה — MISRAD AI',
+            html,
+        });
+
+        if (error) {
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (trial-expired):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (trial-expired)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
+        }
+
+        console.log('[Email] Trial expired email sent successfully:', {
+            emailId: data?.id,
+            organizationName: params.organizationName,
+        });
+
+        return { success: true };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending trial expired email:', { message, name });
+        } else {
+            console.error('[Email] Error sending trial expired email');
+        }
+        return { success: false, error: message || 'Unknown error' };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // CONTACT FORM EMAILS
 // ═══════════════════════════════════════════════════════════════════
 
