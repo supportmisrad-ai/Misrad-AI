@@ -9,7 +9,6 @@ import NewMeetingModal from '@/components/system/NewMeetingModal';
 import type { Activity, Lead, CalendarEvent, Campaign, Task } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { mapDtoToCalendarEvent } from '@/components/system/utils/mapCalendarEvent';
-import { mapNexusTaskToUiTask, toNexusPriority, toNexusStatus } from '@/components/system/utils/mapTask';
 import { mapCampaignDto } from '@/components/system/utils/mapCampaign';
 import {
   createSystemLead,
@@ -21,9 +20,9 @@ import {
 } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
 import { type Task as NexusTask } from '@/types';
-import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
+import { useSystemTasks } from '@/hooks/useSystemTasks';
 
 import { getErrorMessage } from '@/lib/shared/unknown';
 
@@ -50,7 +49,12 @@ export default function SystemWorkspaceClient({
 
   const [leadsDto, setLeadsDto] = useState<SystemLeadDTO[]>(initialLeads);
   const [events, setEvents] = useState<CalendarEvent[]>(() => (initialEvents || []).map(mapDtoToCalendarEvent));
-  const [tasks, setTasks] = useState<Task[]>(() => (initialTasks || []).map(mapNexusTaskToUiTask));
+
+  const { tasks, handleAddTask, handleUpdateTask } = useSystemTasks({
+    orgSlug,
+    initialTasks,
+    onError: (msg) => addToast(msg, 'error'),
+  });
 
   const leads: Lead[] = useMemo(() => (leadsDto || []).map(mapDtoToLead), [leadsDto]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);
@@ -179,58 +183,6 @@ export default function SystemWorkspaceClient({
 
     setEvents((prev) => [mapDtoToCalendarEvent(res.event), ...prev]);
     addToast('האירוע נשמר', 'success');
-  };
-
-  const handleUpdateTask = async (task: Task) => {
-    try {
-      const updated = await updateNexusTaskByOrgSlug({
-        orgSlug,
-        taskId: String(task.id),
-        updates: {
-          title: task.title,
-          description: task.description ?? '',
-          assigneeId: task.assigneeId,
-          assigneeIds: [task.assigneeId],
-          dueDate: task.dueDate.toISOString().slice(0, 10),
-          priority: toNexusPriority(task.priority),
-          status: toNexusStatus(task.status),
-          tags: task.tags,
-        },
-      });
-
-      const next = mapNexusTaskToUiTask(updated);
-      setTasks((prev) => prev.map((t) => (String(t.id) === String(next.id) ? next : t)));
-    } catch (e: unknown) {
-      addToast(getErrorMessage(e) || 'שגיאה בעדכון משימה', 'error');
-    }
-  };
-
-  const handleAddTask = async (task: Task) => {
-    try {
-      const created = await createNexusTaskByOrgSlug({
-        orgSlug,
-        input: {
-          title: task.title,
-          description: task.description ?? '',
-          status: toNexusStatus(task.status),
-          priority: toNexusPriority(task.priority),
-          assigneeId: task.assigneeId,
-          assigneeIds: [task.assigneeId],
-          tags: task.tags,
-          dueDate: task.dueDate.toISOString().slice(0, 10),
-          timeSpent: 0,
-          isTimerRunning: false,
-          messages: [],
-          createdAt: new Date().toISOString(),
-        },
-      });
-
-      const next = mapNexusTaskToUiTask(created);
-      setTasks((prev) => [next, ...prev]);
-    } catch (e: unknown) {
-      addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
-      return;
-    }
   };
 
   return (

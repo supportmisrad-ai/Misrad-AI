@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import TasksView from '@/components/nexus/TasksView';
-import type { Task } from '@/components/system/types';
+import React, { useEffect } from 'react';
+import TasksBoardView from '@/components/shared/TasksBoardView';
 import { type Task as NexusTask } from '@/types';
-import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import { useAuth } from '@/components/system/contexts/AuthContext';
-import { mapNexusTaskToUiTask, toNexusPriority, toNexusStatus } from '@/components/system/utils/mapTask';
-import { getErrorMessage } from '@/lib/shared/unknown';
+import { useSystemTasks } from '@/hooks/useSystemTasks';
 
 export default function SystemTasksClient({
   orgSlug,
@@ -20,39 +17,12 @@ export default function SystemTasksClient({
   const { addToast } = useToast();
   const { user } = useAuth();
 
-  const [tasks, setTasks] = useState<Task[]>(() => (initialTasks || []).map(mapNexusTaskToUiTask));
-
-  const tasksSorted = useMemo(() => {
-    return [...tasks].sort((a, b) => b.dueDate.getTime() - a.dueDate.getTime());
-  }, [tasks]);
-
-  const handleAddTask = async (task: Task) => {
-    try {
-      const created = await createNexusTaskByOrgSlug({
-        orgSlug,
-        input: {
-          title: task.title,
-          description: task.description ?? '',
-          status: toNexusStatus(task.status),
-          priority: toNexusPriority(task.priority),
-          assigneeId: task.assigneeId,
-          assigneeIds: [task.assigneeId],
-          tags: task.tags,
-          dueDate: task.dueDate.toISOString().slice(0, 10),
-          timeSpent: 0,
-          isTimerRunning: false,
-          messages: [],
-          createdAt: new Date().toISOString(),
-        },
-      });
-
-      setTasks((prev) => [mapNexusTaskToUiTask(created), ...prev]);
-      addToast('המשימה נוצרה', 'success');
-    } catch (e: unknown) {
-      addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
-      return;
-    }
-  };
+  const { tasksSorted, handleAddTask, handleUpdateTask } = useSystemTasks({
+    orgSlug,
+    initialTasks,
+    onError: (msg) => addToast(msg, 'error'),
+    onSuccess: (msg) => addToast(msg, 'success'),
+  });
 
   const createNewTaskFromShell = () => {
     const assigneeId = user?.id ? String(user.id) : '';
@@ -93,36 +63,5 @@ export default function SystemTasksClient({
     };
   }, [user?.id]);
 
-  const handleUpdateTask = async (task: Task) => {
-    // Optimistic update - apply immediately so drag feels instant
-    const prevTasks = tasks;
-    setTasks((prev) => prev.map((t) => (String(t.id) === String(task.id) ? task : t)));
-
-    try {
-      const updated = await updateNexusTaskByOrgSlug({
-        orgSlug,
-        taskId: String(task.id),
-        updates: {
-          title: task.title,
-          description: task.description ?? '',
-          assigneeId: task.assigneeId,
-          assigneeIds: [task.assigneeId],
-          dueDate: task.dueDate.toISOString().slice(0, 10),
-          priority: toNexusPriority(task.priority),
-          status: toNexusStatus(task.status),
-          tags: task.tags,
-        },
-      });
-
-      const mapped = mapNexusTaskToUiTask(updated);
-      setTasks((prev) => prev.map((t) => (String(t.id) === String(mapped.id) ? mapped : t)));
-    } catch (e: unknown) {
-      // Revert on error
-      setTasks(prevTasks);
-      addToast(getErrorMessage(e) || 'שגיאה בעדכון משימה', 'error');
-      return;
-    }
-  };
-
-  return <TasksView tasks={tasksSorted} onAddTask={(t) => void handleAddTask(t)} onUpdateTask={(t) => void handleUpdateTask(t)} />;
+  return <TasksBoardView tasks={tasksSorted} onAddTask={(t) => void handleAddTask(t)} onUpdateTask={(t) => void handleUpdateTask(t)} />;
 }

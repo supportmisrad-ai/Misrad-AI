@@ -1,13 +1,15 @@
+'use client';
 
 import React, { useState, useRef } from 'react';
-import { Task, TaskPriority, TaskStatus } from '../types';
+import type { Task, TaskPriority, TaskStatus } from '@/components/system/types';
 import { 
     SquareCheck, Plus, Calendar, Flag, User, MoreHorizontal, 
     List, Kanban, Filter, Search, Clock, CircleCheckBig, Circle, BookOpen, Phone, ArrowLeft, ArrowRight
 } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useOnClickOutside } from '../hooks/useOnClickOutside';
+import { useToast } from '@/components/system/contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/coming-soon';
+import { useAuth } from '@/components/system/contexts/AuthContext';
+import { useOnClickOutside } from '@/components/system/hooks/useOnClickOutside';
 
 interface TasksViewProps {
     tasks?: Task[];
@@ -62,7 +64,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange, currentUserId
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    useOnClickOutside<HTMLDivElement>(menuRef, () => setIsMenuOpen(false));
+    useOnClickOutside(menuRef, () => setIsMenuOpen(false));
 
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.setData('taskId', task.id);
@@ -91,7 +93,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange, currentUserId
 
             <div className="flex justify-between items-start mb-2 pl-1 relative">
                 <div className="flex gap-1 flex-wrap">
-                    {task.tags.map(tag => (
+                    {task.tags.map((tag: string) => (
                         <span key={tag} className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${tag === 'SOP' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-500 border-slate-100'}`}>
                             {tag === 'SOP' && <BookOpen size={10} className="inline ml-1" />}
                             {tag === 'Call' ? 'שיחה' : tag === 'Follow Up' ? 'פולואפ' : tag}
@@ -210,7 +212,7 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
             };
             onAddTask(newTask);
         } else {
-            addToast('מודל הוספת משימה נפתח', 'info');
+            openComingSoon();
         }
     };
 
@@ -329,7 +331,7 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
                                             {task.tags.includes('SOP') && <span className="bg-indigo-100 text-indigo-700 text-[9px] px-1.5 rounded font-bold border border-indigo-200 shrink-0">נוהל</span>}
                                         </div>
                                         <div className="flex gap-1 mt-1">
-                                            {task.tags.map(tag => (
+                                            {task.tags.map((tag: string) => (
                                                 <span key={tag} className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold border border-slate-200">
                                                     {tag === 'Call' ? 'שיחה' : tag}
                                                 </span>
@@ -368,3 +370,4 @@ const TasksView: React.FC<TasksViewProps> = ({ tasks = [], onUpdateTask, onAddTa
 };
 
 export default TasksView;
+
