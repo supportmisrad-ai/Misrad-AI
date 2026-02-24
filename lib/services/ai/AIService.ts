@@ -1283,28 +1283,22 @@ export class AIService {
     if (reserve <= 0) return 0;
 
     try {
-      await executeRawOrgScoped(prisma, {
+      const affected = await executeRawOrgScoped(prisma, {
         organizationId: params.organizationId,
         reason: 'ai_debit_credits',
         query:
-          'select ai_debit_credits(\n' +
-          '  p_organization_id := scope.organization_id,\n' +
-          '  p_amount_cents := $2::int\n' +
-          ')\n' +
-          'from (select $1::uuid as organization_id) scope\n' +
-          'where scope.organization_id = $1::uuid',
+          'UPDATE "Organization" ' +
+          'SET ai_credits_balance_cents = ai_credits_balance_cents - $2::bigint ' +
+          'WHERE id = $1::uuid AND ai_credits_balance_cents >= $2::bigint',
         values: [params.organizationId, reserve],
       });
-    } catch (err: unknown) {
-      const msg = getErrorMessage(err);
-      const lower = msg.toLowerCase();
-      if (lower.includes('insufficient') || lower.includes('credit')) {
+
+      if (affected === 0) {
         throw new UpgradeRequiredError();
       }
-      if (lower.includes('does not exist') || lower.includes('function') || lower.includes('not found')) {
-        console.warn('[AIService] ai_debit_credits function not available, skipping credit reservation');
-        return 0;
-      }
+    } catch (err: unknown) {
+      if (err instanceof UpgradeRequiredError) throw err;
+      const msg = getErrorMessage(err);
       throw new Error(`Failed to debit credits: ${msg || String(err)}`);
     }
 
@@ -1320,20 +1314,12 @@ export class AIService {
         organizationId: params.organizationId,
         reason: 'ai_adjust_credits',
         query:
-          'select ai_adjust_credits(\n' +
-          '  p_organization_id := scope.organization_id,\n' +
-          '  p_delta_cents := $2::int\n' +
-          ')\n' +
-          'from (select $1::uuid as organization_id) scope\n' +
-          'where scope.organization_id = $1::uuid',
+          'UPDATE "Organization" ' +
+          'SET ai_credits_balance_cents = ai_credits_balance_cents + $2::bigint ' +
+          'WHERE id = $1::uuid',
         values: [params.organizationId, delta],
       });
     } catch (err: unknown) {
-      const msg = getErrorMessage(err).toLowerCase();
-      if (msg.includes('does not exist') || msg.includes('function') || msg.includes('not found')) {
-        console.warn('[AIService] ai_adjust_credits function not available, skipping credit adjustment');
-        return;
-      }
       console.error('[AIService] adjustCredits failed:', getErrorMessage(err));
     }
   }

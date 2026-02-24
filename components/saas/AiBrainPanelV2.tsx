@@ -50,9 +50,8 @@ function getFeatureMeta(key: string): { label: string; description: string; modu
 }
 
 type CreditStatus = {
-  quota_cents?: string | null;
-  used_cents?: string | null;
-  remaining_cents?: string | null;
+  balance_cents?: string | null;
+  used_this_month_cents?: string | null;
 };
 
 type MergedFeature = {
@@ -555,8 +554,8 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
             <div className="text-xs text-slate-600 bg-white/80 border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2">
               <span>יתרה:</span>
               <span className="text-slate-900 font-bold">
-                {creditStatus && creditStatus.remaining_cents != null
-                  ? `${creditStatus.remaining_cents} / ${creditStatus.quota_cents ?? '∞'} סנט`
+                {creditStatus && creditStatus.balance_cents != null
+                  ? `₪${(Number(creditStatus.balance_cents) / 100).toFixed(0)} (שימוש: ₪${(Number(creditStatus.used_this_month_cents ?? 0) / 100).toFixed(0)})`
                   : creditStatus ? 'לא מוגדר' : '—'}
               </span>
               <Button type="button" variant="outline" size="sm" onClick={() => { if (selectedOrgId) void loadCreditStatus(); }} disabled={!selectedOrgId} className="h-7 w-7 p-0 mr-auto">

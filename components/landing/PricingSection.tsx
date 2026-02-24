@@ -5,7 +5,7 @@ import { ArrowRight, Check, Users, Minus, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
-import { BILLING_PACKAGES, calculateOrderAmount } from '@/lib/billing/pricing';
+import { BILLING_PACKAGES, AI_CREDITS_PER_PLAN, calculateOrderAmount } from '@/lib/billing/pricing';
 import { StyledDropdown } from '@/components/ui/StyledDropdown';
 import PricingHelper from '@/components/landing/PricingHelper';
 
@@ -203,6 +203,14 @@ export default function PricingSection({
                     ) : null}
                   </div>
                 )}
+              </div>
+
+              {/* AI Credits */}
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-100 mb-6">
+                <span className="text-sm">🤖</span>
+                <span className="text-xs font-bold text-purple-700">
+                  {AI_CREDITS_PER_PLAN[selectedPkg].toLocaleString()} קרדיטי AI לחודש
+                </span>
               </div>
 
               {/* Users stepper */}

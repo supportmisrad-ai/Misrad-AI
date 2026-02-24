@@ -10,10 +10,23 @@ export type PackageType =
   | 'the_empire'
   | 'the_mentor';
 
+export const VAT_RATE = 0.17;
+export const VAT_INCLUSIVE_NOTE = 'כל המחירים כוללים מע״מ';
+
+export const AI_CREDITS_PER_PLAN: Record<PackageType, number> = {
+  solo: 5_000,
+  the_closer: 10_000,
+  the_authority: 10_000,
+  the_operator: 10_000,
+  the_empire: 25_000,
+  the_mentor: 25_000,
+};
+
 type PackageDefinition = {
   labelHe: string;
   modules: OSModuleKey[];
   monthlyPrice: number;
+  aiCreditsCents: number;
 };
 
 export const DEFAULT_TRIAL_DAYS = 7;
@@ -23,31 +36,37 @@ export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
     labelHe: 'מודול בודד',
     modules: [],
     monthlyPrice: 149,
+    aiCreditsCents: 5_000,
   },
   the_closer: {
     labelHe: 'חבילת מכירות',
     modules: ['system', 'nexus'],
     monthlyPrice: 249,
+    aiCreditsCents: 10_000,
   },
   the_authority: {
     labelHe: 'חבילת שיווק ומיתוג',
     modules: ['social', 'client', 'nexus'],
     monthlyPrice: 349,
+    aiCreditsCents: 10_000,
   },
   the_operator: {
     labelHe: 'חבילת תפעול ושטח',
     modules: ['operations', 'nexus'],
     monthlyPrice: 349,
+    aiCreditsCents: 10_000,
   },
   the_empire: {
     labelHe: 'הכל כלול',
     modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
+    aiCreditsCents: 25_000,
   },
   the_mentor: {
     labelHe: 'כל החבילות',
     modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
+    aiCreditsCents: 25_000,
   },
 };
 
