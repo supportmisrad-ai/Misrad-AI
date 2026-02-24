@@ -4794,6 +4794,74 @@ model BotConversation {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// SITE ANALYTICS
+// ═══════════════════════════════════════════════════════════════════
+
+model SiteAnalyticsSession {
+  id              String   @id @default(cuid())
+  visitor_id      String
+  referrer        String?
+  utm_source      String?
+  utm_medium      String?
+  utm_campaign    String?
+  device_type     String?
+  browser         String?
+  os              String?
+  country         String?
+  city            String?
+  landing_page    String?
+  signup_user_id  String?
+  signed_up_at    DateTime? @db.Timestamptz(6)
+  total_pages     Int       @default(0)
+  total_duration_ms Int     @default(0)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  page_views      SiteAnalyticsPageView[]
+  events          SiteAnalyticsEvent[]
+
+  @@index([visitor_id])
+  @@index([created_at])
+  @@index([signup_user_id])
+  @@index([referrer])
+  @@index([landing_page])
+  @@map("site_analytics_sessions")
+}
+
+model SiteAnalyticsPageView {
+  id                String   @id @default(cuid())
+  session_id        String
+  session           SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  path              String
+  title             String?
+  referrer_page     String?
+  time_on_page_ms   Int      @default(0)
+  max_scroll_pct    Int      @default(0)
+  entered_at        DateTime @default(now()) @db.Timestamptz(6)
+  left_at           DateTime? @db.Timestamptz(6)
+
+  @@index([session_id])
+  @@index([path])
+  @@index([entered_at])
+  @@map("site_analytics_page_views")
+}
+
+model SiteAnalyticsEvent {
+  id          String   @id @default(cuid())
+  session_id  String
+  session     SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  event_type  String
+  event_data  Json?
+  page_path   String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([session_id])
+  @@index([event_type])
+  @@index([created_at])
+  @@map("site_analytics_events")
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // LEGACY MODELS (1)
 // ═══════════════════════════════════════════════════════════════════
 

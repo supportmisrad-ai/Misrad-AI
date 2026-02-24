@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FileUp, Loader2, Sparkles, X } from 'lucide-react';
 import { CustomSelect } from '@/components/CustomSelect';
 import {
@@ -12,7 +13,7 @@ import {
 } from '@/app/actions/projects-import';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
-type Step = 'upload' | 'review' | 'importing' | 'done';
+type Step = 'upload' | 'analyzing' | 'review' | 'importing' | 'done';
 
 const MAX_IMPORT_ROWS = 10000;
 
@@ -153,6 +154,7 @@ export default function SmartImportProjectsDialog(props: {
   const parseFile = useCallback(async (file: File) => {
     setError(null);
     setFileName(file.name);
+    setStep('analyzing');
 
     const ext = String(file.name.split('.').pop() || '').toLowerCase();
     const xlsx = await import('xlsx');
@@ -173,9 +175,11 @@ export default function SmartImportProjectsDialog(props: {
     }) as unknown[][];
 
     const rawHeaders = Array.isArray(matrix?.[0]) ? matrix[0] : [];
-    const normalizedHeaders = rawHeaders.map(normalizeHeader).filter(Boolean);
+    const normalizedHeaders = rawHeaders.map(normalizeHeader);
+    const validHeaderIndices = normalizedHeaders.reduce<number[]>((acc, h, i) => { if (h) acc.push(i); return acc; }, []);
+    const filteredHeaders = validHeaderIndices.map((i) => normalizedHeaders[i]);
 
-    if (!normalizedHeaders.length) throw new Error('לא נמצאו כותרות בשורה הראשונה');
+    if (!filteredHeaders.length) throw new Error('לא נמצאו כותרות בשורה הראשונה');
 
     const body = matrix.slice(1);
     const parsedRows: Array<Record<string, unknown>> = [];
@@ -185,7 +189,7 @@ export default function SmartImportProjectsDialog(props: {
       if (!Array.isArray(r)) continue;
       const obj: Record<string, unknown> = {};
       let any = false;
-      for (let j = 0; j < normalizedHeaders.length; j++) {
+      for (const j of validHeaderIndices) {
         const header = normalizedHeaders[j];
         const cell = sanitizeCell(r[j]);
         if (cell != null && String(cell).trim() !== '') any = true;
@@ -197,10 +201,10 @@ export default function SmartImportProjectsDialog(props: {
 
     setTotalRowsInFile(parsedRows.length);
     const limitedRows = parsedRows.slice(0, MAX_IMPORT_ROWS);
-    setHeaders(normalizedHeaders);
+    setHeaders(filteredHeaders);
     setRows(limitedRows);
 
-    const suggested = await suggestProjectImportMapping({ orgSlug, headers: normalizedHeaders });
+    const suggested = await suggestProjectImportMapping({ orgSlug, headers: filteredHeaders });
     if (!suggested.ok) throw new Error(suggested.message || 'שגיאה במיפוי כותרות');
 
     setAiMeta({ provider: suggested.provider, model: suggested.model });
@@ -219,7 +223,7 @@ export default function SmartImportProjectsDialog(props: {
   const handleFileInputChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try { await parseFile(file); } catch (err: unknown) { setError(getErrorMessage(err) || 'שגיאה בקריאת הקובץ'); } finally { e.target.value = ''; }
+    try { await parseFile(file); } catch (err: unknown) { setStep('upload'); setError(getErrorMessage(err) || 'שגיאה בקריאת הקובץ'); } finally { e.target.value = ''; }
   }, [parseFile]);
 
   const onDrop = useCallback(async (e: React.DragEvent) => {
@@ -227,7 +231,7 @@ export default function SmartImportProjectsDialog(props: {
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    try { await parseFile(file); } catch (err: unknown) { setError(getErrorMessage(err) || 'שגיאה בקריאת הקובץ'); }
+    try { await parseFile(file); } catch (err: unknown) { setStep('upload'); setError(getErrorMessage(err) || 'שגיאה בקריאת הקובץ'); }
   }, [parseFile]);
 
   const handleConfirmImport = useCallback(async () => {
@@ -278,10 +282,10 @@ export default function SmartImportProjectsDialog(props: {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl" onClick={closeAndReset}>
-      <div className="w-full max-w-4xl bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden" onClick={stop}>
-        <div className="p-6 border-b border-slate-200 flex items-start justify-between gap-4 bg-slate-50">
+      <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-y-auto" onClick={stop}>
+        <div className="sticky top-0 z-10 p-6 border-b border-slate-200 flex items-start justify-between gap-4 bg-slate-50 rounded-t-3xl">
           <div className="min-w-0">
             <div className="text-xl font-black text-slate-900">ייבוא חכם: פרויקטים</div>
             <div className="text-xs text-slate-500 font-bold mt-1">ייבא פרויקטים מ-Excel/CSV עם מיפוי אוטומטי של שדות</div>
@@ -294,6 +298,17 @@ export default function SmartImportProjectsDialog(props: {
         {error ? (
           <div className="px-6 pt-5">
             <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm font-bold">{error}</div>
+          </div>
+        ) : null}
+
+        {step === 'analyzing' ? (
+          <div className="p-10 flex flex-col items-center justify-center gap-4 text-center">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full border-4 border-slate-200 border-t-sky-600 animate-spin" />
+            </div>
+            <div className="text-lg font-black text-slate-900">מנתח את הקובץ...</div>
+            <div className="text-sm font-bold text-slate-500">קורא את הנתונים ומתאים שדות אוטומטית</div>
+            {fileName ? <div className="text-xs font-mono text-slate-400">{fileName}</div> : null}
           </div>
         ) : null}
 
@@ -368,7 +383,7 @@ export default function SmartImportProjectsDialog(props: {
                             options={TARGET_FIELDS.map((f) => ({ value: f.id, label: f.label }))}
                           />
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500 font-bold" dir="ltr">{rowsPreview[h] || '—'}</td>
+                        <td className="px-4 py-3 text-xs text-slate-500 font-bold" dir="ltr">{rowsPreview[h] != null && rowsPreview[h] !== '' ? rowsPreview[h] : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -497,6 +512,7 @@ export default function SmartImportProjectsDialog(props: {
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

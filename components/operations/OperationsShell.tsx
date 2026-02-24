@@ -278,6 +278,7 @@ export default function OperationsShell({
       </main>
 
       <MobileBottomNav
+        className={isPlusMenuOpen ? 'z-[60]' : 'z-40'}
         rightItems={[
           {
             id: 'dashboard',
@@ -323,7 +324,7 @@ export default function OperationsShell({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-[45] backdrop-blur-sm md:hidden"
+              className="fixed inset-0 bg-black/60 z-[45] backdrop-blur-md md:hidden"
               onClick={() => setIsPlusMenuOpen(false)}
             />
             <div className="fixed bottom-28 left-0 right-0 z-[50] flex justify-center gap-3 sm:gap-5 md:hidden pointer-events-none px-4">

@@ -171,6 +171,9 @@ type PrismaClientWithAliases = PrismaClient & {
   misradFieldTeam: PrismaClient['misradFieldTeam'];
   misradFieldAgent: PrismaClient['misradFieldAgent'];
   misradFieldVisit: PrismaClient['misradFieldVisit'];
+  siteAnalyticsSession: PrismaClient['siteAnalyticsSession'];
+  siteAnalyticsPageView: PrismaClient['siteAnalyticsPageView'];
+  siteAnalyticsEvent: PrismaClient['siteAnalyticsEvent'];
 };
 
 const _basePrismaClient = _client;
@@ -189,6 +192,9 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   misradFieldTeam: _basePrismaClient.misradFieldTeam,
   misradFieldAgent: _basePrismaClient.misradFieldAgent,
   misradFieldVisit: _basePrismaClient.misradFieldVisit,
+  siteAnalyticsSession: _basePrismaClient.siteAnalyticsSession,
+  siteAnalyticsPageView: _basePrismaClient.siteAnalyticsPageView,
+  siteAnalyticsEvent: _basePrismaClient.siteAnalyticsEvent,
 });
 
 // ═══════════════════════════════════════════════════════════════════

@@ -77,7 +77,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-[45] backdrop-blur-sm md:hidden"
+              className="fixed inset-0 bg-black/60 z-[45] backdrop-blur-md md:hidden"
               onClick={() => setIsPlusMenuOpen(false)}
             />
             <div className="fixed bottom-28 left-0 right-0 z-[50] flex justify-center gap-4 sm:gap-6 md:hidden pointer-events-none px-4">
@@ -167,6 +167,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   {filteredNavItems
                     .filter(item => {
                       if (item.path === '/' || item.path === '/tasks') return false;
+                      if (item.path === '/calendar') return false;
                       if (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden') return false;
                       if (item.path === '/settings') return false;
                       return true;
@@ -189,9 +190,6 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                     )
                   })}
                 </div>
-
-                {/* Separator */}
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
                 {/* Settings - Full Width, Centered */}
                 <div className="flex justify-center">

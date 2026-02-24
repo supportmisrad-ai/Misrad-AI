@@ -47,6 +47,11 @@ const GlobalSearchModal = dynamic(
   { ssr: false, loading: () => null }
 );
 
+const SiteAnalyticsTracker = dynamic(
+  () => import('@/components/shared/SiteAnalyticsTracker').then((m) => m.SiteAnalyticsTracker),
+  { ssr: false, loading: () => null }
+);
+
 
 function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
@@ -272,6 +277,7 @@ export function ClientOnlyGlobalWidgets() {
       {shouldLoad && mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}
       {shouldLoad && mounted && enableGlobalWidgets && <GlobalSupportModal />}
       {shouldLoad && mounted && enableGlobalWidgets && <GlobalSearchModal />}
+      {mounted && <SiteAnalyticsTracker />}
     </>
   );
 }

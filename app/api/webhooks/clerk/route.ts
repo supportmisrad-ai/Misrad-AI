@@ -8,7 +8,7 @@ import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserF
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug } from '@/lib/server/orgSlug';
 import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-import { sendMisradWelcomeEmail } from '@/lib/email';
+import { sendMisradWelcomeEmail, sendAdminNewSignupNotification } from '@/lib/email';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
@@ -364,6 +364,16 @@ async function POSTHandler(req: Request) {
           signInUrl,
         }).catch((err) => {
           console.error('[clerk-webhook] welcome email failed (ignored):', IS_PROD ? '' : err);
+        });
+
+        // Fire-and-forget: notify admin about new signup
+        sendAdminNewSignupNotification({
+          customerName: ownerName || null,
+          customerEmail: primaryEmail,
+          clerkUserId: id,
+          organizationName: null,
+        }).catch((err) => {
+          console.error('[clerk-webhook] admin signup notification failed (ignored):', IS_PROD ? '' : err);
         });
       }
 
