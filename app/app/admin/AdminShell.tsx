@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
 import type { Lead } from '@/types';
 
-type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot';
+type AdminArea = 'customers' | 'users' | 'support' | 'product' | 'content' | 'infra' | 'bot' | 'ai';
 const ADMIN_AREA_STORAGE_KEY = 'misrad_admin_area_v2';
 
 function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
@@ -57,15 +57,17 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   // bot
   if (p.startsWith('/app/admin/bot')) return 'bot';
 
+  // ai
+  if (p.startsWith('/app/admin/ai')) return 'ai';
+  if (p.startsWith('/app/admin/global/ai')) return 'ai';
+
   // infra
   if (p.startsWith('/app/admin/modules')) return 'infra';
   if (p.startsWith('/app/admin/system-flags')) return 'infra';
   if (p.startsWith('/app/admin/logs')) return 'infra';
-  if (p.startsWith('/app/admin/ai')) return 'infra';
   if (p === '/app/admin/global' || p === '/app/admin/global/') return 'infra';
   if (p.startsWith('/app/admin/global/control')) return 'infra';
   if (p.startsWith('/app/admin/global/feature-flags')) return 'infra';
-  if (p.startsWith('/app/admin/global/ai')) return 'infra';
   if (p.startsWith('/app/admin/global/downloads')) return 'infra';
   if (p.startsWith('/app/admin/global/data')) return 'infra';
   if (p.startsWith('/app/admin/global/versions')) return 'infra';
@@ -75,7 +77,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   return null;
 }
 
-const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot'];
+const ADMIN_AREAS: AdminArea[] = ['customers', 'users', 'support', 'product', 'content', 'infra', 'bot', 'ai'];
 
 function isAdminArea(value: unknown): value is AdminArea {
   return ADMIN_AREAS.includes(value as AdminArea);
@@ -87,8 +89,9 @@ const AREA_META: Record<AdminArea, { label: string; description: string }> = {
   support: { label: 'תמיכה', description: 'תקלות · בקשות · הודעות' },
   product: { label: 'מוצר', description: 'מודולים · בקרה · הגדרות' },
   content: { label: 'תוכן', description: 'נחיתה · מיילים · סרטונים' },
-  infra: { label: 'מערכת', description: 'תשתית · לוגים · AI · דאטה' },
+  infra: { label: 'מערכת', description: 'תשתית · לוגים · דאטה · CRON' },
   bot: { label: 'בוט', description: 'וואטסאפ · לידים · שיחות' },
+  ai: { label: 'AI', description: 'מוח AI · ספקים · מודלים · קרדיטים' },
 };
 
 function getAdminAreaLabel(area: AdminArea): string {
@@ -245,8 +248,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/global/control', label: 'בקרת פלטפורמה', icon: Server },
       { href: '/app/admin/system-flags', label: 'מתגי מערכת', icon: SlidersHorizontal },
       { href: '/app/admin/global/feature-flags', label: 'הגדרות מתקדמות', icon: Settings },
-      { href: '/app/admin/ai', label: 'ניתוח AI', icon: BrainCircuit },
-      { href: '/app/admin/global/ai', label: 'מוח AI', icon: BrainCircuit },
       { href: '/app/admin/logs', label: 'יומני אירועים', icon: ScrollText },
       { href: '/app/admin/global/data', label: 'דאטה', icon: Server },
       { href: '/app/admin/global/downloads', label: 'הורדות', icon: Server },
@@ -254,6 +255,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     ],
     bot: [
       { href: '/app/admin/bot', label: 'דשבורד בוט', icon: MessageSquare },
+    ],
+    ai: [
+      { href: '/app/admin/ai', label: 'ניתוח AI', icon: BrainCircuit },
+      { href: '/app/admin/global/ai', label: 'מוח AI', icon: BrainCircuit },
     ],
   }), []);
 

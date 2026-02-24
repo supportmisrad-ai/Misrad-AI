@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CircleUser, LifeBuoy, Menu, X, Type, User, LogIn, Accessibility, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
@@ -16,6 +16,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [isModulesOpen, setIsModulesOpen] = useState(false);
+    const modulesRef = useRef<HTMLDivElement>(null);
     const [fontScale, setFontScale] = useState(100);
     const [highContrast, setHighContrast] = useState(false);
     const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo || null);
@@ -49,6 +50,19 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
         }
         return () => document.removeEventListener('click', handleClickOutside);
     }, [isFabOpen]);
+
+    // Close modules dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (modulesRef.current && !modulesRef.current.contains(e.target as Node)) {
+                setIsModulesOpen(false);
+            }
+        };
+        if (isModulesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isModulesOpen]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -231,12 +245,17 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                     <div className="hidden md:flex items-center gap-8 bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-slate-200/70 shadow-lg shadow-slate-200/50">
                         <div
                             className="relative"
+                            ref={modulesRef}
                             onMouseEnter={() => setIsModulesOpen(true)}
                             onMouseLeave={() => setIsModulesOpen(false)}
                         >
-                            <button className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setIsModulesOpen((v) => !v)}
+                                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1"
+                            >
                                 מודולים
-                                <ChevronDown size={14} className={`transition-transform ${isModulesOpen ? 'rotate-180' : ''}`} />
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${isModulesOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {isModulesOpen && (
                                 <div className="absolute top-full right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden z-50 py-1">

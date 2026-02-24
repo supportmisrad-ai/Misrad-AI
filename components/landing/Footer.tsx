@@ -170,8 +170,47 @@ export const Footer = () => {
                     </div>
                 </div>
 
+                {/* Legal & Trust Strip */}
+                <div className="pt-8 pb-4 border-t border-white/10">
+                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                        <Link href="/privacy" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            מדיניות פרטיות
+                        </Link>
+                        <Link href="/terms" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            תנאי שימוש
+                        </Link>
+                        <Link href="/security" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            אבטחת מידע
+                        </Link>
+                        <Link href="/refund-policy" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            מדיניות החזרים
+                        </Link>
+                        <Link href="/accessibility" className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/10 transition-all">
+                            נגישות
+                        </Link>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                            הצפנת AES-256
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400">
+                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" />
+                            GDPR
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-bold text-purple-400">
+                            <span className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
+                            גיבוי יומי
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400">
+                            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                            חוק הגנת הפרטיות
+                        </span>
+                    </div>
+                </div>
+
                 {/* Bottom Bar */}
-                <div className="pt-8 border-t border-white/10 flex flex-col items-center gap-4">
+                <div className="pt-6 border-t border-white/10 flex flex-col items-center gap-4">
                     <div className="flex flex-col sm:flex-row justify-between items-center w-full gap-4">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">

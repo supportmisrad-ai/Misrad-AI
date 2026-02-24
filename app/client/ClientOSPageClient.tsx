@@ -35,7 +35,7 @@ export default function ClientOSPage() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-[#C5A572]/30 text-[#C5A572] text-[10px] sm:text-xs font-bold mb-4 sm:mb-6 shadow-sm">
               <HeartPulse size={12} className="sm:w-[14px] sm:h-[14px]" /> {getModuleLabelHe('client')}
-              <span className="ml-2 px-2 py-0.5 bg-[#3F6212]/40 text-[#84CC16] text-[10px] rounded-full border border-[#3F6212]/60">
+              <span className="ml-2 px-2 py-0.5 bg-[#3F6212] text-white text-[10px] rounded-full border border-[#3F6212]">
                 AI-Powered
               </span>
             </div>

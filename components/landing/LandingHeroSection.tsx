@@ -55,16 +55,24 @@ export function LandingHeroSection() {
             </div>
 
 
-            {/* Trust Badges */}
-            <div className="hidden mt-5 flex items-center gap-6 text-sm text-slate-500">
-              <div className="flex items-center gap-2">
-                <Shield size={16} className="text-emerald-500" />
-                <span>ללא כרטיס אשראי</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-indigo-500" />
-                <span>ביטול בכל עת</span>
-              </div>
+            {/* Trust Strip */}
+            <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] sm:text-xs font-bold text-emerald-700">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                הצפנת AES-256
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] sm:text-xs font-bold text-blue-700">
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                GDPR
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[10px] sm:text-xs font-bold text-purple-700">
+                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+                7 ימי ניסיון חינם
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-xs font-bold text-amber-700">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                ייצוא נתונים מלא
+              </span>
             </div>
           </div>
 

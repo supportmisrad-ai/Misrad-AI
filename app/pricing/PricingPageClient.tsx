@@ -9,6 +9,8 @@ import PricingSection from '@/components/landing/PricingSection';
 import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
+import { SecurityTrustSection } from '@/components/landing/SecurityTrustSection';
+import { CostComparisonSection } from '@/components/landing/CostComparisonSection';
 
 export default function PricingPageClient() {
   const { isSignedIn } = useAuth();
@@ -89,6 +91,10 @@ export default function PricingPageClient() {
             </p>
           </div>
         </section>
+
+        <CostComparisonSection />
+
+        <SecurityTrustSection />
 
         <TestimonialsSection />
 

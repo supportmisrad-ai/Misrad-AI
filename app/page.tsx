@@ -14,6 +14,11 @@ const KillerFeaturesBox = dynamic(() => import('@/components/landing/KillerFeatu
 const AiManagementSection = dynamic(() => import('@/components/landing/AiManagementSection').then(m => ({ default: m.AiManagementSection })));
 const ModularitySimplicitySection = dynamic(() => import('@/components/landing/ModularitySimplicitySection').then(m => ({ default: m.ModularitySimplicitySection })));
 const LandingPricingCTA = dynamic(() => import('@/components/landing/LandingPricingCTA').then(m => ({ default: m.LandingPricingCTA })));
+const TechTransparencySection = dynamic(() => import('@/components/landing/TechTransparencySection').then(m => ({ default: m.TechTransparencySection })));
+const SecurityTrustSection = dynamic(() => import('@/components/landing/SecurityTrustSection').then(m => ({ default: m.SecurityTrustSection })));
+const CostComparisonSection = dynamic(() => import('@/components/landing/CostComparisonSection').then(m => ({ default: m.CostComparisonSection })));
+const DataOwnershipSection = dynamic(() => import('@/components/landing/DataOwnershipSection').then(m => ({ default: m.DataOwnershipSection })));
+const WhyMisradSection = dynamic(() => import('@/components/landing/WhyMisradSection').then(m => ({ default: m.WhyMisradSection })));
 const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
 const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
 const Footer = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
@@ -86,6 +91,21 @@ export default async function RootPage() {
           </div>
           <div className="landing-section-lazy">
             <LandingPricingCTA />
+          </div>
+          <div className="landing-section-lazy">
+            <CostComparisonSection />
+          </div>
+          <div className="landing-section-lazy">
+            <TechTransparencySection />
+          </div>
+          <div className="landing-section-lazy">
+            <SecurityTrustSection />
+          </div>
+          <div className="landing-section-lazy">
+            <DataOwnershipSection />
+          </div>
+          <div className="landing-section-lazy">
+            <WhyMisradSection />
           </div>
           <div className="landing-section-lazy">
             <TestimonialsSection />
