@@ -396,7 +396,6 @@ function SystemShellGateClientCore({
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
                           <div>
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">כלים</div>
                             <div className="grid grid-cols-4 gap-4">
                               {[...NAV_GROUPS.slice(1, 3).flatMap(g => g.items)].map((item) => {
                                 const isActiveItem = isActiveAction(`/${item.id}`);
@@ -470,11 +469,8 @@ function SystemShellGateClientCore({
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
                           <div className="space-y-3">
-                            <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                            <div className="space-y-3">
-                              <AttendanceMiniStatus />
-                              <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
-                            </div>
+                            <AttendanceMiniStatus />
+                            <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
                           </div>
                         </div>
                       </motion.div>
