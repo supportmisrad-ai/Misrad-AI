@@ -5,6 +5,23 @@ type ClerkTokenProvider = () => Promise<string | null | undefined>;
 
 export type SupabaseBrowserStorageClient = Pick<SupabaseClient, 'storage'>;
 
+// ---------------------------------------------------------------------------
+// globalThis-based singleton registry.
+// Next.js App Router can bundle the same module into multiple webpack chunks
+// (one per 'use client' boundary). Module-level `let` variables are separate
+// per chunk copy, so a plain module singleton does NOT prevent duplicate
+// GoTrueClient instances.  Symbol.for() returns the same symbol across ALL
+// module copies, making globalThis slots truly shared within a browser tab.
+// ---------------------------------------------------------------------------
+declare global {
+  // eslint-disable-next-line no-var
+  var __MISRAD_SUPABASE_CLIENT__: SupabaseClient | undefined;
+  // eslint-disable-next-line no-var
+  var __MISRAD_SUPABASE_TOKEN_PROVIDER__: ClerkTokenProvider | undefined;
+  // eslint-disable-next-line no-var
+  var __MISRAD_SUPABASE_STORAGE__: SupabaseBrowserStorageClient | undefined;
+}
+
 const ORG_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function decodeBase64UrlToUtf8(input: string): string {
@@ -48,18 +65,19 @@ function assertClerkSupabaseJwtHasOrganizationId(token: string, context: string)
 
 // ---------------------------------------------------------------------------
 // Singleton: one GoTrueClient per browser tab.
+// Uses globalThis slots (declared above) so the singleton survives across
+// multiple webpack chunk copies of this module.
 // The tokenProvider is kept as a mutable ref so the fetch wrapper always
 // resolves the latest Clerk token without recreating the Supabase client.
 // ---------------------------------------------------------------------------
-let _browserClientSingleton: SupabaseClient | null = null;
-let _latestTokenProvider: ClerkTokenProvider = async () => null;
 
 export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseClient {
-  // Always update the token provider ref so the latest getToken is used.
-  _latestTokenProvider = tokenProvider;
+  // Always update the token provider ref so the latest getToken is used —
+  // even if this module copy is different from the one that created the client.
+  globalThis.__MISRAD_SUPABASE_TOKEN_PROVIDER__ = tokenProvider;
 
-  if (_browserClientSingleton) {
-    return _browserClientSingleton;
+  if (globalThis.__MISRAD_SUPABASE_CLIENT__) {
+    return globalThis.__MISRAD_SUPABASE_CLIENT__;
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -73,14 +91,15 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
     throw new Error('Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 
-  _browserClientSingleton = createSupabaseClient(url, anonKey, {
+  globalThis.__MISRAD_SUPABASE_CLIENT__ = createSupabaseClient(url, anonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
     global: {
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        const token = await _latestTokenProvider();
+        const resolve = globalThis.__MISRAD_SUPABASE_TOKEN_PROVIDER__ ?? (async () => null);
+        const token = await resolve();
         const headers = new Headers(init?.headers);
         if (token && String(token).length > 0) {
           assertClerkSupabaseJwtHasOrganizationId(String(token), 'browser_client_with_clerk');
@@ -91,7 +110,7 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
     },
   });
 
-  return _browserClientSingleton;
+  return globalThis.__MISRAD_SUPABASE_CLIENT__;
 }
 
 function wrapBrowserStorageOnlyClient(client: SupabaseClient, label: string): SupabaseBrowserStorageClient {
@@ -139,16 +158,14 @@ function wrapBrowserStorageOnlyClient(client: SupabaseClient, label: string): Su
   }) as SupabaseBrowserStorageClient;
 }
 
-let _browserStorageSingleton: SupabaseBrowserStorageClient | null = null;
-
 export function createBrowserStorageClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseBrowserStorageClient {
   // Delegate to createBrowserClientWithClerk which updates the token ref.
   const client = createBrowserClientWithClerk(tokenProvider);
 
-  if (_browserStorageSingleton) {
-    return _browserStorageSingleton;
+  if (globalThis.__MISRAD_SUPABASE_STORAGE__) {
+    return globalThis.__MISRAD_SUPABASE_STORAGE__;
   }
 
-  _browserStorageSingleton = wrapBrowserStorageOnlyClient(client, 'createBrowserStorageClientWithClerk');
-  return _browserStorageSingleton;
+  globalThis.__MISRAD_SUPABASE_STORAGE__ = wrapBrowserStorageOnlyClient(client, 'createBrowserStorageClientWithClerk');
+  return globalThis.__MISRAD_SUPABASE_STORAGE__;
 }
