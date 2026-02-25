@@ -22,31 +22,59 @@ export default async function SecurityPage() {
               <span>אבטחה</span>
             </div>
             <h1 className="mt-6 text-4xl sm:text-5xl font-black leading-tight">מדיניות אבטחת מידע</h1>
-            {markdown ? (
-              <div className="mt-10 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+            <div className="mt-10 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+              {markdown ? (
                 <MarkdownRenderer content={markdown} />
-              </div>
-            ) : (
-              <>
-                <p className="mt-6 text-lg text-slate-600 leading-relaxed">
-                  דף זה עדיין לא הוגדר במערכת. מנהל מערכת יכול לעדכן אותו דרך פאנל הניהול.
-                </p>
-                <div className="mt-10 space-y-4">
-                  <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
-                    <div className="font-black text-slate-900">יצירת קשר</div>
-                    <div className="mt-2 text-sm text-slate-600">לפניות בנושא אבטחת מידע אפשר לפנות דרך דף יצירת קשר.</div>
-                    <div className="mt-4">
-                      <Link
-                        href="/contact"
-                        className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg shadow-slate-900/10"
-                      >
-                        צור קשר
-                      </Link>
-                    </div>
+              ) : (
+                <div className="prose prose-slate max-w-none text-right" dir="rtl">
+                  <h2 className="text-2xl font-black text-slate-900 mb-4">המחויבות שלנו לאבטחת המידע שלך</h2>
+                  <p className="text-slate-700 leading-relaxed mb-6">
+                    ב-MISRAD AI אנחנו מתייחסים לאבטחת המידע של הלקוחות שלנו ברצינות המרבית. המערכת נבנתה מהיסוד עם שכבות הגנה מתקדמות כדי להבטיח שהנתונים שלך בטוחים, פרטיים ונגישים רק למי שמורשה.
+                  </p>
+
+                  <h3 className="text-xl font-black text-slate-900 mt-8 mb-3">הצפנה ואחסון</h3>
+                  <ul className="space-y-2 text-slate-700 list-disc pr-6 mb-6">
+                    <li>כל הנתונים מוצפנים בסטנדרט בנקאי <strong>AES-256</strong> — הן בהעברה (TLS 1.3) והן באחסון.</li>
+                    <li>הנתונים מאוחסנים על שרתי ענן מאובטחים עם גיבוי אוטומטי יומי.</li>
+                    <li>גישה לשרתים מוגבלת ומנוטרת 24/7.</li>
+                  </ul>
+
+                  <h3 className="text-xl font-black text-slate-900 mt-8 mb-3">עמידה בתקנים</h3>
+                  <ul className="space-y-2 text-slate-700 list-disc pr-6 mb-6">
+                    <li>עמידה בדרישות <strong>חוק הגנת הפרטיות הישראלי</strong> ותקנות אבטחת מידע.</li>
+                    <li>תאימות לתקני <strong>GDPR</strong> האירופיים.</li>
+                    <li>הפרדת נתונים מלאה בין ארגונים (Multi-tenant isolation).</li>
+                  </ul>
+
+                  <h3 className="text-xl font-black text-slate-900 mt-8 mb-3">שליטה על הנתונים</h3>
+                  <ul className="space-y-2 text-slate-700 list-disc pr-6 mb-6">
+                    <li>הנתונים שייכים לך — תמיד. ייצוא מלא ל-CSV או Excel בכל רגע.</li>
+                    <li>אנחנו <strong>לא משתמשים בנתונים שלך לאימון מודלים</strong> — לעולם.</li>
+                    <li>מחיקת נתונים מלאה לפי בקשה, בהתאם לזכות המחיקה.</li>
+                  </ul>
+
+                  <h3 className="text-xl font-black text-slate-900 mt-8 mb-3">אימות וגישה</h3>
+                  <ul className="space-y-2 text-slate-700 list-disc pr-6 mb-6">
+                    <li>אימות מאובטח דרך <strong>Clerk</strong> עם תמיכה ב-OAuth (Google) ו-MFA.</li>
+                    <li>ניהול הרשאות מבוסס תפקידים (RBAC) — כל משתמש רואה רק מה שמותר לו.</li>
+                    <li>לוג פעולות לביקורת ומעקב.</li>
+                  </ul>
+
+                  <h3 className="text-xl font-black text-slate-900 mt-8 mb-3">יצירת קשר בנושא אבטחה</h3>
+                  <p className="text-slate-700 leading-relaxed mb-4">
+                    לשאלות, דיווחים על חולשות אבטחה, או בקשות הנוגעות לפרטיות — ניתן לפנות אלינו:
+                  </p>
+                  <div className="mt-4">
+                    <Link
+                      href="/contact"
+                      className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg shadow-slate-900/10"
+                    >
+                      צור קשר
+                    </Link>
                   </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </section>
       </main>

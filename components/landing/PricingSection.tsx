@@ -205,7 +205,7 @@ export default function PricingSection({
                     <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
                       ₪{pricing.amount}
                     </span>
-                    <span className="text-slate-500 text-lg font-bold">/חודש</span>
+                    <span className="text-slate-500 text-lg font-bold">/חודש{billingCycle === 'yearly' ? ' · שנתי' : ''}</span>
                     <span className="text-xs font-bold text-slate-400">(כולל מע&quot;מ)</span>
                   </div>
                   {billingCycle === 'yearly' && (

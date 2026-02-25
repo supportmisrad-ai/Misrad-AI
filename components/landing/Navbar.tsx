@@ -16,7 +16,9 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [isModulesOpen, setIsModulesOpen] = useState(false);
+    const [isPackagesOpen, setIsPackagesOpen] = useState(false);
     const modulesRef = useRef<HTMLDivElement>(null);
+    const packagesRef = useRef<HTMLDivElement>(null);
     const [fontScale, setFontScale] = useState(100);
     const [highContrast, setHighContrast] = useState(false);
     const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo || null);
@@ -51,18 +53,21 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
         return () => document.removeEventListener('click', handleClickOutside);
     }, [isFabOpen]);
 
-    // Close modules dropdown when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (modulesRef.current && !modulesRef.current.contains(e.target as Node)) {
                 setIsModulesOpen(false);
             }
+            if (packagesRef.current && !packagesRef.current.contains(e.target as Node)) {
+                setIsPackagesOpen(false);
+            }
         };
-        if (isModulesOpen) {
+        if (isModulesOpen || isPackagesOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isModulesOpen]);
+    }, [isModulesOpen, isPackagesOpen]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -258,24 +263,71 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                 <ChevronDown size={14} className={`transition-transform duration-200 ${isModulesOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {isModulesOpen && (
-                                <div className="absolute top-full right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden z-50 py-1">
-                                    {[
-                                        { label: 'ניהול מכירות ולידים', href: '/system' },
-                                        { label: 'ניהול משימות וצוות', href: '/nexus' },
-                                        { label: 'ניהול לקוחות', href: '/client' },
-                                        { label: 'שיווק ומיתוג', href: '/the-authority' },
-                                        { label: 'תפעול ושטח', href: '/operations' },
-                                        { label: 'פיננסים', href: '/finance-landing' },
-                                    ].map((item) => (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            onClick={() => setIsModulesOpen(false)}
-                                            className="block w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    ))}
+                                <div className="absolute top-full right-0 pt-2 z-50">
+                                    <div className="w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden py-1">
+                                        {[
+                                            { label: 'ניהול מכירות ולידים', href: '/system' },
+                                            { label: 'ניהול משימות וצוות', href: '/nexus' },
+                                            { label: 'ניהול לקוחות', href: '/client' },
+                                            { label: 'שיווק ומיתוג', href: '/the-authority' },
+                                            { label: 'תפעול ושטח', href: '/operations' },
+                                            { label: 'פיננסים', href: '/finance-landing' },
+                                        ].map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => setIsModulesOpen(false)}
+                                                className="block w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div
+                            className="relative"
+                            ref={packagesRef}
+                            onMouseEnter={() => setIsPackagesOpen(true)}
+                            onMouseLeave={() => setIsPackagesOpen(false)}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setIsPackagesOpen((v) => !v)}
+                                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1"
+                            >
+                                חבילות
+                                <ChevronDown size={14} className={`transition-transform duration-200 ${isPackagesOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {isPackagesOpen && (
+                                <div className="absolute top-full right-0 pt-2 z-50">
+                                    <div className="w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden py-1">
+                                        {[
+                                            { label: 'חבילת מכירות', href: '/the-closer' },
+                                            { label: 'חבילת שיווק ומיתוג', href: '/the-authority' },
+                                            { label: 'חבילת תפעול ושטח', href: '/the-operator' },
+                                            { label: 'הכל כלול', href: '/the-empire' },
+                                        ].map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => setIsPackagesOpen(false)}
+                                                className="block w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        ))}
+                                        <div className="border-t border-slate-100 mt-1 pt-1">
+                                            <Link
+                                                href="/pricing"
+                                                onClick={() => setIsPackagesOpen(false)}
+                                                className="block w-full text-right px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                                            >
+                                                כל החבילות והמחירים
+                                            </Link>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

@@ -101,19 +101,15 @@ export function ModularitySimplicitySection() {
               <h4 className="text-2xl font-bold text-slate-900 mb-6">דוגמה: עסק קטן</h4>
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-3 border-b border-green-200">
-                  <span className="text-slate-700">System (CRM)</span>
+                  <span className="text-slate-700">System · לידים ומכירות</span>
                   <span className="font-bold text-slate-900">₪149/חודש</span>
-                </div>
-                <div className="flex justify-between items-center pb-3 border-b border-green-200">
-                  <span className="text-slate-700">Nexus (משימות)</span>
-                  <span className="font-bold text-slate-900">₪0 (כלול)</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-green-200">
                   <span className="text-slate-700">2 עובדים נוספים</span>
                   <span className="font-bold text-slate-900">₪78/חודש</span>
                 </div>
                 <div className="flex justify-between items-center bg-green-100 rounded-lg p-3 text-lg font-bold">
-                  <span className="text-slate-900">סה"כ</span>
+                  <span className="text-slate-900">סה&quot;כ</span>
                   <span className="text-green-700">₪227/חודש</span>
                 </div>
                 <p className="text-sm text-slate-600 pt-3 italic">

@@ -281,7 +281,7 @@ export function AiAssistantWidget() {
   const headerBg = isSales ? 'bg-slate-950' : 'bg-slate-900';
   const panelSize = isMedium
     ? 'w-[min(640px,calc(100vw-1rem))] h-[min(820px,calc(100vh-2rem))] md:w-[640px] md:h-[820px]'
-    : 'w-[calc(100vw-1rem)] h-[calc(100vh-2rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:h-[min(720px,calc(100vh-6rem))]';
+    : 'w-[100vw] h-[100dvh] sm:w-[min(480px,calc(100vw-2rem))] sm:h-[min(720px,calc(100vh-6rem))]';
 
   const filteredKnowledge = searchQuery 
     ? KNOWLEDGE_BASE.filter(k => 
@@ -344,7 +344,7 @@ export function AiAssistantWidget() {
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className={`fixed bottom-0.5 right-0.5 sm:bottom-28 sm:right-6 z-[500] ${panelSize} bg-white rounded-2xl sm:rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col`}
+            className={`fixed inset-0 sm:inset-auto sm:bottom-28 sm:right-6 z-[500] ${panelSize} bg-white sm:rounded-[28px] shadow-2xl border-0 sm:border sm:border-slate-200 overflow-hidden flex flex-col`}
             dir="rtl"
           >
             {/* Header with Tabs */}
@@ -657,9 +657,8 @@ export function AiAssistantWidget() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={isSales ? 'שאל על מחירים...' : 'איך לבצע פעולה...'}
-                      className="flex-1 h-11 sm:h-14 rounded-xl sm:rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 sm:px-5 text-sm sm:text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
+                      className="flex-1 h-11 sm:h-14 rounded-xl sm:rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 sm:px-5 text-[16px] sm:text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
                       style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-                      disabled={isLoading}
                     />
                     <button
                       type="submit"

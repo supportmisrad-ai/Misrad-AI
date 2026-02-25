@@ -117,7 +117,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                         <span className={`text-4xl sm:text-5xl font-black ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
                             ₪{finalPrice}
                         </span>
-                        <span className="text-slate-400 text-xs sm:text-sm font-bold">/חודש</span>
+                        <span className="text-slate-400 text-xs sm:text-sm font-bold">/חודש{billingCycle === 'yearly' ? ' · שנתי' : ''}</span>
                         <span className="text-[10px] text-slate-400 font-bold mr-1">כולל מע&quot;מ</span>
                     </div>
                     

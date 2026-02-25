@@ -338,11 +338,6 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   return NextResponse.next();
-}, {
-  // DISABLED: Proxy URL causes 403 in production. Using Clerk's default domain.
-  // To re-enable when proxy DNS/CNAME is verified:
-  //   proxyUrl: process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined,
-  isSatellite: false,
 });
 
 export const config = {

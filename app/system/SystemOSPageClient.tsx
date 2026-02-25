@@ -329,7 +329,7 @@ export default function SystemOSLandingPage() {
                 features={[
                   getModuleLabelHe('system'),
                   getModuleLabelHe('nexus'),
-                  'ניהול לידים + ניהול צוות + מרכז תקשורת',
+                  'ניהול לידים + מרכז תקשורת',
                   'סנכרון בין המודולים',
                   '🎁 מודול כספים — בונוס חינם'
                 ]}
