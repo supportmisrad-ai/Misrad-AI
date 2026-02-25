@@ -56,13 +56,13 @@ async function GETHandler() {
       select: { last_location_org: true, last_module: true },
     });
 
-    await logAuditEvent('data.read', 'user.last-location', {
+    void logAuditEvent('data.read', 'user.last-location', {
       details: {
         clerkUserId,
         orgSlug: data?.last_location_org ?? null,
         module: (data?.last_module as OSModuleKey | null) ?? null,
       },
-    });
+    }).catch(() => undefined);
 
     return apiSuccess({
       orgSlug: data?.last_location_org ?? null,
@@ -98,9 +98,9 @@ async function POSTHandler(req: NextRequest) {
     return apiError(e, { status: 500, message: 'Failed to persist last location' });
   }
 
-  await logAuditEvent('data.write', 'user.last-location', {
+  void logAuditEvent('data.write', 'user.last-location', {
     details: { clerkUserId, orgSlug, moduleKey },
-  });
+  }).catch(() => undefined);
 
   return apiSuccess({ ok: true });
 }

@@ -9,7 +9,13 @@ import WorkspaceOnboardingClient from '@/app/workspaces/onboarding/WorkspaceOnbo
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
-async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string; subscriptionPlan: string | null; orgCreatedAt: Date | null }> {
+async function getCurrentOrganizationKey(): Promise<{
+  organizationId: string;
+  organizationKey: string;
+  subscriptionPlan: string | null;
+  orgCreatedAt: Date | null;
+  customerAccount: { companyName: string | null; phone: string | null; email: string | null } | null;
+}> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     redirect('/login?redirect=/workspaces/onboarding');
@@ -36,6 +42,29 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
       throw new Error(res.error || 'Failed to provision workspace');
     }
 
+    // Use organizationKey from provision result to avoid re-querying profile
+    if (res.organizationKey) {
+      // organizationKey could be a slug or ID — resolve to organization
+      const orgByKey = await prisma.organization.findFirst({
+        where: { OR: [{ slug: res.organizationKey }, { id: res.organizationKey }] },
+        select: { id: true, slug: true, subscription_plan: true, created_at: true },
+      });
+
+      if (orgByKey?.id) {
+        const orgKey = String(orgByKey.slug || orgByKey.id);
+        // Fetch customer account in parallel with returning (non-blocking)
+        const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: orgKey });
+        return {
+          organizationId: orgByKey.id,
+          organizationKey: orgKey,
+          subscriptionPlan: orgByKey.subscription_plan ?? null,
+          orgCreatedAt: orgByKey.created_at ?? null,
+          customerAccount: accountRes.success ? (accountRes.data ?? null) : null,
+        };
+      }
+    }
+
+    // Fallback: re-query profile if organizationKey wasn't returned
     const profileAfter = await prisma.profile.findFirst(
       withPrismaTenantIsolationOverride(
         {
@@ -56,17 +85,26 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
     redirect('/workspaces/new');
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { id: String(organizationId) },
-    select: { id: true, slug: true, subscription_plan: true, created_at: true },
-  });
+  // Fetch org details and customer account in parallel
+  const [org, accountRes] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: String(organizationId) },
+      select: { id: true, slug: true, subscription_plan: true, created_at: true },
+    }),
+    getCustomerAccountForCurrentOrganization({ orgSlug: String(organizationId) }),
+  ]);
 
   const organizationKey = String(org?.slug || org?.id || organizationId);
+
+  // Re-fetch account with correct key if slug differs from ID
+  const customerAccount = accountRes.success ? (accountRes.data ?? null) : null;
+
   return {
     organizationId: String(organizationId),
     organizationKey,
     subscriptionPlan: org?.subscription_plan ?? null,
     orgCreatedAt: org?.created_at ?? null,
+    customerAccount,
   };
 }
 
@@ -75,10 +113,9 @@ export default async function WorkspaceOnboardingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { organizationKey, subscriptionPlan, orgCreatedAt } = await getCurrentOrganizationKey();
-  const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
+  const { organizationKey, subscriptionPlan, orgCreatedAt, customerAccount } = await getCurrentOrganizationKey();
 
-  const existing = accountRes.success ? accountRes.data : null;
+  const existing = customerAccount;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
 

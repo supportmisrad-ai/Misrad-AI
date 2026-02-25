@@ -382,9 +382,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   if (continuationState === 'handling' || continuationState === 'done') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
-        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
-          <div className="text-slate-900 font-black">משלים את ההתחברות…</div>
-          <div className="text-sm text-slate-600 mt-2">רגע אחד, מעבד את פרטי החשבון</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }`}</style>
+        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] flex flex-col items-center">
+          <div className="w-10 h-10 border-[3px] border-slate-200 border-t-indigo-500 rounded-full mb-4" style={{ animation: 'spin 0.7s linear infinite' }} />
+          <div className="text-slate-900 font-black text-lg">משלים את ההתחברות…</div>
+          <div className="text-sm text-slate-500 mt-1" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }}>מעבד את פרטי החשבון</div>
         </div>
       </div>
     );
@@ -394,9 +396,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
-        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
-          <div className="text-slate-900 font-black">מכינים את החשבון שלך…</div>
-          <div className="text-sm text-slate-600 mt-2">רגע אחד</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }`}</style>
+        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] flex flex-col items-center">
+          <div className="w-10 h-10 border-[3px] border-slate-200 border-t-indigo-500 rounded-full mb-4" style={{ animation: 'spin 0.7s linear infinite' }} />
+          <div className="text-slate-900 font-black text-lg">מכינים את החשבון שלך…</div>
+          <div className="text-sm text-slate-500 mt-1" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }}>רגע אחד</div>
         </div>
       </div>
     );
@@ -406,9 +410,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   if (isSignedIn) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
-        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
-          <div className="text-slate-900 font-black">מעביר אותך למערכת…</div>
-          <div className="text-sm text-slate-600 mt-2">טוען את העסק שלך</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }`}</style>
+        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)] flex flex-col items-center">
+          <div className="w-10 h-10 border-[3px] border-slate-200 border-t-indigo-500 rounded-full mb-4" style={{ animation: 'spin 0.7s linear infinite' }} />
+          <div className="text-slate-900 font-black text-lg">מעביר אותך למערכת…</div>
+          <div className="text-sm text-slate-500 mt-1" style={{ animation: 'pulse-subtle 2s ease-in-out infinite' }}>טוען את סביבת העבודה שלך</div>
         </div>
       </div>
     );

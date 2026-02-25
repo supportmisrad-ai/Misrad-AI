@@ -177,6 +177,7 @@ async function upsertProfileForClerkUser(params: {
   pendingSoloModule?: string;
   pendingSeats?: number;
   sendWelcomeEmail?: boolean;
+  _resolvedClerkUser?: { id: string } | null;
 }): Promise<{ profileId: string; organizationId: string; organizationSlug?: string | null; role?: string | null }> {
   const clerkUserId = String(params.clerkUserId || '').trim();
   if (!clerkUserId) throw new Error('Missing clerkUserId');
@@ -189,7 +190,8 @@ async function upsertProfileForClerkUser(params: {
   const isWebhookCall = isOrgInviteMode || isEmployeeInviteMode;
   if (!isWebhookCall) {
     try {
-      const currentUserData = await currentUser();
+      // Reuse already-resolved Clerk user to avoid duplicate network call
+      const currentUserData = params._resolvedClerkUser ?? await currentUser();
       if (currentUserData?.id !== clerkUserId) {
         if (process.env.NODE_ENV === 'development') {
           console.error('[upsertProfileForClerkUser] User ID mismatch - potential session confusion:', {
@@ -495,30 +497,23 @@ async function upsertProfileForClerkUser(params: {
     return { createdOrg, createdProfile };
   });
 
-  // Best-effort: auto-create BusinessClient for the new org
-  try {
-    const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
-    await ensureBusinessClientForOrg(createdOrg.id);
-  } catch (e) {
-    logger.error('upsertProfileForClerkUser', 'ensureBusinessClientForOrg failed (ignored)', e);
-  }
+  // Fire-and-forget: auto-create BusinessClient for the new org (non-blocking)
+  void import('@/app/actions/business-clients')
+    .then(({ ensureBusinessClientForOrg }) => ensureBusinessClientForOrg(createdOrg.id))
+    .catch((e) => logger.error('upsertProfileForClerkUser', 'ensureBusinessClientForOrg failed (ignored)', e));
 
-  // Best-effort welcome email with portal link
-  try {
-    const ownerEmail = params.email ? String(params.email) : null;
-    if (params.sendWelcomeEmail && ownerEmail) {
-      const baseUrl = getBaseUrl();
-      const portalKey = createdOrg.slug || createdOrg.id;
-      const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}`;
-      const signInUrl = `${baseUrl}/sign-in?redirect_url=${encodeURIComponent(portalUrl)}`;
-      await sendMisradWelcomeEmail({
-        toEmail: ownerEmail,
-        ownerName: params.fullName ? String(params.fullName) : null,
-        signInUrl,
-      });
-    }
-  } catch (e) {
-    logger.error('upsertProfileForClerkUser', 'welcome email failed (ignored)', e);
+  // Fire-and-forget: welcome email with portal link (non-blocking)
+  const ownerEmail = params.email ? String(params.email) : null;
+  if (params.sendWelcomeEmail && ownerEmail) {
+    const baseUrl = getBaseUrl();
+    const portalKey = createdOrg.slug || createdOrg.id;
+    const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}`;
+    const signInUrl = `${baseUrl}/sign-in?redirect_url=${encodeURIComponent(portalUrl)}`;
+    void sendMisradWelcomeEmail({
+      toEmail: ownerEmail,
+      ownerName: params.fullName ? String(params.fullName) : null,
+      signInUrl,
+    }).catch((e) => logger.error('upsertProfileForClerkUser', 'welcome email failed (ignored)', e));
   }
 
   return {
@@ -845,6 +840,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
           pendingSoloModule,
           pendingSeats,
           sendWelcomeEmail: true,
+          _resolvedClerkUser: user,
         });
 
         if (pendingPlan) {
