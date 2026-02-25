@@ -736,6 +736,14 @@ export async function deleteBusinessClient(clientId: string) {
         suppressReporting: true,
       },
       async () => {
+        // Unlink all organizations from this client BEFORE soft-deleting.
+        // Without this, orgs stay pointing at a deleted client and vanish
+        // from the UI (getBusinessClients filters deleted_at: null).
+        await prisma.organization.updateMany({
+          where: { client_id: clientId },
+          data: { client_id: null },
+        });
+
         await prisma.businessClient.update({
           where: { id: clientId },
           data: { deleted_at: new Date() },
@@ -866,13 +874,25 @@ export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
         suppressReporting: true,
       },
       async () => {
-        // Try to find existing BusinessClient by owner email
+        // Try to find existing BusinessClient by owner email.
+        // If found but soft-deleted, restore it (clear deleted_at) so it
+        // becomes visible in the UI again. Without this, orgs would link
+        // to a deleted client and vanish from the business-clients page.
         let bizClient: { id: string } | null = null;
         if (ownerEmail) {
-          bizClient = await prisma.businessClient.findUnique({
+          const existing = await prisma.businessClient.findUnique({
             where: { primary_email: ownerEmail },
-            select: { id: true },
+            select: { id: true, deleted_at: true },
           });
+          if (existing) {
+            if (existing.deleted_at) {
+              await prisma.businessClient.update({
+                where: { id: existing.id },
+                data: { deleted_at: null },
+              });
+            }
+            bizClient = { id: existing.id };
+          }
         }
 
         if (!bizClient) {
@@ -926,13 +946,16 @@ export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
 }
 
 /**
- * Server-only backfill: finds all orgs without a BusinessClient and creates one for each.
+ * Server-only backfill: finds all orgs that need a (live) BusinessClient and links them.
+ * Catches two cases:
+ *   1. client_id is null (never linked)
+ *   2. client_id points to a soft-deleted BusinessClient (deleted_at not null)
  * No auth check — designed to be called from SSR page components.
- * Idempotent: safe to call on every page load (no-op when all orgs are linked).
+ * Idempotent: safe to call on every page load (no-op when all orgs are properly linked).
  */
 export async function backfillUnlinkedOrganizations(): Promise<number> {
   try {
-    const unlinkedOrgs = await withTenantIsolationContext(
+    const orgsToFix = await withTenantIsolationContext(
       {
         source: 'business-clients.backfillUnlinkedOrganizations',
         reason: 'auto_backfill_unlinked_orgs',
@@ -942,15 +965,39 @@ export async function backfillUnlinkedOrganizations(): Promise<number> {
       },
       async () =>
         prisma.organization.findMany({
-          where: { client_id: null },
-          select: { id: true },
+          where: {
+            OR: [
+              { client_id: null },
+              { business_client: { deleted_at: { not: null } } },
+            ],
+          },
+          select: { id: true, client_id: true },
         })
     );
 
-    if (unlinkedOrgs.length === 0) return 0;
+    if (orgsToFix.length === 0) return 0;
+
+    // For orgs linked to deleted clients, unlink first so ensureBusinessClientForOrg can re-link
+    const linkedToDeleted = orgsToFix.filter((o) => o.client_id !== null);
+    if (linkedToDeleted.length > 0) {
+      await withTenantIsolationContext(
+        {
+          source: 'business-clients.backfillUnlinkedOrganizations',
+          reason: 'unlink_orgs_from_deleted_clients',
+          mode: 'global_admin',
+          isSuperAdmin: true,
+          suppressReporting: true,
+        },
+        async () =>
+          prisma.organization.updateMany({
+            where: { id: { in: linkedToDeleted.map((o) => o.id) } },
+            data: { client_id: null },
+          })
+      );
+    }
 
     let synced = 0;
-    for (const org of unlinkedOrgs) {
+    for (const org of orgsToFix) {
       await ensureBusinessClientForOrg(org.id);
       synced++;
     }
