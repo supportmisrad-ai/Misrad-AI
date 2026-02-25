@@ -23,7 +23,10 @@ function json(data: unknown, status = 200) {
 }
 
 export async function POST(req: NextRequest) {
-  // Optional secret validation
+  // Require secret validation — mandatory in production
+  if (!BLASTER_SECRET && process.env.NODE_ENV === 'production') {
+    return json({ error: 'Webhook secret not configured' }, 500);
+  }
   if (BLASTER_SECRET) {
     const authHeader = req.headers.get('x-webhook-secret') ?? '';
     if (authHeader !== BLASTER_SECRET) {
@@ -118,5 +121,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return json({ status: 'ok', service: 'blaster-webhook' });
+  return json({ error: 'Method not allowed' }, 405);
 }

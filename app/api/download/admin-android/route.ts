@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/auth';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function GETHandler(_request: NextRequest) {
+  try { await requireSuperAdmin(); } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   let url: string | null = null;
   try {
     const { getGlobalDownloadLinksUnsafe } = await import('@/lib/server/globalDownloadLinks');

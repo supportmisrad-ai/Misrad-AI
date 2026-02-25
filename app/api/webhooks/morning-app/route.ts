@@ -43,8 +43,10 @@ function captureWebhookException(error: unknown, context: Record<string, unknown
  */
 function verifyWebhookSignature(payload: string, signature: string | null): boolean {
   if (!MORNING_WEBHOOK_SECRET) {
-    console.warn('[Webhook] MORNING_WEBHOOK_SECRET not configured. Skipping signature verification.');
-    return true; // Allow in development
+    // In production, missing secret = reject all webhooks
+    if (IS_PROD) return false;
+    console.warn('[Webhook] MORNING_WEBHOOK_SECRET not configured. Skipping signature verification in dev.');
+    return true;
   }
 
   if (!signature) {
@@ -396,9 +398,5 @@ export async function POST(request: NextRequest) {
  * GET handler for health check
  */
 export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    service: 'morning-app-webhook',
-    webhookSecretConfigured: !!MORNING_WEBHOOK_SECRET,
-  });
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

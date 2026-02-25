@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withTenantIsolationContext, withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { getEffectiveDatabaseUrlForPrisma } from '@/lib/prisma-database-url';
+import { requireSuperAdmin } from '@/lib/auth';
 
 /**
- * Public diagnostic endpoint — tests critical DB tables in PROD.
- * Uses Prisma model counts only (no raw SQL) to avoid tenant guard blocks.
- * Hit this endpoint in PROD to see which tables exist and their row counts.
+ * Protected diagnostic endpoint — tests critical DB tables.
+ * Requires Super Admin authentication.
  */
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +18,14 @@ async function safeCount(fn: () => Promise<number>): Promise<{ ok: boolean; coun
     return { ok: true, count };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    // Strip lengthy Prisma error — first 300 chars is enough to diagnose
     return { ok: false, error: msg.slice(0, 300) };
   }
 }
 
 export async function GET() {
+  try { await requireSuperAdmin(); } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const effectiveUrl = getEffectiveDatabaseUrlForPrisma();
   const isAccelerateUrl = Boolean(
     effectiveUrl && (effectiveUrl.startsWith('prisma://') || effectiveUrl.startsWith('prisma+postgres://'))

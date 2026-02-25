@@ -8,14 +8,12 @@ export const runtime = 'nodejs';
 
 async function POSTHandler(request: NextRequest) {
   const pairingSecret = process.env.KIOSK_PAIRING_SECRET;
-  if (!pairingSecret && process.env.NODE_ENV === 'production') {
+  if (!pairingSecret) {
     return NextResponse.json({ error: 'Kiosk pairing is not configured' }, { status: 500 });
   }
-  if (pairingSecret) {
-    const header = request.headers.get('x-kiosk-secret');
-    if (header !== pairingSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const header = request.headers.get('x-kiosk-secret');
+  if (header !== pairingSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const bodyJson: unknown = await request.json().catch(() => ({}));

@@ -244,11 +244,8 @@ async function POSTHandler(request: NextRequest) {
  * GET /api/webhooks/zapier
  * Webhook verification (Zapier ping)
  */
-async function GETHandler(request: NextRequest) {
-  return NextResponse.json({
-    status: 'ok',
-    message: 'Zapier webhook endpoint is active',
-  });
+async function GETHandler(_request: NextRequest) {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }
 
 

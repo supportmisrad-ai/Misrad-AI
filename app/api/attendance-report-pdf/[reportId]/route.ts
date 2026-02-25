@@ -14,6 +14,16 @@ function minutesToHHMM(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+/** Escape HTML special characters to prevent XSS in generated report */
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const HEBREW_MONTHS: Record<number, string> = {
   1: 'ינואר', 2: 'פברואר', 3: 'מרץ', 4: 'אפריל',
   5: 'מאי', 6: 'יוני', 7: 'יולי', 8: 'אוגוסט',
@@ -110,12 +120,13 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="attendance-report-${report.year}-${String(report.month).padStart(2, '0')}-${report.employeeName}.html"`,
+        'Content-Disposition': `inline; filename="attendance-report-${report.year}-${String(report.month).padStart(2, '0')}-${report.employeeName.replace(/[^\w\s\u0590-\u05FF.-]/g, '_')}.html"`,
       },
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const IS_PROD = process.env.NODE_ENV === 'production';
+    return NextResponse.json({ error: IS_PROD ? 'Internal server error' : msg }, { status: 500 });
   }
 }
 
@@ -158,10 +169,10 @@ function generateReportHTML(params: {
     const dateFormatted = day.date.split('-').reverse().join('/');
 
     return `<tr style="background:${bgColor};">
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:700;">${dateFormatted}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;">${day.dayOfWeek}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:600;">${day.startTime || ''}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:600;">${day.endTime || ''}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:700;">${escHtml(dateFormatted)}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;">${escHtml(day.dayOfWeek)}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:600;">${escHtml(day.startTime || '')}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:600;">${escHtml(day.endTime || '')}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;">${day.totalMinutes > 0 ? minutesToHHMM(day.totalMinutes) : ''}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;">${day.breakMinutes > 0 ? minutesToHHMM(day.breakMinutes) : ''}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;font-weight:700;">${day.netMinutes > 0 ? minutesToHHMM(day.netMinutes) : ''}</td>
@@ -170,7 +181,7 @@ function generateReportHTML(params: {
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;color:#d97706;">${day.overtime150 > 0 ? minutesToHHMM(day.overtime150) : ''}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;color:#dc2626;">${day.overtime175 > 0 ? minutesToHHMM(day.overtime175) : ''}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:12px;color:#7c3aed;">${day.overtime200 > 0 ? minutesToHHMM(day.overtime200) : ''}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:11px;color:#64748b;">${day.event || day.note || ''}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center;font-size:11px;color:#64748b;">${escHtml(day.event || day.note || '')}</td>
     </tr>`;
   }).join('\n');
 
@@ -179,7 +190,7 @@ function generateReportHTML(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>דו"ח חודשי מפורט לעובד - ${r.monthName} ${r.year}</title>
+  <title>דו&quot;ח חודשי מפורט לעובד - ${escHtml(r.monthName)} ${r.year}</title>
   <style>
     @media print {
       body { margin: 0; padding: 10mm; }
@@ -303,10 +314,10 @@ function generateReportHTML(params: {
   <div class="container">
     <div class="header">
       <div class="header-right">
-        ${orgLogoUrl ? `<img src="${orgLogoUrl}" alt="${orgName}" />` : ''}
+        ${orgLogoUrl ? `<img src="${escHtml(orgLogoUrl)}" alt="${escHtml(orgName)}" />` : ''}
         <div>
-          <h1>דו"ח חודשי מפורט לעובד - ${r.month}/${r.year}</h1>
-          <div class="subtitle">${orgName}</div>
+          <h1>דו&quot;ח חודשי מפורט לעובד - ${r.month}/${r.year}</h1>
+          <div class="subtitle">${escHtml(orgName)}</div>
         </div>
       </div>
       <div class="header-left">
@@ -317,17 +328,17 @@ function generateReportHTML(params: {
     <div class="info-bar">
       <div class="info-item">
         <div class="info-label">שם העובד</div>
-        <div class="info-value">${r.employeeName}</div>
+        <div class="info-value">${escHtml(r.employeeName)}</div>
       </div>
-      ${r.employeeNumber ? `<div class="info-item"><div class="info-label">מס׳ בשכר</div><div class="info-value">${r.employeeNumber}</div></div>` : ''}
-      ${r.department ? `<div class="info-item"><div class="info-label">מחלקה</div><div class="info-value">${r.department}</div></div>` : ''}
+      ${r.employeeNumber ? `<div class="info-item"><div class="info-label">מס׳ בשכר</div><div class="info-value">${escHtml(r.employeeNumber)}</div></div>` : ''}
+      ${r.department ? `<div class="info-item"><div class="info-label">מחלקה</div><div class="info-value">${escHtml(r.department)}</div></div>` : ''}
       <div class="info-item">
         <div class="info-label">תקן</div>
         <div class="info-value">${r.standardDailyHours} שעות</div>
       </div>
       <div class="info-item">
         <div class="info-label">חודש</div>
-        <div class="info-value">${r.monthName} ${r.year}</div>
+        <div class="info-value">${escHtml(r.monthName)} ${r.year}</div>
       </div>
     </div>
 

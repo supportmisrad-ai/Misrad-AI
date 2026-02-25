@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/auth';
 
 /**
- * Public diagnostic endpoint — returns non-secret Clerk configuration info.
- * Useful for verifying what the PROD deployment is actually using.
- * All values are already public (NEXT_PUBLIC_*) or non-secret metadata.
+ * Protected diagnostic endpoint — returns non-secret Clerk configuration info.
+ * Requires Super Admin authentication.
  */
 export async function GET() {
+  try { await requireSuperAdmin(); } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
   const proxyUrl = process.env.NEXT_PUBLIC_CLERK_PROXY_URL || '';
   const clerkDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || '';

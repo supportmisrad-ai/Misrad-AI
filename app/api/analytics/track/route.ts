@@ -4,6 +4,34 @@ import prisma from '@/lib/prisma';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// ── In-memory rate limiter for analytics (no auth needed, public endpoint) ──
+const ANALYTICS_RL = new Map<string, { count: number; resetAt: number }>();
+const ANALYTICS_RL_MAX = 30; // max 30 requests per minute per IP
+const ANALYTICS_RL_WINDOW_MS = 60_000;
+
+function isAnalyticsRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ANALYTICS_RL.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ANALYTICS_RL.set(ip, { count: 1, resetAt: now + ANALYTICS_RL_WINDOW_MS });
+    // Lazy cleanup: remove expired entries when map grows too large
+    if (ANALYTICS_RL.size > 5000) {
+      for (const [k, v] of ANALYTICS_RL) {
+        if (now > v.resetAt) ANALYTICS_RL.delete(k);
+      }
+    }
+    return false;
+  }
+  entry.count++;
+  return entry.count > ANALYTICS_RL_MAX;
+}
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || '127.0.0.1';
+}
+
 interface TrackPayload {
   type: 'session' | 'pageview' | 'pageview_update' | 'event' | 'signup';
   visitor_id: string;
@@ -34,10 +62,21 @@ interface TrackPayload {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit check
+    const ip = getClientIp(req);
+    if (isAnalyticsRateLimited(ip)) {
+      return NextResponse.json({ ok: false, error: 'rate limited' }, { status: 429 });
+    }
+
     const body = (await req.json()) as TrackPayload;
 
     if (!body.visitor_id || !body.type) {
       return NextResponse.json({ ok: false, error: 'missing fields' }, { status: 400 });
+    }
+
+    // Input length guards
+    if (body.visitor_id.length > 128 || (body.session_id && body.session_id.length > 128)) {
+      return NextResponse.json({ ok: false, error: 'invalid id length' }, { status: 400 });
     }
 
     if (body.type === 'session') {
