@@ -101,13 +101,28 @@ function generateUsername(email: string): string {
   return `${prefix}_${suffix}`;
 }
 
-export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
+export default function LoginPageClient({ initialUserId, pendingPlan, pendingSeats, pendingModule }: { initialUserId: string | null; pendingPlan?: string | null; pendingSeats?: string | null; pendingModule?: string | null }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
   const { signUp, isLoaded: signUpLoaded } = useSignUp();
   const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
   const router = useRouter();
   const [continuationState, setContinuationState] = useState<'idle' | 'handling' | 'done' | 'failed'>('idle');
   const continuationAttempted = useRef(false);
+
+  // Client-side fallback: persist plan info to cookies if server-side set failed
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const maxAge = 3600;
+    if (pendingPlan && !document.cookie.includes('pending_plan=')) {
+      document.cookie = `pending_plan=${encodeURIComponent(pendingPlan)}; path=/; max-age=${maxAge}; samesite=lax`;
+    }
+    if (pendingSeats && !document.cookie.includes('pending_seats=')) {
+      document.cookie = `pending_seats=${encodeURIComponent(pendingSeats)}; path=/; max-age=${maxAge}; samesite=lax`;
+    }
+    if (pendingModule && !document.cookie.includes('pending_module=')) {
+      document.cookie = `pending_module=${encodeURIComponent(pendingModule)}; path=/; max-age=${maxAge}; samesite=lax`;
+    }
+  }, [pendingPlan, pendingSeats, pendingModule]);
 
   const getRedirectTarget = useCallback(() => {
     if (typeof window === 'undefined') return '/me';
