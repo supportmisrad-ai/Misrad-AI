@@ -761,6 +761,74 @@ export async function deleteBusinessClient(clientId: string) {
 }
 
 // ============================================================
+// Recycle Bin — Deleted Business Clients
+// ============================================================
+
+export async function getDeletedBusinessClients() {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const clients = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.getDeletedBusinessClients',
+        reason: 'global_admin_list_deleted_business_clients',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        prisma.businessClient.findMany({
+          where: { deleted_at: { not: null } },
+          select: {
+            id: true,
+            company_name: true,
+            primary_email: true,
+            status: true,
+            deleted_at: true,
+          },
+          orderBy: { deleted_at: 'desc' },
+          take: 100,
+        })
+    );
+
+    return { ok: true, clients };
+  } catch (error) {
+    logger.error('getDeletedBusinessClients', 'Error:', error);
+    return { ok: false, error: 'שגיאה בטעינת סל המיחזור' };
+  }
+}
+
+export async function restoreBusinessClient(clientId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.restoreBusinessClient',
+        reason: 'global_admin_restore_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        await prisma.businessClient.update({
+          where: { id: clientId },
+          data: { deleted_at: null },
+        });
+      }
+    );
+
+    revalidatePath('/', 'layout');
+    return { ok: true };
+  } catch (error) {
+    logger.error('restoreBusinessClient', 'Error:', error);
+    return { ok: false, error: 'שגיאה בשחזור לקוח עסקי' };
+  }
+}
+
+// ============================================================
 // Search Users for Contact (not yet linked to client)
 // ============================================================
 
@@ -875,10 +943,13 @@ export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
       },
       async () => {
         // Try to find existing BusinessClient by owner email.
-        // If found but soft-deleted, restore it (clear deleted_at) so it
-        // becomes visible in the UI again. Without this, orgs would link
-        // to a deleted client and vanish from the business-clients page.
+        // Three cases:
+        //   1. Found & alive → reuse it
+        //   2. Found & soft-deleted → skip entirely (intentionally deleted, unique constraint)
+        //   3. Not found → create new
         let bizClient: { id: string } | null = null;
+        let skipLinking = false;
+
         if (ownerEmail) {
           const existing = await prisma.businessClient.findUnique({
             where: { primary_email: ownerEmail },
@@ -886,27 +957,42 @@ export async function ensureBusinessClientForOrg(orgId: string): Promise<void> {
           });
           if (existing) {
             if (existing.deleted_at) {
-              await prisma.businessClient.update({
-                where: { id: existing.id },
-                data: { deleted_at: null },
-              });
+              // Intentionally deleted — do NOT restore, do NOT create duplicate.
+              // The org will stay unlinked until admin restores or handles manually.
+              skipLinking = true;
+            } else {
+              bizClient = { id: existing.id };
             }
-            bizClient = { id: existing.id };
           }
         }
 
-        if (!bizClient) {
+        if (!skipLinking && !bizClient) {
           const normalizedEmail = ownerEmail || `org-${org.id}@placeholder.local`;
-          bizClient = await prisma.businessClient.create({
-            data: {
-              company_name: ownerName,
-              primary_email: normalizedEmail,
-              status: 'active',
-              lifecycle_stage: 'customer',
-            },
-            select: { id: true },
+          // Guard against placeholder collision too
+          const existingPlaceholder = await prisma.businessClient.findUnique({
+            where: { primary_email: normalizedEmail },
+            select: { id: true, deleted_at: true },
           });
+          if (existingPlaceholder) {
+            if (existingPlaceholder.deleted_at) {
+              skipLinking = true;
+            } else {
+              bizClient = { id: existingPlaceholder.id };
+            }
+          } else {
+            bizClient = await prisma.businessClient.create({
+              data: {
+                company_name: ownerName,
+                primary_email: normalizedEmail,
+                status: 'active',
+                lifecycle_stage: 'customer',
+              },
+              select: { id: true },
+            });
+          }
         }
+
+        if (skipLinking || !bizClient) return;
 
         // Link org to business client
         await prisma.organization.update({
@@ -1073,14 +1159,23 @@ export async function syncOrganizationsToBusinessClients(): Promise<
           if (email) ownerEmails.add(email.toLowerCase());
         }
 
-        // Batch lookup: find all existing business clients by email
+        // Batch lookup: find all LIVE existing business clients by email
         const existingBizClients = ownerEmails.size > 0
           ? await prisma.businessClient.findMany({
-              where: { primary_email: { in: Array.from(ownerEmails) } },
+              where: { primary_email: { in: Array.from(ownerEmails) }, deleted_at: null },
               select: { id: true, primary_email: true },
             })
           : [];
         const bizClientByEmail = new Map(existingBizClients.map((bc) => [bc.primary_email, bc.id]));
+
+        // Also find deleted emails so we can skip them (unique constraint guard)
+        const deletedBizClients = ownerEmails.size > 0
+          ? await prisma.businessClient.findMany({
+              where: { primary_email: { in: Array.from(ownerEmails) }, deleted_at: { not: null } },
+              select: { primary_email: true },
+            })
+          : [];
+        const deletedEmails = new Set(deletedBizClients.map((bc) => bc.primary_email));
 
         // Batch lookup: find all existing contacts for these business clients
         const existingBizClientIds = existingBizClients.map((bc) => bc.id);
@@ -1101,6 +1196,9 @@ export async function syncOrganizationsToBusinessClients(): Promise<
           const ownerEmail = firstOrg.owner?.email || '';
           const ownerName = firstOrg.owner?.full_name || firstOrg.name;
           const normalizedEmail = (ownerEmail || `org-${firstOrg.id}@placeholder.local`).toLowerCase();
+
+          // Skip if this email belongs to an intentionally-deleted client
+          if (deletedEmails.has(normalizedEmail)) continue;
 
           let bizClientId = bizClientByEmail.get(normalizedEmail);
 

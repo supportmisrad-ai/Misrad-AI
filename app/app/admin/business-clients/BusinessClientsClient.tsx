@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2, RotateCcw, Archive } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations, deleteBusinessClient } from '@/app/actions/business-clients';
+import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations, deleteBusinessClient, getDeletedBusinessClients, restoreBusinessClient, updateBusinessClient } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -99,6 +99,13 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
+
+  // Recycle bin
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [deletedClients, setDeletedClients] = useState<Array<{ id: string; company_name: string; primary_email: string | null; deleted_at: Date | string | null }>>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
+  const [restoringClientId, setRestoringClientId] = useState<string | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialClients?.length) return;
@@ -186,6 +193,66 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
     }
   };
 
+  const loadDeletedClients = async () => {
+    setLoadingDeleted(true);
+    try {
+      const result = await getDeletedBusinessClients();
+      if (result.ok && 'clients' in result && result.clients) {
+        setDeletedClients(result.clients as Array<{ id: string; company_name: string; primary_email: string | null; deleted_at: Date | string | null }>);
+      }
+    } catch (err) {
+      console.error('Failed to load deleted clients:', err);
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
+  const handleToggleRecycleBin = async () => {
+    const next = !showRecycleBin;
+    setShowRecycleBin(next);
+    if (next) await loadDeletedClients();
+  };
+
+  const handleRestoreClient = async (clientId: string) => {
+    setRestoringClientId(clientId);
+    try {
+      const result = await restoreBusinessClient(clientId);
+      if (result.ok) {
+        setDeletedClients((prev) => prev.filter((c) => c.id !== clientId));
+        await loadClients();
+      } else if ('error' in result) {
+        setError(String(result.error));
+      }
+    } catch (err) {
+      console.error('Failed to restore client:', err);
+      setError('שגיאה בשחזור לקוח עסקי');
+    } finally {
+      setRestoringClientId(null);
+    }
+  };
+
+  const handleToggleStatus = async (client: BusinessClient) => {
+    const newStatus = client.status === 'active' ? 'inactive' : 'active';
+    const confirmMsg = newStatus === 'inactive'
+      ? `להשבית את לקוח "${client.company_name}"?\nהלקוח יסומן כלא פעיל בפאנל.`
+      : `להפעיל מחדש את לקוח "${client.company_name}"?`;
+    if (!window.confirm(confirmMsg)) return;
+    setTogglingStatusId(client.id);
+    try {
+      const result = await updateBusinessClient(client.id, { status: newStatus });
+      if (result.ok) {
+        setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, status: newStatus } : c));
+      } else if ('error' in result) {
+        setError(String(result.error));
+      }
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
+      setError('שגיאה בעדכון סטאטוס');
+    } finally {
+      setTogglingStatusId(null);
+    }
+  };
+
   const handleDeleteClient = async (client: BusinessClient) => {
     if (!window.confirm(`למחוק את הלקוח העסקי "${client.company_name}"?\nפעולה זו תסיר אותו מהרשימה (מחיקה רכה).`)) return;
     setDeletingClientId(client.id);
@@ -193,6 +260,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
       const result = await deleteBusinessClient(client.id);
       if (result.ok) {
         setClients((prev) => prev.filter((c) => c.id !== client.id));
+        if (showRecycleBin) loadDeletedClients();
       } else if ('error' in result) {
         setError(String(result.error));
       }
@@ -228,6 +296,14 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
               {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               סנכרן מארגונים
             </Button>
+            <Button
+              onClick={handleToggleRecycleBin}
+              variant="outline"
+              className={`w-full sm:w-auto shadow-sm ${showRecycleBin ? 'bg-amber-50 border-amber-300 text-amber-700' : ''}`}
+            >
+              <Archive className="w-4 h-4" />
+              סל מיחזור
+            </Button>
             <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
               <Plus className="w-4 h-4" />
               הוסף לקוח עסקי
@@ -235,6 +311,50 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
           </div>
         }
       />
+
+      {/* Recycle Bin Panel */}
+      {showRecycleBin && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-5 h-5 text-amber-600" />
+            <h3 className="font-black text-amber-900 text-base">סל מיחזור — לקוחות עסקיים שנמחקו</h3>
+            {loadingDeleted && <Loader2 className="w-4 h-4 animate-spin text-amber-500" />}
+          </div>
+          {deletedClients.length === 0 && !loadingDeleted ? (
+            <p className="text-sm text-amber-700">סל המיחזור ריק</p>
+          ) : (
+            <div className="space-y-2">
+              {deletedClients.map((c) => (
+                <div key={c.id} className="flex items-center justify-between bg-white border border-amber-200 rounded-xl px-4 py-3">
+                  <div>
+                    <div className="font-black text-slate-900 text-sm">{c.company_name}</div>
+                    <div className="text-xs text-slate-500">{c.primary_email}</div>
+                    {c.deleted_at && (
+                      <div className="text-xs text-amber-600 mt-0.5">
+                        נמחק: {new Date(c.deleted_at).toLocaleDateString('he-IL')}
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRestoreClient(c.id)}
+                    disabled={restoringClientId === c.id}
+                    className="text-xs h-8 text-green-700 hover:bg-green-50 border-green-200"
+                  >
+                    {restoringClientId === c.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    )}
+                    שחזר
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -382,7 +502,14 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
             const primary = primaryContact(client);
 
             return (
-              <div key={client.id} className="bg-white border border-slate-200 rounded-2xl hover:shadow-md transition-shadow">
+              <div key={client.id} className={`bg-white border rounded-2xl hover:shadow-md transition-shadow ${client.status !== 'active' ? 'border-red-200' : 'border-slate-200'}`}>
+                {/* Inactive Warning Banner */}
+                {client.status !== 'active' && (
+                  <div className="flex items-center gap-2 bg-red-50 border-b border-red-200 px-5 py-2.5 rounded-t-2xl">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span className="text-xs font-black text-red-700">לקוח לא פעיל — גישת המשתמשים לא נחסמת אוטומטית. יש להשבית ארגונים באופן ידני אם נדרש.</span>
+                  </div>
+                )}
                 {/* Client Header */}
                 <div
                   className="p-5 sm:p-6 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -399,10 +526,10 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                           <span className="text-sm text-slate-500">({client.company_name_en})</span>
                         )}
                         <span
-                          className={`px-2 py-1 text-xs rounded-full ${
+                          className={`px-2 py-1 text-xs rounded-full font-bold ${
                             client.status === 'active'
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-slate-100 text-slate-800'
+                              : 'bg-red-100 text-red-700'
                           }`}
                         >
                           {client.status === 'active' ? 'פעיל' : 'לא פעיל'}
@@ -454,6 +581,28 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                       >
                         <Pencil className="w-3.5 h-3.5" />
                         ערוך
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStatus(client);
+                        }}
+                        disabled={togglingStatusId === client.id}
+                        className={`text-xs h-8 ${
+                          client.status === 'active'
+                            ? 'text-orange-600 hover:bg-orange-50 border-orange-200'
+                            : 'text-green-600 hover:bg-green-50 border-green-200'
+                        }`}
+                      >
+                        {togglingStatusId === client.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : client.status === 'active' ? (
+                          <>השבת</>
+                        ) : (
+                          <>הפעל</>
+                        )}
                       </Button>
                       <Button
                         size="sm"
