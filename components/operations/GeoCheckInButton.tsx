@@ -60,7 +60,7 @@ export default function GeoCheckInButton({
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={busy} className={className}>
+    <button type="button" onClick={onClick} disabled={busy} className={`touch-manipulation ${className || ''}`}>
       {busy ? 'מאמת מיקום…' : label}
     </button>
   );

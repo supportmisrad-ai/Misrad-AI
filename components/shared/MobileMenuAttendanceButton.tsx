@@ -225,7 +225,7 @@ export default function MobileMenuAttendanceButton() {
             type="button"
             onClick={handleClockOut}
             disabled={isBusy}
-            className="flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             <LogOut size={18} strokeWidth={2.5} />
             <span className="text-sm font-black">יציאה</span>
@@ -241,7 +241,7 @@ export default function MobileMenuAttendanceButton() {
           type="button"
           onClick={handleClockIn}
           disabled={isBusy}
-          className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
         >
           <Fingerprint size={20} strokeWidth={2.5} />
           <span className="text-sm font-black">כניסה למשמרת</span>

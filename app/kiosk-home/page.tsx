@@ -297,7 +297,7 @@ function KioskHomePageInner() {
 
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  className="rounded-3xl bg-emerald-500 text-emerald-950 p-8 md:p-10 text-right hover:bg-emerald-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="rounded-3xl bg-emerald-500 text-emerald-950 p-8 md:p-10 text-right hover:bg-emerald-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation"
                   onClick={async () => {
                     if (isAttendanceBusy) return; // Prevent double-click
 
@@ -345,7 +345,7 @@ function KioskHomePageInner() {
                 </button>
 
                 <button
-                  className="rounded-3xl bg-rose-500 text-rose-950 p-8 md:p-10 text-right hover:bg-rose-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="rounded-3xl bg-rose-500 text-rose-950 p-8 md:p-10 text-right hover:bg-rose-400 active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation"
                   onClick={async () => {
                     if (isAttendanceBusy) return; // Prevent double-click
 

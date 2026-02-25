@@ -498,8 +498,26 @@ export function GlobalContextMenuProvider({ children }: { children: React.ReactN
     customItemsRef.current.delete(key);
   }, []);
 
+  // Track whether the device uses touch — disable custom menu on touch devices
+  const isTouchDeviceRef = useRef(false);
+
+  useEffect(() => {
+    const markTouch = () => { isTouchDeviceRef.current = true; };
+    window.addEventListener('touchstart', markTouch, { once: true, passive: true });
+    // Also detect on mount if touch is available
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      isTouchDeviceRef.current = true;
+    }
+    return () => window.removeEventListener('touchstart', markTouch);
+  }, []);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      // ── MOBILE: Never show custom context menu on touch devices ──
+      // Long-press on mobile fires contextmenu and hijacks button taps.
+      // Context menus are a desktop-only paradigm.
+      if (isTouchDeviceRef.current) return;
+
       // Allow default context menu on input/textarea/contenteditable for native editing
       const target = e.target as HTMLElement;
       if (
@@ -509,6 +527,11 @@ export function GlobalContextMenuProvider({ children }: { children: React.ReactN
       ) {
         return;
       }
+
+      // ── Skip interactive elements (button, a, [role=button]) ──
+      // Even on desktop, right-clicking a button should not hijack it.
+      const interactive = target.closest('button, a, [role="button"], [role="link"], select, label');
+      if (interactive) return;
 
       // Allow default on links (for "copy link address" etc.) only with Shift held
       if (e.shiftKey) return;

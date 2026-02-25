@@ -279,7 +279,7 @@ export default function AttendanceMiniStatus() {
       <button
         type="button"
         onClick={() => router.push(meHref)}
-        className="text-xs font-bold text-slate-700 tabular-nums hover:text-emerald-700 transition-colors cursor-pointer bg-transparent border-none p-0"
+        className="text-xs font-bold text-slate-700 tabular-nums hover:text-emerald-700 transition-colors cursor-pointer bg-transparent border-none p-0 touch-manipulation"
         aria-label="מעבר לשעון נוכחות"
         title="מעבר לשעון נוכחות"
       >
@@ -294,7 +294,7 @@ export default function AttendanceMiniStatus() {
         type="button"
         onClick={clockOutQuick}
         disabled={isBusy || !entryId}
-        className="ml-1 p-1 rounded-full text-slate-600 hover:text-slate-900 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="ml-1 p-1 rounded-full text-slate-600 hover:text-slate-900 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
         aria-label="יציאה מהירה"
         title="יציאה מהירה"
       >
