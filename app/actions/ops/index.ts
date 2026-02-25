@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * MISRAD AI — Operations Server Actions (barrel)
  *
