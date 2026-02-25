@@ -1,0 +1,1 @@
+UPDATE global_settings SET admin_android_download_url = 'https://jlgoeqhlkxyhlfnijyxu.supabase.co/storage/v1/object/public/downloads%20APP/MISRAD-AI-Admin-1.0.0.apk', updated_at = NOW() WHERE id = 'global';

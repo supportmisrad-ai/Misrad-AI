@@ -8,6 +8,6 @@ export async function GET() {
     const links = await getGlobalDownloadLinksUnsafe();
     return NextResponse.json(links);
   } catch {
-    return NextResponse.json({ windowsDownloadUrl: null, androidDownloadUrl: null });
+    return NextResponse.json({ windowsDownloadUrl: null, androidDownloadUrl: null, adminAndroidDownloadUrl: null });
   }
 }
