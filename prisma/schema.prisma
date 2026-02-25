@@ -593,15 +593,23 @@ model ClientApproval {
 }
 
 model ClientClient {
-  id             String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String                @map("organization_id") @db.Uuid
-  fullName       String                @map("full_name")
-  phone          String?               @map("phone")
-  email          String?               @map("email")
-  notes          String?               @map("notes")
-  metadata       Json?                 @default("{}")
-  createdAt      DateTime?             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String                @map("organization_id") @db.Uuid
+  fullName        String                @map("full_name")
+  phone           String?               @map("phone")
+  email           String?               @map("email")
+  notes           String?               @map("notes")
+  metadata        Json?                 @default("{}")
+  companyName     String?               @map("company_name")
+  avatar          String?               @map("avatar")
+  package         String?               @map("package")
+  status          String?               @map("status")
+  contactPerson   String?               @map("contact_person")
+  joinedAt        DateTime?             @map("joined_at")
+  assetsFolderUrl String?               @map("assets_folder_url")
+  source          String?               @map("source")
+  createdAt       DateTime?             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   approvals      ClientApproval[]
   organization   Organization  @relation(fields: [organizationId], references: [id])
   documentFiles  ClientDocumentFile[]

@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
 import { isTenantAdminRole } from '@/lib/constants/roles';
-import { TasksStatusSheet, TasksBoardView } from './tasks';
+import { TasksStatusSheet, TasksBoardView, TasksFilterContent } from './tasks';
 
 // Map string names to components for templates
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -1011,46 +1011,15 @@ export const TasksView: React.FC = () => {
                                 }}
                                 className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 space-y-4 overflow-y-auto"
                             >
-                                <div className="flex items-center justify-between border-b border-gray-50 pb-2">
-                                    <span className="text-xs font-bold text-gray-400 uppercase">סינון לפי</span>
-                                    {activeFiltersCount > 0 && (
-                                        <button onClick={clearFilters} className="text-xs text-red-500 hover:underline whitespace-nowrap">נקה הכל</button>
-                                    )}
-                                </div>
-                                
-                                <div>
-                                    <label className="text-xs font-bold text-gray-700 block mb-2">דחיפות</label>
-                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                        <button 
-                                            onClick={() => setFilterPriority('all')}
-                                            className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === 'all' ? 'bg-black text-white border-gray-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-                                        >
-                                            הכל
-                                        </button>
-                                        {(Object.values(Priority) as Priority[]).map(p => (
-                                            <button 
-                                                key={p}
-                                                onClick={() => setFilterPriority(p)}
-                                                className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === p ? PRIORITY_COLORS[p] + ' ring-1 ring-offset-1 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-                                            >
-                                                {PRIORITY_LABELS[p]}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-xs font-bold text-gray-700 block mb-2">אחראי</label>
-                                    <CustomSelect 
-                                        value={filterAssignee}
-                                        onChange={setFilterAssignee}
-                                        options={[
-                                            { value: 'all', label: 'כל העובדים' },
-                                            ...scopedUsers.map((u: User) => ({ value: u.id, label: u.name }))
-                                        ]}
-                                        className="text-sm w-full"
-                                    />
-                                </div>
+                                <TasksFilterContent
+                                    filterPriority={filterPriority}
+                                    filterAssignee={filterAssignee}
+                                    activeFiltersCount={activeFiltersCount}
+                                    scopedUsers={scopedUsers}
+                                    onFilterPriorityChange={setFilterPriority}
+                                    onFilterAssigneeChange={setFilterAssignee}
+                                    onClearFilters={clearFilters}
+                                />
                             </motion.div>
                         </div>
                             </>
@@ -1068,46 +1037,15 @@ export const TasksView: React.FC = () => {
                             ref={filterDropdownRef}
                             className="absolute top-full left-0 md:left-0 md:right-auto mt-2 w-72 max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-3 sm:p-4 space-y-3 sm:space-y-4 origin-top-left"
                         >
-                            <div className="flex items-center justify-between border-b border-gray-50 pb-2">
-                                <span className="text-xs font-bold text-gray-400 uppercase">סינון לפי</span>
-                                {activeFiltersCount > 0 && (
-                                    <button onClick={clearFilters} className="text-xs text-red-500 hover:underline whitespace-nowrap">נקה הכל</button>
-                                )}
-                            </div>
-                            
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 block mb-2">דחיפות</label>
-                                <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                    <button 
-                                        onClick={() => setFilterPriority('all')}
-                                        className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === 'all' ? 'bg-black text-white border-gray-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-                                    >
-                                        הכל
-                                    </button>
-                                    {(Object.values(Priority) as Priority[]).map(p => (
-                                        <button 
-                                            key={p}
-                                            onClick={() => setFilterPriority(p)}
-                                            className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === p ? PRIORITY_COLORS[p] + ' ring-1 ring-offset-1 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
-                                        >
-                                            {PRIORITY_LABELS[p]}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 block mb-2">אחראי</label>
-                                <CustomSelect 
-                                    value={filterAssignee}
-                                    onChange={setFilterAssignee}
-                                    options={[
-                                        { value: 'all', label: 'כל העובדים' },
-                                        ...scopedUsers.map((u: User) => ({ value: u.id, label: u.name }))
-                                    ]}
-                                    className="text-sm w-full"
-                                />
-                            </div>
+                            <TasksFilterContent
+                                filterPriority={filterPriority}
+                                filterAssignee={filterAssignee}
+                                activeFiltersCount={activeFiltersCount}
+                                scopedUsers={scopedUsers}
+                                onFilterPriorityChange={setFilterPriority}
+                                onFilterAssigneeChange={setFilterAssignee}
+                                onClearFilters={clearFilters}
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>
