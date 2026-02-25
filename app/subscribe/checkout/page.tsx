@@ -5,7 +5,9 @@ import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default async function SubscribeCheckoutPage() {
-  const { userId } = await auth();
-  const systemFlags = await getSystemFeatureFlags();
+  const [{ userId }, systemFlags] = await Promise.all([
+    auth(),
+    getSystemFeatureFlags(),
+  ]);
   return <SubscribeCheckoutPageClient initialUserId={userId} initialSystemFlags={systemFlags} />;
 }

@@ -36,14 +36,12 @@ export default async function SocialModuleLayout({
   } as React.CSSProperties;
 
   return (
-    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]">
-      <div className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
-        <Suspense fallback={<ModuleLoadingScreen moduleKey="social" />}>
-          <SocialLayoutShell orgSlug={orgSlug}>
-            {children}
-          </SocialLayoutShell>
-        </Suspense>
-      </div>
+    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
+      <Suspense fallback={<ModuleLoadingScreen moduleKey="social" />}>
+        <SocialLayoutShell orgSlug={orgSlug}>
+          {children}
+        </SocialLayoutShell>
+      </Suspense>
     </div>
   );
 }
