@@ -81,6 +81,14 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
       ),
     },
     {
+      q: 'איך קולטים לידים למערכת?',
+      a: (
+        <span>
+          יש כמה דרכים: <strong className="text-slate-900">טופס לידים ציבורי</strong> — לינק ייחודי שמשתפים בוואטסאפ, בפייסבוק או באתר, ולידים נכנסים ישר למערכת. <strong className="text-slate-900">ייבוא חכם מאקסל</strong> — מעלים קובץ, ה-AI ממפה עמודות ובודק כפילויות. יצירה <strong className="text-slate-900">ידנית</strong> בלחיצת כפתור. ו<strong className="text-slate-900">אוטומציה</strong> דרך Make.com או Zapier לחיבור פרסום בפייסבוק.
+        </span>
+      ),
+    },
+    {
       q: 'מה קורה אחרי רכישה?',
       a: 'מיד אחרי התשלום תקבל גישה למערכת שבחרת. אפשר להוסיף משתמשים לפי החבילה ולהתחיל לעבוד.',
     },

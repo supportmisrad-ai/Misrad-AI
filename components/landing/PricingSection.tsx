@@ -20,10 +20,10 @@ type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'th
 
 const PACKAGES: { key: PackageKey; emoji: string; label: string; who: string; price: number; modules: string; freeUsers: number }[] = [
   { key: 'solo', emoji: '🎯', label: 'מודול בודד', who: 'צריך רק דבר אחד ספציפי', price: 149, modules: 'מודול לבחירה', freeUsers: 1 },
-  { key: 'the_closer', emoji: '💼', label: 'מכירות', who: 'מנהל לידים ועסקאות', price: 249, modules: 'System + Nexus', freeUsers: 1 },
-  { key: 'the_authority', emoji: '🎨', label: 'שיווק ומיתוג', who: 'פרילנסר / נותן שירות', price: 349, modules: 'Social + Client + Nexus', freeUsers: 1 },
-  { key: 'the_operator', emoji: '🔧', label: 'תפעול ושטח', who: 'קבלן / אנשי שטח', price: 349, modules: 'Operations + Nexus + Finance', freeUsers: 1 },
-  { key: 'the_empire', emoji: '👑', label: 'הכל כלול', who: 'עסק בצמיחה שרוצה הכל', price: 499, modules: 'כל 6 המודולים', freeUsers: 5 },
+  { key: 'the_closer', emoji: '💼', label: 'מכירות', who: 'סוכן ביטוח, נדל״ן, מוקד — מנהל לידים עם AI', price: 249, modules: 'System + Nexus', freeUsers: 1 },
+  { key: 'the_authority', emoji: '🎨', label: 'שיווק ומיתוג', who: 'פרילנסר / נותן שירות שמייצר תוכן', price: 349, modules: 'Social + Client + Nexus', freeUsers: 1 },
+  { key: 'the_operator', emoji: '🔧', label: 'תפעול ושטח', who: 'קבלן / אנשי שטח שרוצים סדר', price: 349, modules: 'Operations + Nexus + Finance', freeUsers: 1 },
+  { key: 'the_empire', emoji: '👑', label: 'הכל כלול', who: 'ארגון בצמיחה שרוצה AI בכל מודול', price: 499, modules: 'כל 6 המודולים', freeUsers: 5 },
 ];
 
 export default function PricingSection({ 

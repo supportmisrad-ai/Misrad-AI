@@ -10,8 +10,8 @@ export default async function TheAuthorityLandingPage() {
   return (
     <PackageLandingPage
       badge="חבילת שיווק ומיתוג"
-      title="מהתוכן ללקוח: לחבר את השיווק לניהול הלקוחות."
-      subtitle="להפוך עוקבים ללקוחות משלמים ולנהל את כל התקשורת במקום אחד."
+      title="מהתוכן ללקוח: AI שמחבר שיווק לניהול לקוחות."
+      subtitle="להפוך עוקבים ללקוחות משלמים, לנהל תיקי לקוח חכמים, ולקלוט לידים ישר מהרשתות."
       audience="מנהלי סושיאל, משפיענים, עסקים שמייצרים תוכן וקהילות"
       pain="יש שיווק (לייקים) אבל אין סדר לניהול לקוחות, והלידים נעלמים."
       bullets={[
@@ -20,8 +20,8 @@ export default async function TheAuthorityLandingPage() {
           desc: 'כל הפעילות השיווקית במקום אחד — ברור ומסודר.',
         },
         {
-          title: 'תיק לקוח חכם',
-          desc: 'היסטוריה מלאה של כל לקוח — מההודעה הראשונה ועד הרכישה.',
+          title: 'תיק לקוח חכם + טופס לידים',
+          desc: 'היסטוריה מלאה של כל לקוח + לינק לשיתוף שמכניס לידים ישר למערכת.',
         },
         {
           title: 'המשכיות',
@@ -29,7 +29,7 @@ export default async function TheAuthorityLandingPage() {
         },
       ]}
       ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=the_authority"
-      ctaPrimaryLabel="התחל לנהל את הלקוחות בחינם"
+      ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}

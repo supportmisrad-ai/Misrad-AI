@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, Handshake, Mic, Tablet, Star } from 'lucide-react';
+import { Bot, FileSpreadsheet, Link, Mic, Tablet, Star } from 'lucide-react';
 
 export default function KillerFeaturesBox({ id }: { id?: string }) {
   const items = [
@@ -33,11 +33,18 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
       bg: 'bg-purple-50',
     },
     {
-      icon: Handshake,
-      title: 'העברת לידים',
-      desc: 'לא יכול לקחת עוד עבודה? העבר לידים לקולגות בקליק וקבל עמלה.',
+      icon: Link,
+      title: 'טופס לידים ציבורי',
+      desc: 'לינק ייחודי לשיתוף — לידים נכנסים ישר למערכת בלי הגדרות.',
       color: 'bg-amber-600',
       bg: 'bg-amber-50',
+    },
+    {
+      icon: FileSpreadsheet,
+      title: 'ייבוא חכם מאקסל',
+      desc: 'מעלים קובץ — ה-AI ממפה עמודות, בודק כפילויות ומייבא.',
+      color: 'bg-teal-600',
+      bg: 'bg-teal-50',
     },
   ];
 
@@ -63,7 +70,7 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
           </p>
         </div>
 
-        <div className="mt-10 sm:mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="mt-10 sm:mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {items.map((it) => (
             <div 
               key={it.title} 

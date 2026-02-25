@@ -55,6 +55,8 @@ export default function PricingPageClient() {
                     { label: '6 מודולים (CRM+שיווק+תפעול+...)', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'Finance מובנה (במתנה)', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'שליטה קולית בעברית', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'טופס לידים ציבורי (לינק לשיתוף)', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'ייבוא חכם מאקסל (AI)', ours: true, fireberry: 'בסיסי', kaveret: 'בסיסי', monday: 'בסיסי' },
                     { label: 'מצב Kiosk לעובדים', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'מותאם לשבת', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'לוח שנה עברי', ours: true, fireberry: false, kaveret: false, monday: false },
