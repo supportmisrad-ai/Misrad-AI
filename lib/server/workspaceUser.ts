@@ -218,17 +218,25 @@ async function ensureNexusUserRow(params: {
 }) {
   const existing = await findNexusUserByEmail({ email: params.email, organizationId: params.organizationId });
   if (existing?.id) {
-    // Backfill avatar from Clerk if nexus user has no avatar
     const existingObj = asObject(existing) ?? {};
+    const currentRole = typeof existingObj.role === 'string' ? existingObj.role : '';
     const currentAvatar = typeof existingObj.avatar === 'string' ? existingObj.avatar : '';
-    if (params.avatarUrl && !currentAvatar) {
+
+    // Correct role: if user was defaulted to 'עובד' but should have a management role
+    const needsRoleCorrection = params.role && params.role !== 'עובד' && currentRole === 'עובד';
+    const needsAvatarBackfill = params.avatarUrl && !currentAvatar;
+
+    if (needsRoleCorrection || needsAvatarBackfill) {
       try {
+        const updateData: Record<string, unknown> = {};
+        if (needsRoleCorrection) updateData.role = params.role;
+        if (needsAvatarBackfill) updateData.avatar = params.avatarUrl;
         await prisma.nexusUser.updateMany({
           where: { id: String(existing.id) },
-          data: { avatar: params.avatarUrl },
+          data: updateData,
         });
       } catch {
-        // best-effort backfill
+        // best-effort correction
       }
     }
     return existing;
@@ -292,11 +300,25 @@ export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async funct
     throw new Error('User email not found');
   }
 
-  const role = normalizeRoleFromClerk(clerk);
+  const clerkRole = normalizeRoleFromClerk(clerk);
   const name = clerk?.fullName ?? clerk?.username ?? email.split('@')[0] ?? 'User';
   const avatarUrl = clerk?.imageUrl ?? null;
   const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
   const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
+
+  // Org owners/super_admins should display as 'מנכ״ל', not the default 'עובד'.
+  // normalizeRoleFromClerk reads Clerk metadata which is empty for new signups.
+  let nexusDisplayRole = clerkRole;
+  if (clerkRole === 'עובד') {
+    const existingProfile = await prisma.profile.findFirst({
+      where: { organizationId: workspaceId, clerkUserId },
+      select: { role: true },
+    });
+    const systemRole = existingProfile?.role || '';
+    if (systemRole === 'owner' || systemRole === 'super_admin') {
+      nexusDisplayRole = 'מנכ״ל';
+    }
+  }
 
   // Run profile and nexus user creation in parallel — they are independent
   const [profileRow, nexusUser] = await Promise.all([
@@ -306,14 +328,14 @@ export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async funct
       email,
       fullName: clerk?.fullName ?? null,
       avatarUrl,
-      role,
+      role: clerkRole,
       isSuperAdmin,
     }),
     ensureNexusUserRow({
       organizationId: workspaceId,
       email: String(email).trim().toLowerCase(),
       name,
-      role,
+      role: nexusDisplayRole,
       avatarUrl,
       isSuperAdmin,
     }),
@@ -346,12 +368,14 @@ export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async funct
   const profileId = String(profileObj['id'] ?? '');
   const nameFromDb = String(nexusObj['name'] ?? '');
   const roleFromDb = String(nexusObj['role'] ?? '');
+  // Use the corrected nexus role if the DB still has the old default
+  const finalRole = (roleFromDb === 'עובד' && nexusDisplayRole !== 'עובד') ? nexusDisplayRole : (roleFromDb || clerkRole || 'עובד');
 
   return {
     id: nexusId || '',
     profileId: profileId || '',
     name: nameFromDb || name,
-    role: roleFromDb || role || 'עובד',
+    role: finalRole,
     avatar: resolvedAvatar,
     online: true,
     capacity,
@@ -377,11 +401,24 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
     throw new Error('User email not found');
   }
 
-  const role = normalizeRoleFromClerk(clerk);
+  const clerkRole = normalizeRoleFromClerk(clerk);
   const name = clerk?.fullName ?? clerk?.username ?? email.split('@')[0] ?? 'User';
   const avatarUrl = clerk?.imageUrl ?? null;
   const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
   const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
+
+  // Org owners/super_admins should display as 'מנכ״ל', not the default 'עובד'.
+  let nexusDisplayRole = clerkRole;
+  if (clerkRole === 'עובד') {
+    const existingProfile = await prisma.profile.findFirst({
+      where: { organizationId: workspace.id, clerkUserId },
+      select: { role: true },
+    });
+    const systemRole = existingProfile?.role || '';
+    if (systemRole === 'owner' || systemRole === 'super_admin') {
+      nexusDisplayRole = 'מנכ״ל';
+    }
+  }
 
   // Run profile and nexus user creation in parallel — they are independent
   const [, nexusUser] = await Promise.all([
@@ -391,14 +428,14 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
       email,
       fullName: clerk?.fullName ?? null,
       avatarUrl,
-      role,
+      role: clerkRole,
       isSuperAdmin,
     }),
     ensureNexusUserRow({
       organizationId: workspace.id,
       email: String(email).trim().toLowerCase(),
       name,
-      role,
+      role: nexusDisplayRole,
       avatarUrl,
       isSuperAdmin,
     }),
@@ -412,7 +449,7 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
       email,
       firstName: clerk?.firstName ?? null,
       lastName: clerk?.lastName ?? null,
-      role,
+      role: nexusDisplayRole,
       isSuperAdmin,
     },
   };
