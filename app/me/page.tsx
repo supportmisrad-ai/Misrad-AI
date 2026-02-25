@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { loadCurrentUserLastLocation } from '@/lib/server/workspace';
-import { getAuthenticatedUser } from '@/lib/auth';
+
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 // Force dynamic rendering as this page depends on authentication
@@ -19,7 +19,7 @@ function meLog(...args: unknown[]) {
   console.log(...args);
 }
 
-async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | null> {
+async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: string; hasPlan: boolean } | null> {
   return await withTenantIsolationContext(
     { suppressReporting: true, reason: 'me_page_resolve_redirect_workspace_slug', source: 'me-page-redirect' },
     async () => {
@@ -77,11 +77,11 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         return null;
       }
 
-      // Stage 3: Get org details (needs IDs from stage 2)
+      // Stage 3: Get org details + subscription_plan (merged onboarding check — saves a round-trip)
       const orgs = await prisma.organization.findMany(
         withPrismaTenantIsolationOverride({
           where: { id: { in: ids } },
-          select: { id: true, slug: true },
+          select: { id: true, slug: true, subscription_plan: true },
         }, { suppressReporting: true, reason: 'me_page_lookup_org_details_by_ids', source: 'me-page-redirect' })
       );
 
@@ -90,23 +90,24 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
       }
 
       // Resolve best org: prefer last location > primary org > first available
+      type OrgRow = { id: string; slug: string | null; subscription_plan: string | null };
+      function toResult(o: OrgRow) {
+        return { slug: String(o.slug || o.id), hasPlan: Boolean(o.subscription_plan) };
+      }
+
       const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
       if (lastKey) {
-        const match = orgs.find((o: { id: string; slug: string | null }) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
-        if (match) {
-          return String(match.slug || match.id);
-        }
+        const match = orgs.find((o: OrgRow) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
+        if (match) return toResult(match);
       }
 
       const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
       if (primaryId) {
-        const match = orgs.find((o: { id: string; slug: string | null }) => String(o.id) === primaryId);
-        if (match) {
-          return String(match.slug || match.id);
-        }
+        const match = orgs.find((o: OrgRow) => String(o.id) === primaryId);
+        if (match) return toResult(match);
       }
 
-      return String(orgs[0].slug || orgs[0].id);
+      return toResult(orgs[0]);
     }
   );
 }
@@ -125,29 +126,16 @@ export default async function MePage({
     redirect('/login');
   }
 
-  let orgSlug: string | null = null;
+  let resolved: { slug: string; hasPlan: boolean } | null = null;
   try {
-    orgSlug = await resolveRedirectWorkspaceSlugForCurrentUser();
+    resolved = await resolveRedirectWorkspaceSlugForCurrentUser();
   } catch (error) {
     console.error('[MePage] failed to resolve redirect workspace:', error);
   }
 
-  if (orgSlug) {
-    // Check if onboarding is complete (plan selected) before sending to workspace
-    const orgRecord = await withTenantIsolationContext(
-      { suppressReporting: true, reason: 'me_page_check_onboarding', source: 'me-page-redirect' },
-      async () => {
-        const allOrgs = await prisma.organization.findMany(
-          withPrismaTenantIsolationOverride({
-            where: { OR: [{ slug: orgSlug }, ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgSlug ?? '') ? [{ id: orgSlug }] : [])] },
-            select: { subscription_plan: true },
-          }, { suppressReporting: true, reason: 'me_page_check_plan', source: 'me-page-redirect' })
-        );
-        return allOrgs[0] ?? null;
-      }
-    );
-
-    if (!orgRecord?.subscription_plan) {
+  if (resolved) {
+    // Onboarding check: subscription_plan was already fetched in Stage 3 (zero extra queries)
+    if (!resolved.hasPlan) {
       redirect('/workspaces/onboarding');
     }
 
@@ -161,7 +149,7 @@ export default async function MePage({
       }
     }
     const qs = queryString.toString();
-    const targetUrl = qs ? `/w/${encodeURIComponent(orgSlug)}?${qs}` : `/w/${encodeURIComponent(orgSlug)}`;
+    const targetUrl = qs ? `/w/${encodeURIComponent(resolved.slug)}?${qs}` : `/w/${encodeURIComponent(resolved.slug)}`;
     redirect(targetUrl);
   }
 

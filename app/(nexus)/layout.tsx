@@ -24,27 +24,21 @@ export default async function NexusLayout({
   children: React.ReactNode;
 }) {
   // Server-side guard: require Nexus room access
+  let clerkUserId: string | null = null;
   try {
-    const clerkUserId = await getCurrentUserId();
-    if (clerkUserId) {
-      const user = await prisma.organizationUser.findUnique({
-        where: { clerk_user_id: clerkUserId },
-        select: { organization_id: true, Organization: { select: { has_nexus: true } } },
-      });
-
-      const organizationId = user?.organization_id;
-      if (!organizationId) {
-        redirect('/subscribe/checkout');
-      }
-
-      const org = user?.Organization;
-      if (org && org.has_nexus === false) {
-        redirect('/subscribe/checkout');
-      }
-    }
+    clerkUserId = await getCurrentUserId();
   } catch {
     redirect('/login');
   }
+  if (!clerkUserId) redirect('/login');
+
+  const user = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { organization_id: true, Organization: { select: { has_nexus: true } } },
+  });
+
+  if (!user?.organization_id) redirect('/subscribe/checkout');
+  if (user.Organization && user.Organization.has_nexus === false) redirect('/subscribe/checkout');
 
   const def = getModuleDefinition('nexus');
   const style = {

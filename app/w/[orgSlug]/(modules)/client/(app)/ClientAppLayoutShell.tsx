@@ -35,12 +35,11 @@ export default async function ClientAppLayoutShell({
     redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client`)}`);
   }
 
-  // DB user lookup — fire immediately, resolve later (don't block Phase 2 setup)
+  // DB user lookup — fire immediately, resolve in Phase 2 alongside other I/O
   const userPromise = prisma.organizationUser.findFirst({
     where: { clerk_user_id: clerkUserId },
     select: { organization_id: true, role: true },
   }).catch(() => null);
-  const user = await userPromise;
 
   const clerkPublicMeta = asObject(clerkUser?.publicMetadata);
   const clerkPrivateMeta = asObject(clerkUser?.privateMetadata);
@@ -67,6 +66,8 @@ export default async function ClientAppLayoutShell({
   const safeRoleFromClerk =
     typeof normalizedRoleFromClerk === 'string' && KNOWN_ROLES.has(normalizedRoleFromClerk) ? normalizedRoleFromClerk : null;
 
+  // Resolve the DB user lookup (fired earlier, ran in parallel with the pure computation above)
+  const user = await userPromise;
   const role = ((fallbackUser?.role ?? safeRoleFromClerk ?? user?.role ?? null) as string | null) ?? null;
   const isAdmin = clerkIsSuperAdmin || role === 'admin' || role === 'super_admin' || role === 'owner';
 

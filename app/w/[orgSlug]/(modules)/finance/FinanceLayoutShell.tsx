@@ -22,6 +22,8 @@ export default async function FinanceLayoutShell({
     resolveWorkspaceCurrentUserForUi(orgSlug),
   ]);
 
+  // Logo signing uses workspace.id — but is fast (~50ms) and can't be parallelized further
+  // since it depends on workspace result
   const signedLogo = workspace.logo
     ? await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
     : '';

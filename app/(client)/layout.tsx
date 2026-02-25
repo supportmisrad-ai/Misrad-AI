@@ -15,27 +15,21 @@ export default async function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  let clerkUserId: string | null = null;
   try {
-    const clerkUserId = await getCurrentUserId();
-    if (clerkUserId) {
-      const user = await prisma.organizationUser.findUnique({
-        where: { clerk_user_id: clerkUserId },
-        select: { organization_id: true, Organization: { select: { has_client: true } } },
-      });
-
-      const organizationId = user?.organization_id;
-      if (!organizationId) {
-        redirect('/subscribe/checkout');
-      }
-
-      const org = user?.Organization;
-      if (org && org.has_client === false) {
-        redirect('/subscribe/checkout');
-      }
-    }
+    clerkUserId = await getCurrentUserId();
   } catch {
     redirect('/login');
   }
+  if (!clerkUserId) redirect('/login');
+
+  const user = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { organization_id: true, Organization: { select: { has_client: true } } },
+  });
+
+  if (!user?.organization_id) redirect('/subscribe/checkout');
+  if (user.Organization && user.Organization.has_client === false) redirect('/subscribe/checkout');
 
   const def = getModuleDefinition('client');
   const style = {

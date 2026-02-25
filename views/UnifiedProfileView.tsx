@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, SquareActivity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CircleCheck, CircleX, Lock, CircleAlert, Target } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useClerk } from '@clerk/nextjs';
+
 import { HoldButton } from '../components/HoldButton';
 import { LeadStatus, Status, type Lead, type Task, type TimeEntry } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -120,7 +120,6 @@ export const MeView: React.FC<{
   moduleCards,
 }) => {
   const { currentUser, logout, tasks, activeShift, clockIn, clockOut, timeEntries, leads, addToast, users } = useData();
-  const { signOut } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -506,7 +505,7 @@ export const MeView: React.FC<{
       return () => clearInterval(interval);
   }, [activeShift]);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
       // עדכון מצב פנימי של האפליקציה (אם עדיין נדרש ל-DataContext)
       try {
           logout?.();
@@ -514,10 +513,10 @@ export const MeView: React.FC<{
           // מתעלמים משגיאות לוגיות פנימיות כאן
       }
 
-      // התנתקות אמיתית מ-Clerk והפניה למסך ההתחברות
-      await signOut();
+      // הפניה מיידית לדף sign-out שמטפל בהתנתקות אסינכרונית
+      // (במקום await signOut שחוסם את ה-UI)
       if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/sign-out';
       }
   };
 
