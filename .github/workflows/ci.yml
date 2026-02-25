@@ -35,7 +35,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Ensure .env.local exists
         run: |
@@ -65,7 +64,16 @@ jobs:
           SQL
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            echo "npm ci attempt $i failed, retrying..."
+            npm cache clean --force
+            sleep 5
+          done
+
+      - name: Generate Prisma client
+        run: npx prisma generate
 
       - name: Enable PostgreSQL extensions
         run: |
@@ -114,7 +122,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Ensure .env.local exists
         run: |
@@ -144,7 +151,16 @@ jobs:
           SQL
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          for i in 1 2 3; do
+            npm ci --ignore-scripts && break
+            echo "npm ci attempt $i failed, retrying..."
+            npm cache clean --force
+            sleep 5
+          done
+
+      - name: Generate Prisma client
+        run: npx prisma generate
 
       - name: Enable PostgreSQL extensions
         run: |

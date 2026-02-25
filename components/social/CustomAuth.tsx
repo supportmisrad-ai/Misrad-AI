@@ -189,6 +189,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         password: password,
         firstName,
         lastName,
+        legalAccepted: true,
       });
 
       if (result.status === 'complete') {
@@ -263,8 +264,11 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         const missing: string[] = Array.isArray(result.missingFields) ? result.missingFields : [];
         console.log('[CustomAuth] missing_requirements after verify, fields:', missing);
 
-        const updatePayload: Record<string, string> = {};
+        const updatePayload: Record<string, string | boolean> = {};
 
+        if (missing.includes('legal_accepted')) {
+          updatePayload.legalAccepted = true;
+        }
         if (missing.includes('username')) {
           updatePayload.username = generateUsername(email);
         }
