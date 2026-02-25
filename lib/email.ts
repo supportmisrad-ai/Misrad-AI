@@ -44,3 +44,7 @@ export {
     sendDay7CheckinEmail,
     sendDay45FeedbackEmail,
 } from './emails/follow-ups';
+
+export {
+    sendNewLeadNotificationEmail,
+} from './emails/leads';

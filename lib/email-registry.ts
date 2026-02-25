@@ -780,6 +780,21 @@ export const EMAIL_CATALOG: EmailTypeDefinition[] = [
     },
 
     // ══════════════════════════════════════════════════════════════════
+    // LEADS — Public lead form notifications
+    // ══════════════════════════════════════════════════════════════════
+    {
+        id: 'system_new_lead_from_form',
+        label: 'ליד חדש מטופס ציבורי',
+        category: 'system',
+        audience: 'owner',
+        canUnsubscribe: true,
+        preferenceKey: 'system_lead_notifications',
+        description: 'התראה כשליד חדש נכנס דרך הטופס הציבורי',
+        implemented: true,
+        trigger: 'שליחת טופס לידים ציבורי',
+    },
+
+    // ══════════════════════════════════════════════════════════════════
     // ADMIN — Internal notifications (Super Admin)
     // ══════════════════════════════════════════════════════════════════
     {

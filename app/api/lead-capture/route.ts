@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { asObject } from '@/lib/server/workspace-access/utils';
+import { sendNewLeadNotificationEmail } from '@/lib/email';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
         OR: orgConditions,
         subscription_status: { not: 'expired' },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true, owner: { select: { id: true, email: true } } },
     });
 
     if (!org) {
@@ -171,6 +172,55 @@ export async function POST(req: NextRequest) {
               type: 'note',
               content: `הודעה מטופס ליד: ${message}`,
             },
+          });
+        }
+
+        // ── Bell notification + Email (fire-and-forget) ──
+        const ownerEmail = org.owner?.email;
+        const ownerId = org.owner?.id;
+
+        // Find NexusUser ID for the notification recipient
+        let recipientId: string | null = null;
+        if (ownerEmail) {
+          const nexusUser = await prisma.nexusUser.findFirst({
+            where: { organizationId: org.id, email: ownerEmail },
+            select: { id: true },
+          });
+          recipientId = nexusUser?.id ?? ownerId ?? null;
+        }
+
+        // Insert in-app notification (bell)
+        if (recipientId) {
+          prisma.misradNotification.create({
+            data: {
+              organization_id: org.id,
+              recipient_id: recipientId,
+              type: 'ALERT',
+              title: `ליד חדש: ${name}`,
+              message: `${name} השאיר/ה פרטים בטופס הציבורי${company ? ` (${company})` : ''}. טלפון: ${phone}`,
+              timestamp: new Date().toISOString(),
+              timestampAt: new Date(),
+              isRead: false,
+              link: `/w/${org.slug || orgSlug}/system?leadId=${lead.id}`,
+            },
+          }).catch((err: unknown) => {
+            if (!IS_PROD) console.error('[Lead Capture] Failed to create notification:', err);
+          });
+        }
+
+        // Send email to org owner
+        if (ownerEmail) {
+          sendNewLeadNotificationEmail({
+            toEmail: ownerEmail,
+            leadName: name,
+            leadPhone: phone,
+            leadEmail: email || undefined,
+            leadCompany: company || undefined,
+            leadMessage: message || undefined,
+            orgName: org.name || '',
+            orgSlug: org.slug || orgSlug,
+          }).catch((err: unknown) => {
+            if (!IS_PROD) console.error('[Lead Capture] Failed to send email:', err);
           });
         }
 

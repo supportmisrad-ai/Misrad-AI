@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Share2, Copy, Check, LinkIcon, Users, Flame, TrendingUp, FileUp } from 'lucide-react';
+import { Plus, Share2, Copy, Check, LinkIcon, Users, Flame, TrendingUp, FileUp, Globe } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
@@ -241,7 +241,13 @@ export default function SystemLeadsClient({
             </div>
 
             <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-lg">{l.source}</span>
+              {l.source === 'lead-form' ? (
+                <span className="text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-1 rounded-lg flex items-center gap-1 w-fit">
+                  <Globe size={10} /> טופס ציבורי
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-lg">{l.source}</span>
+              )}
               {Number(l.value) > 0 && (
                 <span className="text-sm font-black text-slate-900">₪{Number(l.value).toLocaleString()}</span>
               )}
