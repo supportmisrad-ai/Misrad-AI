@@ -510,6 +510,18 @@ export default function WorkspaceOnboardingClient(props: {
                   )}
                 </button>
 
+                {needsPlanSelection ? (
+                  <button
+                    type="button"
+                    onClick={() => { setStep('plan'); setError(null); }}
+                    disabled={isSaving}
+                    className="w-full py-2.5 rounded-2xl font-bold text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <ArrowLeft size={14} className="rotate-180" />
+                    חזרה לבחירת חבילה
+                  </button>
+                ) : null}
+
                 <p className="text-[11px] text-slate-400 text-center">
                   ללא כרטיס אשראי · בטל בכל עת · 7 ימי ניסיון מלא
                 </p>
