@@ -1,20 +1,17 @@
-'use client';
-
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import { SalesFaq } from '@/components/landing/SalesFaq';
-import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
-import { Target, Users, Briefcase, BarChart3, Lightbulb, Archive, Play } from 'lucide-react';
+import DemoVideoTrigger from '@/components/landing/DemoVideoTrigger';
+import { Target, Users, Briefcase, BarChart3, Lightbulb, Archive } from 'lucide-react';
+
+const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
+const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function NexusMarketingPage() {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
@@ -94,13 +91,7 @@ export default function NexusMarketingPage() {
               >
                 התחל חינם
               </Link>
-              <button
-                onClick={() => setIsVideoModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all"
-              >
-                <Play size={18} className="text-indigo-600" />
-                צפייה במערכת
-              </button>
+              <DemoVideoTrigger />
             </div>
           </div>
         </section>
@@ -172,10 +163,6 @@ export default function NexusMarketingPage() {
         <SalesFaq variant="default" />
       </main>
       <Footer />
-      <DemoVideoModal 
-        isOpen={isVideoModalOpen} 
-        onClose={() => setIsVideoModalOpen(false)} 
-      />
     </div>
   );
 }

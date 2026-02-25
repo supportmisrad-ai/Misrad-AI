@@ -117,7 +117,10 @@ export default async function RootPage() {
       </main>
 
       <Suspense>
-        <Footer />
+        <Footer 
+          initialLogo={landingSettings.logo}
+          initialLogoText={landingSettings.logoText}
+        />
       </Suspense>
     </div>
   );

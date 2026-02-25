@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
-import { persistCurrentUserLastLocation } from '@/lib/server/workspace';
+import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
 import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
 import OperationsLayoutShell from './OperationsLayoutShell';
@@ -18,6 +18,8 @@ export default async function OperationsModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
+  // Only the fast access check blocks the layout — everything else streams
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
 

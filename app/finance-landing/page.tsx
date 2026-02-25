@@ -1,14 +1,13 @@
-'use client';
-
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CircleCheckBig, MessageCircle, Play } from 'lucide-react';
+import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CircleCheckBig, MessageCircle } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
-import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
+import DemoVideoTrigger from '@/components/landing/DemoVideoTrigger';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import { SalesFaq } from '@/components/landing/SalesFaq';
+
+const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
+const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -26,7 +25,6 @@ const benefits = [
 ];
 
 export default function FinanceMarketingPage() {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
@@ -66,13 +64,7 @@ export default function FinanceMarketingPage() {
                 התחל ניסיון חינם
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
               </Link>
-              <button
-                onClick={() => setIsVideoModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-black hover:border-indigo-300 hover:scale-105 transition-all"
-              >
-                <Play size={18} className="text-indigo-600" />
-                צפייה במערכת
-              </button>
+              <DemoVideoTrigger className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-black hover:border-indigo-300 hover:scale-105 transition-all" />
             </div>
 
             <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -175,11 +167,6 @@ export default function FinanceMarketingPage() {
         <SalesFaq variant="default" />
       </main>
       <Footer />
-      
-      <DemoVideoModal 
-        isOpen={isVideoModalOpen} 
-        onClose={() => setIsVideoModalOpen(false)} 
-      />
     </div>
   );
 }

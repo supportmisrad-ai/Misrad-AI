@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSystemMetadata } from '@/lib/metadata';
-import React from 'react';
+import React, { Suspense } from 'react';
 import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
+import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -39,7 +40,9 @@ export default async function ClientLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900 font-sans" dir="rtl">
-      {children}
+      <Suspense fallback={<ModuleLoadingScreen moduleKey="client" />}>
+        {children}
+      </Suspense>
     </div>
   );
 }

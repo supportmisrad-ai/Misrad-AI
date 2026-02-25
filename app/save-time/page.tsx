@@ -1,11 +1,11 @@
-'use client';
-
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Boxes, ClipboardList, Mic, Truck, Sparkles, Zap } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import { SalesFaq } from '@/components/landing/SalesFaq';
+
+const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
+const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 

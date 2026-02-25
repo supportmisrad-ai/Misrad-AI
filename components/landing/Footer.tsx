@@ -6,16 +6,24 @@ import Link from 'next/link';
 import { getSystemIconUrl } from '@/lib/metadata';
 import { ArrowUpRight, Mail, Sparkles } from 'lucide-react';
 
-export const Footer = () => {
-    const [logoSrc, setLogoSrc] = useState<string | null>(null);
-    const [logoText, setLogoText] = useState('MISRAD AI');
+interface FooterProps {
+    initialLogo?: string | null;
+    initialLogoText?: string | null;
+}
+
+export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
+    const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo || null);
+    const [logoText, setLogoText] = useState(initialLogoText || 'MISRAD AI');
 
     useEffect(() => {
+        // Skip fetch if props were provided server-side
+        if (initialLogo !== undefined || initialLogoText !== undefined) return;
+
         let cancelled = false;
 
         (async () => {
             try {
-                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const res = await fetch('/api/landing/settings');
                 const data = await res.json().catch(() => null);
                 if (cancelled) return;
                 const nextLogo = typeof data?.logo === 'string' ? data.logo : null;
@@ -30,7 +38,7 @@ export const Footer = () => {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [initialLogo, initialLogoText]);
 
     const linkClasses = "group flex items-center gap-1.5 text-slate-400 hover:text-white transition-all duration-200";
     const arrowClasses = "w-0 opacity-0 group-hover:w-4 group-hover:opacity-100 transition-all duration-200";

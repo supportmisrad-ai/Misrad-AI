@@ -1,21 +1,18 @@
-'use client';
-
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users, Play, Sparkles, Camera, Brain } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users, Sparkles, Camera, Brain } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
-import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
-import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import { SalesFaq } from '@/components/landing/SalesFaq';
+import DemoVideoTrigger from '@/components/landing/DemoVideoTrigger';
+
+const KillerFeaturesBox = dynamic(() => import('@/components/landing/KillerFeaturesBox'));
+const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
+const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export default function OperationsMarketingPage() {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  
   const features = [
     {
       title: 'שיבוץ חכם — AI בוחר את הטכנאי',
@@ -85,13 +82,7 @@ export default function OperationsMarketingPage() {
                   >
                     מעבר לתשלום <ArrowRight size={16} className="rotate-180" />
                   </Link>
-                  <button
-                    onClick={() => setIsVideoModalOpen(true)}
-                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all gap-2"
-                  >
-                    <Play size={18} className="text-indigo-600" />
-                    צפייה במערכת
-                  </button>
+                  <DemoVideoTrigger className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all gap-2" />
                 </div>
               </div>
 
@@ -321,11 +312,6 @@ export default function OperationsMarketingPage() {
         <SalesFaq variant="default" />
       </main>
       <Footer />
-      
-      <DemoVideoModal 
-        isOpen={isVideoModalOpen} 
-        onClose={() => setIsVideoModalOpen(false)} 
-      />
     </div>
   );
 }
