@@ -73,7 +73,7 @@ jobs:
           done
 
       - name: Generate Prisma client
-        run: npx prisma generate
+        run: ./node_modules/.bin/prisma generate
 
       - name: Enable PostgreSQL extensions
         run: |
@@ -83,7 +83,7 @@ jobs:
           SQL
 
       - name: Push database schema
-        run: npx prisma db push --skip-generate
+        run: ./node_modules/.bin/prisma db push --skip-generate
 
       - name: Build
         run: npm run build
@@ -160,7 +160,7 @@ jobs:
           done
 
       - name: Generate Prisma client
-        run: npx prisma generate
+        run: ./node_modules/.bin/prisma generate
 
       - name: Enable PostgreSQL extensions
         run: |
@@ -170,7 +170,7 @@ jobs:
           SQL
 
       - name: Push database schema
-        run: npx prisma db push --skip-generate
+        run: ./node_modules/.bin/prisma db push --skip-generate
 
       - name: Seed api_keys for public leads test
         run: |
