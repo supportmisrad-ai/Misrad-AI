@@ -3,6 +3,12 @@ import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 // ---------------------------------------------------------------------------
 // Multi-tier cache: L1 (in-memory LRU) → L2 (Upstash Redis, optional)
 //
+// SERVERLESS NOTE (Vercel):
+// L1 (in-memory Map) has near-zero hit rate on cold starts but provides
+// per-request deduplication and warm-instance optimization. L2 (Upstash
+// Redis) is the real distributed cache and survives across invocations.
+// This design is intentional — L1 is a cheap bonus, not the primary cache.
+//
 // Usage:
 //   import { cached, invalidateCache } from '@/lib/cache';
 //

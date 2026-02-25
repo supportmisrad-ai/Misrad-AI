@@ -148,8 +148,8 @@ export default clerkMiddleware(async (auth, req) => {
 
   const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
 
-  // Hard block: /api/e2e/* routes are NEVER accessible in production
-  if (!isDev && pathname.startsWith('/api/e2e')) {
+  // Hard block: /api/e2e/* and /api/debug/* routes are NEVER accessible in production
+  if (!isDev && (pathname.startsWith('/api/e2e') || pathname.startsWith('/api/debug'))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
