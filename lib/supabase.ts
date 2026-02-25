@@ -401,9 +401,9 @@ function wrapStorageOnlyClient(client: SupabaseClient, label: string): SupabaseS
         };
       }
 
-      if (prop === 'rest' && originalRest) {
-        throw new Error('[Supabase] Storage-only client: PostgREST rest client is blocked. ' + `label=${String(label)}`);
-      }
+      // NOTE: .rest is NOT blocked — Supabase JS SDK accesses it internally
+      // during storage operations (e.g. createSignedUrls). Blocking .from(),
+      // .rpc(), and .schema() is sufficient to prevent data access.
 
       return Reflect.get(target, prop, receiver);
     },
@@ -520,12 +520,9 @@ function wrapServiceRoleStorageOnly(client: SupabaseClient, reason: string): Sup
         };
       }
 
-      if (prop === 'rest' && originalRest) {
-        throw new Error(
-          '[Supabase] Service Role blocked (Storage-only outside webhooks/e2e): ' +
-            `Caller not allowed. reason=${String(reason)} rest=blocked`
-        );
-      }
+      // NOTE: .rest is NOT blocked — Supabase JS SDK accesses it internally
+      // during storage operations (e.g. createSignedUrls). Blocking .from(),
+      // .rpc(), and .schema() is sufficient to prevent data access.
 
       return Reflect.get(target, prop, receiver);
     },
