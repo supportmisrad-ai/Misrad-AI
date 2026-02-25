@@ -35,10 +35,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Ensure .env.local exists
-        run: |
-          test -f .env.local || printf "" > .env.local
+        run: test -f .env.local || printf "" > .env.local
 
       - name: Install psql
         run: |
@@ -64,16 +64,7 @@ jobs:
           SQL
 
       - name: Install dependencies
-        run: |
-          for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            echo "npm ci attempt $i failed, retrying..."
-            npm cache clean --force
-            sleep 5
-          done
-
-      - name: Generate Prisma client
-        run: ./node_modules/.bin/prisma generate
+        run: npm ci
 
       - name: Enable PostgreSQL extensions
         run: |
@@ -83,7 +74,7 @@ jobs:
           SQL
 
       - name: Push database schema
-        run: ./node_modules/.bin/prisma db push --skip-generate
+        run: npx prisma db push --skip-generate
 
       - name: Build
         run: npm run build
@@ -122,10 +113,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Ensure .env.local exists
-        run: |
-          test -f .env.local || printf "" > .env.local
+        run: test -f .env.local || printf "" > .env.local
 
       - name: Install psql
         run: |
@@ -151,16 +142,7 @@ jobs:
           SQL
 
       - name: Install dependencies
-        run: |
-          for i in 1 2 3; do
-            npm ci --ignore-scripts && break
-            echo "npm ci attempt $i failed, retrying..."
-            npm cache clean --force
-            sleep 5
-          done
-
-      - name: Generate Prisma client
-        run: ./node_modules/.bin/prisma generate
+        run: npm ci
 
       - name: Enable PostgreSQL extensions
         run: |
@@ -170,7 +152,7 @@ jobs:
           SQL
 
       - name: Push database schema
-        run: ./node_modules/.bin/prisma db push --skip-generate
+        run: npx prisma db push --skip-generate
 
       - name: Seed api_keys for public leads test
         run: |
