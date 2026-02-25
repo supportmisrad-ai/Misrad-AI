@@ -26,11 +26,11 @@ const LeadModalTransferDialog: React.FC<LeadModalTransferDialogProps> = ({
   useBackButtonClose(true, onClose);
   return (
     <div
-      className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4"
       onClick={() => (isCreatingTransfer ? null : onClose())}
     >
       <div
-        className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-5"
+        className="w-full max-w-md bg-white rounded-t-3xl md:rounded-3xl border border-slate-200 shadow-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">

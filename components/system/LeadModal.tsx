@@ -887,30 +887,34 @@ const LeadModal: React.FC<LeadModalProps> = ({
 
               <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
                 <div className="p-4 border-b border-slate-200 bg-slate-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-black text-slate-900">תיעוד</div>
-                    {onStatusChange ? (
-                      <CustomSelect
-                        value={lead.status}
-                        onChange={(val) => onStatusChange(lead.id, val as Lead['status'])}
-                        options={stagesForSelect.map((s) => ({ value: String(s.id), label: String(s.label) }))}
-                      />
-                    ) : null}
-                  </div>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-black text-slate-900 shrink-0">תיעוד</div>
+                      {onStatusChange ? (
+                        <div className="min-w-[140px] max-w-[200px]">
+                          <CustomSelect
+                            value={lead.status}
+                            onChange={(val) => onStatusChange(lead.id, val as Lead['status'])}
+                            options={stagesForSelect.map((s) => ({ value: String(s.id), label: String(s.label) }))}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
 
-                  <div className="flex gap-3 mt-3">
-                    {[{ id: 'note', label: 'פתק' }, { id: 'call', label: 'שיחה' }, { id: 'task', label: 'משימה' }, { id: 'email', label: 'מייל' }].map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')}
-                        className={`px-3 py-1.5 rounded-full text-xs font-black border transition-colors ${
-                          composerTab === tab.id ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
+                    <div className="flex flex-wrap gap-2">
+                      {[{ id: 'note', label: 'פתק' }, { id: 'call', label: 'שיחה' }, { id: 'task', label: 'משימה' }, { id: 'email', label: 'מייל' }].map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')}
+                          className={`px-3 py-1.5 rounded-full text-xs font-black border transition-colors ${
+                            composerTab === tab.id ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <form onSubmit={handleSubmitActivity} className="mt-3">

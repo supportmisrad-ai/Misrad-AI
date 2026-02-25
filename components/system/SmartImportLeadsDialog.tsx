@@ -424,9 +424,9 @@ export default function SmartImportLeadsDialog(props: {
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl" onClick={closeAndReset}>
+    <div className="fixed inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4" dir="rtl" onClick={closeAndReset}>
       <div
-        className="w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-y-auto"
+        className="w-full max-w-4xl max-h-[90dvh] bg-white rounded-t-3xl md:rounded-3xl border border-slate-200 shadow-2xl overflow-y-auto"
         onClick={stop}
       >
         <div className="sticky top-0 z-10 p-6 border-b border-slate-200 flex items-start justify-between gap-4 bg-slate-50 rounded-t-3xl">

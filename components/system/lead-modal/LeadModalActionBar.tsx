@@ -37,9 +37,9 @@ const LeadModalActionBar: React.FC<LeadModalActionBarProps> = ({
   const hasEmail = Boolean(String(leadEmail || '').trim());
 
   return (
-    <div className="sticky bottom-0 bg-white border-t border-slate-200 px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+    <div className="sticky bottom-0 bg-white border-t border-slate-200 px-3 py-2 safe-area-bottom">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
           <label
             className={`px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black cursor-pointer ${
               isUploadingRecording ? 'opacity-60 pointer-events-none' : ''

@@ -230,7 +230,8 @@ export async function updateSystemPipelineStageForOrganizationId(params: {
 export async function deleteSystemPipelineStageForOrganizationId(params: {
   organizationId: string;
   id: string;
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+  moveLeadsToKey?: string;
+}): Promise<{ ok: true } | { ok: false; message: string; leadCount?: number }> {
   try {
     const orgId = String(params.organizationId || '').trim();
     if (!orgId) return { ok: false, message: 'Missing organizationId' };
@@ -247,8 +248,28 @@ export async function deleteSystemPipelineStageForOrganizationId(params: {
     const leadCount = await prisma.systemLead.count({
       where: { organizationId: orgId, status: String(existing.key) },
     });
+
     if (leadCount > 0) {
-      return { ok: false, message: 'לא ניתן למחוק שלב שיש בו לידים' };
+      const moveToKey = params.moveLeadsToKey ? String(params.moveLeadsToKey).trim() : '';
+
+      if (!moveToKey) {
+        return { ok: false, message: `בשלב זה יש ${leadCount} לידים. בחר שלב להעביר אותם אליו.`, leadCount };
+      }
+
+      // Verify target stage exists and is active
+      const targetStage = await prisma.systemPipelineStage.findFirst({
+        where: { organizationId: orgId, key: moveToKey, isActive: true },
+        select: { id: true },
+      });
+      if (!targetStage) {
+        return { ok: false, message: 'שלב היעד לא נמצא או לא פעיל' };
+      }
+
+      // Move all leads to the target stage
+      await prisma.systemLead.updateMany({
+        where: { organizationId: orgId, status: String(existing.key) },
+        data: { status: moveToKey },
+      });
     }
 
     const deleted = await prisma.systemPipelineStage.deleteMany({

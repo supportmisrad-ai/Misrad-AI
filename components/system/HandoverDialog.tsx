@@ -66,8 +66,8 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
   }, [step]);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/90 z-[60] flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] ring-1 ring-white/20 animate-scale-in relative border border-slate-200">
+    <div className="fixed inset-0 bg-slate-900/90 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 animate-fade-in backdrop-blur-sm">
+      <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90dvh] ring-1 ring-white/20 animate-scale-in relative border border-slate-200">
         
         {/* Header */}
         <div className="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center relative z-10">

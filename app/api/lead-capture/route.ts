@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         OR: orgConditions,
         subscription_status: { not: 'expired' },
       },
-      select: { id: true, name: true, slug: true, owner: { select: { id: true, email: true } } },
+      select: { id: true, name: true, slug: true, billing_email: true, owner: { select: { id: true, email: true } } },
     });
 
     if (!org) {
@@ -148,6 +148,15 @@ export async function POST(req: NextRequest) {
     return await withTenantIsolationContext(
       { source: 'api_lead_capture', organizationId: org.id, reason: 'public_lead_form' },
       async () => {
+        // Resolve the default stage for new leads (first active stage, fallback to 'incoming')
+        let defaultStatus = 'incoming';
+        const firstStage = await prisma.systemPipelineStage.findFirst({
+          where: { organizationId: org.id, isActive: true },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+          select: { key: true },
+        });
+        if (firstStage?.key) defaultStatus = firstStage.key;
+
         const lead = await prisma.systemLead.create({
           data: {
             organizationId: org.id,
@@ -156,7 +165,7 @@ export async function POST(req: NextRequest) {
             email: email || '',
             company,
             source: 'lead-form',
-            status: 'incoming',
+            status: defaultStatus,
             score: 50,
             lastContact: new Date(),
             isHot: false,
@@ -175,26 +184,47 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // ── Bell notification + Email (fire-and-forget) ──
-        const ownerEmail = org.owner?.email;
-        const ownerId = org.owner?.id;
+        // ── Resolve org owner email (fallback chain) ──
+        let notifyEmail: string | null = org.owner?.email || null;
+        let recipientNexusId: string | null = null;
 
-        // Find NexusUser ID for the notification recipient
-        let recipientId: string | null = null;
-        if (ownerEmail) {
+        // Fallback 1: Find NexusUser with owner/admin role
+        if (!notifyEmail) {
+          const adminUser = await prisma.nexusUser.findFirst({
+            where: { organizationId: org.id, role: { in: ['owner', 'admin'] } },
+            orderBy: { createdAt: 'asc' },
+            select: { id: true, email: true },
+          });
+          if (adminUser?.email) {
+            notifyEmail = adminUser.email;
+            recipientNexusId = adminUser.id;
+          }
+        }
+
+        // Fallback 2: billing_email from organization
+        if (!notifyEmail && org.billing_email) {
+          notifyEmail = org.billing_email;
+        }
+
+        // Resolve NexusUser ID for bell notification
+        if (!recipientNexusId && notifyEmail) {
           const nexusUser = await prisma.nexusUser.findFirst({
-            where: { organizationId: org.id, email: ownerEmail },
+            where: { organizationId: org.id, email: notifyEmail },
             select: { id: true },
           });
-          recipientId = nexusUser?.id ?? ownerId ?? null;
+          recipientNexusId = nexusUser?.id ?? org.owner?.id ?? null;
+        }
+
+        if (!IS_PROD) {
+          console.log('[Lead Capture] Notification target:', { notifyEmail, recipientNexusId, ownerEmail: org.owner?.email, billingEmail: org.billing_email });
         }
 
         // Insert in-app notification (bell)
-        if (recipientId) {
+        if (recipientNexusId) {
           prisma.misradNotification.create({
             data: {
               organization_id: org.id,
-              recipient_id: recipientId,
+              recipient_id: recipientNexusId,
               type: 'ALERT',
               title: `ליד חדש: ${name}`,
               message: `${name} השאיר/ה פרטים בטופס הציבורי${company ? ` (${company})` : ''}. טלפון: ${phone}`,
@@ -204,14 +234,14 @@ export async function POST(req: NextRequest) {
               link: `/w/${org.slug || orgSlug}/system?leadId=${lead.id}`,
             },
           }).catch((err: unknown) => {
-            if (!IS_PROD) console.error('[Lead Capture] Failed to create notification:', err);
+            console.error('[Lead Capture] Failed to create notification:', err);
           });
         }
 
-        // Send email to org owner
-        if (ownerEmail) {
+        // Send email to org owner/admin
+        if (notifyEmail) {
           sendNewLeadNotificationEmail({
-            toEmail: ownerEmail,
+            toEmail: notifyEmail,
             leadName: name,
             leadPhone: phone,
             leadEmail: email || undefined,
@@ -220,8 +250,10 @@ export async function POST(req: NextRequest) {
             orgName: org.name || '',
             orgSlug: org.slug || orgSlug,
           }).catch((err: unknown) => {
-            if (!IS_PROD) console.error('[Lead Capture] Failed to send email:', err);
+            console.error('[Lead Capture] Failed to send email:', err);
           });
+        } else {
+          console.warn('[Lead Capture] No email recipient found for org:', org.id);
         }
 
         return NextResponse.json({

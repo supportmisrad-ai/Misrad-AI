@@ -166,13 +166,25 @@ const PipelineCard = memo(({
                 </div>
 
                 {/* Footer Info */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                    <span className="font-mono font-bold text-slate-700 text-xs">
-                        ₪{lead.value.toLocaleString()}
-                    </span>
+                <div className="pt-3 border-t border-slate-50 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-slate-700 text-xs">
+                          ₪{lead.value.toLocaleString()}
+                      </span>
 
-                    <div className="flex-1 px-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
+                      {isCoarsePointer ? (
+                          <div onClick={(e) => e.stopPropagation()}>
+                              <CustomSelect
+                                  value={lead.status}
+                                  onChange={(val) => onStatusChange(lead.id, val as PipelineStage)}
+                                  options={stages.map((s) => ({ value: s.id, label: s.label }))}
+                              />
+                          </div>
+                      ) : null}
+                    </div>
+
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5 mb-1">
                         <div className={`flex items-center gap-1 ${followUpTextColor}`}>
                           <Clock size={12} />
                         </div>
@@ -194,6 +206,17 @@ const PipelineCard = memo(({
                             קבע
                           </button>
                         ) : null}
+                        {lead.nextActionDate ? (
+                          <div className={`text-[10px] font-bold ${followUpTextColor}`}>
+                            {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'} · {formatDateTimeShort(new Date(lead.nextActionDate))}
+                          </div>
+                        ) : !lead.nextActionDate && hasSuggestedFollowUp ? (
+                          <div className="text-[10px] font-bold text-indigo-700">
+                            הצעה · {formatDateTimeShort(suggestedFollowUpDate as Date)}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
                         <input
                           type="datetime-local"
                           value={followUpInput}
@@ -207,7 +230,7 @@ const PipelineCard = memo(({
                               nextActionNote: followUpNote.trim() ? followUpNote : null,
                             });
                           }}
-                          className="w-[170px] bg-white border border-slate-200 rounded-full px-2 py-1 text-[11px] font-black text-slate-700"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-700"
                         />
                         <input
                           value={followUpNote}
@@ -221,29 +244,10 @@ const PipelineCard = memo(({
                             });
                           }}
                           placeholder="למה לחזור?"
-                          className="flex-1 min-w-0 bg-white border border-slate-200 rounded-full px-2 py-1 text-[11px] font-black text-slate-700"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-700"
                         />
                       </div>
-                      {lead.nextActionDate ? (
-                        <div className={`mt-1 text-[10px] font-bold ${followUpTextColor}`}>
-                          {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'} · {formatDateTimeShort(new Date(lead.nextActionDate))}
-                        </div>
-                      ) : !lead.nextActionDate && hasSuggestedFollowUp ? (
-                        <div className="mt-1 text-[10px] font-bold text-indigo-700">
-                          הצעה · {formatDateTimeShort(suggestedFollowUpDate as Date)}
-                        </div>
-                      ) : null}
                     </div>
-
-                    {isCoarsePointer ? (
-                        <div onClick={(e) => e.stopPropagation()}>
-                            <CustomSelect
-                                value={lead.status}
-                                onChange={(val) => onStatusChange(lead.id, val as PipelineStage)}
-                                options={stages.map((s) => ({ value: s.id, label: s.label }))}
-                            />
-                        </div>
-                    ) : null}
                     
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
                         {lead.assignedAgentId && (

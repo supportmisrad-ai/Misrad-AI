@@ -128,10 +128,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
           const isMobile = window.innerWidth < 768;
 
+          const minDropdownWidth = 200;
+          const mobileWidth = Math.max(minDropdownWidth, Math.min(rect.width, window.innerWidth - 32));
+          const mobileLeft = Math.min(rect.left, window.innerWidth - mobileWidth - 16);
+
           setPosition({
               top: showAbove ? rect.top - 6 : rect.bottom + 6,
-              left: rect.left,
-              width: isMobile ? Math.min(rect.width, window.innerWidth - 32) : rect.width,
+              left: isMobile ? Math.max(16, mobileLeft) : rect.left,
+              width: isMobile ? mobileWidth : Math.max(rect.width, minDropdownWidth),
               isMobile,
               showAbove
           });

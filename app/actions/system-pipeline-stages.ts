@@ -78,10 +78,15 @@ export async function updateSystemPipelineStage(params: {
 export async function deleteSystemPipelineStage(params: {
   orgSlug: string;
   id: string;
-}): Promise<{ ok: true } | { ok: false; message: string }> {
+  moveLeadsToKey?: string;
+}): Promise<{ ok: true } | { ok: false; message: string; leadCount?: number }> {
   return await withWorkspaceTenantContext(
     params.orgSlug,
-    async ({ organizationId }) => await deleteSystemPipelineStageForOrganizationId({ organizationId, id: params.id }),
+    async ({ organizationId }) => await deleteSystemPipelineStageForOrganizationId({
+      organizationId,
+      id: params.id,
+      moveLeadsToKey: params.moveLeadsToKey,
+    }),
     { source: 'server_actions_system_pipeline_stages', reason: 'deleteSystemPipelineStage' }
   );
 }

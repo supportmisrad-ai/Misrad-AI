@@ -70,6 +70,8 @@ export default function SystemSalesPipelineClient({
   const [isStagesSaving, setIsStagesSaving] = useState(false);
   const [newStageKey, setNewStageKey] = useState('');
   const [newStageLabel, setNewStageLabel] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ stageId: string; stageKey: string; stageLabel: string; leadCount: number; moveToKey: string } | null>(null);
+  const [stageError, setStageError] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; name: string; email: string | null; avatarUrl: string | null }>>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -270,17 +272,62 @@ export default function SystemSalesPipelineClient({
   };
 
   const handleDeleteStage = async (id: string) => {
+    setStageError(null);
     setIsStagesSaving(true);
     try {
       const res = await deleteSystemPipelineStage({ orgSlug, id });
       if (!res.ok) {
-        addToast(res.message || 'שגיאה במחיקת שלב', 'error');
+        const lc = 'leadCount' in res ? (res.leadCount ?? 0) : 0;
+        if (lc > 0) {
+          // Stage has leads — show confirmation dialog with stage picker
+          const stage = (pipelineStages || []).find((s) => String(s.id) === id);
+          setDeleteConfirm({
+            stageId: id,
+            stageKey: stage?.key || '',
+            stageLabel: stage?.label || stage?.key || '',
+            leadCount: lc,
+            moveToKey: '',
+          });
+        } else {
+          setStageError(res.message || 'שגיאה במחיקת שלב');
+        }
         return;
       }
+      setDeleteConfirm(null);
       await refreshStages();
+      await refreshFirstPage();
       addToast('שלב נמחק', 'success');
     } catch (e: unknown) {
-      addToast(getErrorMessage(e) || 'שגיאה במחיקת שלב', 'error');
+      setStageError(getErrorMessage(e) || 'שגיאה במחיקת שלב');
+    } finally {
+      setIsStagesSaving(false);
+    }
+  };
+
+  const handleConfirmDeleteWithMove = async () => {
+    if (!deleteConfirm) return;
+    if (!deleteConfirm.moveToKey) {
+      setStageError('בחר שלב יעד להעברת הלידים');
+      return;
+    }
+    setStageError(null);
+    setIsStagesSaving(true);
+    try {
+      const res = await deleteSystemPipelineStage({
+        orgSlug,
+        id: deleteConfirm.stageId,
+        moveLeadsToKey: deleteConfirm.moveToKey,
+      });
+      if (!res.ok) {
+        setStageError(res.message || 'שגיאה במחיקת שלב');
+        return;
+      }
+      setDeleteConfirm(null);
+      await refreshStages();
+      await refreshFirstPage();
+      addToast('שלב נמחק והלידים הועברו', 'success');
+    } catch (e: unknown) {
+      setStageError(getErrorMessage(e) || 'שגיאה במחיקת שלב');
     } finally {
       setIsStagesSaving(false);
     }
@@ -522,17 +569,17 @@ export default function SystemSalesPipelineClient({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <div className="min-w-0">
           <div className="text-xs font-black text-slate-400 uppercase tracking-widest">מכירות</div>
           <div className="text-2xl md:text-3xl font-black text-slate-900 truncate">לידים</div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setShowImportDialog(true)}
-            className="bg-white border border-slate-200 text-slate-800 px-4 py-2.5 rounded-2xl text-sm font-black shadow-sm transition-all"
+            className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
           >
             ייבוא לידים
           </button>
@@ -542,14 +589,14 @@ export default function SystemSalesPipelineClient({
               setIsStagesModalOpen(true);
               void refreshStages();
             }}
-            className="bg-white border border-slate-200 text-slate-800 px-4 py-2.5 rounded-2xl text-sm font-black shadow-sm transition-all"
+            className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
           >
             ניהול שלבים
           </button>
           <button
             type="button"
             onClick={() => setShowNewLeadModal(true)}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-2xl text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-2"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-2"
           >
             <UserPlus size={16} /> ליד חדש
           </button>
@@ -754,8 +801,8 @@ export default function SystemSalesPipelineClient({
       />
 
       {isStagesModalOpen ? (
-        <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsStagesModalOpen(false)}>
-          <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4" onClick={() => setIsStagesModalOpen(false)}>
+          <div className="w-full max-w-2xl max-h-[90dvh] bg-white rounded-t-3xl md:rounded-3xl border border-slate-200 shadow-2xl p-4 md:p-6 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
                 <div className="text-lg font-black text-slate-900">ניהול שלבי מכירה</div>
@@ -793,20 +840,76 @@ export default function SystemSalesPipelineClient({
               </button>
             </div>
 
+            {stageError ? (
+              <div className="mb-3 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-bold">
+                {stageError}
+              </div>
+            ) : null}
+
+            {deleteConfirm ? (
+              <div className="mb-3 px-4 py-4 rounded-2xl bg-amber-50 border-2 border-amber-200">
+                <div className="text-sm font-black text-amber-900 mb-2">
+                  בשלב &quot;{deleteConfirm.stageLabel}&quot; יש {deleteConfirm.leadCount} לידים
+                </div>
+                <div className="text-xs font-bold text-amber-700 mb-3">בחר שלב להעביר אותם אליו לפני המחיקה:</div>
+                <select
+                  value={deleteConfirm.moveToKey}
+                  onChange={(e) => setDeleteConfirm((prev) => prev ? { ...prev, moveToKey: e.target.value } : null)}
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-sm font-bold mb-3"
+                >
+                  <option value="">— בחר שלב יעד —</option>
+                  {(pipelineStages || [])
+                    .filter((s) => String(s.key) !== deleteConfirm.stageKey)
+                    .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+                    .map((s) => (
+                      <option key={String(s.id)} value={String(s.key)}>{String(s.label || s.key)}</option>
+                    ))}
+                </select>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isStagesSaving || !deleteConfirm.moveToKey}
+                    onClick={() => void handleConfirmDeleteWithMove()}
+                    className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-black disabled:opacity-60"
+                  >
+                    {isStagesSaving ? 'מוחק...' : 'מחק והעבר לידים'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDeleteConfirm(null); setStageError(null); }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold"
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {(pipelineStages || [])
                 .slice()
                 .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
                 .map((s) => (
                 <div key={String(s.id)} className="border border-slate-200 rounded-2xl p-3 bg-white">
-                  <div className="flex flex-col md:flex-row md:items-center gap-2">
-                    <div className="text-[11px] font-black text-slate-500 md:w-40">
+                  <div className="flex items-center justify-between gap-2 mb-2 md:mb-0">
+                    <div className="text-[11px] font-black text-slate-500">
                       {String(s.label || s.key)}
                     </div>
+                    <button
+                      type="button"
+                      disabled={isStagesSaving}
+                      onClick={() => void handleDeleteStage(String(s.id))}
+                      className="px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-black disabled:opacity-60 md:hidden"
+                    >
+                      מחק
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-[1fr_80px_120px_auto] gap-2">
                     <input
                       defaultValue={String(s.label || '')}
                       onBlur={(e) => void handleUpdateStage(String(s.id), { label: e.target.value })}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      className="col-span-2 md:col-span-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      placeholder="שם שלב"
                     />
                     <input
                       defaultValue={String(s.order ?? 0)}
@@ -814,13 +917,14 @@ export default function SystemSalesPipelineClient({
                         const v = Number(e.target.value);
                         void handleUpdateStage(String(s.id), { order: Number.isFinite(v) ? v : 0 });
                       }}
-                      className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
                       dir="ltr"
+                      placeholder="סדר"
                     />
                     <input
                       defaultValue={String(s.accent || '')}
                       onBlur={(e) => void handleUpdateStage(String(s.id), { accent: e.target.value || null })}
-                      className="w-40 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
                       dir="ltr"
                       placeholder="צבע"
                     />
@@ -828,7 +932,7 @@ export default function SystemSalesPipelineClient({
                       type="button"
                       disabled={isStagesSaving}
                       onClick={() => void handleDeleteStage(String(s.id))}
-                      className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-black disabled:opacity-60"
+                      className="hidden md:block px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-black disabled:opacity-60"
                     >
                       מחק
                     </button>
