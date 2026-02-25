@@ -2,33 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateBaseEmailTemplate, EmailTemplateComponents } from '@/lib/email-templates';
 import { resend, isResendConfigured } from '@/lib/resend';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { getClientIpFromRequest, rateLimit, buildRateLimitHeaders } from '@/lib/server/rateLimit';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
-
-// ── Rate limiter (in-memory, per IP) ─────────────────────────────────
-const RL_MAP = new Map<string, { count: number; resetAt: number }>();
-const RL_MAX = 3; // max 3 requests per window per IP
-const RL_WINDOW_MS = 5 * 60_000; // 5 minutes
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = RL_MAP.get(ip);
-  if (!entry || now > entry.resetAt) {
-    RL_MAP.set(ip, { count: 1, resetAt: now + RL_WINDOW_MS });
-    if (RL_MAP.size > 5000) {
-      for (const [k, v] of RL_MAP) { if (now > v.resetAt) RL_MAP.delete(k); }
-    }
-    return false;
-  }
-  entry.count++;
-  return entry.count > RL_MAX;
-}
-
-function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || '127.0.0.1';
-}
 
 // ── HTML escape for email template interpolation ─────────────────────
 function escapeHtml(str: string): string {
@@ -191,12 +167,27 @@ const PACKAGE_PRICES: Record<string, { monthly: number; annual: number }> = {
 
 export async function POST(request: NextRequest) {
     try {
-        // Rate limit — prevent email spam abuse
-        const ip = getClientIp(request);
-        if (isRateLimited(ip)) {
+        // Rate limit (Upstash Redis — works across serverless instances)
+        const ip = getClientIpFromRequest(request);
+        const rl = await rateLimit({
+            namespace: 'telephony.onboarding',
+            key: ip,
+            limit: 3,
+            windowMs: 5 * 60_000,
+            mode: 'fail_closed',
+        });
+        if (!rl.ok) {
             return NextResponse.json(
                 { error: 'יותר מדי בקשות. נסה שוב בעוד מספר דקות.' },
-                { status: 429 }
+                {
+                    status: 429,
+                    headers: buildRateLimitHeaders({
+                        limit: 3,
+                        remaining: 0,
+                        resetAt: rl.resetAt,
+                        retryAfterSeconds: rl.retryAfterSeconds,
+                    }),
+                },
             );
         }
 

@@ -1,36 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getClientIpFromRequest, rateLimit, buildRateLimitHeaders } from '@/lib/server/rateLimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// ── In-memory rate limiter for analytics (no auth needed, public endpoint) ──
-const ANALYTICS_RL = new Map<string, { count: number; resetAt: number }>();
-const ANALYTICS_RL_MAX = 30; // max 30 requests per minute per IP
-const ANALYTICS_RL_WINDOW_MS = 60_000;
-
-function isAnalyticsRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = ANALYTICS_RL.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ANALYTICS_RL.set(ip, { count: 1, resetAt: now + ANALYTICS_RL_WINDOW_MS });
-    // Lazy cleanup: remove expired entries when map grows too large
-    if (ANALYTICS_RL.size > 5000) {
-      for (const [k, v] of ANALYTICS_RL) {
-        if (now > v.resetAt) ANALYTICS_RL.delete(k);
-      }
-    }
-    return false;
-  }
-  entry.count++;
-  return entry.count > ANALYTICS_RL_MAX;
-}
-
-function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || '127.0.0.1';
-}
 
 interface TrackPayload {
   type: 'session' | 'pageview' | 'pageview_update' | 'event' | 'signup';
@@ -62,10 +35,29 @@ interface TrackPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit check
-    const ip = getClientIp(req);
-    if (isAnalyticsRateLimited(ip)) {
-      return NextResponse.json({ ok: false, error: 'rate limited' }, { status: 429 });
+    // Rate limit check (Upstash Redis — works across serverless instances)
+    const ip = getClientIpFromRequest(req);
+    const rl = await rateLimit({
+      namespace: 'analytics.track',
+      key: ip,
+      limit: 30,
+      windowMs: 60_000,
+      mode: 'degraded',
+      degradedLimit: 10,
+    });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { ok: false, error: 'rate limited' },
+        {
+          status: 429,
+          headers: buildRateLimitHeaders({
+            limit: 30,
+            remaining: 0,
+            resetAt: rl.resetAt,
+            retryAfterSeconds: rl.retryAfterSeconds,
+          }),
+        },
+      );
     }
 
     const body = (await req.json()) as TrackPayload;

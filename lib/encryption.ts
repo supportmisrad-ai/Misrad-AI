@@ -1,9 +1,23 @@
 /**
- * Simple encryption/decryption for API keys
- * Uses Web Crypto API (available in Node.js 15+)
- * 
- * Note: For production, consider using Supabase Vault or a dedicated key management service
+ * Encryption/decryption for API keys and credentials.
+ * Uses Web Crypto API with AES-256-GCM + PBKDF2.
+ *
+ * Format (v2): base64( version[1] | salt[16] | iv[12] | ciphertext+tag )
+ * Backward-compatible: decryption auto-detects v1 (no salt prefix) vs v2.
+ *
+ * Note: For production, consider using Supabase Vault or a dedicated key management service.
  */
+
+const VERSION_BYTE = 0x02;
+const ALGORITHM = 'AES-GCM';
+const IV_LENGTH = 12; // 96 bits for GCM
+const SALT_LENGTH = 16;
+const PBKDF2_ITERATIONS = 100_000;
+
+/** Convert Uint8Array to a true ArrayBuffer (fixes TS strictness with SharedArrayBuffer). */
+function toAB(u8: Uint8Array): ArrayBuffer {
+  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+}
 
 function getEncryptionKey(): string {
   const key = process.env.ENCRYPTION_KEY || '';
@@ -12,18 +26,14 @@ function getEncryptionKey(): string {
   }
   return key || 'default-key-change-in-production-32chars!!';
 }
-const ALGORITHM = 'AES-GCM';
-const IV_LENGTH = 12; // 96 bits for GCM
-const SALT_LENGTH = 16;
 
 /**
- * Derive a key from the encryption key
+ * Derive a key from the encryption key + salt via PBKDF2.
  */
-async function deriveKey(keyMaterial: string): Promise<CryptoKey> {
+async function deriveKey(keyMaterial: string, salt: ArrayBuffer): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(keyMaterial);
-  
-  // Import the key
+
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     keyData,
@@ -32,13 +42,11 @@ async function deriveKey(keyMaterial: string): Promise<CryptoKey> {
     ['deriveKey']
   );
 
-  // Derive the actual encryption key
-  const salt = new Uint8Array(SALT_LENGTH).fill(0); // Simple salt for demo
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
-      iterations: 100000,
+      salt,
+      iterations: PBKDF2_ITERATIONS,
       hash: 'SHA-256',
     },
     cryptoKey,
@@ -49,35 +57,33 @@ async function deriveKey(keyMaterial: string): Promise<CryptoKey> {
 }
 
 /**
- * Encrypt a string value
+ * Encrypt a string value.
+ * Output: base64( 0x02 | salt[16] | iv[12] | ciphertext+authTag )
  */
 export async function encrypt(value: string): Promise<string> {
   try {
     if (!value) return '';
 
-    const key = await deriveKey(getEncryptionKey());
+    const saltArr = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+    const key = await deriveKey(getEncryptionKey(), toAB(saltArr));
     const encoder = new TextEncoder();
     const data = encoder.encode(value);
-    
-    // Generate IV
+
     const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-    
-    // Encrypt
+
     const encrypted = await crypto.subtle.encrypt(
-      {
-        name: ALGORITHM,
-        iv: iv,
-      },
+      { name: ALGORITHM, iv },
       key,
       data
     );
 
-    // Combine IV and encrypted data
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv, 0);
-    combined.set(new Uint8Array(encrypted), iv.length);
+    // version(1) + salt(16) + iv(12) + ciphertext
+    const combined = new Uint8Array(1 + saltArr.length + iv.length + encrypted.byteLength);
+    combined[0] = VERSION_BYTE;
+    combined.set(saltArr, 1);
+    combined.set(iv, 1 + saltArr.length);
+    combined.set(new Uint8Array(encrypted), 1 + saltArr.length + iv.length);
 
-    // Convert to base64 for storage
     return Buffer.from(combined).toString('base64');
   } catch (error) {
     console.error('Encryption error:', error);
@@ -86,32 +92,39 @@ export async function encrypt(value: string): Promise<string> {
 }
 
 /**
- * Decrypt a string value
+ * Decrypt a string value.
+ * Auto-detects v1 (legacy zero-salt) vs v2 (random salt) format.
  */
 export async function decrypt(encryptedValue: string): Promise<string> {
   try {
     if (!encryptedValue) return '';
 
-    const key = await deriveKey(getEncryptionKey());
-    
-    // Decode from base64
     const combined = Buffer.from(encryptedValue, 'base64');
-    
-    // Extract IV and encrypted data
-    const iv = combined.slice(0, IV_LENGTH);
-    const encrypted = combined.slice(IV_LENGTH);
-    
-    // Decrypt
+
+    let salt: Uint8Array;
+    let iv: Uint8Array;
+    let encrypted: Uint8Array;
+
+    if (combined[0] === VERSION_BYTE && combined.length > 1 + SALT_LENGTH + IV_LENGTH) {
+      // v2 format: version(1) + salt(16) + iv(12) + ciphertext
+      salt = new Uint8Array(combined.slice(1, 1 + SALT_LENGTH));
+      iv = new Uint8Array(combined.slice(1 + SALT_LENGTH, 1 + SALT_LENGTH + IV_LENGTH));
+      encrypted = new Uint8Array(combined.slice(1 + SALT_LENGTH + IV_LENGTH));
+    } else {
+      // v1 legacy format: iv(12) + ciphertext (zero-fill salt)
+      salt = new Uint8Array(SALT_LENGTH).fill(0);
+      iv = new Uint8Array(combined.slice(0, IV_LENGTH));
+      encrypted = new Uint8Array(combined.slice(IV_LENGTH));
+    }
+
+    const key = await deriveKey(getEncryptionKey(), toAB(salt));
+
     const decrypted = await crypto.subtle.decrypt(
-      {
-        name: ALGORITHM,
-        iv: iv,
-      },
+      { name: ALGORITHM, iv: toAB(iv) },
       key,
-      encrypted
+      toAB(encrypted)
     );
 
-    // Convert back to string
     const decoder = new TextDecoder();
     return decoder.decode(decrypted);
   } catch (error) {

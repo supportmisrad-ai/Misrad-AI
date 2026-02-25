@@ -325,7 +325,7 @@ enum user_role {
 // ═══════════════════════════════════════════════════════════════════
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ActivityLog {
   id                  String     @id(map: "activity_logs_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   team_member_id      String     @db.Uuid
@@ -341,7 +341,7 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_embeddings {
   id               String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id  String                @db.Uuid
@@ -366,7 +366,7 @@ model ai_embeddings {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_feature_settings {
   id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id    String?               @db.Uuid
@@ -390,7 +390,7 @@ model ai_feature_settings {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_model_aliases {
   id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider        String
@@ -406,7 +406,7 @@ model ai_model_aliases {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_provider_keys {
   id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider        String
@@ -422,7 +422,7 @@ model ai_provider_keys {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_usage_logs {
   id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
@@ -442,11 +442,12 @@ model ai_usage_logs {
 
   @@index([feature_key], map: "ai_usage_logs_feature_idx")
   @@index([organization_id, created_at(sort: Desc)], map: "ai_usage_logs_org_created_idx")
+  @@index([organization_id, feature_key, created_at(sort: Desc)], map: "ai_usage_logs_org_feature_created_idx")
   @@index([provider])
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model AppUpdate {
   id              String           @id(map: "app_updates_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   version         String
@@ -463,7 +464,7 @@ model AppUpdate {
   @@map("app_updates")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model billing_events {
   id                  String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id     String               @db.Uuid
@@ -479,6 +480,7 @@ model billing_events {
   @@index([organization_id], map: "idx_billing_events_org_id")
   @@index([subscription_id], map: "idx_billing_events_sub_id")
   @@index([event_type], map: "idx_billing_events_type")
+  @@index([organization_id, event_type, occurred_at], map: "idx_billing_events_org_type_occurred")
 }
 
 model billing_invoices {
@@ -506,7 +508,7 @@ model billing_invoices {
   @@map("billing_invoices")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model business_metrics {
   id                     String    @id(map: "business_metrics_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   client_id              String    @unique(map: "idx_business_metrics_client_id_unique") @db.Uuid
@@ -525,7 +527,7 @@ model business_metrics {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model charges {
   id              String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id String               @db.Uuid
@@ -546,7 +548,7 @@ model charges {
   @@index([subscription_id], map: "idx_charges_sub_id")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model client_dna {
   id                   String    @id(map: "client_dna_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   client_id            String    @unique(map: "idx_client_dna_client_id_unique") @db.Uuid
@@ -789,7 +791,7 @@ model ClientProfile {
   @@map("client_profiles")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model clients {
   id                     String                 @id(map: "clients_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id        String                 @db.Uuid
@@ -946,7 +948,7 @@ model ConnectMarketplaceListing {
   @@map("connect_marketplace_listings")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model CoreSystemSettings {
   id               String    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   key              String    @unique(map: "system_settings_key_key")
@@ -1050,7 +1052,7 @@ model DevicePairingToken {
   @@map("device_pairing_tokens")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model finance_whatsapp_reminder_events {
   id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organization_id     String               @db.Uuid
@@ -1084,7 +1086,7 @@ model global_settings {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model GlobalSystemMetric {
   id                     String    @id(map: "global_system_metrics_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   total_mrr              Decimal?  @default(0) @db.Decimal(12, 2)
@@ -1117,7 +1119,7 @@ model help_videos {
   @@map("help_videos")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ImpersonationSession {
   id            String    @id(map: "impersonation_sessions_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   admin_user_id String    @db.Uuid
@@ -1147,7 +1149,7 @@ model integration_idempotency_keys {
   @@map("integration_idempotency_keys")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model IntegrationCredential {
   id               String    @id(map: "integration_credentials_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id          String?   @db.Uuid
@@ -1162,7 +1164,7 @@ model IntegrationCredential {
   @@map("integration_credentials")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model IntegrationStatus {
   id           String    @id(map: "integration_status_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name         String    @unique(map: "integration_status_name_key")
@@ -1223,6 +1225,7 @@ model MisradActivityLog {
 
   @@index([organization_id])
   @@index([organization_id, created_at])
+  @@index([organization_id, type, created_at], map: "idx_misrad_activity_logs_org_type_created")
   @@index([client_id])
   @@index([type])
   @@index([isRisk])
@@ -2092,7 +2095,7 @@ model MisradWorkflowStage {
   @@map("misrad_workflow_stages")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model NavigationMenu {
   id              String    @id(map: "navigation_menu_pkey")
   label           String
@@ -2109,7 +2112,7 @@ model NavigationMenu {
   @@map("navigation_menu")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model NexusBillingItem {
   id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id String   @db.Uuid
@@ -2208,7 +2211,7 @@ model NexusLeaveRequest {
   @@map("nexus_leave_requests")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model NexusOnboardingSettings {
   organization_id String   @id @db.Uuid
   template_key    String
@@ -2249,6 +2252,7 @@ model NexusTeamEvent {
 
   @@index([tenant_id], map: "idx_team_events_tenant")
   @@index([organizationId], map: "idx_nexus_team_events_organization_id")
+  @@index([organizationId, start_date], map: "idx_nexus_team_events_org_start_date")
   @@map("nexus_team_events")
 }
 
@@ -2384,6 +2388,8 @@ model NexusTimeEntry {
   @@index([startTime], map: "idx_nexus_time_entries_start_time")
   @@index([userId], map: "idx_nexus_time_entries_user_id")
   @@index([organizationId], map: "idx_nexus_time_entries_organization_id")
+  @@index([organizationId, date], map: "idx_nexus_time_entries_org_date")
+  @@index([organizationId, userId, date], map: "idx_nexus_time_entries_org_user_date")
   @@map("nexus_time_entries")
 }
 
@@ -2492,7 +2498,7 @@ model NexusUser {
   @@map("nexus_users")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model OAuthToken {
   id               String    @id(map: "oauth_tokens_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id          String?   @db.Uuid
@@ -2762,11 +2768,12 @@ model OperationsCallMessage {
   workOrder      OperationsWorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([workOrderId], map: "idx_operations_call_messages_wo")
+  @@index([workOrderId, createdAt], map: "idx_operations_call_messages_wo_created")
   @@index([organizationId], map: "idx_operations_call_messages_org")
   @@map("operations_call_messages")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model organization_settings {
   organization_id  String               @id @db.Uuid
   ai_dna           Json                 @default("{}")
@@ -2779,7 +2786,7 @@ model organization_settings {
   @@index([ai_dna], map: "organization_settings_ai_dna_gin_idx", type: Gin)
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model organization_signup_invitations {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   token                 String    @unique
@@ -2805,7 +2812,7 @@ model organization_signup_invitations {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model OrganizationUser {
   id                       String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clerk_user_id            String                  @unique(map: "users_clerk_user_id_key")
@@ -2847,7 +2854,7 @@ model Partner {
   @@map("partners")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model platform_credentials {
   id         String    @id(map: "platform_credentials_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   client_id  String    @db.Uuid
@@ -2862,7 +2869,7 @@ model platform_credentials {
   @@index([client_id], map: "idx_platform_credentials_client_id")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model platform_quotas {
   id            String    @id(map: "platform_quotas_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   client_id     String    @db.Uuid
@@ -3026,7 +3033,7 @@ model MisradSupportTicket {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model Organization {
   id                               String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                             String
@@ -3149,7 +3156,7 @@ model Organization {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaAgencyConfig {
   id           String    @id(map: "agency_service_configs_pkey")
   label        String
@@ -3165,7 +3172,7 @@ model SocialMediaAgencyConfig {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaAiOpportunity {
   id            String    @id(map: "ai_opportunities_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id     String    @db.Uuid
@@ -3180,7 +3187,7 @@ model SocialMediaAiOpportunity {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaAutomationRule {
   id           String    @id(map: "automation_rules_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id    String?   @db.Uuid
@@ -3196,7 +3203,7 @@ model SocialMediaAutomationRule {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaBusinessMetric {
   id                     String    @id(map: "business_metrics_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id              String    @unique(map: "business_metrics_client_id_key") @db.Uuid
@@ -3213,7 +3220,7 @@ model SocialMediaBusinessMetric {
   @@map("socialmedia_business_metrics")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaCalendarEvent {
   id              String    @id(map: "calendar_events_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id         String?   @db.Uuid
@@ -3236,7 +3243,7 @@ model SocialMediaCalendarEvent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaCampaign {
   id          String    @id(map: "campaigns_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id   String    @db.Uuid
@@ -3257,7 +3264,7 @@ model SocialMediaCampaign {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaClient {
   id                     String               @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id                String?              @db.Uuid
@@ -3299,7 +3306,7 @@ model SocialMediaClient {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaClientDna {
   id                   String    @id(map: "client_dna_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id            String    @unique(map: "client_dna_client_id_key") @db.Uuid
@@ -3328,7 +3335,7 @@ model SocialMediaClientDna {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaClientPlatform {
   client_id String @db.Uuid
   platform  String
@@ -3339,7 +3346,7 @@ model SocialMediaClientPlatform {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaClientRequest {
   id              String    @id(map: "client_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId  String    @map("organization_id") @db.Uuid
@@ -3362,7 +3369,7 @@ model SocialMediaClientRequest {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaConversation {
   id             String               @id(map: "conversations_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId String               @map("organization_id") @db.Uuid
@@ -3386,7 +3393,7 @@ model SocialMediaConversation {
   @@map("socialmedia_conversations")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaDriveFile {
   id             String    @id(map: "drive_files_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id        String?   @db.Uuid
@@ -3407,7 +3414,7 @@ model SocialMediaDriveFile {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaFeedback {
   id         String    @id(map: "feedback_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id    String?   @db.Uuid
@@ -3423,7 +3430,7 @@ model SocialMediaFeedback {
   @@map("socialmedia_feedback")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaIdea {
   id             String    @id(map: "ideas_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId String    @map("organization_id") @db.Uuid
@@ -3441,7 +3448,7 @@ model SocialMediaIdea {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaInvoice {
   id             String    @id(map: "invoices_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id      String    @db.Uuid
@@ -3458,7 +3465,7 @@ model SocialMediaInvoice {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaManagerRequest {
   id                   String    @id(map: "manager_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId       String    @map("organization_id") @db.Uuid
@@ -3480,7 +3487,7 @@ model SocialMediaManagerRequest {
   @@map("socialmedia_manager_requests")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaMessage {
   id                   String                  @id(map: "messages_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId       String                  @map("organization_id") @db.Uuid
@@ -3499,7 +3506,7 @@ model SocialMediaMessage {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPaymentOrder {
   id                   String    @id(map: "payment_orders_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id            String    @db.Uuid
@@ -3517,7 +3524,7 @@ model SocialMediaPaymentOrder {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPlatformCredential {
   id         String    @id(map: "platform_credentials_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id  String    @db.Uuid
@@ -3533,7 +3540,7 @@ model SocialMediaPlatformCredential {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPlatformQuota {
   id            String    @id(map: "platform_quotas_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   client_id     String    @db.Uuid
@@ -3549,7 +3556,7 @@ model SocialMediaPlatformQuota {
   @@map("socialmedia_platform_quotas")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPostComment {
   id                  String     @id(map: "post_comments_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId      String     @map("organization_id") @db.Uuid
@@ -3567,7 +3574,7 @@ model SocialMediaPostComment {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPostPlatform {
   organizationId String     @map("organization_id") @db.Uuid
   post_id        String     @db.Uuid
@@ -3581,7 +3588,7 @@ model SocialMediaPostPlatform {
   @@map("socialmedia_post_platforms")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaPostVariation {
   id               String     @id(map: "post_variations_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId   String     @map("organization_id") @db.Uuid
@@ -3598,7 +3605,7 @@ model SocialMediaPostVariation {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaSheetsSyncConfig {
   id             String    @id(map: "sheets_sync_configs_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id        String?   @db.Uuid
@@ -3617,7 +3624,7 @@ model SocialMediaSheetsSyncConfig {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaSiteContent {
   id         String    @id(map: "site_content_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   page       String
@@ -3636,7 +3643,7 @@ model SocialMediaSiteContent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaSyncLog {
   id               String    @id(map: "sync_logs_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id          String?   @db.Uuid
@@ -3653,7 +3660,7 @@ model SocialMediaSyncLog {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaTask {
   id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId String    @map("organization_id") @db.Uuid
@@ -3708,7 +3715,7 @@ model SocialPost {
   @@map("socialmedia_posts")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model strategic_content {
   id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   category  String
@@ -3720,7 +3727,7 @@ model strategic_content {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscription_items {
   id              String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   subscription_id String               @db.Uuid
@@ -3746,7 +3753,7 @@ model subscription_items {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscription_orders {
   id                      String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clerk_user_id           String?
@@ -3787,7 +3794,7 @@ model subscription_orders {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscription_payment_configs {
   package_type         String    @id
   title                String?
@@ -3802,7 +3809,7 @@ model subscription_payment_configs {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscriptions {
   id                   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organization_id      String               @db.Uuid
@@ -3864,7 +3871,7 @@ model system_invitation_links {
   @@index([token], map: "idx_invitation_links_token")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model system_settings {
   id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   tenant_id        String?   @unique @db.Uuid
@@ -3915,7 +3922,7 @@ model SystemAutomation {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SystemBackup {
   id            String    @id(map: "system_backups_pkey")
   status        String?   @default("pending")
@@ -4346,7 +4353,7 @@ model SystemWebhookLog {
   @@map("system_webhook_logs")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model TeamComment {
   id                  String     @id(map: "team_comments_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   team_member_id      String     @db.Uuid
@@ -4358,7 +4365,7 @@ model TeamComment {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model TeamMember {
   id                      String                   @id(map: "team_members_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id                 String?                  @unique(map: "team_members_user_id_key") @db.Uuid
@@ -4394,7 +4401,7 @@ model TeamMember {
   @@map("team_members")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model TeamMemberClient {
   team_member_id      String     @db.Uuid
   client_id           String     @db.Uuid
@@ -4406,7 +4413,7 @@ model TeamMemberClient {
   @@map("team_member_clients")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model UserUpdateView {
   id                 String    @id(map: "user_update_views_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id            String    @db.Uuid
@@ -4418,7 +4425,7 @@ model UserUpdateView {
   @@map("user_update_views")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model WebhookConfig {
   id                String    @id(map: "webhook_configs_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id           String?   @db.Uuid
@@ -4596,7 +4603,7 @@ model BusinessClientContact {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model Notification {
   id          String    @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id     String?   @db.Uuid

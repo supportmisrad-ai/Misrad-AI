@@ -1,26 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendContactFormReceivedEmail, sendContactFormAdminNotification } from '@/lib/email';
-
-const RATE_LIMIT_MAP = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_MAX = 3;
-const RATE_LIMIT_WINDOW_MS = 60_000;
-
-function isRateLimited(ip: string): boolean {
-    const now = Date.now();
-    const entry = RATE_LIMIT_MAP.get(ip);
-    if (!entry || now > entry.resetAt) {
-        RATE_LIMIT_MAP.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-        return false;
-    }
-    entry.count++;
-    return entry.count > RATE_LIMIT_MAX;
-}
-
-function getClientIp(req: NextRequest): string {
-    return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-        || req.headers.get('x-real-ip')
-        || '127.0.0.1';
-}
+import { getClientIpFromRequest, rateLimit, buildRateLimitHeaders } from '@/lib/server/rateLimit';
 
 function sanitize(value: string): string {
     return value
@@ -32,11 +12,27 @@ function sanitize(value: string): string {
 
 export async function POST(req: NextRequest) {
     try {
-        const ip = getClientIp(req);
-        if (isRateLimited(ip)) {
+        // Rate limit (Upstash Redis — works across serverless instances)
+        const ip = getClientIpFromRequest(req);
+        const rl = await rateLimit({
+            namespace: 'contact.form',
+            key: ip,
+            limit: 3,
+            windowMs: 60_000,
+            mode: 'fail_closed',
+        });
+        if (!rl.ok) {
             return NextResponse.json(
                 { error: 'יותר מדי בקשות. נסה שוב בעוד דקה.' },
-                { status: 429 }
+                {
+                    status: 429,
+                    headers: buildRateLimitHeaders({
+                        limit: 3,
+                        remaining: 0,
+                        resetAt: rl.resetAt,
+                        retryAfterSeconds: rl.retryAfterSeconds,
+                    }),
+                },
             );
         }
 
