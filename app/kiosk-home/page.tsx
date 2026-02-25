@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Boxes, ClipboardCheck, Clock, Home, MessageSquareText } from 'lucide-react';
 import { getActiveShift, punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
+import { setAttendanceCache } from '@/lib/attendance-cache';
 import { getDailySummary } from '@/app/actions/attendance-reports';
 import { asObjectLoose as asObject } from '@/lib/shared/unknown';
 
@@ -139,7 +140,13 @@ function KioskHomePageInner() {
   const refreshShift = useCallback(async (effectiveOrgSlug: string) => {
     try {
       const res = await getActiveShift(effectiveOrgSlug);
-      setActiveShift(res?.activeShift || null);
+      const shift = res?.activeShift || null;
+      setActiveShift(shift);
+      if (shift) {
+        setAttendanceCache(effectiveOrgSlug, { entryId: shift.id, startTime: shift.startTime });
+      } else {
+        setAttendanceCache(effectiveOrgSlug, null);
+      }
     } catch {
       setActiveShift(null);
     }

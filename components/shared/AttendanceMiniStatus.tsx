@@ -8,6 +8,7 @@ import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getActiveShift, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
+import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -38,8 +39,14 @@ export default function AttendanceMiniStatus() {
     isSignedIn = false;
   }
   const [hasNexus, setHasNexus] = useState<boolean | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [entryId, setEntryId] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string | null>(() => {
+    if (!orgSlug) return null;
+    return getAttendanceCache(orgSlug)?.startTime ?? null;
+  });
+  const [entryId, setEntryId] = useState<string | null>(() => {
+    if (!orgSlug) return null;
+    return getAttendanceCache(orgSlug)?.entryId ?? null;
+  });
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -47,6 +54,16 @@ export default function AttendanceMiniStatus() {
   const now = useSecondTicker(Boolean(startTime));
   const loadInFlightRef = React.useRef(false);
   const lastBroadcastRef = React.useRef(0);
+
+  // Keep module-level cache in sync with local state
+  useEffect(() => {
+    if (!orgSlug) return;
+    if (entryId && startTime) {
+      setAttendanceCache(orgSlug, { entryId, startTime });
+    } else if (!entryId && !startTime) {
+      setAttendanceCache(orgSlug, null);
+    }
+  }, [orgSlug, entryId, startTime]);
 
   // Single effect: load entitlements + active shift in PARALLEL
   useEffect(() => {
@@ -73,6 +90,14 @@ export default function AttendanceMiniStatus() {
           if (Date.now() - lastBroadcastRef.current > 5_000) {
             setEntryId(shift.id);
             setStartTime(shift.startTime);
+            setAttendanceCache(orgSlug, { entryId: shift.id, startTime: shift.startTime });
+          }
+        } else if (!shift) {
+          // Server confirms no active shift — clear cache
+          if (Date.now() - lastBroadcastRef.current > 5_000) {
+            setEntryId(null);
+            setStartTime(null);
+            setAttendanceCache(orgSlug, null);
           }
         }
       } catch {

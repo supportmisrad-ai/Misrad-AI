@@ -11,6 +11,7 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { isCeoRole } from '@/lib/constants/roles';
 import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
 import { punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
+import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const ATTENDANCE_BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
@@ -174,7 +175,18 @@ export const useAuth = (
         return getWorkspaceOrgSlugFromPathname(pathname);
     }, [pathname]);
 
-    const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+    const activeShift = useMemo(() => {
+        const found = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+        // Keep module-level cache in sync so other components get instant state on mount
+        if (orgSlug) {
+            if (found) {
+                setAttendanceCache(orgSlug, { entryId: found.id, startTime: found.startTime });
+            } else {
+                setAttendanceCache(orgSlug, null);
+            }
+        }
+        return found;
+    }, [timeEntries, currentUser.id, orgSlug]);
 
     const refreshTimeEntriesRetryRef = useRef(0);
     const refreshTimeEntries = useCallback(async () => {

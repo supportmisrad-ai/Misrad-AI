@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute, encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getActiveShift, punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
+import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -37,13 +38,29 @@ export default function MobileMenuAttendanceButton() {
   }
 
   const [hasNexus, setHasNexus] = useState<boolean | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [entryId, setEntryId] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string | null>(() => {
+    if (!orgSlug) return null;
+    return getAttendanceCache(orgSlug)?.startTime ?? null;
+  });
+  const [entryId, setEntryId] = useState<string | null>(() => {
+    if (!orgSlug) return null;
+    return getAttendanceCache(orgSlug)?.entryId ?? null;
+  });
   const [isBusy, setIsBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const now = useSecondTicker(Boolean(startTime));
   const lastBroadcastRef = React.useRef(0);
+
+  // Keep module-level cache in sync with local state
+  useEffect(() => {
+    if (!orgSlug) return;
+    if (entryId && startTime) {
+      setAttendanceCache(orgSlug, { entryId, startTime });
+    } else if (!entryId && !startTime) {
+      setAttendanceCache(orgSlug, null);
+    }
+  }, [orgSlug, entryId, startTime]);
 
   useEffect(() => {
     if (!orgSlug || !isClerkLoaded || !isSignedIn) return;
@@ -71,6 +88,13 @@ export default function MobileMenuAttendanceButton() {
           if (Date.now() - lastBroadcastRef.current > 5_000) {
             setEntryId(shift.id);
             setStartTime(shift.startTime);
+            setAttendanceCache(orgSlug, { entryId: shift.id, startTime: shift.startTime });
+          }
+        } else if (!shift) {
+          if (Date.now() - lastBroadcastRef.current > 5_000) {
+            setEntryId(null);
+            setStartTime(null);
+            setAttendanceCache(orgSlug, null);
           }
         }
       } catch {
@@ -185,7 +209,10 @@ export default function MobileMenuAttendanceButton() {
     })();
   }, [broadcast, entryId, isBusy, orgSlug, startTime]);
 
-  if (!orgSlug || hasNexus === false || !loaded) return null;
+  // Show immediately from cache — only hide if server *confirmed* no nexus
+  if (!orgSlug) return null;
+  if (hasNexus === false) return null;
+  if (!loaded && !startTime) return null;
 
   const isActive = Boolean(startTime);
   const elapsed = isActive ? now - new Date(startTime!).getTime() : 0;
