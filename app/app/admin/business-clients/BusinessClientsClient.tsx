@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
-import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2, RotateCcw, Archive } from 'lucide-react';
+import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2, RotateCcw, Archive, ShieldAlert, ShieldCheck, UserX, Pause } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations, deleteBusinessClient, getDeletedBusinessClients, restoreBusinessClient, updateBusinessClient } from '@/app/actions/business-clients';
+import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations, deleteBusinessClient, getDeletedBusinessClients, restoreBusinessClient, updateBusinessClient, suspendBusinessClient, unsuspendBusinessClient } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -75,6 +75,60 @@ type BusinessClient = {
   organizations: BusinessOrg[];
   [key: string]: unknown;
 };
+
+// ── Business Client Status System ──
+const CLIENT_STATUS_CONFIG: Record<string, {
+  label: string;
+  badgeClass: string;
+  borderClass: string;
+  bannerBg: string;
+  bannerBorder: string;
+  bannerText: string;
+  bannerMessage: string;
+  Icon: typeof AlertTriangle;
+}> = {
+  active: {
+    label: 'פעיל',
+    badgeClass: 'bg-green-100 text-green-800',
+    borderClass: 'border-slate-200',
+    bannerBg: '', bannerBorder: '', bannerText: '', bannerMessage: '',
+    Icon: ShieldCheck,
+  },
+  inactive: {
+    label: 'לא פעיל',
+    badgeClass: 'bg-slate-200 text-slate-700',
+    borderClass: 'border-slate-300',
+    bannerBg: 'bg-slate-50',
+    bannerBorder: 'border-slate-300',
+    bannerText: 'text-slate-700',
+    bannerMessage: 'לקוח לא פעיל — הושבת ידנית. הארגונים שלו לא הושפעו.',
+    Icon: Pause,
+  },
+  churned: {
+    label: 'עזב',
+    badgeClass: 'bg-purple-100 text-purple-800',
+    borderClass: 'border-purple-200',
+    bannerBg: 'bg-purple-50',
+    bannerBorder: 'border-purple-200',
+    bannerText: 'text-purple-800',
+    bannerMessage: 'לקוח עזב — ביטל מנוי. ניתן לשחזר ולקשר מחדש.',
+    Icon: UserX,
+  },
+  suspended: {
+    label: 'מושעה — חוב',
+    badgeClass: 'bg-red-100 text-red-800 animate-pulse',
+    borderClass: 'border-red-300',
+    bannerBg: 'bg-red-50',
+    bannerBorder: 'border-red-300',
+    bannerText: 'text-red-800',
+    bannerMessage: 'לקוח מושעה בגלל חוב — כל הארגונים שלו הושעו. תכונות AI חסומות עד להסדרת החוב.',
+    Icon: ShieldAlert,
+  },
+};
+
+function getStatusConfig(status: string) {
+  return CLIENT_STATUS_CONFIG[status] || CLIENT_STATUS_CONFIG.active;
+}
 
 export default function BusinessClientsClient({ initialClients }: { initialClients?: BusinessClient[] }) {
   const [clients, setClients] = useState<BusinessClient[]>(initialClients ?? []);
@@ -231,12 +285,73 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
     }
   };
 
-  const handleToggleStatus = async (client: BusinessClient) => {
-    const newStatus = client.status === 'active' ? 'inactive' : 'active';
-    const confirmMsg = newStatus === 'inactive'
-      ? `להשבית את לקוח "${client.company_name}"?\nהלקוח יסומן כלא פעיל בפאנל.`
-      : `להפעיל מחדש את לקוח "${client.company_name}"?`;
-    if (!window.confirm(confirmMsg)) return;
+  const handleSetStatus = async (client: BusinessClient, newStatus: string) => {
+    const statusLabels: Record<string, string> = {
+      active: 'פעיל',
+      inactive: 'לא פעיל',
+      churned: 'עזב',
+      suspended: 'מושעה (חוב)',
+    };
+    const label = statusLabels[newStatus] || newStatus;
+
+    if (newStatus === 'suspended') {
+      if (!window.confirm(
+        `להשעות את לקוח "${client.company_name}" בגלל חוב?\n\n` +
+        `פעולה זו תשעה את כל הארגונים של הלקוח וחסום תכונות AI עד להסדרת החוב.`
+      )) return;
+
+      setTogglingStatusId(client.id);
+      try {
+        const result = await suspendBusinessClient(client.id);
+        if (result.ok) {
+          setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, status: 'suspended' } : c));
+          const msg = 'orgsAffected' in result && result.orgsAffected
+            ? `לקוח הושעה — ${result.orgsAffected} ארגונים הושעו`
+            : 'לקוח הושעה';
+          setError(null);
+          setSyncMessage(msg);
+        } else if ('error' in result) {
+          setError(String(result.error));
+        }
+      } catch (err) {
+        console.error('Failed to suspend client:', err);
+        setError('שגיאה בהשעיית לקוח');
+      } finally {
+        setTogglingStatusId(null);
+      }
+      return;
+    }
+
+    if (client.status === 'suspended' && newStatus === 'active') {
+      if (!window.confirm(
+        `להסיר השעיה מלקוח "${client.company_name}"?\n\n` +
+        `כל הארגונים המושעים יוחזרו לפעיל ותכונות AI ישוחררו.`
+      )) return;
+
+      setTogglingStatusId(client.id);
+      try {
+        const result = await unsuspendBusinessClient(client.id);
+        if (result.ok) {
+          setClients((prev) => prev.map((c) => c.id === client.id ? { ...c, status: 'active' } : c));
+          const msg = 'orgsRestored' in result && result.orgsRestored
+            ? `השעיה הוסרה — ${result.orgsRestored} ארגונים שוחררו`
+            : 'השעיה הוסרה';
+          setError(null);
+          setSyncMessage(msg);
+        } else if ('error' in result) {
+          setError(String(result.error));
+        }
+      } catch (err) {
+        console.error('Failed to unsuspend client:', err);
+        setError('שגיאה בהסרת השעיה');
+      } finally {
+        setTogglingStatusId(null);
+      }
+      return;
+    }
+
+    // For inactive/churned ↔ active: simple status change (no org impact)
+    if (!window.confirm(`לשנות סטטוס ל"${label}" עבור "${client.company_name}"?`)) return;
     setTogglingStatusId(client.id);
     try {
       const result = await updateBusinessClient(client.id, { status: newStatus });
@@ -246,7 +361,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
         setError(String(result.error));
       }
     } catch (err) {
-      console.error('Failed to toggle status:', err);
+      console.error('Failed to update status:', err);
       setError('שגיאה בעדכון סטאטוס');
     } finally {
       setTogglingStatusId(null);
@@ -403,7 +518,8 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
             options={[
               { value: 'active', label: 'פעיל' },
               { value: 'inactive', label: 'לא פעיל' },
-              { value: 'suspended', label: 'מושעה' },
+              { value: 'churned', label: 'עזב' },
+              { value: 'suspended', label: 'מושעה (חוב)' },
             ]}
           />
           <Button onClick={handleSearch} variant="outline" className="h-11">
@@ -502,14 +618,18 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
             const primary = primaryContact(client);
 
             return (
-              <div key={client.id} className={`bg-white border rounded-2xl hover:shadow-md transition-shadow ${client.status !== 'active' ? 'border-red-200' : 'border-slate-200'}`}>
-                {/* Inactive Warning Banner */}
-                {client.status !== 'active' && (
-                  <div className="flex items-center gap-2 bg-red-50 border-b border-red-200 px-5 py-2.5 rounded-t-2xl">
-                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
-                    <span className="text-xs font-black text-red-700">לקוח לא פעיל — גישת המשתמשים לא נחסמת אוטומטית. יש להשבית ארגונים באופן ידני אם נדרש.</span>
-                  </div>
-                )}
+              <div key={client.id} className={`bg-white border rounded-2xl hover:shadow-md transition-shadow ${getStatusConfig(client.status).borderClass}`}>
+                {/* Status Warning Banner */}
+                {client.status !== 'active' && (() => {
+                  const cfg = getStatusConfig(client.status);
+                  const StatusIcon = cfg.Icon;
+                  return (
+                    <div className={`flex items-center gap-2 ${cfg.bannerBg} border-b ${cfg.bannerBorder} px-5 py-2.5 rounded-t-2xl`}>
+                      <StatusIcon className={`w-4 h-4 ${cfg.bannerText} shrink-0`} />
+                      <span className={`text-xs font-black ${cfg.bannerText}`}>{cfg.bannerMessage}</span>
+                    </div>
+                  );
+                })()}
                 {/* Client Header */}
                 <div
                   className="p-5 sm:p-6 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -525,14 +645,8 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                         {client.company_name_en && (
                           <span className="text-sm text-slate-500">({client.company_name_en})</span>
                         )}
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full font-bold ${
-                            client.status === 'active'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {client.status === 'active' ? 'פעיל' : 'לא פעיל'}
+                        <span className={`px-2 py-1 text-xs rounded-full font-bold ${getStatusConfig(client.status).badgeClass}`}>
+                          {getStatusConfig(client.status).label}
                         </span>
                       </div>
 
@@ -582,28 +696,29 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                         <Pencil className="w-3.5 h-3.5" />
                         ערוך
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleStatus(client);
-                        }}
-                        disabled={togglingStatusId === client.id}
-                        className={`text-xs h-8 ${
-                          client.status === 'active'
-                            ? 'text-orange-600 hover:bg-orange-50 border-orange-200'
-                            : 'text-green-600 hover:bg-green-50 border-green-200'
-                        }`}
-                      >
-                        {togglingStatusId === client.id ? (
+                      {/* Status Actions */}
+                      {togglingStatusId === client.id ? (
+                        <Button size="sm" variant="outline" disabled className="text-xs h-8">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : client.status === 'active' ? (
-                          <>השבת</>
-                        ) : (
-                          <>הפעל</>
-                        )}
-                      </Button>
+                        </Button>
+                      ) : client.status === 'active' ? (
+                        <>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSetStatus(client, 'inactive'); }} className="text-xs h-8 text-slate-600 hover:bg-slate-50 border-slate-300">
+                            <Pause className="w-3.5 h-3.5" /> השבת
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSetStatus(client, 'suspended'); }} className="text-xs h-8 text-red-600 hover:bg-red-50 border-red-200">
+                            <ShieldAlert className="w-3.5 h-3.5" /> השעה (חוב)
+                          </Button>
+                        </>
+                      ) : client.status === 'suspended' ? (
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSetStatus(client, 'active'); }} className="text-xs h-8 text-green-600 hover:bg-green-50 border-green-200">
+                          <ShieldCheck className="w-3.5 h-3.5" /> הסר השעיה
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleSetStatus(client, 'active'); }} className="text-xs h-8 text-green-600 hover:bg-green-50 border-green-200">
+                          <ShieldCheck className="w-3.5 h-3.5" /> הפעל
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"

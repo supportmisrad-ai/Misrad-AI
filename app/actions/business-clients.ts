@@ -719,6 +719,86 @@ export async function updateOrganization(orgId: string, input: {
 }
 
 // ============================================================
+// Suspend / Unsuspend Business Client (+ linked organizations)
+// ============================================================
+
+export async function suspendBusinessClient(clientId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.suspendBusinessClient',
+        reason: 'global_admin_suspend_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // 1. Set client status to suspended
+        await prisma.businessClient.update({
+          where: { id: clientId },
+          data: { status: 'suspended' },
+        });
+
+        // 2. Suspend all linked organizations (blocks AI features)
+        const updated = await prisma.organization.updateMany({
+          where: { client_id: clientId, subscription_status: { not: 'suspended' } },
+          data: { subscription_status: 'suspended' },
+        });
+
+        return { orgsAffected: updated.count };
+      }
+    );
+
+    revalidatePath('/', 'layout');
+    return { ok: true, orgsAffected: result.orgsAffected };
+  } catch (error) {
+    logger.error('suspendBusinessClient', 'Error:', error);
+    return { ok: false, error: 'שגיאה בהשעיית לקוח עסקי' };
+  }
+}
+
+export async function unsuspendBusinessClient(clientId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.unsuspendBusinessClient',
+        reason: 'global_admin_unsuspend_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // 1. Set client status back to active
+        await prisma.businessClient.update({
+          where: { id: clientId },
+          data: { status: 'active' },
+        });
+
+        // 2. Restore all linked organizations to active
+        const updated = await prisma.organization.updateMany({
+          where: { client_id: clientId, subscription_status: 'suspended' },
+          data: { subscription_status: 'active' },
+        });
+
+        return { orgsRestored: updated.count };
+      }
+    );
+
+    revalidatePath('/', 'layout');
+    return { ok: true, orgsRestored: result.orgsRestored };
+  } catch (error) {
+    logger.error('unsuspendBusinessClient', 'Error:', error);
+    return { ok: false, error: 'שגיאה בהסרת השעיית לקוח עסקי' };
+  }
+}
+
+// ============================================================
 // Delete Business Client (Soft)
 // ============================================================
 

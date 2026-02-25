@@ -18,6 +18,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { checkAiAccess } from '@/lib/server/subscription-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -52,7 +53,13 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // Strict tenant enforcement: the caller must have access to their resolved organization
-        await getWorkspaceByOrgKeyOrThrow(callerOrganizationId);
+        const { workspace: callerWorkspace } = await getWorkspaceByOrgKeyOrThrow(callerOrganizationId);
+
+        // Subscription guard — block AI for suspended/past_due/cancelled orgs
+        const aiAccess = checkAiAccess(callerWorkspace.subscriptionStatus);
+        if (!aiAccess.allowed) {
+            return apiError(aiAccess.message, { status: 403 });
+        }
 
         const abuse = await enforceAiAbuseGuard({
             req: request,

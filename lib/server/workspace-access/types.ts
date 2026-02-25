@@ -13,6 +13,7 @@ export type WorkspaceInfo = {
   logo?: string | null;
   seatsAllowed: number | null;
   isShabbatProtected: boolean;
+  subscriptionStatus: string | null;
   entitlements: WorkspaceEntitlements;
 };
 

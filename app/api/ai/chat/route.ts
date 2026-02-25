@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { MisradInvoiceStatus, Prisma } from '@prisma/client';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { checkAiAccess } from '@/lib/server/subscription-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 import {
   type CachedChatResponse,
@@ -565,7 +566,13 @@ async function POSTHandler(req: Request) {
     const featureKey = String(body.featureKey || 'ai.chat');
     const moduleName = String(body.module || 'global');
 
-    const { workspaceId: organizationId } = await getWorkspaceOrThrow(req);
+    const { workspaceId: organizationId, workspace } = await getWorkspaceOrThrow(req);
+
+    // Subscription guard — block AI for suspended/past_due/cancelled orgs
+    const aiAccess = checkAiAccess(workspace.subscriptionStatus);
+    if (!aiAccess.allowed) {
+      return apiError(aiAccess.message, { status: 403 });
+    }
 
     const [userRateLimit, userDayRateLimit, orgRateLimit, orgDayRateLimit] = await Promise.all([
       enforceRateLimit({ namespace: 'ai.chat.user.user_min', key: `${organizationId}:${clerkUserId}`, limit: 15, windowMs: 60_000, label: 'user-min' }),

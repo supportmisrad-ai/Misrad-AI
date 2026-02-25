@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { checkAiAccess } from '@/lib/server/subscription-guard';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
@@ -762,6 +763,12 @@ async function POSTHandler(req: Request) {
 
     const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgSlug);
     const organizationId = String(workspace.id);
+
+    // Subscription guard — block AI for suspended/past_due/cancelled orgs
+    const aiAccess = checkAiAccess(workspace.subscriptionStatus);
+    if (!aiAccess.allowed) {
+      return apiError(aiAccess.message, { status: 403 });
+    }
 
     const moduleKey = inferModuleKey(pathname);
 

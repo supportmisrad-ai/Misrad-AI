@@ -25,6 +25,7 @@ export default function SystemLeadsClient({
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedInline, setCopiedInline] = useState(false);
 
   const formUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/lead/${orgSlug}`
@@ -34,6 +35,13 @@ export default function SystemLeadsClient({
     navigator.clipboard.writeText(formUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyInline = () => {
+    navigator.clipboard.writeText(formUrl).then(() => {
+      setCopiedInline(true);
+      setTimeout(() => setCopiedInline(false), 2500);
     });
   };
 
@@ -126,6 +134,18 @@ export default function SystemLeadsClient({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleCopyInline}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border ${
+              copiedInline
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+            }`}
+            type="button"
+            title={formUrl}
+          >
+            {copiedInline ? <><Check size={15} /> הועתק!</> : <><LinkIcon size={15} /> העתק לינק</>}
+          </button>
           <button
             onClick={() => setShowShareModal(true)}
             className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all flex items-center gap-2"
