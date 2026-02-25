@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Lead, PipelineStage } from './types';
 import { STAGES } from './constants';
-import { Search, Filter, Phone, MessageSquare, FileDown, FileUp, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
+import { Search, Filter, Phone, MessageSquare, FileDown, FileUp, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock, Share2, Copy, Check, LinkIcon } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import { CustomSelect } from '@/components/CustomSelect';
 import LogCallModal from './LogCallModal';
@@ -29,6 +29,8 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<PipelineStage | 'all'>('all');
   const [logCallLead, setLogCallLead] = useState<Lead | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Rule 9: Performance Strategy - Memoized Filtering
   const filteredLeads = useMemo(() => {
@@ -64,6 +66,19 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
     return parts[wIndex + 1] || null;
   };
 
+  const currentOrgSlug = orgSlugFromPathname();
+  const formUrl = typeof window !== 'undefined' && currentOrgSlug
+    ? `${window.location.origin}/lead/${currentOrgSlug}`
+    : '';
+
+  const handleCopyFormLink = () => {
+    if (!formUrl) return;
+    navigator.clipboard.writeText(formUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const handleQuickCall = (lead: Lead) => {
     const phone = String(lead?.phone || '').trim();
     if (!phone) return;
@@ -84,20 +99,29 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                {filteredLeads.length} רשומות נמצאו במערכת.
            </p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+            {formUrl && (
+                <button
+                    onClick={() => setShowShareModal(true)}
+                    className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 hover:bg-indigo-100 transition-colors"
+                    type="button"
+                >
+                    <Share2 size={15} /> שתף טופס
+                </button>
+            )}
             {onImportLeadsAction ? (
                 <button 
                     onClick={onImportLeadsAction}
-                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 transition-colors shadow-sm"
+                    className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 transition-colors shadow-sm"
                 >
                     <FileUp size={16} /> ייבוא לידים
                 </button>
             ) : null}
             <button 
                 onClick={handleExport}
-                className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                className="bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 hover:bg-slate-50 transition-colors shadow-sm"
             >
-                <FileDown size={16} /> ייצוא ל-Excel
+                <FileDown size={16} /> ייצוא
             </button>
         </div>
       </div>
@@ -410,6 +434,65 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
           setLogCallLead(null);
         }}
       />
+
+      {/* Share Form Modal */}
+      {showShareModal && formUrl && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowShareModal(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                <LinkIcon size={22} className="text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">שתף טופס לידים</h3>
+                <p className="text-xs text-slate-500">שלח את הלינק ללקוחות או שתף ברשתות</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 flex items-center gap-2">
+              <input
+                type="text"
+                value={formUrl}
+                readOnly
+                dir="ltr"
+                className="flex-1 bg-transparent text-sm text-slate-700 font-mono outline-none truncate"
+              />
+              <button
+                type="button"
+                onClick={handleCopyFormLink}
+                className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  copied
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {copied ? <><Check size={14} /> הועתק!</> : <><Copy size={14} /> העתק</>}
+              </button>
+            </div>
+
+            <div className="mt-4 text-xs text-slate-500 space-y-1">
+              <p>כל מי שפותח את הלינק יוכל להשאיר פרטים.</p>
+              <p>הלידים ייכנסו ישירות למערכת — בלי צורך בהגדרות נוספות.</p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowShareModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-all"
+              >
+                סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
