@@ -107,6 +107,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'הטופס אינו זמין כרגע' }, { status: 404 });
     }
 
+    // Check if lead capture is enabled for this org
+    const orgSettings = await prisma.organization_settings.findUnique({
+      where: { organization_id: org.id },
+      select: { ai_sales_context: true },
+    });
+    const salesCtx = asObject(orgSettings?.ai_sales_context) ?? {};
+    const leadCaptureEnabled = salesCtx.leadCaptureEnabled === true;
+
+    if (!leadCaptureEnabled) {
+      return NextResponse.json({ ok: false, error: 'טופס הלידים אינו פעיל כרגע' }, { status: 403 });
+    }
+
     // Check for duplicate by phone within this org
     const normalizedPhone = phone.replace(/[^0-9]/g, '');
     const existingLead = await prisma.systemLead.findFirst({
@@ -238,8 +250,9 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // Send email to org owner/admin
-        if (notifyEmail) {
+        // Send email to org owner/admin (only if email notifications enabled)
+        const emailNotifyEnabled = salesCtx.leadCaptureEmailNotify !== false;
+        if (notifyEmail && emailNotifyEnabled) {
           sendNewLeadNotificationEmail({
             toEmail: notifyEmail,
             leadName: name,

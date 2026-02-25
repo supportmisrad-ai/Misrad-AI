@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Link2, Check } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { useToast } from '@/components/system/contexts/ToastContext';
@@ -13,6 +13,11 @@ import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
 import PipelineBoard from '@/components/system/PipelineBoard';
 import { STAGES } from '@/components/system/constants';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import {
+  getLeadCaptureSettings,
+  updateLeadCaptureSettings,
+  type LeadCaptureSettings,
+} from '@/app/actions/system-lead-capture-settings';
 import {
   createSystemLead,
   createSystemLeadActivity,
@@ -77,6 +82,8 @@ export default function SystemSalesPipelineClient({
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [lcSettings, setLcSettings] = useState<LeadCaptureSettings>({ leadCaptureEnabled: false, leadCaptureEmailNotify: true });
+  const [lcLoading, setLcLoading] = useState(false);
 
   const handleLoadMore = async () => {
     if (isLoadingMore) return;
@@ -152,7 +159,61 @@ export default function SystemSalesPipelineClient({
         // non-critical — assignees dropdown will just be empty
       }
     })();
+    void (async () => {
+      try {
+        const s = await getLeadCaptureSettings({ orgSlug });
+        setLcSettings(s);
+      } catch {
+        // non-critical
+      }
+    })();
   }, [orgSlug]);
+
+  const handleToggleLeadCapture = async () => {
+    setLcLoading(true);
+    try {
+      const res = await updateLeadCaptureSettings({ orgSlug, leadCaptureEnabled: !lcSettings.leadCaptureEnabled });
+      if (res.ok) {
+        setLcSettings(res.settings);
+        addToast(res.settings.leadCaptureEnabled ? '\u05d8\u05d5\u05e4\u05e1 \u05dc\u05d9\u05d3\u05d9\u05dd \u05d4\u05d5\u05e4\u05e2\u05dc!' : '\u05d8\u05d5\u05e4\u05e1 \u05dc\u05d9\u05d3\u05d9\u05dd \u05db\u05d5\u05d1\u05d4', 'success');
+      } else {
+        addToast(res.message || '\u05e9\u05d2\u05d9\u05d0\u05d4', 'error');
+      }
+    } catch {
+      addToast('\u05e9\u05d2\u05d9\u05d0\u05d4 \u05d1\u05e2\u05d3\u05db\u05d5\u05df \u05d4\u05d2\u05d3\u05e8\u05d5\u05ea', 'error');
+    } finally {
+      setLcLoading(false);
+    }
+  };
+
+  const handleToggleEmailNotify = async () => {
+    setLcLoading(true);
+    try {
+      const res = await updateLeadCaptureSettings({ orgSlug, leadCaptureEmailNotify: !lcSettings.leadCaptureEmailNotify });
+      if (res.ok) {
+        setLcSettings(res.settings);
+        addToast(res.settings.leadCaptureEmailNotify ? '\u05d4\u05ea\u05e8\u05d0\u05d5\u05ea \u05de\u05d9\u05d9\u05dc \u05d4\u05d5\u05e4\u05e2\u05dc\u05d5' : '\u05d4\u05ea\u05e8\u05d0\u05d5\u05ea \u05de\u05d9\u05d9\u05dc \u05db\u05d5\u05d1\u05d5', 'success');
+      }
+    } catch {
+      addToast('\u05e9\u05d2\u05d9\u05d0\u05d4', 'error');
+    } finally {
+      setLcLoading(false);
+    }
+  };
+
+  const [leadFormCopied, setLeadFormCopied] = useState(false);
+
+  const leadFormUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/lead/${orgSlug}`
+    : `/lead/${orgSlug}`;
+
+  const handleCopyLeadFormLink = () => {
+    void navigator.clipboard.writeText(leadFormUrl).then(() => {
+      setLeadFormCopied(true);
+      addToast('קישור לטופס לידים הועתק!', 'success');
+      setTimeout(() => setLeadFormCopied(false), 2000);
+    });
+  };
 
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [query, setQuery] = useState('');
@@ -294,8 +355,7 @@ export default function SystemSalesPipelineClient({
         return;
       }
       setDeleteConfirm(null);
-      await refreshStages();
-      await refreshFirstPage();
+      await Promise.all([refreshStages(), refreshFirstPage()]);
       addToast('שלב נמחק', 'success');
     } catch (e: unknown) {
       setStageError(getErrorMessage(e) || 'שגיאה במחיקת שלב');
@@ -323,8 +383,7 @@ export default function SystemSalesPipelineClient({
         return;
       }
       setDeleteConfirm(null);
-      await refreshStages();
-      await refreshFirstPage();
+      await Promise.all([refreshStages(), refreshFirstPage()]);
       addToast('שלב נמחק והלידים הועברו', 'success');
     } catch (e: unknown) {
       setStageError(getErrorMessage(e) || 'שגיאה במחיקת שלב');
@@ -578,6 +637,18 @@ export default function SystemSalesPipelineClient({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={handleCopyLeadFormLink}
+            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
+              leadFormCopied
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
+            {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
+          </button>
+          <button
+            type="button"
             onClick={() => setShowImportDialog(true)}
             className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
           >
@@ -601,6 +672,49 @@ export default function SystemSalesPipelineClient({
             <UserPlus size={16} /> ליד חדש
           </button>
         </div>
+      </div>
+
+      {/* Lead Capture Settings Banner */}
+      <div className="mb-4 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-black text-slate-600">טופס לידים ציבורי</span>
+          <button
+            type="button"
+            disabled={lcLoading}
+            onClick={() => void handleToggleLeadCapture()}
+            dir="ltr"
+            className={`relative w-11 h-6 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+          >
+            <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+        {lcSettings.leadCaptureEnabled ? (
+          <>
+            <div className="hidden md:block w-px h-5 bg-slate-200" />
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black text-slate-600">התראת מייל</span>
+              <button
+                type="button"
+                disabled={lcLoading}
+                onClick={() => void handleToggleEmailNotify()}
+                dir="ltr"
+                className={`relative w-11 h-6 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEmailNotify ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEmailNotify ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+            <div className="hidden md:block w-px h-5 bg-slate-200" />
+            <button
+              type="button"
+              onClick={handleCopyLeadFormLink}
+              className="text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              {leadFormCopied ? '✓ הועתק' : 'העתק קישור'}
+            </button>
+          </>
+        ) : (
+          <span className="text-[11px] text-slate-400">הפעל כדי לקבל לידים מטופס ציבורי</span>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">

@@ -54,15 +54,23 @@ function toDto(row: unknown): SystemPipelineStageDTO {
   };
 }
 
+const seededOrgIds = new Set<string>();
+
 async function ensureSeededForOrg(params: { organizationId: string }) {
   const orgId = String(params.organizationId || '').trim();
   if (!orgId) return;
+
+  // In-memory cache: skip DB check if we already seeded this org in this process
+  if (seededOrgIds.has(orgId)) return;
 
   const existing = await prisma.systemPipelineStage.findFirst({
     where: { organizationId: orgId },
     select: { id: true },
   });
-  if (existing?.id) return;
+  if (existing?.id) {
+    seededOrgIds.add(orgId);
+    return;
+  }
 
   await prisma.systemPipelineStage.createMany({
     data: DEFAULT_STAGES.map((s) => ({
@@ -76,6 +84,7 @@ async function ensureSeededForOrg(params: { organizationId: string }) {
     })),
     skipDuplicates: true,
   });
+  seededOrgIds.add(orgId);
 }
 
 export async function getSystemPipelineStagesForOrganizationId(params: {
