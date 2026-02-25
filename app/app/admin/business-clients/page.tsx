@@ -1,5 +1,5 @@
 import BusinessClientsClient from './BusinessClientsClient';
-import { getBusinessClients, syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
+import { getBusinessClients, backfillUnlinkedOrganizations } from '@/app/actions/business-clients';
 
 export const metadata = {
   title: 'לקוחות עסקיים | Admin',
@@ -7,10 +7,10 @@ export const metadata = {
 };
 
 export default async function BusinessClientsPage() {
-  // Auto-sync: ensure all organizations are linked to business clients.
-  // The sync is efficient — only processes orgs with client_id=null,
-  // returns immediately if everything is already linked.
-  await syncOrganizationsToBusinessClients().catch(() => {});
+  // Auto-backfill: link any organizations with client_id=null to a BusinessClient.
+  // Uses backfillUnlinkedOrganizations (no auth required, SSR-safe).
+  // Returns 0 immediately if all orgs are already linked.
+  await backfillUnlinkedOrganizations().catch(() => {});
 
   const result = await getBusinessClients({});
   const initialClients = result.ok && 'clients' in result ? result.clients : [];

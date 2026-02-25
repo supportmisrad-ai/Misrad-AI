@@ -2,24 +2,26 @@ import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import CustomersDashboardClient from './CustomersDashboardClient';
 import { getOrganizations } from '@/app/actions/admin-organizations';
-import { syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
+import prisma from '@/lib/prisma';
 
 export const metadata = {
   title: 'דשבורד לקוחות | Admin',
 };
 
 async function loadDashboardData() {
-  // Auto-sync: ensure all organizations are linked to business clients
-  // so dashboard stats are consistent with business clients page.
-  await syncOrganizationsToBusinessClients().catch(() => {});
-
-  const result = await getOrganizations({});
+  const [result, orphanedUsersCount] = await Promise.all([
+    getOrganizations({}),
+    // Count users who signed up but have no organization (webhook/upsert failed)
+    prisma.organizationUser.count({
+      where: { organization_id: null },
+    }).catch(() => 0),
+  ]);
   
   if (!result.success || !result.data) {
-    return { organizations: [], error: result.error ?? null };
+    return { organizations: [], error: result.error ?? null, orphanedUsersCount: 0 };
   }
   
-  return { organizations: result.data, error: null };
+  return { organizations: result.data, error: null, orphanedUsersCount };
 }
 
 export default async function CustomersDashboardPage() {
@@ -34,6 +36,7 @@ export default async function CustomersDashboardPage() {
       <CustomersDashboardClient 
         organizations={data.organizations}
         error={data.error ?? null}
+        orphanedUsersCount={data.orphanedUsersCount}
       />
     </Suspense>
   );

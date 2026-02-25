@@ -11,7 +11,8 @@ import {
   CircleX,
   CircleAlert,
   DollarSign,
-  Calendar
+  Calendar,
+  UserX
 } from 'lucide-react';
 import Link from 'next/link';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
@@ -22,6 +23,7 @@ import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 type CustomersDashboardClientProps = {
   organizations: OrganizationWithOwner[];
   error: string | null;
+  orphanedUsersCount?: number;
 };
 
 type DashboardStats = {
@@ -35,7 +37,7 @@ type DashboardStats = {
   expiringTrials: number;
 };
 
-export default function CustomersDashboardClient({ organizations, error }: CustomersDashboardClientProps) {
+export default function CustomersDashboardClient({ organizations, error, orphanedUsersCount = 0 }: CustomersDashboardClientProps) {
   const stats = useMemo<DashboardStats>(() => {
     if (!organizations.length) {
       return {
@@ -115,6 +117,25 @@ export default function CustomersDashboardClient({ organizations, error }: Custo
           icon={Users}
         />
       </AdminFadeIn>
+
+      {/* Orphaned Users Warning */}
+      {orphanedUsersCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="p-2 bg-amber-100 rounded-xl shrink-0">
+            <UserX className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-800">
+              {orphanedUsersCount} משתמשים ללא ארגון
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              משתמשים אלה נרשמו למערכת אך יצירת הארגון שלהם נכשלה. ניתן לראות אותם ב
+              <Link href="/app/admin/global/users" className="underline font-medium mx-1">ניהול משתמשים</Link>
+              ולשייך אותם לארגון.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

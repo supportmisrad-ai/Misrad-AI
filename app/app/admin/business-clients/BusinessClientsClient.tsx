@@ -15,7 +15,7 @@ import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients } from '@/app/actions/business-clients';
+import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -136,12 +136,26 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
     setIsSyncing(true);
     setSyncMessage(null);
     try {
+      // First: backfill (no auth needed, catches everything)
+      const backfilled = await backfillUnlinkedOrganizations().catch(() => 0);
+      // Second: full sync (needs admin auth, adds richer data)
       const result = await syncOrganizationsToBusinessClients();
       if (result.ok) {
-        setSyncMessage(`נוצרו ${result.created} לקוחות עסקיים חדשים, קושרו ${result.linked} ארגונים`);
+        const totalLinked = (result.linked || 0) + (backfilled || 0);
+        setSyncMessage(
+          totalLinked > 0 || result.created > 0
+            ? `נוצרו ${result.created} לקוחות עסקיים חדשים, קושרו ${totalLinked} ארגונים`
+            : 'הכל מסונכרן — לא נמצאו ארגונים חסרים'
+        );
         await loadClients();
       } else if ('error' in result) {
-        setError(String(result.error));
+        // Auth-gated sync failed but backfill may have worked
+        if (backfilled > 0) {
+          setSyncMessage(`קושרו ${backfilled} ארגונים (סנכרון חלקי)`);
+          await loadClients();
+        } else {
+          setError(String(result.error));
+        }
       }
     } catch (err) {
       console.error('Sync failed:', err);
