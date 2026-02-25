@@ -10,7 +10,7 @@ export type LeadCaptureSettings = {
 };
 
 const DEFAULTS: LeadCaptureSettings = {
-  leadCaptureEnabled: false,
+  leadCaptureEnabled: true,
   leadCaptureEmailNotify: true,
 };
 

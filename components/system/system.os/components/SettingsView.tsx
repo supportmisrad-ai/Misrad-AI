@@ -63,6 +63,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
       setTempLogo(brandLogo);
   }, [brandName, brandLogo]);
   
+  // Notification preferences state
+  const [notifPrefs, setNotifPrefs] = useState([
+    { title: 'ליד נפתח', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
+    { title: 'משימות ופולואפ', desc: 'כשמנהל מעביר אליך משימה או שהגיע זמן לפולואפ', email: true, push: true },
+    { title: 'דוח יומי במייל', desc: 'סיכום מספרים כל בוקר ב-08:00', email: true, push: false },
+    { title: 'עדכוני מערכת', desc: 'חידושים ותחזוקה', email: false, push: true },
+  ]);
+
+  const toggleNotifPref = (idx: number, field: 'email' | 'push') => {
+    setNotifPrefs((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: !item[field] } : item));
+  };
+
   // AI Sales Context state
   const [aiSalesContext, setAiSalesContext] = useState<AiSalesContextData>(EMPTY_SALES_CONTEXT);
   const [aiSalesLoading, setAiSalesLoading] = useState(false);
@@ -143,8 +155,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
     }
   };
 
-  const Toggle = ({ checked }: { checked: boolean }) => (
-      <div className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 ${checked ? 'bg-primary' : 'bg-slate-200'}`} dir="ltr">
+  const Toggle = ({ checked, onChange }: { checked: boolean; onChange?: () => void }) => (
+      <div
+          role="switch"
+          aria-checked={checked}
+          tabIndex={0}
+          onClick={onChange}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange?.(); } }}
+          className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors duration-300 cursor-pointer ${checked ? 'bg-primary' : 'bg-slate-200'}`}
+          dir="ltr"
+      >
           <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${checked ? 'translate-x-5' : 'translate-x-0'}`}></div>
       </div>
   );
@@ -755,12 +775,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                               על מה להודיע לך?
                           </h3>
                           <div className="space-y-6">
-                              {[
-                                  { title: 'ליד נפתח', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
-                                  { title: 'משימות ופולואפ', desc: 'כשמנהל מעביר אליך משימה או שהגיע זמן לפולואפ', email: true, push: true },
-                                  { title: 'דוח יומי במייל', desc: 'סיכום מספרים כל בוקר ב-08:00', email: true, push: false },
-                                  { title: 'עדכוני מערכת', desc: 'חידושים ותחזוקה', email: false, push: true }
-                              ].map((setting, idx) => (
+                              {notifPrefs.map((setting, idx) => (
                                   <div key={idx} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-4 border-b border-slate-100 last:border-0">
                                       <div>
                                           <div className="font-bold text-slate-800">{setting.title}</div>
@@ -769,11 +784,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                                       <div className="flex gap-6">
                                           <label className="flex items-center gap-3 cursor-pointer group">
                                               <span className="text-sm font-bold text-slate-600 group-hover:text-slate-800">מייל</span>
-                                              <Toggle checked={setting.email} />
+                                              <Toggle checked={setting.email} onChange={() => toggleNotifPref(idx, 'email')} />
                                           </label>
                                           <label className="flex items-center gap-3 cursor-pointer group">
                                               <span className="text-sm font-bold text-slate-600 group-hover:text-slate-800">אפליקציה</span>
-                                              <Toggle checked={setting.push} />
+                                              <Toggle checked={setting.push} onChange={() => toggleNotifPref(idx, 'push')} />
                                           </label>
                                       </div>
                                   </div>

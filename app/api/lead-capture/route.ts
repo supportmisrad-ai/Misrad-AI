@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       select: { ai_sales_context: true },
     });
     const salesCtx = asObject(orgSettings?.ai_sales_context) ?? {};
-    const leadCaptureEnabled = salesCtx.leadCaptureEnabled === true;
+    const leadCaptureEnabled = salesCtx.leadCaptureEnabled !== false;
 
     if (!leadCaptureEnabled) {
       return NextResponse.json({ ok: false, error: 'טופס הלידים אינו פעיל כרגע' }, { status: 403 });

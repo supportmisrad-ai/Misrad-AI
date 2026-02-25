@@ -48,7 +48,7 @@ export default async function LeadCapturePage({ params }: Props) {
   const salesCtx = (settings?.ai_sales_context && typeof settings.ai_sales_context === 'object' && !Array.isArray(settings.ai_sales_context))
     ? (settings.ai_sales_context as Record<string, unknown>)
     : {};
-  const enabled = salesCtx.leadCaptureEnabled === true;
+  const enabled = salesCtx.leadCaptureEnabled !== false;
 
   if (!enabled) {
     return (
