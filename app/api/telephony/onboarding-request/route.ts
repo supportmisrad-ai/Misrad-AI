@@ -5,6 +5,41 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+// ── Rate limiter (in-memory, per IP) ─────────────────────────────────
+const RL_MAP = new Map<string, { count: number; resetAt: number }>();
+const RL_MAX = 3; // max 3 requests per window per IP
+const RL_WINDOW_MS = 5 * 60_000; // 5 minutes
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = RL_MAP.get(ip);
+  if (!entry || now > entry.resetAt) {
+    RL_MAP.set(ip, { count: 1, resetAt: now + RL_WINDOW_MS });
+    if (RL_MAP.size > 5000) {
+      for (const [k, v] of RL_MAP) { if (now > v.resetAt) RL_MAP.delete(k); }
+    }
+    return false;
+  }
+  entry.count++;
+  return entry.count > RL_MAX;
+}
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || '127.0.0.1';
+}
+
+// ── HTML escape for email template interpolation ─────────────────────
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function resolveRecipientEmail(originalTo: string): string {
     const override = process.env.RESEND_TEST_TO;
     if (!override) return originalTo;
@@ -20,11 +55,15 @@ function generateClientConfirmationEmail(params: {
     billingCycle: string;
     packagePrice: string;
 }): string {
+    const safeName = escapeHtml(params.contactName);
+    const safeBiz = escapeHtml(params.businessName);
+    const safePkg = escapeHtml(params.selectedPackage);
+    const safePrice = escapeHtml(params.packagePrice);
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${params.contactName},</div>
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${safeName},</div>
         
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            הבקשה שלך להפעלת מרכזיית ענן עבור <strong>${params.businessName}</strong> התקבלה בהצלחה!
+            הבקשה שלך להפעלת מרכזיית ענן עבור <strong>${safeBiz}</strong> התקבלה בהצלחה!
         </div>
 
         <div style="margin:24px 0;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:22px 24px;">
@@ -32,11 +71,11 @@ function generateClientConfirmationEmail(params: {
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
                     <td style="padding:6px 0;font-size:14px;color:#64748b;font-weight:600;">חבילה:</td>
-                    <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:900;text-align:left;">${params.selectedPackage}</td>
+                    <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:900;text-align:left;">${safePkg}</td>
                 </tr>
                 <tr>
                     <td style="padding:6px 0;font-size:14px;color:#64748b;font-weight:600;">מחיר:</td>
-                    <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:900;text-align:left;">${params.packagePrice}</td>
+                    <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:900;text-align:left;">${safePrice}</td>
                 </tr>
                 <tr>
                     <td style="padding:6px 0;font-size:14px;color:#64748b;font-weight:600;">תקופת חיוב:</td>
@@ -86,36 +125,37 @@ function generateAdminNotificationEmail(params: {
     portNumbersList: string;
     notes: string;
 }): string {
+    const s = (v: string) => escapeHtml(v);
     const bodyContent = `
         <div style="font-size:20px;font-weight:900;color:#0f172a;margin-bottom:20px;">בקשה חדשה להפעלת מרכזייה 📞</div>
         
         <div style="margin:20px 0;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:22px 24px;">
             <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">פרטי הלקוח</div>
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;width:120px;">שם איש קשר:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.contactName}</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">אימייל:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.contactEmail}</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">טלפון:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.contactPhone}</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">שם העסק:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.businessName}</td></tr>
-                ${params.businessId ? `<tr><td style="padding:5px 0;font-size:13px;color:#64748b;">ח.פ./ע.מ.:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.businessId}</td></tr>` : ''}
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">מספר עובדים:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.employeeCount || 'לא צוין'}</td></tr>
-                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">ספק נוכחי:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.currentProvider || 'לא צוין'}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;width:120px;">שם איש קשר:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.contactName)}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">אימייל:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.contactEmail)}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">טלפון:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.contactPhone)}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">שם העסק:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.businessName)}</td></tr>
+                ${params.businessId ? `<tr><td style="padding:5px 0;font-size:13px;color:#64748b;">ח.פ./ע.מ.:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.businessId)}</td></tr>` : ''}
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">מספר עובדים:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.employeeCount) || 'לא צוין'}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#64748b;">ספק נוכחי:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.currentProvider) || 'לא צוין'}</td></tr>
             </table>
         </div>
 
         <div style="margin:20px 0;background:#eff6ff;border:2px solid #bfdbfe;border-radius:14px;padding:22px 24px;">
             <div style="font-size:12px;font-weight:800;color:#1e40af;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">פרטי החבילה</div>
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:5px 0;font-size:13px;color:#1e40af;width:120px;">חבילה:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.selectedPackage}</td></tr>
+                <tr><td style="padding:5px 0;font-size:13px;color:#1e40af;width:120px;">חבילה:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.selectedPackage)}</td></tr>
                 <tr><td style="padding:5px 0;font-size:13px;color:#1e40af;">תקופת חיוב:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.billingCycle === 'annual' ? 'שנתי' : 'חודשי'}</td></tr>
                 <tr><td style="padding:5px 0;font-size:13px;color:#1e40af;">ניוד מספרים:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.portNumbers ? 'כן' : 'לא'}</td></tr>
-                ${params.portNumbers && params.portNumbersList ? `<tr><td style="padding:5px 0;font-size:13px;color:#1e40af;">מספרים לניוד:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${params.portNumbersList}</td></tr>` : ''}
+                ${params.portNumbers && params.portNumbersList ? `<tr><td style="padding:5px 0;font-size:13px;color:#1e40af;">מספרים לניוד:</td><td style="padding:5px 0;font-size:13px;color:#0f172a;font-weight:700;">${s(params.portNumbersList)}</td></tr>` : ''}
             </table>
         </div>
 
         ${params.notes ? `
         <div style="margin:20px 0;background:#fff7ed;border:2px solid #fed7aa;border-radius:14px;padding:22px 24px;">
             <div style="font-size:12px;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">הערות הלקוח</div>
-            <div style="font-size:14px;color:#78350f;line-height:1.6;">${params.notes}</div>
+            <div style="font-size:14px;color:#78350f;line-height:1.6;">${s(params.notes)}</div>
         </div>
         ` : ''}
 
@@ -126,7 +166,7 @@ function generateAdminNotificationEmail(params: {
 
     return generateBaseEmailTemplate({
         headerTitle: 'בקשה חדשה — מרכזיית ענן',
-        headerSubtitle: `${params.businessName} · ${params.contactName}`,
+        headerSubtitle: `${s(params.businessName)} · ${s(params.contactName)}`,
         headerGradient: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         bodyContent,
         showSocialLinks: false,
@@ -151,6 +191,15 @@ const PACKAGE_PRICES: Record<string, { monthly: number; annual: number }> = {
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limit — prevent email spam abuse
+        const ip = getClientIp(request);
+        if (isRateLimited(ip)) {
+            return NextResponse.json(
+                { error: 'יותר מדי בקשות. נסה שוב בעוד מספר דקות.' },
+                { status: 429 }
+            );
+        }
+
         const bodyJson: unknown = await request.json().catch(() => ({}));
         const body = asObject(bodyJson) ?? {};
 

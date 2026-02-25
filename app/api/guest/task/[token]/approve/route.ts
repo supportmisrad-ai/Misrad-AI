@@ -6,11 +6,41 @@ import {
   updateNexusTaskRowsById,
 } from '@/lib/services/nexus-tasks-service';
 
+// ── Rate limiter (in-memory, per IP) ─────────────────────────────────
+const RL_MAP = new Map<string, { count: number; resetAt: number }>();
+const RL_MAX = 5; // max 5 approvals per window per IP
+const RL_WINDOW_MS = 60_000; // 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = RL_MAP.get(ip);
+  if (!entry || now > entry.resetAt) {
+    RL_MAP.set(ip, { count: 1, resetAt: now + RL_WINDOW_MS });
+    if (RL_MAP.size > 5000) {
+      for (const [k, v] of RL_MAP) { if (now > v.resetAt) RL_MAP.delete(k); }
+    }
+    return false;
+  }
+  entry.count++;
+  return entry.count > RL_MAX;
+}
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || '127.0.0.1';
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> },
 ) {
   try {
+    const ip = getClientIp(req);
+    if (isRateLimited(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const { token } = await params;
     if (!token || token.length < 8) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 400 });

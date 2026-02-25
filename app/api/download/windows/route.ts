@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isSafeRedirectUrl } from '@/lib/server/safe-redirect';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -51,6 +52,13 @@ async function GETHandler(_request: NextRequest) {
           : 'Windows download is not configured (DB global_settings, MISRAD_WINDOWS_DOWNLOAD_URL, and version manifest are empty)',
       },
       { status: 404 }
+    );
+  }
+
+  if (!isSafeRedirectUrl(url)) {
+    return NextResponse.json(
+      { error: 'Invalid download URL configured' },
+      { status: 502 }
     );
   }
 

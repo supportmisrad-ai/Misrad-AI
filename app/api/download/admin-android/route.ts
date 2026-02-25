@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/auth';
+import { isSafeRedirectUrl } from '@/lib/server/safe-redirect';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -55,6 +56,13 @@ async function GETHandler(_request: NextRequest) {
           : 'Admin Android download is not configured (DB global_settings.admin_android_download_url, MISRAD_ADMIN_ANDROID_DOWNLOAD_URL, and version manifest are empty)',
       },
       { status: 404 }
+    );
+  }
+
+  if (!isSafeRedirectUrl(url)) {
+    return NextResponse.json(
+      { error: 'Invalid download URL configured' },
+      { status: 502 }
     );
   }
 

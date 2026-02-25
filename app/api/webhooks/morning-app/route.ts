@@ -59,8 +59,12 @@ function verifyWebhookSignature(payload: string, signature: string | null): bool
     hmac.update(payload);
     const expectedSignature = hmac.digest('hex');
 
-    // Compare signatures (timing-safe comparison)
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+    // Normalize both values via HMAC so buffers are always equal length,
+    // preventing timing leaks when signature lengths differ.
+    const key = 'webhook-sig-compare';
+    const hmacA = crypto.createHmac('sha256', key).update(signature).digest();
+    const hmacB = crypto.createHmac('sha256', key).update(expectedSignature).digest();
+    return crypto.timingSafeEqual(hmacA, hmacB);
   } catch (error: unknown) {
     captureWebhookException(error, { action: 'verifyWebhookSignature' });
     return false;
