@@ -28,7 +28,7 @@ export default function FinanceMarketingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
-      <main className="pt-20">
+      <main className="pt-28">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20 sm:py-28">
           <div className="absolute -top-24 -right-24 w-[540px] h-[540px] bg-emerald-200/35 rounded-full blur-[140px] pointer-events-none" />
@@ -38,9 +38,10 @@ export default function FinanceMarketingPage() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black">
               <Sparkles size={14} />
               <span>{getModuleLabelHe('finance')}</span>
+              <span className="text-[10px] text-emerald-500 font-bold">· Finance</span>
               <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black">
                 <Gift size={10} className="inline ml-1" />
-                7 ימים חינם
+                מגיע במתנה עם כל חבילה
               </span>
             </div>
 
@@ -55,6 +56,10 @@ export default function FinanceMarketingPage() {
               שליטה פיננסית שמרגישה פשוטה. מנפיקים חשבוניות, מנהלים הוצאות, עוקבים אחר תשלומים,
               ורואים תמונה ברורה של ההכנסות — בלי טבלאות מפוזרות.
             </p>
+
+            <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold">
+              ⚠️ חובה אינטגרציה עם מערכת חשבוניות קיימת (מורנינג, חשבונית ירוקה, iCount ודומיהם)
+            </div>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link

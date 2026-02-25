@@ -45,7 +45,7 @@ export default function OperationsMarketingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden" dir="rtl">
       <Navbar />
-      <main className="pt-20">
+      <main className="pt-28">
         <section className="relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[560px] h-[560px] bg-amber-200/35 rounded-full blur-[140px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[640px] h-[640px] bg-rose-200/20 rounded-full blur-[170px] pointer-events-none" />

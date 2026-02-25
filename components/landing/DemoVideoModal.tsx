@@ -101,14 +101,6 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
               >
                 סגור
               </button>
-              {!demoVideoUrl && (
-                <button
-                  onClick={handleWatchDemo}
-                  className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold transition-all"
-                >
-                  הצצה לפיצ׳רים
-                </button>
-              )}
             </div>
           </motion.div>
         </div>

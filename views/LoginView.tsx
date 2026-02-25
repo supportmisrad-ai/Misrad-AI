@@ -649,7 +649,7 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                 <span className="flex items-center gap-1.5"><Cpu size={12} /> MISRAD AI v2.5.0</span>
             </div>
 
-            <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-gray-500">
+            <div className="mt-4 hidden sm:flex items-center justify-center gap-2 text-[11px] text-gray-500">
                 <span className="font-semibold text-gray-500">הורדת אפליקציה:</span>
                 <a
                     href="/api/download/windows"

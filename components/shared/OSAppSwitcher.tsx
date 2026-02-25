@@ -41,7 +41,7 @@ function getUpsellCopy(module: OSModuleKey): { title: string; message: string } 
   if (module === 'social') {
     return {
       title: def.label,
-      message: 'מוכן להפוך למותג שכולם מדברים עליו? שדרג למסלול "The Authority" והתחל לייצר שיווק שבונה סמכות ומביא לקוחות פרימיום באופן אוטומטי.',
+      message: 'מוכן להפוך למותג שכולם מדברים עליו? שדרג לחבילת "שיווק ומיתוג" והתחל לייצר שיווק שבונה סמכות ומביא לקוחות פרימיום באופן אוטומטי.',
     };
   }
 
