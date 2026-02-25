@@ -440,14 +440,6 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
         storePendingLegalConsent();
         
-        // Ensure clerk-captcha element exists before OAuth (prevents CAPTCHA errors)
-        if (typeof window !== 'undefined' && !document.getElementById('clerk-captcha')) {
-          console.warn('[CustomAuth] clerk-captcha element not found, creating it');
-          const div = document.createElement('div');
-          div.id = 'clerk-captcha';
-          document.body.appendChild(div);
-        }
-        
         const signUpRedirect = (typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('redirect')
           : null) || '/workspaces/onboarding';
@@ -465,14 +457,6 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
           setIsLoading(false);
           return;
         }
-        // Ensure clerk-captcha element exists before OAuth (prevents CAPTCHA errors)
-        if (typeof window !== 'undefined' && !document.getElementById('clerk-captcha')) {
-          console.warn('[CustomAuth] clerk-captcha element not found, creating it');
-          const div = document.createElement('div');
-          div.id = 'clerk-captcha';
-          document.body.appendChild(div);
-        }
-        
         const signInRedirect = (typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('redirect')
           : null) || '/me';
@@ -496,9 +480,6 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
   return (
     <div className="w-full max-w-md" dir="rtl">
-      {/* Required by Clerk Turnstile bot protection during authenticateWithRedirect */}
-      {/* Must be outside form and always present in DOM */}
-      <div id="clerk-captcha" />
       <form
         onSubmit={
           isSignIn ? handleEmailSignIn : step === 'verify' ? handleVerifyEmailCode : handleEmailSignUp

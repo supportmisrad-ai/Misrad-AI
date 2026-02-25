@@ -7,10 +7,8 @@ export const metadata = {
 };
 
 export default async function BusinessClientsPage() {
-  // Auto-backfill: link any organizations with client_id=null to a BusinessClient.
-  // Uses backfillUnlinkedOrganizations (no auth required, SSR-safe).
-  // Returns 0 immediately if all orgs are already linked.
-  await backfillUnlinkedOrganizations().catch(() => {});
+  // Auto-backfill runs fire-and-forget — never blocks the page render.
+  backfillUnlinkedOrganizations().catch(() => {});
 
   const result = await getBusinessClients({});
   const initialClients = result.ok && 'clients' in result ? result.clients : [];

@@ -15,7 +15,7 @@ import ExtendTrialModal from '@/components/admin/ExtendTrialModal';
 import EditBusinessClientModal from '@/components/admin/EditBusinessClientModal';
 import EditContactModal from '@/components/admin/EditContactModal';
 import { asObject } from '@/lib/shared/unknown';
-import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations } from '@/app/actions/business-clients';
+import { getBusinessClients, removeContactFromClient, syncOrganizationsToBusinessClients, backfillUnlinkedOrganizations, deleteBusinessClient } from '@/app/actions/business-clients';
 
 type BusinessContact = {
   id?: string;
@@ -98,6 +98,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialClients?.length) return;
@@ -182,6 +183,24 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
       }
     } catch (error) {
       console.error('Failed to remove contact:', error);
+    }
+  };
+
+  const handleDeleteClient = async (client: BusinessClient) => {
+    if (!window.confirm(`למחוק את הלקוח העסקי "${client.company_name}"?\nפעולה זו תסיר אותו מהרשימה (מחיקה רכה).`)) return;
+    setDeletingClientId(client.id);
+    try {
+      const result = await deleteBusinessClient(client.id);
+      if (result.ok) {
+        setClients((prev) => prev.filter((c) => c.id !== client.id));
+      } else if ('error' in result) {
+        setError(String(result.error));
+      }
+    } catch (err) {
+      console.error('Failed to delete client:', err);
+      setError('שגיאה במחיקת לקוח עסקי');
+    } finally {
+      setDeletingClientId(null);
     }
   };
 
@@ -435,6 +454,23 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                       >
                         <Pencil className="w-3.5 h-3.5" />
                         ערוך
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClient(client);
+                        }}
+                        disabled={deletingClientId === client.id}
+                        className="text-xs h-8 text-red-600 hover:bg-red-50 border-red-200"
+                      >
+                        {deletingClientId === client.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        מחק
                       </Button>
                       <Button
                         size="sm"

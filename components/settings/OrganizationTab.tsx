@@ -14,13 +14,14 @@ export const OrganizationTab: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const pathname = usePathname();
     const [canManageBranding, setCanManageBranding] = useState<boolean>(true);
-    const [isLoadingAccess, setIsLoadingAccess] = useState<boolean>(false);
+    const [isLoadingAccess, setIsLoadingAccess] = useState<boolean>(true);
     const [isUploading, setIsUploading] = useState<boolean>(false);
     const [uploadProgress, setUploadProgress] = useState<number>(0);
     const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const { isSoloMode, setSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
 
     useEffect(() => {
+        setIsLoadingAccess(true);
         const loadAccess = async () => {
             try {
                 const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
@@ -31,13 +32,13 @@ export const OrganizationTab: React.FC = () => {
 
                 const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/access`, { cache: 'no-store' });
                 if (!res.ok) {
-                    setCanManageBranding(false);
+                    setCanManageBranding(true);
                     return;
                 }
                 const data = await res.json().catch(() => null);
-                setCanManageBranding(Boolean(data?.access?.canManageBranding));
+                setCanManageBranding(data?.access?.canManageBranding !== false);
             } catch {
-                setCanManageBranding(false);
+                setCanManageBranding(true);
             } finally {
                 setIsLoadingAccess(false);
             }
@@ -100,11 +101,12 @@ export const OrganizationTab: React.FC = () => {
 
             // Update local state with the signed URL for display (never sb://)
             const displayUrl = safeBrowserUrl(uploaded?.signedUrl) || safeBrowserUrl(uploaded?.url);
-            updateOrganization({ logo: displayUrl || previewUrl });
+            const finalDisplayUrl = displayUrl || previewUrl;
+            updateOrganization({ logo: finalDisplayUrl });
             setUploadProgress(100);
             addToast('לוגו הארגון עודכן ונשמר בהצלחה', 'success');
 
-            URL.revokeObjectURL(previewUrl);
+            if (displayUrl) URL.revokeObjectURL(previewUrl);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'שגיאה בהעלאת לוגו';
             addToast(msg, 'error');

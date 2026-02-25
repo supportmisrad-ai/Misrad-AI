@@ -8,36 +8,34 @@ export const metadata = {
   title: 'דשבורד לקוחות | Admin',
 };
 
-async function loadDashboardData() {
+async function CustomersDashboardLoader() {
   const [result, orphanedUsersCount] = await Promise.all([
     getOrganizations({}),
-    // Count users who signed up but have no organization (webhook/upsert failed)
     prisma.organizationUser.count({
       where: { organization_id: null },
     }).catch(() => 0),
   ]);
-  
-  if (!result.success || !result.data) {
-    return { organizations: [], error: result.error ?? null, orphanedUsersCount: 0 };
-  }
-  
-  return { organizations: result.data, error: null, orphanedUsersCount };
+
+  const organizations = result.success ? result.data ?? [] : [];
+  const error = result.success ? null : result.error ?? null;
+
+  return (
+    <CustomersDashboardClient
+      organizations={organizations}
+      error={error}
+      orphanedUsersCount={orphanedUsersCount}
+    />
+  );
 }
 
-export default async function CustomersDashboardPage() {
-  const data = await loadDashboardData();
-  
+export default function CustomersDashboardPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
     }>
-      <CustomersDashboardClient 
-        organizations={data.organizations}
-        error={data.error ?? null}
-        orphanedUsersCount={data.orphanedUsersCount}
-      />
+      <CustomersDashboardLoader />
     </Suspense>
   );
 }

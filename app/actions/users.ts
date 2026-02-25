@@ -21,6 +21,21 @@ import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+
+/**
+ * Safe wrapper around revalidatePath.
+ * Next.js forbids revalidatePath during Server Component render.
+ * Functions in this file are dual-use (called from both server actions AND SSR render),
+ * so we catch the error gracefully in render context.
+ */
+function safeRevalidate() {
+  try {
+    revalidatePath('/', 'layout');
+  } catch {
+    // Expected in SSR render context — silently ignore
+  }
+}
+
 function serializeUnknownError(error: unknown) {
   if (!error) return error;
 
@@ -549,7 +564,7 @@ export async function getOrCreateSupabaseUserAction(
     if (isE2E) {
       // Playwright env: some test DBs enforce strict RLS on social_users, causing inserts to fail.
       // We avoid writes here and let workspace.ts provide E2E-safe fallbacks.
-      revalidatePath('/', 'layout');
+      safeRevalidate();
       return { success: true, userId: String(clerkUserId) };
     }
 
@@ -564,7 +579,7 @@ export async function getOrCreateSupabaseUserAction(
 
         // Option A: webhook is the manager. If the user arrives with invite token, do NOT provision anything here.
         if (isOrgInviteMode) {
-          revalidatePath('/', 'layout');
+          safeRevalidate();
           return { success: true, userId: String(clerkUserId) };
         }
 
@@ -577,7 +592,7 @@ export async function getOrCreateSupabaseUserAction(
           sendWelcomeEmail,
         });
 
-        revalidatePath('/', 'layout');
+        safeRevalidate();
 
         return { success: true, userId: out.profileId };
       }
@@ -639,7 +654,7 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
               role,
             },
           });
-          revalidatePath('/', 'layout');
+          safeRevalidate();
           return { success: true, profileId: existing.id };
         }
 
@@ -655,7 +670,7 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
           select: { id: true },
         });
 
-        revalidatePath('/', 'layout');
+        safeRevalidate();
 
         return { success: true, profileId: created.id };
       }
@@ -748,7 +763,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
             select: { id: true },
           });
 
-          revalidatePath('/', 'layout');
+          safeRevalidate();
 
           return { success: true, userId: String(existing.id) };
         }
@@ -774,7 +789,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
           select: { id: true },
         });
 
-        revalidatePath('/', 'layout');
+        safeRevalidate();
 
         return { success: true, userId: created?.id ? String(created.id) : undefined };
       }
@@ -855,7 +870,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
         }
 
         const organizationKey = String(out.organizationSlug || out.organizationId);
-        revalidatePath('/', 'layout');
+        safeRevalidate();
         return { success: true, organizationKey };
       }
     );
@@ -972,7 +987,7 @@ export async function getUserRoleFromSupabaseAction(
     // The old argument is ignored.
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      revalidatePath('/', 'layout');
+      safeRevalidate();
       return { success: true, role: 'team_member' };
     }
 

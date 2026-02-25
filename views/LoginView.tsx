@@ -334,15 +334,6 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
     setIsLoading(true);
     setError('');
 
-    // Ensure clerk-captcha element exists before OAuth (prevents CAPTCHA errors)
-    const captchaEl = document.getElementById('clerk-captcha');
-    if (!captchaEl) {
-      console.warn('[LoginView] clerk-captcha element not found, creating it');
-      const div = document.createElement('div');
-      div.id = 'clerk-captcha';
-      document.body.appendChild(div);
-    }
-
     const returnPath = getLoginReturnUrl();
 
     try {
@@ -456,8 +447,6 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                                     {error}
                                   </motion.p>
                                 )}
-                                {/* Required by Clerk Turnstile bot protection during authenticateWithRedirect */}
-                                <div id="clerk-captcha" />
                                 {/* Google Login - Moved to top */}
                                 <button
                                   type="button"

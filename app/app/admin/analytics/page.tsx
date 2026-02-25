@@ -7,7 +7,7 @@ export const metadata = {
   title: 'אנליטיקס אתר | Admin',
 };
 
-async function loadAnalyticsData() {
+async function AnalyticsLoader() {
   const [overviewRes, pagesRes, journeysRes, signupsRes] = await Promise.all([
     getAnalyticsOverview(30),
     getPageAnalytics(30),
@@ -15,31 +15,25 @@ async function loadAnalyticsData() {
     getSignupRecords(90),
   ]);
 
-  return {
-    overview: overviewRes.success ? overviewRes.data! : null,
-    pages: pagesRes.success ? pagesRes.data! : [],
-    journeys: journeysRes.success ? journeysRes.data! : [],
-    signups: signupsRes.success ? signupsRes.data! : [],
-    error: overviewRes.error || pagesRes.error || journeysRes.error || signupsRes.error || null,
-  };
+  return (
+    <AdminAnalyticsClient
+      overview={overviewRes.success ? overviewRes.data! : null}
+      pages={pagesRes.success ? pagesRes.data! : []}
+      journeys={journeysRes.success ? journeysRes.data! : []}
+      signups={signupsRes.success ? signupsRes.data! : []}
+      error={overviewRes.error || pagesRes.error || journeysRes.error || signupsRes.error || null}
+    />
+  );
 }
 
-export default async function AdminAnalyticsPage() {
-  const data = await loadAnalyticsData();
-
+export default function AdminAnalyticsPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
       </div>
     }>
-      <AdminAnalyticsClient
-        overview={data.overview}
-        pages={data.pages}
-        journeys={data.journeys}
-        signups={data.signups}
-        error={data.error}
-      />
+      <AnalyticsLoader />
     </Suspense>
   );
 }

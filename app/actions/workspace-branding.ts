@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -58,7 +57,6 @@ export async function saveWorkspaceLogo(params: {
       },
     });
 
-    revalidatePath('/', 'layout');
     return { ok: true };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
