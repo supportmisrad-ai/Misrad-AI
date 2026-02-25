@@ -102,7 +102,14 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
         const token = await resolve();
         const headers = new Headers(init?.headers);
         if (token && String(token).length > 0) {
-          assertClerkSupabaseJwtHasOrganizationId(String(token), 'browser_client_with_clerk');
+          // Skip organization_id assertion for storage operations (presigned URL
+          // uploads/downloads) — the signed token already grants access and RLS
+          // is not involved for storage endpoints.
+          const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.href : '';
+          const isStorageOp = urlStr.includes('/storage/') || urlStr.includes('/object/');
+          if (!isStorageOp) {
+            assertClerkSupabaseJwtHasOrganizationId(String(token), 'browser_client_with_clerk');
+          }
           headers.set('Authorization', `Bearer ${token}`);
         }
         return fetch(input, { ...init, headers });

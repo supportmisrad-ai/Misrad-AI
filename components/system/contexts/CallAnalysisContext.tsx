@@ -278,6 +278,9 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
+  // Threshold: files above 4MB go through presigned upload to avoid Vercel's body size limit
+  const DIRECT_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
+
   const startAnalysis = async (file: File) => {
     const audioUrl = URL.createObjectURL(file);
     abortControllerRef.current = new AbortController();
@@ -296,16 +299,85 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         throw new Error('חסר orgSlug בכתובת. נסה לרענן את הדף.');
       }
 
-      setState((prev) => ({ ...prev, progress: 25, currentStep: 'מעלה קובץ לתמלול...' }));
+      setState((prev) => ({ ...prev, progress: 15, currentStep: 'מעלה קובץ לתמלול...' }));
 
-      const fd = new FormData();
-      fd.append('file', file);
+      let transcribeRes: Response;
 
-      const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
-        method: 'POST',
-        body: fd,
-        signal: abortControllerRef.current?.signal,
-      });
+      if (file.size > DIRECT_UPLOAD_THRESHOLD) {
+        // Large file: upload to Supabase Storage via presigned URL, then transcribe from storage
+        const uploadUrlRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/upload-url`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            mimeType: file.type || '',
+            fileSize: file.size,
+          }),
+          signal: abortControllerRef.current?.signal,
+        });
+
+        if (!uploadUrlRes.ok) {
+          const errJson = (await uploadUrlRes.json().catch(() => ({}))) as unknown;
+          const msg = getStringProp(asObject(errJson), 'error') ?? '';
+          throw new Error(msg || 'שגיאה בהכנת ההעלאה');
+        }
+
+        const uploadUrlJson = asObject(await uploadUrlRes.json()) ?? {};
+        const dataObj = asObject(uploadUrlJson.data) ?? uploadUrlJson;
+        const bucket = String(dataObj.bucket || '');
+        const storagePath = String(dataObj.path || '');
+        const signedUrl = String(dataObj.signedUrl || '');
+        const token = String(dataObj.token || '');
+        const mimeType = String(dataObj.mimeType || file.type || '');
+
+        if (!signedUrl || !token || !storagePath) {
+          throw new Error('שגיאה בקבלת קישור העלאה');
+        }
+
+        setState((prev) => ({ ...prev, progress: 25, currentStep: 'מעלה קובץ לאחסון מאובטח...' }));
+
+        // Upload directly to Supabase Storage (bypasses Vercel's 4.5MB limit)
+        const uploadRes = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+            'x-upsert': 'false',
+          },
+          body: file,
+          signal: abortControllerRef.current?.signal,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('שגיאה בהעלאת הקובץ לאחסון');
+        }
+
+        setState((prev) => ({ ...prev, progress: 40, currentStep: 'מתמלל את ההקלטה...' }));
+
+        // Now call transcribe with the storage path
+        transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            bucket,
+            path: storagePath,
+            mimeType,
+            fileName: file.name,
+          }),
+          signal: abortControllerRef.current?.signal,
+        });
+      } else {
+        // Small file: direct FormData upload
+        setState((prev) => ({ ...prev, progress: 25, currentStep: 'מתמלל את ההקלטה...' }));
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
+          method: 'POST',
+          body: fd,
+          signal: abortControllerRef.current?.signal,
+        });
+      }
 
       if (transcribeRes.status === 402) {
         const { outputsCount, savedHours } = inferSocialProof(history);
@@ -321,7 +393,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       const transcribeJson = (await transcribeRes.json()) as unknown;
-      const transcriptText = String(getStringProp(asObject(transcribeJson), 'transcriptText') ?? '').trim();
+      const transcribeData = asObject(asObject(transcribeJson)?.data) ?? asObject(transcribeJson) ?? {};
+      const transcriptText = String(getStringProp(transcribeData, 'transcriptText') ?? '').trim();
       if (!transcriptText) {
         throw new Error('תמלול ריק');
       }

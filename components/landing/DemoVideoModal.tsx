@@ -94,21 +94,13 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-end">
+            <div className="flex justify-end">
               <button
                 onClick={onClose}
                 className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all"
               >
                 סגור
               </button>
-              {!demoVideoUrl && (
-                <button
-                  onClick={handleWatchDemo}
-                  className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold transition-all"
-                >
-                  הצצה לפיצ׳רים
-                </button>
-              )}
             </div>
           </motion.div>
         </div>

@@ -336,12 +336,19 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
             return;
           }
 
-          const fd = new FormData();
-          fd.append('file', file);
+          // Use the storage path to transcribe (avoids Vercel's 4.5MB body limit)
+          const audioPath = String(uploadRes.path || '').trim();
+          const audioBucket = 'bucket' in uploadRes ? String((uploadRes as { bucket: string }).bucket || 'call-recordings') : 'call-recordings';
 
           const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
             method: 'POST',
-            body: fd,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              bucket: audioBucket,
+              path: audioPath,
+              mimeType: file.type || '',
+              fileName: file.name,
+            }),
           });
 
           if (!transcribeRes.ok) {

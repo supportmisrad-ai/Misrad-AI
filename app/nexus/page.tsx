@@ -17,15 +17,16 @@ export default function NexusMarketingPage() {
       <Navbar />
       <main className="pt-20">
         <section className="relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-slate-200/50 rounded-full blur-[130px] pointer-events-none" />
-          <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-indigo-200/15 rounded-full blur-[160px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-indigo-200/40 rounded-full blur-[130px] pointer-events-none" />
+          <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-purple-200/25 rounded-full blur-[160px] pointer-events-none" />
           <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 relative">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold shadow-sm">
               <span>{getModuleLabelHe('nexus')}</span>
+              <span className="text-[10px] text-indigo-400 font-bold">Nexus</span>
             </div>
             <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
               {getModuleLabelHe('nexus')}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
                 חדר המנהלים שלך
               </span>
             </h1>
@@ -46,7 +47,7 @@ export default function NexusMarketingPage() {
                 <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
                   <Target size={24} className="text-slate-700" />
                 </div>
-                <div className="text-xs font-black text-slate-500">Sales Pipeline</div>
+                <div className="text-xs font-black text-indigo-500">צינור מכירות</div>
                 <div className="mt-2 text-lg font-black">מעקב מכירות מתקדם</div>
                 <div className="mt-2 text-sm text-slate-600">8 שלבים מוגדרים, דשבורד מכירות, יעדים וביצועים.</div>
               </div>
@@ -54,7 +55,7 @@ export default function NexusMarketingPage() {
                 <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
                   <Lightbulb size={24} className="text-slate-700" />
                 </div>
-                <div className="text-xs font-black text-slate-500">Intelligence</div>
+                <div className="text-xs font-black text-indigo-500">תובנות AI</div>
                 <div className="mt-2 text-lg font-black">תובנות עסקיות</div>
                 <div className="mt-2 text-sm text-slate-600">ניתוח נתונים, זיהוי מגמות, והמלצות אסטרטגיות.</div>
               </div>
@@ -87,7 +88,7 @@ export default function NexusMarketingPage() {
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/login?mode=sign-up&redirect=/workspaces/onboarding"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-xl shadow-indigo-500/20 hover:from-indigo-500 hover:to-purple-500 transition-all"
               >
                 התחל חינם
               </Link>
@@ -103,7 +104,7 @@ export default function NexusMarketingPage() {
               כמה זה עולה?
             </h2>
             <p className="text-lg text-slate-600 mb-6 max-w-2xl mx-auto">
-              Nexus כלול בכל החבילות מלבד Solo. מתחיל מ-₪249/חודש בחבילת מכירות.
+              Nexus כלול בכל החבילות מלבד מודול בודד. מתחיל מ-₪249/חודש בחבילת מכירות.
             </p>
             <div className="flex flex-wrap justify-center gap-4 mb-8">
               <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
@@ -113,7 +114,7 @@ export default function NexusMarketingPage() {
               <div className="bg-white border-2 border-indigo-200 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
                 <div className="text-xs font-bold text-indigo-600 mb-1">חבילת מכירות</div>
                 <div className="text-2xl font-black text-indigo-700">₪249<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
-                <div className="text-[10px] text-slate-500 mt-1">System + Nexus</div>
+                <div className="text-[10px] text-slate-500 mt-1">מכירות + ניהול</div>
               </div>
               <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
                 <div className="text-xs font-bold text-slate-500 mb-1">הכל כלול</div>

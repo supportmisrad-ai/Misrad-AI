@@ -118,12 +118,12 @@ export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
                             מוצרים
                         </h4>
                         <ul className="space-y-3 text-sm">
-                            <li><Link href="/system" className={linkClasses}>ניהול עסק<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/nexus" className={linkClasses}>נקסוס<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-authority" className={linkClasses}>שיווק ומיתוג<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/client" className={linkClasses}>פורטל לקוחות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/finance-landing" className={linkClasses}>פיננסים<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/operations" className={linkClasses}>תפעול<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/system" className={linkClasses}><span>מכירות ולידים</span><span className="text-[10px] text-slate-600 mr-1">System</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/nexus" className={linkClasses}><span>ניהול וצוות</span><span className="text-[10px] text-slate-600 mr-1">Nexus</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-authority" className={linkClasses}><span>שיווק ומיתוג</span><span className="text-[10px] text-slate-600 mr-1">Social</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/client" className={linkClasses}><span>לקוחות ומתאמנים</span><span className="text-[10px] text-slate-600 mr-1">Client</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/finance-landing" className={linkClasses}><span>כספים</span><span className="text-[10px] text-slate-600 mr-1">Finance</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/operations" className={linkClasses}><span>תפעול ושטח</span><span className="text-[10px] text-slate-600 mr-1">Operations</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                         </ul>
                     </div>
 

@@ -493,12 +493,16 @@ const LeadModal: React.FC<LeadModalProps> = ({
       const audioBucket = String(uploadRes.bucket || '').trim();
       const audioSignedUrl = String(uploadRes.signedUrl || '').trim();
 
-      const fd = new FormData();
-      fd.append('file', file);
-
+      // Use the storage path to transcribe (avoids Vercel's 4.5MB body limit)
       const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
         method: 'POST',
-        body: fd,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          bucket: audioBucket || 'call-recordings',
+          path: audioPath,
+          mimeType: file.type || '',
+          fileName: file.name,
+        }),
       });
 
       if (transcribeRes.status === 402) {

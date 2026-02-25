@@ -34,6 +34,20 @@
       "schedule": "0 9 * * *"
     }
   ],
+  "functions": {
+    "app/api/workspaces/*/system/call-analyzer/transcribe/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/workspaces/*/system/call-analyzer/suggest/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/workspaces/*/ai/transcribe/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/client-os/meetings/process/route.ts": {
+      "maxDuration": 120
+    }
+  },
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",

@@ -266,20 +266,21 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                 <div className="absolute top-full right-0 pt-2 z-50">
                                     <div className="w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-200/80 overflow-hidden py-1">
                                         {[
-                                            { label: 'ניהול מכירות ולידים', href: '/system' },
-                                            { label: 'ניהול משימות וצוות', href: '/nexus' },
-                                            { label: 'ניהול לקוחות', href: '/client' },
-                                            { label: 'שיווק ומיתוג', href: '/the-authority' },
-                                            { label: 'תפעול ושטח', href: '/operations' },
-                                            { label: 'פיננסים', href: '/finance-landing' },
+                                            { label: 'ניהול מכירות ולידים', en: 'System', href: '/system' },
+                                            { label: 'ניהול משימות וצוות', en: 'Nexus', href: '/nexus' },
+                                            { label: 'ניהול לקוחות', en: 'Client', href: '/client' },
+                                            { label: 'שיווק ומיתוג', en: 'Social', href: '/the-authority' },
+                                            { label: 'תפעול ושטח', en: 'Operations', href: '/operations' },
+                                            { label: 'כספים', en: 'Finance', href: '/finance-landing' },
                                         ].map((item) => (
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
                                                 onClick={() => setIsModulesOpen(false)}
-                                                className="block w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                                className="flex items-center justify-between w-full text-right px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                                             >
-                                                {item.label}
+                                                <span className="text-[10px] text-slate-400 font-bold">{item.en}</span>
+                                                <span>{item.label}</span>
                                             </Link>
                                         ))}
                                     </div>
@@ -396,11 +397,11 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                         >
                             <div className="p-6 space-y-4 flex flex-col">
                                 <div className="text-xs font-black text-slate-500 uppercase tracking-wider">מודולים</div>
-                                <Link onClick={() => setIsMenuOpen(false)} href="/system" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול מכירות ולידים</Link>
-                                <Link onClick={() => setIsMenuOpen(false)} href="/nexus" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול משימות וצוות</Link>
-                                <Link onClick={() => setIsMenuOpen(false)} href="/client" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">ניהול לקוחות</Link>
-                                <Link onClick={() => setIsMenuOpen(false)} href="/operations" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">תפעול ושטח</Link>
-                                <Link onClick={() => setIsMenuOpen(false)} href="/finance-landing" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">פיננסים</Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/system" className="flex items-center justify-between text-lg font-medium text-slate-700 hover:text-indigo-600 transition-colors"><span className="text-xs text-slate-400 font-bold">System</span><span>ניהול מכירות ולידים</span></Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/nexus" className="flex items-center justify-between text-lg font-medium text-slate-700 hover:text-indigo-600 transition-colors"><span className="text-xs text-slate-400 font-bold">Nexus</span><span>ניהול משימות וצוות</span></Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/client" className="flex items-center justify-between text-lg font-medium text-slate-700 hover:text-indigo-600 transition-colors"><span className="text-xs text-slate-400 font-bold">Client</span><span>ניהול לקוחות</span></Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/operations" className="flex items-center justify-between text-lg font-medium text-slate-700 hover:text-indigo-600 transition-colors"><span className="text-xs text-slate-400 font-bold">Operations</span><span>תפעול ושטח</span></Link>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/finance-landing" className="flex items-center justify-between text-lg font-medium text-slate-700 hover:text-indigo-600 transition-colors"><span className="text-xs text-slate-400 font-bold">Finance</span><span>כספים</span></Link>
                                 <div className="h-px bg-slate-200 my-2"></div>
                                 <div className="text-xs font-black text-slate-500 uppercase tracking-wider">חבילות</div>
                                 <Link onClick={() => setIsMenuOpen(false)} href="/the-closer" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת מכירות</Link>

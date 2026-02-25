@@ -85,7 +85,7 @@ export default function ClientOSPage() {
                 <Calendar size={14} /> Google Calendar
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
-                <Users size={14} /> Groups Management
+                <Users size={14} /> ניהול קבוצות
               </div>
             </div>
 
