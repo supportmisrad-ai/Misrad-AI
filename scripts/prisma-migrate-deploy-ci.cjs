@@ -90,26 +90,54 @@ function main() {
   console.log(`[CI] Schema: ${schemaPath}`);
   console.log(`[CI] DB URL exists: ${!!dbUrl}`);
 
+  const migrateEnv = {
+    ...process.env,
+    DATABASE_URL: shouldForceDirect ? directUrl : process.env.DATABASE_URL,
+  };
+
   try {
-    cp.execFileSync(prismaBin, ['migrate', 'deploy', '--schema', schemaPath], {
+    const result = cp.execFileSync(prismaBin, ['migrate', 'deploy', '--schema', schemaPath], {
       cwd: repoRoot,
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        DATABASE_URL: shouldForceDirect ? directUrl : process.env.DATABASE_URL,
-      },
+      stdio: 'pipe',
+      env: migrateEnv,
     });
+    if (result) console.log(result.toString());
     console.log('[CI] ✅ Prisma migrate deploy completed successfully');
   } catch (err) {
-    console.error('[CI] ❌ Prisma migrate deploy failed');
-    console.error('[CI] Error details:', {
-      message: err.message,
-      status: err.status,
-      signal: err.signal,
-      stdout: err.stdout ? err.stdout.toString() : null,
-      stderr: err.stderr ? err.stderr.toString() : null,
-    });
-    throw err;
+    const stdout = err.stdout ? err.stdout.toString() : '';
+    const stderr = err.stderr ? err.stderr.toString() : '';
+    const errOutput = [err.message, stdout, stderr].join(' ');
+    if (stdout) console.log(stdout);
+    if (stderr) console.error(stderr);
+    const isSchemaNotEmpty = errOutput.includes('P3005') || errOutput.includes('not empty');
+
+    if (isSchemaNotEmpty && isCi) {
+      console.log('[CI] ⚠️  P3005: Schema not empty (db push already ran). Baselining migrations...');
+      for (const mig of migrationFiles) {
+        try {
+          cp.execFileSync(prismaBin, ['migrate', 'resolve', '--applied', mig, '--schema', schemaPath], {
+            cwd: repoRoot,
+            stdio: 'inherit',
+            env: migrateEnv,
+          });
+          console.log(`[CI] ✅ Baselined migration: ${mig}`);
+        } catch (resolveErr) {
+          console.error(`[CI] ❌ Failed to baseline migration: ${mig}`, resolveErr.message);
+          throw resolveErr;
+        }
+      }
+      console.log('[CI] ✅ All migrations baselined successfully');
+    } else {
+      console.error('[CI] ❌ Prisma migrate deploy failed');
+      console.error('[CI] Error details:', {
+        message: err.message,
+        status: err.status,
+        signal: err.signal,
+        stdout: err.stdout ? err.stdout.toString() : null,
+        stderr: err.stderr ? err.stderr.toString() : null,
+      });
+      throw err;
+    }
   }
 }
 
