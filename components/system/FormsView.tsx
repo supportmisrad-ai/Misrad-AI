@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useTransition } from 'react';
 import {
-  FileInput, Plus, Trash2, Layout, ToggleLeft, ToggleRight, X
+  FileInput, Plus, Trash2, Layout, ToggleLeft, ToggleRight, X,
+  Copy, Check, Share2, ExternalLink,
 } from 'lucide-react';
 import type { SystemFormDTO } from '@/app/actions/system-forms';
 
@@ -28,6 +29,24 @@ const FormsView: React.FC<FormsViewProps> = ({
   const [forms, setForms] = useState<SystemFormDTO[]>(initialForms);
   const [showCreate, setShowCreate] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [copiedLeadLink, setCopiedLeadLink] = useState(false);
+
+  const leadFormUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/lead/${orgSlug}`
+    : `/lead/${orgSlug}`;
+
+  const handleCopyLeadLink = () => {
+    navigator.clipboard.writeText(leadFormUrl).then(() => {
+      setCopiedLeadLink(true);
+      setTimeout(() => setCopiedLeadLink(false), 2500);
+    });
+  };
+
+  const showFeedback = (type: 'success' | 'error', text: string) => {
+    setFeedback({ type, text });
+    setTimeout(() => setFeedback(null), 4000);
+  };
 
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -53,6 +72,9 @@ const FormsView: React.FC<FormsViewProps> = ({
           steps_count: 0,
         }, ...prev]);
         setNewTitle(''); setNewDesc(''); setNewCategory('ONBOARDING'); setShowCreate(false);
+        showFeedback('success', `הטופס "${newTitle.trim()}" נוצר בהצלחה`);
+      } else {
+        showFeedback('error', result.error || 'שגיאה ביצירת הטופס — נסה שוב');
       }
     });
   }, [newTitle, newDesc, newCategory, orgSlug, createFormAction]);
@@ -63,6 +85,9 @@ const FormsView: React.FC<FormsViewProps> = ({
       const result = await toggleActiveAction(orgSlug, formId, !currentActive);
       if (!result.error) {
         setForms((prev) => prev.map((f) => f.id === formId ? { ...f, is_active: !currentActive } : f));
+        showFeedback('success', !currentActive ? 'הטופס הופעל' : 'הטופס הושבת');
+      } else {
+        showFeedback('error', result.error || 'שגיאה בעדכון הטופס');
       }
     });
   }, [orgSlug, toggleActiveAction]);
@@ -73,6 +98,9 @@ const FormsView: React.FC<FormsViewProps> = ({
       const result = await deleteFormAction(orgSlug, formId);
       if (!result.error) {
         setForms((prev) => prev.filter((f) => f.id !== formId));
+        showFeedback('success', 'הטופס נמחק');
+      } else {
+        showFeedback('error', result.error || 'שגיאה במחיקת הטופס');
       }
     });
   }, [orgSlug, deleteFormAction]);
@@ -95,6 +123,65 @@ const FormsView: React.FC<FormsViewProps> = ({
           <Plus size={16} /> טופס חדש
         </button>
       </div>
+
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-bold transition-all animate-fade-in ${
+          feedback.type === 'success'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+            : 'border-red-200 bg-red-50 text-red-800'
+        }`}>
+          {feedback.text}
+        </div>
+      )}
+
+      {/* Lead Capture Form Banner */}
+      {orgSlug && (
+        <div className="mb-6 bg-gradient-to-l from-indigo-50 via-white to-indigo-50 rounded-2xl border border-indigo-100 p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <Share2 size={20} className="text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900">טופס לידים ציבורי</h3>
+                <p className="text-xs text-slate-500 mt-0.5">לינק ייחודי לשיתוף — לידים נכנסים ישר למערכת</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-initial bg-white rounded-lg border border-slate-200 px-3 py-2 flex items-center gap-2 min-w-0">
+                <input
+                  type="text"
+                  value={leadFormUrl}
+                  readOnly
+                  dir="ltr"
+                  className="flex-1 bg-transparent text-xs text-slate-600 font-mono outline-none truncate min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLeadLink}
+                  className={`flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    copiedLeadLink
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  {copiedLeadLink ? <><Check size={12} /> הועתק!</> : <><Copy size={12} /> העתק</>}
+                </button>
+              </div>
+              <a
+                href={leadFormUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 p-2.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                title="פתח טופס בלשונית חדשה"
+              >
+                <ExternalLink size={16} />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -149,7 +236,7 @@ const FormsView: React.FC<FormsViewProps> = ({
             <FileInput size={36} className="text-rose-400" />
           </div>
           <h3 className="text-xl font-black text-slate-800 mb-2">אין טפסים עדיין</h3>
-          <p className="text-slate-500 text-sm max-w-md mb-6">צור את הטופס הראשון שלך כדי להתחיל לאסוף לידים ופניות</p>
+          <p className="text-slate-500 text-sm max-w-md mb-6">צור תבניות טפסים פנימיים — אונבורדינג, פידבק, סקרים ועוד</p>
           <button onClick={() => setShowCreate(true)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/20 hover:bg-slate-800 transition-all flex items-center gap-2" type="button">
             <Plus size={16} /> צור טופס ראשון
           </button>
