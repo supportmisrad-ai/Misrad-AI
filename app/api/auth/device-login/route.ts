@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/server/workspace-access/utils';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +13,7 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'Kiosk pairing is not configured' }, { status: 500 });
   }
   const header = request.headers.get('x-kiosk-secret');
-  if (header !== pairingSecret) {
+  if (!header || !timingSafeCompare(header, pairingSecret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

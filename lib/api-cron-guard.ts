@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 function isAuthorized(req: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
+
   const headerSecret = req.headers.get('x-cron-secret');
-  if (headerSecret && headerSecret === process.env.CRON_SECRET) return true;
+  if (headerSecret && timingSafeCompare(headerSecret, cronSecret)) return true;
 
   const authHeader = req.headers.get('authorization');
-  if (authHeader && process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (timingSafeCompare(token, cronSecret)) return true;
+  }
 
   return false;
 }

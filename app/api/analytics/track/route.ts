@@ -74,9 +74,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'missing fields' }, { status: 400 });
     }
 
-    // Input length guards
-    if (body.visitor_id.length > 128 || (body.session_id && body.session_id.length > 128)) {
+    // Input length guards — prevent storing arbitrarily long strings
+    const MAX_ID = 128;
+    const MAX_SHORT = 256;
+    const MAX_MEDIUM = 1024;
+    if (body.visitor_id.length > MAX_ID || (body.session_id && body.session_id.length > MAX_ID)) {
       return NextResponse.json({ ok: false, error: 'invalid id length' }, { status: 400 });
+    }
+    if ((body.pageview_id && body.pageview_id.length > MAX_ID) ||
+        (body.signup_user_id && body.signup_user_id.length > MAX_ID)) {
+      return NextResponse.json({ ok: false, error: 'invalid id length' }, { status: 400 });
+    }
+    if ((body.path && body.path.length > MAX_MEDIUM) ||
+        (body.landing_page && body.landing_page.length > MAX_MEDIUM) ||
+        (body.referrer && body.referrer.length > MAX_MEDIUM) ||
+        (body.referrer_page && body.referrer_page.length > MAX_MEDIUM) ||
+        (body.page_path && body.page_path.length > MAX_MEDIUM)) {
+      return NextResponse.json({ ok: false, error: 'field too long' }, { status: 400 });
+    }
+    if ((body.title && body.title.length > MAX_SHORT) ||
+        (body.utm_source && body.utm_source.length > MAX_SHORT) ||
+        (body.utm_medium && body.utm_medium.length > MAX_SHORT) ||
+        (body.utm_campaign && body.utm_campaign.length > MAX_SHORT) ||
+        (body.device_type && body.device_type.length > MAX_SHORT) ||
+        (body.browser && body.browser.length > MAX_SHORT) ||
+        (body.os && body.os.length > MAX_SHORT) ||
+        (body.event_type && body.event_type.length > MAX_SHORT)) {
+      return NextResponse.json({ ok: false, error: 'field too long' }, { status: 400 });
+    }
+    // Limit event_data JSON size
+    if (body.event_data && JSON.stringify(body.event_data).length > 4096) {
+      return NextResponse.json({ ok: false, error: 'event_data too large' }, { status: 400 });
     }
 
     if (body.type === 'session') {

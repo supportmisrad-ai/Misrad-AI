@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { blockE2eInProduction } from '@/lib/api-e2e-guard';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 import prisma from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
     const expected = process.env.E2E_API_KEY;
     const provided = req.headers.get('x-e2e-key');
 
-    if (!expected || !provided || provided !== expected) {
+    if (!expected || !provided || !timingSafeCompare(provided, expected)) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 

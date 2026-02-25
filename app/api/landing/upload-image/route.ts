@@ -6,6 +6,18 @@ import { getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown'
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+]);
+const ALLOWED_VIDEO_TYPES = new Set([
+  'video/mp4', 'video/webm', 'video/quicktime',
+]);
+const ALLOWED_EXTENSIONS = new Set([
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mov',
+]);
+
 export async function POST(request: NextRequest) {
   try {
     await requireSuperAdmin();
@@ -24,9 +36,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // File size validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB` },
+        { status: 413 }
+      );
+    }
+
+    // File type validation
+    const allowedTypes = type === 'video' ? ALLOWED_VIDEO_TYPES : ALLOWED_IMAGE_TYPES;
+    if (!allowedTypes.has(file.type)) {
+      return NextResponse.json(
+        { error: 'File type not allowed' },
+        { status: 400 }
+      );
+    }
+
+    // Extension validation (defense-in-depth)
+    const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+    if (!fileExt || !ALLOWED_EXTENSIONS.has(fileExt)) {
+      return NextResponse.json(
+        { error: 'File extension not allowed' },
+        { status: 400 }
+      );
+    }
+
     const supabase = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'landing_upload_public_assets' });
     
-    const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const folder = type === 'video' ? 'videos' : type === 'cover' ? 'covers' : 'images';
     const filePath = `landing/${folder}/${fileName}`;

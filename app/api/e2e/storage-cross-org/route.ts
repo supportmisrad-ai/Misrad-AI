@@ -4,6 +4,7 @@ import { blockE2eInProduction } from '@/lib/api-e2e-guard';
 import { randomBytes } from 'crypto';
 import { createClient, createServiceRoleClient } from '@/lib/supabase';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     const expectedKey = process.env.E2E_API_KEY;
     const providedKey = req.headers.get('x-e2e-key');
 
-    if (!expectedKey || !providedKey || providedKey !== expectedKey) {
+    if (!expectedKey || !providedKey || !timingSafeCompare(providedKey, expectedKey)) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 

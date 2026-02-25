@@ -85,6 +85,15 @@ async function updatePreference(profileId: string, currentPrefs: unknown, prefKe
     });
 }
 
+function escapeHtml(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function prefLabel(pref: string): string {
     const labels: Record<string, string> = {
         marketing_newsletter: 'ניוזלטר',
@@ -102,10 +111,12 @@ function prefLabel(pref: string): string {
         support_surveys: 'סקרי שביעות רצון',
         support_admin_notifications: 'התראות תמיכה לאדמין',
     };
-    return labels[pref] || pref;
+    return labels[pref] || escapeHtml(pref);
 }
 
-function renderPage(title: string, message: string, success: boolean): NextResponse {
+function renderPage(rawTitle: string, rawMessage: string, success: boolean): NextResponse {
+    const title = escapeHtml(rawTitle);
+    const message = escapeHtml(rawMessage);
     const founderPhotoUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://misrad-ai.com'}/icons/founder-avatar.png`;
     const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://misrad-ai.com'}/icons/misrad-icon-192.png`;
 

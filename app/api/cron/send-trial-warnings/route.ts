@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/server/logger';
 import { sendTrialExpiryWarnings } from '@/lib/services/check-expired-trials';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 /**
  * Cron Job API Route: Send trial expiry warning emails
@@ -48,9 +49,9 @@ async function handler(request: NextRequest) {
       );
     }
 
-    // Verify Bearer token
+    // Verify Bearer token (timing-safe)
     const token = authHeader.replace('Bearer ', '').trim();
-    if (token !== cronSecret) {
+    if (!timingSafeCompare(token, cronSecret)) {
       logger.warn('send-trial-warnings-cron', 'Unauthorized attempt - invalid token');
       return NextResponse.json(
         { error: 'Unauthorized - invalid token' },

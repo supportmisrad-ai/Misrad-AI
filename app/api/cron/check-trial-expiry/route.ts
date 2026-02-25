@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/server/logger';
 import { checkAndDisableExpiredOrganizations } from '@/lib/services/check-expired-trials';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 /**
  * Cron Job API Route: Check and disable expired trials
@@ -48,9 +49,9 @@ async function handler(request: NextRequest) {
       );
     }
 
-    // Verify Bearer token
+    // Verify Bearer token (timing-safe)
     const token = authHeader.replace('Bearer ', '').trim();
-    if (token !== cronSecret) {
+    if (!timingSafeCompare(token, cronSecret)) {
       logger.warn('check-trial-expiry-cron', 'Unauthorized attempt - invalid token');
       return NextResponse.json(
         { error: 'Unauthorized - invalid token' },

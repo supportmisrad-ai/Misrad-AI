@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 const BLASTER_SECRET = process.env.BLASTER_WEBHOOK_SECRET;
 
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
   if (BLASTER_SECRET) {
     const authHeader = req.headers.get('x-webhook-secret') ?? '';
-    if (authHeader !== BLASTER_SECRET) {
+    if (!timingSafeCompare(authHeader, BLASTER_SECRET)) {
       return json({ error: 'Unauthorized' }, 401);
     }
   }

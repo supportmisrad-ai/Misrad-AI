@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { timingSafeCompare } from '@/lib/server/timing-safe';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     const expected = process.env.E2E_API_KEY;
     const provided = req.headers.get('x-e2e-key');
 
-    if (!expected || !provided || provided !== expected) {
+    if (!expected || !provided || !timingSafeCompare(provided, expected)) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
