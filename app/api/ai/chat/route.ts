@@ -1,24 +1,28 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { createHash } from 'crypto';
-import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { logAuditEvent } from '@/lib/audit';
 import { AIService } from '@/lib/services/ai/AIService';
 import prisma from '@/lib/prisma';
-import { APIError, getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { OpenAIProvider } from '@/lib/services/ai/providers/OpenAIProvider';
 import { GeminiProvider } from '@/lib/services/ai/providers/GeminiProvider';
 import { queryRawOrgScoped } from '@/lib/prisma';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 import { MisradInvoiceStatus, Prisma } from '@prisma/client';
-
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
-
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
+import {
+  type CachedChatResponse,
+  stableHash,
+  cacheGet,
+  cacheSet,
+  inflightByKey,
+  withStatus,
+  withLoadIsolation,
+} from './chat-cache';
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export const runtime = 'nodejs';
@@ -36,37 +40,11 @@ const HARD_LIMITS = {
   maxToneOverrideChars: 400,
 };
 
-const CACHE_TTL_MS = 30_000;
-const MAX_CACHE_ENTRIES = 400;
-
-type CachedChatResponse = {
-  text: string;
-  provider?: string | null;
-  model?: string | null;
-  chargedCents?: number | null;
-  memory?: Array<{ docKey: string; similarity: number; chunkIndex: number; content: string; metadata: unknown }>;
-};
-
-type CacheEntry = { expiresAt: number; value: CachedChatResponse };
-
-type _ChatGlobalCaches = typeof globalThis & {
-  __MISRAD_AI_CHAT_RESPONSE_CACHE__?: Map<string, CacheEntry>;
-  __MISRAD_AI_CHAT_INFLIGHT__?: Map<string, Promise<CachedChatResponse>>;
-  __MISRAD_AI_CHAT_LOCAL_ORG_INFLIGHT__?: Map<string, number>;
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 type ErrorWithStatus = Error & { status?: number; retryAfterSeconds?: number; name?: string };
-
-function withStatus(err: Error, status: number, retryAfterSeconds?: number): ErrorWithStatus {
-  const e = err as ErrorWithStatus;
-  e.status = status;
-  if (typeof retryAfterSeconds === 'number') e.retryAfterSeconds = retryAfterSeconds;
-  return e;
-}
 
 function getErrorStatus(e: unknown): number | null {
   if (!e) return null;
@@ -85,99 +63,6 @@ function getErrorName(e: unknown): string {
   if (e instanceof Error && typeof e.name === 'string') return e.name;
   if (isRecord(e) && typeof e.name === 'string') return e.name;
   return '';
-}
-
-
-
-const _g = globalThis as _ChatGlobalCaches;
-
-const responseCache: Map<string, CacheEntry> =
-  _g.__MISRAD_AI_CHAT_RESPONSE_CACHE__ || (_g.__MISRAD_AI_CHAT_RESPONSE_CACHE__ = new Map());
-
-const inflightByKey: Map<string, Promise<CachedChatResponse>> =
-  _g.__MISRAD_AI_CHAT_INFLIGHT__ || (_g.__MISRAD_AI_CHAT_INFLIGHT__ = new Map());
-
-const localOrgInFlight: Map<string, number> =
-  _g.__MISRAD_AI_CHAT_LOCAL_ORG_INFLIGHT__ || (_g.__MISRAD_AI_CHAT_LOCAL_ORG_INFLIGHT__ = new Map());
-
-function stableHash(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
-}
-
-function getRedisClient() {
-  return getUpstashRedisClient();
-}
-
-function cacheGet(key: string): CachedChatResponse | null {
-  const e = responseCache.get(key);
-  if (!e) return null;
-  if (e.expiresAt <= Date.now()) {
-    responseCache.delete(key);
-    return null;
-  }
-  return e.value;
-}
-
-function cacheSet(key: string, value: CachedChatResponse) {
-  const now = Date.now();
-  responseCache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
-  if (responseCache.size > MAX_CACHE_ENTRIES) {
-    const toDelete = Math.max(1, Math.floor(MAX_CACHE_ENTRIES * 0.1));
-    const keys = [...responseCache.keys()].slice(0, toDelete);
-    for (const k of keys) responseCache.delete(k);
-  }
-}
-
-async function withLoadIsolation<T>(params: { organizationId?: string | null; task: () => Promise<T> }): Promise<T> {
-  const redis = getRedisClient();
-  const ttlMs = 45_000;
-  const maxGlobal = 8;
-  const maxPerOrg = 2;
-
-  const orgId = params.organizationId ? String(params.organizationId) : null;
-
-  const localKey = orgId || '__no_org__';
-  const localCount = localOrgInFlight.get(localKey) ?? 0;
-  if (localCount >= maxPerOrg) {
-    throw withStatus(new Error('Overloaded'), 503, 3);
-  }
-
-  localOrgInFlight.set(localKey, localCount + 1);
-
-  let redisKeys: { globalKey: string; orgKey?: string; acquired: boolean } = { globalKey: '', acquired: false };
-  try {
-    if (redis) {
-      const globalKey = `conc:ai_chat:global`;
-      const orgKey = orgId ? `conc:ai_chat:org:${orgId}` : undefined;
-
-      const globalCount = await redis.incr(globalKey);
-      if (globalCount === 1) await redis.pexpire(globalKey, ttlMs);
-      if (globalCount > maxGlobal) {
-        await redis.decr(globalKey).catch(() => null);
-        throw withStatus(new Error('Overloaded'), 503, 3);
-      }
-
-      if (orgKey) {
-        const orgCount = await redis.incr(orgKey);
-        if (orgCount === 1) await redis.pexpire(orgKey, ttlMs);
-        if (orgCount > maxPerOrg) {
-          await redis.decr(orgKey).catch(() => null);
-          await redis.decr(globalKey).catch(() => null);
-          throw withStatus(new Error('Overloaded'), 503, 3);
-        }
-      }
-
-      redisKeys = { globalKey, orgKey, acquired: true };
-    }
-
-    return await params.task();
-  } finally {
-    localOrgInFlight.set(localKey, Math.max(0, (localOrgInFlight.get(localKey) ?? 1) - 1));
-    if (redis && redisKeys.acquired) {
-      await redis.decr(redisKeys.globalKey).catch(() => null);
-      if (redisKeys.orgKey) await redis.decr(redisKeys.orgKey).catch(() => null);
-    }
-  }
 }
 
 const BodySchema = z
@@ -598,7 +483,7 @@ async function POSTHandler(req: Request) {
           clampText(lastUser || '', 4000),
         ].join('|')
       );
-      const cached = cacheGet(cacheKey);
+      const cached = await cacheGet(cacheKey);
       if (cached) {
         return apiSuccess(
           { ...cached, provider: cached.provider || null, model: cached.model || null, chargedCents: cached.chargedCents ?? 0, memory: [] },
@@ -716,7 +601,7 @@ async function POSTHandler(req: Request) {
       ].join('|')
     );
 
-    const cached = cacheGet(cacheKey);
+    const cached = await cacheGet(cacheKey);
     if (cached) {
       return apiSuccess(cached, {
         headers: {

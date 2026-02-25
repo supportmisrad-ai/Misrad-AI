@@ -1,7 +1,7 @@
 'use server';
 
 import { logger } from '@/lib/server/logger';
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 import { generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { requireAuth } from '@/lib/errorHandler';
@@ -126,7 +126,7 @@ export async function setupCompleteCustomer(input: SetupCustomerInput) {
         suppressReporting: true,
       },
       async () => {
-        return await prisma.$transaction(async (tx) => {
+        return await prismaForInteractiveTransaction().$transaction(async (tx) => {
           // Step 1: Check if business client email already exists
           const existingClient = await tx.businessClient.findUnique({
             where: { primary_email: normalizedBusinessEmail },

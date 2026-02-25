@@ -31,29 +31,14 @@ const HARD_LIMITS = {
   maxTotalMessageChars: 40_000,
 };
 
-const CACHE_TTL_MS = 30_000;
-const MAX_CACHE_ENTRIES = 400;
-
 type CachedChatResponse = {
   text?: string;
   stream?: ReadableStream<Uint8Array>;
 };
 
-type CacheEntry = { expiresAt: number; value: CachedChatResponse };
-
 declare global {
-  var __MISRAD_CHAT_API_RESPONSE_CACHE__: Map<string, CacheEntry> | undefined;
-  var __MISRAD_CHAT_API_INFLIGHT__: Map<string, Promise<CachedChatResponse>> | undefined;
   var __MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__: Map<string, number> | undefined;
 }
-
-const responseCache: Map<string, CacheEntry> =
-  globalThis.__MISRAD_CHAT_API_RESPONSE_CACHE__ ??
-  (globalThis.__MISRAD_CHAT_API_RESPONSE_CACHE__ = new Map<string, CacheEntry>());
-
-const inflightByKey: Map<string, Promise<CachedChatResponse>> =
-  globalThis.__MISRAD_CHAT_API_INFLIGHT__ ??
-  (globalThis.__MISRAD_CHAT_API_INFLIGHT__ = new Map<string, Promise<CachedChatResponse>>());
 
 const localOrgInFlight: Map<string, number> =
   globalThis.__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__ ??
@@ -72,26 +57,6 @@ function stableHash(input: string): string {
 
 function getRedisClient() {
   return getUpstashRedisClient();
-}
-
-function cacheGet(key: string): CachedChatResponse | null {
-  const e = responseCache.get(key);
-  if (!e) return null;
-  if (e.expiresAt <= Date.now()) {
-    responseCache.delete(key);
-    return null;
-  }
-  return e.value;
-}
-
-function cacheSet(key: string, value: CachedChatResponse) {
-  const now = Date.now();
-  responseCache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
-  if (responseCache.size > MAX_CACHE_ENTRIES) {
-    const toDelete = Math.max(1, Math.floor(MAX_CACHE_ENTRIES * 0.1));
-    const keys = [...responseCache.keys()].slice(0, toDelete);
-    for (const k of keys) responseCache.delete(k);
-  }
 }
 
 async function withLoadIsolation<T>(params: { organizationId?: string | null; task: () => Promise<T> }): Promise<T> {

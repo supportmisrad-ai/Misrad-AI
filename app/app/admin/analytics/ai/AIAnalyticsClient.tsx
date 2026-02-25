@@ -175,9 +175,21 @@ export default function AIAnalyticsClient({
 
   if (error && !overview) {
     return (
-      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center">
-        <div className="text-rose-600 font-black text-lg mb-2">שגיאה בטעינת נתונים</div>
-        <div className="text-rose-500 font-bold text-sm">{error}</div>
+      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-12">
+        <div className="flex justify-center mb-4">
+          <div className="p-3 bg-rose-100 rounded-xl">
+            <AlertTriangle size={28} className="text-rose-500" />
+          </div>
+        </div>
+        <div className="text-rose-700 font-black text-lg mb-2">לא ניתן לטעון את הנתונים</div>
+        <div className="text-rose-500/80 font-bold text-sm mb-5 leading-relaxed">אירעה שגיאה בעת טעינת נתוני האנליטיקס. נסה לרענן את הדף.</div>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-sm rounded-xl transition-colors shadow-sm"
+        >
+          רענן דף
+        </button>
       </div>
     );
   }

@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 // ── Types ────────────────────────────────────────────────────────
 
@@ -117,6 +118,9 @@ export async function getAIUsageOverview(days: number = 30): Promise<{
   data?: AIUsageOverview;
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_ai_usage_overview', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -304,6 +308,8 @@ export async function getAIUsageOverview(days: number = 30): Promise<{
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת נתוני שימוש AI');
   }
+    }
+  );
 }
 
 export async function getAIUsageLogs(options: {
@@ -316,6 +322,9 @@ export async function getAIUsageLogs(options: {
   data?: AIUsageLogEntry[];
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_ai_usage_logs', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -370,6 +379,8 @@ export async function getAIUsageLogs(options: {
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת לוגי AI');
   }
+    }
+  );
 }
 
 // ── Customer Analytics Actions ───────────────────────────────────
@@ -379,6 +390,9 @@ export async function getCustomerAnalyticsOverview(days: number = 90): Promise<{
   data?: CustomerAnalyticsOverview;
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_customer_overview', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -567,6 +581,8 @@ export async function getCustomerAnalyticsOverview(days: number = 90): Promise<{
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת נתוני לקוחות');
   }
+    }
+  );
 }
 
 export async function getCustomerActivityList(): Promise<{
@@ -574,6 +590,9 @@ export async function getCustomerActivityList(): Promise<{
   data?: CustomerActivityEntry[];
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_customer_activity', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -661,6 +680,8 @@ export async function getCustomerActivityList(): Promise<{
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת רשימת פעילות לקוחות');
   }
+    }
+  );
 }
 
 // ── Realtime Activity ────────────────────────────────────────────
@@ -678,6 +699,9 @@ export async function getRealtimeActivity(): Promise<{
   data?: RealtimeActivity;
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_realtime_activity', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -800,6 +824,8 @@ export async function getRealtimeActivity(): Promise<{
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת נתוני פעילות בזמן אמת');
   }
+    }
+  );
 }
 
 // ── AI Insights Generator ────────────────────────────────────────
@@ -815,6 +841,9 @@ export async function generateAIInsights(days: number = 30): Promise<{
   data?: AIGeneratedInsight[];
   error?: string;
 }> {
+  return withTenantIsolationContext(
+    { mode: 'global_admin', isSuperAdmin: true, suppressReporting: true, reason: 'admin_analytics_ai_insights', source: 'admin-analytics-ai' },
+    async () => {
   try {
     await ensureAdmin();
 
@@ -1010,4 +1039,6 @@ export async function generateAIInsights(days: number = 30): Promise<{
   } catch (error) {
     return createErrorResponse(error, 'שגיאה ביצירת תובנות AI');
   }
+    }
+  );
 }

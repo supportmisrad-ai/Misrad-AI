@@ -298,6 +298,22 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 }
 
+// ── Module-level constant Sets (hoisted from hot-path functions) ──
+
+const WRITE_ACTIONS = new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany']);
+
+const ACTIONS_REQUIRING_WHERE = new Set([
+  'findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow',
+  'findMany', 'count', 'aggregate', 'groupBy',
+  'update', 'updateMany', 'delete', 'deleteMany', 'upsert',
+]);
+
+const ACTIONS_REQUIRING_DATA = new Set(['create', 'createMany', 'createManyAndReturn', 'upsert']);
+
+const READ_ONLY_ACTIONS = new Set(['findFirst', 'findFirstOrThrow', 'findMany', 'findUnique', 'findUniqueOrThrow', 'count', 'aggregate', 'groupBy']);
+
+const ID_ONLY_ALLOWED_ACTIONS = new Set(['update', 'delete']);
+
 const SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS = new Set<string>([
   'feature_flags',
   'landing_settings',
@@ -326,9 +342,7 @@ function getDirectWhereFieldValue(where: unknown, field: string): unknown {
 }
 
 function isWriteAction(action: string): boolean {
-  return new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany']).has(
-    action
-  );
+  return WRITE_ACTIONS.has(action);
 }
 
 function extractKeyValueFromArgs(action: string, args: Record<string, unknown>, field: string): unknown {
@@ -546,16 +560,14 @@ function enforceSystemSettingsAccess(params: {
 
   if (tenantRaw === undefined) {
     // Allow read-only operations without tenant_id (system_settings is a global-readable table)
-    const readOnlyActions = new Set(['findFirst', 'findFirstOrThrow', 'findMany', 'findUnique', 'findUniqueOrThrow', 'count', 'aggregate', 'groupBy']);
-    if (readOnlyActions.has(action)) {
+    if (READ_ONLY_ACTIONS.has(action)) {
       return;
     }
 
     if (params.isGlobalAdmin) {
       const idRaw = extractKeyValueFromArgs(action, params.args, 'id');
       const id = typeof idRaw === 'string' ? idRaw.trim() : '';
-      const idOnlyAllowedActions = new Set(['update', 'delete']);
-      if (id && idOnlyAllowedActions.has(action)) {
+      if (id && ID_ONLY_ALLOWED_ACTIONS.has(action)) {
         return;
       }
     }
@@ -1027,23 +1039,7 @@ export function installPrismaTenantGuard(
     const where = (args as { where?: unknown }).where;
     const action = params.action;
 
-    const actionsRequiringWhere = new Set([
-      'findUnique',
-      'findUniqueOrThrow',
-      'findFirst',
-      'findFirstOrThrow',
-      'findMany',
-      'count',
-      'aggregate',
-      'groupBy',
-      'update',
-      'updateMany',
-      'delete',
-      'deleteMany',
-      'upsert',
-    ]);
-
-    if (actionsRequiringWhere.has(action)) {
+    if (ACTIONS_REQUIRING_WHERE.has(action)) {
       if (!isGlobalAdmin && req.requiresOrg && !isWhereScoped(where, ORG_KEYS)) {
         if (!expected.organizationId) {
           if (isProfileLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
@@ -1095,8 +1091,7 @@ export function installPrismaTenantGuard(
       }
     }
 
-    const actionsRequiringData = new Set(['create', 'createMany', 'createManyAndReturn', 'upsert']);
-    if (actionsRequiringData.has(action)) {
+    if (ACTIONS_REQUIRING_DATA.has(action)) {
       if (action === 'upsert') {
         if (req.requiresOrg && expected.organizationId && req.orgField) {
           const nextCreate = applyScopeToCreateData({ action: 'create', data: args.create, field: req.orgField, expected: expected.organizationId });

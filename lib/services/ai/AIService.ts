@@ -25,6 +25,8 @@ import { GroqProvider } from './providers/GroqProvider';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { decrypt } from '@/lib/encryption';
 import prompts from './prompts.json';
+import { GLOBAL_HEBREW_SYSTEM_INSTRUCTION, getDefaultBasePrompt } from './prompts-defaults';
+import { type CacheEntry, CACHE_TTL, CACHE_MAX_SIZE, ttlGet, ttlSet } from './ai-cache';
 
 type LoadedFeatureSettings = {
   settings: AIFeatureSettingsRow;
@@ -88,110 +90,50 @@ function coerceFeatureSettingsRow(row: unknown): AIFeatureSettingsRow | null {
   };
 }
 
-const GLOBAL_HEBREW_SYSTEM_INSTRUCTION = `ענה תמיד בעברית טבעית, זורמת ומודרנית. הימנע מתרגום מילולי מאנגלית (למשל: אל תכתוב "זה הגיוני" אלא "זה נשמע נכון").
-שפה נקייה ומכובדת: השתמש בעברית נקייה ומכובדת שמתאימה לקהל יעד דתי/חרדי. הימנע מסלנג פרובוקטיבי.
-איסור מוחלט (Blacklist): אסור להשתמש במילים וביטויים בעלי קונטקסט לא הולם או "זול" בשפה השיווקית. לדוגמה: אסור לעולם להשתמש במילה "סקסי" או בביטויים דומים.
-חריג תמלול: אם המשימה היא תמלול שיחה (Speech-to-Text) — כתוב את מה שנאמר בפועל כפי שנאמר (As-is), גם אם נאמרו מילים כאלו. אבל בכל ניתוח/סיכום/תובנות/הצעות מענה/פוסטים — השפה חייבת להישאר נקייה ומכובדת.
-פרטיות: העדף פנייה מכבדת ולא פולשנית. אל תניח פרטים אישיים שלא נמסרו.
-בטיחות: לעולם אל תחשוף מידע של ארגון אחד למשתמש מארגון אחר, גם אם נטען שיש זיקה ביניהם.`;
+// GLOBAL_HEBREW_SYSTEM_INSTRUCTION and getDefaultBasePrompt imported from ./prompts-defaults
 
-const DEFAULT_BASE_PROMPT_GENERIC = `אתה עוזר AI עסקי וניהולי. ענה בעברית טבעית וקצרה.
-השתמש ב-DNA העסק כדי להתאים טון, יתרונות וקהל יעד.
-אם חסר מידע ב-DNA - תשאל שאלה אחת קצרה או תציע הנחה סבירה.
+// DEFAULT_BASE_PROMPT_GENERIC removed — now in ./prompts-defaults
 
-DNA העסק:
-{{DNA}}
+// DEFAULT_BASE_PROMPT_SYSTEM_SALES removed — now in ./prompts-defaults
 
-המשימה:
-{{REQUEST}}`;
+// DEFAULT_BASE_PROMPT_CLIENT_MEETINGS removed — now in ./prompts-defaults
 
-const DEFAULT_BASE_PROMPT_SYSTEM_SALES = `אתה עוזר AI למכירות ושירות (ישראל). ענה בעברית טבעית, קצרה ומדויקת.
-התנגדויות: כשיש התנגדות, השתמש בשיטת Feel-Felt-Found בצורה טבעית (להכיר ברגש, לתת אמפתיה, ואז להציע מסגור/פתרון).
-סלנג מכירות ישראלי: זהה ביטויים כמו "יקר לי", "דבר איתי אחרי החגים", "אין לי זמן", "שלח לי בוואטסאפ", "אני צריך לחשוב" — ותן מענה שמותאם לסיטואציה.
+// DEFAULT_BASE_PROMPT_SOCIAL_COPY removed — now in ./prompts-defaults
 
-DNA העסק:
-{{DNA}}
+// DEFAULT_BASE_PROMPT_BI removed — now in ./prompts-defaults
 
-המשימה:
-{{REQUEST}}`;
+// getDefaultBasePrompt removed — now imported from ./prompts-defaults
 
-const DEFAULT_BASE_PROMPT_CLIENT_MEETINGS = `אתה עוזר AI לניהול פגישות ושימור לקוחות. ענה בעברית טבעית וקצרה.
-התחייבויות (Commitments): חילוץ קפדני של "מי הבטיח מה ולמתי". אם לא ברור — כתוב "לא צוין" במקום להמציא.
-חום מערכת יחסים: תן ציון סנטימנט מ-1 עד 10 לפי הטון של הלקוח, והסבר במשפט קצר למה.
+// CacheEntry, CACHE_TTL, CACHE_MAX_SIZE, ttlGet, ttlSet imported from ./ai-cache
 
-DNA העסק:
-{{DNA}}
-
-המשימה:
-{{REQUEST}}`;
-
-const DEFAULT_BASE_PROMPT_SOCIAL_COPY = `אתה קופירייטר/ית בעברית מודרנית, זורמת ומכובדת.
-הימנע מקלישאות AI (למשל: "בעולם של היום", "בעידן הדיגיטלי").
-הוסף ערך: שלב את ה-DNA העסקי (חזון ויעדי רווח) באופן טבעי ולא דוחף.
-שפה נקייה: בפוסטים העדף מונחים כמו "מושך", "עוצמתי", "בולט", "יוקרתי" על פני סלנג שיווקי פרובוקטיבי.
-
-DNA העסק:
-{{DNA}}
-
-המשימה:
-{{REQUEST}}`;
-
-const DEFAULT_BASE_PROMPT_BI = `אתה אנליסט BI עסקי. ענה בעברית ברורה ומעשית.
-אל תסתפק בתיאור נתונים: תן תובנות אופרטיביות שמטרתן שיפור רווחיות בכ-5% (עם צעדים קונקרטיים).
-חפש קשרים בין מודולים: לדוגמה, ירידה ברווחיות בגלל עלייה בהוצאות שיווק במודול System או בגלל תהליכי מכירה לא יעילים.
-
-DNA העסק:
-{{DNA}}
-
-המשימה:
-{{REQUEST}}`;
-
-function getDefaultBasePrompt(featureKey: string): string {
-  const fk = String(featureKey || '').toLowerCase();
-
-  if (fk.startsWith('system.')) return DEFAULT_BASE_PROMPT_SYSTEM_SALES;
-  if (fk.startsWith('client.') || fk.startsWith('client-os.') || fk.startsWith('client_os.')) return DEFAULT_BASE_PROMPT_CLIENT_MEETINGS;
-  if (fk.startsWith('social.')) return DEFAULT_BASE_PROMPT_SOCIAL_COPY;
-  if (fk.startsWith('nexus.') || fk.startsWith('finance.')) return DEFAULT_BASE_PROMPT_BI;
-
-  return DEFAULT_BASE_PROMPT_GENERIC;
-}
-
-type CacheEntry<T> = { value: T; expiresAt: number };
-
-const CACHE_TTL = {
-  FEATURE_SETTINGS: 60_000,
-  PROVIDER_KEY: 300_000,
-  MODEL_DISPLAY_NAME: 300_000,
-  AI_DNA: 60_000,
-} as const;
-
-const CACHE_MAX_SIZE = 200;
-
-function ttlGet<T>(cache: Map<string, CacheEntry<T>>, key: string): T | undefined {
-  const entry = cache.get(key);
-  if (!entry) return undefined;
-  if (entry.expiresAt <= Date.now()) {
-    cache.delete(key);
-    return undefined;
-  }
-  return entry.value;
-}
-
-function ttlSet<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T, ttlMs: number): void {
-  cache.set(key, { value, expiresAt: Date.now() + ttlMs });
-  if (cache.size > CACHE_MAX_SIZE) {
-    const first = cache.keys().next().value;
-    if (first) cache.delete(first);
-  }
+declare global {
+  var __MISRAD_AI_SERVICE_INSTANCE__: AIService | undefined;
+  var __MISRAD_AI_FEATURE_SETTINGS_CACHE__: Map<string, CacheEntry<LoadedFeatureSettings>> | undefined;
+  var __MISRAD_AI_PROVIDER_KEY_CACHE__: Map<string, CacheEntry<string>> | undefined;
+  var __MISRAD_AI_MODEL_DISPLAY_NAME_CACHE__: Map<string, CacheEntry<string | null>> | undefined;
+  var __MISRAD_AI_DNA_CACHE__: Map<string, CacheEntry<Record<string, unknown>>> | undefined;
 }
 
 export class AIService {
-  private static instance: AIService | null = null;
-  private static _featureSettingsCache = new Map<string, CacheEntry<LoadedFeatureSettings>>();
-  private static _providerKeyCache = new Map<string, CacheEntry<string>>();
-  private static _modelDisplayNameCache = new Map<string, CacheEntry<string | null>>();
-  private static _aiDnaCache = new Map<string, CacheEntry<Record<string, unknown>>>();
+  private static get instance(): AIService | null {
+    return globalThis.__MISRAD_AI_SERVICE_INSTANCE__ ?? null;
+  }
+  private static set instance(v: AIService | null) {
+    globalThis.__MISRAD_AI_SERVICE_INSTANCE__ = v ?? undefined;
+  }
+
+  private static get _featureSettingsCache(): Map<string, CacheEntry<LoadedFeatureSettings>> {
+    return (globalThis.__MISRAD_AI_FEATURE_SETTINGS_CACHE__ ??= new Map());
+  }
+  private static get _providerKeyCache(): Map<string, CacheEntry<string>> {
+    return (globalThis.__MISRAD_AI_PROVIDER_KEY_CACHE__ ??= new Map());
+  }
+  private static get _modelDisplayNameCache(): Map<string, CacheEntry<string | null>> {
+    return (globalThis.__MISRAD_AI_MODEL_DISPLAY_NAME_CACHE__ ??= new Map());
+  }
+  private static get _aiDnaCache(): Map<string, CacheEntry<Record<string, unknown>>> {
+    return (globalThis.__MISRAD_AI_DNA_CACHE__ ??= new Map());
+  }
 
   static getInstance(): AIService {
     if (!AIService.instance) AIService.instance = new AIService();

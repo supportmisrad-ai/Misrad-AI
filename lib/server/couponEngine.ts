@@ -3,7 +3,7 @@ import 'server-only';
 import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 
-import prisma from '@/lib/prisma';
+import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
 
 type CouponDiscountType = 'PERCENT' | 'FIXED_AMOUNT';
 
@@ -445,7 +445,7 @@ export class CouponEngine {
     clerkUserId?: string | null;
     now?: Date;
   }): Promise<CouponValidationResult> {
-    return await prisma.$transaction(
+    return await prismaForInteractiveTransaction().$transaction(
       async (tx) => {
         return await CouponEngine.applyToSubscriptionOrder({
           orderId: params.orderId,

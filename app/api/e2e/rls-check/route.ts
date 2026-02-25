@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { blockE2eInProduction } from '@/lib/api-e2e-guard';
-import prisma, { executeRawAllowlisted, queryRawAllowlisted } from '@/lib/prisma';
+import prisma, { executeRawAllowlisted, prismaForInteractiveTransaction, queryRawAllowlisted } from '@/lib/prisma';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { timingSafeCompare } from '@/lib/server/timing-safe';
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       other_post_client_id: string | null;
     };
 
-    const rows = await prisma.$transaction(
+    const rows = await prismaForInteractiveTransaction().$transaction(
       async (tx) => {
       await executeRawAllowlisted(tx, {
         reason: 'e2e_rls_check_setup_role',

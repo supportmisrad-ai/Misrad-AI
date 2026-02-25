@@ -302,6 +302,39 @@ if (typeof _rawExecuteOriginal === 'function') {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Interactive transaction guardrail: detect accidental use of pooled
+// client for interactive transactions (async callback style).
+// Batch transactions (array of operations) are safe through pooler.
+// ═══════════════════════════════════════════════════════════════════
+
+{
+  const _isPoolerUrl = _effectiveDatabaseUrl.toLowerCase().includes('pooler');
+  if (_isPoolerUrl && !_isAccelerateUrl && _client) {
+    const _guardTarget = _client;
+    const _originalTransaction = _guardTarget.$transaction.bind(_guardTarget);
+    (_guardTarget as unknown as Record<string, unknown>).$transaction = function (
+      ...args: unknown[]
+    ): unknown {
+      const firstArg = args[0];
+      if (typeof firstArg === 'function') {
+        const err = new Error(
+          '[Prisma][Pooler Guard] Interactive $transaction detected on pooled client. ' +
+          'Use prismaForInteractiveTransaction().$transaction() instead to avoid PgBouncer ' +
+          '"Transaction not found" errors. Stack trace attached for debugging.'
+        );
+        if (process.env.NODE_ENV === 'production') {
+          try { Sentry.captureException(err); } catch { /* ignore */ }
+          console.error(err.message);
+        } else {
+          console.error(err.message, '\n', err.stack);
+        }
+      }
+      return Reflect.apply(_originalTransaction, _guardTarget, args);
+    };
+  }
+}
+
 if (process.env.NODE_ENV !== 'production') globalThis.__MISRAD_PRISMA_CLIENT__ = prisma;
 
 function getDirectUrlForInteractiveTransactions(): string | null {
