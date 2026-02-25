@@ -101,11 +101,11 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
 
   useEffect(() => {
     if (initialClients?.length) return;
-    loadClients(true);
+    loadClients();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadClients = async (autoSync = false) => {
+  const loadClients = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -115,24 +115,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
       });
 
       if (result.ok && result.clients) {
-        // Auto-sync on first load if table is empty
-        if (result.clients.length === 0 && autoSync) {
-          setIsSyncing(true);
-          const syncResult = await syncOrganizationsToBusinessClients();
-          setIsSyncing(false);
-          if (syncResult.ok && (syncResult.created > 0 || syncResult.linked > 0)) {
-            setSyncMessage(`נוצרו ${syncResult.created} לקוחות עסקיים חדשים, קושרו ${syncResult.linked} ארגונים`);
-            // Re-fetch after sync
-            const refreshed = await getBusinessClients({});
-            if (refreshed.ok && refreshed.clients) {
-              setClients(refreshed.clients);
-            }
-          } else {
-            setClients(result.clients);
-          }
-        } else {
-          setClients(result.clients);
-        }
+        setClients(result.clients);
       } else if (!result.ok && 'error' in result) {
         setError(String(result.error));
       }
