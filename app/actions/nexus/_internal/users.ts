@@ -19,6 +19,7 @@ import {
 
 import { asObject, toInputJsonValue } from './utils';
 import { mapUserRow } from './mappers';
+import { resolveStorageUrlsMaybeBatchedServiceRole } from '@/lib/services/operations/storage';
 
 export async function listNexusUsers(params: {
   orgId: string;
@@ -108,6 +109,20 @@ export async function listNexusUsers(params: {
 
   const now = new Date();
   const mapped = rows.map((row) => mapUserRow(row, now));
+
+  // Batch-sign any sb:// avatar refs so the client receives HTTPS URLs
+  const avatarRefs = mapped.map((u) => u.avatar || null);
+  const hasSbRefs = avatarRefs.some((ref) => ref && ref.startsWith('sb://'));
+  if (hasSbRefs) {
+    try {
+      const signed = await resolveStorageUrlsMaybeBatchedServiceRole(avatarRefs, 60 * 60, { organizationId: workspace.id });
+      for (let i = 0; i < mapped.length; i++) {
+        if (signed[i]) mapped[i] = { ...mapped[i], avatar: signed[i]! };
+      }
+    } catch {
+      // Keep raw avatars as fallback — Avatar component filters sb:// safely
+    }
+  }
 
   if (params.userId) {
     const target = mapped[0];

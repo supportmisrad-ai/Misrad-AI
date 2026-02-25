@@ -37,9 +37,17 @@ async function getCurrentOrganizationKey(): Promise<{
   let organizationId: string | null = profile?.organizationId ?? null;
 
   if (!organizationId) {
-    const res = await provisionCurrentUserWorkspaceAction();
+    let res: { success: boolean; organizationKey?: string; error?: string };
+    try {
+      res = await provisionCurrentUserWorkspaceAction();
+    } catch {
+      // Provision threw unexpectedly — redirect to /workspaces/new for retry
+      redirect('/workspaces/new');
+    }
+
     if (!res.success) {
-      throw new Error(res.error || 'Failed to provision workspace');
+      // Provision returned failure — redirect to /workspaces/new for retry
+      redirect('/workspaces/new');
     }
 
     // Use organizationKey from provision result to avoid re-querying profile
@@ -52,14 +60,19 @@ async function getCurrentOrganizationKey(): Promise<{
 
       if (orgByKey?.id) {
         const orgKey = String(orgByKey.slug || orgByKey.id);
-        // Fetch customer account in parallel with returning (non-blocking)
-        const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: orgKey });
+        let customerAccount: { companyName: string | null; phone: string | null; email: string | null } | null = null;
+        try {
+          const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: orgKey });
+          customerAccount = accountRes.success ? (accountRes.data ?? null) : null;
+        } catch {
+          // Customer account lookup failed — proceed without it
+        }
         return {
           organizationId: orgByKey.id,
           organizationKey: orgKey,
           subscriptionPlan: orgByKey.subscription_plan ?? null,
           orgCreatedAt: orgByKey.created_at ?? null,
-          customerAccount: accountRes.success ? (accountRes.data ?? null) : null,
+          customerAccount,
         };
       }
     }
@@ -91,12 +104,12 @@ async function getCurrentOrganizationKey(): Promise<{
       where: { id: String(organizationId) },
       select: { id: true, slug: true, subscription_plan: true, created_at: true },
     }),
-    getCustomerAccountForCurrentOrganization({ orgSlug: String(organizationId) }),
+    getCustomerAccountForCurrentOrganization({ orgSlug: String(organizationId) })
+      .catch(() => ({ success: false as const, data: null, error: 'lookup failed' })),
   ]);
 
   const organizationKey = String(org?.slug || org?.id || organizationId);
 
-  // Re-fetch account with correct key if slug differs from ID
   const customerAccount = accountRes.success ? (accountRes.data ?? null) : null;
 
   return {

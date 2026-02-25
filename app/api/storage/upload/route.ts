@@ -243,41 +243,42 @@ async function POSTHandler(request: NextRequest) {
             const userSegment = safeUserSegment ? `users/${safeUserSegment}` : '';
             if (policy.orgAdminOnly && !user.isSuperAdmin) {
                 const organizationId = String(workspace.id);
-                const dbUser = await prisma.organizationUser.findUnique({
-                    where: { clerk_user_id: String(user.id) },
-                    select: { id: true, organization_id: true, role: true },
-                });
+
+                // Parallelize the two authorization queries.
+                // Use findFirst with organization_id to satisfy the tenant guard
+                // (requireWorkspaceAccessByOrgSlugApi already set the tenant context).
+                const [dbUser, org] = await Promise.all([
+                    prisma.organizationUser.findFirst({
+                        where: { clerk_user_id: String(user.id), organization_id: organizationId },
+                        select: { id: true, role: true },
+                    }),
+                    prisma.organization.findUnique({
+                        where: { id: organizationId },
+                        select: { owner_id: true },
+                    }),
+                ]);
 
                 if (!dbUser?.id) {
                     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
                 }
-
-                const org = await prisma.organization.findUnique({
-                    where: { id: organizationId },
-                    select: { owner_id: true },
-                });
 
                 if (!org?.owner_id) {
                     return NextResponse.json({ error: 'Not found' }, { status: 404 });
                 }
 
                 if (String(org.owner_id) !== String(dbUser.id)) {
-                    const userOrgId = dbUser.organization_id ? String(dbUser.organization_id) : '';
-                    const isPrimaryMembership = userOrgId === organizationId;
-
                     let membershipRole: string | null = String(dbUser.role || '').trim() || null;
-                    if (!isPrimaryMembership) {
-                        const teamMember = await prisma.teamMember.findFirst({
-                            where: {
-                                user_id: String(dbUser.id),
-                                organization_id: organizationId,
-                            },
-                            select: { role: true },
-                        });
 
-                        if (!teamMember?.role) {
-                            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-                        }
+                    // If the user is not the owner, check their role in this org
+                    const teamMember = await prisma.teamMember.findFirst({
+                        where: {
+                            user_id: String(dbUser.id),
+                            organization_id: organizationId,
+                        },
+                        select: { role: true },
+                    });
+
+                    if (teamMember?.role) {
                         membershipRole = String(teamMember.role || '').trim() || null;
                     }
 

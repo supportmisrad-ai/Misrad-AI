@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 
 /**
@@ -12,9 +11,10 @@ import { isTenantAdminRole } from '@/lib/constants/roles';
  * Requires the caller to be the org owner or an admin-level role.
  *
  * NOTE: Organization model has no organizationId field — it IS the tenant.
- * The tenant guard skips it automatically, so withTenantIsolationContext
- * is unnecessary here. We use enterTenantIsolationContext only to satisfy
- * the guard for the authorization queries above.
+ * The tenant guard skips it automatically for Organization queries.
+ * requireWorkspaceAccessByOrgSlug sets the tenant context; all subsequent
+ * queries on scoped models (e.g. OrganizationUser) MUST include
+ * organization_id in the where clause.
  */
 export async function saveWorkspaceLogo(params: {
   orgSlug: string;
@@ -25,26 +25,22 @@ export async function saveWorkspaceLogo(params: {
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) return { ok: false, error: 'Unauthorized' };
 
-    // Set tenant context for authorization queries
-    enterTenantIsolationContext({
-      source: 'actions/workspace-branding.saveWorkspaceLogo',
-      reason: 'owner_update_logo',
-      mode: 'default',
-      organizationId: workspace.id,
-    });
+    // requireWorkspaceAccessByOrgSlug already sets tenant context with organizationId.
+    // All subsequent queries on scoped models MUST include organization_id in where.
 
-    // Check the caller is org owner or admin
-    const dbUser = await prisma.organizationUser.findUnique({
-      where: { clerk_user_id: clerkUserId },
-      select: { id: true, organization_id: true, role: true },
-    });
+    // Parallelize the two authorization queries
+    const [dbUser, org] = await Promise.all([
+      prisma.organizationUser.findFirst({
+        where: { clerk_user_id: clerkUserId, organization_id: workspace.id },
+        select: { id: true, role: true },
+      }),
+      prisma.organization.findUnique({
+        where: { id: workspace.id },
+        select: { owner_id: true },
+      }),
+    ]);
 
     if (!dbUser) return { ok: false, error: 'Forbidden' };
-
-    const org = await prisma.organization.findUnique({
-      where: { id: workspace.id },
-      select: { owner_id: true },
-    });
 
     const isOwner = org?.owner_id && String(org.owner_id) === String(dbUser.id);
     const isAdmin = isTenantAdminRole(dbUser.role);
@@ -65,7 +61,8 @@ export async function saveWorkspaceLogo(params: {
     revalidatePath('/', 'layout');
     return { ok: true };
   } catch (error: unknown) {
-    console.error('[saveWorkspaceLogo]', error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[saveWorkspaceLogo]', msg, error);
     return { ok: false, error: 'שגיאה בשמירת הלוגו' };
   }
 }

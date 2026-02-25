@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 type ProfileRecord = {
   id: string;
@@ -253,6 +254,22 @@ async function bootstrapProfile(params: {
   );
 }
 
+/**
+ * Resolve sb:// avatar_url to a signed HTTPS URL before returning to client.
+ * Without this, the raw sb:// ref reaches the client hook and overwrites
+ * the already-signed URL from SSR, causing the avatar to disappear.
+ */
+async function signProfileAvatar(profile: ProfileRecord, workspaceId: string): Promise<ProfileRecord> {
+  const raw = profile.avatar_url;
+  if (!raw || !raw.startsWith('sb://') || !workspaceId) return profile;
+  try {
+    const signed = await resolveStorageUrlMaybeServiceRole(raw, 60 * 60, { organizationId: workspaceId });
+    return { ...profile, avatar_url: signed || raw };
+  } catch {
+    return profile;
+  }
+}
+
 export async function getMyProfile(params: { orgSlug: string }): Promise<{
   success: boolean;
   data?: { profile: ProfileRecord };
@@ -270,15 +287,20 @@ export async function getMyProfile(params: { orgSlug: string }): Promise<{
 
     const existingObj = asObject(existing.data) ?? {};
     const existingProfile = (existingObj.profile as ProfileRecord | null) ?? null;
+    const workspaceId = getWorkspaceId(existingObj.workspace);
     if (existingProfile?.id) {
-      return createSuccessResponse({ profile: existingProfile });
+      const signed = await signProfileAvatar(existingProfile, workspaceId);
+      return createSuccessResponse({ profile: signed });
     }
 
     const boot = await bootstrapProfile({ orgSlug: params.orgSlug, clerkUserId });
     if (!boot.success) return { success: false, error: boot.error };
 
     const bootObj = asObject(boot.data) ?? {};
-    return { success: true, data: { profile: bootObj.profile as ProfileRecord }, migrated: true };
+    const bootWorkspaceId = getWorkspaceId(bootObj.workspace) || workspaceId;
+    const bootProfile = bootObj.profile as ProfileRecord;
+    const signedBoot = await signProfileAvatar(bootProfile, bootWorkspaceId);
+    return { success: true, data: { profile: signedBoot }, migrated: true };
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בטעינת פרופיל');
   }
