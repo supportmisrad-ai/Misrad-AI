@@ -85,7 +85,7 @@ const BodySchema = z
     message: z.string().optional(),
     pathname: z.string().optional(),
   })
-  .strict();
+  .passthrough();
 
 function jsonError(message: string, status: number, headers?: Record<string, string>) {
   return apiError(message, { status, headers });

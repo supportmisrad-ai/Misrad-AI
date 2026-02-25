@@ -118,12 +118,12 @@ export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
                             מוצרים
                         </h4>
                         <ul className="space-y-3 text-sm">
-                            <li><Link href="/system" className={linkClasses}><span>מכירות ולידים</span><span className="text-[10px] text-slate-600 mr-1">System</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/nexus" className={linkClasses}><span>ניהול וצוות</span><span className="text-[10px] text-slate-600 mr-1">Nexus</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-authority" className={linkClasses}><span>שיווק ומיתוג</span><span className="text-[10px] text-slate-600 mr-1">Social</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/client" className={linkClasses}><span>לקוחות ומתאמנים</span><span className="text-[10px] text-slate-600 mr-1">Client</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/finance-landing" className={linkClasses}><span>כספים</span><span className="text-[10px] text-slate-600 mr-1">Finance</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/operations" className={linkClasses}><span>תפעול ושטח</span><span className="text-[10px] text-slate-600 mr-1">Operations</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/system" className={linkClasses}>מכירות ולידים <span className="text-[10px] text-slate-500">· System</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/nexus" className={linkClasses}>משימות וצוות <span className="text-[10px] text-slate-500">· Nexus</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-authority" className={linkClasses}>שיווק ומיתוג <span className="text-[10px] text-slate-500">· Social</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/client" className={linkClasses}>ניהול לקוחות <span className="text-[10px] text-slate-500">· Client</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/finance-landing" className={linkClasses}>כספים <span className="text-[10px] text-slate-500">· Finance</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/operations" className={linkClasses}>תפעול ושטח <span className="text-[10px] text-slate-500">· Operations</span><ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                         </ul>
                     </div>
 
@@ -152,9 +152,9 @@ export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/support" className={linkClasses}>תמיכה<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li>
-                                <a href="https://api.misrad-ai.com/docs" className={linkClasses}>
+                                <Link href="/support" className={linkClasses}>
                                     מרכז ידע<ArrowUpRight size={14} className={arrowClasses} />
-                                </a>
+                                </Link>
                             </li>
                             <li><Link href="/security" className={linkClasses}>אבטחת מידע<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/save-time" className={linkClasses}>חוסכים זמן<ArrowUpRight size={14} className={arrowClasses} /></Link></li>

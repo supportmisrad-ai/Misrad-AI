@@ -36,8 +36,7 @@ export default function PricingPageClient() {
               <p className="mt-2 text-sm text-slate-500">מול מתחרים ישראליים ובינלאומיים — בשקיפות מלאה</p>
             </div>
 
-            <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-x-auto relative">
-              <div className="sm:hidden absolute top-2 left-2 text-[10px] text-slate-400 font-bold bg-white/80 px-2 py-1 rounded-lg z-10">← גלול</div>
+            <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
@@ -51,7 +50,7 @@ export default function PricingPageClient() {
                 <tbody>
                   {([
                     { label: 'מחיר ל-5 משתמשים (חבילת הכל כלול)', ours: '₪499', fireberry: '₪640–820', kaveret: '₪675', monday: '₪220–440' },
-                    { label: 'משתמשים כלולים (חבילת הכל כלול)', ours: '5', fireberry: '0 (לפי משתמש)', kaveret: '0 (לפי משתמש)', monday: '0 (לפי משתמש)' },
+                    { label: 'משתמשים כלולים (חבילת הכל כלול)', ours: '5', fireberry: '0 (per user)', kaveret: '0 (per user)', monday: '0 (per user)' },
                     { label: 'מינימום משתמשים נדרש', ours: '1', fireberry: '1', kaveret: '1', monday: '3' },
                     { label: '6 מודולים (CRM+שיווק+תפעול+...)', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'Finance מובנה (במתנה)', ours: true, fireberry: false, kaveret: false, monday: false },
@@ -62,7 +61,7 @@ export default function PricingPageClient() {
                     { label: 'מותאם לשבת', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'לוח שנה עברי', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'עברית מלאה', ours: true, fireberry: true, kaveret: true, monday: true },
-                    { label: 'אפליקציית מובייל', ours: 'PWA (כמו אפליקציה רגילה)', fireberry: true, kaveret: true, monday: true },
+                    { label: 'אפליקציית מובייל', ours: 'PWA (כמו אפליקציה)', fireberry: true, kaveret: true, monday: true },
                   ] as Array<{ label: string; ours: boolean | string; fireberry: boolean | string; kaveret: boolean | string; monday: boolean | string }>).map((row) => (
                     <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
                       <td className="p-4 sm:p-5 font-bold text-slate-700 text-right">{row.label}</td>
@@ -88,7 +87,7 @@ export default function PricingPageClient() {
             <p className="mt-4 text-xs text-slate-400 text-center">
               מחירים מבוססים על תמחור רשמי של כל ספק (2025/2026). Fireberry: $35–$45/user. הכוורת: ₪135/user. Monday Pro: $24/user (מינימום 3).
               <br />
-              <strong className="text-indigo-600">MISRAD AI כוללת עד 5 משתמשים בחבילת הכל כלול</strong> — מתחרים גובים לפי משתמש בלבד.
+              <strong className="text-indigo-600">MISRAD AI כוללת עד 5 משתמשים בחבילת "הכל כלול"</strong> — מתחרים גובים per user בלבד.
               <br />
               <span className="text-slate-500">"מותאם לשבת" = בחירה אידיאולוגית של המפתח. לא מתאים? יש Monday/Fireberry/הכוורת (פתוח 24/7).</span>
               <br />

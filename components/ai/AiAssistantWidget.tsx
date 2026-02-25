@@ -738,24 +738,18 @@ export function AiAssistantWidget() {
                     ) : (
                       <div className="space-y-3">
                         {filteredKnowledge.map((item) => (
-                          <button
+                          <div
                             key={item.id}
-                            type="button"
-                            onClick={() => {
-                              setView('chat');
-                              sendText(item.title);
-                            }}
-                            className="w-full p-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl text-right transition-all group cursor-pointer"
+                            className="p-4 bg-white border border-slate-200 rounded-2xl"
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <h4 className="text-[15px] font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">{item.title}</h4>
+                              <h4 className="text-[15px] font-bold text-slate-900">{item.title}</h4>
                               <span className="text-[11px] px-2 py-1 bg-slate-100 text-slate-600 rounded-full font-semibold whitespace-nowrap">
                                 {item.category}
                               </span>
                             </div>
                             <p className="text-[14px] text-slate-700 leading-relaxed">{item.content}</p>
-                            <div className="mt-2 text-[12px] text-indigo-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity">שאל את העוזר על זה →</div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}

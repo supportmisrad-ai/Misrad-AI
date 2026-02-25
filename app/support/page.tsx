@@ -119,6 +119,11 @@ function SupportPageInner() {
       return;
     }
 
+    if (message.trim().length < 120) {
+      setError('נא לתאר את הבעיה בצורה מפורטת יותר (לפחות 120 תווים) כדי שנוכל לטפל בזה מהר.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/support', {

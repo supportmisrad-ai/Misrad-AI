@@ -25,20 +25,20 @@ export default function SystemOSLandingPage() {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 overflow-hidden">
+      <section className="relative pt-28 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 overflow-hidden">
         {/* Background Effects */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-rose-500/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#A21D3C]/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a08_1px,transparent_1px),linear-gradient(to_bottom,#0f172a08_1px,transparent_1px)] bg-[size:60px_60px]"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] sm:text-xs font-bold mb-4 sm:mb-6">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#A21D3C]/10 border border-[#A21D3C]/20 text-[#A21D3C] text-[10px] sm:text-xs font-bold mb-4 sm:mb-6">
               <Target size={12} className="sm:w-[14px] sm:h-[14px]" /> {getModuleLabelHe('system')}
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight px-2">
               מערכת ניהול לידים<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-red-700 to-rose-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A21D3C] via-[#881337] to-[#A21D3C]">
                 ומכירות חכמה
               </span>
             </h1>
@@ -47,19 +47,19 @@ export default function SystemOSLandingPage() {
               <strong className="text-slate-900">{getModuleLabelHe('system')} עוזרת למנהלי המכירות שלך לנהל לידים, לעקוב אחר מכירות, ולסגור עסקאות.</strong>
             </p>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              כל עובד מקבל את הכלים שהוא צריך כדי לנהל את הלידים שלו. <span className="text-rose-700 font-medium">פשוט, ישיר, עובד.</span>
+              כל עובד מקבל את הכלים שהוא צריך כדי לנהל את הלידים שלו. <span className="text-[#A21D3C] font-medium">פשוט, ישיר, עובד.</span>
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
               <button
                 onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#A21D3C] hover:bg-[#881337] text-white rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
               >
                 התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => router.push('/login')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-full font-bold transition-all text-sm sm:text-base"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#A21D3C]/10 hover:bg-[#A21D3C]/15 text-[#A21D3C] border border-[#A21D3C]/20 rounded-full font-bold transition-all text-sm sm:text-base"
               >
                 כניסה
               </button>
@@ -87,11 +87,11 @@ export default function SystemOSLandingPage() {
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight px-2">
               לידים נופלים בין הכיסאות? זה לא חייב לקרות.
             </h3>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-rose-700 mb-4 sm:mb-6 leading-tight px-2">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-[#A21D3C] mb-4 sm:mb-6 leading-tight px-2">
               כשיש לך מערכת שמתעדכנת על כל ליד - אף אחד לא נשכח.
             </h3>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl mx-auto px-2">
-              <span className="text-rose-700 font-bold">{getModuleLabelHe('system')}</span> - לא עוד אקסל מסובך. כל מנהל מכירות רואה בדיוק איפה כל ליד עומד, מה השלב הבא, ומה צריך לעשות עכשיו.
+              <span className="text-[#A21D3C] font-bold">{getModuleLabelHe('system')}</span> - לא עוד אקסל מסובך. כל מנהל מכירות רואה בדיוק איפה כל ליד עומד, מה השלב הבא, ומה צריך לעשות עכשיו.
             </p>
           </motion.div>
         </div>
@@ -102,8 +102,8 @@ export default function SystemOSLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 mb-8 sm:mb-12 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0">
-                <Target size={24} className="sm:w-8 sm:h-8 text-rose-600" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#A21D3C]/10 border border-[#A21D3C]/20 flex items-center justify-center shrink-0">
+                <Target size={24} className="sm:w-8 sm:h-8 text-[#A21D3C]" />
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">Pipeline מכירות שלם - מליד ועד סגירה</h2>
@@ -112,14 +112,14 @@ export default function SystemOSLandingPage() {
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <Check size={18} className="sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <Check size={18} className="sm:w-5 sm:h-5 text-[#A21D3C] shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
                       <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">Pipeline ויזואלי</div>
                       <div className="text-xs sm:text-sm text-slate-600">ראה בדיוק איפה כל עסקה עומדת, AI מנתח סיכויי סגירה</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <Check size={18} className="sm:w-5 sm:h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <Check size={18} className="sm:w-5 sm:h-5 text-[#A21D3C] shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
                       <div className="text-slate-900 font-bold mb-1 text-sm sm:text-base">מרכז תקשורת + מרכזיית ענן</div>
                       <div className="text-xs sm:text-sm text-slate-600">חייג מהמערכת דרך Voicenter/Twilio, Inbox אחוד, תיעוד שיחות</div>
@@ -138,7 +138,7 @@ export default function SystemOSLandingPage() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">
               סגירת עסקאות.<br/>
-              <span className="text-rose-700">שליטה בלידים.</span><br/>
+              <span className="text-[#A21D3C]">שליטה בלידים.</span><br/>
               <span className="text-slate-600">AI שעובד בשבילך.</span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
@@ -148,8 +148,8 @@ export default function SystemOSLandingPage() {
 
           <div className="grid md:grid-cols-3 gap-6 mb-12">
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
-                <Clock size={24} className="text-rose-600" />
+              <div className="w-12 h-12 rounded-xl bg-[#A21D3C]/10 border border-[#A21D3C]/20 flex items-center justify-center mx-auto mb-4">
+                <Clock size={24} className="text-[#A21D3C]" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">סגירת עסקאות</h3>
               <p className="text-sm text-slate-600">
@@ -157,8 +157,8 @@ export default function SystemOSLandingPage() {
               </p>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
-                <HeartPulse size={24} className="text-rose-600" />
+              <div className="w-12 h-12 rounded-xl bg-[#A21D3C]/10 border border-[#A21D3C]/20 flex items-center justify-center mx-auto mb-4">
+                <HeartPulse size={24} className="text-[#A21D3C]" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">שליטה בלידים</h3>
               <p className="text-sm text-slate-600">
@@ -166,8 +166,8 @@ export default function SystemOSLandingPage() {
               </p>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center shadow-sm">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto mb-4">
-                <Users size={24} className="text-rose-600" />
+              <div className="w-12 h-12 rounded-xl bg-[#A21D3C]/10 border border-[#A21D3C]/20 flex items-center justify-center mx-auto mb-4">
+                <Users size={24} className="text-[#A21D3C]" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">לכל סוג צוות מכירות</h3>
               <p className="text-sm text-slate-600">
@@ -239,10 +239,10 @@ export default function SystemOSLandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-rose-200 transition-all group shadow-sm hover:shadow-md"
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#A21D3C]/20 transition-all group shadow-sm hover:shadow-md"
               >
-                <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon size={24} className="text-rose-600" />
+                <div className="w-12 h-12 rounded-xl bg-[#A21D3C]/10 border border-[#A21D3C]/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <feature.icon size={24} className="text-[#A21D3C]" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">{feature.title}</h3>
                 <p className="text-slate-600">{feature.desc}</p>
@@ -254,17 +254,17 @@ export default function SystemOSLandingPage() {
 
       {/* Pricing Section */}
       <section id="pricing" className="py-32 bg-slate-50 relative z-10 overflow-hidden border-y border-slate-200">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-rose-500/5 rounded-full blur-[150px] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-[#A21D3C]/5 rounded-full blur-[150px] pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-rose-700 text-xs font-bold mb-6">
-              <DollarSign size={14} className="text-rose-600" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-[#A21D3C] text-xs font-bold mb-6">
+              <DollarSign size={14} className="text-[#A21D3C]" />
               <span>תמחור שקוף</span>
             </div>
             <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 leading-tight">
               בחר את התוכנית<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-red-700 to-rose-600">שמתאימה לך</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A21D3C] via-[#881337] to-[#A21D3C]">שמתאימה לך</span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-4">
               ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 7 ימים.
@@ -278,7 +278,7 @@ export default function SystemOSLandingPage() {
               <button
                 onClick={() => setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly')}
                 className={`relative w-14 h-8 rounded-full transition-all duration-300 ${
-                  billingCycle === 'yearly' ? 'bg-rose-600' : 'bg-slate-200'
+                  billingCycle === 'yearly' ? 'bg-[#A21D3C]' : 'bg-slate-200'
                 }`}
               >
                 <motion.div
@@ -289,7 +289,7 @@ export default function SystemOSLandingPage() {
               </button>
               <span className={`text-sm font-bold transition-colors ${billingCycle === 'yearly' ? 'text-slate-900' : 'text-slate-500'}`}>
                 שנתי
-                <span className="ml-2 px-2 py-0.5 bg-rose-50 text-rose-700 text-xs rounded-full border border-rose-200">
+                <span className="ml-2 px-2 py-0.5 bg-[#A21D3C]/10 text-[#A21D3C] text-xs rounded-full border border-[#A21D3C]/20">
                   חסוך 20%
                 </span>
               </span>
@@ -376,7 +376,7 @@ export default function SystemOSLandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
-              className="px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105"
+              className="px-8 py-4 bg-[#A21D3C] hover:bg-[#881337] text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105"
             >
               התחל ניסיון חינם <ArrowRight size={20} className="rotate-180" />
             </button>
@@ -387,7 +387,7 @@ export default function SystemOSLandingPage() {
                   element.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="px-8 py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-xl font-bold transition-all"
+              className="px-8 py-4 bg-[#A21D3C]/10 hover:bg-[#A21D3C]/15 text-[#A21D3C] border border-[#A21D3C]/20 rounded-xl font-bold transition-all"
             >
               ראה מחירים
             </button>

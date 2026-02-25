@@ -20,9 +20,9 @@ type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'th
 
 const PACKAGES: { key: PackageKey; emoji: string; label: string; who: string; price: number; modules: string; freeUsers: number }[] = [
   { key: 'solo', emoji: '🎯', label: 'מודול בודד', who: 'צריך רק דבר אחד ספציפי', price: 149, modules: 'מודול לבחירה', freeUsers: 1 },
-  { key: 'the_closer', emoji: '💼', label: 'חבילת מכירות', who: 'סוכן ביטוח, נדל״ן, מוקד — מנהל לידים עם AI', price: 249, modules: 'מכירות + ניהול', freeUsers: 1 },
-  { key: 'the_authority', emoji: '🎨', label: 'חבילת שיווק ומיתוג', who: 'פרילנסר / נותן שירות שמייצר תוכן', price: 349, modules: 'שיווק + לקוחות + ניהול', freeUsers: 1 },
-  { key: 'the_operator', emoji: '🔧', label: 'חבילת תפעול ושטח', who: 'קבלן / אנשי שטח שרוצים סדר', price: 349, modules: 'תפעול + ניהול + כספים', freeUsers: 1 },
+  { key: 'the_closer', emoji: '💼', label: 'מכירות', who: 'סוכן ביטוח, נדל״ן, מוקד — מנהל לידים עם AI', price: 249, modules: 'System + Nexus', freeUsers: 1 },
+  { key: 'the_authority', emoji: '🎨', label: 'שיווק ומיתוג', who: 'פרילנסר / נותן שירות שמייצר תוכן', price: 349, modules: 'Social + Client + Nexus', freeUsers: 1 },
+  { key: 'the_operator', emoji: '🔧', label: 'תפעול ושטח', who: 'קבלן / אנשי שטח שרוצים סדר', price: 349, modules: 'Operations + Nexus + Finance', freeUsers: 1 },
   { key: 'the_empire', emoji: '👑', label: 'הכל כלול', who: 'ארגון בצמיחה שרוצה AI בכל מודול', price: 499, modules: 'כל 6 המודולים', freeUsers: 5 },
 ];
 
@@ -45,17 +45,8 @@ export default function PricingSection({
     onBillingCycleChange?.(next);
   };
 
-  const handleSelectPkg = (key: PackageKey) => {
-    setSelectedPkg(key);
-    const pkgDef = BILLING_PACKAGES[key];
-    if (key === 'solo' || !pkgDef?.modules?.includes('nexus')) {
-      setUsers(1);
-    }
-  };
-
   const pkg = PACKAGES.find((p) => p.key === selectedPkg) || PACKAGES[4];
   const isSolo = selectedPkg === 'solo';
-  const canAddUsers = !isSolo || (isSolo && selectedSoloModule === 'nexus');
 
   const pricing = useMemo(() => {
     try {
@@ -173,7 +164,7 @@ export default function PricingSection({
             <button
               key={p.key}
               type="button"
-              onClick={() => handleSelectPkg(p.key)}
+              onClick={() => setSelectedPkg(p.key)}
               className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-full font-black text-xs sm:text-sm border-2 transition-all duration-200 ${
                 selectedPkg === p.key
                   ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500 shadow-lg shadow-indigo-200/50 scale-105'
@@ -298,23 +289,19 @@ export default function PricingSection({
               </div>
 
               {/* Users stepper */}
-              <div className={`rounded-2xl border bg-white px-5 py-4 mb-6 ${canAddUsers ? 'border-slate-200' : 'border-slate-100 opacity-60'}`}>
+              <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-black text-slate-900">כמה משתמשים?</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
-                      {canAddUsers ? (
-                        <>{pricing.includedSeats} כלולים בחינם{pricing.extraSeats > 0 ? ` · ${pricing.extraSeats} נוספים × 39 ₪` : ''}</>
-                      ) : (
-                        <>תוספת משתמשים זמינה רק בחבילות שכוללות ניהול (Nexus)</>
-                      )}
+                      {pricing.includedSeats} כלולים בחינם{pricing.extraSeats > 0 ? ` · ${pricing.extraSeats} נוספים × 39 ₪` : ''}
                     </div>
                   </div>
                   <div className="flex items-center gap-0">
                     <button
                       type="button"
                       onClick={decrementUsers}
-                      disabled={!canAddUsers || users <= 1}
+                      disabled={users <= 1}
                       className="w-10 h-10 rounded-r-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 disabled:opacity-30 transition-colors"
                     >
                       <Minus size={16} />
@@ -324,14 +311,13 @@ export default function PricingSection({
                       min={1}
                       max={50}
                       value={users}
-                      disabled={!canAddUsers}
                       onChange={(e) => setUsers(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                      className="w-14 h-10 border-y border-slate-200 text-center text-sm font-black text-slate-900 outline-none disabled:bg-slate-50 disabled:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-14 h-10 border-y border-slate-200 text-center text-sm font-black text-slate-900 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       type="button"
                       onClick={incrementUsers}
-                      disabled={!canAddUsers || users >= 50}
+                      disabled={users >= 50}
                       className="w-10 h-10 rounded-l-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 disabled:opacity-30 transition-colors"
                     >
                       <Plus size={16} />

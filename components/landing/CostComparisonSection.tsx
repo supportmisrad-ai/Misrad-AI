@@ -106,7 +106,7 @@ export function CostComparisonSection() {
 
         <p className="mt-6 text-xs text-slate-400 text-center max-w-2xl mx-auto">
           * המחירים מבוססים על מחירי שוק ממוצעים לכלים נפוצים (2025/2026). 
-          טווח המחירים מתאים לעסקים עם 3–10 עובדים. מחיר MISRAD AI הוא לחבילת &quot;הכל כלול&quot; הכוללת 5 משתמשים.
+          טווח המחירים מתאים לעסקים עם 3–10 עובדים. מחיר MISRAD AI הוא לחבילת &quot;הכל כלול&quot; (The Empire) הכוללת 5 משתמשים.
         </p>
 
         {/* CTA */}

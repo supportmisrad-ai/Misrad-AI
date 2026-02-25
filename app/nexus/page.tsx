@@ -15,18 +15,19 @@ export default function NexusMarketingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
-      <main className="pt-20">
+      <main className="pt-28">
         <section className="relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-indigo-200/40 rounded-full blur-[130px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-indigo-300/30 rounded-full blur-[130px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-purple-200/25 rounded-full blur-[160px] pointer-events-none" />
           <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 relative">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#3730A3]/10 border border-[#3730A3]/20 text-[#3730A3] text-xs font-black shadow-sm">
+              <Users size={14} />
               <span>{getModuleLabelHe('nexus')}</span>
-              <span className="text-[10px] text-indigo-400 font-bold">Nexus</span>
+              <span className="text-[10px] text-[#3730A3]/60 font-bold">· Nexus</span>
             </div>
             <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
               {getModuleLabelHe('nexus')}
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#3730A3] via-indigo-600 to-purple-600">
                 חדר המנהלים שלך
               </span>
             </h1>
@@ -36,48 +37,48 @@ export default function NexusMarketingPage() {
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <Users size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <Users size={24} className="text-[#3730A3]" />
                 </div>
                 <div className="text-xs font-black text-slate-500">ניהול צוות</div>
                 <div className="mt-2 text-lg font-black">מי עושה מה ומתי</div>
                 <div className="mt-2 text-sm text-slate-600">תמונה רחבה של עומסים, משימות ותיעדוף.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <Target size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <Target size={24} className="text-[#3730A3]" />
                 </div>
-                <div className="text-xs font-black text-indigo-500">צינור מכירות</div>
+                <div className="text-xs font-black text-slate-500">Sales Pipeline</div>
                 <div className="mt-2 text-lg font-black">מעקב מכירות מתקדם</div>
                 <div className="mt-2 text-sm text-slate-600">8 שלבים מוגדרים, דשבורד מכירות, יעדים וביצועים.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <Lightbulb size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <Lightbulb size={24} className="text-[#3730A3]" />
                 </div>
-                <div className="text-xs font-black text-indigo-500">תובנות AI</div>
+                <div className="text-xs font-black text-slate-500">Intelligence</div>
                 <div className="mt-2 text-lg font-black">תובנות עסקיות</div>
                 <div className="mt-2 text-sm text-slate-600">ניתוח נתונים, זיהוי מגמות, והמלצות אסטרטגיות.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <Archive size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <Archive size={24} className="text-[#3730A3]" />
                 </div>
                 <div className="text-xs font-black text-slate-500">ניהול נכסים</div>
                 <div className="mt-2 text-lg font-black">נכסים ומסמכים</div>
                 <div className="mt-2 text-sm text-slate-600">ניהול נכסים, מסמכים וקבצים של הארגון במקום אחד.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <BarChart3 size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <BarChart3 size={24} className="text-[#3730A3]" />
                 </div>
                 <div className="text-xs font-black text-slate-500">דוחות</div>
                 <div className="mt-2 text-lg font-black">דוחות כספיים</div>
                 <div className="mt-2 text-sm text-slate-600">דוחות מתקדמים משולבים עם מודול Finance.</div>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
-                  <Briefcase size={24} className="text-slate-700" />
+                <div className="w-12 h-12 rounded-xl bg-[#3730A3]/10 border border-[#3730A3]/20 flex items-center justify-center mb-4">
+                  <Briefcase size={24} className="text-[#3730A3]" />
                 </div>
                 <div className="text-xs font-black text-slate-500">סנכרון</div>
                 <div className="mt-2 text-lg font-black">חיבור לכל המודולים</div>
@@ -88,9 +89,9 @@ export default function NexusMarketingPage() {
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/login?mode=sign-up&redirect=/workspaces/onboarding"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-xl shadow-indigo-500/20 hover:from-indigo-500 hover:to-purple-500 transition-all"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#3730A3] hover:bg-indigo-800 text-white font-bold shadow-xl shadow-[#3730A3]/20 transition-all"
               >
-                התחל חינם
+                התחל ניסיון חינם
               </Link>
               <DemoVideoTrigger />
             </div>

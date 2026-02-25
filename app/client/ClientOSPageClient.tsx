@@ -26,7 +26,7 @@ export default function ClientOSPage() {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="relative pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 overflow-hidden bg-white">
+      <section className="relative pt-28 sm:pt-28 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 overflow-hidden bg-white">
         {/* Background with Better Contrast */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#F5F5F7] via-white to-slate-50"></div>
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#C5A572]/15 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
@@ -85,7 +85,7 @@ export default function ClientOSPage() {
                 <Calendar size={14} /> Google Calendar
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
-                <Users size={14} /> ניהול קבוצות
+                <Users size={14} /> Groups Management
               </div>
             </div>
 

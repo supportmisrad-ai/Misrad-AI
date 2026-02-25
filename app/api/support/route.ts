@@ -291,9 +291,9 @@ async function POSTHandler(request: NextRequest) {
 
         const screenshotUrl = screenshot_url ? String(screenshot_url).trim() : '';
         const cleanMessage = String(message).trim();
-        const minDetailedChars = 30;
+        const minDetailedChars = 120;
         if (!screenshotUrl && cleanMessage.length < minDetailedChars) {
-            return apiError(`נא לתאר את הבעיה בצורה מפורטת יותר (מינימום ${minDetailedChars} תווים)`, { status: 400 });
+            return apiError('נא לצרף צילום מסך (קישור) או לתאר את התקלה בצורה מפורטת יותר', { status: 400 });
         }
 
         // Validate category
