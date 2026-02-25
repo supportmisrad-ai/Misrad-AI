@@ -51,30 +51,37 @@ const FormsView: React.FC<FormsViewProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newCategory, setNewCategory] = useState('ONBOARDING');
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const handleCreate = useCallback(async () => {
     if (!newTitle.trim() || !createFormAction || !orgSlug) return;
+    setModalError(null);
     startTransition(async () => {
-      const result = await createFormAction(orgSlug, {
-        title: newTitle.trim(),
-        description: newDesc.trim() || undefined,
-        category: newCategory,
-      });
-      if (result.id) {
-        setForms((prev) => [{
-          id: result.id!,
+      try {
+        const result = await createFormAction(orgSlug, {
           title: newTitle.trim(),
-          description: newDesc.trim(),
+          description: newDesc.trim() || undefined,
           category: newCategory,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          responses_count: 0,
-          steps_count: 0,
-        }, ...prev]);
-        setNewTitle(''); setNewDesc(''); setNewCategory('ONBOARDING'); setShowCreate(false);
-        showFeedback('success', `הטופס "${newTitle.trim()}" נוצר בהצלחה`);
-      } else {
-        showFeedback('error', result.error || 'שגיאה ביצירת הטופס — נסה שוב');
+        });
+        if (result.id) {
+          const savedTitle = newTitle.trim();
+          setForms((prev) => [{
+            id: result.id!,
+            title: savedTitle,
+            description: newDesc.trim(),
+            category: newCategory,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            responses_count: 0,
+            steps_count: 0,
+          }, ...prev]);
+          setNewTitle(''); setNewDesc(''); setNewCategory('ONBOARDING'); setModalError(null); setShowCreate(false);
+          showFeedback('success', `הטופס "${savedTitle}" נוצר בהצלחה`);
+        } else {
+          setModalError(result.error || 'שגיאה ביצירת הטופס — נסה שוב');
+        }
+      } catch {
+        setModalError('שגיאה בלתי צפויה — נסה שוב');
       }
     });
   }, [newTitle, newDesc, newCategory, orgSlug, createFormAction]);
@@ -205,22 +212,27 @@ const FormsView: React.FC<FormsViewProps> = ({
 
       {/* Create Form Modal */}
       {showCreate && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => { if (!isPending) { setShowCreate(false); setModalError(null); } }}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-black text-slate-800">טופס חדש</h3>
-              <button onClick={() => setShowCreate(false)} type="button" className="p-1 hover:bg-rose-100 rounded-lg"><X size={18} className="text-slate-400" /></button>
+              <button onClick={() => { setShowCreate(false); setModalError(null); }} disabled={isPending} type="button" className="p-1 hover:bg-rose-100 rounded-lg disabled:opacity-50"><X size={18} className="text-slate-400" /></button>
             </div>
             <div className="space-y-3">
-              <input type="text" placeholder="שם הטופס *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none" />
-              <input type="text" placeholder="תיאור (אופציונלי)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none" />
-              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none">
+              <input type="text" placeholder="שם הטופס *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50" />
+              <input type="text" placeholder="תיאור (אופציונלי)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50" />
+              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50">
                 <option value="ONBOARDING">אונבורדינג</option>
                 <option value="FEEDBACK">פידבק</option>
                 <option value="STRATEGY">אסטרטגיה</option>
                 <option value="INTAKE">קליטה</option>
                 <option value="SURVEY">סקר</option>
               </select>
+              {modalError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
+                  {modalError}
+                </div>
+              )}
               <button onClick={handleCreate} disabled={!newTitle.trim() || isPending} type="button" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50">
                 {isPending ? 'יוצר...' : 'צור טופס'}
               </button>

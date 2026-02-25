@@ -5,6 +5,7 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { asObject } from '@/lib/server/workspace-access/utils';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -90,9 +91,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve organization
+    const orgConditions: Record<string, string>[] = [{ slug: orgSlug }];
+    if (UUID_RE.test(orgSlug)) orgConditions.push({ id: orgSlug });
+
     const org = await prisma.organization.findFirst({
       where: {
-        OR: [{ slug: orgSlug }, { id: orgSlug }],
+        OR: orgConditions,
         subscription_status: { not: 'expired' },
       },
       select: { id: true, name: true },

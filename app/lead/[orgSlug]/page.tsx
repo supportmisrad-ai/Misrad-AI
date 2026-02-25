@@ -5,10 +5,18 @@ import LeadCaptureForm from './LeadCaptureForm';
 
 type Props = { params: Promise<{ orgSlug: string }> };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function buildOrgWhere(orgSlug: string) {
+  const conditions: Record<string, string>[] = [{ slug: orgSlug }];
+  if (UUID_RE.test(orgSlug)) conditions.push({ id: orgSlug });
+  return { OR: conditions, subscription_status: { not: 'expired' } };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { orgSlug } = await params;
   const org = await prisma.organization.findFirst({
-    where: { OR: [{ slug: orgSlug }, { id: orgSlug }], subscription_status: { not: 'expired' } },
+    where: buildOrgWhere(orgSlug),
     select: { name: true },
   });
 
@@ -24,7 +32,7 @@ export default async function LeadCapturePage({ params }: Props) {
   const { orgSlug } = await params;
 
   const org = await prisma.organization.findFirst({
-    where: { OR: [{ slug: orgSlug }, { id: orgSlug }], subscription_status: { not: 'expired' } },
+    where: buildOrgWhere(orgSlug),
     select: { id: true, name: true, slug: true },
   });
 

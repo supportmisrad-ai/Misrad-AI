@@ -2,8 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { MisradFormCategory } from '@prisma/client';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
+
+const VALID_CATEGORIES = new Set<string>(Object.values(MisradFormCategory));
 
 export type SystemFormDTO = {
   id: string;
@@ -58,12 +61,18 @@ export async function createSystemFormAction(orgSlug: string, data: {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = requireOrganizationId('createSystemFormAction', workspace.id);
 
+    const rawCategory = data.category || 'ONBOARDING';
+    if (!VALID_CATEGORIES.has(rawCategory)) {
+      return { error: `קטגוריה לא תקינה: ${rawCategory}` };
+    }
+    const category = rawCategory as MisradFormCategory;
+
     const template = await prisma.misradFormTemplate.create({
       data: {
         organization_id: organizationId,
         title: data.title,
         description: data.description || '',
-        category: (data.category as any) || 'ONBOARDING',
+        category,
         isActive: true,
       },
     });
