@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Building2, Phone, Mail, ArrowLeft, Sparkles, Crown, Briefcase, Palette, Wrench, Target, GraduationCap } from 'lucide-react';
+import { Check, Building2, Phone, Mail, ArrowLeft, Sparkles, Crown, Briefcase, Palette, Wrench, Target, GraduationCap, Loader2 } from 'lucide-react';
 import { upsertCustomerAccountForCurrentOrganization, selectPlanForCurrentOrganization } from '@/app/actions/customer-accounts';
 import { Input } from '@/components/ui/input';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
@@ -115,9 +115,9 @@ export default function WorkspaceOnboardingClient(props: {
       }
 
       setStep('details');
+      setIsSaving(false);
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : String(err)) || 'שגיאה בבחירת חבילה');
-    } finally {
       setIsSaving(false);
     }
   };
@@ -158,10 +158,16 @@ export default function WorkspaceOnboardingClient(props: {
         throw new Error(res.error || 'שגיאה בשמירה');
       }
 
-      router.push(`/w/${encodeURIComponent(props.organizationKey)}`);
+      // Navigate directly to first module of the selected plan (skip intermediate redirect)
+      const firstModule = planModules[0];
+      const dest = firstModule
+        ? `/w/${encodeURIComponent(props.organizationKey)}/${firstModule}`
+        : `/w/${encodeURIComponent(props.organizationKey)}/lobby`;
+      router.push(dest);
+      // Keep isSaving=true — page will unmount during navigation.
+      // This prevents the button from becoming clickable again.
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : String(err)) || 'שגיאה בשמירה');
-    } finally {
       setIsSaving(false);
     }
   };
@@ -371,7 +377,10 @@ export default function WorkspaceOnboardingClient(props: {
               className="h-13 w-full py-4 rounded-2xl font-black text-base bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {isSaving ? (
-                'שומר...'
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  שומר...
+                </>
               ) : (
                 <>
                   המשך
@@ -489,7 +498,10 @@ export default function WorkspaceOnboardingClient(props: {
                   className="h-13 w-full py-4 rounded-2xl font-black text-base bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {isSaving ? (
-                    'שומר...'
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      מפעילים את החשבון שלך...
+                    </>
                   ) : (
                     <>
                       התחל ניסיון חינם

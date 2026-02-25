@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ArrowRight, Check, Users, Minus, Plus, ShoppingCart, TrendingUp } from 'lucide-react';
+import { ArrowRight, Check, Users, Minus, Plus, ShoppingCart, TrendingUp, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -37,6 +37,7 @@ export default function PricingSection({
   const [selectedSoloModule, setSelectedSoloModule] = useState<OSModuleKey>('system');
   const [users, setUsers] = useState<number>(1);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(externalBillingCycle || 'monthly');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const toggleBilling = () => {
     const next = billingCycle === 'monthly' ? 'yearly' : 'monthly';
@@ -76,6 +77,9 @@ export default function PricingSection({
   const yearlySavings = billingCycle === 'yearly' ? (monthlyPrice * 12) - (pricing.amount * 12) : 0;
 
   const goToTrial = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+
     const planParams = new URLSearchParams();
     planParams.set('plan', selectedPkg);
     planParams.set('seats', String(users));
@@ -96,6 +100,9 @@ export default function PricingSection({
   };
 
   const goToCheckout = () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+
     const params = new URLSearchParams();
     params.set('package', selectedPkg);
     params.set('billing', billingCycle);
@@ -338,16 +345,31 @@ export default function PricingSection({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => { onSelectPlan('starter'); goToTrial(); }}
-                  className="py-4 rounded-full font-black text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                  disabled={isNavigating}
+                  className="py-4 rounded-full font-black text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-200/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  התחל 7 ימי ניסיון חינם
-                  <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                  {isNavigating ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      מעביר להרשמה...
+                    </>
+                  ) : (
+                    <>
+                      התחל 7 ימי ניסיון חינם
+                      <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" />
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={goToCheckout}
-                  className="py-4 rounded-full font-black text-sm bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                  disabled={isNavigating}
+                  className="py-4 rounded-full font-black text-sm bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <ShoppingCart size={16} />
+                  {isNavigating ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <ShoppingCart size={16} />
+                  )}
                   רכוש עכשיו
                 </button>
               </div>
