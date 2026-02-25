@@ -230,12 +230,14 @@ export async function getSystemCalendarEventsRange(params: {
   );
 }
 
+export type SystemLeadUserRole = 'admin' | 'agent';
+
 export async function getSystemLeadsPage(params: {
   orgSlug: string;
   cursor?: string | null;
   pageSize?: number;
 }): Promise<
-  | { success: true; data: { leads: SystemLeadDTO[]; nextCursor: string | null; hasMore: boolean } }
+  | { success: true; data: { leads: SystemLeadDTO[]; nextCursor: string | null; hasMore: boolean; userRole: SystemLeadUserRole; currentUserId: string | null } }
   | { success: false; error: string }
 > {
   try {
@@ -247,19 +249,45 @@ export async function getSystemLeadsPage(params: {
       async ({ organizationId }) => {
         requireOrganizationId('getSystemLeadsPage', organizationId);
 
+        // Resolve current user role for RBAC filtering
+        const { userId: clerkUserId } = await auth();
+        let userRole: SystemLeadUserRole = 'agent';
+        let currentNexusUserId: string | null = null;
+
+        if (clerkUserId) {
+          const orgUser = await prisma.organizationUser.findUnique({
+            where: { clerk_user_id: clerkUserId },
+            select: { id: true, role: true },
+          });
+          if (orgUser) {
+            currentNexusUserId = orgUser.id;
+            const role = String(orgUser.role || '').toLowerCase();
+            if (['super_admin', 'admin', 'owner'].includes(role)) {
+              userRole = 'admin';
+            }
+          }
+        }
+
         const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
         const cursor = decodeSystemLeadsCursor(params.cursor);
 
+        const agentFilter: Prisma.SystemLeadWhereInput =
+          userRole === 'agent' && currentNexusUserId
+            ? { OR: [{ assignedAgentId: currentNexusUserId }, { assignedAgentId: null }] }
+            : {};
+
+        const cursorFilter: Prisma.SystemLeadWhereInput = cursor
+          ? {
+              OR: [
+                { createdAt: { lt: new Date(cursor.createdAt) } },
+                { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
+              ],
+            }
+          : {};
+
         const where: Prisma.SystemLeadWhereInput = {
           organizationId,
-          ...(cursor
-            ? {
-                OR: [
-                  { createdAt: { lt: new Date(cursor.createdAt) } },
-                  { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
-                ],
-              }
-            : {}),
+          AND: [agentFilter, cursorFilter].filter((f) => Object.keys(f).length > 0),
         };
 
         const rows = await prisma.systemLead.findMany({
@@ -281,7 +309,7 @@ export async function getSystemLeadsPage(params: {
             ? encodeSystemLeadsCursor({ createdAt: lastCreatedAt.toISOString(), id: String(last.id) })
             : null;
 
-        return { success: true, data: { leads, nextCursor, hasMore } };
+        return { success: true, data: { leads, nextCursor, hasMore, userRole, currentUserId: currentNexusUserId } };
       },
       { source: 'server_actions_system_leads', reason: 'getSystemLeadsPage' }
     );

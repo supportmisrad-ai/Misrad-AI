@@ -19,6 +19,8 @@ export default async function SystemSalesPipelinePage({
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
   const initialNextCursor = leadsRes.success ? leadsRes.data.nextCursor : null;
   const initialHasMore = leadsRes.success ? leadsRes.data.hasMore : false;
+  const userRole = leadsRes.success ? leadsRes.data.userRole : 'agent';
+  const currentUserId = leadsRes.success ? leadsRes.data.currentUserId : null;
 
   return (
     <SystemSalesPipelineClient
@@ -27,6 +29,8 @@ export default async function SystemSalesPipelinePage({
       initialNextCursor={initialNextCursor}
       initialHasMore={initialHasMore}
       initialStages={initialStages}
+      userRole={userRole}
+      currentUserId={currentUserId}
     />
   );
 }

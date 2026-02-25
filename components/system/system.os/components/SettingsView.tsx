@@ -316,35 +316,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                     <div className="ui-card overflow-hidden">
                         <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                             <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Building size={20} className="text-slate-400" />
-                                פרטי עסק (חשבוניות)
-                            </h3>
-                        </div>
-                        <div className="p-6 md:p-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">ח.פ / עוסק</label>
-                                    <input type="text" defaultValue="" className="w-full" />
-                                </div>
-                                <div className="md:col-span-2 space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">כתובת (לחשבוניות)</label>
-                                    <input type="text" defaultValue="" className="w-full" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">מייל ראשי</label>
-                                    <input type="email" defaultValue="" className="w-full" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">טלפון ראשי</label>
-                                    <input type="tel" defaultValue="" className="w-full" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="ui-card overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 <Globe size={20} className="text-primary" />
                                 שפה ומטבע
                             </h3>

@@ -27,6 +27,7 @@ import {
   updateSystemLead,
   updateSystemLeadFollowUp,
   updateSystemLeadStatus,
+  type SystemLeadUserRole,
 } from '@/app/actions/system-leads';
 import {
   createSystemPipelineStage,
@@ -56,13 +57,18 @@ export default function SystemSalesPipelineClient({
   initialNextCursor,
   initialHasMore,
   initialStages,
+  userRole = 'admin',
+  currentUserId = null,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
   initialNextCursor: string | null;
   initialHasMore: boolean;
   initialStages: SystemPipelineStageDTO[];
+  userRole?: SystemLeadUserRole;
+  currentUserId?: string | null;
 }) {
+  const isAdmin = userRole === 'admin';
   const { addToast } = useToast();
   const router = useRouter();
   const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/system`, [orgSlug]);
@@ -631,39 +637,50 @@ export default function SystemSalesPipelineClient({
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <div className="min-w-0">
           <div className="text-xs font-black text-slate-400 uppercase tracking-widest">מכירות</div>
-          <div className="text-2xl md:text-3xl font-black text-slate-900 truncate">לידים</div>
+          <div className="text-2xl md:text-3xl font-black text-slate-900 truncate flex items-center gap-3">
+            לידים
+            {!isAdmin && (
+              <span className="text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">הלידים שלי</span>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleCopyLeadFormLink}
-            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
-              leadFormCopied
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-            }`}
-          >
-            {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
-            {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowImportDialog(true)}
-            className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
-          >
-            ייבוא לידים
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsStagesModalOpen(true);
-              void refreshStages();
-            }}
-            className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
-          >
-            ניהול שלבים
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleCopyLeadFormLink}
+              className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
+                leadFormCopied
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                  : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+              }`}
+            >
+              {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
+              {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowImportDialog(true)}
+              className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
+            >
+              ייבוא לידים
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsStagesModalOpen(true);
+                void refreshStages();
+              }}
+              className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
+            >
+              ניהול שלבים
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowNewLeadModal(true)}
@@ -674,8 +691,8 @@ export default function SystemSalesPipelineClient({
         </div>
       </div>
 
-      {/* Lead Capture Settings Banner */}
-      <div className="mb-4 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
+      {/* Lead Capture Settings Banner — admin only */}
+      {isAdmin && <div className="mb-4 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3">
           <span className="text-xs font-black text-slate-600">טופס לידים ציבורי</span>
           <button
@@ -715,7 +732,7 @@ export default function SystemSalesPipelineClient({
         ) : (
           <span className="text-[11px] text-slate-400">הפעל כדי לקבל לידים מטופס ציבורי</span>
         )}
-      </div>
+      </div>}
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
