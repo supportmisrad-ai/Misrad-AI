@@ -3083,6 +3083,7 @@ model Organization {
   tax_id                           String?
   cancellation_date                DateTime?                          @db.Timestamptz(6)
   cancellation_reason              String?
+  deleted_at                       DateTime?                          @db.Timestamptz(6)
   owner                            OrganizationUser                   @relation("OrganizationOwner", fields: [owner_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "organizations_owner_id_fkey")
   partner                          Partner?                           @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   business_client                  BusinessClient?                    @relation("BusinessClientOrganizations", fields: [client_id], references: [id], onDelete: SetNull)

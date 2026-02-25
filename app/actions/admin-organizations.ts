@@ -112,14 +112,17 @@ export async function getOrganizations(params?: {
         const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
 
         const orgs = await prisma.organization.findMany({
-          where: query
-            ? {
-                OR: [
-                  { name: { contains: query, mode: 'insensitive' } },
-                  { slug: { contains: query, mode: 'insensitive' } },
-                ],
-              }
-            : undefined,
+          where: {
+            deleted_at: null,
+            ...(query
+              ? {
+                  OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    { slug: { contains: query, mode: 'insensitive' } },
+                  ],
+                }
+              : {}),
+          },
           select: {
             id: true,
             name: true,

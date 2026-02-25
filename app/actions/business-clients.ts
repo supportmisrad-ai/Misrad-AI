@@ -966,6 +966,7 @@ export async function backfillUnlinkedOrganizations(): Promise<number> {
       async () =>
         prisma.organization.findMany({
           where: {
+            deleted_at: null,
             OR: [
               { client_id: null },
               { business_client: { deleted_at: { not: null } } },

@@ -466,6 +466,221 @@ export async function reactivateOrganization(organizationId: string) {
 }
 
 // ============================================================
+// Soft-Delete Organization (Recycle Bin)
+// ============================================================
+
+export async function softDeleteOrganization(organizationId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/manage-organization.softDeleteOrganization',
+        reason: 'global_admin_soft_delete_organization',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            deleted_at: true,
+            subscription_status: true,
+            client_id: true,
+          },
+        });
+
+        if (!org) {
+          throw new Error('ארגון לא נמצא');
+        }
+
+        if (org.deleted_at) {
+          throw new Error('הארגון כבר נמחק');
+        }
+
+        // Soft-delete: set deleted_at, unlink from BusinessClient, mark as cancelled
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: {
+            deleted_at: new Date(),
+            client_id: null,
+            subscription_status: 'cancelled',
+            cancellation_date: new Date(),
+            cancellation_reason: org.subscription_status === 'cancelled'
+              ? (undefined) // keep existing reason
+              : 'soft_deleted_by_admin',
+            updated_at: new Date(),
+          },
+        });
+
+        return {
+          organizationId: org.id,
+          organizationName: org.name,
+          previousStatus: org.subscription_status,
+          previousClientId: org.client_id,
+        };
+      }
+    );
+
+    logger.info('softDeleteOrganization', 'Organization soft-deleted (recycle bin)', {
+      organizationId,
+      result,
+    });
+
+    revalidatePath('/', 'layout');
+
+    return { ok: true, data: result };
+  } catch (error) {
+    logger.error('softDeleteOrganization', 'Error soft-deleting organization', error);
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה במחיקת ארגון';
+    return { ok: false, error: errorMessage };
+  }
+}
+
+// ============================================================
+// Restore Organization (from Recycle Bin)
+// ============================================================
+
+export async function restoreOrganization(organizationId: string) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/manage-organization.restoreOrganization',
+        reason: 'global_admin_restore_organization',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: {
+            id: true,
+            name: true,
+            deleted_at: true,
+          },
+        });
+
+        if (!org) {
+          throw new Error('ארגון לא נמצא');
+        }
+
+        if (!org.deleted_at) {
+          throw new Error('הארגון אינו מחוק — לא ניתן לשחזר');
+        }
+
+        // Restore: clear deleted_at, set status to trial
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: {
+            deleted_at: null,
+            subscription_status: 'trial',
+            cancellation_date: null,
+            cancellation_reason: null,
+            updated_at: new Date(),
+          },
+        });
+
+        // Re-link to BusinessClient (fire-and-forget)
+        try {
+          const { ensureBusinessClientForOrg } = await import('@/app/actions/business-clients');
+          await ensureBusinessClientForOrg(organizationId);
+        } catch {
+          // best-effort — org is already restored
+        }
+
+        return { organizationId: org.id, organizationName: org.name };
+      }
+    );
+
+    logger.info('restoreOrganization', 'Organization restored from recycle bin', {
+      organizationId,
+      result,
+    });
+
+    revalidatePath('/', 'layout');
+
+    return { ok: true, data: result };
+  } catch (error) {
+    logger.error('restoreOrganization', 'Error restoring organization', error);
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה בשחזור ארגון';
+    return { ok: false, error: errorMessage };
+  }
+}
+
+// ============================================================
+// Get Deleted Organizations (Recycle Bin)
+// ============================================================
+
+export async function getDeletedOrganizations(): Promise<{
+  ok: boolean;
+  organizations?: Array<{
+    id: string;
+    name: string;
+    slug: string | null;
+    deleted_at: Date;
+    subscription_status: string | null;
+    owner_name: string | null;
+    owner_email: string | null;
+  }>;
+  error?: string;
+}> {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const orgs = await withTenantIsolationContext(
+      {
+        source: 'app/actions/manage-organization.getDeletedOrganizations',
+        reason: 'global_admin_get_deleted_organizations',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        prisma.organization.findMany({
+          where: { deleted_at: { not: null } },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            deleted_at: true,
+            subscription_status: true,
+            owner: {
+              select: { full_name: true, email: true },
+            },
+          },
+          orderBy: { deleted_at: 'desc' },
+        })
+    );
+
+    return {
+      ok: true,
+      organizations: orgs.map((o) => ({
+        id: o.id,
+        name: o.name,
+        slug: o.slug,
+        deleted_at: o.deleted_at!,
+        subscription_status: o.subscription_status,
+        owner_name: o.owner?.full_name ?? null,
+        owner_email: o.owner?.email ?? null,
+      })),
+    };
+  } catch (error) {
+    logger.error('getDeletedOrganizations', 'Error:', error);
+    return { ok: false, error: 'שגיאה בטעינת ארגונים מחוקים' };
+  }
+}
+
+// ============================================================
 // Update Organization Business Client Details
 // ============================================================
 

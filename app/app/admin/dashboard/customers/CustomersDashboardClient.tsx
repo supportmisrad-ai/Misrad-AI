@@ -52,10 +52,10 @@ export default function CustomersDashboardClient({ organizations, error, orphane
       };
     }
 
-    // Group by owner
-    const ownerIds = new Set<string>();
+    // Group by business client (client_id) — matches the business clients page count
+    const clientIds = new Set<string>();
     organizations.forEach(org => {
-      if (org.owner_id) ownerIds.add(org.owner_id);
+      if (org.client_id) clientIds.add(org.client_id);
     });
 
     const now = new Date();
@@ -81,12 +81,12 @@ export default function CustomersDashboardClient({ organizations, error, orphane
     }).length;
 
     return {
-      totalCustomers: ownerIds.size,
+      totalCustomers: clientIds.size,
       totalOrganizations: organizations.length,
       activeOrganizations: active,
       trialOrganizations: trial,
       canceledOrganizations: canceled,
-      avgOrganizationsPerCustomer: ownerIds.size > 0 ? organizations.length / ownerIds.size : 0,
+      avgOrganizationsPerCustomer: clientIds.size > 0 ? organizations.length / clientIds.size : 0,
       recentSignups,
       expiringTrials,
     };

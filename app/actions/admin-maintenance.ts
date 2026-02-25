@@ -102,7 +102,7 @@ export async function getPlatformStats(): Promise<{
       prisma.organization.count({ where: { subscription_status: 'trial' } }).catch(() => 0),
       prisma.organizationUser.count().catch(() => 0),
       prisma.organization.count({ where: { created_at: { gte: sevenDaysAgo } } }).catch(() => 0),
-      prisma.clientClient.count().catch(() => 0),
+      prisma.businessClient.count({ where: { deleted_at: null } }).catch(() => 0),
       prisma.nexusTask.count().catch(() => 0),
       queryRawAllowlisted<{ size: bigint }[]>(prisma, {
         reason: 'admin_maintenance_db_size',

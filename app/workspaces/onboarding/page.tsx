@@ -132,25 +132,12 @@ export default async function WorkspaceOnboardingPage({
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
   const hasPhone = Boolean(existing?.phone && String(existing.phone).trim());
 
-  if (subscriptionPlan) {
-    // Case 1: Customer account exists with full details → onboarding complete
-    if (hasCompany && hasPhone) {
-      redirect(`/w/${encodeURIComponent(organizationKey)}`);
-    }
-
-    // Case 2: No customer_accounts record at all → could be legacy user OR freshly provisioned
-    // Legacy users (org older than 10 min) should skip onboarding
-    // New users (provisioned with plan from cookie) should complete onboarding
-    const LEGACY_THRESHOLD_MS = 10 * 60 * 1000;
-    if (!existing && orgCreatedAt) {
-      const orgAge = Date.now() - new Date(orgCreatedAt).getTime();
-      if (orgAge > LEGACY_THRESHOLD_MS) {
-        redirect(`/w/${encodeURIComponent(organizationKey)}`);
-      }
-    }
-
-    // Case 3: Customer account exists but details missing, OR new org → show form
+  if (subscriptionPlan && hasCompany && hasPhone) {
+    // Onboarding complete — redirect to workspace
+    redirect(`/w/${encodeURIComponent(organizationKey)}`);
   }
+
+  // Otherwise: show onboarding form (missing plan, company name, or phone)
 
   const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
   const planRaw = resolvedSearchParams?.plan;

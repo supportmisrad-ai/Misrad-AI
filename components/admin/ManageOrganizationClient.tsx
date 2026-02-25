@@ -37,6 +37,7 @@ import {
   updateOrganizationBusinessClientDetails,
   deactivateOrganization,
   reactivateOrganization,
+  softDeleteOrganization,
 } from '@/app/actions/manage-organization';
 import { generatePaymentLink, adjustBalanceManually, getOrganizationInvoices, createOrganizationInvoice, type AdminInvoice } from '@/app/actions/app-billing';
 
@@ -434,6 +435,25 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
     }
   };
 
+  const handleSoftDelete = async () => {
+    if (!confirm(`האם למחוק את הארגון "${initialData.name}"?\n\nהארגון יועבר לסל המיחזור. הנתונים יישמרו וניתן לשחזר בכל עת.`)) return;
+
+    setIsDeactivating(true);
+    try {
+      const result = await softDeleteOrganization(initialData.id);
+      if (result.ok) {
+        showMessage('success', 'הארגון הועבר לסל המיחזור');
+        router.push('/app/admin/organizations');
+      } else {
+        showMessage('error', ('error' in result ? result.error : null) || 'שגיאה במחיקה');
+      }
+    } catch {
+      showMessage('error', 'שגיאה במחיקה');
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
   const handleReactivateOrganization = async () => {
     setIsDeactivating(true);
     try {
@@ -635,21 +655,32 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             <br />
                             <strong>הנתונים נשמרים</strong> — ניתן לשחזר את הארגון בכל עת מעמוד זה.
                           </p>
-                          <Button
-                            onClick={handleDeactivateOrganization}
-                            disabled={saving || isDeactivating}
-                            variant="outline"
-                            className="border-amber-300 text-amber-800 hover:bg-amber-100"
-                          >
-                            {isDeactivating ? (
-                              <>
-                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                                מבטל...
-                              </>
-                            ) : (
-                              'בטל ארגון'
-                            )}
-                          </Button>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={handleDeactivateOrganization}
+                              disabled={saving || isDeactivating}
+                              variant="outline"
+                              className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                            >
+                              {isDeactivating ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                                  מבטל...
+                                </>
+                              ) : (
+                                'בטל ארגון'
+                              )}
+                            </Button>
+                            <Button
+                              onClick={handleSoftDelete}
+                              disabled={saving || isDeactivating}
+                              variant="outline"
+                              className="border-red-300 text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 ml-1" />
+                              מחק לסל מיחזור
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>

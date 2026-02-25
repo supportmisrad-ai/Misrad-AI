@@ -4,9 +4,10 @@ import React, { useMemo, useState, useTransition } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Copy, Plus, X, Check, Settings } from 'lucide-react';
+import { Building2, Copy, Plus, X, Check, Settings, Trash2, RotateCcw, Archive } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
+import { softDeleteOrganization, restoreOrganization, getDeletedOrganizations } from '@/app/actions/manage-organization';
 import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
@@ -60,6 +61,13 @@ export default function AdminOrganizationsClient(props: {
   const [selectedPackage, setSelectedPackage] = useState<PackageType | ''>('');
   const [businessClientId, setBusinessClientId] = useState<string>('');
   const [businessClients, setBusinessClients] = useState<{ id: string; company_name: string }[]>([]);
+
+  // Recycle bin
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [deletedOrgs, setDeletedOrgs] = useState<Array<{ id: string; name: string; slug: string | null; deleted_at: Date; subscription_status: string | null; owner_name: string | null; owner_email: string | null }>>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState('');
 
   const selectedModules = useMemo(() => {
     if (!selectedPackage) return [];
@@ -147,6 +155,62 @@ export default function AdminOrganizationsClient(props: {
     });
   };
 
+  const handleDelete = async (orgId: string) => {
+    startTransition(async () => {
+      try {
+        const res = await softDeleteOrganization(orgId);
+        if (!res.ok) {
+          addToast(('error' in res ? res.error : null) || 'שגיאה במחיקה', 'error');
+          return;
+        }
+        addToast('הארגון הועבר לסל המיחזור', 'success');
+        setConfirmDeleteId(null);
+        router.refresh();
+      } catch {
+        addToast('שגיאה במחיקה', 'error');
+      }
+    });
+  };
+
+  const handleRestore = async (orgId: string) => {
+    startTransition(async () => {
+      try {
+        const res = await restoreOrganization(orgId);
+        if (!res.ok) {
+          addToast(('error' in res ? res.error : null) || 'שגיאה בשחזור', 'error');
+          return;
+        }
+        addToast('הארגון שוחזר בהצלחה', 'success');
+        await loadDeletedOrgs();
+        router.refresh();
+      } catch {
+        addToast('שגיאה בשחזור', 'error');
+      }
+    });
+  };
+
+  const loadDeletedOrgs = async () => {
+    setLoadingDeleted(true);
+    try {
+      const res = await getDeletedOrganizations();
+      if (res.ok && res.organizations) {
+        setDeletedOrgs(res.organizations);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
+  const toggleRecycleBin = async () => {
+    const next = !showRecycleBin;
+    setShowRecycleBin(next);
+    if (next) {
+      await loadDeletedOrgs();
+    }
+  };
+
   const copyInvite = async () => {
     if (!lastInviteUrl) return;
     try {
@@ -171,12 +235,19 @@ export default function AdminOrganizationsClient(props: {
 
       <AdminToolbar
         actions={
-          <Button
-            onClick={openModal}
-          >
-            <Plus size={18} />
-            הקמת ארגון חדש
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={toggleRecycleBin}>
+              <Archive size={16} />
+              {showRecycleBin ? 'חזור לרשימה' : 'סל מיחזור'}
+              {deletedOrgs.length > 0 && !showRecycleBin ? (
+                <span className="mr-1 px-1.5 py-0.5 text-[10px] font-black bg-red-100 text-red-700 rounded-full">{deletedOrgs.length}</span>
+              ) : null}
+            </Button>
+            <Button onClick={openModal}>
+              <Plus size={18} />
+              הקמת ארגון חדש
+            </Button>
+          </div>
         }
       />
 
@@ -220,12 +291,21 @@ export default function AdminOrganizationsClient(props: {
                 <div key={String(o.id)} className="bg-white border border-slate-200 rounded-2xl p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
-                    <Link
-                      href={`/app/admin/organizations/${o.id}`}
-                      className="shrink-0 p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <Settings className="w-4 h-4 text-slate-600" />
-                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Link
+                        href={`/app/admin/organizations/${o.id}`}
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        <Settings className="w-4 h-4 text-slate-600" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => { setConfirmDeleteId(o.id); setConfirmDeleteName(o.name); }}
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
@@ -305,13 +385,22 @@ export default function AdminOrganizationsClient(props: {
                       {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Link
-                        href={`/app/admin/organizations/${o.id}`}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                        נהל
-                      </Link>
+                      <div className="flex items-center justify-center gap-1">
+                        <Link
+                          href={`/app/admin/organizations/${o.id}`}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          נהל
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => { setConfirmDeleteId(o.id); setConfirmDeleteName(o.name); }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 text-xs font-bold transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -320,6 +409,95 @@ export default function AdminOrganizationsClient(props: {
           </table>
         </div>
       </div>
+
+      {/* Recycle Bin */}
+      {showRecycleBin ? (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-amber-50 flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-xl">
+              <Archive className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <div className="text-sm font-black text-amber-900">סל מיחזור</div>
+              <div className="text-xs font-bold text-amber-700">ארגונים שנמחקו — ניתן לשחזר בכל עת</div>
+            </div>
+          </div>
+
+          {loadingDeleted ? (
+            <div className="p-8 text-center text-sm font-bold text-slate-500">טוען...</div>
+          ) : deletedOrgs.length === 0 ? (
+            <div className="p-8 text-center text-sm font-bold text-slate-500">סל המיחזור ריק</div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {deletedOrgs.map((o) => (
+                <div key={o.id} className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50">
+                  <div className="min-w-0">
+                    <div className="text-sm font-black text-slate-900 truncate">{o.name}</div>
+                    <div className="text-xs font-bold text-slate-500 mt-0.5">
+                      {o.owner_name || o.owner_email || '—'}
+                      {o.deleted_at ? (
+                        <span className="mr-2 text-red-500">
+                          נמחק {new Date(o.deleted_at).toLocaleDateString('he-IL')}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRestore(o.id)}
+                    disabled={isPending}
+                    className="shrink-0 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                  >
+                    <RotateCcw size={14} />
+                    שחזר
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Confirm Delete Dialog */}
+      {confirmDeleteId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => !isPending && setConfirmDeleteId(null)}
+          />
+          <div className="relative w-full max-w-sm rounded-3xl bg-white border border-slate-200 shadow-xl p-6 text-center" dir="rtl">
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-7 h-7 text-red-600" />
+            </div>
+            <h3 className="text-lg font-black text-slate-900 mb-2">מחיקת ארגון</h3>
+            <p className="text-sm text-slate-600 mb-1">
+              האם למחוק את <strong>{confirmDeleteName}</strong>?
+            </p>
+            <p className="text-xs text-slate-500 mb-5">
+              הארגון יועבר לסל המיחזור. הנתונים יישמרו וניתן לשחזר בכל עת.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => handleDelete(confirmDeleteId)}
+                disabled={isPending}
+              >
+                {isPending ? 'מוחק...' : 'מחק ארגון'}
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setConfirmDeleteId(null)}
+                disabled={isPending}
+              >
+                ביטול
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
