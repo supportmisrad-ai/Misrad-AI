@@ -909,6 +909,116 @@ export async function restoreBusinessClient(clientId: string) {
 }
 
 // ============================================================
+// Create New User & Add as Contact
+// ============================================================
+
+export async function createUserAndAddAsContact(
+  clientId: string,
+  input: {
+    email: string;
+    full_name: string;
+    role?: string;
+    is_primary?: boolean;
+  }
+): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const email = (input.email || '').trim().toLowerCase();
+    const fullName = (input.full_name || '').trim();
+
+    if (!email || !email.includes('@')) {
+      return { ok: false, error: 'כתובת מייל לא תקינה' };
+    }
+    if (!fullName) {
+      return { ok: false, error: 'שם מלא הוא שדה חובה' };
+    }
+
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.createUserAndAddAsContact',
+        reason: 'global_admin_create_user_and_add_as_contact',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // Check if OrganizationUser already exists by email
+        let user = await prisma.organizationUser.findFirst({
+          where: { email: { equals: email, mode: 'insensitive' } },
+          select: { id: true, clerk_user_id: true },
+        });
+
+        if (!user) {
+          // Create OrganizationUser with pending clerk_user_id
+          const pendingClerkId = `pending_${crypto.randomUUID()}`;
+          user = await prisma.organizationUser.create({
+            data: {
+              clerk_user_id: pendingClerkId,
+              email,
+              full_name: fullName,
+              role: 'team_member',
+            },
+            select: { id: true, clerk_user_id: true },
+          });
+
+          // Send Clerk invitation (best-effort)
+          try {
+            const { clerkClient } = await import('@clerk/nextjs/server');
+            const client = await clerkClient();
+            if (client) {
+              await client.invitations.createInvitation({ emailAddress: email });
+            }
+          } catch (inviteErr) {
+            logger.error('createUserAndAddAsContact', 'Clerk invitation failed (non-fatal):', inviteErr);
+          }
+        }
+
+        // Check if already linked as contact
+        const existingContact = await prisma.businessClientContact.findUnique({
+          where: {
+            client_id_user_id: {
+              client_id: clientId,
+              user_id: user.id,
+            },
+          },
+          select: { id: true },
+        });
+
+        if (existingContact) {
+          return { ok: false as const, error: 'איש קשר זה כבר מקושר ללקוח' };
+        }
+
+        // If this is primary, unset other primary contacts
+        if (input.is_primary) {
+          await prisma.businessClientContact.updateMany({
+            where: { client_id: clientId, is_primary: true },
+            data: { is_primary: false },
+          });
+        }
+
+        // Add as contact
+        await prisma.businessClientContact.create({
+          data: {
+            client_id: clientId,
+            user_id: user.id,
+            role: input.role || 'contact',
+            is_primary: input.is_primary || false,
+          },
+        });
+
+        revalidatePath('/', 'layout');
+        return { ok: true as const, userId: user.id };
+      }
+    );
+  } catch (error) {
+    logger.error('createUserAndAddAsContact', 'Error:', error);
+    return { ok: false, error: 'שגיאה ביצירת משתמש והוספת איש קשר' };
+  }
+}
+
+// ============================================================
 // Search Users for Contact (not yet linked to client)
 // ============================================================
 

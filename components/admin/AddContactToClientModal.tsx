@@ -38,6 +38,9 @@ export default function AddContactToClientModal({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   
   const [role, setRole] = useState('contact');
   const [title, setTitle] = useState('');
@@ -68,6 +71,8 @@ export default function AddContactToClientModal({
 
   const handleSearch = async () => {
     setIsSearching(true);
+    setHasSearched(true);
+    setShowCreateForm(false);
     try {
       const { searchUsersForContact } = await import('@/app/actions/business-clients');
       const result = await searchUsersForContact(clientId, searchTerm);
@@ -80,6 +85,34 @@ export default function AddContactToClientModal({
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleCreateAndAdd = async () => {
+    if (!newUserName.trim() || !searchTerm.trim()) return;
+    setError('');
+
+    startTransition(async () => {
+      try {
+        const { createUserAndAddAsContact } = await import('@/app/actions/business-clients');
+        const result = await createUserAndAddAsContact(clientId, {
+          email: searchTerm.trim(),
+          full_name: newUserName.trim(),
+          role: role,
+          is_primary: isPrimary,
+        });
+
+        if (!result.ok) {
+          setError(result.error || 'שגיאה ביצירת משתמש');
+          return;
+        }
+
+        onSuccess();
+        onClose();
+      } catch (err) {
+        console.error('Failed to create user and add contact:', err);
+        setError('שגיאה לא צפויה');
+      }
+    });
   };
 
   useBackButtonClose(isOpen, onClose);
@@ -126,6 +159,9 @@ export default function AddContactToClientModal({
     setSearchTerm('');
     setSearchResults([]);
     setSelectedUserId('');
+    setShowCreateForm(false);
+    setNewUserName('');
+    setHasSearched(false);
     setRole('contact');
     setTitle('');
     setDepartment('');
@@ -216,8 +252,103 @@ export default function AddContactToClientModal({
               </div>
             )}
 
-            {searchTerm.trim().length >= 2 && searchResults.length === 0 && !isSearching && (
-              <p className="text-sm text-slate-500 text-center py-4">לא נמצאו משתמשים</p>
+            {searchTerm.trim().length >= 2 && searchResults.length === 0 && !isSearching && hasSearched && (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-500 text-center py-2">לא נמצאו משתמשים עם הכתובת הזו</p>
+                {!showCreateForm ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-dashed border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 py-5"
+                    onClick={() => setShowCreateForm(true)}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    צור משתמש חדש עם {searchTerm.trim()}
+                  </Button>
+                ) : (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
+                      <UserPlus className="w-4 h-4" />
+                      יצירת משתמש חדש
+                    </div>
+                    <div>
+                      <Label htmlFor="newUserEmail">אימייל</Label>
+                      <Input
+                        id="newUserEmail"
+                        type="email"
+                        value={searchTerm}
+                        disabled
+                        className="mt-1 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="newUserName">שם מלא *</Label>
+                      <Input
+                        id="newUserName"
+                        type="text"
+                        placeholder="לדוגמה: שמואל בן סימון"
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        disabled={isPending}
+                        className="mt-1"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>תפקיד</Label>
+                        <CustomSelect
+                          value={role}
+                          onChange={(val) => setRole(val)}
+                          disabled={isPending}
+                          options={[
+                            { value: 'contact', label: 'איש קשר' },
+                            { value: 'primary', label: 'איש קשר ראשי' },
+                            { value: 'billing', label: 'חיובים' },
+                            { value: 'technical', label: 'טכני' },
+                          ]}
+                        />
+                      </div>
+                      <div className="flex items-end gap-2 pb-1">
+                        <Checkbox
+                          id="newUserIsPrimary"
+                          checked={isPrimary}
+                          onCheckedChange={(checked: boolean) => setIsPrimary(checked as boolean)}
+                          disabled={isPending}
+                        />
+                        <Label htmlFor="newUserIsPrimary" className="cursor-pointer text-sm">
+                          איש קשר ראשי
+                        </Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        type="button"
+                        onClick={handleCreateAndAdd}
+                        disabled={isPending || !newUserName.trim()}
+                        className="flex-1"
+                      >
+                        {isPending ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />יוצר ומוסיף...</>
+                        ) : (
+                          <><UserPlus className="w-4 h-4 mr-2" />צור והוסף כאיש קשר</>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowCreateForm(false)}
+                        disabled={isPending}
+                      >
+                        ביטול
+                      </Button>
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      המשתמש ייווצר במערכת ותישלח לו הזמנת הרשמה במייל.
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
