@@ -20,7 +20,15 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "Bash(git revert:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(git -C \"C:/Projects/Misrad-AI\" show --stat 1f28382)",
+      "Bash(git -C \"C:/Projects/Misrad-AI\" log --oneline -5)",
+      "Bash(git -C \"C:/Projects/Misrad-AI\" show 1f28382 --name-only)",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Projects\\\\Misrad-AI''; git show 1f28382 --name-only 2>&1 | Select-Object -First 30\")",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Projects\\\\Misrad-AI''; git show 1f28382 -- lib/prisma-tenant-guard.ts 2>&1 | Select-Object -First 150\")",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command:*)"
     ]
   }
 }
