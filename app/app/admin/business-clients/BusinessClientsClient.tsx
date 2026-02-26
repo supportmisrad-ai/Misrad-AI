@@ -753,10 +753,14 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                         variant="outline"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (client.contacts.length === 0) {
+                            setError(`לא ניתן להוסיף ארגון ל-"${client.company_name}" — יש להוסיף איש קשר ראשי קודם (הוא ישמש כבעלים של הארגון).`);
+                            return;
+                          }
                           setSelectedClientForOrg(client);
                         }}
-                        disabled={client.contacts.length === 0}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${client.contacts.length === 0 ? 'opacity-60' : ''}`}
+                        title={client.contacts.length === 0 ? 'יש להוסיף איש קשר ראשי לפני יצירת ארגון' : 'הוסף ארגון חדש'}
                       >
                         <Building2 className="w-3.5 h-3.5 mr-1" />
                         <span className="hidden sm:inline">הוסף </span>ארגון

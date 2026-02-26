@@ -379,7 +379,7 @@ export default function AddOrganizationToClientModal({
           </div>
 
           {error && (
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 font-medium">
               {error}
             </div>
           )}
