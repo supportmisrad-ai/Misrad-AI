@@ -73,10 +73,20 @@ function normalizeEmail(input: string): string {
 async function generateUniqueOrgInviteToken(): Promise<string> {
   for (let attempt = 0; attempt < 20; attempt++) {
     const token = randomBytes(16).toString('hex').toUpperCase().slice(0, 32);
-    const existing = await prisma.organization_signup_invitations.findFirst({
-      where: { token },
-      select: { id: true },
-    });
+    const existing = await prisma.organization_signup_invitations.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { token },
+          select: { id: true },
+        },
+        {
+          suppressReporting: true,
+          source: 'admin-organizations',
+          organizationId: '',
+          reason: 'admin_generate_invite_token',
+        }
+      )
+    );
 
     if (!existing) return token;
   }
