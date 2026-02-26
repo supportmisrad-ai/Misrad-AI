@@ -5,7 +5,7 @@ import { ArrowRight, Check, Users, Minus, Plus, ShoppingCart, TrendingUp, Loader
 import { useRouter } from 'next/navigation';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
-import { BILLING_PACKAGES, AI_CREDITS_PER_PLAN, calculateOrderAmount } from '@/lib/billing/pricing';
+import { BILLING_PACKAGES, AI_CREDITS_PER_PLAN, calculateOrderAmount, hasNexus } from '@/lib/billing/pricing';
 import { StyledDropdown } from '@/components/ui/StyledDropdown';
 import PricingHelper from '@/components/landing/PricingHelper';
 
@@ -229,7 +229,7 @@ export default function PricingSection({
                 <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-50 border-2 border-emerald-200">
                   <Users size={16} className="text-emerald-600" />
                   <span className="text-sm font-black text-emerald-800">
-                    {pricing.includedSeats} {pricing.includedSeats === 1 ? 'משתמש' : 'משתמשים'} חינם
+                    {pricing.includedSeats === 1 ? 'משתמש אחד' : `${pricing.includedSeats} משתמשים`} חינם
                   </span>
                 </div>
               </div>
@@ -296,6 +296,9 @@ export default function PricingSection({
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       {pricing.includedSeats} כלולים בחינם{pricing.extraSeats > 0 ? ` · ${pricing.extraSeats} נוספים × 39 ₪` : ''}
                     </div>
+                    {!hasNexus(pricing.modules) && users > 1 && (
+                      <div className="text-[11px] text-amber-600 font-bold mt-1">תוספת משתמשים דורשת חבילה עם Nexus</div>
+                    )}
                   </div>
                   <div className="flex items-center gap-0">
                     <button
@@ -309,15 +312,15 @@ export default function PricingSection({
                     <input
                       type="number"
                       min={1}
-                      max={50}
-                      value={users}
-                      onChange={(e) => setUsers(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                      max={hasNexus(pricing.modules) ? 50 : 1}
+                      value={hasNexus(pricing.modules) ? users : 1}
+                      onChange={(e) => setUsers(Math.max(1, Math.min(hasNexus(pricing.modules) ? 50 : 1, Number(e.target.value) || 1)))}
                       className="w-14 h-10 border-y border-slate-200 text-center text-sm font-black text-slate-900 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <button
                       type="button"
                       onClick={incrementUsers}
-                      disabled={users >= 50}
+                      disabled={users >= 50 || !hasNexus(pricing.modules)}
                       className="w-10 h-10 rounded-l-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-700 disabled:opacity-30 transition-colors"
                     >
                       <Plus size={16} />
@@ -334,7 +337,7 @@ export default function PricingSection({
                   {' · '}
                   {isSolo ? getModuleLabelHe(selectedSoloModule) : pkg.modules}
                   {' · '}
-                  {users} {users === 1 ? 'משתמש' : 'משתמשים'}
+                  {users === 1 ? 'משתמש אחד' : `${users} משתמשים`}
                   {billingCycle === 'yearly' && yearlySavings > 0 && (
                     <span className="text-emerald-700 mr-1"> · חיסכון שנתי ₪{yearlySavings}</span>
                   )}

@@ -156,7 +156,9 @@ export async function sendTrialExpiryWarningEmail(params: {
         const html = generateTrialExpiryWarningEmailHTML(params);
 
         const urgencyPrefix = params.daysRemaining === 1 ? '🚨 מחר!' : params.daysRemaining <= 3 ? '⚠️' : '';
-        const subject = `${urgencyPrefix} תקופת הניסיון שלך מסתיימת בעוד ${params.daysRemaining} ימים`;
+        const subject = params.daysRemaining === 1
+            ? `${urgencyPrefix} מחר תסתיים תקופת הניסיון שלך`
+            : `${urgencyPrefix} תקופת הניסיון שלך מסתיימת בעוד ${params.daysRemaining} ימים`;
 
         const { data, error } = await resend.emails.send({
             from: fromEmail,

@@ -135,6 +135,10 @@ async function POSTHandler(
       chargedCents: out.chargedCents,
     }, { headers: abuse.headers });
   } catch (e: unknown) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    const errName = e instanceof Error ? e.constructor.name || e.name : 'unknown';
+    console.error('[system/call-analyzer/transcribe] Error:', { name: errName, message: errMsg, stack: e instanceof Error ? e.stack : undefined });
+
     if (e instanceof APIError) {
       const safeMsg =
         e.status === 400
@@ -148,7 +152,7 @@ async function POSTHandler(
                 : 'Forbidden';
       return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
-    return apiError(e, { message: 'Failed to transcribe' });
+    return apiError(e, { message: `Failed to transcribe: [${errName}] ${errMsg}` });
   }
 }
 

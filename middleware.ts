@@ -46,6 +46,8 @@ const isPublicRoute = createRouteMatcher([
   "/operations(.*)",
   "/social(.*)",
   "/finance-landing(.*)",
+  "/cancel(.*)",
+  "/save-time(.*)",
   "/manifest.json",
   "/sw.js",
   "/manifests/(.*)",

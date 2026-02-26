@@ -311,7 +311,10 @@ async function POSTHandler(req: Request) {
 
     return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript, mode: 'analyze' as const }, { headers: abuse.headers });
   } catch (e: unknown) {
-    return apiError(e, { status: 500, message: 'Processing failed' });
+    const errMsg = e instanceof Error ? e.message : String(e);
+    const errName = e instanceof Error ? e.constructor.name || e.name : 'unknown';
+    console.error('[client-os/meetings/process] Error:', { name: errName, message: errMsg, stack: e instanceof Error ? e.stack : undefined });
+    return apiError(e, { status: 500, message: `Processing failed: [${errName}] ${errMsg}` });
   } finally {
     try {
       await fs.rm(tmpDir, { recursive: true, force: true });

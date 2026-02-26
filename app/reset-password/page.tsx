@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 import { ResetPasswordView } from "../../views/ResetPasswordView";
-import { DataProvider } from "../../context/DataContext";
 import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time Clerk errors and handle auth server-side
@@ -21,9 +20,5 @@ export default async function ResetPasswordPage({
     redirect('/');
   }
 
-  return (
-    <DataProvider>
-      <ResetPasswordView />
-    </DataProvider>
-  );
+  return <ResetPasswordView />;
 }

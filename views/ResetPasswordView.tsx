@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Mail, ShieldCheck, Zap, Globe, Cpu, Lock, CircleCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,7 +11,6 @@ import { translateClerkError } from '@/lib/errorTranslations';
 type Step = 'email' | 'code' | 'password';
 
 export const ResetPasswordView: React.FC = () => {
-  const { organization } = useData();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -317,8 +315,8 @@ export const ResetPasswordView: React.FC = () => {
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
                 <img src={getSystemIconUrl('misrad')} alt="Misrad" className="w-full h-full object-contain p-1.5" />
               </div>
-              <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>
-                {organization.name}
+              <span className="font-bold text-3xl tracking-tight">
+                MISRAD AI
               </span>
             </div>
             <h2 className="text-5xl font-bold leading-tight max-w-md">
@@ -434,7 +432,10 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <>טוען...</>
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            שולח קוד...
+                                        </span>
                                     ) : (
                                         <>
                                             שלח קוד אימות <ArrowLeft size={18} />
@@ -500,7 +501,10 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <>טוען...</>
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            מאמת...
+                                        </span>
                                     ) : (
                                         <>
                                             אמת קוד <ArrowLeft size={18} />
@@ -510,7 +514,7 @@ export const ResetPasswordView: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => { setStep('email'); setCode(''); setError(''); }}
+                                        onClick={() => { setStep('email'); setCode(''); setError(''); setSuccess(''); }}
                                         className="flex-1 text-gray-500 font-bold py-2 text-sm hover:text-gray-700 transition-colors"
                                     >
                                         חזרה
@@ -609,7 +613,10 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <>טוען...</>
+                                        <span className="flex items-center gap-2">
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            מאפס סיסמה...
+                                        </span>
                                     ) : success ? (
                                         <>
                                             מפנה אותך... <ArrowRight size={18} />
