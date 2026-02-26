@@ -454,3 +454,36 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
     },
   };
 }
+
+/**
+ * Lightweight workspace + user resolution for read-only list operations (e.g. listNexusTasks).
+ * Skips ensureProfileRow / ensureNexusUserRow upserts — saving 2-4 DB round-trips per request.
+ * The upserts are handled by resolveWorkspaceCurrentUserForUi / resolveWorkspaceCurrentUserForApi
+ * on other code paths that run at least once per session (layout shell, mutations).
+ *
+ * Returns empty dbUserId when the nexus user row doesn't exist yet (first-ever request race).
+ * Callers must handle dbUserId === '' gracefully (e.g. return empty list for non-managers).
+ */
+export async function resolveWorkspaceForTaskListApi(orgSlug: string): Promise<{
+  workspace: Awaited<ReturnType<typeof requireWorkspaceAccessByOrgSlugApi>>;
+  dbUserId: string;
+  isSuperAdmin: boolean;
+}> {
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+  const clerk = await currentUser();
+  if (!clerk?.id) throw new Error('Unauthorized');
+
+  const email = (clerk.primaryEmailAddress?.emailAddress ?? '').trim().toLowerCase();
+  if (!email) throw new Error('User email not found');
+
+  const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
+  const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
+
+  // Single lightweight read — no upserts
+  const nexusUser = await prisma.nexusUser.findFirst({
+    where: { organizationId: workspace.id, email },
+    select: { id: true },
+  });
+
+  return { workspace, dbUserId: String(nexusUser?.id ?? ''), isSuperAdmin };
+}

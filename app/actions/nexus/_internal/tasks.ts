@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 
 import { createActionMetrics } from '@/lib/server/action-metrics';
 import { isUuidLike as isUUID } from '@/lib/server/workspace-access/utils';
-import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
+import { resolveWorkspaceCurrentUserForApi, resolveWorkspaceForTaskListApi } from '@/lib/server/workspaceUser';
 import { insertMisradNotificationsForOrganizationId } from '@/lib/services/system/notifications';
 import { resolveNexusTasksAttachmentsForResponse } from '@/lib/services/nexus-task-attachments';
 import {
@@ -49,19 +49,24 @@ export async function listNexusTasks(params: {
     const offset = (page - 1) * pageSize;
     const take = pageSize + 1;
 
-    const resolved = await metrics.step('auth.resolveWorkspaceCurrentUserForApi', () =>
-      resolveWorkspaceCurrentUserForApi(orgId)
+    // Use the lightweight resolver: skips ensureProfileRow/ensureNexusUserRow upserts
+    // (those run via the layout shell's resolveWorkspaceCurrentUserForUi path).
+    const [{ workspace, dbUserId }, , isManager] = await metrics.step(
+      'auth.parallel_resolve_and_permissions',
+      () =>
+        Promise.all([
+          resolveWorkspaceForTaskListApi(orgId),
+          requirePermission('view_crm'),
+          hasPermission('manage_team'),
+        ])
     );
-    const workspace = resolved.workspace;
-    const dbUser = asObject(resolved.user) ?? {};
-    const dbUserId = String(dbUser.id ?? '').trim();
 
-    const [, isManager] = await metrics.step('auth.parallel_permissions', () =>
-      Promise.all([
-        requirePermission('view_crm'),
-        hasPermission('manage_team'),
-      ])
-    );
+    // First-ever request race: nexus user row not yet created — non-managers return empty list
+    // rather than leaking other users' tasks. The layout shell upsert runs concurrently and
+    // will have created the row by the time the 30 s background refetch fires.
+    if (!isManager && !dbUserId) {
+      return { tasks: [], page, pageSize, hasMore: false };
+    }
 
     const where: Omit<Prisma.NexusTaskWhereInput, 'organizationId'> = {};
 

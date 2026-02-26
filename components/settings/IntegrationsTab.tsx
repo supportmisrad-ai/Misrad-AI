@@ -460,19 +460,14 @@ export const IntegrationsTab: React.FC = () => {
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                <img 
-                                    src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" 
-                                    alt="Google Calendar" 
-                                    className="w-6 h-6"
-                                    onError={(e) => {
-                                        // Fallback to icon if image fails to load
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        const parent = (e.target as HTMLImageElement).parentElement;
-                                        if (parent) {
-                                            parent.innerHTML = '<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>';
-                                        }
-                                    }}
-                                />
+                                <svg viewBox="0 0 48 48" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="4" y="8" width="40" height="36" rx="3" fill="white" stroke="#DADCE0" strokeWidth="2"/>
+                                    <rect x="4" y="8" width="40" height="10" rx="3" fill="#1A73E8"/>
+                                    <rect x="4" y="16" width="40" height="2" fill="#1A73E8"/>
+                                    <rect x="14" y="4" width="4" height="7" rx="2" fill="#BDBDBD"/>
+                                    <rect x="30" y="4" width="4" height="7" rx="2" fill="#BDBDBD"/>
+                                    <text x="24" y="34" fontSize="14" fontWeight="bold" fill="#1A73E8" textAnchor="middle" fontFamily="sans-serif" dominantBaseline="middle">31</text>
+                                </svg>
                             </div>
                             <div>
                                 <div className="font-bold text-sm text-gray-900 flex items-center gap-2">

@@ -10,6 +10,7 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SearchableEmployeeSelect } from './SearchableEmployeeSelect';
 import { extractData, extractError } from '@/lib/shared/api-types';
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,6 +45,8 @@ interface EmployeeInvitationsPanelProps {
 }
 
 export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> = ({ addToast }) => {
+    const pathname = usePathname();
+    const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const [invitations, setInvitations] = useState<EmployeeInvitation[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
@@ -70,7 +73,9 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const loadInvitations = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/employees/invitations');
+            const response = await fetch('/api/employees/invitations', {
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
+            });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 const errorMsg = extractError(errorData);
@@ -106,6 +111,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     employeeEmail: formData.employeeEmail.trim(),
@@ -175,7 +181,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const handleDeactivate = async (id: string) => {
         try {
             const response = await fetch(`/api/employees/invitations/${id}/deactivate`, {
-                method: 'POST'
+                method: 'POST',
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
             });
 
             if (!response.ok) {

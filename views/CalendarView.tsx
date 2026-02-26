@@ -267,7 +267,14 @@ export const CalendarView: React.FC = () => {
                           ) : isCalendarConnected ? (
                               <Check size={12} />
                           ) : (
-                              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" className="w-3 h-3 md:w-4 md:h-4" />
+                              <svg viewBox="0 0 48 48" className="w-3 h-3 md:w-4 md:h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="8" width="40" height="36" rx="3" fill="white" stroke="#DADCE0" strokeWidth="2"/>
+                                <rect x="4" y="8" width="40" height="10" rx="3" fill="#1A73E8"/>
+                                <rect x="4" y="16" width="40" height="2" fill="#1A73E8"/>
+                                <rect x="14" y="4" width="4" height="7" rx="2" fill="#BDBDBD"/>
+                                <rect x="30" y="4" width="4" height="7" rx="2" fill="#BDBDBD"/>
+                                <text x="24" y="34" fontSize="14" fontWeight="bold" fill="#1A73E8" textAnchor="middle" fontFamily="sans-serif" dominantBaseline="middle">31</text>
+                              </svg>
                           )}
                           <span>{isCalendarConnected ? 'מחובר' : 'סנכרן'}</span>
                       </button>
