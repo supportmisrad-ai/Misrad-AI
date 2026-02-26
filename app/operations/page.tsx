@@ -47,8 +47,8 @@ export default function OperationsMarketingPage() {
       <Navbar />
       <main className="pt-28">
         <section className="relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-[560px] h-[560px] bg-amber-200/35 rounded-full blur-[140px] pointer-events-none" />
-          <div className="absolute -bottom-32 -left-24 w-[640px] h-[640px] bg-rose-200/20 rounded-full blur-[170px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-[560px] h-[560px] bg-sky-200/35 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute -bottom-32 -left-24 w-[640px] h-[640px] bg-cyan-200/25 rounded-full blur-[170px] pointer-events-none" />
 
           <div className="max-w-6xl mx-auto px-6 py-16 sm:py-20 relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
@@ -60,7 +60,7 @@ export default function OperationsMarketingPage() {
 
                 <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
                   האופרציה שלכם,
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-rose-700 to-indigo-700">
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-cyan-600 to-blue-700">
                     עובדת אוטומטית.
                   </span>
                 </h1>
@@ -82,17 +82,17 @@ export default function OperationsMarketingPage() {
                   >
                     מעבר לתשלום <ArrowRight size={16} className="rotate-180" />
                   </Link>
-                  <DemoVideoTrigger className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all gap-2" />
+                  <DemoVideoTrigger className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-white via-sky-50/60 to-cyan-50/60 border-2 border-sky-200 text-slate-900 font-bold hover:border-sky-300 hover:scale-105 transition-all gap-2" />
                 </div>
               </div>
 
               <div className="rounded-3xl bg-white border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden">
-                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-amber-50 via-white to-indigo-50">
+                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50">
                   <div className="text-xs font-black text-slate-600">דוגמה · מובייל שטח</div>
                   <div className="mt-2 text-xl font-black text-slate-900">הכל קורה מהטלפון</div>
                 </div>
                 <div className="p-6">
-                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-amber-50 p-6">
+                  <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-6">
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-black text-slate-700">מוכן לעבודה בשטח</div>
                       <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900">
@@ -138,7 +138,7 @@ export default function OperationsMarketingPage() {
               </div>
 
               <div className="rounded-3xl bg-white border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden">
-                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-indigo-50">
+                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-sky-50">
                   <div className="text-xs font-black text-slate-600">דוגמה · פקודה קולית</div>
                   <div className="mt-2 text-xl font-black text-slate-900">דיבור → פעולה</div>
                 </div>
@@ -207,15 +207,15 @@ export default function OperationsMarketingPage() {
               </div>
 
               <div className="rounded-3xl bg-white border border-slate-200 shadow-2xl shadow-slate-200/40 overflow-hidden">
-                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-amber-50 via-white to-indigo-50">
+                <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50">
                   <div className="text-xs font-black text-slate-600">דוגמה · תהליך עבודה</div>
                   <div className="mt-2 text-xl font-black text-slate-900">קריאת שירות — מהפתיחה עד הסגירה</div>
                 </div>
                 <div className="p-6">
                   <div className="space-y-3">
                     {[
-                      { title: 'נפתחה קריאה', note: 'כתובת + תיאור + דחיפות + SLA', tone: 'bg-amber-50 border-amber-200 text-amber-900' },
-                      { title: 'AI שיבץ טכנאי', note: 'לפי עומס, ניסיון וזמינות', tone: 'bg-indigo-50 border-indigo-200 text-indigo-900' },
+                      { title: 'נפתחה קריאה', note: 'כתובת + תיאור + דחיפות + SLA', tone: 'bg-sky-50 border-sky-200 text-sky-900' },
+                      { title: 'AI שיבץ טכנאי', note: 'לפי עומס, ניסיון וזמינות', tone: 'bg-cyan-50 border-cyan-200 text-cyan-900' },
                       { title: 'טכנאי בשטח', note: 'צ\'אט + תמונות + הקלטות קוליות', tone: 'bg-slate-50 border-slate-200 text-slate-900' },
                       { title: 'AI סיכם את הקריאה', note: 'דו"ח אוטומטי ללא מאמץ', tone: 'bg-emerald-50 border-emerald-200 text-emerald-900' },
                     ].map((s) => (
@@ -282,9 +282,9 @@ export default function OperationsMarketingPage() {
                 <div className="text-2xl font-black text-slate-900">₪149<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
                 <div className="text-[10px] text-slate-500 mt-1">Operations בלבד</div>
               </div>
-              <div className="bg-white border-2 border-amber-200 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
-                <div className="text-xs font-bold text-amber-700 mb-1">חבילת תפעול ושטח</div>
-                <div className="text-2xl font-black text-amber-800">₪349<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
+              <div className="bg-white border-2 border-sky-200 rounded-2xl p-5 text-center min-w-[160px] shadow-lg">
+                <div className="text-xs font-bold text-sky-700 mb-1">חבילת תפעול ושטח</div>
+                <div className="text-2xl font-black text-sky-800">₪349<span className="text-sm text-slate-500 font-bold">/חודש</span></div>
                 <div className="text-[10px] text-slate-500 mt-1">Operations + Nexus · 5 משתמשים</div>
               </div>
               <div className="bg-white border border-slate-200 rounded-2xl p-5 text-center min-w-[160px]">
@@ -293,7 +293,7 @@ export default function OperationsMarketingPage() {
                 <div className="text-[10px] text-slate-500 mt-1">6 מודולים + 5 משתמשים</div>
               </div>
             </div>
-            <div className="mb-8 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 inline-block">
+            <div className="mb-8 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 rounded-xl px-4 py-2 inline-block">
               🎁 מודול כספים בחינם עם כל חבילה · כל המחירים כוללים מע&quot;מ
             </div>
             <div>
