@@ -209,7 +209,7 @@ function SupportPageInner() {
                   href={backHref}
                   className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white font-black"
                 >
-                  חזרה ל־Client
+                  {orgId ? 'חזרה למערכת' : 'חזרה לאתר'}
                   <ArrowRight size={16} />
                 </Link>
               </div>

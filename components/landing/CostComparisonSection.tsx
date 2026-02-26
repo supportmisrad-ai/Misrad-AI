@@ -45,12 +45,12 @@ export function CostComparisonSection() {
         {/* Comparison Table */}
         <div className="rounded-3xl border-2 border-slate-200 bg-white shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-sm">
+            <table className="w-full min-w-[360px] text-xs sm:text-sm">
               <thead>
                 <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
-                  <th className="p-5 font-black text-slate-700 text-right">כלי / שירות</th>
-                  <th className="p-5 font-black text-slate-500 text-center">קנייה בנפרד</th>
-                  <th className="p-5 text-center">
+                  <th className="p-3 sm:p-5 font-black text-slate-700 text-right">כלי / שירות</th>
+                  <th className="p-3 sm:p-5 font-black text-slate-500 text-center">קנייה בנפרד</th>
+                  <th className="p-3 sm:p-5 text-center">
                     <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
                       MISRAD AI
                     </span>
@@ -60,11 +60,11 @@ export function CostComparisonSection() {
               <tbody>
                 {comparisonRows.map((row, idx) => (
                   <tr key={row.tool} className={`border-b border-slate-100 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
-                    <td className="p-4 sm:p-5 font-bold text-slate-700 text-right">{row.tool}</td>
-                    <td className="p-4 sm:p-5 text-center">
-                      <span className="text-sm font-bold text-slate-500">{row.separate}</span>
+                    <td className="p-3 sm:p-5 font-bold text-slate-700 text-right">{row.tool}</td>
+                    <td className="p-3 sm:p-5 text-center">
+                      <span className="text-xs sm:text-sm font-bold text-slate-500">{row.separate}</span>
                     </td>
-                    <td className="p-4 sm:p-5 text-center">
+                    <td className="p-3 sm:p-5 text-center">
                       <Check size={22} className="text-emerald-600 mx-auto" />
                     </td>
                   </tr>

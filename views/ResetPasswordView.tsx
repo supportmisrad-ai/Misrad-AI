@@ -78,13 +78,10 @@ export const ResetPasswordView: React.FC = () => {
     setSuccess('');
 
     try {
-      console.log('[ResetPassword] Sending reset code to:', emailToUse);
-      const result = await signIn.create({
+      await signIn.create({
         strategy: 'reset_password_email_code',
         identifier: emailToUse,
       });
-      
-      console.log('[ResetPassword] Reset code sent successfully:', result);
       
       // Update email state if it was from URL
       if (emailFromUrl && !email) {
@@ -101,7 +98,7 @@ export const ResetPasswordView: React.FC = () => {
       setCode(''); // Clear any previous code
       setError(''); // Clear any previous errors
     } catch (err: unknown) {
-      console.error('[ResetPassword] Send code error:', err);
+      console.error('[ResetPassword] send code error:', err);
       const clerkErr = err as { errors?: Array<{ message?: string; code?: string }>; message?: string };
       const errCode = clerkErr?.errors?.[0]?.code ?? '';
       const errMsg = clerkErr?.errors?.[0]?.message || (err as Record<string, unknown>)?.message as string || '';
@@ -125,7 +122,8 @@ export const ResetPasswordView: React.FC = () => {
       if (emailFromUrl) {
         autoCodeSentRef.current = false;
       }
-      // Don't change step on error - stay on email step
+      // On error, go back to email step so user can see the error and fix
+      setStep('email');
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +131,6 @@ export const ResetPasswordView: React.FC = () => {
 
   // Auto-send code once if email is provided from URL (skip email step entirely)
   useEffect(() => {
-    // Only auto-send if we have email from URL, we're on code step, and everything is ready
     const shouldAutoSend = 
       emailFromUrl &&
       emailFromUrl.includes('@') &&
@@ -144,48 +141,17 @@ export const ResetPasswordView: React.FC = () => {
       !autoCodeSentRef.current;
     
     if (shouldAutoSend) {
-      console.log('[ResetPassword] ✅ Conditions met for auto-send:', {
-        emailFromUrl,
-        step,
-        isLoaded,
-        hasSignIn: !!signIn,
-        isLoading,
-        autoCodeSent: autoCodeSentRef.current
-      });
+      autoCodeSentRef.current = true;
       
-      autoCodeSentRef.current = true; // mark sent to avoid loops
-      
-      // Small delay to let the UI render first, then auto-send
       const timer = setTimeout(async () => {
         try {
-          console.log('[ResetPassword] 🚀 Executing auto-send...');
           await handleSendCode();
-          console.log('[ResetPassword] ✅ Auto-send completed successfully');
-        } catch (error) {
-          console.error('[ResetPassword] ❌ Auto-send failed:', error);
-          // Reset the flag so user can manually retry
+        } catch {
           autoCodeSentRef.current = false;
         }
-      }, 1000); // Increased delay to ensure everything is ready
+      }, 500);
       
       return () => clearTimeout(timer);
-    } else if (emailFromUrl && emailFromUrl.includes('@') && step === 'code') {
-      // Log why auto-send didn't trigger (for debugging)
-      console.log('[ResetPassword] ⚠️ Auto-send conditions not met:', {
-        emailFromUrl,
-        step,
-        isLoaded,
-        hasSignIn: !!signIn,
-        isLoading,
-        autoCodeSent: autoCodeSentRef.current,
-        reason: !emailFromUrl ? 'no email' : 
-                !emailFromUrl.includes('@') ? 'invalid email' :
-                step !== 'code' ? `wrong step: ${step}` :
-                !isLoaded ? 'not loaded' :
-                !signIn ? 'no signIn' :
-                isLoading ? 'is loading' :
-                autoCodeSentRef.current ? 'already sent' : 'unknown'
-      });
     }
   }, [emailFromUrl, isLoaded, signIn, step, handleSendCode, isLoading]);
 

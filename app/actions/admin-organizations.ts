@@ -561,19 +561,39 @@ export async function createOrganizationOrInviteOwner(input: {
       return { success: false, error: createErrorResponse(null, 'אימייל בעלים לא תקין').error || 'אימייל בעלים לא תקין' };
     }
 
-    const existingOrgBySlug = await prisma.organization.findFirst({
-      where: { slug: desiredSlug },
-      select: { id: true },
-    });
+    const existingOrgBySlug = await prisma.organization.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { slug: desiredSlug },
+          select: { id: true },
+        },
+        {
+          suppressReporting: true,
+          source: 'admin-organizations',
+          organizationId: '',
+          reason: 'admin_create_org_check_slug',
+        }
+      )
+    );
 
     if (existingOrgBySlug?.id) {
       return { success: false, error: createErrorResponse(null, 'Slug כבר תפוס').error || 'Slug כבר תפוס' };
     }
 
-    const existingOwner = await prisma.organizationUser.findFirst({
-      where: { email: ownerEmail },
-      select: { id: true, email: true, full_name: true },
-    });
+    const existingOwner = await prisma.organizationUser.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { email: ownerEmail },
+          select: { id: true, email: true, full_name: true },
+        },
+        {
+          suppressReporting: true,
+          source: 'admin-organizations',
+          organizationId: '',
+          reason: 'admin_create_org_find_owner',
+        }
+      )
+    );
 
     if (existingOwner?.id) {
       const now = new Date();
