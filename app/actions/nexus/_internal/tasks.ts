@@ -16,7 +16,7 @@ import {
   listNexusTaskRows,
   updateNexusTaskRowsById,
 } from '@/lib/services/nexus-tasks-service';
-import { canAccessResource, hasPermission, requirePermission } from '@/lib/auth';
+import { hasPermission, requirePermission } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 import type { Task } from '@/types';
 
@@ -247,13 +247,10 @@ export async function updateNexusTask(params: {
     const taskId = String(params.taskId || '').trim();
     if (!taskId) throw new Error('Task ID is required');
 
-    const isSuperAdmin = user?.isSuperAdmin === true;
-    const canAccess = isSuperAdmin
-      ? true
-      : await metrics.step('auth.canAccessResource.task.write', () =>
-          canAccessResource('task', taskId, 'write', { organizationId: workspace.id })
-        );
-    if (!canAccess) throw new Error('Forbidden');
+    // Single permission check + single DB round-trip.
+    // canAccessResource('task','write') was a redundant findFirst identical to findNexusTaskRow below.
+    // org-scoped findNexusTaskRow already enforces tenant isolation; requirePermission enforces CRM access.
+    await metrics.step('auth.requirePermission.view_crm', () => requirePermission('view_crm'));
 
     const existingRow = await metrics.step('db.nexusTask.findFirst', () =>
       findNexusTaskRow({ organizationId: workspace.id, taskId })
@@ -380,21 +377,16 @@ export async function updateNexusTask(params: {
 export async function deleteNexusTask(params: { orgId: string; taskId: string }): Promise<{ ok: true }> {
   const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
   const workspace = resolved.workspace;
-  const user = resolved.clerkUser;
 
   await requirePermission('view_crm');
 
   const taskId = String(params.taskId || '').trim();
   if (!taskId) throw new Error('Task ID is required');
 
-  const isSuperAdmin = user?.isSuperAdmin === true;
-  const canAccess = isSuperAdmin
-    ? true
-    : await canAccessResource('task', taskId, 'write', { organizationId: workspace.id });
-  if (!canAccess) throw new Error('Forbidden');
-
+  // requirePermission already validated CRM access above.
+  // org-scoped deleteMany enforces tenant isolation; count=0 means not found.
   const res = await deleteNexusTaskRowsById({ organizationId: workspace.id, taskId });
-  if (!res.count) throw new Error('Failed to delete task');
+  if (!res.count) throw new Error('Task not found');
 
   logAuditEvent('data.delete', 'task', { resourceId: taskId, details: { organizationId: workspace.id }, success: true }).catch(
     () => null

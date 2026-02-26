@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Notification, Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
 import { DEFAULT_WORKFLOW } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -76,6 +76,8 @@ export const useTasks = (
 
     const [tasks, setTasks] = useState<Task[]>([]);
     const [trashTasks, setTrashTasks] = useState<Task[]>([]);
+    // Guard: prevents concurrent in-flight timer toggles for the same task
+    const timerInFlightRef = useRef<Set<string>>(new Set());
     const [workflowStages, setWorkflowStages] = useState<WorkflowStage[]>(DEFAULT_WORKFLOW);
     const [templates, setTemplates] = useState<Template[]>([]);
     
@@ -374,8 +376,15 @@ export const useTasks = (
     };
 
     const toggleTimer = async (taskId: string) => {
+        // Prevent double-toggle while a request is still in flight
+        if (timerInFlightRef.current.has(taskId)) return;
+        timerInFlightRef.current.add(taskId);
+
         const task = tasks.find(t => t.id === taskId);
-        if (!task) return;
+        if (!task) {
+            timerInFlightRef.current.delete(taskId);
+            return;
+        }
 
         const orgSlug = getOrgSlugFromBrowser();
         const nowMs = Date.now();
@@ -452,6 +461,12 @@ export const useTasks = (
                     })
                 );
             }
+
+            // Re-throw so callers (e.g. handleToggleTimer in TasksView) can clean up
+            // their own optimistic state and pendingMutationsRef correctly.
+            throw error;
+        } finally {
+            timerInFlightRef.current.delete(taskId);
         }
     };
 

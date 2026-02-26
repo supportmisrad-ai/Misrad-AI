@@ -48,6 +48,10 @@ export const TasksView: React.FC = () => {
       enabled: Boolean(orgSlug),
       staleTime: 5_000,
       refetchInterval: 30_000,
+      // Disable window-focus refetch: we manage cache manually via setQueryData on
+      // mutations, so an automatic focus-refetch would race against optimistic state
+      // and cause deleted/updated tasks to reappear briefly.
+      refetchOnWindowFocus: false,
       retry: 1,
       placeholderData: keepPreviousData,
   });
@@ -201,6 +205,15 @@ export const TasksView: React.FC = () => {
           if (!taskId) return;
           setTasks(prev => prev.filter(t => t.id !== taskId));
           setCachedTasks(prev => prev.filter(t => t.id !== taskId));
+          // Also evict from React Query cache so a stale background refetch
+          // cannot restore the deleted task into local state.
+          queryClient.setQueryData(
+              ['nexus', 'tasks', orgSlug],
+              (old: { tasks: Task[]; page: number; pageSize: number; hasMore: boolean } | undefined) => {
+                  if (!old) return old;
+                  return { ...old, tasks: old.tasks.filter((t: Task) => t.id !== taskId) };
+              }
+          );
       };
 
       const onRestored = (e: Event) => {
@@ -209,6 +222,15 @@ export const TasksView: React.FC = () => {
           if (!task?.id) return;
           setTasks(prev => (prev.some(t => t.id === task.id) ? prev : [task, ...prev]));
           setCachedTasks(prev => (prev.some(t => t.id === task.id) ? prev : [task, ...prev]));
+          // Restore in React Query cache (delete rollback scenario)
+          queryClient.setQueryData(
+              ['nexus', 'tasks', orgSlug],
+              (old: { tasks: Task[]; page: number; pageSize: number; hasMore: boolean } | undefined) => {
+                  if (!old) return old;
+                  if (old.tasks.some((t: Task) => t.id === task.id)) return old;
+                  return { ...old, tasks: [task, ...old.tasks] };
+              }
+          );
       };
 
       const onUpdated = (e: Event) => {
@@ -297,36 +319,17 @@ export const TasksView: React.FC = () => {
       }
   };
 
-  // Wrapper for toggleTimer that updates local state with optimistic update
+  // Delegate entirely to contextToggleTimer which owns its own optimistic update
+  // + rollback + event dispatch. A second optimistic layer here caused a race:
+  // on API failure, useTasks rollback fired nexusTaskUpdated, but the pending
+  // mutation guard was still active and resurrected the optimistic value →
+  // visible on/off/on/off flicker. Removing the extra layer fixes it.
   const handleToggleTimer = async (taskId: string) => {
-      // Optimistic update FIRST - immediate UI feedback
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return;
-      
-      const newTimerState = !task.isTimerRunning;
-      // Register pending mutation — protects against sync overwrites
-      pendingMutationsRef.current.set(taskId, { ...pendingMutationsRef.current.get(taskId), isTimerRunning: newTimerState });
-      setTasks(prev => prev.map(t => {
-          if (t.id === taskId) {
-              return { ...t, isTimerRunning: newTimerState };
-          }
-          return t;
-      }));
-      
-      // Then update via context (which calls API)
       if (contextToggleTimer) {
           try {
               await contextToggleTimer(taskId);
-              pendingMutationsRef.current.delete(taskId);
-          } catch (error) {
-              pendingMutationsRef.current.delete(taskId);
-              // Revert on error
-              setTasks(prev => prev.map(t => {
-                  if (t.id === taskId) {
-                      return { ...t, isTimerRunning: task.isTimerRunning };
-                  }
-                  return t;
-              }));
+          } catch {
+              // contextToggleTimer handles rollback and error toast internally
           }
       }
   };
