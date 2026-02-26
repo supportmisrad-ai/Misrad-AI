@@ -2,6 +2,7 @@ import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { AIProviderError, UpgradeRequiredError } from './errors';
 import {
   AIFeatureSettingsRow,
@@ -894,7 +895,14 @@ export class AIService {
     }
 
     if (params.organizationId) {
-      const workspace = await requireWorkspaceAccessByOrgSlugApi(String(params.organizationId));
+      const orgIdRaw = String(params.organizationId).trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgIdRaw);
+
+      if (isUuid) {
+        return { organizationId: orgIdRaw, userId: String(effectiveUserId) };
+      }
+
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdRaw);
       return { organizationId: String(workspace.id), userId: String(effectiveUserId) };
     }
 
@@ -924,9 +932,12 @@ export class AIService {
 
     if (!settings) {
       try {
-        const globalRow = await prisma.ai_feature_settings.findFirst({
-          where: { organization_id: null, feature_key: params.featureKey, enabled: true },
-        });
+        const globalRow = await prisma.ai_feature_settings.findFirst(
+          withPrismaTenantIsolationOverride(
+            { where: { organization_id: null, feature_key: params.featureKey, enabled: true } },
+            { suppressReporting: true, source: 'ai_service', reason: 'ai_load_global_feature_settings' }
+          )
+        );
         settings = coerceFeatureSettingsRow(globalRow);
       } catch {
         // Tenant guard blocks organization_id:null queries — fall through to defaults
@@ -1120,10 +1131,12 @@ export class AIService {
 
     let globalName: string | null = null;
     try {
-      const globalRow = await prisma.ai_model_aliases.findFirst({
-        where: { organization_id: null, provider: params.provider, model: params.model },
-        select: { display_name: true },
-      });
+      const globalRow = await prisma.ai_model_aliases.findFirst(
+        withPrismaTenantIsolationOverride(
+          { where: { organization_id: null, provider: params.provider, model: params.model }, select: { display_name: true } },
+          { suppressReporting: true, source: 'ai_service', reason: 'ai_load_global_model_alias' }
+        )
+      );
       globalName = globalRow?.display_name ? String(globalRow.display_name) : null;
     } catch {
       // Tenant guard blocks organization_id:null queries — fall through to null
@@ -1184,10 +1197,12 @@ export class AIService {
 
     let globalKey: string | null = null;
     try {
-      const globalKeyRow = await prisma.ai_provider_keys.findFirst({
-        where: { provider: params.provider, organization_id: null, enabled: true },
-        select: { api_key: true },
-      });
+      const globalKeyRow = await prisma.ai_provider_keys.findFirst(
+        withPrismaTenantIsolationOverride(
+          { where: { provider: params.provider, organization_id: null, enabled: true }, select: { api_key: true } },
+          { suppressReporting: true, source: 'ai_service', reason: 'ai_load_global_provider_key' }
+        )
+      );
       globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
     } catch {
       // Tenant guard blocks organization_id:null queries — fall through to env vars

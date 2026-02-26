@@ -974,6 +974,13 @@ export function installPrismaTenantGuard(
     'core_system_settings',
     'social_system_settings',
     'global_settings',
+    // AI service tables — organization_id is nullable (global rows exist).
+    // Tenant isolation for these is enforced by AIService itself (org-scoped queries),
+    // not the guard. Guard must not block global-fallback queries (organization_id: null).
+    'ai_feature_settings',
+    'ai_provider_keys',
+    'ai_model_aliases',
+    'ai_usage_logs',
     // Prisma model names (params.model uses PascalCase model name, not DB table name)
     'CoreSystemSettings',
     ...(options?.excludedModels ?? []),

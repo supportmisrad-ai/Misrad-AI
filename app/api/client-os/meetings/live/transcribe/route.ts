@@ -8,6 +8,7 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
