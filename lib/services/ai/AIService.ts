@@ -765,10 +765,14 @@ export class AIService {
   }
 
   async transcribe(params: AITranscribeParams): Promise<AITranscribeResult> {
+    console.log('[AIService.transcribe] START', { featureKey: params.featureKey, mimeType: params.mimeType, bufferSize: params.audioBuffer?.byteLength });
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
+    console.log('[AIService.transcribe] context resolved', { orgId: ctx.organizationId });
     const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
+    console.log('[AIService.transcribe] feature loaded', { provider: feature.settings.primary_provider, model: feature.settings.primary_model, reserveCents: feature.settings.reserve_cost_cents });
 
     const chargedCents = await this.reserveCredits({ organizationId: ctx.organizationId, reserveCents: feature.settings.reserve_cost_cents });
+    console.log('[AIService.transcribe] credits reserved', { chargedCents });
 
     const start = Date.now();
     let providerUsed: AIProviderName = feature.settings.primary_provider;
@@ -852,9 +856,12 @@ export class AIService {
         return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
       }
     } catch (err: unknown) {
+      const message = getErrorMessage(err);
+      const errName = err instanceof Error ? err.constructor.name || err.name : 'unknown';
+      console.error('[AIService.transcribe] FAILED', { name: errName, message, provider: providerUsed, model: modelUsed, latencyMs: Date.now() - start });
+
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
-      const message = getErrorMessage(err);
       this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
