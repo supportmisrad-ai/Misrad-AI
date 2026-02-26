@@ -82,8 +82,9 @@ async function generateUniqueOrgInviteToken(): Promise<string> {
         {
           suppressReporting: true,
           source: 'admin-organizations',
-          organizationId: '',
           reason: 'admin_generate_invite_token',
+          mode: 'global_admin',
+          isSuperAdmin: true,
         }
       )
     );
@@ -580,8 +581,9 @@ export async function createOrganizationOrInviteOwner(input: {
         {
           suppressReporting: true,
           source: 'admin-organizations',
-          organizationId: '',
           reason: 'admin_create_org_check_slug',
+          mode: 'global_admin',
+          isSuperAdmin: true,
         }
       )
     );
@@ -599,8 +601,9 @@ export async function createOrganizationOrInviteOwner(input: {
         {
           suppressReporting: true,
           source: 'admin-organizations',
-          organizationId: '',
           reason: 'admin_create_org_find_owner',
+          mode: 'global_admin',
+          isSuperAdmin: true,
         }
       )
     );
