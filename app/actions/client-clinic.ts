@@ -10,7 +10,6 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { Prisma } from '@prisma/client';
 import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
-import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 export type ClinicClient = {
   id: string;
@@ -442,22 +441,13 @@ export async function listClinicSessions(params: {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-    const data = await prisma.clientSession.findMany(
-      withPrismaTenantIsolationOverride<Prisma.ClientSessionFindManyArgs>(
-        {
-          where: {
-            organizationId: workspace.id,
-            ...(clientId ? { clientId } : {}),
-          },
-          orderBy: { startAt: 'desc' },
-        },
-        {
-          reason: 'client-clinic-get-sessions',
-          source: 'app/actions/client-clinic.ts',
-          suppressReporting: false,
-        },
-      ),
-    );
+    const data = await prisma.clientSession.findMany({
+      where: {
+        organizationId: workspace.id,
+        ...(clientId ? { clientId } : {}),
+      },
+      orderBy: { startAt: 'desc' },
+    });
 
     return (data || []).map((r) => ({
       id: r.id,

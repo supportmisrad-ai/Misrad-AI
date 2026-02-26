@@ -1246,8 +1246,6 @@ export class AIService {
     const reserve = Math.max(0, Math.floor(params.reserveCents || 0));
     if (reserve <= 0) return 0;
 
-    console.log('[AIService] reserveCredits', { organizationId: params.organizationId, reserveCents: params.reserveCents });
-
     try {
       const affected = await executeRawOrgScoped(prisma, {
         organizationId: params.organizationId,

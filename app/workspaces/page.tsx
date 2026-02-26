@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -74,19 +73,13 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     },
   });
 
-  const workspacesWithResolvedLogos = await Promise.all(
-    orgs.map(async (o) => {
-      const resolvedLogo = o.logo ? await resolveStorageUrlMaybeServiceRole(o.logo, 3600, { organizationId: o.id }) : null;
-      return {
-        id: String(o.id),
-        slug: String(o.slug || o.id),
-        name: String(o.name || 'Workspace'),
-        logo: resolvedLogo,
-        subscriptionPlan: o.subscription_plan ?? null,
-      };
-    })
-  );
-  return workspacesWithResolvedLogos;
+  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null; subscription_plan: string | null }) => ({
+    id: String(o.id),
+    slug: String(o.slug || o.id),
+    name: String(o.name || 'Workspace'),
+    logo: o.logo ?? null,
+    subscriptionPlan: o.subscription_plan ?? null,
+  }));
 }
 
 export default async function WorkspacesPage() {
