@@ -73,7 +73,8 @@ async function POSTHandler(
       fileSizeLimit: MAX_CALL_RECORDING_SIZE,
     });
     if (bucketError && !String(bucketError.message ?? '').toLowerCase().includes('already exists')) {
-      console.error('[system/call-analyzer/upload-url] Bucket creation failed:', bucketError.message);
+      console.error('[system/call-analyzer/upload-url] Bucket creation failed:', bucketError);
+      return apiError(`Bucket creation failed: ${bucketError.message}`, { status: 500 });
     }
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);

@@ -4,6 +4,7 @@ import {
   findNexusTaskByShareToken,
   findNexusTaskByIdPublic,
 } from '@/lib/services/nexus-tasks-service';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 interface GuestTaskMessage {
   id: string;
@@ -104,7 +105,7 @@ export async function GET(
       },
       organization: {
         name: row.organization?.name ?? 'MISRAD AI',
-        logo: row.organization?.logo ?? null,
+        logo: row.organization?.logo ? await resolveStorageUrlMaybeServiceRole(row.organization.logo, 3600, { organizationId: row.organization.id }) : null,
       },
     });
   } catch (error: unknown) {

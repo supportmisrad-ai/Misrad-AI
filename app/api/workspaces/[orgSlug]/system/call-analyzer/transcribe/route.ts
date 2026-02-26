@@ -39,6 +39,7 @@ async function resolveAudioFromRequest(
 
     const expectedPrefix = `${workspaceId}/`;
     if (bucket !== CALL_RECORDINGS_BUCKET || hasPathTraversal(storagePath) || !storagePath.startsWith(expectedPrefix)) {
+      console.error('[transcribe] Path mismatch', { storagePath, expectedPrefix });
       throw new APIError(403, 'Forbidden');
     }
 

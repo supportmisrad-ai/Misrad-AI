@@ -79,7 +79,7 @@ export async function deleteNexusTaskRowsById(params: {
  */
 export async function findNexusTaskByShareToken(
   shareToken: string,
-): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
+): Promise<(NexusTaskRow & { organization: { id: string; name: string; logo: string | null } }) | null> {
   return withTenantIsolationContext(
     {
       source: 'guest_task_share',
@@ -94,7 +94,7 @@ export async function findNexusTaskByShareToken(
         withPrismaTenantIsolationOverride(
           {
             where: { shareToken },
-            include: { organization: { select: { name: true, logo: true } } },
+            include: { organization: { select: { id: true, name: true, logo: true } } },
           },
           {
             source: 'guest_task_share',
@@ -105,7 +105,7 @@ export async function findNexusTaskByShareToken(
             suppressReporting: true,
           }
         )
-      ) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>
+      ) as Promise<(NexusTaskRow & { organization: { id: string; name: string; logo: string | null } }) | null>
   );
 }
 
@@ -115,7 +115,7 @@ export async function findNexusTaskByShareToken(
  */
 export async function findNexusTaskByIdPublic(
   taskId: string,
-): Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null> {
+): Promise<(NexusTaskRow & { organization: { id: string; name: string; logo: string | null } }) | null> {
   return withTenantIsolationContext(
     {
       source: 'guest_task_share',
@@ -130,7 +130,7 @@ export async function findNexusTaskByIdPublic(
         withPrismaTenantIsolationOverride(
           {
             where: { id: taskId, isPrivate: false },
-            include: { organization: { select: { name: true, logo: true } } },
+            include: { organization: { select: { id: true, name: true, logo: true } } },
           },
           {
             source: 'guest_task_share',
@@ -141,7 +141,7 @@ export async function findNexusTaskByIdPublic(
             suppressReporting: true,
           }
         )
-      ) as Promise<(NexusTaskRow & { organization: { name: string; logo: string | null } }) | null>
+      ) as Promise<(NexusTaskRow & { organization: { id: string; name: string; logo: string | null } }) | null>
   );
 }
 
