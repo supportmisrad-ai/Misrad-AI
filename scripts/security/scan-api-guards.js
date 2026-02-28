@@ -37,6 +37,7 @@ const PUBLIC_APPROVED = new Set([
 
 const CANDIDATE_APPROVED = new Set([
   // Add explicit exceptions here (route.ts paths) when a candidate is accepted by design.
+  'app/api/workspaces/route.ts',
 ]);
 
 function rel(p) {
