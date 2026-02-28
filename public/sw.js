@@ -1,5 +1,5 @@
 // Service Worker for MISRAD AI PWA
-const CACHE_NAME = 'misrad-ai-v2';
+const CACHE_NAME = 'misrad-ai-v3';
 
 function getString(obj, key, fallback) {
   const v = obj && obj[key];
@@ -42,8 +42,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: '/icons/misrad-maskable-192.png',
+    badge: '/icons/misrad-maskable-192.png',
     tag,
     data: {
       url,
@@ -97,7 +97,7 @@ self.addEventListener('install', (event) => {
           cache.add('/me').catch(() => {}),
           cache.add('/login').catch(() => {}),
           cache.add('/manifest.json').catch(() => {}),
-          cache.add('/icon-192.png').catch(() => {})
+          cache.add('/icons/misrad-maskable-192.png').catch(() => {})
         ]);
       })
       .catch((err) => {
