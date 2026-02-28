@@ -88,6 +88,17 @@ export function assertStoragePathScoped(params: {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const slug = params.orgSlug ? String(params.orgSlug).trim() : '';
+
+  // Legacy compatibility: older org logos were stored under:
+  //   org-logos/<orgSlug>/<file>
+  // without the leading organizationId segment. Allow ONLY this exact pattern
+  // (and only when orgSlug is provided and matches) so we can still resolve
+  // signed URLs for existing tenants.
+  if (slug && segments.length >= 2 && segments[0] === 'org-logos' && segments[1] === slug) {
+    return;
+  }
+
   if (!segments.length || segments[0] !== orgId) {
     throw new Error(
       `[TenantIsolation] Storage ref blocked: path must start with organizationId. expected=${orgId} ref=${params.rawRef}`
@@ -95,7 +106,6 @@ export function assertStoragePathScoped(params: {
   }
 
   if (params.orgSlug) {
-    const slug = String(params.orgSlug).trim();
     if (slug && !segments.includes(slug)) {
       throw new Error(
         `[TenantIsolation] Storage ref blocked: orgSlug not present in path. expectedSlug=${slug} ref=${params.rawRef}`

@@ -82,7 +82,7 @@ export default async function ClientAppLayoutShell({
   // Phase 2: Run logo signing + data fetches in parallel (all depend on workspace.id)
   const [signedLogo, initialClients, initialMeetings, initialCurrentUser] = await Promise.all([
     workspace.logo
-      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId })
+      ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId, orgSlug })
       : Promise.resolve(''),
     getClientOSClients(organizationId),
     getOrganizationSessions(organizationId),

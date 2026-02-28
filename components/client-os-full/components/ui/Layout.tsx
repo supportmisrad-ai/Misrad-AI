@@ -23,6 +23,7 @@ import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -125,10 +126,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     return initials || userLabel.initials || null;
   }, [systemIdentity?.name, userLabel.initials, userLabel.name]);
 
-  const shouldResolveLogoRef = useMemo(() => {
-    const raw = String(workspaceBrand.logoUrl || '').trim();
-    return raw.startsWith('sb://');
+  const shouldHydrateWorkspaceLogo = useMemo(() => {
+    return safeBrowserUrl(workspaceBrand.logoUrl) === null;
   }, [workspaceBrand.logoUrl]);
+
+  const lastLogoHydrateKeyRef = React.useRef<string>('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -143,7 +145,28 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!shouldResolveLogoRef) return;
+
+    const handler = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as unknown;
+      if (!detail || typeof detail !== 'object') return;
+      const payload = detail as Record<string, unknown>;
+      const org = (payload.organization && typeof payload.organization === 'object' ? payload.organization : null) as
+        | Record<string, unknown>
+        | null;
+      const orgName = org?.name || org?.name_he || org?.id || null;
+      const logoUrl = typeof org?.logo === 'string' ? org.logo : null;
+      if (!orgName) return;
+      setWorkspaceBrand({ name: String(orgName), logoUrl: String(logoUrl || '') });
+    };
+
+    window.addEventListener('client-os-user-updated', handler);
+    return () => window.removeEventListener('client-os-user-updated', handler);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!shouldHydrateWorkspaceLogo) return;
 
     const controller = new AbortController();
 
@@ -155,6 +178,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         const targetSlug = routeOrgSlug;
         const targetOrgId = injectedOrgId.trim();
         if (!targetSlug && !targetOrgId) return;
+
+        const hydrateKey = `${targetOrgId}::${targetSlug}`;
+        if (hydrateKey && lastLogoHydrateKeyRef.current === hydrateKey) return;
+        lastLogoHydrateKeyRef.current = hydrateKey;
 
         const res = await fetch('/api/workspaces', {
           cache: 'no-store',
@@ -195,11 +222,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         if (!match || typeof match !== 'object') return;
         const logo = (match as Record<string, unknown>).logo;
         const logoUrl = typeof logo === 'string' ? logo.trim() : '';
-        if (!logoUrl || logoUrl.startsWith('sb://')) return;
+        if (!safeBrowserUrl(logoUrl)) return;
 
         setWorkspaceBrand((prev) => {
           const current = String(prev.logoUrl || '').trim();
-          if (!current || current.startsWith('sb://')) {
+          if (!safeBrowserUrl(current)) {
             return { ...prev, logoUrl };
           }
           return prev;
@@ -211,7 +238,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
     void run();
     return () => controller.abort();
-  }, [orgSlug, shouldResolveLogoRef]);
+  }, [orgSlug, shouldHydrateWorkspaceLogo]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;

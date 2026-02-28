@@ -199,7 +199,10 @@ async function GETHandler() {
 
     const resolved = await Promise.all(
       workspaces.map(async (w) => {
-        const signedLogo = await resolveStorageUrlMaybeServiceRole(w.logo, ttlSeconds, { organizationId: String(w.id) });
+        const signedLogo = await resolveStorageUrlMaybeServiceRole(w.logo, ttlSeconds, {
+          organizationId: String(w.id),
+          orgSlug: w.slug,
+        });
         return { ...w, logo: signedLogo ?? null };
       })
     );
