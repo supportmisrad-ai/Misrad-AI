@@ -528,7 +528,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           subtitle={headerSubtitle}
           currentDate={currentDate}
           mobileBrand={{
-            name: moduleTitle,
+            name: String(workspaceBrand.name || moduleTitle).trim() || moduleTitle,
             logoUrl: workspaceBrand.logoUrl || null,
             fallbackIcon,
             badgeModuleKey: 'client',
