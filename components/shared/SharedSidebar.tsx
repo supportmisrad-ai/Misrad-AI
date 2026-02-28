@@ -149,8 +149,8 @@ export function SharedSidebar({
           ) : (
             <div className="relative w-10 h-10 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] rounded-xl flex items-center justify-center shadow-md border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
               <div className="absolute inset-0 overflow-hidden rounded-xl">
-                {brand.logoUrl ? (
-                  <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
+                {safeBrowserUrl(brand.logoUrl) ? (
+                  <img src={safeBrowserUrl(brand.logoUrl)!} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
                 ) : (
                   brand.fallbackIcon || null
                 )}

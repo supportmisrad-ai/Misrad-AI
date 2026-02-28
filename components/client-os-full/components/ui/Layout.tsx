@@ -150,9 +150,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     const run = async () => {
       try {
         const userData = ((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as Record<string, unknown> | null) || null;
-        const orgSlugRaw = String(userData?.organizationSlug || userData?.orgSlug || '') || '';
-        const orgSlug = orgSlugRaw.trim();
-        if (!orgSlug) return;
+        const injectedOrgId = String(userData?.organizationId || '') || '';
+        const routeOrgSlug = String(orgSlug || '').trim();
+        const targetSlug = routeOrgSlug;
+        const targetOrgId = injectedOrgId.trim();
+        if (!targetSlug && !targetOrgId) return;
 
         const res = await fetch('/api/workspaces', {
           cache: 'no-store',
@@ -167,11 +169,29 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           | Record<string, unknown>
           | null;
         const list = (data?.workspaces && Array.isArray(data.workspaces) ? data.workspaces : []) as unknown[];
+
+        const normalizeSlug = (s: string) => {
+          const trimmed = String(s || '').trim();
+          if (!trimmed) return '';
+          try {
+            return decodeURIComponent(trimmed);
+          } catch {
+            return trimmed;
+          }
+        };
+
+        const targetSlugNorm = normalizeSlug(targetSlug);
+
         const match = list.find((w) => {
           if (!w || typeof w !== 'object') return false;
-          const slug = String((w as Record<string, unknown>).slug || '');
-          return slug === orgSlug;
+          const row = w as Record<string, unknown>;
+          const rowId = String(row.id || '').trim();
+          const rowSlug = normalizeSlug(String(row.slug || ''));
+          if (targetOrgId && rowId && rowId === targetOrgId) return true;
+          if (targetSlugNorm && rowSlug && rowSlug === targetSlugNorm) return true;
+          return false;
         });
+
         if (!match || typeof match !== 'object') return;
         const logo = (match as Record<string, unknown>).logo;
         const logoUrl = typeof logo === 'string' ? logo.trim() : '';
@@ -191,7 +211,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
     void run();
     return () => controller.abort();
-  }, [shouldResolveLogoRef]);
+  }, [orgSlug, shouldResolveLogoRef]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
