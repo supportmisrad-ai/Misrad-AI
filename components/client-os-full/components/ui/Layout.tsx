@@ -125,6 +125,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     return initials || userLabel.initials || null;
   }, [systemIdentity?.name, userLabel.initials, userLabel.name]);
 
+  const shouldResolveLogoRef = useMemo(() => {
+    const raw = String(workspaceBrand.logoUrl || '').trim();
+    return raw.startsWith('sb://');
+  }, [workspaceBrand.logoUrl]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const userData = ((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as Record<string, unknown> | null) || null;
@@ -135,6 +140,58 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     if (!orgName) return;
     setWorkspaceBrand({ name: String(orgName), logoUrl: String(logoUrl || '') });
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!shouldResolveLogoRef) return;
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        const userData = ((window as unknown as Record<string, unknown>).__CLIENT_OS_USER__ as Record<string, unknown> | null) || null;
+        const orgSlugRaw = String(userData?.organizationSlug || userData?.orgSlug || '') || '';
+        const orgSlug = orgSlugRaw.trim();
+        if (!orgSlug) return;
+
+        const res = await fetch('/api/workspaces', {
+          cache: 'no-store',
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+
+        const raw = (await res.json().catch(() => null)) as unknown;
+        const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+        const data = (obj?.data && typeof obj.data === 'object' ? (obj.data as Record<string, unknown>) : obj) as
+          | Record<string, unknown>
+          | null;
+        const list = (data?.workspaces && Array.isArray(data.workspaces) ? data.workspaces : []) as unknown[];
+        const match = list.find((w) => {
+          if (!w || typeof w !== 'object') return false;
+          const slug = String((w as Record<string, unknown>).slug || '');
+          return slug === orgSlug;
+        });
+        if (!match || typeof match !== 'object') return;
+        const logo = (match as Record<string, unknown>).logo;
+        const logoUrl = typeof logo === 'string' ? logo.trim() : '';
+        if (!logoUrl || logoUrl.startsWith('sb://')) return;
+
+        setWorkspaceBrand((prev) => {
+          const current = String(prev.logoUrl || '').trim();
+          if (!current || current.startsWith('sb://')) {
+            return { ...prev, logoUrl };
+          }
+          return prev;
+        });
+      } catch (err: unknown) {
+        if (controller.signal.aborted) return;
+      }
+    };
+
+    void run();
+    return () => controller.abort();
+  }, [shouldResolveLogoRef]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
