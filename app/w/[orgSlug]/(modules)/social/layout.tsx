@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 import SocialLayoutShell from './SocialLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -37,7 +37,7 @@ export default async function SocialModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
-      <Suspense fallback={<ModuleLoadingScreen moduleKey="social" />}>
+      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="social" /></div>}>
         <SocialLayoutShell orgSlug={orgSlug}>
           {children}
         </SocialLayoutShell>

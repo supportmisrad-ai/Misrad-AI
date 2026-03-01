@@ -6,7 +6,7 @@ import {
   persistCurrentUserLastLocation,
 } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 import FinanceLayoutShell from './FinanceLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -42,7 +42,7 @@ export default async function FinanceModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <Suspense fallback={<ModuleLoadingScreen moduleKey="finance" />}>
+      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="finance" /></div>}>
         <FinanceLayoutShell orgSlug={orgSlug}>
           {children}
         </FinanceLayoutShell>

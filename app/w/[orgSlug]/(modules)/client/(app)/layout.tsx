@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getSystemMetadata } from '@/lib/metadata';
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 import ClientAppLayoutShell from './ClientAppLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -18,7 +18,7 @@ export default async function ClientAppLayout({
   const { orgSlug } = await params;
 
   return (
-    <Suspense fallback={<ModuleLoadingScreen moduleKey="client" />}>
+    <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="client" /></div>}>
       <ClientAppLayoutShell orgSlug={orgSlug}>
         {children}
       </ClientAppLayoutShell>

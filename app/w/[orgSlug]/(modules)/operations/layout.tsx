@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 import OperationsLayoutShell from './OperationsLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -42,7 +42,7 @@ export default async function OperationsModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
-      <Suspense fallback={<ModuleLoadingScreen moduleKey="operations" />}>
+      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="operations" /></div>}>
         <OperationsLayoutShell orgSlug={orgSlug}>
           {children}
         </OperationsLayoutShell>

@@ -47,6 +47,14 @@ function markUnlocked(): void {
   }
 }
 
+function clearUnlocked(): void {
+  try {
+    sessionStorage.removeItem(BIOMETRIC_UNLOCK_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 function isSkipped(): boolean {
   try {
     const until = sessionStorage.getItem(BIOMETRIC_SKIP_KEY);
@@ -74,6 +82,29 @@ export function PwaBiometricGuard({ children }: { children: React.ReactNode }) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [checked, setChecked] = useState(false);
+
+  // Relock when app is backgrounded / hidden. This makes biometric show again on next entry.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        clearUnlocked();
+      }
+    };
+
+    const onPageHide = () => {
+      clearUnlocked();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, []);
 
   // Pages that should never be blocked by biometric
   const isExemptPage = useCallback((p: string) => {

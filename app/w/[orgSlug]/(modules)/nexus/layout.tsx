@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { ModuleLoadingScreen } from '@/components/shared/ModuleLoadingScreen';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 import NexusLayoutShell from './NexusLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -36,7 +36,7 @@ export default async function NexusModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <Suspense fallback={<ModuleLoadingScreen moduleKey="nexus" />}>
+      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="nexus" /></div>}>
         <NexusLayoutShell orgSlug={orgSlug}>
           {children}
         </NexusLayoutShell>
