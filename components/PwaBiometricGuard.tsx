@@ -55,14 +55,6 @@ function clearUnlocked(): void {
   }
 }
 
-function clearSkipped(): void {
-  try {
-    sessionStorage.removeItem(BIOMETRIC_SKIP_KEY);
-  } catch {
-    // ignore
-  }
-}
-
 function isSkipped(): boolean {
   try {
     const until = sessionStorage.getItem(BIOMETRIC_SKIP_KEY);
@@ -90,7 +82,6 @@ export function PwaBiometricGuard({ children }: { children: React.ReactNode }) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [checked, setChecked] = useState(false);
-  const [foregroundNonce, setForegroundNonce] = useState(0);
 
   // Relock when app is backgrounded / hidden. This makes biometric show again on next entry.
   useEffect(() => {
@@ -99,31 +90,19 @@ export function PwaBiometricGuard({ children }: { children: React.ReactNode }) {
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible') {
         clearUnlocked();
-        clearSkipped();
-        return;
       }
-
-      // Coming back to foreground: re-evaluate guard conditions
-      setForegroundNonce((x) => x + 1);
     };
 
     const onPageHide = () => {
       clearUnlocked();
-      clearSkipped();
-    };
-
-    const onFocus = () => {
-      setForegroundNonce((x) => x + 1);
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('pagehide', onPageHide);
-    window.addEventListener('focus', onFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('pagehide', onPageHide);
-      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
@@ -194,7 +173,7 @@ export function PwaBiometricGuard({ children }: { children: React.ReactNode }) {
     // Require biometric auth
     setChecked(true);
     setRequiresAuth(true);
-  }, [isLoaded, isSignedIn, pathname, isExemptPage, foregroundNonce]);
+  }, [isLoaded, isSignedIn, pathname, isExemptPage]);
 
   const handleBiometricAuth = useCallback(async () => {
     if (!signInLoaded || !signIn) return;
