@@ -176,7 +176,10 @@ export default function SocialFrame({
     () => workspaceName || roomName || 'Social',
     [workspaceName, roomName],
   );
-  const screenTitle = useMemo(() => titles[currentView] || 'סושיאל', [currentView]);
+  const screenTitle = useMemo(() => {
+    if (currentView === 'machine') return null;
+    return titles[currentView] || 'סושיאל';
+  }, [currentView]);
 
   useEffect(() => {
     const loadUnreadCount = async () => {
@@ -583,43 +586,46 @@ export default function SocialFrame({
       </AnimatePresence>
 
       <MobileBottomNav
-        rightItems={[
-          {
-            id: 'dashboard',
-            label: 'דשבורד',
-            icon: Home,
-            active: isActive('/dashboard'),
-            onClick: () => navigate('/dashboard'),
-          },
-          {
-            id: 'clients',
-            label: 'לקוחות',
-            icon: Users,
-            active: isActive('/clients'),
-            onClick: () => navigate('/clients'),
-          },
-        ]}
-        leftItems={[
-          {
-            id: 'calendar',
-            label: 'אירועים',
-            icon: Calendar,
-            active: isActive('/calendar'),
-            onClick: () => navigate('/calendar'),
-          },
-          {
-            id: 'menu',
-            label: 'תפריט',
-            icon: SquareMousePointer,
-            active: isMobileMenuOpen,
-            onClick: () => setIsMobileMenuOpen(true),
-          },
-        ]}
-        onPlusClickAction={handlePlusClick}
-        plusAriaLabel="יצירת פוסט"
-        plusActive={isActive('/machine')}
-        plusGradient={getOSModule('social')?.gradient}
-      />
+        {currentView !== 'machine' && (
+          <MobileBottomNav
+            rightItems={[
+              {
+                id: 'dashboard',
+                label: 'דשבורד',
+                icon: Home,
+                active: isActive('/dashboard'),
+                onClick: () => navigate('/dashboard'),
+              },
+              {
+                id: 'clients',
+                label: 'לקוחות',
+                icon: Users,
+                active: isActive('/clients'),
+                onClick: () => navigate('/clients'),
+              },
+            ]}
+            leftItems={[
+              {
+                id: 'calendar',
+                label: 'אירועים',
+                icon: Calendar,
+                active: isActive('/calendar'),
+                onClick: () => navigate('/calendar'),
+              },
+              {
+                id: 'menu',
+                label: 'תפריט',
+                icon: SquareMousePointer,
+                active: isMobileMenuOpen,
+                onClick: () => setIsMobileMenuOpen(true),
+              },
+            ]}
+            onPlusClickAction={handlePlusClick}
+            plusAriaLabel="יצירת פוסט"
+            plusActive={isActive('/machine')}
+            plusGradient={getOSModule('social')?.gradient}
+          />
+        )}
 
       <ToastContainer />
       <CommandPalette />
