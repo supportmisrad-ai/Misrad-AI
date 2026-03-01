@@ -55,7 +55,12 @@ export const SetPasswordInline: React.FC<SetPasswordInlineProps> = ({
       const errCode = clerkErr?.errors?.[0]?.code ?? '';
       const errMsg = clerkErr?.errors?.[0]?.message ?? '';
 
-      if (errCode === 'form_identifier_not_found') {
+      // If a reset session already exists (for example after clicking "שלח קוד" פעמיים),
+      // treat it as success and move the user to the code verification step instead of failing.
+      if (errCode === 'session_already_exists' || errMsg.includes('Session already exists')) {
+        setStep('verify_code');
+        setError('כבר יש תהליך אימות פתוח. בדוק את האימייל שלך והזן כאן את קוד האימות שקיבלת.');
+      } else if (errCode === 'form_identifier_not_found') {
         setError('לא נמצא חשבון עם כתובת אימייל זו.');
       } else if (errCode === 'strategy_for_user_invalid' || errCode === 'strategy_not_enabled') {
         setError('שיטת הסיסמה אינה פעילה במערכת. פנה למנהל המערכת.');

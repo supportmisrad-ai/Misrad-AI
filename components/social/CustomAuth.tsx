@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Scan, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useSignIn, useSignUp, useUser } from '@clerk/nextjs';
@@ -391,6 +391,17 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
+
+        // Remember that the user successfully used passkey so we can auto-suggest it next time,
+        // especially בתוך WPA / PWA.
+        try {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('misrad:last-auth-method', 'passkey');
+          }
+        } catch {
+          // ignore storage failures
+        }
+
         if (onSuccess) {
           onSuccess();
         } else {
@@ -481,6 +492,24 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
   const isSignIn = mode === 'sign-in';
   const isSignUp = mode === 'sign-up';
+
+  // Auto-suggest passkey sign-in for users שהשתמשו בטביעת אצבע בעבר,
+  // במיוחד במצב WPA / PWA, כדי שלא יצטרכו לחפש את הכפתור כל פעם.
+  useEffect(() => {
+    if (!isSignIn || !isPasskeySupported) return;
+    if (typeof window === 'undefined') return;
+
+    try {
+      const lastMethod = window.localStorage.getItem('misrad:last-auth-method');
+      if (lastMethod === 'passkey') {
+        // אל תפריע אם כבר יש טעינה/שגיאה פעילה
+        void handlePasskeySignIn();
+      }
+    } catch {
+      // ignore storage / auto-trigger failures
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignIn, isPasskeySupported]);
 
   return (
     <div className="w-full max-w-md" dir="rtl">

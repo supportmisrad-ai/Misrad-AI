@@ -54,6 +54,9 @@ export function translateClerkError(errorMessage: string): string {
     'Bad Request': 'בקשה שגויה. נא לבדוק את הפרטים ולהשלים את כל השדות הנדרשים',
     'bad_request': 'בקשה שגויה. נא לבדוק את הפרטים ולהשלים את כל השדות הנדרשים',
     '400': 'בקשה שגויה. נא לבדוק את הפרטים ולהשלים את כל השדות הנדרשים',
+    // Session / flow errors
+    'Session already exists': 'כבר יש תהליך אימות פתוח. רענן את הדף או המשך לשלב הבא בתהליך.',
+    'session_already_exists': 'כבר יש תהליך אימות פתוח. רענן את הדף או המשך לשלב הבא בתהליך.',
   };
 
   // Check for exact match

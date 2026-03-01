@@ -157,7 +157,25 @@ export default function SocialFrame({
   };
 
   const currentView = useMemo(() => getViewFromPath(pathname), [pathname]);
-  const moduleTitle = useMemo(() => roomName || 'Social', [roomName]);
+
+  // Prefer workspace/business name for header title as soon as possible.
+  // roomName (from branding) might arrive a bit later, so we use initialOrganization
+  // as a fast, server-provided fallback to avoid showing "Social" for long seconds.
+  const workspaceName = useMemo(() => {
+    const org = initialOrganization || null;
+    if (!org) return '';
+    const name =
+      (typeof org.name === 'string' && org.name.trim()) ||
+      (typeof (org as { displayName?: string }).displayName === 'string' &&
+        (org as { displayName?: string }).displayName?.trim()) ||
+      '';
+    return name;
+  }, [initialOrganization]);
+
+  const moduleTitle = useMemo(
+    () => roomName || workspaceName || 'Social',
+    [roomName, workspaceName],
+  );
   const screenTitle = useMemo(() => titles[currentView] || 'סושיאל', [currentView]);
 
   useEffect(() => {
