@@ -23,6 +23,7 @@ import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 
 interface LayoutProps {
@@ -657,7 +658,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
               <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
               <div className="space-y-3">
-                <AttendanceMiniStatus />
+                <MobileMenuAttendanceButton />
                 <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
               </div>
             </div>

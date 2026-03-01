@@ -840,7 +840,15 @@ export const TeamView: React.FC = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 md:gap-6">
                     {visibleUsers.map((user) => {
-                      const workloadData = getWorkloadData(user);
+                      const workloadData = workloadByUserId.get(user.id) ?? {
+                        activeTasks: [],
+                        count: 0,
+                        percentage: 0,
+                        statusColor: 'bg-green-500',
+                        maxCapacity: 5,
+                        streak: 0,
+                        performanceDiff: 0,
+                      };
                       const isOverloaded = workloadData.percentage >= 100;
                       const isMenuOpen = activeMenuId === user.id;
                       const editCheck = canEditUser(user);

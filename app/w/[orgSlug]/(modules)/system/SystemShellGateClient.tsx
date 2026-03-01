@@ -27,6 +27,7 @@ import type { OrganizationProfile, User } from '@/types';
 import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -144,8 +145,8 @@ function SystemShellGateClientCore({
       };
     }
 
-    const timeoutId = window.setTimeout(prefetchAll, 250);
-    return () => window.clearTimeout(timeoutId);
+    const timeoutId = setTimeout(prefetchAll, 250);
+    return () => clearTimeout(timeoutId);
   }, [basePath, router]);
 
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
@@ -487,7 +488,7 @@ function SystemShellGateClientCore({
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
                           <div className="space-y-3">
-                            <AttendanceMiniStatus />
+                            <MobileMenuAttendanceButton />
                             <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
                           </div>
                         </div>

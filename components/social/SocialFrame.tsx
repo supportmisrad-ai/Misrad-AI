@@ -42,6 +42,7 @@ import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useSocialData } from '@/contexts/SocialDataContext';
@@ -554,7 +555,7 @@ export default function SocialFrame({
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
                 <div className="space-y-3">
-                  <AttendanceMiniStatus />
+                  <MobileMenuAttendanceButton />
                   <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
                 </div>
               </div>

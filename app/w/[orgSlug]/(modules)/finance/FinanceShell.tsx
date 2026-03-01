@@ -25,6 +25,7 @@ import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -405,7 +406,10 @@ export default function FinanceShell(props: {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                <div className="space-y-3">
+                  <MobileMenuAttendanceButton />
+                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                </div>
               </div>
             </motion.div>
           </>

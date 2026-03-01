@@ -26,6 +26,7 @@ import { OperationsToastProvider } from '@/components/operations/OperationsToast
 import { getOSModule } from '@/types/os-modules';
 import { ModuleBackground } from '@/components/shared/ModuleBackground';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -98,8 +99,6 @@ export default function OperationsShell({
     ],
     []
   );
-
-  const primaryNavPaths = undefined;
   const primaryNavPaths = undefined;
 
   // Prefetch main nav routes on fast connections, without blocking initial render
@@ -129,8 +128,8 @@ export default function OperationsShell({
       };
     }
 
-    const timeoutId = window.setTimeout(prefetchAll, 250);
-    return () => window.clearTimeout(timeoutId);
+    const timeoutId = setTimeout(prefetchAll, 250);
+    return () => clearTimeout(timeoutId);
   }, [basePath, navItems, router]);
 
   const isActiveAction = React.useCallback(
@@ -459,7 +458,7 @@ export default function OperationsShell({
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
                 <div className="space-y-3">
-                  <AttendanceMiniStatus />
+                  <MobileMenuAttendanceButton />
                   <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
                 </div>
               </div>

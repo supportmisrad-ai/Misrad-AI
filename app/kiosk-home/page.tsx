@@ -319,14 +319,31 @@ function KioskHomePageInner() {
                       const inTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : `נכנסת למשמרת ב-${inTime}. עבודה נעימה!`);
 
-                      // GPS was acquiring in parallel — use result now
+                      // Broadcast to OS/top-bar attendance widgets so everything stays in sync
                       const entryId = res?.activeShift?.id;
+                      const startIso = res?.activeShift?.startTime ? new Date(res.activeShift.startTime).toISOString() : null;
+                      if (entryId && startIso && orgSlug) {
+                        setAttendanceCache(orgSlug, { entryId, startTime: startIso });
+                        if (typeof window !== 'undefined') {
+                          try {
+                            const bc = new BroadcastChannel('NEXUS_ATTENDANCE_V1');
+                            bc.postMessage({ orgSlug, entryId, startTime: startIso });
+                            bc.close();
+                          } catch {
+                            // ignore broadcast failures
+                          }
+                        }
+                      }
+
+                      // GPS was acquiring in parallel — use result now
                       if (entryId && orgSlug) {
                         const location = await gpsPromise;
                         if (location && (location.lat !== 0 || location.lng !== 0)) {
                           try {
                             await updateEntryLocation(orgSlug, entryId, 'start', location);
-                          } catch { /* updateEntryLocation failed */ }
+                          } catch {
+                            // updateEntryLocation failed
+                          }
                         }
                       }
                     } catch (e: unknown) {
@@ -365,6 +382,20 @@ function KioskHomePageInner() {
                       const outTime = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : `יצאת ממשמרת ב-${outTime}. תודה!`);
 
+                      // Broadcast to OS/top-bar attendance widgets so everything stays in sync
+                      if (orgSlug) {
+                        setAttendanceCache(orgSlug, null);
+                        if (typeof window !== 'undefined') {
+                          try {
+                            const bc = new BroadcastChannel('NEXUS_ATTENDANCE_V1');
+                            bc.postMessage({ orgSlug, entryId: null, startTime: null });
+                            bc.close();
+                          } catch {
+                            // ignore broadcast failures
+                          }
+                        }
+                      }
+
                       // GPS was acquiring in parallel — use result now
                       const closedId = res?.entryId;
                       if (closedId && orgSlug) {
@@ -372,7 +403,9 @@ function KioskHomePageInner() {
                         if (location && (location.lat !== 0 || location.lng !== 0)) {
                           try {
                             await updateEntryLocation(orgSlug, closedId, 'end', location);
-                          } catch { /* updateEntryLocation failed */ }
+                          } catch {
+                            // updateEntryLocation failed
+                          }
                         }
                       }
                     } catch (e: unknown) {
