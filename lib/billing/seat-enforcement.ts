@@ -29,13 +29,18 @@ export async function getOrganizationSeatStatus(organizationId: string): Promise
         id: true,
         name: true,
         seats_allowed: true,
+        coupon_seats_cap: true,
         active_users_count: true,
       },
     });
 
     if (!org) return null;
 
-    const seatsAllowed = org.seats_allowed || 0;
+    const seatsAllowedRaw = org.seats_allowed || 0;
+    const couponCapRaw = org.coupon_seats_cap;
+    const couponCap = typeof couponCapRaw === 'number' && Number.isFinite(couponCapRaw) && couponCapRaw > 0 ? couponCapRaw : null;
+    const seatsAllowedBase = typeof seatsAllowedRaw === 'number' && Number.isFinite(seatsAllowedRaw) && seatsAllowedRaw > 0 ? seatsAllowedRaw : 0;
+    const seatsAllowed = couponCap != null ? Math.min(seatsAllowedBase, couponCap) : seatsAllowedBase;
     const activeUsersCount = org.active_users_count || 0;
     const availableSeats = Math.max(0, seatsAllowed - activeUsersCount);
     const utilizationPercent = seatsAllowed > 0 
@@ -130,6 +135,14 @@ export async function getOrganizationsWithSeatIssues(): Promise<{
               gt: prisma.organization.fields.seats_allowed,
             },
           },
+          {
+            coupon_seats_cap: {
+              not: null,
+            },
+            active_users_count: {
+              gt: prisma.organization.fields.coupon_seats_cap,
+            },
+          },
           // Approaching limit (>= 90%)
           // Note: This is approximate in SQL, exact calc in JS below
         ],
@@ -138,6 +151,7 @@ export async function getOrganizationsWithSeatIssues(): Promise<{
         id: true,
         name: true,
         seats_allowed: true,
+        coupon_seats_cap: true,
         active_users_count: true,
       },
     });
@@ -146,7 +160,9 @@ export async function getOrganizationsWithSeatIssues(): Promise<{
     const approachingLimit: SeatStatus[] = [];
 
     for (const org of orgs) {
-      const seatsAllowed = org.seats_allowed || 0;
+      const couponCap = typeof org.coupon_seats_cap === 'number' && Number.isFinite(org.coupon_seats_cap) && org.coupon_seats_cap > 0 ? org.coupon_seats_cap : null;
+      const seatsAllowedBase = org.seats_allowed || 0;
+      const seatsAllowed = couponCap != null ? Math.min(seatsAllowedBase, couponCap) : seatsAllowedBase;
       const activeUsersCount = org.active_users_count || 0;
       const utilizationPercent = seatsAllowed > 0 
         ? Math.round((activeUsersCount / seatsAllowed) * 100) 
@@ -214,12 +230,15 @@ export async function getClientSeatAnalytics(clientId: string): Promise<{
         id: true,
         name: true,
         seats_allowed: true,
+        coupon_seats_cap: true,
         active_users_count: true,
       },
     });
 
-    const organizations: SeatStatus[] = orgs.map((org: { id: string; name: string; seats_allowed: number | null; active_users_count: number | null }) => {
-      const seatsAllowed = org.seats_allowed || 0;
+    const organizations: SeatStatus[] = orgs.map((org) => {
+      const couponCap = typeof org.coupon_seats_cap === 'number' && Number.isFinite(org.coupon_seats_cap) && org.coupon_seats_cap > 0 ? org.coupon_seats_cap : null;
+      const seatsAllowedBase = org.seats_allowed || 0;
+      const seatsAllowed = couponCap != null ? Math.min(seatsAllowedBase, couponCap) : seatsAllowedBase;
       const activeUsersCount = org.active_users_count || 0;
       const utilizationPercent = seatsAllowed > 0 
         ? Math.round((activeUsersCount / seatsAllowed) * 100) 

@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Copy, Tag, Users, Calendar, Percent, DollarSign, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Copy, Tag, Users, Calendar, Percent, DollarSign, AlertCircle, CheckCircle2, Loader2, Lock, Layers } from 'lucide-react';
 import { createCoupon, listCoupons, updateCouponStatus, deleteCoupon } from '@/app/actions/billing-actions';
+
+const ALL_MODULES = ['nexus', 'system', 'social', 'finance', 'client', 'operations'] as const;
+const MODULE_LABELS: Record<string, string> = {
+  nexus: 'נקסוס',
+  system: 'מערכת',
+  social: 'סושיאל',
+  finance: 'פיננסים',
+  client: 'לקוחות',
+  operations: 'תפעול',
+};
 
 type CouponItem = {
   id: string;
@@ -17,6 +27,8 @@ type CouponItem = {
   endsAt: string | null;
   maxRedemptionsTotal: number | null;
   currentRedemptions: number;
+  maxUsers: number | null;
+  allowedModules: string[];
   createdAt: string | null;
 };
 
@@ -54,6 +66,8 @@ export default function CouponsAdminClient() {
   const [newStartsAt, setNewStartsAt] = useState('');
   const [newEndsAt, setNewEndsAt] = useState('');
   const [newMaxRedemptions, setNewMaxRedemptions] = useState(0);
+  const [newMaxUsers, setNewMaxUsers] = useState(0);
+  const [newAllowedModules, setNewAllowedModules] = useState<string[]>([]);
 
   const loadCoupons = useCallback(async () => {
     setLoading(true);
@@ -90,6 +104,8 @@ export default function CouponsAdminClient() {
         startsAt: newStartsAt || null,
         endsAt: newEndsAt || null,
         maxRedemptionsTotal: newMaxRedemptions > 0 ? newMaxRedemptions : null,
+        maxUsers: newMaxUsers > 0 ? newMaxUsers : null,
+        allowedModules: newAllowedModules.length > 0 ? newAllowedModules : [],
       });
       if (result.ok) {
         setSuccess(`קופון נוצר בהצלחה! קוד: ${newCode.toUpperCase()}`);
@@ -102,6 +118,8 @@ export default function CouponsAdminClient() {
         setNewStartsAt('');
         setNewEndsAt('');
         setNewMaxRedemptions(0);
+        setNewMaxUsers(0);
+        setNewAllowedModules([]);
         await loadCoupons();
       } else {
         setError('error' in result ? (result.error ?? 'שגיאה') : 'שגיאה ביצירה');
@@ -302,13 +320,60 @@ export default function CouponsAdminClient() {
             </div>
           </div>
 
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+            <div className="flex items-center gap-1.5">
+              <Lock size={13} className="text-slate-500" />
+              <span className="text-xs font-bold text-slate-700">הגבלות (אופציונלי)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">מקסימום משתמשים</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={9999}
+                  value={newMaxUsers}
+                  onChange={e => setNewMaxUsers(Math.max(0, Number(e.target.value)))}
+                  placeholder="0 = ללא הגבלה"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">גבול עליון לכמות המשתמשים בארגון</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">
+                  מודולים מותרים
+                  <span className="font-normal text-slate-400 mr-1">(ריק = הכל מותר)</span>
+                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-1.5">
+                  {ALL_MODULES.map(m => (
+                    <label key={m} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newAllowedModules.includes(m)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setNewAllowedModules(prev => [...prev, m]);
+                          } else {
+                            setNewAllowedModules(prev => prev.filter(x => x !== m));
+                          }
+                        }}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs text-slate-700">{MODULE_LABELS[m]}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">אם מסומן — רק מודולים אלה נגישים לארגון</p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={handleCreate}
               disabled={creating}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm"
-            >
-              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+            >              {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
               {creating ? 'יוצר...' : 'צור קופון'}
             </button>
             <button
@@ -433,6 +498,30 @@ export default function CouponsAdminClient() {
                     </button>
                   </div>
                 </div>
+
+                {((c.maxUsers != null && c.maxUsers > 0) || c.allowedModules.length > 0) && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                    {c.maxUsers != null && c.maxUsers > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <Users size={10} />
+                        עד {c.maxUsers} משתמשים
+                      </span>
+                    )}
+                    {c.allowedModules.length > 0 && (
+                      <>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-1 text-[11px] text-slate-400">
+                          <Layers size={10} />
+                          מודולים:
+                        </span>
+                        {c.allowedModules.map(m => (
+                          <span key={m} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {MODULE_LABELS[m] || m}
+                          </span>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -447,6 +536,8 @@ export default function CouponsAdminClient() {
           <li><strong>הפצה:</strong> שתף את הקוד עם לקוחות או שותפים. הם מזינים אותו בעמוד הצ&apos;קאוט.</li>
           <li><strong>מימוש:</strong> בצ&apos;קאוט, המערכת מוודאת תוקף ומחילה הנחה אוטומטית.</li>
           <li><strong>שותפים:</strong> צור קוד ייעודי לכל שותף (למשל: <span dir="ltr" className="font-mono">ROECOH10</span>) ועקוב אחר מימושים.</li>
+          <li><strong>הגבלת משתמשים:</strong> הגדר מקסימום משתמשים לארגון — יחויב גם בהרשמה וגם בהוספת עובדים חדשים.</li>
+          <li><strong>הגבלת מודולים:</strong> בחר אילו מודולים נגישים לארגון — שאר המודולים יחסמו אוטומטית בזמן אמת.</li>
           <li><strong>ביטול:</strong> השבת קופון כדי למנוע מימוש חדש (מימושים קיימים נשמרים).</li>
         </ul>
       </div>

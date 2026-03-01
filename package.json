@@ -179,7 +179,8 @@
     "@sentry/nextjs": {
       "minimatch": "^10.2.1"
     },
-    "bn.js": "^5.2.3"
+    "bn.js": "^5.2.3",
+    "serialize-javascript": "7.0.3"
   },
   "main": "electron/main.js",
   "build": {

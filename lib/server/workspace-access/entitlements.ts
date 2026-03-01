@@ -79,6 +79,19 @@ function buildEntitlementsFromAllowedModules(allowed: Iterable<OSModuleKey>): Wo
   };
 }
 
+function normalizeCouponAllowedModules(raw: unknown): Set<OSModuleKey> | null {
+  if (!Array.isArray(raw)) return null;
+  const out = new Set<OSModuleKey>();
+  for (const v of raw) {
+    if (isOSModuleKey(v)) out.add(v);
+    else {
+      const s = String(v ?? '').trim().toLowerCase();
+      if (isOSModuleKey(s)) out.add(s);
+    }
+  }
+  return out.size ? out : null;
+}
+
 export function getPackageModules(packageType: PackageType): OSModuleKey[] {
   const def = (BILLING_PACKAGES as Record<string, unknown>)[packageType];
   const defObj = asObject(def);
@@ -166,7 +179,7 @@ export async function getOrganizationPackageEntitlements(
   const flags = preloadedFlags || (await loadOrganizationModuleFlags(organizationId));
   const packageType = inferOrganizationPackageType(flags);
 
-  const orgEntitlements: WorkspaceEntitlements = {
+  const baseOrgEntitlements: WorkspaceEntitlements = {
     nexus: flags.has_nexus ?? false,
     system: flags.has_system ?? false,
     social: flags.has_social ?? false,
@@ -174,6 +187,18 @@ export async function getOrganizationPackageEntitlements(
     client: flags.has_client ?? false,
     operations: flags.has_operations ?? false,
   };
+
+  const couponAllowed = normalizeCouponAllowedModules(flags.coupon_allowed_modules);
+  const orgEntitlements: WorkspaceEntitlements = couponAllowed
+    ? {
+        nexus: Boolean(baseOrgEntitlements.nexus && couponAllowed.has('nexus')),
+        system: Boolean(baseOrgEntitlements.system && couponAllowed.has('system')),
+        social: Boolean(baseOrgEntitlements.social && couponAllowed.has('social')),
+        finance: Boolean(baseOrgEntitlements.finance && couponAllowed.has('finance')),
+        client: Boolean(baseOrgEntitlements.client && couponAllowed.has('client')),
+        operations: Boolean(baseOrgEntitlements.operations && couponAllowed.has('operations')),
+      }
+    : baseOrgEntitlements;
 
   if (socialUserId) {
     const user = await prisma.organizationUser.findFirst({
@@ -231,6 +256,7 @@ export async function getOrganizationEntitlements(
           has_finance: true,
           has_client: true,
           has_operations: true,
+          coupon_allowed_modules: true,
         },
       });
     } catch (error: unknown) {
@@ -269,7 +295,7 @@ export async function getOrganizationEntitlements(
     throw new Error('Organization not found');
   }
 
-  const orgEntitlements: WorkspaceEntitlements = {
+  const baseOrgEntitlements: WorkspaceEntitlements = {
     nexus: org?.has_nexus ?? false,
     system: org?.has_system ?? false,
     social: org?.has_social ?? false,
@@ -277,6 +303,18 @@ export async function getOrganizationEntitlements(
     client: org?.has_client ?? false,
     operations: org?.has_operations ?? false,
   };
+
+  const couponAllowed = normalizeCouponAllowedModules(org.coupon_allowed_modules);
+  const orgEntitlements: WorkspaceEntitlements = couponAllowed
+    ? {
+        nexus: Boolean(baseOrgEntitlements.nexus && couponAllowed.has('nexus')),
+        system: Boolean(baseOrgEntitlements.system && couponAllowed.has('system')),
+        social: Boolean(baseOrgEntitlements.social && couponAllowed.has('social')),
+        finance: Boolean(baseOrgEntitlements.finance && couponAllowed.has('finance')),
+        client: Boolean(baseOrgEntitlements.client && couponAllowed.has('client')),
+        operations: Boolean(baseOrgEntitlements.operations && couponAllowed.has('operations')),
+      }
+    : baseOrgEntitlements;
 
   if (socialUserId) {
     let user: { allowed_modules: string[] | null; role: string | null } | null = null;

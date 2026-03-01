@@ -25,6 +25,17 @@ type ValidatedCoupon = {
   ends_at: Date | null;
   max_redemptions_total: number | null;
   current_redemptions: number;
+  max_users: number | null;
+  allowed_modules: string[];
+};
+
+const MODULE_LABELS_HE: Record<string, string> = {
+  nexus: 'נקסוס',
+  system: 'מערכת',
+  social: 'סושיאל',
+  finance: 'פיננסים',
+  client: 'לקוחות',
+  operations: 'תפעול',
 };
 
 export default function ApplyCouponModal({
@@ -114,9 +125,9 @@ export default function ApplyCouponModal({
     if (!validatedCoupon) return { amount: 0, newMRR: currentMRR };
 
     let discountAmount = 0;
-    if (validatedCoupon.discount_type === 'percentage' && validatedCoupon.discount_percent) {
+    if (validatedCoupon.discount_type === 'PERCENT' && validatedCoupon.discount_percent) {
       discountAmount = (currentMRR * validatedCoupon.discount_percent) / 100;
-    } else if (validatedCoupon.discount_type === 'fixed' && validatedCoupon.discount_amount) {
+    } else if (validatedCoupon.discount_type === 'FIXED_AMOUNT' && validatedCoupon.discount_amount) {
       discountAmount = validatedCoupon.discount_amount;
     }
 
@@ -206,9 +217,9 @@ export default function ApplyCouponModal({
                     <div className="flex justify-between">
                       <span className="text-slate-700">הנחה:</span>
                       <span className="font-medium text-green-700">
-                        {validatedCoupon.discount_type === 'percentage' && validatedCoupon.discount_percent
+                        {validatedCoupon.discount_type === 'PERCENT' && validatedCoupon.discount_percent
                           ? `${validatedCoupon.discount_percent}%`
-                          : validatedCoupon.discount_type === 'fixed' && validatedCoupon.discount_amount
+                          : validatedCoupon.discount_type === 'FIXED_AMOUNT' && validatedCoupon.discount_amount
                           ? `₪${validatedCoupon.discount_amount.toFixed(2)}`
                           : 'N/A'}
                       </span>
@@ -229,6 +240,28 @@ export default function ApplyCouponModal({
                         <span className="font-medium">
                           {validatedCoupon.current_redemptions} / {validatedCoupon.max_redemptions_total}
                         </span>
+                      </div>
+                    )}
+
+                    {validatedCoupon.max_users && (
+                      <div className="flex justify-between items-center pt-1 mt-1 border-t border-green-200">
+                        <span className="text-slate-700">מקסימום משתמשים:</span>
+                        <span className="font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-xs">
+                          עד {validatedCoupon.max_users} משתמשים
+                        </span>
+                      </div>
+                    )}
+
+                    {validatedCoupon.allowed_modules.length > 0 && (
+                      <div className="flex justify-between items-start pt-1 mt-1 border-t border-green-200">
+                        <span className="text-slate-700 shrink-0 mt-1">מודולים מותרים:</span>
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          {validatedCoupon.allowed_modules.map(m => (
+                            <span key={m} className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {MODULE_LABELS_HE[m] || m}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

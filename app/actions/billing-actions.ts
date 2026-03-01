@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import crypto from 'crypto';
 import { requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { isTenantAdminRole } from '@/lib/constants/roles';
+import { computeCouponCodeHash } from '@/lib/server/couponEngine';
 
 // ============================================================
 // Types
@@ -32,9 +32,24 @@ export type CouponValidationResult = {
     ends_at: Date | null;
     max_redemptions_total: number | null;
     current_redemptions: number;
+    max_users: number | null;
+    allowed_modules: string[];
   };
   error?: string;
 };
+
+function normalizeCouponModules(raw: unknown): string[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const allowed = new Set(['nexus', 'system', 'social', 'finance', 'client', 'operations']);
+  const out: string[] = [];
+  for (const v of list) {
+    const s = String(v ?? '').trim().toLowerCase();
+    if (!s) continue;
+    if (!allowed.has(s)) continue;
+    out.push(s);
+  }
+  return Array.from(new Set(out));
+}
 
 async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; error: string }> {
   const authCheck = await requireAuth();
@@ -171,7 +186,7 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
     }
 
     const normalizedCode = code.trim().toUpperCase();
-    const codeHash = crypto.createHash('sha256').update(normalizedCode).digest('hex');
+    const codeHash = computeCouponCodeHash(normalizedCode);
 
     // Find coupon by hash
     const coupon = await prisma.coupons.findUnique({
@@ -185,6 +200,8 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
         starts_at: true,
         ends_at: true,
         max_redemptions_total: true,
+        max_users: true,
+        allowed_modules: true,
         coupon_redemptions: {
           select: { id: true },
         },
@@ -228,6 +245,8 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
         ends_at: coupon.ends_at,
         max_redemptions_total: coupon.max_redemptions_total,
         current_redemptions: currentRedemptions,
+        max_users: coupon.max_users ?? null,
+        allowed_modules: normalizeCouponModules(coupon.allowed_modules),
       },
     };
   } catch (error) {
@@ -288,10 +307,10 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
     let discountPercent = 0;
     let discountAmount = 0;
 
-    if (coupon.discount_type === 'percentage' && coupon.discount_percent) {
+    if (coupon.discount_type === 'PERCENT' && coupon.discount_percent) {
       discountPercent = coupon.discount_percent;
       discountAmount = (currentMRR * discountPercent) / 100;
-    } else if (coupon.discount_type === 'fixed' && coupon.discount_amount) {
+    } else if (coupon.discount_type === 'FIXED_AMOUNT' && coupon.discount_amount) {
       discountAmount = coupon.discount_amount;
       discountPercent = currentMRR > 0 ? Math.round((discountAmount / currentMRR) * 100) : 0;
     }
@@ -301,6 +320,8 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
       where: { id: orgId },
       data: {
         discount_percent: discountPercent,
+        coupon_seats_cap: coupon.max_users ?? null,
+        coupon_allowed_modules: normalizeCouponModules(coupon.allowed_modules),
         updated_at: new Date(),
       },
     });
@@ -350,6 +371,8 @@ export async function createCoupon(params: {
   startsAt?: string | null;
   endsAt?: string | null;
   maxRedemptionsTotal?: number | null;
+  maxUsers?: number | null;
+  allowedModules?: string[] | null;
 }) {
   try {
     const guard = await requireSuperAdminOrReturn();
@@ -358,11 +381,20 @@ export async function createCoupon(params: {
     const code = String(params.code || '').trim().toUpperCase().replace(/\s+/g, '');
     if (!code || code.length < 3) return { ok: false, error: 'קוד קופון חייב להכיל לפחות 3 תווים' };
 
-    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const codeHash = computeCouponCodeHash(code);
     const codeLast4 = code.slice(-4);
 
     const existing = await prisma.coupons.findUnique({ where: { code_hash: codeHash }, select: { id: true } });
     if (existing) return { ok: false, error: 'קוד קופון כבר קיים במערכת' };
+
+    const maxUsersRaw = params.maxUsers;
+    const maxUsersNormalized = Number.isFinite(Number(maxUsersRaw)) ? Math.floor(Number(maxUsersRaw)) : null;
+    const maxUsers = maxUsersNormalized && maxUsersNormalized > 0 ? maxUsersNormalized : null;
+    if (maxUsers != null && (maxUsers < 1 || maxUsers > 9999)) {
+      return { ok: false, error: 'מקסימום משתמשים חייב להיות בין 1 ל-9999' };
+    }
+
+    const allowedModules = normalizeCouponModules(params.allowedModules);
 
     const coupon = await prisma.coupons.create({
       data: {
@@ -377,6 +409,8 @@ export async function createCoupon(params: {
         starts_at: params.startsAt ? new Date(params.startsAt) : null,
         ends_at: params.endsAt ? new Date(params.endsAt) : null,
         max_redemptions_total: params.maxRedemptionsTotal ?? null,
+        max_users: maxUsers,
+        allowed_modules: allowedModules,
       },
     });
 
@@ -407,6 +441,8 @@ export async function listCoupons() {
         starts_at: true,
         ends_at: true,
         max_redemptions_total: true,
+        max_users: true,
+        allowed_modules: true,
         created_at: true,
         coupon_redemptions: {
           select: { id: true, organization_id: true, redeemed_at: true },
@@ -430,6 +466,8 @@ export async function listCoupons() {
         endsAt: c.ends_at?.toISOString() ?? null,
         maxRedemptionsTotal: c.max_redemptions_total,
         currentRedemptions: c.coupon_redemptions.length,
+        maxUsers: c.max_users ?? null,
+        allowedModules: normalizeCouponModules(c.allowed_modules),
         createdAt: c.created_at?.toISOString() ?? null,
       })),
     };
@@ -486,6 +524,8 @@ export async function removeCouponFromOrganization(orgId: string) {
       where: { id: orgId },
       data: {
         discount_percent: 0,
+        coupon_seats_cap: null,
+        coupon_allowed_modules: [],
         updated_at: new Date(),
       },
     });

@@ -23,6 +23,21 @@ function identityCache<Args extends unknown[], R>(fn: (...args: Args) => R) {
 const reactCache: unknown = Reflect.get(React, 'cache');
 const cache: CacheFn = typeof reactCache === 'function' ? (reactCache as CacheFn) : identityCache;
 
+function normalizeSeats(value: unknown): number | null {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  return i > 0 ? i : null;
+}
+
+function computeEffectiveSeatsAllowed(params: { seatsAllowedRaw: unknown; couponSeatsCapRaw: unknown }): number | null {
+  const seatsAllowed = normalizeSeats(params.seatsAllowedRaw);
+  const couponCap = normalizeSeats(params.couponSeatsCapRaw);
+  if (couponCap == null) return seatsAllowed;
+  if (seatsAllowed == null) return couponCap;
+  return Math.min(seatsAllowed, couponCap);
+}
+
 export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: string, orgSlug: string): Promise<WorkspaceInfo> => {
   if (!orgSlug) {
     logWorkspaceAccessError('[workspace-access] missing orgSlug for workspace route', {
@@ -103,7 +118,7 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     slug: org?.slug ?? null,
     name: org?.name ?? 'Workspace',
     logo: org?.logo ?? null,
-    seatsAllowed: Number.isFinite(Number(org?.seats_allowed)) ? Number(org?.seats_allowed) : null,
+    seatsAllowed: computeEffectiveSeatsAllowed({ seatsAllowedRaw: org?.seats_allowed, couponSeatsCapRaw: org?.coupon_seats_cap }),
     isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     subscriptionStatus: org?.subscription_status ?? null,
     entitlements,
@@ -163,7 +178,7 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     slug: org.slug ?? null,
     name: org.name ?? 'Workspace',
     logo: org.logo ?? null,
-    seatsAllowed: Number.isFinite(Number(org.seats_allowed)) ? Number(org.seats_allowed) : null,
+    seatsAllowed: computeEffectiveSeatsAllowed({ seatsAllowedRaw: org.seats_allowed, couponSeatsCapRaw: org.coupon_seats_cap }),
     isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     subscriptionStatus: org?.subscription_status ?? null,
     entitlements,

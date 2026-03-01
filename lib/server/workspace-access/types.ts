@@ -33,6 +33,8 @@ export type OrganizationModuleFlags = {
   has_finance: boolean | null;
   has_client: boolean | null;
   has_operations: boolean | null;
+  coupon_seats_cap?: unknown;
+  coupon_allowed_modules?: unknown;
 };
 
 export type SocialUserRow = { id: string; organization_id: string | null; role?: string | null };
@@ -44,6 +46,8 @@ export type OrganizationRow = {
   slug: string | null;
   logo: string | null;
   seats_allowed: unknown;
+  coupon_seats_cap?: unknown;
+  coupon_allowed_modules?: unknown;
   is_shabbat_protected: boolean | null;
   subscription_status: string | null;
 } & OrganizationModuleFlags;
