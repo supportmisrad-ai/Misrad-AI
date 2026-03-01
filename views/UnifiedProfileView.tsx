@@ -304,7 +304,6 @@ export const MeView: React.FC<{
   };
   
   // Timer State
-  const [elapsed, setElapsed] = useState('00:00:00');
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Stats Calculation
@@ -481,29 +480,22 @@ export const MeView: React.FC<{
       loadMyData();
   }, [currentUser.id]);
 
-  // Update active shift elapsed time
+  // Compute elapsed IMMEDIATELY from activeShift and keep it ticking every second
+  const elapsed = useMemo(() => {
+      if (!activeShift) return '00:00:00';
+      const diff = Math.max(0, currentTime.getTime() - new Date(activeShift.startTime).getTime());
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, [activeShift, currentTime]);
+
   useEffect(() => {
       const interval = setInterval(() => {
-          setCurrentTime(new Date()); // Triggers re-render for total calculations
-          
-          if (activeShift) {
-              const start = new Date(activeShift.startTime).getTime();
-              const now = new Date().getTime();
-              const diff = now - start;
-              
-              const hours = Math.floor(diff / (1000 * 60 * 60));
-              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-              const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-              
-              setElapsed(
-                  `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-              );
-          } else {
-              setElapsed('00:00:00');
-          }
+          setCurrentTime(new Date());
       }, 1000);
       return () => clearInterval(interval);
-  }, [activeShift]);
+  }, []);
 
   const handleLogout = () => {
       // עדכון מצב פנימי של האפליקציה (אם עדיין נדרש ל-DataContext)
