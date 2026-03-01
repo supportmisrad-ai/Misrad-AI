@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import prisma from '@/lib/prisma';
-import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { provisionCurrentUserWorkspaceAction } from '@/app/actions/users';
 import { getCustomerAccountForCurrentOrganization } from '@/app/actions/customer-accounts';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
@@ -21,18 +20,10 @@ async function getCurrentOrganizationKey(): Promise<{
     redirect('/login?redirect=/workspaces/onboarding');
   }
 
-  const profile = await prisma.profile.findFirst(
-    withPrismaTenantIsolationOverride(
-      {
-        where: { clerkUserId },
-        select: { organizationId: true },
-      },
-      {
-        reason: 'onboarding_lookup_org_by_clerk_user_id',
-        source: 'app/workspaces/onboarding/page.tsx',
-      }
-    )
-  );
+  const profile = await prisma.profile.findFirst({
+    where: { clerkUserId },
+    select: { organizationId: true },
+  });
 
   let organizationId: string | null = profile?.organizationId ?? null;
 
@@ -78,18 +69,10 @@ async function getCurrentOrganizationKey(): Promise<{
     }
 
     // Fallback: re-query profile if organizationKey wasn't returned
-    const profileAfter = await prisma.profile.findFirst(
-      withPrismaTenantIsolationOverride(
-        {
-          where: { clerkUserId },
-          select: { organizationId: true },
-        },
-        {
-          reason: 'onboarding_lookup_org_after_provision',
-          source: 'app/workspaces/onboarding/page.tsx',
-        }
-      )
-    );
+    const profileAfter = await prisma.profile.findFirst({
+      where: { clerkUserId },
+      select: { organizationId: true },
+    });
 
     organizationId = profileAfter?.organizationId ?? null;
   }
