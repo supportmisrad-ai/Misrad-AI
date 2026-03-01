@@ -96,6 +96,7 @@ self.addEventListener('install', (event) => {
         return Promise.allSettled([
           cache.add('/me').catch(() => {}),
           cache.add('/login').catch(() => {}),
+          cache.add('/offline').catch(() => {}),
           cache.add('/manifest.json').catch(() => {}),
           cache.add('/icons/misrad-maskable-192.png').catch(() => {})
         ]);
@@ -132,6 +133,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isNavigationRequest =
+    event.request.mode === 'navigate' ||
+    (event.request.headers && String(event.request.headers.get('accept') || '').includes('text/html'));
+
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
@@ -158,11 +163,22 @@ self.addEventListener('fetch', (event) => {
           })
           .catch((err) => {
             console.warn('Fetch failed:', err);
-            // Return a basic offline page or error response
-            return new Response('Offline', { 
-              status: 503, 
+            // Navigation fallback: show offline page from cache
+            if (isNavigationRequest) {
+              return caches.match('/offline').then((offline) => {
+                if (offline) return offline;
+                return new Response('Offline', {
+                  status: 503,
+                  statusText: 'Service Unavailable',
+                  headers: { 'Content-Type': 'text/plain' },
+                });
+              });
+            }
+
+            return new Response('Offline', {
+              status: 503,
               statusText: 'Service Unavailable',
-              headers: { 'Content-Type': 'text/plain' }
+              headers: { 'Content-Type': 'text/plain' },
             });
           });
       })
@@ -171,10 +187,21 @@ self.addEventListener('fetch', (event) => {
         // Try to fetch from network as fallback
         return fetch(event.request).catch((fetchErr) => {
           console.warn('Network fetch also failed:', fetchErr);
-          return new Response('Offline', { 
-            status: 503, 
+          if (isNavigationRequest) {
+            return caches.match('/offline').then((offline) => {
+              if (offline) return offline;
+              return new Response('Offline', {
+                status: 503,
+                statusText: 'Service Unavailable',
+                headers: { 'Content-Type': 'text/plain' },
+              });
+            });
+          }
+
+          return new Response('Offline', {
+            status: 503,
             statusText: 'Service Unavailable',
-            headers: { 'Content-Type': 'text/plain' }
+            headers: { 'Content-Type': 'text/plain' },
           });
         });
       })
