@@ -256,19 +256,21 @@ function generateBadge(options: {
  */
 function generateSteps(steps: Array<{ title: string; desc?: string }>): string {
   return `
-    <div style="margin:24px 0;">
+    <table role="presentation" style="width:100%;margin:24px 0;border-collapse:collapse;" cellpadding="0" cellspacing="0">
       ${steps.map((step, i) => `
-        <div style="display:flex;margin-bottom:${i < steps.length - 1 ? '16' : '0'}px;">
-          <div style="min-width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.primary},${BRAND_COLORS.secondary});color:#fff;font-size:14px;font-weight:900;text-align:center;line-height:32px;margin-left:14px;">
-            ${i + 1}
-          </div>
-          <div style="flex:1;">
+        <tr>
+          <td style="width:36px;vertical-align:top;padding-bottom:${i < steps.length - 1 ? '16' : '0'}px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.primary},${BRAND_COLORS.secondary});color:#fff;font-size:14px;font-weight:900;text-align:center;line-height:32px;">
+              ${i + 1}
+            </div>
+          </td>
+          <td style="vertical-align:top;padding-bottom:${i < steps.length - 1 ? '16' : '0'}px;padding-right:14px;">
             <div style="font-size:15px;font-weight:700;color:${BRAND_COLORS.dark};line-height:32px;">${step.title}</div>
             ${step.desc ? `<div style="font-size:13px;color:${BRAND_COLORS.gray};line-height:1.5;margin-top:2px;">${step.desc}</div>` : ''}
-          </div>
-        </div>
+          </td>
+        </tr>
       `).join('')}
-    </div>
+    </table>
   `;
 }
 
@@ -364,9 +366,9 @@ export function generateBaseEmailTemplate(options: {
   <![endif]-->
 </head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#eef2f7;direction:rtl;-webkit-font-smoothing:antialiased;">
-  <table role="presentation" style="width:100%;border-collapse:collapse;background-color:#eef2f7;" cellpadding="0" cellspacing="0">
+    <table role="presentation" style="width:100%;border-collapse:collapse;background-color:#eef2f7;" cellpadding="0" cellspacing="0">
     <tr>
-      <td align="center" style="padding:32px 16px;">
+      <td align="center" style="padding:20px 12px;">
         <table role="presentation" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;box-shadow:0 4px 24px rgba(15,23,42,0.08);overflow:hidden;" cellpadding="0" cellspacing="0">
           ${generateEmailHeader({
             title: options.headerTitle,
@@ -376,7 +378,7 @@ export function generateBaseEmailTemplate(options: {
           })}
 
           <tr>
-            <td style="padding:40px 36px;">
+            <td style="padding:32px 24px;">
               ${options.bodyContent}
             </td>
           </tr>
@@ -505,13 +507,15 @@ function generateTestimonial(options: {
       <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.7;font-style:italic;margin-bottom:16px;">
         ${options.quote}
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${options.authorPhotoUrl ? `<img src="${options.authorPhotoUrl}" alt="${options.authorName}" width="36" height="36" style="border-radius:50%;border:2px solid ${BRAND_COLORS.border};" />` : ''}
-        <div>
-          <div style="font-size:13px;font-weight:800;color:${BRAND_COLORS.dark};">${options.authorName}</div>
-          ${options.authorTitle ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};">${options.authorTitle}</div>` : ''}
-        </div>
-      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          ${options.authorPhotoUrl ? `<td style="width:40px;vertical-align:middle;padding-left:10px;"><img src="${options.authorPhotoUrl}" alt="${options.authorName}" width="36" height="36" style="border-radius:50%;border:2px solid ${BRAND_COLORS.border};display:block;" /></td>` : ''}
+          <td style="vertical-align:middle;">
+            <div style="font-size:13px;font-weight:800;color:${BRAND_COLORS.dark};">${options.authorName}</div>
+            ${options.authorTitle ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};">${options.authorTitle}</div>` : ''}
+          </td>
+        </tr>
+      </table>
     </div>
   `;
 }

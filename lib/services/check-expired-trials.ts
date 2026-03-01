@@ -27,13 +27,14 @@ export async function sendTrialExpiryWarnings() {
         suppressReporting: true,
       },
       async () => {
-        // Find organizations with active trials
+        // Find organizations with active trials (exclude coupon / paid users)
         const organizations = await prisma.organization.findMany({
           where: {
             subscription_status: 'trial',
             trial_start_date: {
               not: null,
             },
+            coupon_redemptions: { none: {} },
           },
           select: {
             id: true,
@@ -182,13 +183,14 @@ export async function checkAndDisableExpiredOrganizations() {
         suppressReporting: true,
       },
       async () => {
-        // Find organizations with expired trials
+        // Find organizations with expired trials (exclude coupon / paid users)
         const organizations = await prisma.organization.findMany({
           where: {
             subscription_status: 'trial',
             trial_start_date: {
               not: null,
             },
+            coupon_redemptions: { none: {} },
           },
           select: {
             id: true,

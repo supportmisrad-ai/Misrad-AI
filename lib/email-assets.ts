@@ -68,10 +68,10 @@ export function getEmailAssets() {
         logoWide: dbVal('logoWide') || process.env.EMAIL_ASSET_LOGO_WIDE || `${b}/email/logo-wide.png`,
 
         // ─── Founder ────────────────────────────────────────────────
-        founderPhoto: dbVal('founderPhoto') || process.env.EMAIL_ASSET_FOUNDER_PHOTO || `${b}/email/founder-itsik.jpg`,
+        founderPhoto: dbVal('founderPhoto') || process.env.EMAIL_ASSET_FOUNDER_PHOTO || `${b}/icons/misrad-icon-192.png`,
         founderName: dbVal('founderName') || process.env.MISRAD_FOUNDER_NAME || 'איציק דהן',
         founderTitle: dbVal('founderTitle') || 'מייסד ומנכ"ל, MISRAD AI',
-        founderSignature: dbVal('founderSignature') || process.env.MISRAD_FOUNDER_NAME || 'איציק',
+        founderSignature: dbVal('founderSignature') || process.env.MISRAD_FOUNDER_FIRST_NAME || (process.env.MISRAD_FOUNDER_NAME?.split(' ')[0] ?? 'איציק'),
 
         // ─── Welcome / Onboarding ───────────────────────────────────
         welcomeHero: dbVal('welcomeHero') || process.env.EMAIL_ASSET_WELCOME_HERO || `${b}/email/welcome-hero.png`,

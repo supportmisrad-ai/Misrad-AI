@@ -41,13 +41,6 @@ function generateOrganizationWelcomeEmailHTML(params: {
             { title: 'התחילו לעבוד', desc: 'AI ילמד את הדפוסים שלכם ויתאים את עצמו' },
         ])}
 
-        ${EmailTemplateComponents.generateScreenshot({
-            src: assets.welcomeDashboardScreenshot,
-            alt: 'MISRAD AI Dashboard',
-            title: 'MISRAD AI — הדשבורד שלך',
-            href: params.portalUrl,
-        })}
-
         ${EmailTemplateComponents.generateCTAButton({
             text: 'כניסה למערכת →',
             url: params.portalUrl,
@@ -136,13 +129,6 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
             <br /><br />
             <strong style="color:#6366f1;">רציתי לשאול אם משהו נתקע בדרך, ואם אני יכול לעזור?</strong>
         </div>
-
-        ${EmailTemplateComponents.generateScreenshot({
-            src: assets.welcomeDashboardScreenshot,
-            alt: 'MISRAD AI Dashboard',
-            title: 'MISRAD AI — המערכת מחכה לך',
-            href: params.checkoutUrl,
-        })}
 
         ${EmailTemplateComponents.generateCTAButton({
             text: 'להשלמת מנוי / תשלום',
@@ -234,27 +220,39 @@ function generateMisradWelcomeEmailHTML(params: {
         ? '<div style="margin:28px 0;padding:20px;background:#fff7ed;border-radius:14px;border:2px solid #fed7aa;"><div style="font-size:15px;font-weight:900;color:#7c2d12;margin-bottom:10px;text-align:center;">ייבוא נתונים מאקסל</div><div style="font-size:14px;color:#9a3412;line-height:1.7;text-align:center;">שלח לנו את האקסלים שלך ונעזור לך לייבא אותם' + migrationInner + '</div></div>'
         : '';
 
+    const featuresGrid = `
+        <table role="presentation" style="width:100%;margin:24px 0;border-collapse:separate;border-spacing:0 10px;" cellpadding="0" cellspacing="0">
+            <tr>
+                <td style="background:#f0fdf4;border-radius:12px;padding:16px 18px;border-right:4px solid #10b981;">
+                    <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:3px;">ניהול לידים ולקוחות</div>
+                    <div style="font-size:12px;color:#047857;line-height:1.5;">כל הפניות, השיחות וההיסטוריה במקום אחד</div>
+                </td>
+            </tr>
+            <tr>
+                <td style="background:#eff6ff;border-radius:12px;padding:16px 18px;border-right:4px solid #6366f1;">
+                    <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:3px;">AI חכם לסיכום שיחות</div>
+                    <div style="font-size:12px;color:#1e3a5f;line-height:1.5;">תמלול ועיבוד אוטומטי של שיחות עם לקוחות</div>
+                </td>
+            </tr>
+            <tr>
+                <td style="background:#faf5ff;border-radius:12px;padding:16px 18px;border-right:4px solid #8b5cf6;">
+                    <div style="font-size:13px;font-weight:800;color:#5b21b6;margin-bottom:3px;">דוחות ותובנות בזמן אמת</div>
+                    <div style="font-size:12px;color:#6b21a8;line-height:1.5;">עקוב אחר ביצועי הצוות ותחזיות מכירה</div>
+                </td>
+            </tr>
+        </table>
+    `;
+
     const bodyContent = `
-        ${EmailTemplateComponents.generateHeroImage({
-            src: assets.welcomeHero,
-            alt: 'ברוכים הבאים ל-MISRAD AI',
-            href: params.signInUrl,
-        })}
+        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:8px;">${greeting}</div>
 
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
-
-        <div style="font-size:18px;line-height:1.8;color:#334155;text-align:center;margin-bottom:32px;">
-            <strong style="color:#6366f1;">ברוכים הבאים ל-MISRAD</strong> 🎉
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:28px;">
+            שמחים שהצטרפת ל-<strong style="color:#6366f1;">MISRAD AI</strong>.
             <br />
-            הכנו לך כמה משאבים להתחלה מהירה
+            הנה כל מה שצריך כדי להתחיל מהר:
         </div>
 
-        ${EmailTemplateComponents.generateScreenshot({
-            src: assets.welcomeDashboardScreenshot,
-            alt: 'MISRAD AI Dashboard',
-            title: 'MISRAD AI — המערכת שלך',
-            href: params.signInUrl,
-        })}
+        ${featuresGrid}
 
         ${EmailTemplateComponents.generateCTAButton({
             text: 'כניסה למערכת →',
@@ -265,6 +263,16 @@ function generateMisradWelcomeEmailHTML(params: {
         ${downloadSection}
         ${whatsappSection}
         ${migrationSection}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: assets.founderName,
+            title: assets.founderTitle,
+            message: 'שמח שבחרת ב-MISRAD AI. אנחנו פה בשבילך — כל שאלה, הצעה, או בעיה, פשוט תשיב למייל הזה.',
+            signatureText: assets.founderSignature,
+        })}
     `;
     
     return generateBaseEmailTemplate({
