@@ -173,8 +173,8 @@ export default function SocialFrame({
   }, [initialOrganization]);
 
   const moduleTitle = useMemo(
-    () => roomName || workspaceName || 'Social',
-    [roomName, workspaceName],
+    () => workspaceName || roomName || 'Social',
+    [workspaceName, roomName],
   );
   const screenTitle = useMemo(() => titles[currentView] || 'סושיאל', [currentView]);
 

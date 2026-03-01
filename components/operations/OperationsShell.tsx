@@ -86,6 +86,7 @@ export default function OperationsShell({
 
   const screenTitle = React.useMemo(() => buildTitle(pathname, basePath), [basePath, pathname]);
   const moduleTitle = React.useMemo(() => roomName || 'Operations', [roomName]);
+  const orgTitle = workspace.name;
 
   const navItems = React.useMemo(
     () => [
@@ -271,11 +272,11 @@ export default function OperationsShell({
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
-          title={moduleTitle}
+          title={orgTitle}
           subtitle={screenTitle}
           currentDate={currentDate || ' '}
           mobileBrand={{
-            name: moduleTitle,
+            name: orgTitle,
             logoUrl: workspace.logoUrl || null,
             fallbackIcon: <OSModuleSquircleIcon moduleKey="operations" boxSize={32} iconSize={16} className="shadow-none" />,
             badgeModuleKey: 'operations',

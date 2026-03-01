@@ -51,10 +51,12 @@ export const Header: React.FC<HeaderProps> = ({
   const { room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(location?.pathname?.startsWith('/w/'));
 
-  const title =
+  const pageLabel =
     location.pathname === '/brain'
       ? 'Nexus AI'
       : NAV_ITEMS.find((i) => i.path === location.pathname)?.label || 'לוח בקרה';
+
+  const mainTitle = organization.name || pageLabel;
 
   const mobileFallbackIcon = organization.logo ? null : room ? <OSModuleSquircleIcon moduleKey={room} boxSize={32} iconSize={16} className="shadow-none" /> : null;
 
@@ -84,8 +86,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <SharedHeader
-      title={title}
-      subtitle={null}
+      title={mainTitle}
+      subtitle={pageLabel}
       currentDate={currentDate}
       mobileBrand={{
         name: organization.name,

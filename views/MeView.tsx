@@ -901,7 +901,8 @@ export const MeView: React.FC<{
           })()}
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
-          {hasNexusEntitlement ? (
+          {/* Optimistic: show panel immediately while entitlements load (null) so it appears without delay */}
+          {hasNexusEntitlement !== false ? (
               <MeAttendancePanel
                   activeShift={activeShift}
                   elapsed={elapsed}

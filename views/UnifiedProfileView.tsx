@@ -752,7 +752,8 @@ export const MeView: React.FC<{
           })()}
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
-          {hasNexusEntitlement ? (
+          {/* Optimistic: show panel immediately while entitlements load (null) so it appears without delay */}
+          {hasNexusEntitlement !== false ? (
           <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8">
                   

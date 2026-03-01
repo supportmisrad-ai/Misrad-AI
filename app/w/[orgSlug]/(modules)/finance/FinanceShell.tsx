@@ -61,6 +61,7 @@ export default function FinanceShell(props: {
   }, [basePath, nextPathname]);
 
   const moduleTitle = roomName || 'Finance';
+  const orgTitle = props.initialOrganization?.name || moduleTitle;
 
   const navItems = useMemo(
     () => [
@@ -167,7 +168,7 @@ export default function FinanceShell(props: {
         isOpen={isSidebarOpen}
         onSetOpenAction={setIsSidebarOpen}
         brand={{
-          name: props.initialOrganization?.name || moduleTitle,
+          name: orgTitle,
           logoUrl: props.initialOrganization?.logo || null,
           fallbackIcon: <OSModuleSquircleIcon moduleKey="finance" boxSize={40} iconSize={18} className="shadow-none" />,
           badgeModuleKey: 'finance',
@@ -195,11 +196,11 @@ export default function FinanceShell(props: {
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
-          title={moduleTitle}
+          title={orgTitle}
           subtitle={activeNavItem?.label || null}
           currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
           mobileBrand={{
-            name: moduleTitle,
+            name: orgTitle,
             logoUrl: props.initialOrganization?.logo || null,
             fallbackIcon: <OSModuleSquircleIcon moduleKey="finance" boxSize={32} iconSize={16} className="shadow-none" />,
             badgeModuleKey: 'finance',

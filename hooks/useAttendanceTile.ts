@@ -10,7 +10,7 @@ import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
-const OS_MODULES_WITH_ATTENDANCE = new Set(['system', 'operations', 'finance', 'social', 'client']);
+const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus', 'system', 'operations', 'finance', 'social', 'client']);
 
 export function formatAttendanceDuration(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));

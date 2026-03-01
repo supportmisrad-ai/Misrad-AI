@@ -168,6 +168,7 @@ function SystemShellGateClientCore({
 
   const screenTitle = NAV_ITEMS.find((n) => n.id === activeTab)?.label || 'System';
   const moduleTitle = 'System';
+  const orgTitle = String(initialOrganization?.name || moduleTitle);
   const currentDate = new Date().toLocaleDateString('he-IL', {
     weekday: 'long',
     day: 'numeric',
@@ -282,7 +283,7 @@ function SystemShellGateClientCore({
                   isOpen={isSidebarOpen}
                   onSetOpenAction={setIsSidebarOpen}
                   brand={{
-                    name: String(initialOrganization?.name || moduleTitle),
+                    name: orgTitle,
                     logoUrl: initialOrganization?.logo || null,
                     fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={40} iconSize={18} className="shadow-none" />,
                     badgeModuleKey: 'system',
@@ -291,7 +292,7 @@ function SystemShellGateClientCore({
                   onBrandClickAction={() => startTransition(() => router.push('/workspaces'))}
                   topSlot={
                     <div className="flex flex-col gap-2">
-                      <BusinessSwitcher currentTenantName={String(initialOrganization?.name || moduleTitle)} />
+                      <BusinessSwitcher currentTenantName={orgTitle} />
                       <WorkspaceSwitcher className="w-full" />
                     </div>
                   }
@@ -317,11 +318,11 @@ function SystemShellGateClientCore({
 
                 <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative z-10">
                   <SharedHeader
-                    title={moduleTitle}
+                    title={orgTitle}
                     subtitle={screenTitle}
                     currentDate={currentDate}
                     mobileBrand={{
-                      name: moduleTitle,
+                      name: orgTitle,
                       logoUrl: initialOrganization?.logo || null,
                       fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={32} iconSize={16} className="shadow-none" />,
                       badgeModuleKey: 'system',

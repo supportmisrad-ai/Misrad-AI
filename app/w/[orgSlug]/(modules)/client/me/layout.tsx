@@ -33,6 +33,7 @@ export default async function ClientMeLayout({
         role: user.role,
       }}
       workspaceLogo={logoUrl}
+      workspaceName={workspace.name}
     >
       {children}
     </ClientMeShell>

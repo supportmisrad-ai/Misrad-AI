@@ -445,6 +445,24 @@ export const useAuth = (
         }
     }, [currentUser.id, refreshTimeEntries]);
 
+    // Sync from attendance cache on mount — when user clocked in from menu/top-bar (useAttendanceTile)
+    // and then navigated to Nexus/profile, show active shift immediately (no delay)
+    useEffect(() => {
+        if (!orgSlug || !currentUser.id) return;
+        const cached = getAttendanceCache(orgSlug);
+        if (!cached?.entryId || !cached?.startTime) return;
+        setTimeEntries(prev => {
+            if (prev.some(t => t.userId === currentUser.id && !t.endTime)) return prev;
+            if (prev.some(t => t.id === cached.entryId)) return prev;
+            return [{
+                id: String(cached.entryId),
+                userId: currentUser.id,
+                date: String(cached.startTime).slice(0, 10),
+                startTime: String(cached.startTime),
+            }, ...prev];
+        });
+    }, [orgSlug, currentUser.id]);
+
     // Listen to BroadcastChannel from AttendanceMiniStatus for instant sync
     useEffect(() => {
         if (typeof window === 'undefined') return;

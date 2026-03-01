@@ -282,11 +282,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
   const moduleTitle = useMemo(() => roomName || 'Client', [roomName]);
 
+  const orgTitle = useMemo(
+    () => String(workspaceBrand.name || moduleTitle).trim() || moduleTitle,
+    [moduleTitle, workspaceBrand.name],
+  );
+
   const headerTitle = useMemo(() => {
     if (activeView === 'dashboard') return 'לוח בקרה';
     const found = navItems.find((n) => n.id === activeView);
-    return found?.label || moduleTitle;
-  }, [activeView, moduleTitle, navItems]);
+    return found?.label || null;
+  }, [activeView, navItems]);
 
   const headerSubtitle = useMemo(() => {
     if (!isMounted) return null;
@@ -525,11 +530,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
-          title={headerTitle}
-          subtitle={headerSubtitle}
+          title={orgTitle}
+          subtitle={headerSubtitle || headerTitle}
           currentDate={currentDate}
           mobileBrand={{
-            name: String(workspaceBrand.name || moduleTitle).trim() || moduleTitle,
+            name: orgTitle,
             logoUrl: workspaceBrand.logoUrl || null,
             fallbackIcon,
             badgeModuleKey: 'client',

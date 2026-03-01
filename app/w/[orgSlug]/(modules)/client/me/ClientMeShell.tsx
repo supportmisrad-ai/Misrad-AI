@@ -27,11 +27,13 @@ export default function ClientMeShell({
   orgSlug,
   initialCurrentUser,
   workspaceLogo,
+  workspaceName,
 }: {
   children: React.ReactNode;
   orgSlug: string;
   initialCurrentUser?: ShellUser;
   workspaceLogo?: string | null;
+  workspaceName?: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -45,6 +47,7 @@ export default function ClientMeShell({
   });
 
   const moduleTitle = 'לקוחות';
+  const orgTitle = workspaceName || moduleTitle;
   const currentDate = useMemo(
     () => new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }),
     [],
@@ -83,11 +86,11 @@ export default function ClientMeShell({
 
       <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative z-10">
         <SharedHeader
-          title={moduleTitle}
+          title={orgTitle}
           subtitle="פרופיל"
           currentDate={currentDate}
           mobileBrand={{
-            name: moduleTitle,
+            name: orgTitle,
             logoUrl: workspaceLogo || null,
             fallbackIcon,
             badgeModuleKey: 'client',
