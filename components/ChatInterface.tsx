@@ -42,6 +42,7 @@ export default function ChatInterface({
   const [view, setView] = useState<'chat' | 'history'>('chat');
   const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>(`session_${Date.now()}`);
+  const messagesRef = useRef<ChatMessage[]>([]);
 
   let orgSlug: string | null = null;
   try {
@@ -49,6 +50,11 @@ export default function ChatInterface({
   } catch {
     orgSlug = null;
   }
+
+  // Keep a ref with the latest messages for async operations
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Auto-scroll
   useEffect(() => {
@@ -72,17 +78,18 @@ export default function ChatInterface({
   };
 
   const saveCurrentChat = async () => {
-    if (!orgSlug || messages.length === 0) return;
+    if (!orgSlug || messagesRef.current.length === 0) return;
 
-    const title = messages[0]?.content?.slice(0, 50) || 'שיחה חדשה';
-    const preview = messages[0]?.content?.slice(0, 80) || '';
+    const snapshot = messagesRef.current;
+    const title = snapshot[0]?.content?.slice(0, 50) || 'שיחה חדשה';
+    const preview = snapshot[0]?.content?.slice(0, 80) || '';
 
     await saveChatHistory({
       moduleKey,
       chatSessionId: currentSessionId,
       title,
       preview,
-      messages,
+      messages: snapshot,
     });
 
     await loadHistory();
@@ -108,13 +115,18 @@ export default function ChatInterface({
     setInput('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
 
-    setMessages((prev) => [...prev, userMessage]);
+    const baseMessages = messagesRef.current;
+    const nextMessages = [...baseMessages, userMessage];
+
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
     setIsLoading(true);
     setError(null);
 
     (async () => {
       try {
-        const nextMessages = [...messages, userMessage];
+        // Send only the last 24 messages to keep payloads fast and focused
+        const historyForModel = nextMessages.slice(-24);
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 
@@ -122,7 +134,7 @@ export default function ChatInterface({
             'x-org-id': resolvedOrgSlug 
           },
           body: JSON.stringify({ 
-            messages: nextMessages.map(m => ({ 
+            messages: historyForModel.map(m => ({ 
               role: m.role, 
               parts: [{ type: 'text', text: m.content }] 
             }))

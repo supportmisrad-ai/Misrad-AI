@@ -100,13 +100,37 @@ export default function OperationsShell({
   );
 
   const primaryNavPaths = undefined;
+  const primaryNavPaths = undefined;
 
-  // Prefetch all nav routes on mount
+  // Prefetch main nav routes on fast connections, without blocking initial render
   React.useEffect(() => {
-    navItems.forEach((item) => {
-      const href = `${basePath}${item.path === '/' ? '' : item.path}`;
-      router.prefetch(href);
-    });
+    if (typeof window === 'undefined') return;
+
+    const connection = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
+    if (connection && (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g')) {
+      return;
+    }
+
+    const prefetchAll = () => {
+      navItems.forEach((item) => {
+        const href = `${basePath}${item.path === '/' ? '' : item.path}`;
+        router.prefetch(href);
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      const id = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number }).requestIdleCallback?.(
+        prefetchAll,
+        { timeout: 2000 }
+      );
+      return () => {
+        if (!id) return;
+        (window as unknown as { cancelIdleCallback?: (handle: number) => void }).cancelIdleCallback?.(id);
+      };
+    }
+
+    const timeoutId = window.setTimeout(prefetchAll, 250);
+    return () => window.clearTimeout(timeoutId);
   }, [basePath, navItems, router]);
 
   const isActiveAction = React.useCallback(

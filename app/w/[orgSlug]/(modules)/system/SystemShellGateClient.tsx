@@ -116,13 +116,36 @@ function SystemShellGateClientCore({
   const [isCalendarPlusOpen, setIsCalendarPlusOpen] = useState(false);
   const [, startTransition] = useTransition();
 
-  // Prefetch all nav routes on mount for instant navigation
+  // Prefetch main nav routes on fast connections, without blocking initial render
   useEffect(() => {
-    const items = NAV_ITEMS;
-    items.forEach((item) => {
-      const href = `${basePath}${item.id === 'workspace' ? '' : `/${item.id}`}`;
-      router.prefetch(href);
-    });
+    if (typeof window === 'undefined') return;
+
+    const connection = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
+    if (connection && (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g')) {
+      return;
+    }
+
+    const prefetchAll = () => {
+      const items = NAV_ITEMS;
+      items.forEach((item) => {
+        const href = `${basePath}${item.id === 'workspace' ? '' : `/${item.id}`}`;
+        router.prefetch(href);
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      const id = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number }).requestIdleCallback?.(
+        prefetchAll,
+        { timeout: 2000 }
+      );
+      return () => {
+        if (!id) return;
+        (window as unknown as { cancelIdleCallback?: (handle: number) => void }).cancelIdleCallback?.(id);
+      };
+    }
+
+    const timeoutId = window.setTimeout(prefetchAll, 250);
+    return () => window.clearTimeout(timeoutId);
   }, [basePath, router]);
 
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
@@ -252,7 +275,7 @@ function SystemShellGateClientCore({
         <AuthProvider initialCurrentUser={initialCurrentUser}>
           <CallAnalysisProvider>
             <BrandProvider>
-              <div className="flex h-screen w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
+              <div className="flex min-h-screen h-[100dvh] w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
                 <ModuleBackground moduleKey="system" />
                 <SharedSidebar
                   isOpen={isSidebarOpen}
@@ -325,7 +348,7 @@ function SystemShellGateClientCore({
                   />
 
                   <div
-                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-24 md:pb-8 min-h-0 touch-pan-y`}
+                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-8 min-h-0 touch-pan-y`}
                     id="main-scroll-container"
                     style={{ WebkitOverflowScrolling: 'touch' }}
                   >

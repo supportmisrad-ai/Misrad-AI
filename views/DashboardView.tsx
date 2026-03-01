@@ -168,12 +168,6 @@ export const DashboardView: React.FC<{
     initialOnboardingTemplateKey?: string | null;
     initialBillingItems?: unknown[] | null;
 }> = ({ initialOwnerDashboard, initialOnboardingTemplateKey, initialBillingItems }) => {
-    const renderCountRef = useRef(0);
-    renderCountRef.current += 1;
-    if (typeof window !== 'undefined' && renderCountRef.current <= 2) {
-        console.log('[Nexus][DashboardView] render', { count: renderCountRef.current });
-    }
-
     const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
     const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
     const [users, setUsers] = useState<UserType[]>([]);
@@ -190,15 +184,8 @@ export const DashboardView: React.FC<{
     const [pilotErrorCount, setPilotErrorCount] = useState(0);
 
     const [showTourPrompt, setShowTourPrompt] = useState(false);
-
+    
     const showExtraQuickActions = false;
-
-    useEffect(() => {
-        console.log('[Nexus][DashboardView] mount');
-        return () => {
-            console.log('[Nexus][DashboardView] unmount');
-        };
-    }, []);
 
     useEffect(() => {
         if (!isHomeDashboard.current) return;

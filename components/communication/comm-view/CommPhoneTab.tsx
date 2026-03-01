@@ -65,9 +65,12 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
   const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (transcriptEndRef.current) {
-      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    const node = transcriptEndRef.current;
+    if (!node) return;
+
+    // Use instant scrolling for very long transcripts to avoid jank
+    const behavior = transcript.length > 100 ? 'auto' : 'smooth';
+    node.scrollIntoView({ behavior });
   }, [transcript]);
 
   if (isCalling && activeCall) {
@@ -167,8 +170,9 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/30">
-      <div className="w-full max-w-sm bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200">
+    <div className="flex-1 overflow-y-auto bg-slate-50/30">
+      <div className="w-full flex justify-center px-4 pt-6 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))]">
+        <div className="w-full max-w-sm bg-white p-6 md:p-8 rounded-[3rem] shadow-2xl border border-slate-200">
         {showUploadRecording ? (
           <div className="mb-5 flex justify-center">
             <label
@@ -241,6 +245,7 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
             <Phone size={32} fill="currentColor" />
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
       onAddActivity={onAddActivity as unknown as (leadId: string, SquareActivity: CommunicationActivity) => void}
       onUpdateLead={onUpdateLead as unknown as ((leadId: string, updates: Partial<CommunicationLead>) => void) | undefined}
       onAddTask={onAddTask as unknown as (task: CommunicationTask) => void}
-      initialTab="inbox"
+      initialTab="phone"
       user={user}
       useToast={useToast}
       useOnClickOutside={useOnClickOutside as unknown as UseOnClickOutsideHook}
@@ -45,17 +45,26 @@ const CommunicationView: React.FC<CommunicationViewProps> = ({
       QUICK_ASSETS={QUICK_ASSETS as unknown as QuickAsset[]}
       STAGES={STAGES as unknown as Stage[]}
       aiDraft={async ({ activeLead, selectedSendChannel }) => {
-        const lastMessages = activeLead.activities
+        const activities = Array.isArray((activeLead as Record<string, unknown>).activities)
+          ? ((activeLead as unknown as { activities: LeadActivity[] }).activities)
+          : [];
+
+        const lastMessagesJoined = activities
           .filter((a) => ['whatsapp', 'sms', 'email'].includes(String(a.type)))
-          .slice(0, 5)
+          .slice(-5)
           .map((a) => `${a.type}: ${a.content}`)
           .join('\n');
+
+        const safeHistory =
+          lastMessagesJoined.length > 2000
+            ? lastMessagesJoined.slice(lastMessagesJoined.length - 2000)
+            : lastMessagesJoined;
 
         const prompt = `אתה עוזר מכירות מקצועי עבור MISRAD AI.
           שם ליד: ${activeLead.name}
           הקשר: סטטוס ${activeLead.status}, שווי משוער ₪${(activeLead as Record<string, unknown>).value}.
           היסטוריה אחרונה:
-          ${lastMessages}
+          ${safeHistory}
 
           כתוב תשובה קצרה, משכנעת וחברית בעברית לערוץ ${selectedSendChannel}.
           התמקד בקידום הליד לשלב הבא.

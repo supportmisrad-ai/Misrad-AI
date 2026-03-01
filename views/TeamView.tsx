@@ -119,13 +119,10 @@ export const TeamView: React.FC = () => {
 
       handledNewEmployeeRef.current = true;
 
-      if (isSoloMode) {
-          addToast('מצב סולו פעיל — ניהול צוות מוסתר.', 'info');
-      } else {
-          setEditingUser(undefined);
-          setModalMode('add');
-          setIsMemberModalOpen(true);
-      }
+      // In System module, always open the add modal; do not show solo-mode toast.
+      setEditingUser(undefined);
+      setModalMode('add');
+      setIsMemberModalOpen(true);
 
       url.searchParams.delete('newEmployee');
       const nextSearch = url.searchParams.toString();
@@ -236,25 +233,29 @@ export const TeamView: React.FC = () => {
       }
   }, [users, rewardRecommendation]);
 
-  const visibleUsers = users.filter((user: User) => {
-      if (showHeadsOnly) {
-          const isHead = isManagementRole(user.role) || isAdminRole(user.role) || Boolean(user.managedDepartment);
-          if (!isHead) return false;
-      }
+  const visibleUsers = useMemo(
+      () =>
+          users.filter((user: User) => {
+              if (showHeadsOnly) {
+                  const isHead = isManagementRole(user.role) || isAdminRole(user.role) || Boolean(user.managedDepartment);
+                  if (!isHead) return false;
+              }
 
-      if (isGlobalAdmin) {
-          if (selectedDepartment !== 'All') {
-              return user.department === selectedDepartment;
-          }
-          return true;
-      }
+              if (isGlobalAdmin) {
+                  if (selectedDepartment !== 'All') {
+                      return user.department === selectedDepartment;
+                  }
+                  return true;
+              }
 
-      if (hasPermission('manage_team')) {
-          return user.department === myDepartment || user.id === currentUser.id;
-      }
+              if (hasPermission('manage_team')) {
+                  return user.department === myDepartment || user.id === currentUser.id;
+              }
 
-      return user.id === currentUser.id;
-  });
+              return user.id === currentUser.id;
+          }),
+      [users, showHeadsOnly, isGlobalAdmin, selectedDepartment, hasPermission, myDepartment, currentUser.id]
+  );
 
   const myUnassignedTasks = tasks.filter((t) =>
       (!t.assigneeIds || t.assigneeIds.length === 0) &&
@@ -263,30 +264,77 @@ export const TeamView: React.FC = () => {
       t.status !== Status.CANCELED
   );
 
-  const getWorkloadData = (user: User) => {
-      const activeTasks = tasks.filter((t) =>
-          (t.assigneeIds?.includes(user.id)) && isActiveTask(t.status)
-      );
-      const count = activeTasks.length;
-      const maxCapacity = user.capacity || 5;
-      const percentage = Math.min((count / maxCapacity) * 100, 100);
-      const streak = user.streakDays || 0;
+  const workloadByUserId = useMemo(() => {
+      const map = new Map<string, {
+          activeTasks: typeof tasks extends Array<infer T> ? T[] : unknown[];
+          count: number;
+          percentage: number;
+          statusColor: string;
+          maxCapacity: number;
+          streak: number;
+          performanceDiff: number;
+      }>();
 
-      const roleAvg = 70;
-      const userEfficiency =
-          Math.min(
-              100,
-              Math.round((activeTasks.filter((t) => t.status === Status.DONE).length / (user.targets?.tasksMonth || 1)) * 100) || 75
-          );
-      const performanceDiff = userEfficiency - roleAvg;
+      if (!Array.isArray(users) || users.length === 0) {
+          return map;
+      }
 
-      let statusColor = 'bg-green-500';
-      if (percentage >= 100) statusColor = 'bg-red-500';
-      else if (percentage >= 75) statusColor = 'bg-orange-500';
-      else if (percentage >= 50) statusColor = 'bg-yellow-500';
+      // Initialize map with base user info
+      users.forEach((user: User) => {
+          const maxCapacity = user.capacity || 5;
+          const streak = user.streakDays || 0;
+          map.set(user.id, {
+              activeTasks: [],
+              count: 0,
+              percentage: 0,
+              statusColor: 'bg-green-500',
+              maxCapacity,
+              streak,
+              performanceDiff: 0,
+          });
+      });
 
-      return { activeTasks, count, percentage, statusColor, maxCapacity, streak, performanceDiff };
-  };
+      // Attach active tasks per user
+      tasks.forEach((t) => {
+          if (!isActiveTask(t.status)) return;
+          const assignees = t.assigneeIds || [];
+          assignees.forEach((userId: string) => {
+              const entry = map.get(userId);
+              if (!entry) return;
+              entry.activeTasks.push(t as typeof entry.activeTasks[number]);
+              entry.count += 1;
+          });
+      });
+
+      // Finalize computed fields
+      users.forEach((user: User) => {
+          const entry = map.get(user.id);
+          if (!entry) return;
+
+          const { count, maxCapacity } = entry;
+          const percentage = Math.min((count / (maxCapacity || 5)) * 100, 100);
+
+          const roleAvg = 70;
+          const doneCount = entry.activeTasks.filter((t: any) => t.status === Status.DONE).length;
+          const userEfficiency =
+              Math.min(
+                  100,
+                  Math.round((doneCount / (user.targets?.tasksMonth || 1)) * 100)
+              ) || 75;
+          const performanceDiff = userEfficiency - roleAvg;
+
+          let statusColor = 'bg-green-500';
+          if (percentage >= 100) statusColor = 'bg-red-500';
+          else if (percentage >= 75) statusColor = 'bg-orange-500';
+          else if (percentage >= 50) statusColor = 'bg-yellow-500';
+
+          entry.percentage = percentage;
+          entry.statusColor = statusColor;
+          entry.performanceDiff = performanceDiff;
+      });
+
+      return map;
+  }, [tasks, users]);
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
       e.dataTransfer.setData('taskId', taskId);
