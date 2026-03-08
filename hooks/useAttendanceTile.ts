@@ -98,6 +98,29 @@ export function useAttendanceTile(): UseAttendanceTileResult {
   const now = useSecondTicker(Boolean(startTime));
   const lastBroadcastRef = useRef(0);
   const loadInFlightRef = useRef(false);
+  const busyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Safety timeout: auto-reset isBusy after 15 seconds to prevent stuck button
+  const setBusySafe = useCallback((busy: boolean) => {
+    if (busyTimerRef.current) {
+      clearTimeout(busyTimerRef.current);
+      busyTimerRef.current = null;
+    }
+    if (busy) {
+      busyTimerRef.current = setTimeout(() => {
+        setIsBusy(false);
+        busyTimerRef.current = null;
+      }, 15_000);
+    }
+    setIsBusy(busy);
+  }, []);
+
+  // Cleanup busy timer on unmount
+  useEffect(() => {
+    return () => {
+      if (busyTimerRef.current) clearTimeout(busyTimerRef.current);
+    };
+  }, []);
 
   const shouldShow = Boolean(
     orgSlug &&
@@ -194,9 +217,23 @@ export function useAttendanceTile(): UseAttendanceTileResult {
     return () => window.clearInterval(interval);
   }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
 
+  // Refresh attendance state when tab becomes visible (cross-module sync)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !orgSlug || !isClerkLoaded || !isSignedIn) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // Allow immediate server fetch by resetting throttle
+        lastBroadcastRef.current = 0;
+        void loadActiveShift();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
+
   const clockIn = useCallback(() => {
     if (!orgSlug || isBusy) return;
-    setIsBusy(true);
+    setBusySafe(true);
     setErrorMessage(null);
     const optimisticStart = new Date().toISOString();
     const optimisticId = `optimistic-${Date.now()}`;
@@ -226,14 +263,17 @@ export function useAttendanceTile(): UseAttendanceTileResult {
         setStartTime(null);
         broadcast({ orgSlug, entryId: null, startTime: null });
       } finally {
-        setIsBusy(false);
+        setBusySafe(false);
       }
     })();
-  }, [broadcast, isBusy, orgSlug]);
+  }, [broadcast, isBusy, orgSlug, setBusySafe]);
 
   const clockOut = useCallback(() => {
-    if (!orgSlug || !entryId || isBusy) return;
-    setIsBusy(true);
+    // Allow clock-out even without entryId — punchOut resolves active shift server-side
+    if (!orgSlug || isBusy) return;
+    // If neither entryId nor startTime exist, nothing to clock out from
+    if (!entryId && !startTime) return;
+    setBusySafe(true);
     setErrorMessage(null);
     const prevEntryId = entryId;
     const prevStartTime = startTime;
@@ -262,10 +302,10 @@ export function useAttendanceTile(): UseAttendanceTileResult {
         broadcast({ orgSlug, entryId: prevEntryId, startTime: prevStartTime });
         setErrorMessage(String(e instanceof Error ? e.message : e) || 'שגיאה ביציאה');
       } finally {
-        setIsBusy(false);
+        setBusySafe(false);
       }
     })();
-  }, [broadcast, entryId, isBusy, loadActiveShift, orgSlug, startTime]);
+  }, [broadcast, entryId, isBusy, loadActiveShift, orgSlug, setBusySafe, startTime]);
 
   const elapsedMs = startTime ? now - new Date(startTime).getTime() : 0;
   const meHref = orgSlug ? `/w/${encodeWorkspaceOrgSlug(orgSlug)}/nexus/me` : '/me';
