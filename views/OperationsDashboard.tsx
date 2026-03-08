@@ -9,6 +9,7 @@ import type { OperationsDashboardData } from '@/app/actions/operations';
 import type { OperationsInventoryOption } from '@/app/actions/operations';
 import { WorkOrderStatusChart, WorkOrderPriorityChart, InventoryPieChart } from '@/components/operations/DashboardCharts';
 import { formatWorkOrderStatus, formatProjectStatus, slaLabel } from '@/lib/services/operations/format';
+import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 
 export function OperationsDashboard({
   orgSlug,
@@ -385,6 +386,11 @@ export function OperationsDashboard({
               </table>
             </div>
           </div>
+        </section>
+
+        {/* Module Tasks */}
+        <section className="mt-8">
+          <DashboardTasksClient orgId={orgSlug} module="operations" />
         </section>
       </div>
     </div>

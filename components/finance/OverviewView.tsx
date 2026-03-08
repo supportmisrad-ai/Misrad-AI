@@ -3,6 +3,8 @@
 import React, { useMemo, useCallback } from 'react';
 import { TrendingUp, DollarSign, FileText, CircleAlert, Wallet, Users, BarChart3, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 type ChartPoint = {
   date: string;
@@ -257,6 +259,11 @@ const OverviewView: React.FC<{ initialFinanceOverview?: unknown; initialFrom?: s
           </p>
         </div>
       )}
+
+      {/* Module Tasks */}
+      <div className="mt-8">
+        <DashboardTasksClient orgId={getWorkspaceOrgSlugFromPathname(pathname) || ''} module="finance" />
+      </div>
     </div>
   );
 };

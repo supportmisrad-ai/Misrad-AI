@@ -323,6 +323,8 @@ const SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS = new Set<string>([
   'maintenance_settings',
   'global_download_links',
   'products_catalog_v1',
+  'landing_promotions',
+  'landing_contextual_banners',
 ]);
 
 const SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES = ['nexus_onboarding_template:', 'nexus_billing_items:', 'products_catalog_v1:'];

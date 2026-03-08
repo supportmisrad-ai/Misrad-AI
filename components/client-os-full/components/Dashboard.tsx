@@ -7,6 +7,9 @@ import DailyBriefing from './DailyBriefing';
 import { useNexus } from '../context/ClientContext';
 import { getClientDashboardData } from '@/app/actions/client-portal-clinic';
 import { CustomSelect } from '@/components/CustomSelect';
+import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
+import { usePathname } from 'next/navigation';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 type FeedItemType = 'RISK' | 'OPPORTUNITY' | 'OPS';
 
@@ -24,6 +27,8 @@ interface FeedItem {
 
 const Dashboard: React.FC = () => {
   const { clients } = useNexus();
+  const pathname = usePathname();
+  const orgSlug = getWorkspaceOrgSlugFromPathname(pathname) || '';
   const [feedFilter, setFeedFilter] = useState<'ALL' | FeedItemType>('ALL');
   const [showDailyBriefing, setShowDailyBriefing] = useState(false);
 
@@ -397,6 +402,11 @@ const Dashboard: React.FC = () => {
               ))}
            </div>
         </div>
+      </div>
+
+      {/* Module Tasks */}
+      <div className="mt-8">
+        <DashboardTasksClient orgId={orgSlug} module="client" />
       </div>
     </div>
   );

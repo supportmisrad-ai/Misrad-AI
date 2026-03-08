@@ -181,7 +181,7 @@ export async function upsertGlobalPromotion(data: {
     }
 
     const promotion = await prisma.globalPromotion.upsert({
-      where: { id: data.id || 'new-promotion' },
+      where: { id: data.id ?? crypto.randomUUID() },
       create: {
         title: data.title,
         subtitle: data.subtitle || null,

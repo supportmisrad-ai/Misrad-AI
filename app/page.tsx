@@ -11,6 +11,7 @@ import ContextualBannerDisplay from '@/components/promotions/ContextualBannerDis
 
 // Below-fold sections — lazy-loaded so they don't block first paint
 const LandingModulesSection = dynamic(() => import('@/components/landing/LandingModulesSection').then(m => ({ default: m.LandingModulesSection })));
+const LandingIsraeliDifferentiatorsSection = dynamic(() => import('@/components/landing/LandingIsraeliDifferentiatorsSection').then(m => ({ default: m.LandingIsraeliDifferentiatorsSection })));
 const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
 const HomepageCTA = dynamic(() => import('@/components/landing/HomepageCTA').then(m => ({ default: m.HomepageCTA })));
 const Footer = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
@@ -68,6 +69,9 @@ export default async function RootPage() {
         <AudienceSelector />
 
         <Suspense>
+          <div className="landing-section-lazy">
+            <LandingIsraeliDifferentiatorsSection />
+          </div>
           <div className="landing-section-lazy">
             <LandingModulesSection />
           </div>

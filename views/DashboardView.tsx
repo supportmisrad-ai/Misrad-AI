@@ -16,6 +16,8 @@ import { DashboardOnboarding, DashboardOwnerPanel, DashboardQuickActions, Dashbo
 import type { OnboardingStep } from './dashboard';
 import { listNexusUsers } from '@/app/actions/nexus';
 import { AIAttentionCard } from '@/components/ai/AIAttentionCard';
+import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
+import { usePathname } from 'next/navigation';
 
 type OwnerDashboardAction = {
     id: string;
@@ -817,6 +819,12 @@ export const DashboardView: React.FC<{
                 isSynced={isSynced}
                 onOpenTask={(id) => openTask(id)}
                 onNavigateTasks={() => navigate('/tasks')}
+            />
+
+            {/* ===== SECTION 6: MODULE TASKS (nexus-scoped) ===== */}
+            <DashboardTasksClient
+                orgId={getWorkspaceOrgSlugFromPathname(pathname) || ''}
+                module="nexus"
             />
         </div>
         );

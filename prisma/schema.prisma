@@ -626,6 +626,9 @@ model ClientClient {
   sessions        ClientSession[]
   sharedFiles     ClientSharedFile[]
   tasks           ClientTask[]
+  /// Back-relations from Social and Finance modules
+  socialClients   clients[]             @relation("SocialClientToClientClient")
+  financeClients  MisradClient[]        @relation("FinanceClientToClientClient")
 
   @@index([organizationId], map: "idx_client_clients_organization_id")
   @@index([fullName], map: "idx_client_clients_full_name")
@@ -831,13 +834,17 @@ model clients {
   updated_at             DateTime?              @default(now()) @db.Timestamptz(6)
   deleted_at             DateTime?              @db.Timestamptz(6)
   deleted_by             String?                @db.Uuid
+  /// Cross-module link: optional reference to ClientClient master record
+  client_client_id       String?                @map("client_client_id") @db.Uuid
   business_metrics       business_metrics?
   client_dna             client_dna?
   operations_projects    OperationsProject[]
   platform_credentials   platform_credentials[]
   platform_quotas        platform_quotas[]
+  clientClient           ClientClient?          @relation("SocialClientToClientClient", fields: [client_client_id], references: [id], onDelete: SetNull)
 
   @@index([organization_id], map: "idx_clients_organization_id")
+  @@index([client_client_id], map: "idx_clients_client_client_id")
 }
 
 model ClientServiceTier {
@@ -1313,6 +1320,8 @@ model MisradClient {
   id                               String                             @id @default(uuid()) @db.Uuid
   organizationId                   String                             @map("organization_id") @db.Uuid
   customerAccountId                String?                            @map("customer_account_id") @db.Uuid
+  /// Cross-module link: optional reference to ClientClient master record
+  clientClientId                   String?                            @map("client_client_id") @db.Uuid
   name                             String
   industry                         String
   employeeCount                    Int
@@ -1358,6 +1367,7 @@ model MisradClient {
   handoff                          MisradClientHandoff?
   transformations                  MisradClientTransformation[]
   customerAccount                  CustomerAccount?                   @relation(fields: [customerAccountId], references: [id])
+  clientClient                     ClientClient?                      @relation("FinanceClientToClientClient", fields: [clientClientId], references: [id], onDelete: SetNull)
   cycle                            MisradCycle?                       @relation(fields: [cycleId], references: [id])
   emails                           MisradEmail[]
   feedbackItems                    MisradFeedbackItem[]
@@ -1379,6 +1389,7 @@ model MisradClient {
   @@index([organizationId, created_at])
   @@index([customerAccountId])
   @@index([cycleId])
+  @@index([clientClientId], map: "idx_misrad_clients_client_client_id")
   @@map("misrad_clients")
 }
 
