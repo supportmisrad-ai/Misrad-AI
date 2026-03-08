@@ -4,10 +4,7 @@ import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
-
-
-const AgencyInsightsView = nextDynamic(() => import('@/components/social/AgencyInsightsView'), {
+const AgencyInsights = nextDynamic(() => import('@/components/social/AgencyInsightsView'), {
   loading: () => (
     <div className="min-h-[400px] p-6">
       <SkeletonGrid cards={6} columns={3} />
@@ -25,7 +22,7 @@ export default function AgencyInsightsPage() {
         </div>
       }
     >
-      <AgencyInsightsView />
+      <AgencyInsights />
     </Suspense>
   );
 }

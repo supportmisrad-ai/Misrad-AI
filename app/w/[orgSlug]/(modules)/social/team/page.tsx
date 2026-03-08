@@ -4,10 +4,7 @@ import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
-
-
-const TeamView = nextDynamic(() => import('@/components/social/TeamView'), {
+const TeamPage = nextDynamic(() => import('@/components/social/TeamView'), {
   loading: () => (
     <div className="min-h-[400px] p-6">
       <SkeletonGrid cards={6} columns={3} />
@@ -16,7 +13,7 @@ const TeamView = nextDynamic(() => import('@/components/social/TeamView'), {
   ssr: false,
 });
 
-export default function TeamPage() {
+export default function SocialTeamPage() {
   return (
     <Suspense
       fallback={
@@ -25,7 +22,7 @@ export default function TeamPage() {
         </div>
       }
     >
-      <TeamView />
+      <TeamPage />
     </Suspense>
   );
 }

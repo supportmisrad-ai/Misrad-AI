@@ -4,7 +4,7 @@ import React, { useMemo, useState, useTransition } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building2, Copy, Plus, X, Check, Settings, Trash2, RotateCcw, Archive } from 'lucide-react';
+import { Building2, Copy, Plus, X, Check, Settings, Trash2, RotateCcw, Archive, Search, Filter } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
 import { softDeleteOrganization, restoreOrganization, getDeletedOrganizations } from '@/app/actions/manage-organization';
@@ -52,6 +52,13 @@ export default function AdminOrganizationsClient(props: {
   const [isOpen, setIsOpen] = useState(Boolean(props.initialOpen));
   const [isPending, startTransition] = useTransition();
 
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [packageFilter, setPackageFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'created' | 'members'>('created');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -76,6 +83,59 @@ export default function AdminOrganizationsClient(props: {
     return [...def.modules];
   }, [selectedPackage]);
 
+  // Filter and sort organizations
+  const filteredAndSortedOrgs = useMemo(() => {
+    let filtered = [...orgs];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(o => 
+        o.name.toLowerCase().includes(q) ||
+        (o.slug || '').toLowerCase().includes(q) ||
+        (o.owner?.email || '').toLowerCase().includes(q) ||
+        (o.owner?.full_name || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(o => o.subscription_status === statusFilter);
+    }
+
+    // Package filter
+    if (packageFilter !== 'all') {
+      filtered = filtered.filter(o => o.subscription_plan === packageFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'he');
+          break;
+        case 'created':
+          comparison = new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+          break;
+        case 'members':
+          comparison = (a.membersCount || 0) - (b.membersCount || 0);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [orgs, searchQuery, statusFilter, packageFilter, sortBy, sortOrder]);
+
+  const activeFiltersCount = (searchQuery ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (packageFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setPackageFilter('all');
+  };
+
   const resetForm = () => {
     setName('');
     setSlug('');
@@ -83,6 +143,21 @@ export default function AdminOrganizationsClient(props: {
     setSlugTouched(false);
     setSelectedPackage('');
     setBusinessClientId('');
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case 'active': return 'פעיל';
+      case 'trial': return 'ניסיון';
+      case 'expired': return 'פג תוקף';
+      case 'canceled': return 'בוטל';
+      default: return 'לא ידוע';
+    }
+  };
+
+  const getPackageLabel = (plan: string | null) => {
+    const pkg = PACKAGE_OPTIONS.find(p => p.key === plan);
+    return pkg ? `${pkg.emoji} ${pkg.label}` : 'ללא חבילה';
   };
 
   const openModal = async () => {
@@ -266,8 +341,155 @@ export default function AdminOrganizationsClient(props: {
         </div>
       ) : null}
 
+      {/* Search, Filter & Sort */}
+      {!showRecycleBin && (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
+          <div className="flex flex-col gap-4">
+            {/* Search & Filter Row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="חיפוש לפי שם, כתובת, מייל..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-10 h-11 text-right"
+                  dir="rtl"
+                />
+              </div>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <CustomSelect
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    placeholder="כל הסטטוסים"
+                    options={[
+                      { value: 'all', label: 'הכל' },
+                      { value: 'active', label: 'פעיל' },
+                      { value: 'trial', label: 'ניסיון' },
+                      { value: 'expired', label: 'פג תוקף' },
+                      { value: 'canceled', label: 'בוטל' },
+                    ]}
+                  />
+                  {statusFilter !== 'all' && (
+                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                      1
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <CustomSelect
+                    value={packageFilter}
+                    onChange={setPackageFilter}
+                    placeholder="כל החבילות"
+                    options={[
+                      { value: 'all', label: 'הכל' },
+                      ...PACKAGE_OPTIONS.map(p => ({ value: p.key, label: `${p.emoji} ${p.label}` }))
+                    ]}
+                  />
+                  {packageFilter !== 'all' && (
+                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                      1
+                    </span>
+                  )}
+                </div>
+                {activeFiltersCount > 0 && (
+                  <Button onClick={clearFilters} variant="ghost" className="h-11 text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <span className="text-sm">נקה</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {activeFiltersCount > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-slate-600">סינונים פעילים:</span>
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                    <Search className="w-3 h-3" />
+                    {searchQuery}
+                    <button onClick={() => setSearchQuery('')} className="hover:bg-blue-100 rounded p-0.5">
+                      <span className="text-blue-600">✕</span>
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                    <Filter className="w-3 h-3" />
+                    {getStatusLabel(statusFilter)}
+                    <button onClick={() => setStatusFilter('all')} className="hover:bg-blue-100 rounded p-0.5">
+                      <span className="text-blue-600">✕</span>
+                    </button>
+                  </span>
+                )}
+                {packageFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                    <Filter className="w-3 h-3" />
+                    {getPackageLabel(packageFilter)}
+                    <button onClick={() => setPackageFilter('all')} className="hover:bg-blue-100 rounded p-0.5">
+                      <span className="text-blue-600">✕</span>
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Sort Options */}
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+              <span className="text-xs font-bold text-slate-600">מיון לפי:</span>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setSortBy('created')}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                    sortBy === 'created'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  תאריך יצירה
+                </button>
+                <button
+                  onClick={() => setSortBy('name')}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                    sortBy === 'name'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  שם
+                </button>
+                <button
+                  onClick={() => setSortBy('members')}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                    sortBy === 'members'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  מספר משתמשים
+                </button>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="text-xs px-3 py-1.5 rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-all"
+                  title={sortOrder === 'asc' ? 'סדר עולה' : 'סדר יורד'}
+                >
+                  {sortOrder === 'asc' ? '↑ עולה' : '↓ יורד'}
+                </button>
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className="text-xs text-slate-600">
+              מציג <span className="font-bold text-slate-900">{filteredAndSortedOrgs.length}</span> מתוך <span className="font-bold text-slate-900">{orgs.length}</span> ארגונים
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="md:hidden">
-        {orgs.length === 0 ? (
+        {filteredAndSortedOrgs.length === 0 ? (
           <AdminEmptyState
             icon={Building2}
             title="אין ארגונים במערכת"
@@ -277,7 +499,7 @@ export default function AdminOrganizationsClient(props: {
           />
         ) : (
           <div className="space-y-3">
-            {orgs.map((o) => {
+            {filteredAndSortedOrgs.map((o) => {
               const mods = [
                 o?.has_nexus ? 'nexus' : null,
                 o?.has_system ? 'system' : null,

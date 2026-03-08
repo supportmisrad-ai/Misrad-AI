@@ -266,7 +266,12 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
         const updatePayload: Record<string, string | boolean> = {};
 
+        // Always set legalAccepted if it's missing - user already checked the box
         if (missing.includes('legal_accepted')) {
+          updatePayload.legalAccepted = true;
+        }
+        // Also set it proactively even if not in missing fields (Clerk v5 requirement)
+        if (!missing.includes('legal_accepted') && legalAccepted) {
           updatePayload.legalAccepted = true;
         }
         if (missing.includes('username')) {
@@ -458,12 +463,14 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         const signUpRedirect = (typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('redirect')
           : null) || '/workspaces/onboarding';
+        
+        // CRITICAL: legalAccepted MUST be true for OAuth sign-up when Clerk Dashboard
+        // has "Legal consent" enabled. Without this, Clerk returns missing_requirements
+        // and the user gets stuck in an infinite redirect loop.
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
           redirectUrlComplete: signUpRedirect,
-          // Pass legal consent to Clerk so sign-up doesn't return missing_requirements.
-          // Required in Clerk v5 when "Legal consent" is enabled in the Dashboard.
           legalAccepted: true,
         });
       } else {

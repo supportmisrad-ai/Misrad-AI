@@ -67,13 +67,39 @@ export default function SsoCallbackPage() {
     console.log('[SSO-Callback] Page loaded:', info);
   }, []);
 
-  // Monitor auth state changes
+  // Monitor auth state changes and ensure legal consent is recorded
   useEffect(() => {
     if (!isLoaded) return;
     console.log('[SSO-Callback] Auth state:', { isSignedIn, userId, isLoaded });
     if (isSignedIn && userId) {
       console.log('[SSO-Callback] ✅ Auth SUCCESS - userId:', userId);
       clearSsoAttempts();
+      
+      // Best-effort: record legal consent from localStorage (set during OAuth flow)
+      const recordConsent = async () => {
+        try {
+          const pending = localStorage.getItem('pending_legal_consent_v1');
+          if (pending) {
+            const consentData = JSON.parse(pending);
+            if (consentData?.acceptTerms && consentData?.acceptPrivacy) {
+              console.log('[SSO-Callback] Recording pending legal consent...');
+              const res = await fetch('/api/legal/consent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ acceptTerms: true, acceptPrivacy: true }),
+              });
+              if (res.ok) {
+                localStorage.removeItem('pending_legal_consent_v1');
+                console.log('[SSO-Callback] ✅ Legal consent recorded');
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[SSO-Callback] Failed to record legal consent (non-critical):', err);
+        }
+      };
+      
+      void recordConsent();
     }
   }, [isSignedIn, userId, isLoaded]);
 

@@ -32,6 +32,14 @@
     {
       "path": "/api/cron/onboarding-followups",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/publish-scheduled",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/refresh-tokens",
+      "schedule": "0 3 * * *"
     }
   ],
   "functions": {

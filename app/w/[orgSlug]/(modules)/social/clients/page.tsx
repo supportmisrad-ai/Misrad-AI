@@ -4,7 +4,7 @@ import nextDynamic from 'next/dynamic';
 import { use } from 'react';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
-const ClientsPageClient = nextDynamic(() => import('@/components/social/clients/ClientsPageClient'), {
+const Clients = nextDynamic(() => import('@/components/social/clients/ClientsPageClient'), {
   loading: () => (
     <div className="min-h-[400px] p-6">
       <SkeletonGrid cards={6} columns={3} />
@@ -20,6 +20,6 @@ export default function ClientsPage({
 }) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
   return (
-    <ClientsPageClient orgSlug={resolvedParams.orgSlug} />
+    <Clients orgSlug={resolvedParams.orgSlug} />
   );
 }

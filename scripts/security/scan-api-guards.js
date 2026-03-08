@@ -33,6 +33,9 @@ const PUBLIC_APPROVED = new Set([
   'app/api/analytics/track/route.ts', // Public: site analytics tracking for landing pages and anonymous visitors
   'app/api/telephony/onboarding-request/route.ts', // Public: telephony onboarding form — no auth, sends confirmation emails
   'app/api/lead-capture/route.ts', // Public: shareable lead capture form — rate-limited by IP + honeypot, no auth required
+  'app/api/oauth/connect/route.ts', // Public: OAuth initiator — CSRF protected via encrypted state
+  'app/api/oauth/facebook/callback/route.ts', // Public: OAuth callback from Facebook — state encryption + requireOrganizationId in saveClientToken
+  'app/api/oauth/linkedin/callback/route.ts', // Public: OAuth callback from LinkedIn — state encryption + requireOrganizationId in saveClientToken
 ]);
 
 const CANDIDATE_APPROVED = new Set([

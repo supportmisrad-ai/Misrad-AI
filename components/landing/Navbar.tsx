@@ -332,6 +332,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                             )}
                         </div>
                         <Link href="/pricing" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</Link>
+                        <Link href="/why-misrad" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">למה אנחנו?</Link>
                         <Link href="/contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">צור קשר</Link>
                     </div>
 
@@ -408,6 +409,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                                 <Link onClick={() => setIsMenuOpen(false)} href="/the-operator" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת תפעול ושטח</Link>
                                 <Link onClick={() => setIsMenuOpen(false)} href="/the-empire" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">הכל כלול</Link>
                                 <div className="h-px bg-slate-200 my-2"></div>
+                                <Link onClick={() => setIsMenuOpen(false)} href="/why-misrad" className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">למה MISRAD AI?</Link>
                                 <Link onClick={() => setIsMenuOpen(false)} href="/pricing" className="text-lg font-bold text-slate-900 text-right">כל החבילות והמחירים</Link>
                                 {!isSignedIn && (
                                     <>

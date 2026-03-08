@@ -73,12 +73,39 @@ export const logger = {
       console.error(formatMessage(source, message), error, extras ?? '');
     }
     const errorExtras: Record<string, unknown> = { ...(toExtras(extras) ?? {}) };
-    if (error instanceof Error) {
-      errorExtras.errorMessage = error.message;
-      errorExtras.stack = error.stack;
-    } else if (error != null) {
-      errorExtras.errorValue = String(error);
+    
+    // Capture to Sentry with original error
+    try {
+      Sentry.withScope((scope) => {
+        scope.setTag('source', source);
+        
+        // Add extras
+        if (errorExtras) {
+          for (const [key, value] of Object.entries(errorExtras)) {
+            scope.setExtra(key, value);
+          }
+        }
+        
+        // Capture original error if available, otherwise create new Error with message
+        if (error instanceof Error) {
+          // Enhance error message with source context
+          scope.setContext('logger', {
+            source,
+            message,
+            originalMessage: error.message,
+          });
+          Sentry.captureException(error);
+        } else if (error != null) {
+          // Non-Error object - capture as Error with context
+          scope.setExtra('errorValue', String(error));
+          Sentry.captureException(new Error(formatMessage(source, `${message} ${String(error)}`)));
+        } else {
+          // No error object - capture message only
+          Sentry.captureException(new Error(formatMessage(source, message)));
+        }
+      });
+    } catch {
+      // Sentry failure should never break the app
     }
-    captureToSentry('error', source, message, errorExtras);
   },
 };

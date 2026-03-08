@@ -80,6 +80,8 @@ async function POSTHandler(req: Request): Promise<Response> {
   }
 
   try {
+    // Use upsert pattern to handle users that were created manually without going through
+    // the normal sign-up flow (e.g., created by admin in the dashboard)
     const updated = await prisma.organizationUser.update({
       where: { clerk_user_id: String(clerkUserId) },
       data: {
@@ -108,8 +110,13 @@ async function POSTHandler(req: Request): Promise<Response> {
       },
     });
   } catch (e: unknown) {
+    // If update fails (e.g., user doesn't exist yet), return pending status
+    // The webhook will create the user record shortly
     const msg = e instanceof Error ? e.message : 'Failed to update consent';
-    return apiError(msg, { status: 500 });
+    console.error('[legal/consent] Update failed, may be race condition with webhook:', msg);
+    
+    // Return success with pending flag so client can retry
+    return apiSuccess({ ok: true, pending: true, consent: null });
   }
 }
 

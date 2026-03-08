@@ -47,6 +47,7 @@ const isPublicRoute = createRouteMatcher([
   "/operations(.*)",
   "/social(.*)",
   "/finance-landing(.*)",
+  "/why-misrad(.*)",
   "/cancel(.*)",
   "/save-time(.*)",
   "/manifest.json",
@@ -135,7 +136,8 @@ function extractEmailFromClaims(claims: unknown): string | null {
   }
 }
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(
+  async (auth, req) => {
   const pathname = req?.nextUrl?.pathname ?? "";
 
   // Bypass Clerk entirely for static assets that must always be public
@@ -343,6 +345,12 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   return NextResponse.next();
+},
+{
+  // Critical: If using a proxy domain (e.g., clerk.misrad-ai.com), clerkMiddleware MUST
+  // receive the same proxyUrl that ClerkProvider uses client-side. Otherwise sessions
+  // created via the proxy will not be recognized server-side → infinite redirect loop.
+  proxyUrl: process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined,
 });
 
 export const config = {

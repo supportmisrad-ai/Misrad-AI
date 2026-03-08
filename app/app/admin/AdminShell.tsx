@@ -182,10 +182,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       // ignore
     }
 
-    const inferred = inferAdminAreaFromPathname(pathname);
-    if (inferred === next) return;
-
-    router.push('/app/admin');
+    // Don't navigate - just update the area state
+    // The user can click the nav items to navigate
   };
 
   const keydownOptions = useMemo(() => ({ capture: true }), []);
@@ -363,20 +361,32 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               <div className="mb-3 rounded-2xl border border-slate-200 bg-white/70 p-3">
                 <div className="text-xs font-black text-slate-600">סביבת עבודה</div>
                 <div className="mt-2 grid grid-cols-3 gap-1.5">
-                  {ADMIN_AREAS.map((area) => (
-                    <button
-                      key={area}
-                      type="button"
-                      onClick={() => switchAdminArea(area)}
-                      className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border ${
-                        adminArea === area
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-                      }`}
-                    >
-                      {getAdminAreaLabel(area)}
-                    </button>
-                  ))}
+                  {ADMIN_AREAS.map((area) => {
+                    const areaColors: Record<AdminArea, { active: string; inactive: string }> = {
+                      customers: { active: 'bg-blue-600 text-white border-blue-600', inactive: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' },
+                      users: { active: 'bg-purple-600 text-white border-purple-600', inactive: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' },
+                      support: { active: 'bg-green-600 text-white border-green-600', inactive: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' },
+                      product: { active: 'bg-orange-600 text-white border-orange-600', inactive: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
+                      content: { active: 'bg-pink-600 text-white border-pink-600', inactive: 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100' },
+                      infra: { active: 'bg-slate-800 text-white border-slate-800', inactive: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200' },
+                      bot: { active: 'bg-teal-600 text-white border-teal-600', inactive: 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100' },
+                      ai: { active: 'bg-indigo-600 text-white border-indigo-600', inactive: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' },
+                      analytics: { active: 'bg-amber-600 text-white border-amber-600', inactive: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' },
+                    };
+                    const colors = areaColors[area];
+                    return (
+                      <button
+                        key={area}
+                        type="button"
+                        onClick={() => switchAdminArea(area)}
+                        className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border shadow-sm ${
+                          adminArea === area ? colors.active : colors.inactive
+                        }`}
+                      >
+                        {getAdminAreaLabel(area)}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
               </div>
@@ -574,7 +584,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 <div className="text-sm font-black text-slate-900">ניווט אדמין</div>
               </div>
 
-              <div className="max-h-[70vh] overflow-y-auto p-3 space-y-2">
+              <div className="max-h-[70vh] min-h-[50vh] overflow-y-auto p-3 space-y-2 overscroll-contain">
                 <div className="grid grid-cols-2 gap-2">
                   {effectiveNavItems.map((item) => {
                     const active = isActivePath(pathname, item.href, currentSearch);

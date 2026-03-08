@@ -551,26 +551,75 @@ export const AiBrainPanelV2: React.FC<{ hideHeader?: boolean }> = ({ hideHeader 
                 options={orgs.map((o) => ({ value: o.id, label: `${o.name}${o.slug ? ` (${o.slug})` : ''}` }))}
               />
             </div>
-            <div className="text-xs text-slate-600 bg-white/80 border border-slate-200 rounded-xl px-3 py-2 flex items-center gap-2">
-              <span>יתרה:</span>
-              <span className="text-slate-900 font-bold">
-                {creditStatus && creditStatus.balance_cents != null
-                  ? `₪${(Number(creditStatus.balance_cents) / 100).toFixed(0)} (שימוש: ₪${(Number(creditStatus.used_this_month_cents ?? 0) / 100).toFixed(0)})`
-                  : creditStatus ? 'לא מוגדר' : '—'}
+            <div className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2.5 flex items-center gap-3 min-w-[240px]">
+              <span className="text-slate-600 font-medium shrink-0">יתרה AI:</span>
+              <span className="text-slate-900 font-black flex-1">
+                {!creditStatus 
+                  ? '⏳ טוען...'
+                  : creditStatus.balance_cents != null
+                  ? `₪${(Number(creditStatus.balance_cents) / 100).toFixed(0)}`
+                  : 'לא מוגדר'}
               </span>
-              <Button type="button" variant="outline" size="sm" onClick={() => { if (selectedOrgId) void loadCreditStatus(); }} disabled={!selectedOrgId} className="h-7 w-7 p-0 mr-auto">
-                <RefreshCw size={12} />
+              {creditStatus && creditStatus.used_this_month_cents != null && (
+                <span className="text-[10px] text-slate-500 shrink-0">
+                  (שימוש: ₪{(Number(creditStatus.used_this_month_cents) / 100).toFixed(0)})
+                </span>
+              )}
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { if (selectedOrgId) void loadCreditStatus(); }} 
+                disabled={!selectedOrgId} 
+                className="h-8 w-8 p-0 shrink-0 hover:bg-slate-100"
+                title="רענן יתרה"
+              >
+                <RefreshCw size={14} className="text-slate-600" />
               </Button>
             </div>
-            <Button onClick={async () => { try { await adjustCredits(1000); addToast('נוספו 10₪ קרדיטים', 'success'); } catch (e: unknown) { addToast(String(e instanceof Error ? e.message : e), 'error'); } }} disabled={!selectedOrgId} size="sm" className="bg-amber-600 hover:bg-amber-700 text-xs h-10">
+            <Button 
+              onClick={async () => { 
+                try { 
+                  await adjustCredits(1000); 
+                  await loadCreditStatus(); 
+                  addToast('נוספו 10₪ קרדיטים', 'success'); 
+                } catch (e: unknown) { 
+                  addToast(String(e instanceof Error ? e.message : e), 'error'); 
+                } 
+              }} 
+              disabled={!selectedOrgId} 
+              size="sm" 
+              className="bg-amber-600 hover:bg-amber-700 text-xs h-10 font-bold"
+              title="הוסף 1000 cents (₪10) לארגון - Super Admin בלבד"
+            >
               + 10₪ קרדיטים
             </Button>
             <div className="flex gap-2">
-              <Button onClick={runIngest} disabled={!selectedOrgId || runningIngest} size="sm" className="flex-1 text-xs h-10">
+              <Button 
+                onClick={runIngest} 
+                disabled={!selectedOrgId || runningIngest} 
+                size="sm" 
+                className="flex-1 text-xs h-10"
+                title="אינדוקס נתוני AI - יצירת Embeddings לחיפוש סמנטי"
+              >
                 <Play size={12} className="ml-1" /> {runningIngest ? 'מריץ...' : 'אינדוקס'}
               </Button>
-              <Button variant="secondary" size="sm" onClick={async () => { try { await downloadAiBackup(); addToast('גיבוי הורד', 'success'); } catch (e: unknown) { addToast(String(e instanceof Error ? e.message : e), 'error'); } }} disabled={!selectedOrgId} className="text-xs h-10">
-                <Download size={12} />
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={async () => { 
+                  try { 
+                    await downloadAiBackup(); 
+                    addToast('גיבוי הורד בהצלחה', 'success'); 
+                  } catch (e: unknown) { 
+                    addToast(String(e instanceof Error ? e.message : e), 'error'); 
+                  } 
+                }} 
+                disabled={!selectedOrgId} 
+                className="text-xs h-10 w-10 p-0"
+                title="הורד גיבוי JSON של הגדרות AI (פיצ'רים, פרומפטים, ספקים)"
+              >
+                <Download size={14} />
               </Button>
             </div>
           </div>

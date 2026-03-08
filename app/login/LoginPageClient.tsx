@@ -21,9 +21,9 @@ type WorkspacesApiPayload = {
   workspaces?: WorkspacesApiItem[];
 };
 
-// Reduced retries for faster login experience
-const MAX_WORKSPACE_RETRIES = 2;
-const WORKSPACE_RETRY_DELAY = 500;
+// Minimized retries for fastest login experience - customer feedback: system feels slow
+const MAX_WORKSPACE_RETRIES = 1;
+const WORKSPACE_RETRY_DELAY = 300;
 
 async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean>; onboardingComplete: boolean }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
@@ -108,6 +108,7 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
   const router = useRouter();
   const [continuationState, setContinuationState] = useState<'idle' | 'handling' | 'done' | 'failed'>('idle');
   const continuationAttempted = useRef(false);
+  const redirectAttempted = useRef(false);
 
   // Client-side fallback: persist plan info to cookies if server-side set failed
   useEffect(() => {
@@ -322,76 +323,80 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
   }, [isLoaded, signUpLoaded, signInLoaded, isSignedIn, signUp, signIn, setActive, getRedirectTarget]);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !isSignedIn || !userId) return;
+    if (redirectAttempted.current) return;
 
-    // If user is signed in, redirect to their first available OS
-    if (isSignedIn && userId) {
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirectPath =
-        searchParams.get('redirect') ||
-        searchParams.get('redirect_url') ||
-        searchParams.get('redirectUrl');
-      const normalizedRedirectPath = redirectPath ? (normalizeLegacyRedirectPath(redirectPath) || redirectPath) : null;
+    redirectAttempted.current = true;
 
-      const isLoginRedirect = (value: string | null) => {
-        if (!value) return false;
-        const v = String(value).trim().toLowerCase();
-        return v === '/login' || v.startsWith('/login?') || v.startsWith('/login#') || v.startsWith('/sign-in') || v.startsWith('/sign-up');
-      };
-      
-      // If redirect parameter exists and is valid, go there
-      if (
-        normalizedRedirectPath &&
-        normalizedRedirectPath.startsWith('/') &&
-        !normalizedRedirectPath.startsWith('//') &&
-        !isLoginRedirect(normalizedRedirectPath)
-      ) {
-        (async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectPath =
+      searchParams.get('redirect') ||
+      searchParams.get('redirect_url') ||
+      searchParams.get('redirectUrl');
+    const normalizedRedirectPath = redirectPath ? (normalizeLegacyRedirectPath(redirectPath) || redirectPath) : null;
+
+    const isLoginRedirect = (value: string | null) => {
+      if (!value) return false;
+      const v = String(value).trim().toLowerCase();
+      return v === '/login' || v.startsWith('/login?') || v.startsWith('/login#') || v.startsWith('/sign-in') || v.startsWith('/sign-up');
+    };
+    
+    // If redirect parameter exists and is valid, go there
+    if (
+      normalizedRedirectPath &&
+      normalizedRedirectPath.startsWith('/') &&
+      !normalizedRedirectPath.startsWith('//') &&
+      !isLoginRedirect(normalizedRedirectPath)
+    ) {
+      (async () => {
+        try {
           const { orgSlug } = await resolveFirstWorkspace();
           if (orgSlug) {
             router.push(toWorkspacePathForOrgSlug(orgSlug, normalizedRedirectPath));
             return;
           }
           router.push(normalizedRedirectPath);
-        })();
-      } else {
-        (async () => {
-          try {
-            const { orgSlug, entitlements, onboardingComplete } = await resolveFirstWorkspace();
-            
-            if (!orgSlug) {
-              router.push('/workspaces/new');
-              return;
-            }
-
-            // If onboarding is not complete (no plan selected), send to onboarding
-            if (!onboardingComplete) {
-              router.push('/workspaces/onboarding');
-              return;
-            }
-
-            const priority: Array<{ key: string; route: string }> = [
-              { key: 'nexus', route: `/w/${encodeURIComponent(String(orgSlug))}/nexus` },
-              { key: 'system', route: `/w/${encodeURIComponent(String(orgSlug))}/system` },
-              { key: 'operations', route: `/w/${encodeURIComponent(String(orgSlug))}/operations` },
-              { key: 'social', route: `/w/${encodeURIComponent(String(orgSlug))}/social` },
-              { key: 'finance', route: `/w/${encodeURIComponent(String(orgSlug))}/finance` },
-              { key: 'client', route: `/w/${encodeURIComponent(String(orgSlug))}/client` },
-            ];
-
-            const first = priority.find(p => Boolean(entitlements[p.key]));
-            const targetRoute = first?.route || '/workspaces';
-            router.push(targetRoute);
-          } catch (error) {
-            console.error('[Login] Error during redirect:', error);
-            router.push('/workspaces/new');
-          }
-        })();
-      }
+        } catch (error) {
+          console.error('[Login] Error during redirect with path:', error);
+          redirectAttempted.current = false;
+        }
+      })();
     } else {
-      // Show login view when Clerk is loaded and user is not signed in
+      (async () => {
+        try {
+          const { orgSlug, entitlements, onboardingComplete } = await resolveFirstWorkspace();
+          
+          if (!orgSlug) {
+            router.push('/workspaces/new');
+            return;
+          }
+
+          // If onboarding is not complete (no plan selected), send to onboarding
+          if (!onboardingComplete) {
+            router.push('/workspaces/onboarding');
+            return;
+          }
+
+          const priority: Array<{ key: string; route: string }> = [
+            { key: 'nexus', route: `/w/${encodeURIComponent(String(orgSlug))}/nexus` },
+            { key: 'system', route: `/w/${encodeURIComponent(String(orgSlug))}/system` },
+            { key: 'operations', route: `/w/${encodeURIComponent(String(orgSlug))}/operations` },
+            { key: 'social', route: `/w/${encodeURIComponent(String(orgSlug))}/social` },
+            { key: 'finance', route: `/w/${encodeURIComponent(String(orgSlug))}/finance` },
+            { key: 'client', route: `/w/${encodeURIComponent(String(orgSlug))}/client` },
+          ];
+
+          const first = priority.find(p => Boolean(entitlements[p.key]));
+          const targetRoute = first?.route || '/workspaces';
+          router.push(targetRoute);
+        } catch (error) {
+          console.error('[Login] Error during redirect:', error);
+          redirectAttempted.current = false;
+          router.push('/workspaces/new');
+        }
+      })();
     }
-  }, [isSignedIn, isLoaded, userId, router]);
+  }, [isSignedIn, isLoaded, userId]);
 
   // Show loading state while OAuth continuation is being handled (#/continue)
   if (continuationState === 'handling' || continuationState === 'done') {

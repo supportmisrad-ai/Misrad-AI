@@ -357,7 +357,7 @@ model ai_embeddings {
   metadata         Json?
   created_at       DateTime              @default(now()) @db.Timestamptz(6)
   updated_at       DateTime              @default(now()) @db.Timestamptz(6)
-  organizations    Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations    Organization          @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organization_id, doc_key, chunk_index])
   @@index([embedding], map: "idx_ai_embeddings_embedding_cosine")
@@ -370,18 +370,18 @@ model ai_embeddings {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_feature_settings {
-  id                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id    String?               @db.Uuid
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id    String?       @db.Uuid
   feature_key        String
-  enabled            Boolean               @default(true)
+  enabled            Boolean       @default(true)
   primary_provider   String
   primary_model      String
   fallback_provider  String?
   fallback_model     String?
-  reserve_cost_cents Int                   @default(25)
-  timeout_ms         Int                   @default(30000)
-  created_at         DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime              @default(now()) @db.Timestamptz(6)
+  reserve_cost_cents Int           @default(25)
+  timeout_ms         Int           @default(30000)
+  created_at         DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime      @default(now()) @db.Timestamptz(6)
   backup_provider    String?
   backup_model       String?
   base_prompt        String?
@@ -394,13 +394,13 @@ model ai_feature_settings {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_model_aliases {
-  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider        String
   model           String
-  organization_id String?               @db.Uuid
+  organization_id String?       @db.Uuid
   display_name    String
-  created_at      DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime              @default(now()) @db.Timestamptz(6)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
   organizations   Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "ai_model_aliases_org_idx")
@@ -410,13 +410,13 @@ model ai_model_aliases {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_provider_keys {
-  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   provider        String
-  organization_id String?               @db.Uuid
+  organization_id String?       @db.Uuid
   api_key         String
-  enabled         Boolean               @default(true)
-  created_at      DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime              @default(now()) @db.Timestamptz(6)
+  enabled         Boolean       @default(true)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime      @default(now()) @db.Timestamptz(6)
   organizations   Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "ai_provider_keys_org_idx")
@@ -426,16 +426,16 @@ model ai_provider_keys {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model ai_usage_logs {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  organization_id    String               @db.Uuid
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at         DateTime     @default(now()) @db.Timestamptz(6)
+  organization_id    String       @db.Uuid
   user_id            String
   feature_key        String
   task_kind          String
   provider           String
   model              String
   model_display_name String?
-  charged_cents      Int                  @default(0)
+  charged_cents      Int          @default(0)
   latency_ms         Int?
   status             String
   error_message      String?
@@ -468,16 +468,16 @@ model AppUpdate {
 
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model billing_events {
-  id                  String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organization_id     String               @db.Uuid
-  subscription_id     String?              @db.Uuid
+  id                  String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organization_id     String         @db.Uuid
+  subscription_id     String?        @db.Uuid
   event_type          String
-  occurred_at         DateTime             @default(now()) @db.Timestamptz(6)
+  occurred_at         DateTime       @default(now()) @db.Timestamptz(6)
   actor_clerk_user_id String?
   payload             Json?
-  created_at          DateTime?            @default(now()) @db.Timestamptz(6)
-  organizations       Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  subscriptions       subscriptions?       @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
+  created_at          DateTime?      @default(now()) @db.Timestamptz(6)
+  organizations       Organization   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions       subscriptions? @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_billing_events_org_id")
   @@index([subscription_id], map: "idx_billing_events_sub_id")
@@ -486,23 +486,23 @@ model billing_events {
 }
 
 model billing_invoices {
-  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organization_id String    @db.Uuid
+  id                 String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organization_id    String       @db.Uuid
   morning_invoice_id String
-  invoice_number  String
-  amount          Decimal   @db.Decimal(10, 2)
-  currency        String    @default("ILS")
-  status          String    @default("pending")
-  invoice_url     String?
-  pdf_url         String?
-  payment_url     String?
-  description     String?
-  email_sent      Boolean   @default(false)
-  paid_at         DateTime? @db.Timestamptz(6)
-  due_date        DateTime? @db.Timestamptz(6)
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
-  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  invoice_number     String
+  amount             Decimal      @db.Decimal(10, 2)
+  currency           String       @default("ILS")
+  status             String       @default("pending")
+  invoice_url        String?
+  pdf_url            String?
+  payment_url        String?
+  description        String?
+  email_sent         Boolean      @default(false)
+  paid_at            DateTime?    @db.Timestamptz(6)
+  due_date           DateTime?    @db.Timestamptz(6)
+  created_at         DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime     @default(now()) @db.Timestamptz(6)
+  organizations      Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_billing_invoices_org_id")
   @@index([morning_invoice_id], map: "idx_billing_invoices_morning_id")
@@ -531,19 +531,19 @@ model business_metrics {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model charges {
-  id              String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organization_id String               @db.Uuid
-  subscription_id String?              @db.Uuid
-  provider        String               @default("manual")
-  status          String               @default("pending")
-  amount          Decimal              @default(0) @db.Decimal(10, 2)
-  currency        String?              @default("ILS")
+  id              String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organization_id String         @db.Uuid
+  subscription_id String?        @db.Uuid
+  provider        String         @default("manual")
+  status          String         @default("pending")
+  amount          Decimal        @default(0) @db.Decimal(10, 2)
+  currency        String?        @default("ILS")
   external_id     String?
-  created_at      DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime?            @default(now()) @db.Timestamptz(6)
+  created_at      DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?      @default(now()) @db.Timestamptz(6)
   metadata        Json?
-  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  subscriptions   subscriptions?       @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
+  organizations   Organization   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions   subscriptions? @relation(fields: [subscription_id], references: [id], onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_charges_org_id")
   @@index([status], map: "idx_charges_status")
@@ -569,23 +569,23 @@ model client_dna {
 }
 
 model ClientApproval {
-  id                     String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId         String               @map("organization_id") @db.Uuid
-  clientId               String               @map("client_id") @db.Uuid
-  subjectType            String               @map("subject_type")
-  subjectId              String               @map("subject_id")
-  documentId             String?              @map("document_id") @db.Uuid
-  status                 String               @default("PENDING")
-  requestedByType        String?              @map("requested_by_type")
-  requestedById          String?              @map("requested_by_id")
-  approvedByPortalUserId String?              @map("approved_by_portal_user_id") @db.Uuid
-  approvedAt             DateTime?            @map("approved_at") @db.Timestamptz(6)
+  id                     String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId         String          @map("organization_id") @db.Uuid
+  clientId               String          @map("client_id") @db.Uuid
+  subjectType            String          @map("subject_type")
+  subjectId              String          @map("subject_id")
+  documentId             String?         @map("document_id") @db.Uuid
+  status                 String          @default("PENDING")
+  requestedByType        String?         @map("requested_by_type")
+  requestedById          String?         @map("requested_by_id")
+  approvedByPortalUserId String?         @map("approved_by_portal_user_id") @db.Uuid
+  approvedAt             DateTime?       @map("approved_at") @db.Timestamptz(6)
   comment                String?
-  createdAt              DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client                 ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  document               ClientDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  organization           Organization @relation(fields: [organizationId], references: [id])
+  createdAt              DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client                 ClientClient    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  document               ClientDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  organization           Organization    @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_approvals_organization_id")
   @@index([clientId], map: "idx_client_approvals_client_id")
@@ -612,20 +612,20 @@ model ClientClient {
   source          String?               @map("source")
   createdAt       DateTime?             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime?             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  approvals      ClientApproval[]
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  documentFiles  ClientDocumentFile[]
-  documents      ClientDocument[]
-  feedbacks      ClientFeedback[]
-  internalNotes  ClientInternalNote[]
-  portalContent  ClientPortalContent[]
-  portalInvites  ClientPortalInvite[]
-  portalUsers    ClientPortalUser[]
-  profile        ClientProfile?
-  serviceTier    ClientServiceTier?
-  sessions       ClientSession[]
-  sharedFiles    ClientSharedFile[]
-  tasks          ClientTask[]
+  approvals       ClientApproval[]
+  organization    Organization          @relation(fields: [organizationId], references: [id])
+  documentFiles   ClientDocumentFile[]
+  documents       ClientDocument[]
+  feedbacks       ClientFeedback[]
+  internalNotes   ClientInternalNote[]
+  portalContent   ClientPortalContent[]
+  portalInvites   ClientPortalInvite[]
+  portalUsers     ClientPortalUser[]
+  profile         ClientProfile?
+  serviceTier     ClientServiceTier?
+  sessions        ClientSession[]
+  sharedFiles     ClientSharedFile[]
+  tasks           ClientTask[]
 
   @@index([organizationId], map: "idx_client_clients_organization_id")
   @@index([fullName], map: "idx_client_clients_full_name")
@@ -650,7 +650,7 @@ model ClientDocument {
   approvals         ClientApproval[]
   files             ClientDocumentFile[]
   client            ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id])
+  organization      Organization         @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_documents_organization_id")
   @@index([clientId], map: "idx_client_documents_client_id")
@@ -660,23 +660,23 @@ model ClientDocument {
 }
 
 model ClientDocumentFile {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
-  documentId     String               @map("document_id") @db.Uuid
-  storageBucket  String               @default("client") @map("storage_bucket")
-  storagePath    String               @map("storage_path")
-  fileName       String?              @map("file_name")
-  mimeType       String?              @map("mime_type")
-  sizeBytes      Int?                 @map("size_bytes")
-  uploadedByType String?              @map("uploaded_by_type")
-  uploadedById   String?              @map("uploaded_by_id")
-  metadata       Json?                @default("{}")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  document       ClientDocument       @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  id             String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  clientId       String         @map("client_id") @db.Uuid
+  documentId     String         @map("document_id") @db.Uuid
+  storageBucket  String         @default("client") @map("storage_bucket")
+  storagePath    String         @map("storage_path")
+  fileName       String?        @map("file_name")
+  mimeType       String?        @map("mime_type")
+  sizeBytes      Int?           @map("size_bytes")
+  uploadedByType String?        @map("uploaded_by_type")
+  uploadedById   String?        @map("uploaded_by_id")
+  metadata       Json?          @default("{}")
+  createdAt      DateTime?      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  document       ClientDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_document_files_organization_id")
   @@index([clientId], map: "idx_client_document_files_client_id")
@@ -685,15 +685,15 @@ model ClientDocumentFile {
 }
 
 model ClientFeedback {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
-  rating         Int                  @db.SmallInt
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
+  rating         Int          @db.SmallInt
   comment        String?
-  metadata       Json?                @default("{}")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  metadata       Json?        @default("{}")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_feedbacks_organization_id")
@@ -704,14 +704,14 @@ model ClientFeedback {
 }
 
 model ClientInternalNote {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
   body           String
-  createdBy      String?              @map("created_by")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy      String?      @map("created_by")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_internal_notes_organization_id")
@@ -721,19 +721,19 @@ model ClientInternalNote {
 }
 
 model ClientPortalContent {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
   kind           String
   title          String
   body           String?
-  data           Json?                @default("{}")
-  isPublished    Boolean?             @default(false) @map("is_published")
-  publishedAt    DateTime?            @map("published_at") @db.Timestamptz(6)
-  createdBy      String?              @map("created_by") @db.Uuid
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  data           Json?        @default("{}")
+  isPublished    Boolean?     @default(false) @map("is_published")
+  publishedAt    DateTime?    @map("published_at") @db.Timestamptz(6)
+  createdBy      String?      @map("created_by") @db.Uuid
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_portal_content_organization_id")
@@ -744,17 +744,17 @@ model ClientPortalContent {
 }
 
 model ClientPortalInvite {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
   email          String
-  tokenHash      String               @map("token_hash")
-  expiresAt      DateTime             @map("expires_at") @db.Timestamptz(6)
-  usedAt         DateTime?            @map("used_at") @db.Timestamptz(6)
-  createdBy      String?              @map("created_by")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tokenHash      String       @map("token_hash")
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz(6)
+  usedAt         DateTime?    @map("used_at") @db.Timestamptz(6)
+  createdBy      String?      @map("created_by")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_portal_invites_organization_id")
@@ -765,17 +765,17 @@ model ClientPortalInvite {
 }
 
 model ClientPortalUser {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
-  clerkUserId    String               @map("clerk_user_id")
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
+  clerkUserId    String       @map("clerk_user_id")
   email          String?
-  fullName       String?              @map("full_name")
-  status         String               @default("ACTIVE")
-  lastLoginAt    DateTime?            @map("last_login_at") @db.Timestamptz(6)
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fullName       String?      @map("full_name")
+  status         String       @default("ACTIVE")
+  lastLoginAt    DateTime?    @map("last_login_at") @db.Timestamptz(6)
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, clientId, clerkUserId], map: "uq_client_portal_users_org_client_clerk")
@@ -786,15 +786,15 @@ model ClientPortalUser {
 }
 
 model ClientProfile {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @unique @map("client_id") @db.Uuid
-  status         String               @default("ACTIVE")
-  classification String?              @default("DEFAULT")
-  preferences    Json?                @default("{}")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @unique @map("client_id") @db.Uuid
+  status         String       @default("ACTIVE")
+  classification String?      @default("DEFAULT")
+  preferences    Json?        @default("{}")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_profiles_organization_id")
@@ -841,17 +841,17 @@ model clients {
 }
 
 model ClientServiceTier {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @unique @map("client_id") @db.Uuid
-  tierKey        String               @map("tier_key")
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @unique @map("client_id") @db.Uuid
+  tierKey        String       @map("tier_key")
   label          String
-  metadata       Json?                @default("{}")
-  startsAt       DateTime?            @map("starts_at") @db.Timestamptz(6)
-  endsAt         DateTime?            @map("ends_at") @db.Timestamptz(6)
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  metadata       Json?        @default("{}")
+  startsAt       DateTime?    @map("starts_at") @db.Timestamptz(6)
+  endsAt         DateTime?    @map("ends_at") @db.Timestamptz(6)
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_service_tiers_organization_id")
@@ -860,20 +860,20 @@ model ClientServiceTier {
 }
 
 model ClientSession {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
-  startAt        DateTime             @map("start_at") @db.Timestamptz(6)
-  endAt          DateTime?            @map("end_at") @db.Timestamptz(6)
-  status         String               @default("scheduled")
-  sessionType    String?              @map("session_type")
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
+  startAt        DateTime     @map("start_at") @db.Timestamptz(6)
+  endAt          DateTime?    @map("end_at") @db.Timestamptz(6)
+  status         String       @default("scheduled")
+  sessionType    String?      @map("session_type")
   location       String?
   summary        String?
-  createdBy      String?              @map("created_by") @db.Uuid
-  metadata       Json?                @default("{}")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy      String?      @map("created_by") @db.Uuid
+  metadata       Json?        @default("{}")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_sessions_organization_id")
@@ -883,22 +883,22 @@ model ClientSession {
 }
 
 model ClientSharedFile {
-  id                String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId    String               @map("organization_id") @db.Uuid
-  clientId          String               @map("client_id") @db.Uuid
+  id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId    String       @map("organization_id") @db.Uuid
+  clientId          String       @map("client_id") @db.Uuid
   title             String?
   description       String?
-  storageBucket     String               @default("client") @map("storage_bucket")
-  storagePath       String               @map("storage_path")
-  mimeType          String?              @map("mime_type")
-  sizeBytes         Int?                 @map("size_bytes")
-  isVisibleToClient Boolean              @default(true) @map("is_visible_to_client")
-  uploadedByType    String?              @map("uploaded_by_type")
-  uploadedById      String?              @map("uploaded_by_id")
-  metadata          Json?                @default("{}")
-  createdAt         DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client            ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  storageBucket     String       @default("client") @map("storage_bucket")
+  storagePath       String       @map("storage_path")
+  mimeType          String?      @map("mime_type")
+  sizeBytes         Int?         @map("size_bytes")
+  isVisibleToClient Boolean      @default(true) @map("is_visible_to_client")
+  uploadedByType    String?      @map("uploaded_by_type")
+  uploadedById      String?      @map("uploaded_by_id")
+  metadata          Json?        @default("{}")
+  createdAt         DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client            ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_shared_files_organization_id")
@@ -908,20 +908,20 @@ model ClientSharedFile {
 }
 
 model ClientTask {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  clientId       String               @map("client_id") @db.Uuid
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  clientId       String       @map("client_id") @db.Uuid
   title          String
   description    String?
-  status         String               @default("todo")
-  priority       String?              @default("medium")
-  dueAt          DateTime?            @map("due_at") @db.Timestamptz(6)
-  assignedTo     String?              @map("assigned_to") @db.Uuid
-  createdBy      String?              @map("created_by") @db.Uuid
-  metadata       Json?                @default("{}")
-  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  client         ClientClient         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status         String       @default("todo")
+  priority       String?      @default("medium")
+  dueAt          DateTime?    @map("due_at") @db.Timestamptz(6)
+  assignedTo     String?      @map("assigned_to") @db.Uuid
+  createdBy      String?      @map("created_by") @db.Uuid
+  metadata       Json?        @default("{}")
+  createdAt      DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  client         ClientClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([organizationId], map: "idx_client_tasks_organization_id")
@@ -932,24 +932,24 @@ model ClientTask {
 }
 
 model ConnectMarketplaceListing {
-  id                String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  sourceOrgId       String               @map("source_org_id") @db.Uuid
-  sourceOrgSlug     String               @map("source_org_slug")
-  sourceUserId      String?              @map("source_user_id") @db.Uuid
-  leadId            String               @map("lead_id") @db.Uuid
-  targetGeo         String?              @map("target_geo")
+  id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sourceOrgId       String       @map("source_org_id") @db.Uuid
+  sourceOrgSlug     String       @map("source_org_slug")
+  sourceUserId      String?      @map("source_user_id") @db.Uuid
+  leadId            String       @map("lead_id") @db.Uuid
+  targetGeo         String?      @map("target_geo")
   category          String?
-  price             Decimal?             @db.Decimal(10, 2)
-  publicDescription String?              @map("public_description")
-  status            String               @default("LISTED")
-  token             String               @unique
-  interestedName    String?              @map("interested_name")
-  interestedPhone   String?              @map("interested_phone")
-  interestedAt      DateTime?            @map("interested_at") @db.Timestamptz(6)
-  approvedAt        DateTime?            @map("approved_at") @db.Timestamptz(6)
-  createdAt         DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lead              SystemLead           @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  price             Decimal?     @db.Decimal(10, 2)
+  publicDescription String?      @map("public_description")
+  status            String       @default("LISTED")
+  token             String       @unique
+  interestedName    String?      @map("interested_name")
+  interestedPhone   String?      @map("interested_phone")
+  interestedAt      DateTime?    @map("interested_at") @db.Timestamptz(6)
+  approvedAt        DateTime?    @map("approved_at") @db.Timestamptz(6)
+  createdAt         DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lead              SystemLead   @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organization      Organization @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
 
   @@index([sourceOrgId], map: "idx_connect_marketplace_listings_source_org_id")
@@ -986,7 +986,7 @@ model coupon_redemptions {
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 
   coupons       coupons              @relation(fields: [coupon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organizations Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders        subscription_orders? @relation(fields: [order_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([coupon_id, organization_id], map: "coupon_redemptions_coupon_org_unique")
@@ -1022,15 +1022,15 @@ model coupons {
 }
 
 model CustomerAccount {
-  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
   name           String
   company_name   String?
   phone          String?
   email          String?
-  created_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   misradClients  MisradClient[]
   systemLeads    SystemLead[]
 
@@ -1066,10 +1066,10 @@ model DevicePairingToken {
 
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model finance_whatsapp_reminder_events {
-  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id     String               @db.Uuid
-  invoice_id          String               @db.Uuid
-  client_id           String?              @db.Uuid
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String        @db.Uuid
+  invoice_id          String        @db.Uuid
+  client_id           String?       @db.Uuid
   mode                String
   status              String
   manual_method       String?
@@ -1079,10 +1079,10 @@ model finance_whatsapp_reminder_events {
   provider_message_id String?
   error               String?
   created_by_user_id  String?
-  created_at          DateTime             @default(now()) @db.Timestamptz(6)
-  misrad_clients      MisradClient?        @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "finance_whatsapp_reminder_events_client_fk")
-  misrad_invoices     MisradInvoice        @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_invoice_fk")
-  organizations       Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_org_fk")
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  misrad_clients      MisradClient? @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "finance_whatsapp_reminder_events_client_fk")
+  misrad_invoices     MisradInvoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_invoice_fk")
+  organizations       Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "finance_whatsapp_reminder_events_org_fk")
 
   @@index([invoice_id, created_at(sort: Desc)], map: "finance_whatsapp_reminder_events_invoice_idx")
   @@index([organization_id, created_at(sort: Desc)], map: "finance_whatsapp_reminder_events_org_idx")
@@ -1383,21 +1383,21 @@ model MisradClient {
 }
 
 model MisradClientAction {
-  id               String                   @id @default(uuid()) @db.Uuid
-  organization_id  String                   @db.Uuid
-  client_id        String                   @db.Uuid
-  title            String
-  description      String
-  type             MisradClientActionType
-  status           MisradClientActionStatus
-  dueDate          String
-  dueDateAt        DateTime?                @map("due_date_at") @db.Date
-  isBlocking       Boolean
-  lastReminderSent String?
-  lastReminderSentAt DateTime?              @map("last_reminder_sent_at") @db.Timestamptz(6)
-  created_at       DateTime                 @default(now())
-  updated_at       DateTime                 @updatedAt
-  client           MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(uuid()) @db.Uuid
+  organization_id    String                   @db.Uuid
+  client_id          String                   @db.Uuid
+  title              String
+  description        String
+  type               MisradClientActionType
+  status             MisradClientActionStatus
+  dueDate            String
+  dueDateAt          DateTime?                @map("due_date_at") @db.Date
+  isBlocking         Boolean
+  lastReminderSent   String?
+  lastReminderSentAt DateTime?                @map("last_reminder_sent_at") @db.Timestamptz(6)
+  created_at         DateTime                 @default(now())
+  updated_at         DateTime                 @updatedAt
+  client             MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
   @@index([organization_id, created_at])
@@ -1559,21 +1559,21 @@ model MisradCycleAsset {
 }
 
 model MisradCycleTask {
-  id               String                   @id @default(uuid()) @db.Uuid
-  organization_id  String                   @db.Uuid
-  cycle_id         String                   @db.Uuid
-  title            String
-  description      String
-  type             MisradClientActionType
-  status           MisradClientActionStatus
-  dueDate          String
-  dueDateAt        DateTime?                @map("due_date_at") @db.Date
-  isBlocking       Boolean
-  lastReminderSent String?
-  lastReminderSentAt DateTime?              @map("last_reminder_sent_at") @db.Timestamptz(6)
-  created_at       DateTime                 @default(now())
-  updated_at       DateTime                 @updatedAt
-  cycle            MisradCycle              @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(uuid()) @db.Uuid
+  organization_id    String                   @db.Uuid
+  cycle_id           String                   @db.Uuid
+  title              String
+  description        String
+  type               MisradClientActionType
+  status             MisradClientActionStatus
+  dueDate            String
+  dueDateAt          DateTime?                @map("due_date_at") @db.Date
+  isBlocking         Boolean
+  lastReminderSent   String?
+  lastReminderSentAt DateTime?                @map("last_reminder_sent_at") @db.Timestamptz(6)
+  created_at         DateTime                 @default(now())
+  updated_at         DateTime                 @updatedAt
+  cycle              MisradCycle              @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
   @@index([organization_id, created_at])
@@ -2143,28 +2143,28 @@ model NexusBillingItem {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model NexusEmployeeInvitationLink {
-  id             String               @id(map: "employee_invitation_links_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  token          String               @unique(map: "employee_invitation_links_token_key")
-  created_by     String?              @db.Uuid
+  id             String       @id(map: "employee_invitation_links_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  token          String       @unique(map: "employee_invitation_links_token_key")
+  created_by     String?      @db.Uuid
   department     String?
   role           String?
   employee_email String?
   employee_name  String?
   employee_phone String?
   payment_type   String?
-  hourly_rate    Decimal?             @db.Decimal(10, 2)
-  monthly_salary Decimal?             @db.Decimal(10, 2)
+  hourly_rate    Decimal?     @db.Decimal(10, 2)
+  monthly_salary Decimal?     @db.Decimal(10, 2)
   commission_pct Int?
-  start_date     DateTime?            @db.Date
+  start_date     DateTime?    @db.Date
   notes          String?
-  created_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  expires_at     DateTime?            @db.Timestamptz(6)
-  used_at        DateTime?            @db.Timestamptz(6)
-  is_used        Boolean?             @default(false)
-  is_active      Boolean?             @default(true)
-  metadata       Json?                @default("{}")
-  updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
+  created_at     DateTime?    @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime?    @db.Timestamptz(6)
+  used_at        DateTime?    @db.Timestamptz(6)
+  is_used        Boolean?     @default(false)
+  is_active      Boolean?     @default(true)
+  metadata       Json?        @default("{}")
+  updated_at     DateTime?    @default(now()) @db.Timestamptz(6)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@index([token], map: "idx_employee_invitation_links_token")
@@ -2174,16 +2174,16 @@ model NexusEmployeeInvitationLink {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model NexusEventAttendance {
-  id             String               @id(map: "event_attendance_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  event_id       String               @db.Uuid
-  user_id        String               @db.Uuid
-  status         String?              @default("invited")
-  rsvp_at        DateTime?            @db.Timestamptz(6)
-  attended_at    DateTime?            @db.Timestamptz(6)
+  id             String       @id(map: "event_attendance_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  event_id       String       @db.Uuid
+  user_id        String       @db.Uuid
+  status         String?      @default("invited")
+  rsvp_at        DateTime?    @db.Timestamptz(6)
+  attended_at    DateTime?    @db.Timestamptz(6)
   notes          String?
-  created_at     DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime?            @default(now()) @db.Timestamptz(6)
+  created_at     DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?    @default(now()) @db.Timestamptz(6)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([event_id, user_id], map: "event_attendance_event_id_user_id_key")
@@ -2194,25 +2194,25 @@ model NexusEventAttendance {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model NexusLeaveRequest {
-  id                String               @id(map: "leave_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId    String               @map("organization_id") @db.Uuid
-  tenant_id         String?              @db.Uuid
-  employee_id       String               @db.Uuid
+  id                String       @id(map: "leave_requests_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId    String       @map("organization_id") @db.Uuid
+  tenant_id         String?      @db.Uuid
+  employee_id       String       @db.Uuid
   leave_type        String
-  start_date        DateTime             @db.Date
-  end_date          DateTime             @db.Date
-  days_requested    Decimal              @db.Decimal(5, 2)
+  start_date        DateTime     @db.Date
+  end_date          DateTime     @db.Date
+  days_requested    Decimal      @db.Decimal(5, 2)
   reason            String?
-  status            String?              @default("pending")
-  requested_by      String?              @db.Uuid
-  approved_by       String?              @db.Uuid
-  approved_at       DateTime?            @db.Timestamptz(6)
+  status            String?      @default("pending")
+  requested_by      String?      @db.Uuid
+  approved_by       String?      @db.Uuid
+  approved_at       DateTime?    @db.Timestamptz(6)
   rejection_reason  String?
-  notification_sent Boolean?             @default(false)
-  employee_notified Boolean?             @default(false)
-  metadata          Json?                @default("{}")
-  created_at        DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime?            @default(now()) @db.Timestamptz(6)
+  notification_sent Boolean?     @default(false)
+  employee_notified Boolean?     @default(false)
+  metadata          Json?        @default("{}")
+  created_at        DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?    @default(now()) @db.Timestamptz(6)
   organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([employee_id], map: "idx_leave_requests_employee")
@@ -2236,30 +2236,30 @@ model NexusOnboardingSettings {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model NexusTeamEvent {
-  id                   String               @id(map: "team_events_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId       String               @map("organization_id") @db.Uuid
-  tenant_id            String?              @db.Uuid
+  id                   String       @id(map: "team_events_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId       String       @map("organization_id") @db.Uuid
+  tenant_id            String?      @db.Uuid
   title                String
   description          String?
   event_type           String
-  start_date           DateTime             @db.Timestamptz(6)
-  end_date             DateTime             @db.Timestamptz(6)
-  all_day              Boolean?             @default(false)
+  start_date           DateTime     @db.Timestamptz(6)
+  end_date             DateTime     @db.Timestamptz(6)
+  all_day              Boolean?     @default(false)
   location             String?
-  organizer_id         String?              @db.Uuid
-  required_attendees   String[]             @default([]) @db.Uuid
-  optional_attendees   String[]             @default([]) @db.Uuid
-  status               String?              @default("scheduled")
-  requires_approval    Boolean?             @default(false)
-  approved_by          String?              @db.Uuid
-  approved_at          DateTime?            @db.Timestamptz(6)
-  notification_sent    Boolean?             @default(false)
-  reminder_sent        Boolean?             @default(false)
-  reminder_days_before Int?                 @default(1)
-  metadata             Json?                @default("{}")
-  created_at           DateTime?            @default(now()) @db.Timestamptz(6)
-  created_by           String?              @db.Uuid
-  updated_at           DateTime?            @default(now()) @db.Timestamptz(6)
+  organizer_id         String?      @db.Uuid
+  required_attendees   String[]     @default([]) @db.Uuid
+  optional_attendees   String[]     @default([]) @db.Uuid
+  status               String?      @default("scheduled")
+  requires_approval    Boolean?     @default(false)
+  approved_by          String?      @db.Uuid
+  approved_at          DateTime?    @db.Timestamptz(6)
+  notification_sent    Boolean?     @default(false)
+  reminder_sent        Boolean?     @default(false)
+  reminder_days_before Int?         @default(1)
+  metadata             Json?        @default("{}")
+  created_at           DateTime?    @default(now()) @db.Timestamptz(6)
+  created_by           String?      @db.Uuid
+  updated_at           DateTime?    @default(now()) @db.Timestamptz(6)
   organization         Organization @relation(fields: [organizationId], references: [id])
 
   @@index([tenant_id], map: "idx_team_events_tenant")
@@ -2269,23 +2269,22 @@ model NexusTeamEvent {
 }
 
 model NexusClient {
-  id              String               @id(map: "nexus_clients_pkey") @default(uuid())
-  organizationId  String               @map("organization_id") @db.Uuid
+  id              String       @id(map: "nexus_clients_pkey") @default(uuid())
+  organizationId  String       @map("organization_id") @db.Uuid
   name            String
-  companyName     String               @map("company_name")
+  companyName     String       @map("company_name")
   avatar          String?
   package         String?
-  status          String               @default("Onboarding")
-  contactPerson   String               @map("contact_person")
+  status          String       @default("Onboarding")
+  contactPerson   String       @map("contact_person")
   email           String
   phone           String
-  joinedAt        DateTime             @default(now()) @map("joined_at")
-  assetsFolderUrl String?              @map("assets_folder_url")
+  joinedAt        DateTime     @default(now()) @map("joined_at")
+  assetsFolderUrl String?      @map("assets_folder_url")
   source          String?
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
   organization    Organization @relation(fields: [organizationId], references: [id])
-
 
   // ──── Indexes from Production (translated) ────
   @@unique([organizationId, phone], map: "ux_nexus_clients_org_phone")
@@ -2296,33 +2295,33 @@ model NexusClient {
 }
 
 model NexusTask {
-  id                String               @id(map: "nexus_tasks_pkey") @default(uuid())
-  organizationId    String               @map("organization_id") @db.Uuid
+  id                String       @id(map: "nexus_tasks_pkey") @default(uuid())
+  organizationId    String       @map("organization_id") @db.Uuid
   title             String
   description       String?
   status            String
   priority          String?
-  assigneeIds       String[]             @default([]) @map("assignee_ids")
-  assigneeId        String?              @map("assignee_id")
-  creatorId         String?              @map("creator_id")
-  tags              String[]             @default([])
-  createdAt         DateTime             @default(now()) @map("created_at")
-  dueDate           DateTime?            @map("due_date") @db.Date
-  dueTime           DateTime?            @map("due_time") @db.Time(6)
-  timeSpent         Int                  @default(0) @map("time_spent")
-  estimatedTime     Int?                 @map("estimated_time")
-  approvalStatus    String?              @map("approval_status")
-  isTimerRunning    Boolean              @default(false) @map("is_timer_running")
-  messages          Json                 @default("[]")
-  clientId          String?              @map("client_id")
-  isPrivate         Boolean              @default(false) @map("is_private")
-  audioUrl          String?              @map("audio_url")
-  snoozeCount       Int                  @default(0) @map("snooze_count")
-  isFocus           Boolean              @default(false) @map("is_focus")
-  completionDetails Json?                @map("completion_details")
+  assigneeIds       String[]     @default([]) @map("assignee_ids")
+  assigneeId        String?      @map("assignee_id")
+  creatorId         String?      @map("creator_id")
+  tags              String[]     @default([])
+  createdAt         DateTime     @default(now()) @map("created_at")
+  dueDate           DateTime?    @map("due_date") @db.Date
+  dueTime           DateTime?    @map("due_time") @db.Time(6)
+  timeSpent         Int          @default(0) @map("time_spent")
+  estimatedTime     Int?         @map("estimated_time")
+  approvalStatus    String?      @map("approval_status")
+  isTimerRunning    Boolean      @default(false) @map("is_timer_running")
+  messages          Json         @default("[]")
+  clientId          String?      @map("client_id")
+  isPrivate         Boolean      @default(false) @map("is_private")
+  audioUrl          String?      @map("audio_url")
+  snoozeCount       Int          @default(0) @map("snooze_count")
+  isFocus           Boolean      @default(false) @map("is_focus")
+  completionDetails Json?        @map("completion_details")
   department        String?
-  shareToken        String?              @unique @map("share_token")
-  updatedAt         DateTime             @updatedAt @map("updated_at")
+  shareToken        String?      @unique @map("share_token")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
   organization      Organization @relation(fields: [organizationId], references: [id])
 
   @@index([assigneeId], map: "idx_nexus_tasks_assignee_id")
@@ -2360,9 +2359,8 @@ model NexusTenant {
   createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  organizationId String?               @unique @map("organization_id") @db.Uuid
+  organizationId String?       @unique @map("organization_id") @db.Uuid
   organization   Organization? @relation("NexusTenantOrganization", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-
 
   // ──── Indexes from Production (translated) ────
   @@index([phone], map: "idx_nexus_tenants_phone")
@@ -2373,27 +2371,27 @@ model NexusTenant {
 }
 
 model NexusTimeEntry {
-  id              String               @id(map: "nexus_time_entries_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId  String               @map("organization_id") @db.Uuid
-  userId          String               @map("user_id") @db.Uuid
-  startTime       DateTime             @map("start_time") @db.Timestamptz(6)
-  endTime         DateTime?            @map("end_time") @db.Timestamptz(6)
-  startLat        Float?               @map("start_lat")
-  startLng        Float?               @map("start_lng")
-  startAccuracy   Float?               @map("start_accuracy")
-  startCity       String?              @map("start_city")
-  endLat          Float?               @map("end_lat")
-  endLng          Float?               @map("end_lng")
-  endAccuracy     Float?               @map("end_accuracy")
-  endCity         String?              @map("end_city")
-  date            DateTime             @db.Date
-  durationMinutes Int?                 @map("duration_minutes")
+  id              String       @id(map: "nexus_time_entries_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  userId          String       @map("user_id") @db.Uuid
+  startTime       DateTime     @map("start_time") @db.Timestamptz(6)
+  endTime         DateTime?    @map("end_time") @db.Timestamptz(6)
+  startLat        Float?       @map("start_lat")
+  startLng        Float?       @map("start_lng")
+  startAccuracy   Float?       @map("start_accuracy")
+  startCity       String?      @map("start_city")
+  endLat          Float?       @map("end_lat")
+  endLng          Float?       @map("end_lng")
+  endAccuracy     Float?       @map("end_accuracy")
+  endCity         String?      @map("end_city")
+  date            DateTime     @db.Date
+  durationMinutes Int?         @map("duration_minutes")
   note            String?
-  voidReason      String?              @map("void_reason")
-  voidedBy        String?              @map("voided_by") @db.Uuid
-  voidedAt        DateTime?            @map("voided_at") @db.Timestamptz(6)
-  createdAt       DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  voidReason      String?      @map("void_reason")
+  voidedBy        String?      @map("voided_by") @db.Uuid
+  voidedAt        DateTime?    @map("voided_at") @db.Timestamptz(6)
+  createdAt       DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   organization    Organization @relation(fields: [organizationId], references: [id])
 
   @@index([date], map: "idx_nexus_time_entries_date")
@@ -2406,38 +2404,38 @@ model NexusTimeEntry {
 }
 
 model AttendanceMonthlyReport {
-  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId        String       @map("organization_id") @db.Uuid
-  userId                String       @map("user_id") @db.Uuid
-  year                  Int
-  month                 Int
-  employeeName          String       @map("employee_name")
-  employeeNumber        String?      @map("employee_number")
-  department            String?
-  standardDailyHours    Decimal      @default(9) @map("standard_daily_hours") @db.Decimal(5, 2)
-  totalPresenceDays     Int          @default(0) @map("total_presence_days")
-  totalStandardDays     Int          @default(0) @map("total_standard_days")
-  totalPresenceMinutes  Int          @default(0) @map("total_presence_minutes")
-  totalStandardMinutes  Int          @default(0) @map("total_standard_minutes")
-  totalBreakMinutes     Int          @default(0) @map("total_break_minutes")
-  paidBreakMinutes      Int          @default(0) @map("paid_break_minutes")
-  totalPayableMinutes   Int          @default(0) @map("total_payable_minutes")
-  regularMinutes        Int          @default(0) @map("regular_minutes")
-  overtime100Minutes    Int          @default(0) @map("overtime_100_minutes")
-  overtime125Minutes    Int          @default(0) @map("overtime_125_minutes")
-  overtime150Minutes    Int          @default(0) @map("overtime_150_minutes")
-  overtime175Minutes    Int          @default(0) @map("overtime_175_minutes")
-  overtime200Minutes    Int          @default(0) @map("overtime_200_minutes")
-  absenceMinutes        Int          @default(0) @map("absence_minutes")
-  dailyBreakdown        Json?        @map("daily_breakdown")
-  events                Json?
-  pdfUrl                String?      @map("pdf_url")
-  sentAt                DateTime?    @map("sent_at") @db.Timestamptz(6)
-  sentViaEmail          Boolean      @default(false) @map("sent_via_email")
-  sentViaPush           Boolean      @default(false) @map("sent_via_push")
-  createdAt             DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization          Organization @relation(fields: [organizationId], references: [id])
+  id                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId       String       @map("organization_id") @db.Uuid
+  userId               String       @map("user_id") @db.Uuid
+  year                 Int
+  month                Int
+  employeeName         String       @map("employee_name")
+  employeeNumber       String?      @map("employee_number")
+  department           String?
+  standardDailyHours   Decimal      @default(9) @map("standard_daily_hours") @db.Decimal(5, 2)
+  totalPresenceDays    Int          @default(0) @map("total_presence_days")
+  totalStandardDays    Int          @default(0) @map("total_standard_days")
+  totalPresenceMinutes Int          @default(0) @map("total_presence_minutes")
+  totalStandardMinutes Int          @default(0) @map("total_standard_minutes")
+  totalBreakMinutes    Int          @default(0) @map("total_break_minutes")
+  paidBreakMinutes     Int          @default(0) @map("paid_break_minutes")
+  totalPayableMinutes  Int          @default(0) @map("total_payable_minutes")
+  regularMinutes       Int          @default(0) @map("regular_minutes")
+  overtime100Minutes   Int          @default(0) @map("overtime_100_minutes")
+  overtime125Minutes   Int          @default(0) @map("overtime_125_minutes")
+  overtime150Minutes   Int          @default(0) @map("overtime_150_minutes")
+  overtime175Minutes   Int          @default(0) @map("overtime_175_minutes")
+  overtime200Minutes   Int          @default(0) @map("overtime_200_minutes")
+  absenceMinutes       Int          @default(0) @map("absence_minutes")
+  dailyBreakdown       Json?        @map("daily_breakdown")
+  events               Json?
+  pdfUrl               String?      @map("pdf_url")
+  sentAt               DateTime?    @map("sent_at") @db.Timestamptz(6)
+  sentViaEmail         Boolean      @default(false) @map("sent_via_email")
+  sentViaPush          Boolean      @default(false) @map("sent_via_push")
+  createdAt            DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization         Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, userId, year, month], map: "attendance_monthly_reports_org_user_period_key")
   @@index([organizationId], map: "idx_attendance_monthly_reports_org")
@@ -2528,15 +2526,15 @@ model OAuthToken {
 }
 
 model OperationsInventory {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  itemId         String               @map("item_id") @db.Uuid
-  onHand         Decimal              @default(0) @map("on_hand") @db.Decimal(12, 3)
-  minLevel       Decimal              @default(0) @map("min_level") @db.Decimal(12, 3)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  item           OperationsItem       @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id             String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  itemId         String         @map("item_id") @db.Uuid
+  onHand         Decimal        @default(0) @map("on_hand") @db.Decimal(12, 3)
+  minLevel       Decimal        @default(0) @map("min_level") @db.Decimal(12, 3)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  item           OperationsItem @relation(fields: [itemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organizationId, itemId], map: "operations_inventory_unique_item_per_org")
   @@index([organizationId], map: "idx_operations_inventory_org")
@@ -2545,21 +2543,21 @@ model OperationsInventory {
 }
 
 model OperationsItem {
-  id             String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String                 @map("organization_id") @db.Uuid
-  supplierId     String?                @map("supplier_id") @db.Uuid
-  sku            String?
-  name           String
-  unit           String?
-  cost           Decimal?               @db.Decimal(12, 2)
-  imageUrl       String?                @map("image_url")
-  imageVector    Unsupported("vector")? @map("image_vector")
-  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  inventory           OperationsInventory[]
-  purchaseOrderItems  OperationsPurchaseOrderItem[]
-  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  supplier            OperationsSupplier?    @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
+  id                 String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String                        @map("organization_id") @db.Uuid
+  supplierId         String?                       @map("supplier_id") @db.Uuid
+  sku                String?
+  name               String
+  unit               String?
+  cost               Decimal?                      @db.Decimal(12, 2)
+  imageUrl           String?                       @map("image_url")
+  imageVector        Unsupported("vector")?        @map("image_vector")
+  createdAt          DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  inventory          OperationsInventory[]
+  purchaseOrderItems OperationsPurchaseOrderItem[]
+  organization       Organization                  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  supplier           OperationsSupplier?           @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
 
   @@index([imageVector], map: "idx_operations_items_image_vector")
   @@index([organizationId], map: "idx_operations_items_org")
@@ -2579,7 +2577,7 @@ model OperationsProject {
   createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   clients             clients?              @relation(fields: [canonicalClientId], references: [id], onUpdate: NoAction)
-  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   workOrders          OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_projects_org")
@@ -2589,18 +2587,18 @@ model OperationsProject {
 }
 
 model OperationsSupplier {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
+  id             String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                    @map("organization_id") @db.Uuid
   name           String
-  contactName    String?              @map("contact_name")
+  contactName    String?                   @map("contact_name")
   phone          String?
   email          String?
   notes          String?
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   items          OperationsItem[]
   purchaseOrders OperationsPurchaseOrder[]
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organizationId], map: "idx_operations_suppliers_org")
   @@map("operations_suppliers")
@@ -2622,7 +2620,7 @@ model OperationsPurchaseOrder {
   createdAt        DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lineItems        OperationsPurchaseOrderItem[]
-  supplier         OperationsSupplier?            @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
+  supplier         OperationsSupplier?           @relation(fields: [supplierId], references: [id], onUpdate: NoAction)
   organization     Organization                  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organizationId, poNumber], map: "operations_po_unique_number_per_org")
@@ -2632,17 +2630,17 @@ model OperationsPurchaseOrder {
 }
 
 model OperationsPurchaseOrderItem {
-  id              String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  purchaseOrderId String                    @map("purchase_order_id") @db.Uuid
-  itemId          String?                   @map("item_id") @db.Uuid
+  id              String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  purchaseOrderId String                  @map("purchase_order_id") @db.Uuid
+  itemId          String?                 @map("item_id") @db.Uuid
   description     String
-  quantity        Decimal                   @db.Decimal(12, 3)
-  unitPrice       Decimal                   @map("unit_price") @db.Decimal(12, 2)
-  totalPrice      Decimal                   @map("total_price") @db.Decimal(12, 2)
-  receivedQty     Decimal                   @default(0) @map("received_qty") @db.Decimal(12, 3)
-  createdAt       DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  purchaseOrder   OperationsPurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  item            OperationsItem?           @relation(fields: [itemId], references: [id], onUpdate: NoAction)
+  quantity        Decimal                 @db.Decimal(12, 3)
+  unitPrice       Decimal                 @map("unit_price") @db.Decimal(12, 2)
+  totalPrice      Decimal                 @map("total_price") @db.Decimal(12, 2)
+  receivedQty     Decimal                 @default(0) @map("received_qty") @db.Decimal(12, 3)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  purchaseOrder   OperationsPurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  item            OperationsItem?         @relation(fields: [itemId], references: [id], onUpdate: NoAction)
 
   @@index([purchaseOrderId], map: "idx_operations_po_items_po")
   @@map("operations_purchase_order_items")
@@ -2664,44 +2662,44 @@ model OperationsContractorToken {
 }
 
 model OperationsWorkOrder {
-  id                      String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId          String                    @map("organization_id") @db.Uuid
-  projectId               String?                   @map("project_id") @db.Uuid
-  title                   String
-  description             String?
-  status                  String                    @default("NEW")
-  priority                String?                   @default("NORMAL")
-  createdByType           String                    @default("INTERNAL") @map("created_by_type")
-  createdByRef            String?                   @map("created_by_ref")
-  installationAddress     String?                   @map("installation_address")
-  addressNormalized       String?                   @map("address_normalized")
-  scheduledStart          DateTime?                 @map("scheduled_start") @db.Timestamptz(6)
-  scheduledEnd            DateTime?                 @map("scheduled_end") @db.Timestamptz(6)
-  createdAt               DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  assignedTechnicianId    String?                   @map("assigned_technician_id") @db.Uuid
-  installationLat         Float?                    @map("installation_lat")
-  installationLng         Float?                    @map("installation_lng")
-  stockSourceHolderId     String?                   @map("stock_source_holder_id") @db.Uuid
-  completionSignatureUrl  String?                   @map("completion_signature_url")
-  categoryId              String?                   @map("category_id") @db.Uuid
-  departmentId            String?                   @map("department_id") @db.Uuid
-  buildingId              String?                   @map("building_id") @db.Uuid
-  floor                   String?
-  unit                    String?
-  reporterName            String?                   @map("reporter_name")
-  reporterPhone           String?                   @map("reporter_phone")
-  slaDeadline             DateTime?                 @map("sla_deadline") @db.Timestamptz(6)
-  completedAt             DateTime?                 @map("completed_at") @db.Timestamptz(6)
-  transferredFromId       String?                   @map("transferred_from_id") @db.Uuid
-  transferApprovedById    String?                   @map("transfer_approved_by_id") @db.Uuid
-  aiSummary               String?                   @map("ai_summary")
-  organization            Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  project                 OperationsProject?        @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  category                OperationsCallCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  department              OperationsDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  building                OperationsBuilding?       @relation(fields: [buildingId], references: [id], onDelete: SetNull)
-  callMessages            OperationsCallMessage[]
+  id                     String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId         String                  @map("organization_id") @db.Uuid
+  projectId              String?                 @map("project_id") @db.Uuid
+  title                  String
+  description            String?
+  status                 String                  @default("NEW")
+  priority               String?                 @default("NORMAL")
+  createdByType          String                  @default("INTERNAL") @map("created_by_type")
+  createdByRef           String?                 @map("created_by_ref")
+  installationAddress    String?                 @map("installation_address")
+  addressNormalized      String?                 @map("address_normalized")
+  scheduledStart         DateTime?               @map("scheduled_start") @db.Timestamptz(6)
+  scheduledEnd           DateTime?               @map("scheduled_end") @db.Timestamptz(6)
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  assignedTechnicianId   String?                 @map("assigned_technician_id") @db.Uuid
+  installationLat        Float?                  @map("installation_lat")
+  installationLng        Float?                  @map("installation_lng")
+  stockSourceHolderId    String?                 @map("stock_source_holder_id") @db.Uuid
+  completionSignatureUrl String?                 @map("completion_signature_url")
+  categoryId             String?                 @map("category_id") @db.Uuid
+  departmentId           String?                 @map("department_id") @db.Uuid
+  buildingId             String?                 @map("building_id") @db.Uuid
+  floor                  String?
+  unit                   String?
+  reporterName           String?                 @map("reporter_name")
+  reporterPhone          String?                 @map("reporter_phone")
+  slaDeadline            DateTime?               @map("sla_deadline") @db.Timestamptz(6)
+  completedAt            DateTime?               @map("completed_at") @db.Timestamptz(6)
+  transferredFromId      String?                 @map("transferred_from_id") @db.Uuid
+  transferApprovedById   String?                 @map("transfer_approved_by_id") @db.Uuid
+  aiSummary              String?                 @map("ai_summary")
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  project                OperationsProject?      @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  category               OperationsCallCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  department             OperationsDepartment?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  building               OperationsBuilding?     @relation(fields: [buildingId], references: [id], onDelete: SetNull)
+  callMessages           OperationsCallMessage[]
 
   @@index([assignedTechnicianId], map: "idx_operations_work_orders_assigned_technician_id")
   @@index([organizationId], map: "idx_operations_work_orders_org")
@@ -2716,15 +2714,15 @@ model OperationsWorkOrder {
 }
 
 model OperationsBuilding {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
+  id             String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                @map("organization_id") @db.Uuid
   name           String
   address        String?
   floors         Int?
   notes          String?
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders     OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_buildings_org")
@@ -2732,16 +2730,16 @@ model OperationsBuilding {
 }
 
 model OperationsCallCategory {
-  id                 String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId     String               @map("organization_id") @db.Uuid
+  id                 String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId     String                @map("organization_id") @db.Uuid
   name               String
   color              String?
   icon               String?
-  maxResponseMinutes Int?                 @map("max_response_minutes")
-  sortOrder          Int                  @default(0) @map("sort_order")
-  isActive           Boolean              @default(true) @map("is_active")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  maxResponseMinutes Int?                  @map("max_response_minutes")
+  sortOrder          Int                   @default(0) @map("sort_order")
+  isActive           Boolean               @default(true) @map("is_active")
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders         OperationsWorkOrder[]
 
   @@index([organizationId], map: "idx_operations_call_categories_org")
@@ -2749,15 +2747,15 @@ model OperationsCallCategory {
 }
 
 model OperationsDepartment {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
+  id             String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                @map("organization_id") @db.Uuid
   name           String
   slug           String
   icon           String?
   color          String?
-  isActive       Boolean              @default(true) @map("is_active")
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  isActive       Boolean               @default(true) @map("is_active")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   workOrders     OperationsWorkOrder[]
 
   @@unique([organizationId, slug])
@@ -2766,18 +2764,18 @@ model OperationsDepartment {
 }
 
 model OperationsCallMessage {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  workOrderId    String               @map("work_order_id") @db.Uuid
-  authorId       String               @map("author_id") @db.Uuid
-  authorName     String               @map("author_name")
+  id             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  workOrderId    String              @map("work_order_id") @db.Uuid
+  authorId       String              @map("author_id") @db.Uuid
+  authorName     String              @map("author_name")
   content        String
-  attachmentUrl  String?              @map("attachment_url")
-  attachmentType String?              @map("attachment_type")
-  mentions       String[]             @default([])
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workOrder      OperationsWorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  attachmentUrl  String?             @map("attachment_url")
+  attachmentType String?             @map("attachment_type")
+  mentions       String[]            @default([])
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrder      OperationsWorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 
   @@index([workOrderId], map: "idx_operations_call_messages_wo")
   @@index([workOrderId, createdAt], map: "idx_operations_call_messages_wo_created")
@@ -2787,11 +2785,11 @@ model OperationsCallMessage {
 
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model organization_settings {
-  organization_id  String               @id @db.Uuid
-  ai_dna           Json                 @default("{}")
-  ai_sales_context Json?                @default("{}")
-  created_at       DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime             @default(now()) @db.Timestamptz(6)
+  organization_id  String       @id @db.Uuid
+  ai_dna           Json         @default("{}")
+  ai_sales_context Json?        @default("{}")
+  created_at       DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime     @default(now()) @db.Timestamptz(6)
   ai_quota_cents   BigInt?
   organizations    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -2842,8 +2840,8 @@ model OrganizationUser {
   allowed_modules          String[]                @default(["nexus", "client"])
   last_location_org        String?                 @map("last_org_slug")
   last_module              String?
-  Organization     Organization?   @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
-  owned_organizations      Organization[]  @relation("OrganizationOwner")
+  Organization             Organization?           @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
+  owned_organizations      Organization[]          @relation("OrganizationOwner")
   business_client_contacts BusinessClientContact[]
   customerRatings          CustomerRating[]
 
@@ -2896,22 +2894,22 @@ model platform_quotas {
 }
 
 model Profile {
-  id                      String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId          String               @map("organization_id") @db.Uuid
-  clerkUserId             String               @map("clerk_user_id")
+  id                      String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId          String       @map("organization_id") @db.Uuid
+  clerkUserId             String       @map("clerk_user_id")
   email                   String?
-  fullName                String?              @map("full_name")
-  avatarUrl               String?              @map("avatar_url")
+  fullName                String?      @map("full_name")
+  avatarUrl               String?      @map("avatar_url")
   phone                   String?
   location                String?
   bio                     String?
-  notificationPreferences Json                 @default("{}") @map("notification_preferences")
-  twoFactorEnabled        Boolean              @default(false) @map("two_factor_enabled")
-  uiPreferences           Json                 @default("{}") @map("ui_preferences")
-  socialProfile           Json                 @default("{}") @map("social_profile")
-  billingInfo             Json                 @default("{}") @map("billing_info")
-  createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  notificationPreferences Json         @default("{}") @map("notification_preferences")
+  twoFactorEnabled        Boolean      @default(false) @map("two_factor_enabled")
+  uiPreferences           Json         @default("{}") @map("ui_preferences")
+  socialProfile           Json         @default("{}") @map("social_profile")
+  billingInfo             Json         @default("{}") @map("billing_info")
+  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   role                    String?
   organization            Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
@@ -2960,7 +2958,6 @@ model MisradFeatureRequest {
 
   @@map("misrad_feature_requests")
 }
-
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model MisradIntegration {
@@ -3074,6 +3071,7 @@ model Organization {
   has_operations                   Boolean                            @default(false)
   is_shabbat_protected             Boolean                            @default(true)
   is_medical_exempt                Boolean                            @default(false)
+  social_plan                      String?                            @default("solo") @db.VarChar(20)
   billing_cycle                    String?
   billing_email                    String?
   payment_method_id                String?
@@ -3151,20 +3149,20 @@ model Organization {
   connectMarketplaceListings       ConnectMarketplaceListing[]
   workListings                     WorkListing[]
 
-
   // ──── Rescued from Production ────
-  system_calendar_events                                               SystemCalendarEvent[]
-  system_call_analyses                                                 SystemCallAnalysis[]
-  system_invoices                                                      SystemInvoice[]
-  system_lead_activities                                               SystemLeadActivity[]
-  system_lead_handovers                                                SystemLeadHandover[]
-  system_portal_approvals                                              SystemPortalApproval[]
-  system_portal_tasks                                                  SystemPortalTask[]
-  system_support_tickets                                               SystemSupportTicket[]
-  attendanceMonthlyReports                                             AttendanceMonthlyReport[]
-  attendanceSalaryConfig                                               AttendanceSalaryConfig?
-  botLeads                                                             BotLead[]
-  customerRatings                                                      CustomerRating[]
+  system_calendar_events   SystemCalendarEvent[]
+  system_call_analyses     SystemCallAnalysis[]
+  system_invoices          SystemInvoice[]
+  system_lead_activities   SystemLeadActivity[]
+  system_lead_handovers    SystemLeadHandover[]
+  system_portal_approvals  SystemPortalApproval[]
+  system_portal_tasks      SystemPortalTask[]
+  system_support_tickets   SystemSupportTicket[]
+  attendanceMonthlyReports AttendanceMonthlyReport[]
+  attendanceSalaryConfig   AttendanceSalaryConfig?
+  botLeads                 BotLead[]
+  customerRatings          CustomerRating[]
+
   @@index([owner_id])
   @@index([partnerId])
   @@map("organizations")
@@ -3253,36 +3251,120 @@ model SocialMediaCalendarEvent {
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([google_event_id, user_id], map: "calendar_events_google_event_id_user_id_key")
-
   @@map("socialmedia_calendar_events")
+}
+
+/// OAuth tokens for client social media accounts
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
+model ClientSocialToken {
+  id                  String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  clientId            String    @map("client_id") @db.Uuid
+  platform            String // 'facebook', 'instagram', 'linkedin', 'twitter', 'tiktok'
+  accessToken         String    @map("access_token") @db.Text
+  refreshToken        String?   @map("refresh_token") @db.Text
+  tokenType           String    @default("Bearer") @map("token_type")
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz(6)
+  scope               String?
+  platformUserId      String?   @map("platform_user_id") // Facebook User ID / Instagram Business Account ID
+  platformPageId      String?   @map("platform_page_id") // Facebook Page ID
+  platformPageName    String?   @map("platform_page_name")
+  platformAccountType String?   @map("platform_account_type") // 'page', 'profile', 'business', etc.
+  metadata            Json?
+  lastRefreshedAt     DateTime? @map("last_refreshed_at") @db.Timestamptz(6)
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([clientId, platform, platformPageId], map: "client_social_token_unique")
+  @@index([organizationId], map: "idx_client_social_tokens_org")
+  @@index([clientId], map: "idx_client_social_tokens_client")
+  @@index([platform], map: "idx_client_social_tokens_platform")
+  @@index([expiresAt], map: "idx_client_social_tokens_expires")
+  @@index([isActive], map: "idx_client_social_tokens_active")
+  @@map("client_social_tokens")
+}
+
+/// Published posts tracking with platform IDs
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
+model SocialMediaPublishedPost {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  postId          String    @map("post_id") @db.Uuid
+  clientId        String    @map("client_id") @db.Uuid
+  platform        String
+  platformPostId  String    @map("platform_post_id") // Facebook Post ID, Instagram Media ID, etc.
+  platformPostUrl String?   @map("platform_post_url")
+  publishedAt     DateTime  @map("published_at") @db.Timestamptz(6)
+  engagementData  Json?     @map("engagement_data") // { likes, comments, shares, impressions, reach }
+  lastSyncedAt    DateTime? @map("last_synced_at") @db.Timestamptz(6)
+  publishStatus   String    @default("success") @map("publish_status") // 'success', 'failed', 'pending'
+  errorMessage    String?   @map("error_message")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform], map: "published_post_unique")
+  @@index([organizationId], map: "idx_published_posts_org")
+  @@index([clientId], map: "idx_published_posts_client")
+  @@index([platform], map: "idx_published_posts_platform")
+  @@index([publishedAt], map: "idx_published_posts_published_at")
+  @@index([platformPostId], map: "idx_published_posts_platform_id")
+  @@map("socialmedia_published_posts")
+}
+
+/// Campaign to posts relationship
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
+model CampaignPost {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  campaignId String   @map("campaign_id") @db.Uuid
+  postId     String   @map("post_id") @db.Uuid
+  orderIndex Int      @default(0) @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  campaign SocialMediaCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  post     SocialPost          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, postId], map: "campaign_post_unique")
+  @@index([campaignId], map: "idx_campaign_posts_campaign")
+  @@index([postId], map: "idx_campaign_posts_post")
+  @@map("campaign_posts")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaCampaign {
-  id          String    @id(map: "campaigns_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  client_id   String    @db.Uuid
-  name        String
-  status      String?   @default("draft")
-  objective   String?   @default("awareness")
-  budget      Decimal   @db.Decimal(10, 2)
-  spent       Decimal?  @default(0) @db.Decimal(10, 2)
-  roas        Decimal?  @default(0) @db.Decimal(5, 2)
-  impressions Int?      @default(0)
-  clicks      Int?      @default(0)
-  created_at  DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  id             String    @id(map: "campaigns_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  client_id      String    @db.Uuid
+  name           String
+  description    String?
+  status         String?   @default("draft") // draft, active, paused, completed
+  objective      String?   @default("awareness")
+  budget         Decimal   @db.Decimal(10, 2)
+  spent          Decimal?  @default(0) @db.Decimal(10, 2)
+  roas           Decimal?  @default(0) @db.Decimal(5, 2)
+  impressions    Int?      @default(0)
+  clicks         Int?      @default(0)
+  start_date     DateTime? @map("start_date") @db.Timestamptz(6)
+  end_date       DateTime? @map("end_date") @db.Timestamptz(6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
+  posts CampaignPost[]
+
+  @@index([organizationId], map: "idx_campaigns_org_id")
   @@index([client_id], map: "idx_campaigns_client_id")
-
+  @@index([status], map: "idx_campaigns_status")
   @@map("socialmedia_campaigns")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model SocialMediaClient {
-  id                     String               @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  user_id                String?              @db.Uuid
+  id                     String       @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                String?      @db.Uuid
   name                   String
   company_name           String
   business_id            String?
@@ -3291,32 +3373,31 @@ model SocialMediaClient {
   avatar                 String?
   brand_voice            String?
   posting_rhythm         String?
-  status                 String?              @default("Onboarding")
+  status                 String?      @default("Onboarding")
   onboarding_status      String?
   invitation_token       String?
-  portal_token           String               @unique(map: "clients_portal_token_key")
+  portal_token           String       @unique(map: "clients_portal_token_key")
   color                  String?
   plan                   String?
-  monthly_fee            Decimal?             @db.Decimal(10, 2)
-  next_payment_date      DateTime?            @db.Date
-  next_payment_amount    Decimal?             @db.Decimal(10, 2)
+  monthly_fee            Decimal?     @db.Decimal(10, 2)
+  next_payment_date      DateTime?    @db.Date
+  next_payment_amount    Decimal?     @db.Decimal(10, 2)
   payment_status         String?
-  auto_reminders_enabled Boolean?             @default(false)
+  auto_reminders_enabled Boolean?     @default(false)
   saved_card_thumbnail   String?
   internal_notes         String?
-  created_at             DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime?            @default(now()) @db.Timestamptz(6)
-  deleted_at             DateTime?            @db.Timestamptz(6)
-  deleted_by             String?              @db.Uuid
-  organization_id        String               @db.Uuid
-  Organization   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
+  created_at             DateTime?    @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?    @default(now()) @db.Timestamptz(6)
+  deleted_at             DateTime?    @db.Timestamptz(6)
+  deleted_by             String?      @db.Uuid
+  organization_id        String       @db.Uuid
+  Organization           Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
 
   @@index([invitation_token], map: "clients_invitationToken_idx")
   @@index([organization_id], map: "clients_organization_id_idx")
   @@index([plan], map: "idx_clients_plan")
   @@index([status], map: "idx_clients_status")
   @@index([user_id], map: "idx_clients_user_id")
-
   @@map("socialmedia_clients")
 }
 
@@ -3345,7 +3426,6 @@ model SocialMediaClientDna {
   @@index([client_id], map: "idx_client_dna_client_id")
   @@index([vocabulary_forbidden], map: "idx_client_dna_vocabulary_forbidden", type: Gin)
   @@index([vocabulary_loved], map: "idx_client_dna_vocabulary_loved", type: Gin)
-
   @@map("socialmedia_client_dna")
 }
 
@@ -3356,7 +3436,6 @@ model SocialMediaClientPlatform {
   platform  String
 
   @@id([client_id, platform], map: "client_active_platforms_pkey")
-
   @@map("socialmedia_client_platforms")
 }
 
@@ -3379,7 +3458,6 @@ model SocialMediaClientRequest {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_client_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_client_requests_client_created_at")
   @@index([client_id], map: "idx_social_client_requests_client_id")
-
   @@map("socialmedia_client_requests")
 }
 
@@ -3404,7 +3482,6 @@ model SocialMediaConversation {
   @@index([client_id], map: "idx_conversations_client_id")
   @@index([client_id], map: "idx_social_conversations_client_id")
   @@index([client_id, updated_at(sort: Desc)], map: "idx_social_conversations_client_updated_at")
-
   @@map("socialmedia_conversations")
 }
 
@@ -3424,7 +3501,6 @@ model SocialMediaDriveFile {
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([google_file_id, user_id], map: "drive_files_google_file_id_user_id_key")
-
   @@map("socialmedia_drive_files")
 }
 
@@ -3458,7 +3534,6 @@ model SocialMediaIdea {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_ideas_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_ideas_client_created_at")
   @@index([client_id], map: "idx_social_ideas_client_id")
-
   @@map("socialmedia_ideas")
 }
 
@@ -3475,7 +3550,6 @@ model SocialMediaInvoice {
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([client_id], map: "idx_invoices_client_id")
-
   @@map("socialmedia_invoices")
 }
 
@@ -3498,7 +3572,6 @@ model SocialMediaManagerRequest {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_client_created_at")
   @@index([client_id], map: "idx_social_manager_requests_client_id")
-
   @@map("socialmedia_manager_requests")
 }
 
@@ -3516,7 +3589,6 @@ model SocialMediaMessage {
   @@index([organizationId], map: "idx_social_messages_organization_id")
   @@index([conversation_id], map: "idx_messages_conversation_id")
   @@index([organizationId, conversation_id, created_at], map: "idx_social_messages_org_conversation_created_at")
-
   @@map("socialmedia_messages")
 }
 
@@ -3533,7 +3605,6 @@ model SocialMediaPaymentOrder {
   updated_at           DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([client_id], map: "idx_payment_orders_client_id")
-
   @@map("socialmedia_payment_orders")
 }
 
@@ -3550,7 +3621,6 @@ model SocialMediaPlatformCredential {
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([client_id, platform], map: "platform_credentials_client_id_platform_key")
-
   @@map("socialmedia_platform_credentials")
 }
 
@@ -3567,7 +3637,6 @@ model SocialMediaPlatformQuota {
 
   @@unique([client_id, platform], map: "platform_quotas_client_id_platform_key")
   @@index([client_id], map: "idx_platform_quotas_client_id")
-
   @@map("socialmedia_platform_quotas")
 }
 
@@ -3584,7 +3653,6 @@ model SocialMediaPostComment {
 
   @@index([organizationId], map: "idx_social_post_comments_organization_id")
   @@index([organizationId, post_id], map: "idx_social_post_comments_org_post_id")
-
   @@map("socialmedia_post_comments")
 }
 
@@ -3599,7 +3667,6 @@ model SocialMediaPostPlatform {
   @@id([post_id, platform], map: "post_platforms_pkey")
   @@index([post_id], map: "idx_social_post_platforms_post_id")
   @@index([organizationId], map: "idx_social_post_platforms_organization_id")
-
   @@map("socialmedia_post_platforms")
 }
 
@@ -3615,7 +3682,6 @@ model SocialMediaPostVariation {
   social_posts     SocialPost @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "post_variations_post_id_fkey")
 
   @@index([organizationId], map: "idx_social_post_variations_organization_id")
-
   @@map("socialmedia_post_variations")
 }
 
@@ -3634,7 +3700,6 @@ model SocialMediaSheetsSyncConfig {
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([user_id, spreadsheet_id, sheet_name, sync_type], map: "sheets_sync_configs_user_id_spreadsheet_id_sheet_name_sync__key")
-
   @@map("socialmedia_sheets_sync_configs")
 }
 
@@ -3653,7 +3718,6 @@ model SocialMediaSiteContent {
   @@unique([page, section, key], map: "site_content_page_section_key_key")
   @@index([key], map: "idx_site_content_key")
   @@index([page, section], map: "idx_site_content_page_section")
-
   @@map("socialmedia_site_content")
 }
 
@@ -3696,7 +3760,6 @@ model SocialMediaTask {
   @@index([assigned_to], map: "idx_social_tasks_assigned_to")
   @@index([client_id], map: "idx_social_tasks_client_id")
   @@index([client_id, due_date], map: "idx_social_tasks_client_due_date")
-
   @@map("socialmedia_tasks")
 }
 
@@ -3718,6 +3781,8 @@ model SocialPost {
   postComments   SocialMediaPostComment[]
   postPlatforms  SocialMediaPostPlatform[]
   postVariations SocialMediaPostVariation[]
+  publishedPosts SocialMediaPublishedPost[]
+  campaignPosts  CampaignPost[]
 
   @@index([organizationId], map: "idx_social_posts_organization_id")
   @@index([clientId], map: "idx_social_posts_client_id")
@@ -3727,6 +3792,7 @@ model SocialPost {
   @@index([organizationId, status, createdAt(sort: Desc)], map: "idx_social_posts_org_status_created_at")
   @@index([clientId, createdAt(sort: Desc)], map: "idx_social_posts_client_created_at")
   @@index([clientId, scheduled_at], map: "idx_social_posts_client_scheduled_at")
+  @@index([scheduled_at], map: "idx_social_posts_scheduled_at")
   @@map("socialmedia_posts")
 }
 
@@ -3744,22 +3810,22 @@ model strategic_content {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscription_items {
-  id              String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  subscription_id String               @db.Uuid
-  organization_id String               @db.Uuid
+  id              String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  subscription_id String        @db.Uuid
+  organization_id String        @db.Uuid
   kind            String
   module_key      String?
-  quantity        Int                  @default(1)
-  status          String               @default("active")
-  unit_amount     Decimal?             @db.Decimal(10, 2)
-  currency        String?              @default("ILS")
-  start_at        DateTime?            @db.Timestamptz(6)
-  end_at          DateTime?            @db.Timestamptz(6)
-  created_at      DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime?            @default(now()) @db.Timestamptz(6)
+  quantity        Int           @default(1)
+  status          String        @default("active")
+  unit_amount     Decimal?      @db.Decimal(10, 2)
+  currency        String?       @default("ILS")
+  start_at        DateTime?     @db.Timestamptz(6)
+  end_at          DateTime?     @db.Timestamptz(6)
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?     @default(now()) @db.Timestamptz(6)
   metadata        Json?
-  organizations   Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  subscriptions   subscriptions        @relation(fields: [subscription_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   Organization  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions   subscriptions @relation(fields: [subscription_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([kind], map: "idx_subscription_items_kind")
   @@index([organization_id], map: "idx_subscription_items_org_id")
@@ -3770,34 +3836,34 @@ model subscription_items {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model subscription_orders {
-  id                      String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                      String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clerk_user_id           String?
-  social_user_id          String?               @db.Uuid
-  organization_id         String?               @db.Uuid
+  social_user_id          String?       @db.Uuid
+  organization_id         String?       @db.Uuid
   package_type            String?
   plan_key                String?
   billing_cycle           String
-  amount                  Decimal?              @default(0) @db.Decimal(10, 2)
-  amount_before_discount  Decimal?              @default(0) @db.Decimal(10, 2)
-  coupon_discount         Decimal?              @default(0) @db.Decimal(10, 2)
-  currency                String?               @default("ILS")
-  status                  String                @default("pending")
-  payment_method          String                @default("bit")
+  amount                  Decimal?      @default(0) @db.Decimal(10, 2)
+  amount_before_discount  Decimal?      @default(0) @db.Decimal(10, 2)
+  coupon_discount         Decimal?      @default(0) @db.Decimal(10, 2)
+  currency                String?       @default("ILS")
+  status                  String        @default("pending")
+  payment_method          String        @default("bit")
   customer_name           String?
   customer_email          String?
   customer_phone          String?
   bit_reference           String?
   bit_payment_link        String?
   bit_qr_url              String?
-  created_at              DateTime?             @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime?             @default(now()) @db.Timestamptz(6)
-  pending_verification_at DateTime?             @db.Timestamptz(6)
+  created_at              DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime?     @default(now()) @db.Timestamptz(6)
+  pending_verification_at DateTime?     @db.Timestamptz(6)
   proof_image_url         String?
   proof_image_path        String?
   seats                   Int?
-  coupon_id               String?               @db.Uuid
+  coupon_id               String?       @db.Uuid
   organizations           Organization? @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
-  coupon                  coupons?              @relation(fields: [coupon_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  coupon                  coupons?      @relation(fields: [coupon_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   coupon_redemptions coupon_redemptions[]
 
@@ -3838,7 +3904,7 @@ model subscriptions {
   billing_events       billing_events[]
   charges              charges[]
   subscription_items   subscription_items[]
-  organizations        Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations        Organization         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([organization_id], map: "idx_subscriptions_org_id")
   @@index([status], map: "idx_subscriptions_status")
@@ -3969,9 +4035,9 @@ model SystemCalendarEvent {
   updatedAt      DateTime?   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead           SystemLead? @relation(fields: [leadId], references: [id], onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([date], map: "idx_system_calendar_events_date")
   @@index([leadId], map: "idx_system_calendar_events_lead_id")
   @@index([organizationId], map: "idx_system_calendar_events_organization_id")
@@ -4000,9 +4066,9 @@ model SystemCallAnalysis {
   callAt         DateTime?   @map("call_at") @db.Timestamptz(6)
   lead           SystemLead? @relation(fields: [leadId], references: [id], onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([date], map: "idx_system_call_analyses_date")
   @@index([leadId], map: "idx_system_call_analyses_lead_id")
   @@index([organizationId], map: "idx_system_call_analyses_organization_id")
@@ -4094,9 +4160,9 @@ model SystemInvoice {
   updatedAt      DateTime?   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead           SystemLead? @relation(fields: [leadId], references: [id], onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([date], map: "idx_system_invoices_date")
   @@index([leadId], map: "idx_system_invoices_lead_id")
   @@index([organizationId], map: "idx_system_invoices_organization_id")
@@ -4145,7 +4211,7 @@ model SystemLead {
   activities                 SystemLeadActivity[]
   handover                   SystemLeadHandover?
   customerAccount            CustomerAccount?            @relation(fields: [customerAccountId], references: [id])
-  organization               Organization        @relation(fields: [organizationId], references: [id])
+  organization               Organization                @relation(fields: [organizationId], references: [id])
   portalApprovals            SystemPortalApproval[]
   portalTasks                SystemPortalTask[]
   supportTickets             SystemSupportTicket[]
@@ -4176,9 +4242,9 @@ model SystemLeadActivity {
   createdAt      DateTime?  @default(now()) @map("created_at") @db.Timestamptz(6)
   lead           SystemLead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([leadId], map: "idx_system_lead_activities_lead_id")
   @@index([organizationId], map: "idx_system_lead_activities_organization_id")
   @@index([timestamp], map: "idx_system_lead_activities_timestamp")
@@ -4186,13 +4252,13 @@ model SystemLeadActivity {
 }
 
 model SystemLeadCustomFieldDefinition {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  key            String               @map("key")
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  key            String       @map("key")
   label          String
-  kind           String               @default("string")
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  kind           String       @default("string")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
   @@unique([organizationId, key], map: "system_lead_custom_field_defs_org_key_key")
@@ -4212,9 +4278,9 @@ model SystemLeadHandover {
   updatedAt           DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead                SystemLead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([organizationId], map: "idx_system_lead_handovers_organization_id")
   @@map("system_lead_handovers")
 }
@@ -4239,16 +4305,16 @@ model SystemPartner {
 }
 
 model SystemPipelineStage {
-  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String               @map("organization_id") @db.Uuid
-  key            String               @map("key")
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  key            String       @map("key")
   label          String
   color          String?
   accent         String?
-  order          Int                  @default(0)
-  isActive       Boolean              @default(true) @map("is_active")
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  order          Int          @default(0)
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   organization   Organization @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
   @@unique([organizationId, key], map: "system_pipeline_stages_org_key_key")
@@ -4269,9 +4335,9 @@ model SystemPortalApproval {
   updatedAt      DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead           SystemLead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([leadId], map: "idx_system_portal_approvals_lead_id")
   @@index([organizationId], map: "idx_system_portal_approvals_organization_id")
   @@index([status], map: "idx_system_portal_approvals_status")
@@ -4290,9 +4356,9 @@ model SystemPortalTask {
   updatedAt      DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead           SystemLead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([leadId], map: "idx_system_portal_tasks_lead_id")
   @@index([organizationId], map: "idx_system_portal_tasks_organization_id")
   @@index([status], map: "idx_system_portal_tasks_status")
@@ -4328,9 +4394,9 @@ model SystemSupportTicket {
   updatedAt      DateTime?  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   lead           SystemLead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-
   // ──── Rescued from Production ────
-  organizations   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   @@index([category], map: "idx_system_support_tickets_category")
   @@index([leadId], map: "idx_system_support_tickets_lead_id")
   @@index([organizationId], map: "idx_system_support_tickets_organization_id")
@@ -4405,7 +4471,7 @@ model TeamMember {
   postComments            SocialMediaPostComment[]
   teamComments            TeamComment[]
   teamMemberClients       TeamMemberClient[]
-  Organization    Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
+  Organization            Organization             @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
 
   @@index([email], map: "idx_team_members_email")
   @@index([subscription_status], map: "idx_team_members_subscription_status")
@@ -4444,6 +4510,7 @@ model UserUpdateView {
 model WebhookConfig {
   id                String    @id(map: "webhook_configs_pkey") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   user_id           String?   @db.Uuid
+  organization_id   String?   @db.Uuid
   integration_name  String
   webhook_url       String
   secret_key        String?
@@ -4453,6 +4520,8 @@ model WebhookConfig {
   created_at        DateTime? @default(now()) @db.Timestamptz(6)
   updated_at        DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@index([organization_id], map: "idx_webhook_configs_org_id")
+  @@index([integration_name], map: "idx_webhook_configs_integration")
   @@map("webhook_configs")
 }
 
@@ -4477,22 +4546,22 @@ model WebPushSubscription {
 }
 
 model WorkListing {
-  id              String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  sourceOrgId     String               @map("source_org_id") @db.Uuid
-  sourceOrgSlug   String               @map("source_org_slug")
-  sourceUserId    String?              @map("source_user_id") @db.Uuid
-  leadId          String               @map("lead_id") @db.Uuid
-  channel         String               @default("LINK")
-  status          String               @default("ACTIVE")
+  id              String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sourceOrgId     String       @map("source_org_id") @db.Uuid
+  sourceOrgSlug   String       @map("source_org_slug")
+  sourceUserId    String?      @map("source_user_id") @db.Uuid
+  leadId          String       @map("lead_id") @db.Uuid
+  channel         String       @default("LINK")
+  status          String       @default("ACTIVE")
   title           String
-  targetGeo       String?              @map("target_geo")
-  price           Decimal?             @db.Decimal(10, 2)
-  interestedName  String?              @map("interested_name")
-  interestedPhone String?              @map("interested_phone")
-  interestedAt    DateTime?            @map("interested_at") @db.Timestamptz(6)
-  createdAt       DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lead            SystemLead           @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  targetGeo       String?      @map("target_geo")
+  price           Decimal?     @db.Decimal(10, 2)
+  interestedName  String?      @map("interested_name")
+  interestedPhone String?      @map("interested_phone")
+  interestedAt    DateTime?    @map("interested_at") @db.Timestamptz(6)
+  createdAt       DateTime?    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime?    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lead            SystemLead   @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   organization    Organization @relation(fields: [sourceOrgId], references: [id], onUpdate: NoAction)
 
   @@index([sourceOrgId], map: "idx_work_listings_source_org_id")
@@ -4571,7 +4640,7 @@ model BusinessClient {
   deleted_at DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   // Relations
-  organizations Organization[]  @relation("BusinessClientOrganizations")
+  organizations Organization[]          @relation("BusinessClientOrganizations")
   contacts      BusinessClientContact[]
 
   @@index([company_name])
@@ -4581,6 +4650,40 @@ model BusinessClient {
   @@index([deleted_at])
   @@index([business_number])
   @@map("business_clients")
+}
+
+model GlobalPromotion {
+  id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  // Promotion Details
+  title                String  @db.VarChar(255)
+  subtitle             String?
+  discount_percent     Int?
+  discount_amount_cents Int?
+
+  // Display Settings
+  badge_text       String? @db.VarChar(100)
+  cta_text         String? @db.VarChar(100)
+  urgency_message  String?
+
+  // Timing
+  starts_at  DateTime @default(now()) @db.Timestamptz(6)
+  expires_at DateTime @db.Timestamptz(6)
+
+  // Status
+  is_active          Boolean @default(true)
+  display_on_signup  Boolean @default(true)
+  display_on_pricing Boolean @default(true)
+
+  // Coupon Integration
+  coupon_code String? @db.VarChar(50)
+
+  // Metadata
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime @default(now()) @db.Timestamptz(6)
+  created_by_clerk_id String? @db.VarChar(255)
+
+  @@map("global_promotion")
 }
 
 model BusinessClientContact {
@@ -4644,15 +4747,15 @@ enum MisradSalesTeamMemberRole {
 }
 
 model MisradSalesTeam {
-  id              String                    @id @default(uuid()) @db.Uuid
-  organization_id String                    @db.Uuid
+  id              String                  @id @default(uuid()) @db.Uuid
+  organization_id String                  @db.Uuid
   name            String
   description     String?
-  color           String?                   @default("#6366f1")
-  target_monthly  Int?                      @default(0)
-  is_active       Boolean                   @default(true)
-  created_at      DateTime                  @default(now())
-  updated_at      DateTime                  @updatedAt
+  color           String?                 @default("#6366f1")
+  target_monthly  Int?                    @default(0)
+  is_active       Boolean                 @default(true)
+  created_at      DateTime                @default(now())
+  updated_at      DateTime                @updatedAt
   members         MisradSalesTeamMember[]
 
   @@index([organization_id])
@@ -4700,14 +4803,14 @@ enum MisradFieldVisitStatus {
 }
 
 model MisradFieldTeam {
-  id              String              @id @default(uuid()) @db.Uuid
-  organization_id String              @db.Uuid
+  id              String             @id @default(uuid()) @db.Uuid
+  organization_id String             @db.Uuid
   name            String
   area            String?
-  color           String?             @default("#f43f5e")
-  is_active       Boolean             @default(true)
-  created_at      DateTime            @default(now())
-  updated_at      DateTime            @updatedAt
+  color           String?            @default("#f43f5e")
+  is_active       Boolean            @default(true)
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
   agents          MisradFieldAgent[]
 
   @@index([organization_id])
@@ -4716,23 +4819,23 @@ model MisradFieldTeam {
 }
 
 model MisradFieldAgent {
-  id              String                 @id @default(uuid()) @db.Uuid
-  organization_id String                 @db.Uuid
-  team_id         String?                @db.Uuid
-  user_id         String?                @db.Uuid
-  name            String
-  phone           String?
-  avatar          String?
-  area            String?
-  status          MisradFieldAgentStatus @default(AVAILABLE)
-  lat             Float?
-  lng             Float?
+  id               String                 @id @default(uuid()) @db.Uuid
+  organization_id  String                 @db.Uuid
+  team_id          String?                @db.Uuid
+  user_id          String?                @db.Uuid
+  name             String
+  phone            String?
+  avatar           String?
+  area             String?
+  status           MisradFieldAgentStatus @default(AVAILABLE)
+  lat              Float?
+  lng              Float?
   last_location_at DateTime?
-  is_active       Boolean                @default(true)
-  created_at      DateTime               @default(now())
-  updated_at      DateTime               @updatedAt
-  team            MisradFieldTeam?       @relation(fields: [team_id], references: [id], onDelete: SetNull)
-  visits          MisradFieldVisit[]
+  is_active        Boolean                @default(true)
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+  team             MisradFieldTeam?       @relation(fields: [team_id], references: [id], onDelete: SetNull)
+  visits           MisradFieldVisit[]
 
   @@index([organization_id])
   @@index([team_id])
@@ -4741,9 +4844,9 @@ model MisradFieldAgent {
 }
 
 model MisradFieldVisit {
-  id              String                  @id @default(uuid()) @db.Uuid
-  organization_id String                  @db.Uuid
-  agent_id        String                  @db.Uuid
+  id              String                 @id @default(uuid()) @db.Uuid
+  organization_id String                 @db.Uuid
+  agent_id        String                 @db.Uuid
   client_name     String
   address         String?
   lat             Float?
@@ -4751,11 +4854,11 @@ model MisradFieldVisit {
   scheduled_at    DateTime
   started_at      DateTime?
   completed_at    DateTime?
-  status          MisradFieldVisitStatus  @default(UPCOMING)
+  status          MisradFieldVisitStatus @default(UPCOMING)
   notes           String?
-  created_at      DateTime                @default(now())
-  updated_at      DateTime                @updatedAt
-  agent           MisradFieldAgent        @relation(fields: [agent_id], references: [id], onDelete: Cascade)
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+  agent           MisradFieldAgent       @relation(fields: [agent_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
   @@index([agent_id])
@@ -4778,8 +4881,8 @@ enum BotLeadStatus {
 }
 
 model BotLead {
-  id               String          @id @default(cuid())
-  phone            String          @unique
+  id               String            @id @default(cuid())
+  phone            String            @unique
   name             String?
   business_name    String?
   email            String?
@@ -4788,14 +4891,14 @@ model BotLead {
   pain_point       String?
   selected_plan    String?
   source           String?
-  status           BotLeadStatus   @default(new)
-  score            Int             @default(0)
-  last_interaction DateTime        @default(now())
-  created_at       DateTime        @default(now())
-  updated_at       DateTime        @updatedAt
+  status           BotLeadStatus     @default(new)
+  score            Int               @default(0)
+  last_interaction DateTime          @default(now())
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
   conversations    BotConversation[]
-  organization_id  String?         @db.Uuid
-  organization     Organization?   @relation(fields: [organization_id], references: [id])
+  organization_id  String?           @db.Uuid
+  organization     Organization?     @relation(fields: [organization_id], references: [id])
 
   @@index([status])
   @@index([created_at])
@@ -4823,27 +4926,27 @@ model BotConversation {
 // ═══════════════════════════════════════════════════════════════════
 
 model SiteAnalyticsSession {
-  id              String   @id @default(cuid())
-  visitor_id      String
-  referrer        String?
-  utm_source      String?
-  utm_medium      String?
-  utm_campaign    String?
-  device_type     String?
-  browser         String?
-  os              String?
-  country         String?
-  city            String?
-  landing_page    String?
-  signup_user_id  String?
-  signed_up_at    DateTime? @db.Timestamptz(6)
-  total_pages     Int       @default(0)
-  total_duration_ms Int     @default(0)
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  id                String    @id @default(cuid())
+  visitor_id        String
+  referrer          String?
+  utm_source        String?
+  utm_medium        String?
+  utm_campaign      String?
+  device_type       String?
+  browser           String?
+  os                String?
+  country           String?
+  city              String?
+  landing_page      String?
+  signup_user_id    String?
+  signed_up_at      DateTime? @db.Timestamptz(6)
+  total_pages       Int       @default(0)
+  total_duration_ms Int       @default(0)
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
-  page_views      SiteAnalyticsPageView[]
-  events          SiteAnalyticsEvent[]
+  page_views SiteAnalyticsPageView[]
+  events     SiteAnalyticsEvent[]
 
   @@index([visitor_id])
   @@index([created_at])
@@ -4854,16 +4957,16 @@ model SiteAnalyticsSession {
 }
 
 model SiteAnalyticsPageView {
-  id                String   @id @default(cuid())
-  session_id        String
-  session           SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  path              String
-  title             String?
-  referrer_page     String?
-  time_on_page_ms   Int      @default(0)
-  max_scroll_pct    Int      @default(0)
-  entered_at        DateTime @default(now()) @db.Timestamptz(6)
-  left_at           DateTime? @db.Timestamptz(6)
+  id              String               @id @default(cuid())
+  session_id      String
+  session         SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  path            String
+  title           String?
+  referrer_page   String?
+  time_on_page_ms Int                  @default(0)
+  max_scroll_pct  Int                  @default(0)
+  entered_at      DateTime             @default(now()) @db.Timestamptz(6)
+  left_at         DateTime?            @db.Timestamptz(6)
 
   @@index([session_id])
   @@index([path])
@@ -4872,13 +4975,13 @@ model SiteAnalyticsPageView {
 }
 
 model SiteAnalyticsEvent {
-  id          String   @id @default(cuid())
-  session_id  String
-  session     SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  event_type  String
-  event_data  Json?
-  page_path   String?
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  id         String               @id @default(cuid())
+  session_id String
+  session    SiteAnalyticsSession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  event_type String
+  event_data Json?
+  page_path  String?
+  created_at DateTime             @default(now()) @db.Timestamptz(6)
 
   @@index([session_id])
   @@index([event_type])
@@ -4891,17 +4994,17 @@ model SiteAnalyticsEvent {
 // ═══════════════════════════════════════════════════════════════════
 
 model CustomerRating {
-  id              String    @id @default(cuid())
-  organization_id String    @db.Uuid
-  user_id         String    @db.Uuid
-  rating          Int       // 1-5 stars
-  feedback        String?   // Optional text feedback
-  google_clicked  Boolean   @default(false)
-  source          String    @default("in_app") // in_app | email | direct
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  id              String   @id @default(cuid())
+  organization_id String   @db.Uuid
+  user_id         String   @db.Uuid
+  rating          Int // 1-5 stars
+  feedback        String? // Optional text feedback
+  google_clicked  Boolean  @default(false)
+  source          String   @default("in_app") // in_app | email | direct
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
 
-  organization    Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  user            OrganizationUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  user         OrganizationUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([organization_id, user_id])
   @@index([organization_id])
@@ -4910,14 +5013,14 @@ model CustomerRating {
 }
 
 model EmailSentLog {
-  id              String    @id @default(cuid())
-  email_type_id   String    // matches EMAIL_CATALOG id
+  id              String   @id @default(cuid())
+  email_type_id   String // matches EMAIL_CATALOG id
   recipient_email String
-  organization_id String?   @db.Uuid
-  user_id         String?   @db.Uuid
-  status          String    @default("sent") // sent | failed | bounced
-  metadata        Json?     @default("{}")
-  sent_at         DateTime  @default(now()) @db.Timestamptz(6)
+  organization_id String?  @db.Uuid
+  user_id         String?  @db.Uuid
+  status          String   @default("sent") // sent | failed | bounced
+  metadata        Json?    @default("{}")
+  sent_at         DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([email_type_id])
   @@index([organization_id])
@@ -4941,4 +5044,19 @@ model notifications {
   target_id   String?
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   read_at     DateTime? @db.Timestamptz(6)
+}
+
+/// Marketing strategies generated by AI for Social module clients
+model ClientMarketingStrategy {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId        String   @map("client_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  strategyData    Json     @map("strategy_data")
+  profileData     Json     @map("profile_data")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@index([clientId], map: "idx_cms_client")
+  @@index([organizationId], map: "idx_cms_org")
+  @@map("client_marketing_strategy")
 }

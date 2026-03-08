@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
 import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, UserCog, Pencil, Banknote, Ticket, TimerReset, RefreshCw, Loader2, AlertTriangle, Trash2, RotateCcw, Archive, ShieldAlert, ShieldCheck, UserX, Pause } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
@@ -131,11 +132,14 @@ function getStatusConfig(status: string) {
 }
 
 export default function BusinessClientsClient({ initialClients }: { initialClients?: BusinessClient[] }) {
+  const router = useRouter();
   const [clients, setClients] = useState<BusinessClient[]>(initialClients ?? []);
   const [loading, setLoading] = useState(!initialClients?.length);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'created' | 'orgs'>('created');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [selectedClientForContact, setSelectedClientForContact] = useState<BusinessClient | null>(null);
   const [selectedClientForOrg, setSelectedClientForOrg] = useState<BusinessClient | null>(null);
@@ -193,6 +197,14 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
   const handleSearch = () => {
     loadClients();
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    loadClients();
+  };
+
+  const activeFiltersCount = (searchTerm ? 1 : 0) + (statusFilter ? 1 : 0);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -391,6 +403,27 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
     return client.contacts.find((c) => c.is_primary) || client.contacts[0];
   };
 
+  // Sort clients based on sortBy and sortOrder
+  const sortedClients = [...clients].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case 'name':
+        comparison = a.company_name.localeCompare(b.company_name, 'he');
+        break;
+      case 'created':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+      case 'orgs':
+        comparison = a.organizations.length - b.organizations.length;
+        break;
+      default:
+        comparison = 0;
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -493,39 +526,130 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters & Sort */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="חיפוש לפי שם חברה, מייל, ח.פ..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="pr-10 h-11 text-right"
-              dir="rtl"
-            />
+        <div className="flex flex-col gap-4">
+          {/* Search & Filter Row */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="חיפוש לפי שם חברה, מייל, ח.פ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="pr-10 h-11 text-right"
+                dir="rtl"
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="relative">
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={(val) => {
+                    setStatusFilter(val);
+                    setTimeout(loadClients, 100);
+                  }}
+                  placeholder="כל הסטטוסים"
+                  options={[
+                    { value: 'active', label: 'פעיל' },
+                    { value: 'inactive', label: 'לא פעיל' },
+                    { value: 'churned', label: 'עזב' },
+                    { value: 'suspended', label: 'מושעה (חוב)' },
+                  ]}
+                />
+                {statusFilter && (
+                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                    1
+                  </span>
+                )}
+              </div>
+              <Button onClick={handleSearch} variant="outline" className="h-11 relative">
+                <Filter className="w-4 h-4 ml-2" />
+                <span className="hidden sm:inline">חפש</span>
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -left-1 bg-blue-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+              {activeFiltersCount > 0 && (
+                <Button onClick={clearFilters} variant="ghost" className="h-11 text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <span className="text-sm">נקה</span>
+                </Button>
+              )}
+            </div>
           </div>
-          <CustomSelect
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val);
-              setTimeout(loadClients, 100);
-            }}
-            placeholder="כל הסטטוסים"
-            options={[
-              { value: 'active', label: 'פעיל' },
-              { value: 'inactive', label: 'לא פעיל' },
-              { value: 'churned', label: 'עזב' },
-              { value: 'suspended', label: 'מושעה (חוב)' },
-            ]}
-          />
-          <Button onClick={handleSearch} variant="outline" className="h-11">
-            <Filter className="w-4 h-4 ml-2" />
-            חפש
-          </Button>
+
+          {/* Active Filters Display */}
+          {activeFiltersCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-600">סינונים פעילים:</span>
+              {searchTerm && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                  <Search className="w-3 h-3" />
+                  {searchTerm}
+                  <button onClick={() => { setSearchTerm(''); loadClients(); }} className="hover:bg-blue-100 rounded p-0.5">
+                    <span className="text-blue-600">✕</span>
+                  </button>
+                </span>
+              )}
+              {statusFilter && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                  <Filter className="w-3 h-3" />
+                  {statusFilter === 'active' ? 'פעיל' : statusFilter === 'inactive' ? 'לא פעיל' : statusFilter === 'churned' ? 'עזב' : 'מושעה'}
+                  <button onClick={() => { setStatusFilter(''); loadClients(); }} className="hover:bg-blue-100 rounded p-0.5">
+                    <span className="text-blue-600">✕</span>
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+          
+          {/* Sort Options */}
+          <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+            <span className="text-xs font-bold text-slate-600">מיון לפי:</span>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setSortBy('created')}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  sortBy === 'created'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                תאריך יצירה
+              </button>
+              <button
+                onClick={() => setSortBy('name')}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  sortBy === 'name'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                שם
+              </button>
+              <button
+                onClick={() => setSortBy('orgs')}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  sortBy === 'orgs'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                מספר ארגונים
+              </button>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="text-xs px-3 py-1.5 rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-all"
+                title={sortOrder === 'asc' ? 'סדר עולה' : 'סדר יורד'}
+              >
+                {sortOrder === 'asc' ? '↑ עולה' : '↓ יורד'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -613,7 +737,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
             </div>
           </div>
         ) : (
-          clients.map((client) => {
+          sortedClients.map((client) => {
             const isExpanded = expandedClientId === client.id;
             const primary = primaryContact(client);
 
@@ -905,7 +1029,7 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                                     variant="outline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      window.location.href = `/app/admin/organizations/${String(o.id || '')}`;
+                                      router.push(`/app/admin/organizations/${String(o.id || '')}`);
                                     }}
                                     className="text-xs"
                                   >

@@ -32,16 +32,16 @@ export default async function FinanceOverviewPage({
     hasPermission('view_financials'),
   ]);
 
-  let initialFinanceOverview: FinanceOverviewData | null = null;
-  if (canViewFinancials) {
-    initialFinanceOverview = await getFinanceOverviewData({
-      organizationId: workspace.id,
-      dateRange: {
-        from: from.toISOString().split('T')[0],
-        to: to.toISOString().split('T')[0],
-      },
-    });
-  }
+  // Optimized: fetch finance data immediately if permission granted (parallel concept)
+  const initialFinanceOverview: FinanceOverviewData | null = canViewFinancials
+    ? await getFinanceOverviewData({
+        organizationId: workspace.id,
+        dateRange: {
+          from: from.toISOString().split('T')[0],
+          to: to.toISOString().split('T')[0],
+        },
+      })
+    : null;
 
   return (
     <OverviewView

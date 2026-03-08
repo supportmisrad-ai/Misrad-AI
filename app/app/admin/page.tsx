@@ -108,35 +108,7 @@ export default async function AdminDashboardPage() {
         <p className="text-slate-600 text-base md:text-xl">בחר סביבת עבודה או צפה בנתונים חיים</p>
       </div>
 
-      <div className="bg-gradient-to-l from-indigo-950 to-slate-900 rounded-3xl p-5 md:p-6 shadow-2xl border border-indigo-800/30 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 backdrop-blur-sm border border-indigo-500/30 flex items-center justify-center shrink-0">
-            <Fingerprint className="h-7 w-7 text-indigo-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-base font-black text-white">MISRAD AI Admin APK</div>
-            <div className="text-xs font-bold text-indigo-300 mt-1">
-              אפליקציית ניהול-על לאנדרואיד עם אימות טביעת אצבע, עדכון אוטומטי והתראות Push.
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <a
-              href="/api/download/admin-android"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-colors shadow-lg shadow-indigo-600/30"
-            >
-              <Smartphone size={16} />
-              הורד APK
-            </a>
-            <Link
-              href="/app/admin/global/downloads"
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-colors border border-white/10"
-            >
-              הגדרות
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* APK Download - Moved to /app/admin/global/downloads */}
 
       {!res.success ? (
         <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">

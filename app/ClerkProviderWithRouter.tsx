@@ -30,6 +30,13 @@ export function ClerkProviderWithRouter({
   const finalSignUpFallbackRedirectUrl =
     signUpFallbackRedirectUrl != null ? signUpFallbackRedirectUrl : undefined;
 
+  // CRITICAL: proxyUrl must match middleware.ts config to prevent auth loops
+  // When using a custom domain (e.g., clerk.misrad-ai.com), sessions created via
+  // the proxy will not be recognized server-side without this setting
+  const proxyUrl = typeof window !== 'undefined'
+    ? process.env.NEXT_PUBLIC_CLERK_PROXY_URL || undefined
+    : undefined;
+
   return (
     <ClerkProvider
       publishableKey={publishableKey}
@@ -37,6 +44,7 @@ export function ClerkProviderWithRouter({
       signUpUrl={signUpUrl}
       signInFallbackRedirectUrl={finalSignInFallbackRedirectUrl}
       signUpFallbackRedirectUrl={finalSignUpFallbackRedirectUrl}
+      proxyUrl={proxyUrl}
       routerPush={(to) => router.push(to)}
       routerReplace={(to) => router.replace(to)}
     >

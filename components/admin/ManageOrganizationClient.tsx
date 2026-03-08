@@ -16,11 +16,15 @@ import {
   Calendar,
   CircleAlert,
   CircleCheckBig,
+  CheckCircle2,
   Building2,
   Mail,
   Phone,
   Globe,
   MapPin,
+  Tag,
+  Send,
+  Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +44,9 @@ import {
   softDeleteOrganization,
 } from '@/app/actions/manage-organization';
 import { generatePaymentLink, adjustBalanceManually, getOrganizationInvoices, createOrganizationInvoice, type AdminInvoice } from '@/app/actions/app-billing';
+import { generateBusinessClientMagicLink } from '@/app/actions/business-client-auth';
+import { sendBusinessClientMagicLinkEmail } from '@/lib/email/send-business-client-magic-link';
+import ApplyCouponModal from '@/components/admin/ApplyCouponModal';
 
 type Tab = 'settings' | 'package' | 'users' | 'billing' | 'business_client';
 
@@ -149,6 +156,13 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
   const [invoicesLoading, setInvoicesLoading] = useState(false);
   const [invoicesLoaded, setInvoicesLoaded] = useState(false);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
+
+  // Coupon Application
+  const [showApplyCouponModal, setShowApplyCouponModal] = useState(false);
+
+  // Magic Link
+  const [generatingMagicLink, setGeneratingMagicLink] = useState(false);
+  const [magicLinkGenerated, setMagicLinkGenerated] = useState<string | null>(null);
 
   // Tab 5: Business Client Details
   const [businessClientData, setBusinessClientData] = useState({
@@ -610,7 +624,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                 </Button>
 
                 {/* Deactivate / Reactivate Organization Section */}
-                <div className="mt-12 pt-8 border-t-2 border-slate-200">
+                <div className="mt-12 pt-8 border-t border-slate-200">
                   {initialData.subscription_status === 'cancelled' ? (
                     <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl space-y-4">
                       <div className="flex items-start gap-4">
@@ -739,6 +753,53 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
                 <div className="space-y-4 pt-4 border-t border-slate-200">
                   <h4 className="font-bold text-slate-900">מודולים פעילים</h4>
+                  
+                  {/* SOLO Package Warning */}
+                  {packageData.subscription_plan === 'solo' && (() => {
+                    const activeModules = [
+                      packageData.has_nexus,
+                      packageData.has_social,
+                      packageData.has_finance,
+                      packageData.has_client,
+                      packageData.has_operations
+                    ].filter(Boolean).length;
+                    
+                    if (activeModules > 1) {
+                      return (
+                        <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <CircleAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-bold text-sm text-red-900">⚠️ שגיאה: יותר מדי מודולים</div>
+                              <div className="text-xs text-red-700 mt-1">
+                                חבילת "מודול בודד" (149₪) מוגבלת למודול אחד בלבד.
+                                <br />
+                                <strong>כרגע פעילים {activeModules} מודולים</strong> - זה לא תקין!
+                                <br />
+                                בחר מודול אחד בלבד או שדרג לחבילה אחרת.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else if (activeModules === 1) {
+                      return (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <CircleCheckBig className="w-4 h-4 text-green-600" />
+                            <span className="text-xs font-bold text-green-800">✓ חבילת מודול בודד מוגדרת נכון</span>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="text-xs font-bold text-amber-800">⚡ בחר מודול אחד להפעלה</div>
+                        </div>
+                      );
+                    }
+                  })()}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                       { key: 'has_nexus', label: '📋 Nexus (משימות)', color: 'blue' },
@@ -746,20 +807,45 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                       { key: 'has_finance', label: '💰 Finance (כספים)', color: 'green' },
                       { key: 'has_client', label: '👥 Client (ניהול לקוחות)', color: 'orange' },
                       { key: 'has_operations', label: '🔧 Operations (תפעול)', color: 'red' },
-                    ].map((module) => (
-                      <label
-                        key={module.key}
-                        className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={packageData[module.key as keyof typeof packageData] as boolean}
-                          onCheckedChange={(checked) =>
-                            setPackageData({ ...packageData, [module.key]: checked })
-                          }
-                        />
-                        <span className="text-sm font-medium text-slate-900">{module.label}</span>
-                      </label>
-                    ))}
+                    ].map((module) => {
+                      const isChecked = packageData[module.key as keyof typeof packageData] as boolean;
+                      const isSoloPlan = packageData.subscription_plan === 'solo';
+                      const activeModulesCount = [
+                        packageData.has_nexus,
+                        packageData.has_social,
+                        packageData.has_finance,
+                        packageData.has_client,
+                        packageData.has_operations
+                      ].filter(Boolean).length;
+                      
+                      // Disable other modules if SOLO and one is already selected
+                      const isDisabled = isSoloPlan && !isChecked && activeModulesCount >= 1;
+                      
+                      return (
+                        <label
+                          key={module.key}
+                          className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
+                            isDisabled
+                              ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
+                              : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                          } ${isChecked && isSoloPlan ? 'border-blue-300 bg-blue-50' : ''}`}
+                        >
+                          <Checkbox
+                            checked={isChecked}
+                            disabled={isDisabled}
+                            onCheckedChange={(checked) =>
+                              setPackageData({ ...packageData, [module.key]: checked })
+                            }
+                          />
+                          <span className={`text-sm font-medium ${
+                            isDisabled ? 'text-slate-400' : 'text-slate-900'
+                          }`}>{module.label}</span>
+                          {isChecked && isSoloPlan && (
+                            <span className="mr-auto text-xs font-bold text-blue-600">✓ נבחר</span>
+                          )}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1223,19 +1309,122 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   </div>
                 </div>
 
-                {/* Subscription Status */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-600 mb-1">סטטוס מנוי</p>
-                    <p className="font-bold text-slate-900">
-                      {initialData.subscription_status === 'trial' && '🔄 ניסיון'}
+                {/* Subscription Status & Seats - Enhanced */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Subscription Status */}
+                  <div className={`p-5 border-2 rounded-xl ${
+                    initialData.subscription_status === 'active'
+                      ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300'
+                      : initialData.subscription_status === 'trial'
+                      ? 'bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-300'
+                      : initialData.subscription_status === 'cancelled'
+                      ? 'bg-gradient-to-br from-red-50 to-rose-50 border-red-300'
+                      : 'bg-white border-slate-200'
+                  }`}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`p-2 rounded-lg ${
+                        initialData.subscription_status === 'active'
+                          ? 'bg-green-100'
+                          : initialData.subscription_status === 'trial'
+                          ? 'bg-blue-100'
+                          : 'bg-red-100'
+                      }`}>
+                        {initialData.subscription_status === 'active' && <CircleCheckBig className="w-5 h-5 text-green-600" />}
+                        {initialData.subscription_status === 'trial' && <Calendar className="w-5 h-5 text-blue-600" />}
+                        {initialData.subscription_status === 'cancelled' && <CircleAlert className="w-5 h-5 text-red-600" />}
+                        {!initialData.subscription_status && <CircleAlert className="w-5 h-5 text-slate-400" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-600">סטטוס מנוי</p>
+                      </div>
+                    </div>
+                    <p className={`text-2xl font-black ${
+                      initialData.subscription_status === 'active'
+                        ? 'text-green-700'
+                        : initialData.subscription_status === 'trial'
+                        ? 'text-blue-700'
+                        : initialData.subscription_status === 'cancelled'
+                        ? 'text-red-700'
+                        : 'text-slate-400'
+                    }`}>
+                      {initialData.subscription_status === 'trial' && '🔄 תקופת ניסיון'}
                       {initialData.subscription_status === 'active' && '✅ פעיל'}
                       {initialData.subscription_status === 'cancelled' && '❌ מבוטל'}
+                      {!initialData.subscription_status && '⚠️ לא מוגדר'}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-2">
+                      {initialData.subscription_status === 'active' && 'המנוי פעיל והתשלומים מסודרים'}
+                      {initialData.subscription_status === 'trial' && 'הלקוח בתקופת ניסיון חינמית'}
+                      {initialData.subscription_status === 'cancelled' && 'המנוי בוטל - אין גישה למערכת'}
+                      {!initialData.subscription_status && 'יש להגדיר סטטוס מנוי בטאב חבילה'}
                     </p>
                   </div>
-                  <div className="p-4 bg-white border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-600 mb-1">מקומות מאושרים</p>
-                    <p className="font-bold text-slate-900">{initialData.seats_allowed}</p>
+
+                  {/* Seats Allowed */}
+                  <div className="p-5 bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-violet-300 rounded-xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 rounded-lg bg-violet-100">
+                        <Users className="w-5 h-5 text-violet-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-600">מקומות מאושרים (Seats)</p>
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-4xl font-black text-violet-700">
+                        {initialData.seats_allowed || 1}
+                      </p>
+                      <span className="text-lg text-violet-600 font-bold">👥</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-600">
+                        פעילים כרגע: <span className="font-bold text-violet-700">{initialData.organizationUsers?.length || 0}</span>
+                      </p>
+                      {initialData.organizationUsers && initialData.seats_allowed && initialData.organizationUsers.length > initialData.seats_allowed && (
+                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+                          ⚠️ חריגה
+                        </span>
+                      )}
+                      {initialData.organizationUsers && initialData.seats_allowed && initialData.organizationUsers.length <= initialData.seats_allowed && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">
+                          ✓ בגבול
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Apply Coupon Section */}
+                <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-purple-100">
+                      <Tag className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-black text-slate-900 mb-2">החלת קופון הנחה</h4>
+                      <p className="text-sm text-slate-600 mb-4">
+                        החל קופון הנחה על הארגון - ההנחה תיוושם אוטומטית ב-MRR
+                      </p>
+                      {initialData.discount_percent && (
+                        <div className="mb-4 p-3 bg-white border border-purple-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-bold text-slate-900">קופון פעיל</span>
+                          </div>
+                          <p className="text-xs text-slate-600">
+                            הנחה של <span className="font-bold text-purple-700">{initialData.discount_percent}%</span> מוחלת כרגע
+                          </p>
+                        </div>
+                      )}
+                      <Button
+                        onClick={() => setShowApplyCouponModal(true)}
+                        variant="outline"
+                        className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                      >
+                        <Tag className="w-4 h-4 ml-2" />
+                        {initialData.discount_percent ? 'שנה קופון' : 'החל קופון'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -1402,6 +1591,22 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Apply Coupon Modal */}
+      {showApplyCouponModal && (
+        <ApplyCouponModal
+          isOpen={showApplyCouponModal}
+          organizationId={initialData.id}
+          organizationName={initialData.name}
+          currentMRR={initialData.mrr ? parseFloat(initialData.mrr) : 0}
+          onClose={() => setShowApplyCouponModal(false)}
+          onSuccess={() => {
+            setShowApplyCouponModal(false);
+            showMessage('success', 'קופון הוחל בהצלחה!');
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

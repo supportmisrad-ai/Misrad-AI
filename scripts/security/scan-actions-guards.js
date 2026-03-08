@@ -8,6 +8,8 @@ const EXCLUDED_PREFIXES = [];
 const CANDIDATE_APPROVED = new Set([
   // Add explicit exceptions here (action file paths) when a candidate is accepted by design.
   'app/actions/social-users.ts',
+  'app/actions/business-client-billing.ts', // Protected via verifyBusinessClientToken in calling page
+  'app/actions/client-tokens.ts', // Protected via requireOrganizationId(orgSlug) in each function
 ]);
 
 function rel(p) {

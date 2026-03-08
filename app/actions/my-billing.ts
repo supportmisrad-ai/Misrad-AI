@@ -3,12 +3,13 @@
 /**
  * My Billing Actions
  * Server Actions for the organization billing portal (/w/[orgSlug]/billing)
- * Allows org members to view their invoices, payment history, and subscription status
+ * RESTRICTED: Only users with 'view_financials' permission can access billing data
  */
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { hasPermission } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
@@ -64,6 +65,16 @@ export async function getMyBillingData(orgSlug: string): Promise<ActionResult<My
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    
+    // ✅ CRITICAL: Only users with view_financials permission can access billing
+    const hasFinancialAccess = await hasPermission('view_financials');
+    
+    if (!hasFinancialAccess) {
+      return createErrorResponse(
+        new Error('Access denied - financial permission required'),
+        '🔒 אין לך הרשאה לצפות בנתוני חיוב. רק מנהלים ו-CEO יכולים לראות מידע זה. פנה למנהל הארגון.'
+      );
+    }
 
     const org = await prisma.organization.findUnique({
       where: { id: workspace.id },

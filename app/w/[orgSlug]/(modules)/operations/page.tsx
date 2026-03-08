@@ -30,13 +30,23 @@ export default async function OperationsModuleHome({
 
   // Use the cached version — layout already verified full access
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  // Run user resolution, dashboard data, and inventory options in parallel
+  
+  // Phase 1: Run user resolution, dashboard data, and inventory options in parallel
   const [currentUser, dashboardRes, inventoryOptionsRes] = await Promise.all([
     resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
     getOperationsDashboardData({ orgSlug }),
     getOperationsInventoryOptions({ orgSlug }),
   ]);
+  
   const technicianId = String(currentUser.profileId || currentUser.id || '').trim();
+
+  // Phase 2: Fetch active vehicle (depends on technicianId from Phase 1)
+  // Optimized: use Promise.resolve for conditional fetch to keep pattern clean
+  const activeVehicleRes = await (
+    technicianId
+      ? getOperationsTechnicianActiveVehicle({ orgSlug, technicianId })
+      : Promise.resolve({ success: true as const, data: { vehicleId: null, vehicleName: null } })
+  );
 
   async function quickAddStockAction(formData: FormData) {
     'use server';
@@ -81,11 +91,6 @@ export default async function OperationsModuleHome({
 
   // Fire-and-forget: check low inventory and notify admins
   checkAndNotifyLowInventory({ orgSlug }).catch(() => null);
-
-  // Fetch active vehicle (depends on technicianId from user resolution above)
-  const activeVehicleRes = technicianId
-    ? await getOperationsTechnicianActiveVehicle({ orgSlug, technicianId })
-    : { success: true as const, data: { vehicleId: null, vehicleName: null } };
 
   return (
     <OperationsDashboard

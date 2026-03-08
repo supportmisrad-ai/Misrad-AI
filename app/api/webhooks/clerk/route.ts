@@ -189,6 +189,34 @@ async function POSTHandler(req: Request) {
         internalCallToken,
       });
 
+      // Auto-accept legal consent for NEW users (user.created event only)
+      // This ensures users created via OAuth, admin panel, or any other flow
+      // automatically have legal consent recorded in the database.
+      if (eventType === 'user.created' && result.success && result.userId) {
+        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_legal_consent' });
+        const nowIso = new Date().toISOString();
+        
+        try {
+          await supabase
+            .from('organization_users')
+            .update({
+              terms_accepted_at: nowIso,
+              privacy_accepted_at: nowIso,
+              terms_accepted_version: nowIso,
+              privacy_accepted_version: nowIso,
+              updated_at: nowIso,
+            } satisfies Record<string, unknown>)
+            .eq('id', result.userId);
+          
+          if (!IS_PROD) {
+            console.log('[Clerk Webhook] Auto-accepted legal consent for new user:', result.userId);
+          }
+        } catch (legalConsentErr) {
+          // Non-critical: legal consent can be recorded later via /api/legal/consent
+          if (!IS_PROD) console.error('[Clerk Webhook] Failed to auto-accept legal consent (non-critical):', legalConsentErr);
+        }
+      }
+
       // ✅ AUDIT LOG: Track user sync for debugging user data issues
       if (!IS_PROD) {
         console.log('[Clerk Webhook] User sync result:', {

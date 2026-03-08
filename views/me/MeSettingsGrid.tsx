@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { User as UserIcon, Bell, Shield, CreditCard } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 type SettingModal = 'personal' | 'notifications' | 'security' | 'billing';
 
@@ -18,11 +20,21 @@ export const MeSettingsGrid: React.FC<MeSettingsGridProps> = ({
     onOpenProfileEditor,
     onNavigateAdmin,
 }) => {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const handleBillingClick = () => {
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname || '');
+        if (orgSlug) {
+            router.push(`/w/${orgSlug}/billing`);
+        }
+    };
+
     const cards: { id: SettingModal; label: string; desc: string; icon: React.ElementType; color: string; action: () => void }[] = [
         { id: 'personal', label: 'פרטים אישיים', desc: 'ערוך את פרטי הפרופיל, תמונה ופרטי קשר.', icon: UserIcon, color: 'blue', action: onOpenProfileEditor },
         { id: 'notifications', label: 'התראות ועדכונים', desc: 'נהל את אופן קבלת ההודעות מהמערכת.', icon: Bell, color: 'purple', action: () => onOpenSetting('notifications') },
         { id: 'security', label: 'אבטחה ופרטיות', desc: 'שינוי סיסמה, אימות דו-שלבי וניהול גישות.', icon: Shield, color: 'orange', action: () => onOpenSetting('security') },
-        { id: 'billing', label: 'חיוב ומנויים', desc: 'צפה בחשבוניות, שדרג חבילה ועדכן אמצעי תשלום.', icon: CreditCard, color: 'green', action: () => onOpenSetting('billing') },
+        { id: 'billing', label: 'חיוב ומנויים', desc: 'צפה בחשבוניות מ-Misrad-AI, סטטוס מנוי ויתרה.', icon: CreditCard, color: 'green', action: handleBillingClick },
     ];
 
     return (

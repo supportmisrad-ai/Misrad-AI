@@ -151,11 +151,7 @@ export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
                         </h4>
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/support" className={linkClasses}>תמיכה<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li>
-                                <Link href="/support" className={linkClasses}>
-                                    מרכז ידע<ArrowUpRight size={14} className={arrowClasses} />
-                                </Link>
-                            </li>
+                            <li><Link href="/why-misrad" className={linkClasses}>למה MISRAD AI?<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/security" className={linkClasses}>אבטחת מידע<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/save-time" className={linkClasses}>חוסכים זמן<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/contact" className={linkClasses}>צור קשר<ArrowUpRight size={14} className={arrowClasses} /></Link></li>

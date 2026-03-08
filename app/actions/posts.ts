@@ -23,6 +23,8 @@ import {
   resolveStorageUrlsMaybeBatchedWithClient,
   toSbRefMaybe,
 } from '@/lib/services/operations/storage';
+import { hasReachedPostLimit } from '@/lib/social/plan-limits';
+import { SocialPlan } from '@/types/social';
 
 
 function isSocialPlatform(value: unknown): value is SocialPlatform {
@@ -232,6 +234,39 @@ export async function createPost(
     }
 
     await assertClientInOrganization({ clientId: postData.clientId, organizationId });
+
+    // Check post quota for organization's plan
+    try {
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { social_plan: true },
+      });
+
+      const socialPlan = (org?.social_plan as SocialPlan) || 'solo';
+
+      // Count posts this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const postsThisMonth = await prisma.socialPost.count({
+        where: {
+          organizationId,
+          createdAt: { gte: startOfMonth },
+        },
+      });
+
+      const limitCheck = hasReachedPostLimit(postsThisMonth, socialPlan);
+      if (!limitCheck.allowed) {
+        return {
+          success: false,
+          error: limitCheck.message || 'הגעת למגבלת הפוסטים החודשית',
+        };
+      }
+    } catch (limitError) {
+      logger.warn('posts', 'Failed to check post limit, allowing creation:', limitError);
+      // Don't block creation if limit check fails
+    }
 
     // Upload media file if provided
     let mediaUrl = postData.mediaUrl;
@@ -527,7 +562,7 @@ export async function deletePost(postId: string, orgSlug: string): Promise<{ suc
 /**
  * Server Action: Publish a post (change status to published)
  */
-export async function publishPost(postId: string, orgSlug: string): Promise<{ success: boolean; error?: string }> {
+export async function publishPost(postId: string, orgSlug: string): Promise<{ success: boolean; error?: string; message?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -575,22 +610,62 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
       }
     }
 
-    const webhookResult = await triggerWebhookEvent({
-      eventType: 'post_published',
-      payload: {
-        post: {
-          id: post.id,
-          clientId: post.clientId,
-          content: post.content,
-          mediaUrl: resolvedMediaUrl,
-          platforms,
-          scheduledAt: post.scheduled_at ? new Date(post.scheduled_at).toISOString() : null,
-        },
-      },
-    });
+    // Try Direct Publishing first, fallback to webhooks
+    const { publishToMultiplePlatforms } = await import('@/lib/social-publishing');
+    
+    let directPublishSuccess = false;
+    let publishErrors: string[] = [];
 
-    if (!webhookResult.success) {
-      return { success: false, error: webhookResult.error || 'שגיאה בשליחת הפוסט לפרסום' };
+    try {
+      const results = await publishToMultiplePlatforms(
+        {
+          organizationId,
+          clientId: post.clientId,
+          postId: post.id,
+          content: post.content,
+          mediaUrl: resolvedMediaUrl || undefined,
+          scheduledTime: post.scheduled_at || undefined,
+        },
+        platforms as any[]
+      );
+
+      // Check if at least one platform succeeded
+      const successfulPlatforms = Object.entries(results).filter(([_, r]) => r.success);
+      directPublishSuccess = successfulPlatforms.length > 0;
+
+      // Collect errors from failed platforms
+      Object.entries(results).forEach(([platform, result]) => {
+        if (!result.success) {
+          publishErrors.push(`${platform}: ${result.error}`);
+        }
+      });
+    } catch (directError: unknown) {
+      logger.warn('posts', 'Direct publishing failed, falling back to webhooks:', directError);
+      directPublishSuccess = false;
+    }
+
+    // Fallback to webhooks if direct publishing failed
+    if (!directPublishSuccess) {
+      const webhookResult = await triggerWebhookEvent({
+        eventType: 'post_published',
+        payload: {
+          post: {
+            id: post.id,
+            clientId: post.clientId,
+            content: post.content,
+            mediaUrl: resolvedMediaUrl,
+            platforms,
+            scheduledAt: post.scheduled_at ? new Date(post.scheduled_at).toISOString() : null,
+          },
+        },
+      });
+
+      if (!webhookResult.success) {
+        return { 
+          success: false, 
+          error: webhookResult.error || 'שגיאה בפרסום - אין חיבור ישיר וגם לא webhook מוגדר' 
+        };
+      }
     }
 
     try {
@@ -606,16 +681,21 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
         },
       });
     } catch (error: unknown) {
-      logger.error('posts', 'Error publishing post:', error);
+      logger.error('posts', 'Error updating post status:', error);
       return {
         success: false,
-        error: translateError(getUnknownErrorMessage(error) || 'שגיאה בפרסום פוסט'),
+        error: translateError(getUnknownErrorMessage(error) || 'שגיאה בעדכון סטטוס פוסט'),
       };
     }
 
     revalidatePath('/', 'layout');
 
-    return { success: true };
+    return { 
+      success: true,
+      message: directPublishSuccess 
+        ? 'פורסם ישירות לרשתות החברתיות' 
+        : 'נשלח דרך Make/Zapier לפרסום'
+    };
   } catch (error: unknown) {
     logger.error('posts', 'Error in publishPost:', error);
     return {

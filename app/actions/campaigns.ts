@@ -207,26 +207,170 @@ export async function getCampaigns(
 /**
  * Server Action: Create a new campaign
  */
-export async function createCampaign(
-  campaignData: Omit<Campaign, 'id'>
-): Promise<{ success: boolean; data?: Campaign; error?: string }> {
-  return { success: false, error: 'יצירת קמפיין חסומה זמנית (Tenant Isolation lockdown)' };
+export async function createCampaign(params: {
+  orgSlug: string;
+  clientId: string;
+  name: string;
+  description?: string;
+  objective?: string;
+  budget: number;
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<{ success: boolean; data?: { id: string }; error?: string }> {
+  try {
+    const organizationId = (await requireWorkspaceAccessByOrgSlug(params.orgSlug))?.id;
+    if (!organizationId) {
+      return { success: false, error: 'חסר orgSlug' };
+    }
+
+    const campaign = await prisma.socialMediaCampaign.create({
+      data: {
+        organizationId,
+        client_id: params.clientId,
+        name: params.name,
+        description: params.description,
+        objective: params.objective || 'awareness',
+        budget: params.budget,
+        status: 'draft',
+        start_date: params.startDate,
+        end_date: params.endDate,
+      },
+    });
+
+    return { success: true, data: { id: campaign.id } };
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'createCampaign' });
+    return { success: false, error: getErrorMessage(error) || 'שגיאה ביצירת קמפיין' };
+  }
 }
 
 /**
  * Server Action: Update a campaign
  */
-export async function updateCampaign(
-  campaignId: string,
-  updates: Partial<Campaign>
-): Promise<{ success: boolean; data?: Campaign; error?: string }> {
-  return { success: false, error: 'עדכון קמפיין חסום זמנית (Tenant Isolation lockdown)' };
+export async function updateCampaign(params: {
+  orgSlug: string;
+  campaignId: string;
+  updates: {
+    name?: string;
+    description?: string;
+    status?: string;
+    objective?: string;
+    budget?: number;
+    startDate?: Date;
+    endDate?: Date;
+  };
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const organizationId = (await requireWorkspaceAccessByOrgSlug(params.orgSlug))?.id;
+    if (!organizationId) {
+      return { success: false, error: 'חסר orgSlug' };
+    }
+
+    await prisma.socialMediaCampaign.updateMany({
+      where: {
+        id: params.campaignId,
+        organizationId,
+      },
+      data: {
+        ...(params.updates.name && { name: params.updates.name }),
+        ...(params.updates.description && { description: params.updates.description }),
+        ...(params.updates.status && { status: params.updates.status }),
+        ...(params.updates.objective && { objective: params.updates.objective }),
+        ...(params.updates.budget && { budget: params.updates.budget }),
+        ...(params.updates.startDate && { start_date: params.updates.startDate }),
+        ...(params.updates.endDate && { end_date: params.updates.endDate }),
+      },
+    });
+
+    return { success: true };
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'updateCampaign' });
+    return { success: false, error: getErrorMessage(error) || 'שגיאה בעדכון קמפיין' };
+  }
 }
 
 /**
  * Server Action: Delete a campaign
  */
-export async function deleteCampaign(campaignId: string): Promise<{ success: boolean; error?: string }> {
-  return { success: false, error: 'מחיקת קמפיין חסומה זמנית (Tenant Isolation lockdown)' };
+export async function deleteCampaign(params: {
+  orgSlug: string;
+  campaignId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const organizationId = (await requireWorkspaceAccessByOrgSlug(params.orgSlug))?.id;
+    if (!organizationId) {
+      return { success: false, error: 'חסר orgSlug' };
+    }
+
+    await prisma.socialMediaCampaign.deleteMany({
+      where: {
+        id: params.campaignId,
+        organizationId,
+      },
+    });
+
+    return { success: true };
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'deleteCampaign' });
+    return { success: false, error: getErrorMessage(error) || 'שגיאה במחיקת קמפיין' };
+  }
+}
+
+/**
+ * Add post to campaign
+ */
+export async function addPostToCampaign(params: {
+  orgSlug: string;
+  campaignId: string;
+  postId: string;
+  orderIndex?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const organizationId = (await requireWorkspaceAccessByOrgSlug(params.orgSlug))?.id;
+    if (!organizationId) {
+      return { success: false, error: 'חסר orgSlug' };
+    }
+
+    await prisma.campaignPost.create({
+      data: {
+        campaignId: params.campaignId,
+        postId: params.postId,
+        orderIndex: params.orderIndex || 0,
+      },
+    });
+
+    return { success: true };
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'addPostToCampaign' });
+    return { success: false, error: getErrorMessage(error) || 'שגיאה בהוספת פוסט לקמפיין' };
+  }
+}
+
+/**
+ * Remove post from campaign
+ */
+export async function removePostFromCampaign(params: {
+  orgSlug: string;
+  campaignId: string;
+  postId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const organizationId = (await requireWorkspaceAccessByOrgSlug(params.orgSlug))?.id;
+    if (!organizationId) {
+      return { success: false, error: 'חסר orgSlug' };
+    }
+
+    await prisma.campaignPost.deleteMany({
+      where: {
+        campaignId: params.campaignId,
+        postId: params.postId,
+      },
+    });
+
+    return { success: true };
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'removePostFromCampaign' });
+    return { success: false, error: getErrorMessage(error) || 'שגיאה בהסרת פוסט מקמפיין' };
+  }
 }
 

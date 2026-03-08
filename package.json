@@ -92,6 +92,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/openai": "^3.0.41",
     "@ai-sdk/react": "^3.0.3",
     "@aparajita/capacitor-biometric-auth": "^8.0.2",
     "@capacitor/app": "^7.1.1",
@@ -117,7 +118,7 @@
     "@upstash/redis": "^1.35.0",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
-    "ai": "^6.0.3",
+    "ai": "^6.0.116",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.23.26",

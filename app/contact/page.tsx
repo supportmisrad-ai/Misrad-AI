@@ -3,6 +3,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { Mail, Clock, MessageCircle, ArrowLeft, Phone } from 'lucide-react';
 import ContactFormClient from './ContactFormClient';
+import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -10,6 +11,9 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
+      
+      <GlobalPromotionBanner onSignupPage />
+      
       <main className="pt-20">
         <section className="relative overflow-hidden py-20 sm:py-28">
           <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-emerald-200/30 rounded-full blur-[120px] pointer-events-none" />

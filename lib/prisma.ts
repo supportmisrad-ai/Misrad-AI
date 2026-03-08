@@ -161,6 +161,7 @@ type PrismaClientWithAliases = PrismaClient & {
   organization: PrismaClient['organization'];
   organizationUser: PrismaClient['organizationUser'];
   teamMember: PrismaClient['teamMember'];
+  globalPromotion: any; // Prisma-generated type, runtime safe
   teamMemberClient: PrismaClient['teamMemberClient'];
   socialMediaInvoice: _SocialMediaInvoiceDelegate;
   billing_invoices: PrismaClient['billing_invoices'];
@@ -182,6 +183,7 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   organization: _basePrismaClient.organization,
   organizationUser: _basePrismaClient.organizationUser,
   teamMember: _basePrismaClient.teamMember,
+  globalPromotion: _basePrismaClient.globalPromotion,
   teamMemberClient: _basePrismaClient.teamMemberClient,
   socialMediaInvoice: (_basePrismaClient as unknown as Record<string, unknown>).socialMediaInvoice ?? (_basePrismaClient as unknown as Record<string, unknown>).social_invoices,
   billing_invoices: _basePrismaClient.billing_invoices,

@@ -33,7 +33,7 @@ export function LandingModulesSection() {
                 'מעקב SLA ודחיפות',
               ],
               icon: ClipboardCheck,
-              gradient: 'from-emerald-500 to-teal-600',
+              gradient: 'from-sky-500 to-cyan-600',
               href: '/operations'
             },
             {

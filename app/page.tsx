@@ -4,23 +4,14 @@ import prisma, { accelerateCache } from '@/lib/prisma';
 import { Navbar } from '@/components/landing/Navbar';
 import { auth } from '@clerk/nextjs/server';
 import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
+import { AudienceSelector } from '@/components/landing/AudienceSelector';
 import { asObject } from '@/lib/shared/unknown';
+import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
 
 // Below-fold sections — lazy-loaded so they don't block first paint
-const LandingValueProps = dynamic(() => import('@/components/landing/LandingValueProps').then(m => ({ default: m.LandingValueProps })));
 const LandingModulesSection = dynamic(() => import('@/components/landing/LandingModulesSection').then(m => ({ default: m.LandingModulesSection })));
-const UnifiedBusinessSection = dynamic(() => import('@/components/landing/UnifiedBusinessSection').then(m => ({ default: m.UnifiedBusinessSection })));
-const KillerFeaturesBox = dynamic(() => import('@/components/landing/KillerFeaturesBox'));
-const AiManagementSection = dynamic(() => import('@/components/landing/AiManagementSection').then(m => ({ default: m.AiManagementSection })));
-const ModularitySimplicitySection = dynamic(() => import('@/components/landing/ModularitySimplicitySection').then(m => ({ default: m.ModularitySimplicitySection })));
-const LandingPricingCTA = dynamic(() => import('@/components/landing/LandingPricingCTA').then(m => ({ default: m.LandingPricingCTA })));
-const TechTransparencySection = dynamic(() => import('@/components/landing/TechTransparencySection').then(m => ({ default: m.TechTransparencySection })));
-const SecurityTrustSection = dynamic(() => import('@/components/landing/SecurityTrustSection').then(m => ({ default: m.SecurityTrustSection })));
-const CostComparisonSection = dynamic(() => import('@/components/landing/CostComparisonSection').then(m => ({ default: m.CostComparisonSection })));
-const DataOwnershipSection = dynamic(() => import('@/components/landing/DataOwnershipSection').then(m => ({ default: m.DataOwnershipSection })));
-const WhyMisradSection = dynamic(() => import('@/components/landing/WhyMisradSection').then(m => ({ default: m.WhyMisradSection })));
 const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
-const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
+const HomepageCTA = dynamic(() => import('@/components/landing/HomepageCTA').then(m => ({ default: m.HomepageCTA })));
 const Footer = dynamic(() => import('@/components/landing/Footer').then(m => ({ default: m.Footer })));
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -67,51 +58,22 @@ export default async function RootPage() {
         isSignedIn={!!authData.userId}
       />
 
+      <GlobalPromotionBanner onSignupPage />
+
       <main className="flex-1">
         <LandingHeroSection />
 
+        <AudienceSelector />
+
         <Suspense>
           <div className="landing-section-lazy">
-            <LandingValueProps />
-          </div>
-          <div className="landing-section-lazy">
             <LandingModulesSection />
-          </div>
-          <div className="landing-section-lazy">
-            <UnifiedBusinessSection />
-          </div>
-          <div className="landing-section-lazy">
-            <KillerFeaturesBox id="features" />
-          </div>
-          <div className="landing-section-lazy">
-            <AiManagementSection />
-          </div>
-          <div className="landing-section-lazy">
-            <ModularitySimplicitySection />
-          </div>
-          <div className="landing-section-lazy">
-            <LandingPricingCTA />
-          </div>
-          <div className="landing-section-lazy">
-            <CostComparisonSection />
-          </div>
-          <div className="landing-section-lazy">
-            <TechTransparencySection />
-          </div>
-          <div className="landing-section-lazy">
-            <SecurityTrustSection />
-          </div>
-          <div className="landing-section-lazy">
-            <DataOwnershipSection />
-          </div>
-          <div className="landing-section-lazy">
-            <WhyMisradSection />
           </div>
           <div className="landing-section-lazy">
             <TestimonialsSection />
           </div>
           <div className="landing-section-lazy">
-            <SalesFaq variant="default" />
+            <HomepageCTA />
           </div>
         </Suspense>
       </main>

@@ -2,6 +2,21 @@ export type ClientStatus = 'Active' | 'Paused' | 'Archived' | 'Pending Payment' 
 export type OnboardingStatus = 'invited' | 'completed';
 export type PostStatus = 'draft' | 'internal_review' | 'scheduled' | 'published' | 'failed' | 'pending_approval';
 export type PricingPlan = 'starter' | 'pro' | 'agency' | 'custom';
+
+// Social Module specific plans
+export type SocialPlan = 'free' | 'solo' | 'team' | 'agency' | 'enterprise';
+
+export interface SocialPlanLimits {
+  maxClients: number;           // מקסימום לקוחות (1 = ארגון עצמו, 20+ = סוכנות)
+  maxPostsPerMonth: number;     // מקסימום פוסטים לחודש
+  maxPlatforms: number;         // מקסימום פלטפורמות ללקוח
+  maxCampaigns: number;         // מקסימום campaigns פעילים
+  aiContentGeneration: boolean; // AI ליצירת תוכן
+  campaignsSupport: boolean;    // תמיכה ב-Campaigns
+  whiteLabel: boolean;          // White label לסוכנויות
+  prioritySupport: boolean;     // תמיכה מועדפת
+  customBranding: boolean;      // מיתוג מותאם אישית
+}
 export type UserRole = 'super_admin' | 'owner' | 'team_member';
 export type TeamMemberRole = 'account_manager' | 'content_creator' | 'designer'; // Roles within an organization
 export type MemberType = 'employee' | 'freelancer';

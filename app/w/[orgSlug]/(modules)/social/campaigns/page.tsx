@@ -4,9 +4,6 @@ import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { SkeletonGrid } from '@/components/ui/skeletons';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
-
-
 const Campaigns = nextDynamic(() => import('@/components/social/Campaigns'), {
   loading: () => (
     <div className="min-h-[400px] p-6">

@@ -9,7 +9,7 @@ import { createCampaign } from '@/app/actions/campaigns';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 
 export default function CampaignWizard() {
-  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients, addToast } = useApp();
+  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients, addToast, orgSlug } = useApp();
   useBackButtonClose(isCampaignWizardOpen, () => setIsCampaignWizardOpen(false));
   const [step, setStep] = useState(1);
   const [clientId, setClientId] = useState(clients[0]?.id || '');
@@ -22,16 +22,19 @@ export default function CampaignWizard() {
   const handleNext = async () => {
     if (step < 3) { setStep(step + 1); return; }
 
+    if (!orgSlug) {
+      addToast('שגיאה: חסר מזהה ארגון', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await createCampaign({
+        orgSlug,
         clientId,
         name: `קמפיין ${objective}`,
-        status: 'active',
         objective: objective as 'sales' | 'traffic' | 'awareness' | 'engagement',
         budget,
-        spent: 0,
-        roas: 0,
       });
 
       if (result.success) {

@@ -4,6 +4,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { PackageCTAButtons } from '@/components/landing/PackageCTAButtons';
 import { Users, TriangleAlert, CircleCheckBig, Play, ArrowLeft, Sparkles, Gift } from 'lucide-react';
+import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
 
 const TestimonialsSection = dynamic(() => import('@/components/landing/TestimonialsSection'));
 const SalesFaq = dynamic(() => import('@/components/landing/SalesFaq').then(m => ({ default: m.SalesFaq })));
@@ -58,6 +59,9 @@ export default function PackageLandingPage({
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
+      
+      <GlobalPromotionBanner onSignupPage />
+      
       <main className="pt-24">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-20 sm:py-28">

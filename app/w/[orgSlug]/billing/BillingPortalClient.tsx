@@ -203,7 +203,7 @@ export default function BillingPortalClient({ billingData: initialData, orgSlug 
         </div>
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Subscription Status */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
@@ -219,6 +219,24 @@ export default function BillingPortalClient({ billingData: initialData, orgSlug 
                 חידוש: {new Date(billingData.nextBillingDate).toLocaleDateString('he-IL')}
               </p>
             )}
+          </div>
+
+          {/* Current Balance */}
+          <div className={`rounded-2xl border-2 shadow-sm p-6 ${
+            billingData.balance >= 0
+              ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+              : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-bold text-gray-500">יתרה נוכחית</p>
+              <Wallet className={`w-5 h-5 ${billingData.balance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+            </div>
+            <p className={`text-3xl font-black ${billingData.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              ₪{billingData.balance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              {billingData.balance >= 0 ? '✅ זכות בחשבון' : '⚠️ יתרת חוב'}
+            </p>
           </div>
 
           {/* MRR */}

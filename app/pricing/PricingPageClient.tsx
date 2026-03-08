@@ -11,6 +11,7 @@ import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 import { SecurityTrustSection } from '@/components/landing/SecurityTrustSection';
 import { CostComparisonSection } from '@/components/landing/CostComparisonSection';
+import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
 
 export default function PricingPageClient() {
   const { isSignedIn } = useAuth();
@@ -18,6 +19,9 @@ export default function PricingPageClient() {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans overflow-x-hidden" dir="rtl">
       <Navbar isSignedIn={!!isSignedIn} />
+      
+      <GlobalPromotionBanner onPricingPage />
+      
       <div className="pt-20">
         <PricingSection
           isAuthenticated={!!isSignedIn}

@@ -1066,16 +1066,21 @@ export const MeView: React.FC<{
               </button>
 
               <button 
-                onClick={() => setActiveSettingModal('billing')}
+                onClick={() => {
+                  const orgSlug = getWorkspaceOrgSlugFromPathname(pathname || '');
+                  if (orgSlug) {
+                    router.push(`/w/${orgSlug}/billing`);
+                  }
+                }}
                 className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
-                aria-label="פתח הגדרות חיוב ומנויים"
+                aria-label="פתח דף חיוב ומנויים"
               >
                   <div className="absolute top-0 right-0 w-1 h-full bg-green-500 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-green-50 text-green-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
                       <CreditCard size={18} className="md:w-6 md:h-6" />
                   </div>
                   <h3 className="text-[10px] md:text-lg font-bold text-gray-900">חיוב ומנויים</h3>
-                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">צפה בחשבוניות, שדרג חבילה ועדכן אמצעי תשלום.</p>
+                  <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">צפה בחשבוניות מ-Misrad-AI, סטטוס מנוי ויתרה.</p>
               </button>
 
               {/* Hidden Admin Access Card - Only for Super Admin - Moved to end */}

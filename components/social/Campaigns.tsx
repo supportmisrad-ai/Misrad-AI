@@ -41,10 +41,10 @@ export default function Campaigns() {
   const toggleStatus = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const campaign = campaigns.find(c => c.id === id);
-    if (!campaign) return;
+    if (!campaign || !orgSlug) return;
 
     const nextStatus = campaign.status === 'active' ? 'paused' : 'active';
-    const result = await updateCampaign(id, { status: nextStatus });
+    const result = await updateCampaign({ orgSlug, campaignId: id, updates: { status: nextStatus } });
     
     if (result.success) {
       setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
@@ -56,9 +56,19 @@ export default function Campaigns() {
   };
 
   const handleUpdateCampaign = async (updatedCampaign: Campaign) => {
-    const result = await updateCampaign(updatedCampaign.id, updatedCampaign);
-    if (result.success && result.data) {
-      setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? result.data! : c));
+    if (!orgSlug) return;
+    const result = await updateCampaign({ 
+      orgSlug, 
+      campaignId: updatedCampaign.id, 
+      updates: {
+        name: updatedCampaign.name,
+        status: updatedCampaign.status,
+        objective: updatedCampaign.objective,
+        budget: updatedCampaign.budget
+      }
+    });
+    if (result.success) {
+      setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? updatedCampaign : c));
       addToast('הגדרות הקמפיין עודכנו בהצלחה ✨');
     } else {
       const errorMsg = result.error ? translateError(result.error) : 'שגיאה בעדכון הקמפיין';
