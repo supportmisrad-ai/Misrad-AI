@@ -983,6 +983,57 @@ function isOrganizationUserBootstrapUpsertAllowed(params: {
   return true;
 }
 
+// Bootstrap upsert for Profile: during workspace provisioning, Profile is upserted
+// after the organization is created. The organizationId exists in create/where, but
+// the tenant isolation context is still null (no active workspace session yet).
+function isProfileBootstrapUpsertAllowed(params: {
+  model: string;
+  action: string;
+  args: Record<string, unknown>;
+  override?: TenantIsolationOverrideContext;
+  expectedOrganizationId: string | null;
+}): boolean {
+  if (params.expectedOrganizationId) return false;
+  if (params.action !== 'upsert') return false;
+
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'profile') return false;
+
+  const reason = String(params.override?.reason || '').trim();
+  if (reason !== 'bootstrap_workspace_provision') return false;
+
+  const createData = params.args.create;
+  if (!createData || typeof createData !== 'object' || Array.isArray(createData)) return false;
+  const createObj = createData as Record<string, unknown>;
+
+  const clerkUserIdRaw = createObj.clerkUserId;
+  const clerkUserId = typeof clerkUserIdRaw === 'string' ? clerkUserIdRaw.trim() : '';
+  if (!clerkUserId) return false;
+
+  // Profile.create must have organizationId (org was created in previous step)
+  const createOrgId = createObj.organizationId;
+  if (!createOrgId || typeof createOrgId !== 'string' || !createOrgId.trim()) return false;
+
+  // where must be organizationId_clerkUserId compound unique
+  const where = params.args.where;
+  if (!where || typeof where !== 'object') return false;
+  const whereObj = where as Record<string, unknown>;
+  const compound = whereObj.organizationId_clerkUserId;
+  if (!compound || typeof compound !== 'object' || Array.isArray(compound)) return false;
+  const compoundObj = compound as Record<string, unknown>;
+  
+  const whereOrgId = compoundObj.organizationId;
+  const whereClerkId = compoundObj.clerkUserId;
+  if (!whereOrgId || typeof whereOrgId !== 'string' || !whereOrgId.trim()) return false;
+  if (!whereClerkId || typeof whereClerkId !== 'string' || !whereClerkId.trim()) return false;
+
+  // Verify organizationId matches between create and where
+  if (String(createOrgId).trim() !== String(whereOrgId).trim()) return false;
+  if (String(clerkUserId).trim() !== String(whereClerkId).trim()) return false;
+
+  return true;
+}
+
 function isNexusUserLookupByEmailUnscopedAllowed(params: {
   model: string;
   action: string;
@@ -1098,6 +1149,12 @@ export function installPrismaTenantGuard(
     // The upsert creates with organization_id: null (org doesn't exist yet) and
     // updates only profile fields. The org link is done in a subsequent step.
     if (action === 'upsert' && isOrganizationUserBootstrapUpsertAllowed({ model, action, args, override, expectedOrganizationId: expected.organizationId })) {
+      return next(params);
+    }
+
+    // Early bypass: bootstrap Profile.upsert during workspace provisioning.
+    // Profile is created after the org exists, but tenant context is still null (no active workspace).
+    if (action === 'upsert' && isProfileBootstrapUpsertAllowed({ model, action, args, override, expectedOrganizationId: expected.organizationId })) {
       return next(params);
     }
 
