@@ -132,7 +132,30 @@ export async function analyzeAndStoreMeeting(params: {
     });
   }
 
-  const analysis: unknown = await analyzeMeetingTranscript(transcript);
+  let analysis: unknown;
+  let retryCount = 0;
+  const maxRetries = 2;
+
+  while (retryCount <= maxRetries) {
+    try {
+      analysis = await analyzeMeetingTranscript(transcript);
+      break;
+    } catch (err) {
+      retryCount++;
+      if (retryCount > maxRetries) {
+        console.error('[analyzeAndStoreMeeting] AI analysis failed after retries', {
+          error: err instanceof Error ? err.message : String(err),
+          retries: retryCount,
+        });
+        throw new Error('AI analysis failed after multiple attempts');
+      }
+      console.warn(`[analyzeAndStoreMeeting] Retry ${retryCount}/${maxRetries} after error`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+    }
+  }
+
   const analysisObj = asObject(analysis) ?? {};
 
   const warmthRaw = analysisObj.relationshipWarmth;

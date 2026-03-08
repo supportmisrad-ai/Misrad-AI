@@ -18,6 +18,7 @@ const MeetingIntelligence: React.FC = () => {
   const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'TRANSCRIPT'>('LIST');
   const [uploadMode, setUploadMode] = useState<'analyze' | 'transcribe'>('analyze');
   const [transcriptResult, setTranscriptResult] = useState<string | null>(null);
+  const [formattedTranscript, setFormattedTranscript] = useState<string | null>(null);
   const [transcriptViewMode, setTranscriptViewMode] = useState<'clean' | 'timed'>('clean');
   const [transcriptTime, setTranscriptTime] = useState<string | null>(null);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
@@ -321,7 +322,7 @@ const MeetingIntelligence: React.FC = () => {
             throw new Error(err?.error || 'Processing failed');
           }
 
-          const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; mode?: string; meetingId?: string; analysisError?: string };
+          const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; formattedTranscript?: string; mode?: string; meetingId?: string; analysisError?: string };
 
           const nowDate = new Date();
           const timeStr = nowDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
@@ -336,6 +337,7 @@ const MeetingIntelligence: React.FC = () => {
               id: json.meetingId,
               clientId: effectiveClientId,
               date: dateStr,
+              time: timeStr,
               title: file.name,
               location: meetingLocation,
               attendees: [],
@@ -351,17 +353,20 @@ const MeetingIntelligence: React.FC = () => {
 
           if (json.mode === 'transcribe' || uploadMode === 'transcribe') {
             setTranscriptResult(json.transcript || '');
+            setFormattedTranscript(json.formattedTranscript || json.transcript || '');
             if (json.analysisError) setAnalysisErrorMsg(json.analysisError);
             setActiveView('TRANSCRIPT');
             globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: json.analysisError || 'התמלול הושלם ונשמר בהצלחה.', type: json.analysisError ? 'warning' : 'success' } }));
           } else if (json.analysis) {
             setAnalysisResult(json.analysis);
             setTranscriptResult(json.transcript || '');
+            setFormattedTranscript(json.formattedTranscript || json.transcript || '');
             setActiveView('RESULT');
             globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
           } else {
             // Analysis mode but no analysis returned — show transcript
             setTranscriptResult(json.transcript || '');
+            setFormattedTranscript(json.formattedTranscript || json.transcript || '');
             setActiveView('TRANSCRIPT');
             globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'התמלול הושלם.', type: 'success' } }));
           }
@@ -383,12 +388,9 @@ const MeetingIntelligence: React.FC = () => {
     return () => window.removeEventListener('nexus-processing-complete', handleComplete);
   }, []);
 
-  // Helper: strip [MM:SS] timestamps for clean view
-  const stripTimestamps = (text: string) => text.replace(/^\[\d{1,2}:\d{2}\]\s*/gm, '');
-
   const handleCopyTranscript = () => {
     if (!transcriptResult) return;
-    const textToCopy = transcriptViewMode === 'clean' ? stripTimestamps(transcriptResult) : transcriptResult;
+    const textToCopy = transcriptViewMode === 'clean' ? (formattedTranscript || transcriptResult) : transcriptResult;
     navigator.clipboard.writeText(textToCopy).then(() => {
       setTranscriptCopied(true);
       setTimeout(() => setTranscriptCopied(false), 2000);
@@ -552,7 +554,14 @@ const MeetingIntelligence: React.FC = () => {
                 }} className="glass-card p-5 rounded-xl border cursor-pointer hover:shadow-lg transition-all">
                   <div className="flex justify-between mb-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Video size={20} /></div>
-                    <span className="text-xs text-gray-400">{m.date}</span>
+                    <div className="text-xs text-gray-400 text-left">
+                      <div>{m.date}</div>
+                      {(m as unknown as { time?: string }).time && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Clock size={10} /> {(m as unknown as { time?: string }).time}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <h4 className="font-bold text-gray-900 mb-1">{m.title}</h4>
                   <p className="text-xs text-gray-500 line-clamp-2">{m.summary || (m.transcript ? 'תמלול בלבד' : '')}</p>
@@ -626,7 +635,7 @@ const MeetingIntelligence: React.FC = () => {
 
               <div className="bg-gray-50 rounded-xl border border-gray-100 p-6 max-h-[500px] overflow-y-auto custom-scrollbar">
                 <pre className="whitespace-pre-wrap text-gray-800 text-base leading-relaxed font-sans" dir="rtl">
-                  {transcriptViewMode === 'clean' ? stripTimestamps(transcriptResult) : transcriptResult}
+                  {transcriptViewMode === 'clean' ? (formattedTranscript || transcriptResult) : transcriptResult}
                 </pre>
               </div>
             </div>

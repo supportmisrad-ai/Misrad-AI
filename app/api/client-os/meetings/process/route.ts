@@ -14,6 +14,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { formatTranscriptText } from '@/lib/services/ai/format-transcript';
 import { proofreadHebrewTranscript } from '@/lib/services/ai/proofread-transcript';
+import { formatTranscriptForDisplay } from '@/lib/services/ai/format-transcript-for-display';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
@@ -339,6 +340,9 @@ async function POSTHandler(req: Request) {
     // Best-effort Hebrew spelling correction
     transcript = await proofreadHebrewTranscript(transcript);
 
+    // Generate formatted transcript for clean display
+    const formattedTranscript = await formatTranscriptForDisplay(transcript);
+
     const recordingUrl = `sb://${bucket}/${storagePath}`;
 
     if (mode === 'transcribe') {
@@ -374,6 +378,7 @@ async function POSTHandler(req: Request) {
             meetingId: meeting.id,
             recordingUrl,
             transcript,
+            formattedTranscript,
             mode: 'transcribe',
           },
         });
@@ -381,7 +386,7 @@ async function POSTHandler(req: Request) {
         // ignore
       }
 
-      return apiSuccessCompat({ meetingId: meeting.id, transcript, mode: 'transcribe' as const }, { headers: abuse.headers });
+      return apiSuccessCompat({ meetingId: meeting.id, transcript, formattedTranscript, mode: 'transcribe' as const }, { headers: abuse.headers });
     }
 
     let saved: { meetingId: string; analysis: unknown } | null = null;
@@ -399,7 +404,32 @@ async function POSTHandler(req: Request) {
         error: analysisErr instanceof Error ? analysisErr.message : String(analysisErr),
       });
       // Analysis failed - still return the transcript so the user sees their transcription
-      return apiSuccessCompat({ transcript, mode: 'transcribe' as const, analysisError: 'ניתוח השיחה נכשל, אבל התמלול נשמר בהצלחה.' }, { headers: abuse.headers });
+      // Create a meeting record so it appears in the list
+      const now = new Date();
+      const meetingDateLabel = now.toLocaleDateString('he-IL');
+      const failedMeeting = await prisma.misradMeeting.create({
+        data: {
+          organization_id: orgId,
+          client_id: resolvedMisradClientId,
+          date: meetingDateLabel,
+          title,
+          location,
+          attendees: [],
+          transcript,
+          summary: null,
+          recordingUrl,
+          manualNotes: null,
+        } as unknown as Prisma.MisradMeetingUncheckedCreateInput,
+        select: { id: true },
+      });
+
+      return apiSuccessCompat({ 
+        meetingId: failedMeeting.id, 
+        transcript, 
+        formattedTranscript, 
+        mode: 'transcribe' as const, 
+        analysisError: 'ניתוח השיחה נכשל, אבל התמלול נשמר בהצלחה.' 
+      }, { headers: abuse.headers });
     }
 
     // Best-effort: also write to client_sessions so Client OS lists can show the recording and analysis.
@@ -419,6 +449,7 @@ async function POSTHandler(req: Request) {
           meetingId: saved.meetingId,
           recordingUrl,
           transcript,
+          formattedTranscript,
           aiAnalysis: saved.analysis ?? null,
         },
       });
@@ -426,7 +457,7 @@ async function POSTHandler(req: Request) {
       // ignore
     }
 
-    return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript, mode: 'analyze' as const }, { headers: abuse.headers });
+    return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript, formattedTranscript, mode: 'analyze' as const }, { headers: abuse.headers });
   } catch (e: unknown) {
     const errMsg = e instanceof Error ? e.message : String(e);
     const errName = e instanceof Error ? e.constructor.name || e.name : 'unknown';
