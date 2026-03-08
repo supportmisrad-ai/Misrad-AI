@@ -48,7 +48,7 @@ export type DataContextValue =
         markReportRead: (id: string) => void;
     };
 
-const DataContext = createContext<DataContextValue | null>(null);
+export const DataContext = createContext<DataContextValue | null>(null);
 
 export const DataProvider = ({
     children,
