@@ -25,6 +25,12 @@ export class GeminiProvider {
 
     try {
       const base64 = Buffer.from(params.audioBuffer).toString('base64');
+      console.log('[GeminiProvider.transcribe] Preparing request', {
+        model: params.model,
+        mimeType: params.mimeType,
+        bufferSize: params.audioBuffer.byteLength,
+        base64Length: base64.length,
+      });
 
       const request: GenerateContentParamsWithSignal = {
         model: params.model,
@@ -39,7 +45,7 @@ export class GeminiProvider {
                 },
               },
               {
-                text: 'תמלל במדויק את ההקלטה לעברית כפי שנאמר (As-is). אל תוסיף סיכומים ואל תתקן תוכן. החזר טקסט תמלול בלבד.',
+                text: 'Please transcribe this audio exactly as spoken in Hebrew. Return only the raw transcript text, no summaries or corrections.',
               },
             ],
           },
@@ -48,8 +54,14 @@ export class GeminiProvider {
       };
 
       const response = await ai.models.generateContent(request);
+      const text = response.text || '';
+      console.log('[GeminiProvider.transcribe] Response received', {
+        textLength: text.length,
+        textPreview: text.substring(0, 100),
+        hasText: !!text,
+      });
 
-      return { text: response.text || '' };
+      return { text };
     } catch (err: unknown) {
       const obj = asObject(err) ?? {};
       const responseObj = asObject(obj.response);

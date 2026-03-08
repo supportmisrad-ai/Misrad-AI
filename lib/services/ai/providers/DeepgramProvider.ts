@@ -17,6 +17,11 @@ export class DeepgramProvider {
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
     try {
+      console.log('[DeepgramProvider.transcribe] Preparing request', {
+        mimeType: params.mimeType,
+        bufferSize: params.audioBuffer.byteLength,
+      });
+
       const res = await fetch('https://api.deepgram.com/v1/listen?smart_format=true&punctuate=true&diarize=true&model=nova-2', {
         method: 'POST',
         headers: {
@@ -52,6 +57,13 @@ export class DeepgramProvider {
         .join('\n');
 
       const transcript = transcriptFromChannels || transcriptFromUtterances || '';
+      console.log('[DeepgramProvider.transcribe] Response received', {
+        textLength: transcript.length,
+        textPreview: transcript.substring(0, 100),
+        hasText: !!transcript,
+        channelsFound: channels.length,
+        utterancesFound: utterances.length,
+      });
 
       return { text: transcript };
     } catch (err: unknown) {
