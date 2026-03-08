@@ -6,10 +6,6 @@ export function LandingModulesSection() {
     <section id="solution" className="py-12 sm:py-20 md:py-28 bg-white relative">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-8 sm:mb-14">
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-black mb-3 sm:mb-4">
-            <Sparkles size={12} className="sm:w-3.5 sm:h-3.5" />
-            קורת גג אחת
-          </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900">
             6 מודולים. מערכת אחת.
           </h2>

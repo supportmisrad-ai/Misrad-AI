@@ -58,15 +58,11 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
 
       <div className="max-w-7xl mx-auto px-6 relative">
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-black">
-            <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-            מעבר לתוכנה
-          </div>
-          <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
             מעבר לתוכנה רגילה
           </h2>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            תכונות שנבנו <span className="font-semibold text-slate-700">לפתור בעיות אמיתיות של עסקים בשטח.</span>
+          <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
+            תכונות שנבנו לפתור בעיות אמיתיות של עסקים בשטח.
           </p>
         </div>
 

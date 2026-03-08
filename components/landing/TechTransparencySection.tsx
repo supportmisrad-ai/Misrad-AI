@@ -51,14 +51,8 @@ export function TechTransparencySection() {
       <div className="max-w-7xl mx-auto px-6 relative">
         {/* Header */}
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-black mb-4">
-            <Sparkles size={14} />
-            שקיפות טכנולוגית
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
             מה מפעיל את המערכת?
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">הנה התשובה המלאה</span>
           </h2>
           <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
             אנחנו לא מסתתרים מאחורי מילת &quot;AI&quot;. הנה בדיוק מה שרץ מתחת למכסה.

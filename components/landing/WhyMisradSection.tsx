@@ -46,10 +46,6 @@ export function WhyMisradSection() {
       <div className="max-w-6xl mx-auto px-6 relative">
         {/* Header */}
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-black mb-4">
-            <Sparkles size={14} />
-            למה דווקא אנחנו
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
             &quot;למה לא Monday? למה לא GoHighLevel?&quot;
           </h2>

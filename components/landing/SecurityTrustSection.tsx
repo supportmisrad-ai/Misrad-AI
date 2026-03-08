@@ -43,16 +43,10 @@ export function SecurityTrustSection() {
       <div className="max-w-7xl mx-auto px-6 relative">
         {/* Header */}
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-black mb-4">
-            <Shield size={14} />
-            אבטחה ופרטיות
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
-            המידע שלך בכספת.
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">לא בקופסה שחורה.</span>
+            המידע שלך בכספת
           </h2>
-          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
             כשאתה מפקיד אצלנו את הנתונים העסקיים שלך, אנחנו לוקחים את זה ברצינות מוחלטת.
           </p>
         </div>

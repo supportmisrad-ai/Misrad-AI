@@ -20,11 +20,6 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
 
       <div className="max-w-7xl mx-auto px-6 py-32 relative z-10 text-center">
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-indigo-700 text-xs font-bold mb-6">
-            <Sparkles size={14} className="text-indigo-600" />
-            <span>AI שמנהל את הארגון במקומך</span>
-          </div>
-          
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-4 leading-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
               MISRAD AI

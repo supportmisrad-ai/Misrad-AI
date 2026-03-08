@@ -68,10 +68,6 @@ export default function TestimonialsSection() {
 
       <div className="max-w-6xl mx-auto px-6 relative">
         <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-100 text-amber-600 text-xs font-black mb-4">
-            <Quote size={14} />
-            המלצות לקוחות
-          </div>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
             מה הלקוחות שלנו אומרים
           </h2>

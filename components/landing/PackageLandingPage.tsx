@@ -79,20 +79,6 @@ export default function PackageLandingPage({
           )}
 
           <div className="max-w-6xl mx-auto px-6 relative">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black ${
-              isTactical 
-                ? 'bg-orange-50 border-orange-200 text-orange-700'
-                : 'bg-indigo-50 border-indigo-200 text-indigo-700'
-            }`}>
-              <Sparkles size={14} />
-              <span>{badge}</span>
-              <span className={`px-2.5 py-1 rounded-full text-white text-[10px] font-black ${
-                isTactical ? 'bg-orange-600' : 'bg-indigo-600'
-              }`}>
-                <Gift size={10} className="inline ml-1" />
-                7 ימים חינם
-              </span>
-            </div>
 
             <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight max-w-4xl">
               {title.split(':')[0]}
@@ -147,29 +133,6 @@ export default function PackageLandingPage({
               ctaSecondaryHref={ctaSecondaryHref}
               ctaSecondaryLabel={ctaSecondaryLabel}
             />
-
-            {/* Trust Strip */}
-            <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] sm:text-xs font-bold text-emerald-700">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                הצפנת AES-256
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] sm:text-xs font-bold text-blue-700">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                GDPR
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[10px] sm:text-xs font-bold text-purple-700">
-                <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
-                ייצוא נתונים מלא
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-xs font-bold text-amber-700">
-                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                ללא כרטיס אשראי
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-[10px] sm:text-xs font-bold text-amber-700">
-                🎁 מודול כספים בחינם
-              </span>
-            </div>
           </div>
         </section>
 

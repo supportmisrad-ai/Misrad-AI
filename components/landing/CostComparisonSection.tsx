@@ -28,14 +28,8 @@ export function CostComparisonSection() {
       <div className="max-w-5xl mx-auto px-6 relative">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-black mb-4">
-            <Calculator size={14} />
-            השוואת עלויות
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
             כמה עולה לקנות הכל בנפרד?
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-emerald-600">המספרים מדברים</span>
           </h2>
           <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
             במקום לשלם ל-6 תוכנות שונות שלא מדברות אחת עם השנייה, קבל הכל במקום אחד.

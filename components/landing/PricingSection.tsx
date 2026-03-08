@@ -125,9 +125,6 @@ export default function PricingSection({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative">
         {/* Header */}
         <div className="text-center mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 text-indigo-700 text-xs font-black mb-5 shadow-sm">
-            💰 מחירון
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-3 sm:mb-5 leading-tight">
             בחר את החבילה שלך
           </h2>
