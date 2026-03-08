@@ -65,6 +65,64 @@ function coerceTranscript(value: unknown): CallAnalysisResult['transcript'] {
     .filter((v): v is NonNullable<typeof v> => Boolean(v));
 }
 
+/**
+ * Parse raw transcript text (with [MM:SS] timestamps and דובר labels) into structured segments.
+ * Handles formats like:
+ *   [00:05] דובר 1: שלום מה שלומך
+ *   [01:30] דובר 2: תודה בסדר
+ *   [00:05] Just text without speaker
+ */
+function parseTranscriptTextToSegments(rawText: string): CallAnalysisResult['transcript'] {
+  if (!rawText) return [];
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const segments: CallAnalysisResult['transcript'] = [];
+  // Track speaker numbers to alternate Agent/Customer
+  const speakerRoleMap = new Map<string, 'Agent' | 'Customer'>();
+  let nextRole: 'Agent' | 'Customer' = 'Agent';
+
+  for (const line of lines) {
+    // Match [MM:SS] optionally followed by דובר X: or Speaker X:
+    const match = line.match(/^\[(\d{1,2}):(\d{2})\]\s*(?:(דובר\s*\d+|Speaker\s*\d+)\s*:\s*)?(.+)$/);
+    if (match) {
+      const minutes = parseInt(match[1], 10);
+      const seconds = parseInt(match[2], 10);
+      const timestamp = minutes * 60 + seconds;
+      const speakerLabel = match[3] || '';
+      const text = match[4].trim();
+      if (!text) continue;
+
+      let speaker: 'Agent' | 'Customer' = 'Customer';
+      if (speakerLabel) {
+        if (!speakerRoleMap.has(speakerLabel)) {
+          speakerRoleMap.set(speakerLabel, nextRole);
+          nextRole = nextRole === 'Agent' ? 'Customer' : 'Agent';
+        }
+        speaker = speakerRoleMap.get(speakerLabel) || 'Customer';
+      }
+
+      segments.push({ speaker, text, timestamp, sentiment: 'neutral' });
+    } else {
+      // Line without timestamp — try speaker label only
+      const speakerMatch = line.match(/^(דובר\s*\d+|Speaker\s*\d+)\s*:\s*(.+)$/);
+      if (speakerMatch) {
+        const speakerLabel = speakerMatch[1];
+        const text = speakerMatch[2].trim();
+        if (!text) continue;
+        if (!speakerRoleMap.has(speakerLabel)) {
+          speakerRoleMap.set(speakerLabel, nextRole);
+          nextRole = nextRole === 'Agent' ? 'Customer' : 'Agent';
+        }
+        const speaker = speakerRoleMap.get(speakerLabel) || 'Customer';
+        segments.push({ speaker, text, timestamp: 0, sentiment: 'neutral' });
+      } else if (line.length > 2) {
+        // Plain text line
+        segments.push({ speaker: 'Customer', text: line, timestamp: 0, sentiment: 'neutral' });
+      }
+    }
+  }
+  return segments;
+}
+
 const ALLOWED_AUDIO_MIME_TYPES = new Set([
   'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave',
   'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac',
@@ -298,6 +356,10 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         improvements: Array.isArray(feedbackObj?.improvements) ? feedbackObj!.improvements.map((v) => String(v)) : [],
       };
 
+      // Use AI transcript segments if available, otherwise parse from raw text
+      const aiTranscript2 = coerceTranscript(aiResult.transcript);
+      const parsedTranscript2 = aiTranscript2.length > 0 ? aiTranscript2 : parseTranscriptTextToSegments(clean);
+
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
         fileName: opts?.fileName ? String(opts.fileName) : 'Live',
@@ -309,7 +371,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         score: getNumberProp(aiResult, 'score') ?? 0,
         intent: coerceCallAnalysisIntent(aiResult.intent),
         objections: coerceObjections(aiResult.objections),
-        transcript: coerceTranscript(aiResult.transcript),
+        transcript: parsedTranscript2,
         topics: normalizedTopics,
         feedback,
         leadId: opts?.leadId == null ? undefined : String(opts.leadId),
@@ -500,6 +562,10 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         improvements: Array.isArray(feedbackObj?.improvements) ? feedbackObj!.improvements.map((v) => String(v)) : [],
       };
 
+      // Use AI transcript segments if available, otherwise parse from raw text
+      const aiTranscript = coerceTranscript(aiResult.transcript);
+      const parsedTranscript = aiTranscript.length > 0 ? aiTranscript : parseTranscriptTextToSegments(transcriptText);
+
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
         fileName: file.name,
@@ -511,7 +577,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         score: getNumberProp(aiResult, 'score') ?? 0,
         intent: coerceCallAnalysisIntent(aiResult.intent),
         objections: coerceObjections(aiResult.objections),
-        transcript: coerceTranscript(aiResult.transcript),
+        transcript: parsedTranscript,
         topics: normalizedTopics,
         feedback,
       };

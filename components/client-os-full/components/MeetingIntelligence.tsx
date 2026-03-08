@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 // Fix: Removed Modality from local types import as it should come from the GenAI SDK
 import { MeetingAnalysisResult } from '../types';
-import { UploadCloud, Video, Mic, MicOff, Zap, FileText, ArrowLeft } from 'lucide-react';
+import { UploadCloud, Video, Mic, MicOff, Zap, FileText, ArrowLeft, Clock, Copy, Check } from 'lucide-react';
 import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
 import { CustomSelect } from '@/components/CustomSelect';
@@ -18,6 +18,10 @@ const MeetingIntelligence: React.FC = () => {
   const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'TRANSCRIPT'>('LIST');
   const [uploadMode, setUploadMode] = useState<'analyze' | 'transcribe'>('analyze');
   const [transcriptResult, setTranscriptResult] = useState<string | null>(null);
+  const [transcriptViewMode, setTranscriptViewMode] = useState<'clean' | 'timed'>('clean');
+  const [transcriptTime, setTranscriptTime] = useState<string | null>(null);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [analysisErrorMsg, setAnalysisErrorMsg] = useState<string | null>(null);
   const [meetings, setMeetings] = useState(contextMeetings);
   const [analysisResult, setAnalysisResult] = useState<MeetingAnalysisResult | undefined>(contextMeetings[0]?.aiAnalysis);
   const [processingFileName, setProcessingFileName] = useState<string | null>(null);
@@ -317,17 +321,49 @@ const MeetingIntelligence: React.FC = () => {
             throw new Error(err?.error || 'Processing failed');
           }
 
-          const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; mode?: string };
+          const json = (await res.json()) as { analysis?: MeetingAnalysisResult; transcript?: string; mode?: string; meetingId?: string; analysisError?: string };
+
+          const nowDate = new Date();
+          const timeStr = nowDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+          const dateStr = nowDate.toLocaleDateString('he-IL');
+          setTranscriptTime(`${dateStr} ${timeStr}`);
+          setAnalysisErrorMsg(null);
+
+          // Add new meeting to local list so it appears immediately
+          if (json.meetingId && json.transcript) {
+            const analysisAny = json.analysis as unknown as Record<string, unknown> | undefined;
+            const newMeeting = {
+              id: json.meetingId,
+              clientId: effectiveClientId,
+              date: dateStr,
+              title: file.name,
+              location: meetingLocation,
+              attendees: [],
+              transcript: json.transcript,
+              summary: analysisAny ? String(analysisAny.summary || '') : '',
+              aiAnalysis: json.analysis,
+              files: [],
+              recordingUrl: '',
+              manualNotes: '',
+            } as unknown as (typeof meetings)[number];
+            setMeetings(prev => [newMeeting, ...prev]);
+          }
 
           if (json.mode === 'transcribe' || uploadMode === 'transcribe') {
             setTranscriptResult(json.transcript || '');
+            if (json.analysisError) setAnalysisErrorMsg(json.analysisError);
             setActiveView('TRANSCRIPT');
-            globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'התמלול הושלם ונשמר בהצלחה.', type: 'success' } }));
-          } else {
-            if (!json.analysis) throw new Error('Missing analysis');
+            globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: json.analysisError || 'התמלול הושלם ונשמר בהצלחה.', type: json.analysisError ? 'warning' : 'success' } }));
+          } else if (json.analysis) {
             setAnalysisResult(json.analysis);
+            setTranscriptResult(json.transcript || '');
             setActiveView('RESULT');
             globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הקלטה נותחה ונשמרה בהצלחה.', type: 'success' } }));
+          } else {
+            // Analysis mode but no analysis returned — show transcript
+            setTranscriptResult(json.transcript || '');
+            setActiveView('TRANSCRIPT');
+            globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'התמלול הושלם.', type: 'success' } }));
           }
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : 'שגיאה בניתוח ההקלטה';
@@ -346,6 +382,18 @@ const MeetingIntelligence: React.FC = () => {
     window.addEventListener('nexus-processing-complete', handleComplete);
     return () => window.removeEventListener('nexus-processing-complete', handleComplete);
   }, []);
+
+  // Helper: strip [MM:SS] timestamps for clean view
+  const stripTimestamps = (text: string) => text.replace(/^\[\d{1,2}:\d{2}\]\s*/gm, '');
+
+  const handleCopyTranscript = () => {
+    if (!transcriptResult) return;
+    const textToCopy = transcriptViewMode === 'clean' ? stripTimestamps(transcriptResult) : transcriptResult;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setTranscriptCopied(true);
+      setTimeout(() => setTranscriptCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   return (
     <div className="h-full flex flex-col animate-fade-in">
@@ -517,24 +565,68 @@ const MeetingIntelligence: React.FC = () => {
         {activeView === 'TRANSCRIPT' && transcriptResult !== null && (
           <div className="animate-fade-in space-y-6">
             <button
-              onClick={() => { setTranscriptResult(null); setActiveView('LIST'); }}
+              onClick={() => { setTranscriptResult(null); setAnalysisErrorMsg(null); setActiveView('LIST'); }}
               className="flex items-center gap-2 text-gray-400 hover:text-nexus-primary transition-all font-bold text-sm"
             >
               <ArrowLeft size={16} /> חזרה לרשימה
             </button>
-            <div className="bg-white border rounded-2xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-nexus-primary/10 text-nexus-primary rounded-xl flex items-center justify-center">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">תמלול הקלטה</h2>
-                  <p className="text-gray-500 text-sm">התמלול הושלם ונשמר במערכת</p>
-                </div>
+
+            {analysisErrorMsg && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 font-medium">
+                {analysisErrorMsg}
               </div>
+            )}
+
+            <div className="bg-white border rounded-2xl p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-nexus-primary/10 text-nexus-primary rounded-xl flex items-center justify-center">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">תמלול הקלטה</h2>
+                    {transcriptTime && (
+                      <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5">
+                        <Clock size={12} /> {transcriptTime}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleCopyTranscript}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-bold transition-all"
+                >
+                  {transcriptCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  {transcriptCopied ? 'הועתק!' : 'העתק'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => setTranscriptViewMode('clean')}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border ${
+                    transcriptViewMode === 'clean'
+                      ? 'bg-nexus-primary text-white border-nexus-primary shadow'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-nexus-primary/30'
+                  }`}
+                >
+                  <FileText size={14} className="inline ml-1" /> תמלול נקי
+                </button>
+                <button
+                  onClick={() => setTranscriptViewMode('timed')}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border ${
+                    transcriptViewMode === 'timed'
+                      ? 'bg-nexus-primary text-white border-nexus-primary shadow'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-nexus-primary/30'
+                  }`}
+                >
+                  <Clock size={14} className="inline ml-1" /> לפי זמן
+                </button>
+              </div>
+
               <div className="bg-gray-50 rounded-xl border border-gray-100 p-6 max-h-[500px] overflow-y-auto custom-scrollbar">
                 <pre className="whitespace-pre-wrap text-gray-800 text-base leading-relaxed font-sans" dir="rtl">
-                  {transcriptResult}
+                  {transcriptViewMode === 'clean' ? stripTimestamps(transcriptResult) : transcriptResult}
                 </pre>
               </div>
             </div>
