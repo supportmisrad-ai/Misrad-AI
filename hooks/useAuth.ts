@@ -11,7 +11,7 @@ import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { isCeoRole } from '@/lib/constants/roles';
 import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
 import { punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
-import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
+import { getAttendanceCache, setAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const ATTENDANCE_BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
@@ -215,6 +215,30 @@ export const useAuth = (
             }
         }
     }, [orgSlug]);
+
+    // Same-tab sync: when useAttendanceTile (sidebar) changes attendance, refresh timeEntries
+    const cacheRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const activeShiftRef = useRef(activeShift);
+    activeShiftRef.current = activeShift;
+    useEffect(() => {
+        if (!orgSlug) return;
+        const unsub = subscribeAttendanceCache((changedOrg, snapshot) => {
+            if (changedOrg !== orgSlug) return;
+            if (cacheRefreshTimerRef.current) clearTimeout(cacheRefreshTimerRef.current);
+            cacheRefreshTimerRef.current = setTimeout(() => {
+                cacheRefreshTimerRef.current = null;
+                const hasActive = Boolean(activeShiftRef.current);
+                const cacheHasActive = Boolean(snapshot?.entryId);
+                if (hasActive !== cacheHasActive) {
+                    void refreshTimeEntries();
+                }
+            }, 500);
+        });
+        return () => {
+            unsub();
+            if (cacheRefreshTimerRef.current) clearTimeout(cacheRefreshTimerRef.current);
+        };
+    }, [orgSlug, refreshTimeEntries]);
 
     const getLocation = useCallback(async (): Promise<{ lat: number; lng: number; accuracy: number; city?: string }> => {
         if (typeof window === 'undefined') {

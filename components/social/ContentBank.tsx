@@ -147,9 +147,12 @@ export default function ContentBank() {
         return;
       }
 
+      // Use signedDownloadUrl for display (valid for 1 hour)
+      const displayUrl = urlData.signedDownloadUrl || `sb://media/${urlData.path}`;
       const newFile = {
         id: `media_${Date.now()}`,
-        url: `sb://media/${urlData.path}`,
+        url: displayUrl,
+        sbPath: `sb://media/${urlData.path}`, // Store sb:// path for future reference
         name: file.name,
         type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
       };

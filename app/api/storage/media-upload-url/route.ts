@@ -93,11 +93,16 @@ async function POSTHandler(req: NextRequest) {
       return apiError(IS_PROD ? safeMsg : error?.message || safeMsg, { status: 500 });
     }
 
+    // Also generate a signed download URL for display (valid for 1 hour)
+    const { data: downloadData } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
+    const signedDownloadUrl = downloadData?.signedUrl || null;
+
     return apiSuccessCompat({
       bucket: MEDIA_BUCKET,
       path,
       mimeType,
       signedUrl: data.signedUrl,
+      signedDownloadUrl,
       token: data.token,
     });
   } catch (e: unknown) {

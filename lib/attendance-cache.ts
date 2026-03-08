@@ -15,7 +15,10 @@ type AttendanceSnapshot = {
   startTime: string;
 };
 
+type CacheListener = (orgSlug: string, snapshot: AttendanceSnapshot | null) => void;
+
 const cache = new Map<string, AttendanceSnapshot | null>();
+const listeners = new Set<CacheListener>();
 
 export function getAttendanceCache(orgSlug: string): AttendanceSnapshot | null {
   return cache.get(orgSlug) ?? null;
@@ -30,4 +33,12 @@ export function setAttendanceCache(
   } else {
     cache.delete(orgSlug);
   }
+  for (const fn of listeners) {
+    try { fn(orgSlug, snapshot ?? null); } catch { /* ignore */ }
+  }
+}
+
+export function subscribeAttendanceCache(fn: CacheListener): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
 }

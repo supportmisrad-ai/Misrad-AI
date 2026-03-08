@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute, encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getActiveShift, punchIn, punchOut, updateEntryLocation } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
-import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
+import { getAttendanceCache, setAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -142,6 +142,18 @@ export function useAttendanceTile(): UseAttendanceTileResult {
       setAttendanceCache(orgSlug, null);
     }
   }, [orgSlug, entryId, startTime]);
+
+  // Same-tab sync: when useAuth (or any other source) writes to cache, pick it up
+  useEffect(() => {
+    if (!orgSlug) return;
+    return subscribeAttendanceCache((changedOrg, snapshot) => {
+      if (changedOrg !== orgSlug) return;
+      const newId = snapshot?.entryId ?? null;
+      const newStart = snapshot?.startTime ?? null;
+      setEntryId(prev => prev === newId ? prev : newId);
+      setStartTime(prev => prev === newStart ? prev : newStart);
+    });
+  }, [orgSlug]);
 
   const loadActiveShift = useCallback(async () => {
     if (!orgSlug || !isClerkLoaded || !isSignedIn) return;
