@@ -117,22 +117,43 @@ export async function generatePostVariationsAction(
   }
 }
 
-export async function generateAIImageAction(prompt: string): Promise<string> {
+export async function generateAIImageAction(
+  prompt: string,
+  size?: '1024x1024' | '1792x1024' | '1024x1792'
+): Promise<string> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return '';
+    if (!authCheck.success) {
+      logger.warn('ai-actions', 'generateAIImageAction: User not authenticated');
+      throw new Error('נדרשת התחברות');
+    }
 
     const ai = AIService.getInstance();
+    
+    logger.info('ai-actions', 'Generating AI image', { 
+      promptLength: prompt.length, 
+      size: size || '1024x1024',
+      preview: prompt.substring(0, 100) 
+    });
     
     const result = await ai.generateImage({
       featureKey: 'social.image_generation',
       prompt: String(prompt || 'creative social media post image'),
-      meta: { source: 'social_post_variation' },
+      size: size || '1024x1024',
+      meta: { source: 'social_post_variation', imageSize: size },
+    });
+
+    logger.info('ai-actions', 'AI image generated successfully', {
+      imageDataUrlLength: result.imageDataUrl.length,
+      chargedCents: result.chargedCents,
+      size: size || '1024x1024',
     });
 
     return result.imageDataUrl;
   } catch (error) {
     logger.error('ai-actions', 'Error generating AI image:', error);
+    // Return empty string but log the actual error
+    // The UI will handle this gracefully
     return '';
   }
 }

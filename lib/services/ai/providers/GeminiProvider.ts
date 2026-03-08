@@ -241,6 +241,7 @@ export class GeminiProvider {
   async generateImage(params: {
     prompt: string;
     model?: string;
+    size?: '1024x1024' | '1792x1024' | '1024x1792';
     timeoutMs: number;
   }): Promise<{ imageBase64: string }> {
     const ai = new GoogleGenAI({ apiKey: this.apiKey });
@@ -250,12 +251,32 @@ export class GeminiProvider {
     const modelName = params.model || 'gemini-3.1-flash-image-preview';
     const useNanoBanana = modelName.includes('flash-image') || modelName.includes('pro-image');
 
+    // Convert size to aspect ratio for Nano Banana
+    const getAspectRatio = (size?: string): string => {
+      if (size === '1792x1024') return '16:9';
+      if (size === '1024x1792') return '9:16';
+      return '1:1';
+    };
+
     try {
       if (useNanoBanana) {
         // Nano Banana (Gemini native image generation)
+        const config: any = {
+          responseModalities: ['Image'],
+          imageConfig: {
+            aspectRatio: getAspectRatio(params.size),
+          },
+        };
+
+        // Add image_size for high quality models
+        if (modelName.includes('3.1-flash-image-preview') || modelName.includes('3-pro-image-preview')) {
+          config.imageConfig.imageSize = '2K';
+        }
+
         const response = await ai.models.generateContent({
           model: modelName,
           contents: params.prompt,
+          config,
         });
 
         if (!response.candidates || response.candidates.length === 0) {

@@ -271,6 +271,7 @@ export class OpenAIProvider {
   async generateImage(params: {
     prompt: string;
     model?: string;
+    size?: '1024x1024' | '1792x1024' | '1024x1792';
     timeoutMs: number;
   }): Promise<{ imageBase64: string }> {
     const ac = new AbortController();
@@ -281,7 +282,7 @@ export class OpenAIProvider {
         model: params.model || 'dall-e-3',
         prompt: params.prompt,
         n: 1,
-        size: '1024x1024',
+        size: params.size || '1024x1024',
         response_format: 'b64_json',
       };
 

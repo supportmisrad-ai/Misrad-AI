@@ -770,6 +770,7 @@ export class AIService {
     organizationId?: string;
     userId?: string;
     prompt: string;
+    size?: '1024x1024' | '1792x1024' | '1024x1792';
     meta?: Record<string, unknown>;
   }): Promise<{ imageDataUrl: string; chargedCents: number }> {
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
@@ -807,6 +808,7 @@ export class AIService {
         result = await openai.generateImage({
           prompt: params.prompt,
           model: feature.settings.primary_model,
+          size: params.size,
           timeoutMs: feature.settings.timeout_ms,
         });
       } else {
@@ -814,6 +816,8 @@ export class AIService {
         const gemini = new GeminiProvider(googleKey);
         result = await gemini.generateImage({
           prompt: params.prompt,
+          model: feature.settings.primary_model,
+          size: params.size,
           timeoutMs: feature.settings.timeout_ms,
         });
       }
@@ -952,6 +956,7 @@ export class AIService {
           mimeType: params.mimeType,
           timeout: feature.settings.timeout_ms
         });
+        console.log('[AIService.transcribe] Getting provider key for', primaryProvider);
 
         if (primaryProvider === 'deepgram') {
           const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
@@ -1024,8 +1029,15 @@ export class AIService {
         console.warn('[AIService.transcribe] Primary provider returned empty transcript', { provider: primaryProvider });
       } catch (err: unknown) {
         primaryError = err;
+        primaryText = '';
         providersTried.push({ provider: primaryProvider, model: primaryModel, ok: false, error: stringifyError(err) });
-        console.warn('[AIService.transcribe] Primary provider failed', { provider: primaryProvider, error: stringifyError(err) });
+        console.error('[AIService.transcribe] Primary provider FAILED', {
+          provider: primaryProvider,
+          model: primaryModel,
+          errorType: err instanceof Error ? err.constructor.name : typeof err,
+          errorMessage: err instanceof Error ? err.message : String(err),
+          errorStatus: (err as any)?.status,
+        });
       }
 
       // Try fallback provider if primary failed or returned empty

@@ -11,7 +11,7 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf'];
@@ -51,7 +51,7 @@ export async function uploadFile(
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return { success: false, error: 'הקובץ גדול מדי (מקסימום 50MB)' };
+      return { success: false, error: 'הקובץ גדול מדי (מקסימום 20MB)' };
     }
 
     // Validate file type

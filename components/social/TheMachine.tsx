@@ -427,73 +427,71 @@ export default function TheMachine() {
               animate={{ opacity: 1, x: 0 }} 
               className="max-w-6xl w-full"
             >
-              <div className="text-center mb-8 md:mb-12">
-                <h3 className="text-2xl md:text-3xl font-black mb-2">3 הצעות מוכנות</h3>
-                <p className="text-sm text-slate-500">לחץ על ההצעה שהכי מדברת אליך</p>
-              </div>
+              <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 text-center">בחר את הגרסה המנצחת</h3>
               {isLoading ? (
                 <div className="flex flex-col items-center py-24 gap-6">
                   <Skeleton className="w-12 h-12 rounded-full bg-blue-100" />
                   <p className="font-black text-lg">ה-AI בונה וריאציות...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                   {variations.map((v, idx) => (
                     <motion.div 
                       key={v.id} 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-white rounded-2xl border-2 border-slate-100 hover:border-indigo-300 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden" 
+                      whileHover={{ y: -5 }}
+                      className="bg-white rounded-3xl md:rounded-[44px] border-2 border-slate-50 shadow-xl p-6 md:p-8 flex flex-col gap-4 md:gap-6 hover:border-blue-500 transition-all cursor-pointer group relative" 
                       onClick={() => handleSelectVariation(v)}
                     >
-                      {/* Badge Type */}
-                      <div className={`absolute top-3 left-3 px-3 py-1 rounded-full font-black text-[10px] uppercase shadow-lg ${
-                        v.type === 'sales' ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white' : 
-                        v.type === 'social' ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white' : 
-                        'bg-gradient-to-r from-emerald-500 to-green-500 text-white'
-                      }`}>
-                        {v.type === 'sales' ? '💰 מכירות' : v.type === 'social' ? '🔥 מעורבות' : '💎 ערך'}
-                      </div>
-
-                      {/* Letter Badge */}
-                      <div className="absolute top-3 right-3 w-12 h-12 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center font-black text-2xl shadow-xl">
-                        {String.fromCharCode(65 + idx)}
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-6 pt-20">
-                        <div className="mb-6 min-h-[140px]">
-                          <p className="font-bold text-slate-800 leading-relaxed text-sm line-clamp-6">
-                            {v.content}
-                          </p>
+                      <div className="flex items-center justify-between">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-lg md:text-xl shadow-xl border-4 border-white transform -translate-y-2 -translate-x-2">
+                          {String.fromCharCode(65 + idx)}
                         </div>
+                        <span className={`px-3 py-1 rounded-lg font-black text-[9px] md:text-[10px] uppercase ${
+                          v.type === 'sales' ? 'bg-red-50 text-red-600' : 
+                          v.type === 'social' ? 'bg-blue-50 text-blue-600' : 
+                          'bg-green-50 text-green-600'
+                        }`}>
+                          {v.type === 'sales' ? 'מכירתי' : v.type === 'social' ? 'מעורבות' : 'ערך'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex-1 min-h-[100px] md:min-h-[160px]">
+                        <p className="font-bold text-slate-700 leading-relaxed text-base md:text-lg italic">
+                          "{v.content}"
+                        </p>
+                      </div>
 
-                        {/* Hashtags Preview - מקוצר */}
-                        {v.suggestedHashtags && (
-                          <div className="flex items-center gap-2 mb-4 flex-wrap">
+                      {/* Suggested Hashtags */}
+                      {v.suggestedHashtags && (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Wand size={12} className="text-purple-500" />
+                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags מומלצים</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
                             {selectedPlatforms.map(platform => {
                               const platformHashtags = platform === 'facebook' ? v.suggestedHashtags?.facebook :
                                                       platform === 'instagram' ? v.suggestedHashtags?.instagram :
                                                       platform === 'linkedin' ? v.suggestedHashtags?.linkedin :
                                                       v.suggestedHashtags?.general;
                               
-                              return platformHashtags?.slice(0, 3).map((tag, i) => (
+                              return platformHashtags?.slice(0, 5).map((tag, i) => (
                                 <span 
                                   key={`${platform}-${i}`}
-                                  className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded text-[9px] font-bold"
+                                  className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-bold border border-purple-100"
                                 >
                                   {tag.startsWith('#') ? tag : `#${tag}`}
                                 </span>
                               ));
                             }).filter(Boolean)[0]}
                           </div>
-                        )}
-
-                        {/* CTA */}
-                        <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 group-hover:bg-indigo-600 transition-all">
-                          <span className="font-black text-sm text-slate-700 group-hover:text-white transition-all">בחירה</span>
-                          <ArrowRight size={16} className="text-slate-700 group-hover:text-white transition-all rotate-180" />
                         </div>
+                      )}
+
+                      <div className="pt-4 md:pt-6 border-t border-slate-200 flex items-center justify-between">
+                        <button className="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2">
+                          בחר גרסה {String.fromCharCode(65 + idx)} <ArrowRight size={14}/>
+                        </button>
                       </div>
                     </motion.div>
                   ))}
