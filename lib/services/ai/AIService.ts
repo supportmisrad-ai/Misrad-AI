@@ -1292,7 +1292,7 @@ export class AIService {
             : isObjection
               ? 'llama-3.1-70b-versatile'
               : isClientMeetingsAnalyze
-                ? 'gemini-2.0-pro'
+                ? 'gemini-2.5-flash'
                 : 'gemini-2.5-flash',
         fallback_provider: isImageGeneration ? 'google' : null,
         fallback_model: isImageGeneration ? 'gemini-3-pro-image-preview' : null,

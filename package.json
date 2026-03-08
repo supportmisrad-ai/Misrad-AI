@@ -94,6 +94,7 @@
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/openai": "^3.0.41",
     "@ai-sdk/react": "^3.0.3",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@aparajita/capacitor-biometric-auth": "^8.0.2",
     "@capacitor/app": "^7.1.1",
     "@capacitor/browser": "^7.0.1",

@@ -1,6 +1,7 @@
 import { apiError } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
+import Anthropic from '@anthropic-ai/sdk';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { checkAiAccess } from '@/lib/server/subscription-guard';
@@ -195,9 +196,8 @@ function streamTextResponse(text: string): Response {
   });
 }
 
-function streamOpenAIResponse(params: {
+function streamClaudeResponse(params: {
   apiKey: string;
-  model: string;
   systemInstruction: string;
   prompt: string;
   temperature?: number;
@@ -206,66 +206,31 @@ function streamOpenAIResponse(params: {
   postProcess?: (text: string) => string;
 }): Response {
   const ac = new AbortController();
-  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 25000);
+  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 8000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        const res = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${params.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: params.model,
-            messages: [
-              { role: 'system', content: params.systemInstruction },
-              { role: 'user', content: params.prompt },
-            ],
-            temperature: params.temperature ?? 0.3,
-            max_tokens: params.maxTokens ?? 600,
-            stream: true,
-          }),
-          signal: ac.signal,
-        });
+        const anthropic = new Anthropic({ apiKey: params.apiKey });
+        
+        const messageStream = await anthropic.messages.stream({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: params.maxTokens ?? 400,
+          temperature: params.temperature ?? 0.3,
+          system: params.systemInstruction,
+          messages: [{ role: 'user', content: params.prompt }],
+        }, { signal: ac.signal });
 
-        if (!res.ok || !res.body) {
-          const txt = await res.text().catch(() => '');
-          controller.enqueue(encoder.encode(`שגיאה בשרת AI (${res.status}). נסה שוב.`));
-          controller.close();
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        const reader = res.body.getReader();
         let accumulated = '';
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split('\n').filter((line) => line.trim() !== '');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data === '[DONE]') break;
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  if (params.postProcess) {
-                    accumulated += content;
-                  } else {
-                    controller.enqueue(encoder.encode(content));
-                  }
-                }
-              } catch {
-                // skip malformed
-              }
+        for await (const chunk of messageStream) {
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            const text = chunk.delta.text;
+            if (params.postProcess) {
+              accumulated += text;
+            } else {
+              controller.enqueue(encoder.encode(text));
             }
           }
         }
@@ -615,9 +580,9 @@ async function POSTHandler(req: Request) {
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return apiError('חסר OPENAI_API_KEY', { status: 500 });
+      return apiError('חסר ANTHROPIC_API_KEY', { status: 500 });
     }
 
     if (sales) {
@@ -629,50 +594,33 @@ async function POSTHandler(req: Request) {
       }
 
       const systemInstruction = [
-        '# תפקיד',
-        'אתה יועץ מכירות מומחה וחכם של MISRAD AI. אתה מאמן מכירות ברמה עולמית.',
+        'אתה נציג תמיכה ישיר ומהיר של MISRAD AI.',
         '',
-        '# יכולות מרכזיות',
-        '1. **קליטת מידע** - זכור כל פרט שהמשתמש משתף (שם, חברה, תחום, בעיות, תקציב, לוח זמנים)',
-        '2. **זיהוי סיטואציות** - הבן במה המשתמש נמצא:',
-        '   - browsing: רק מסתכל, לא מוכן',
-        '   - pricing_inquiry: שואל על מחיר',
-        '   - ready_to_buy: מוכן לקנות עכשיו',
-        '   - technical_support: שאלה טכנית',
-        '   - objection: מעלה התנגדות',
-        '   - comparison: משווה עם מתחרים',
-        '   - urgent: צריך פתרון דחוף',
-        '3. **טיפול בהתנגדויות** - כשיש התנגדות ("יקר מדי", "לא בטוח", "מסובך"), השב בצורה חכמה:',
-        '   - הכר בחששות',
-        '   - הצג ערך/ROI',
-        '   - תן דוגמה/סיפור הצלחה',
-        '   - הצע פעולה קלה',
-        '4. **כפתורים דינמיים** - בסוף כל תשובה, החזר 2-4 כפתורים רלוונטיים להקשר:',
-        '   פורמט: `[!ACTIONS]label1|action1;;label2|action2[/ACTIONS]`',
-        '   דוגמאות:',
-        '   - browsing: "מה זה עושה?", "כמה עולה?", "יש דמו?"',
-        '   - pricing_inquiry: "ראה מחירון", "דבר עם מכירות", "התחל ניסיון"',
-        '   - objection (יקר): "חשב ROI", "השווה תכניות", "ניסיון חינם 7 ימים"',
-        '   - ready_to_buy: "הירשם עכשיו", "צור קשר מיידי", "ראה מדריך"',
+        'תפקידך:',
+        '1. לענות על שאלות בצורה ישירה וטכנית',
+        '2. להפנות לקישורים רלוונטיים (תמיד כלול קישור ישיר)',
+        '3. לשאול שאלות הבהרה קצרות אם צריך פרטים נוספים',
         '',
-        '# הנחיות תוכן',
-        '- עברית טבעית וזורמת בלבד',
-        '- שמות עבריים: "עוזר קולי", "חיבור לידים", "קיוסק", "ניהול לקוחות"',
-        '- התמקד ב-ROI מדיד: "חוסך X שעות בשבוע", "מגדיל המרה ב-Y%"',
-        '- דבר ישיר, ללא שיווק זול',
-        '- אם לא יודע - אל תמציא',
+        'איך לענות:',
+        '- תשובה ישירה ב-2-4 שורות',
+        '- קישור ישיר למחירון/הרשמה/תיעוד',
+        '- אם מדובר על מחיר - הפנה ל-/pricing',
+        '- אם רוצה להתחיל - הפנה ל-/login?mode=sign-up',
+        '- אם שאלה טכנית - שאל "באיזה מסך אתה נמצא?" או "מה בדיוק אתה מנסה לעשות?"',
         '',
-        '# התנגדויות נפוצות וטיפול',
-        '**"יקר מדי"** → "אני מבין את החשש. בואו נחשב ביחד: אם המערכת חוסכת לך 10 שעות בשבוע, זה כמה שווה לך? רוב הלקוחות שלנו מדווחים על החזר השקעה תוך 2-3 חודשים. [רוצה לראות דוגמה קונקרטית?]"',
-        '**"לא בטוח שזה בשבילי"** → "בואו נבדוק ביחד. ספר לי קצת על העסק שלך - מה התחום? כמה לקוחות? מה הכאב הכי גדול? על פי זה אוכל להגיד לך בדיוק איך זה יכול לעזור או אם באמת זה לא מתאים."',
-        '**"מסובך מדי"** → "זה בדיוק מה שלא רצינו! המערכת בנויה להיות פשוטה - תתחיל עם הבסיס (5 דקות הקמה) ותוסיף תכונות בהדרגה. יש לך וידאו של 3 דקות שמראה בדיוק איך להתחיל. רוצה?"',
-        '**"יש לי כבר מערכת"** → "מעולה! רוב הלקוחות שלנו גם הגיעו ממערכות אחרות. מה החסרונות שאתה מרגיש במערכת הנוכחית? MISRAD בנויה בדיוק כדי לפתור את הבעיות הנפוצות - יכול להיות שזה בדיוק מה שחסר לך."',
+        'דוגמאות טובות:',
+        '- "המערכת עולה 149-499₪ לחודש לפי החבילה. [ראה מחירון מלא](/pricing)"',
+        '- "כדי להוסיף לקוח: לחץ על הכפתור + בפינה השמאלית העליונה. [למדריך המלא](/w/{orgSlug}/support/client/add-client)"',
+        '- "איפה בדיוק אתה רואה את השגיאה? באיזה מסך?"',
         '',
-        '# חשוב',
-        '- זכור מידע מהשיחה (אם אמר שמו, השתמש בו)',
-        '- התאם את הטון לרמת המוכנות',
-        '- **תמיד** החזר כפתורי פעולה רלוונטיים',
-        '- Markdown נקי וקריא',
+        'אסור:',
+        '- לשאול "מה האתגרים בעסק שלך"',
+        '- לשאול "מה היעדים שלך"',
+        '- תשובות ארוכות מעל 5 שורות',
+        '- תשובות בלי קישור',
+        '',
+        'כפתורי פעולה (פורמט):',
+        '[!ACTIONS]ראה מחירון|/pricing;;התחל עכשיו|/login?mode=sign-up[/ACTIONS]',
       ].join('\n');
 
       const importantLinks = getLinksHub()
@@ -716,14 +664,13 @@ async function POSTHandler(req: Request) {
         `- אם מוכן: "הירשם עכשיו|/login?mode=sign-up;;דבר עם מכירות|/contact;;שאלות נוספות|יש לי עוד שאלה"`,
       ].join('\n');
 
-      return streamOpenAIResponse({
+      return streamClaudeResponse({
         apiKey,
-        model: 'gpt-4o-mini',
         systemInstruction,
         prompt,
-        temperature: 0.7,
-        maxTokens: 500,
-        timeoutMs: 25000,
+        temperature: 0.3,
+        maxTokens: 350,
+        timeoutMs: 8000,
         postProcess: (raw) => {
           const actions = extractDynamicActions(raw);
           let cleaned = stripActionsTag(raw);
@@ -800,33 +747,41 @@ async function POSTHandler(req: Request) {
     }
 
     const systemInstruction = [
-      'אתה מומחה תמיכה טכנית למערכת MISRAD.',
-      'בנוסף לתמיכה, אתה משמש גם כ"נווט" בתוך המערכת: כששואלים איפה נמצא מסך/פיצ׳ר או איך להגיע אליו — תן תשובה קצרה עם לינק Markdown לחיץ לנתיב המדויק בתוך ה-Workspace (תמיד תחת /w/{orgSlug}/...).',
-      'אם יש התאמה מתוך UI Map (מפת המסכים) — העדף אותה על פני ניחוש. אם לא בטוח — שאל שאלת הבהרה אחת קצרה.',
-      'התבסס אך ורק על המידע שסיפקתי לך תחת "Knowledge Base" ו-"Links" ו-"Video" ו-"מסמכי מוצר". אל תמציא פיצ׳רים.',
-      'ענה קצר, ב-3-7 שורות.',
-      'תמיד צרף בסוף לינק למאמר מלא (אם יש), או לינק לוידאו הרלוונטי (אם יש).',
-      'אם אין תשובה מתוך ה-Knowledge Base: כתוב שאין לך תשובה ודחוף לוואטסאפ.',
-      whatsappGroupUrl && whatsappGroupUrl.trim() ? `וואטסאפ לתמיכה: ${whatsappGroupUrl}` : '',
-      helpVideoText ? `Video:\n${helpVideoText}` : '',
-      `UI Map (מסכים, נתיבים וכפתורים עיקריים):\n${JSON.stringify(UI_MAP).slice(0, 16000)}`,
-      `Knowledge Base:\n${docsKnowledge || '(empty)'}`,
-      `Links:\n${linksKnowledge || '(empty)'}`,
-      salesDocsKnowledge ? `מסמכי מוצר ומודולים (לשאלות על יכולות המערכת):\n${salesDocsKnowledge.slice(0, 12000)}` : '',
+      'אתה נציג תמיכה טכנית מהיר וישיר של MISRAD AI.',
+      '',
+      'תפקידך:',
+      '1. לענות על שאלות טכניות בצורה ישירה (2-5 שורות)',
+      '2. להפנות לקישור ישיר למסך/מדריך/וידאו',
+      '3. לשאול שאלות הבהרה קצרות אם חסר מידע',
+      '',
+      'פורמט תשובה:',
+      '- תשובה קצרה (2-3 שורות)',
+      '- קישור ישיר: [טקסט](/w/{orgSlug}/path)',
+      '- אם יש וידאו - צרף אותו',
+      '',
+      'דוגמאות:',
+      '- "כדי להוסיף לקוח חדש: לחץ על + בראש העמוד. [למדריך מלא](/w/{orgSlug}/support/client/add-client)"',
+      '- "הדוח נמצא תחת דשבורד > דוחות. [לדף הדוחות](/w/{orgSlug}/nexus/reports)"',
+      '- "איפה בדיוק אתה רואה את השגיאה?"',
+      '',
+      whatsappGroupUrl && whatsappGroupUrl.trim() ? `אם אין תשובה - הפנה לתמיכה: ${whatsappGroupUrl}` : '',
+      helpVideoText ? `וידאו רלוונטי:\n${helpVideoText}` : '',
+      `UI Map:\n${JSON.stringify(UI_MAP).slice(0, 12000)}`,
+      `Knowledge Base:\n${docsKnowledge.slice(0, 8000) || '(empty)'}`,
+      `קישורים:\n${linksKnowledge || '(empty)'}`,
     ]
       .filter(Boolean)
       .join('\n\n');
 
     const prompt = `עמוד נוכחי: ${pathname}\nמודול: ${moduleKey || 'unknown'}\n\nHistory:\n${history || '(empty)'}\n\nUser message:\n${lastUser}`;
 
-    return streamOpenAIResponse({
+    return streamClaudeResponse({
       apiKey,
-      model: 'gpt-4o-mini',
       systemInstruction,
       prompt,
       temperature: 0.2,
-      maxTokens: 600,
-      timeoutMs: 25000,
+      maxTokens: 350,
+      timeoutMs: 8000,
     });
   } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Chat failed' });

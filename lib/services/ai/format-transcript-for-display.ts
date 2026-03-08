@@ -24,16 +24,35 @@ const FORMAT_PROMPT = `אתה עורך תמלולים מקצועי.
 `;
 
 /**
+ * Deterministic fallback: strip timestamps and speaker labels using regex.
+ * Always produces a clean transcript even without AI.
+ */
+function stripTimestampsAndSpeakers(text: string): string {
+  let cleaned = text;
+  // Remove [MM:SS] or [H:MM:SS] timestamps
+  cleaned = cleaned.replace(/\[\d{1,2}:\d{2}(:\d{2})?\]\s*/g, '');
+  // Remove speaker labels like "Speaker 0:", "דובר 1:", "Speaker 0 :", etc.
+  cleaned = cleaned.replace(/(?:Speaker|דובר)\s*\d+\s*:\s*/gi, '');
+  // Collapse multiple blank lines into one
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  // Trim each line
+  cleaned = cleaned.split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+  return cleaned.trim();
+}
+
+/**
  * Format a raw transcript with timestamps into a clean, readable format with punctuation and emojis.
  * Used for "clean" display mode in Client-OS.
+ * If AI formatting fails, falls back to deterministic regex stripping.
  */
 export async function formatTranscriptForDisplay(rawTranscript: string): Promise<string> {
   if (!rawTranscript || rawTranscript.length < 20) return rawTranscript;
 
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+  // Match AIService.getProviderKey env resolution for google provider
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || process.env.API_KEY || '';
   if (!apiKey) {
-    console.warn('[formatTranscriptForDisplay] No Gemini API key found, returning raw transcript');
-    return rawTranscript;
+    console.warn('[formatTranscriptForDisplay] No Gemini API key found, using regex fallback');
+    return stripTimestampsAndSpeakers(rawTranscript);
   }
 
   try {
@@ -52,26 +71,31 @@ export async function formatTranscriptForDisplay(rawTranscript: string): Promise
 
     // Sanity check: formatted text shouldn't be too different in length
     const lengthRatio = formatted.length / rawTranscript.length;
-    if (!formatted || lengthRatio < 0.5 || lengthRatio > 2.0) {
-      console.warn('[formatTranscriptForDisplay] Formatted text length too different, using raw', {
+    if (!formatted || lengthRatio < 0.3 || lengthRatio > 2.5) {
+      console.warn('[formatTranscriptForDisplay] Formatted text length too different, using regex fallback', {
         originalLength: rawTranscript.length,
         formattedLength: formatted.length,
         ratio: lengthRatio,
       });
-      return rawTranscript;
+      return stripTimestampsAndSpeakers(rawTranscript);
     }
 
-    console.log('[formatTranscriptForDisplay] Formatting completed', {
+    // Extra safety: if formatted text still contains timestamps, strip them
+    if (/\[\d{1,2}:\d{2}\]/.test(formatted)) {
+      console.warn('[formatTranscriptForDisplay] AI output still contains timestamps, stripping them');
+      return stripTimestampsAndSpeakers(formatted);
+    }
+
+    console.log('[formatTranscriptForDisplay] AI formatting completed', {
       originalLength: rawTranscript.length,
       formattedLength: formatted.length,
-      changed: formatted !== rawTranscript,
     });
 
     return formatted;
   } catch (err) {
-    console.error('[formatTranscriptForDisplay] Formatting failed, using raw transcript', {
+    console.error('[formatTranscriptForDisplay] AI formatting failed, using regex fallback', {
       error: err instanceof Error ? err.message : String(err),
     });
-    return rawTranscript;
+    return stripTimestampsAndSpeakers(rawTranscript);
   }
 }
