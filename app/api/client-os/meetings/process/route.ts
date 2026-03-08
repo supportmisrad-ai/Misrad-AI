@@ -214,6 +214,22 @@ async function POSTHandler(req: Request) {
     }
 
     const audioBuf = await fs.readFile(audioPath);
+    
+    console.log('[client-os/meetings/process] BEFORE AI transcription', {
+      fileName,
+      originalMimeType: mimeType,
+      audioMimeType: audioMime,
+      inputBufferSize: inputBuf.byteLength,
+      audioBufferSize: audioBuf.byteLength,
+      isVideo,
+      isAudio,
+      audioPathExists: await fs.access(audioPath).then(() => true).catch(() => false),
+    });
+
+    if (audioBuf.byteLength === 0) {
+      console.error('[client-os/meetings/process] Audio buffer is EMPTY!', { fileName, audioPath });
+      return apiError('הקובץ ריק לאחר עיבוד. אנא בדוק שהקובץ תקין.', { status: 422 });
+    }
 
     const out = await withAiLoadIsolation({
       namespace: 'ai.transcribe',
