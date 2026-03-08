@@ -51,6 +51,12 @@ async function POSTHandler(
     const transcriptText = String(body.transcriptText || '').trim();
 
     if (!transcriptText) {
+      console.error('[call-analyzer/suggest] transcriptText is EMPTY!', {
+        bodyKeys: Object.keys(body || {}),
+        bodyType: typeof body,
+        hasTranscriptText: 'transcriptText' in (body || {}),
+        rawValue: body?.transcriptText === undefined ? 'undefined' : body?.transcriptText === null ? 'null' : `string(${String(body?.transcriptText).length})`,
+      });
       return apiError('transcriptText is required', { status: 400 });
     }
 

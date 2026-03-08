@@ -125,6 +125,10 @@ async function POSTHandler(req: Request) {
     if (!clientId) return apiError('clientId is required', { status: 400 });
     if (!storagePath) return apiError('path is required', { status: 400 });
 
+    // Validate UUID format for clientId
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId);
+    if (!isUuid) return apiError('clientId must be a valid UUID', { status: 400 });
+
     let orgId: string;
     try {
       const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
@@ -145,6 +149,15 @@ async function POSTHandler(req: Request) {
       } catch {
         return apiError('Conflicting workspace context', { status: 400 });
       }
+    }
+
+    // Verify client exists in MisradClient table (FK constraint: misrad_meetings_client_id_fkey)
+    const clientExists = await prisma.misradClient.findFirst({
+      where: { id: clientId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!clientExists) {
+      return apiError('הלקוח לא נמצא במערכת. יש ליצור את הלקוח קודם.', { status: 404 });
     }
 
     const abuse = await enforceAiAbuseGuard({
