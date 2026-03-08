@@ -1,0 +1,55 @@
+// Storage Files Tracking - תיעוד קבצים ב-Supabase Storage
+// מאפשר לנהל מחזור חיים, מדיניות שמירה, והתראות מחיקה
+
+model StorageFile {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id")
+  bucket            String
+  path              String
+  fileName          String   @map("file_name")
+  mimeType          String?  @map("mime_type")
+  sizeBytes         BigInt   @map("size_bytes")
+  uploadedBy        String?  @map("uploaded_by") // clerk_user_id
+  uploadedAt        DateTime @default(now()) @map("uploaded_at")
+  lastAccessedAt    DateTime? @map("last_accessed_at")
+  
+  // Retention & Lifecycle
+  retentionDays     Int?     @map("retention_days") // null = default policy
+  deleteScheduledAt DateTime? @map("delete_scheduled_at")
+  deletionNotifiedAt DateTime? @map("deletion_notified_at")
+  isProtected       Boolean  @default(false) @map("is_protected") // קובץ מוגן מפני מחיקה
+  
+  // Metadata
+  tags              String[] @default([])
+  metadata          Json?
+  
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([bucket, path])
+  @@index([organizationId, bucket])
+  @@index([deleteScheduledAt])
+  @@index([uploadedAt])
+  @@map("storage_files")
+}
+
+// Storage Deletion Log - לוג מחיקות לצורכי ביקורת
+model StorageDeletionLog {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id")
+  bucket            String
+  path              String
+  fileName          String   @map("file_name")
+  sizeBytes         BigInt   @map("size_bytes")
+  deletedBy         String?  @map("deleted_by") // clerk_user_id או 'system'
+  deletedAt         DateTime @default(now()) @map("deleted_at")
+  reason            String   // 'retention_policy', 'manual', 'organization_deleted'
+  
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("storage_deletion_log")
+}

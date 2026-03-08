@@ -11,6 +11,7 @@ import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
 import { SecurityTrustSection } from '@/components/landing/SecurityTrustSection';
 import { CostComparisonSection } from '@/components/landing/CostComparisonSection';
+import { StorageRetentionSection } from '@/components/landing/StorageRetentionSection';
 import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
 import ContextualBannerDisplay from '@/components/promotions/ContextualBannerDisplay';
 
@@ -105,6 +106,8 @@ export default function PricingPageClient() {
         <CostComparisonSection />
 
         <SecurityTrustSection />
+
+        <StorageRetentionSection />
 
         <TestimonialsSection />
 

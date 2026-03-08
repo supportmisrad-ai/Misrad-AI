@@ -3178,6 +3178,8 @@ model Organization {
   attendanceSalaryConfig   AttendanceSalaryConfig?
   botLeads                 BotLead[]
   customerRatings          CustomerRating[]
+  storageFiles             StorageFile[]
+  storageDeletionLogs      StorageDeletionLog[]
 
   @@index([owner_id])
   @@index([partnerId])
@@ -5075,4 +5077,56 @@ model ClientMarketingStrategy {
   @@index([clientId], map: "idx_cms_client")
   @@index([organizationId], map: "idx_cms_org")
   @@map("client_marketing_strategy")
+}
+
+// ─── STORAGE LIFECYCLE MANAGEMENT ────────────────────────────────────
+
+model StorageFile {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id") @db.Uuid
+  bucket            String
+  path              String
+  fileName          String   @map("file_name")
+  mimeType          String?  @map("mime_type")
+  sizeBytes         BigInt   @map("size_bytes")
+  uploadedBy        String?  @map("uploaded_by")
+  uploadedAt        DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  lastAccessedAt    DateTime? @map("last_accessed_at") @db.Timestamptz(6)
+  
+  retentionDays     Int?     @map("retention_days")
+  deleteScheduledAt DateTime? @map("delete_scheduled_at") @db.Timestamptz(6)
+  deletionNotifiedAt DateTime? @map("deletion_notified_at") @db.Timestamptz(6)
+  isProtected       Boolean  @default(false) @map("is_protected")
+  
+  tags              String[] @default([])
+  metadata          Json?
+  
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([bucket, path])
+  @@index([organizationId, bucket])
+  @@index([deleteScheduledAt])
+  @@index([uploadedAt])
+  @@map("storage_files")
+}
+
+model StorageDeletionLog {
+  id                String   @id @default(cuid())
+  organizationId    String   @map("organization_id") @db.Uuid
+  bucket            String
+  path              String
+  fileName          String   @map("file_name")
+  sizeBytes         BigInt   @map("size_bytes")
+  deletedBy         String?  @map("deleted_by")
+  deletedAt         DateTime @default(now()) @map("deleted_at") @db.Timestamptz(6)
+  reason            String
+  
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("storage_deletion_log")
 }
