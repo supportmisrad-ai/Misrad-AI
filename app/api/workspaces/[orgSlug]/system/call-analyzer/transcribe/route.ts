@@ -164,8 +164,21 @@ async function POSTHandler(
       },
     });
 
+    const transcriptText = String(out.text || '').trim();
+    if (!transcriptText) {
+      console.warn('[system/call-analyzer/transcribe] AI returned empty transcript', {
+        provider: out.provider,
+        model: out.model,
+        fileName,
+        mimeType,
+        source,
+        bufferSize: audioBuffer.byteLength,
+      });
+      return apiError('הקובץ ריק או לא מכיל שמע ברור. בדוק שהקובץ תקין ונסה שוב.', { status: 422 });
+    }
+
     return apiSuccess({
-      transcriptText: out.text || '',
+      transcriptText,
       provider: out.provider,
       model: out.model,
       chargedCents: out.chargedCents,

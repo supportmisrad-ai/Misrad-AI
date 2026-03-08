@@ -60,8 +60,11 @@ export default async function RootPage() {
         isSignedIn={!!authData.userId}
       />
 
-      <ContextualBannerDisplay onLandingPage />
-      <GlobalPromotionBanner onSignupPage />
+      {/* Banners: fixed below navbar so they're always visible */}
+      <div className="fixed top-20 left-0 right-0 z-40">
+        <ContextualBannerDisplay onLandingPage />
+        <GlobalPromotionBanner onSignupPage />
+      </div>
 
       <main className="flex-1">
         <LandingHeroSection />

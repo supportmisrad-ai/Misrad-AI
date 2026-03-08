@@ -10,7 +10,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { Prisma } from '@prisma/client';
 import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
-import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
@@ -109,7 +109,10 @@ async function selectTenants(filters?: {
         if (filters?.ownerEmail) where.ownerEmail = String(filters.ownerEmail);
         if (filters?.subdomain) where.subdomain = String(filters.subdomain);
 
-        const data = await prisma.nexusTenant.findMany({ where });
+        const data = await withTenantIsolationContext(
+            { source: 'lib/auth.selectTenants', reason: 'admin_tenant_lookup', mode: 'global_admin', isSuperAdmin: true },
+            async () => prisma.nexusTenant.findMany({ where })
+        );
         return (Array.isArray(data) ? data : []).map((row): Tenant => {
             return {
                 id: String(row.id ?? ''),

@@ -230,7 +230,19 @@ async function POSTHandler(req: Request) {
         });
       },
     });
-    const transcript = out.text;
+    const transcript = String(out.text || '').trim();
+
+    if (!transcript) {
+      console.warn('[client-os/meetings/process] AI returned empty transcript', {
+        provider: out.provider,
+        model: out.model,
+        fileName,
+        mimeType,
+        isVideo,
+        audioBufSize: audioBuf.byteLength,
+      });
+      return apiError('\u05d4\u05e7\u05dc\u05d8\u05d4 \u05e8\u05d9\u05e7\u05d4 \u05d0\u05d5 \u05dc\u05d0 \u05de\u05db\u05d9\u05dc\u05d4 \u05e9\u05de\u05e2 \u05d1\u05e8\u05d5\u05e8. \u05d1\u05d3\u05d5\u05e7 \u05e9\u05d4\u05e7\u05d5\u05d1\u05e5 \u05ea\u05e7\u05d9\u05df \u05d5\u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1.', { status: 422 });
+    }
 
     const recordingUrl = `sb://${bucket}/${storagePath}`;
 

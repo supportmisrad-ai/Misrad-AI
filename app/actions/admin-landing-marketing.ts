@@ -160,12 +160,10 @@ export async function getContextualBanners(): Promise<{ success: true; banners: 
 
 export async function saveContextualBanners(banners: ContextualBanner[]) {
   try {
-    console.log('[saveContextualBanners] Start - banners count:', banners.length);
     await requireAuth();
     await requireSuperAdmin();
 
     const value = JSON.parse(JSON.stringify({ banners }));
-    console.log('[saveContextualBanners] Value to save:', JSON.stringify(value, null, 2));
 
     await withTenantIsolationContext(
       { source: 'admin_landing_marketing', reason: 'write_banners', mode: 'global_admin', isSuperAdmin: true },
@@ -176,13 +174,10 @@ export async function saveContextualBanners(banners: ContextualBanner[]) {
       })
     );
 
-    console.log('[saveContextualBanners] Successfully saved banners');
     revalidatePath('/pricing');
     revalidatePath('/');
     return createSuccessResponse({ ok: true });
   } catch (error: unknown) {
-    console.error('[saveContextualBanners] ERROR:', error);
-    console.error('[saveContextualBanners] Stack:', error instanceof Error ? error.stack : 'no stack');
     const errorMessage = error instanceof Error ? error.message : 'Failed to save banners';
     return createErrorResponse(errorMessage);
   }
@@ -209,32 +204,17 @@ export async function getActivePromotionsPublic(): Promise<Promotion[]> {
 
 export async function getActiveBannersPublic(): Promise<ContextualBanner[]> {
   try {
-    console.log('[getActiveBannersPublic] Fetching banners with key:', BANNERS_KEY);
-    const row = await prisma.coreSystemSettings.findUnique({ where: { key: BANNERS_KEY }, select: { value: true } }).catch((err) => {
-      console.error('[getActiveBannersPublic] DB fetch error:', err);
-      return null;
-    });
-    console.log('[getActiveBannersPublic] Row found:', !!row, 'Has value:', !!row?.value);
-    if (!row?.value) {
-      console.log('[getActiveBannersPublic] No data found in DB');
-      return [];
-    }
+    const row = await prisma.coreSystemSettings.findUnique({ where: { key: BANNERS_KEY }, select: { value: true } }).catch(() => null);
+    if (!row?.value) return [];
     const all = coerceBanners(row.value);
-    console.log('[getActiveBannersPublic] Total banners in DB:', all.length);
     const now = new Date().toISOString();
-    const filtered = all.filter(b => {
-      const isActive = b.active;
-      const isInDateRange = (!b.startDate || now >= b.startDate) && (!b.endDate || now <= b.endDate);
-      console.log(`[getActiveBannersPublic] Banner ${b.id}: active=${isActive}, inRange=${isInDateRange}, startDate=${b.startDate}, endDate=${b.endDate}`);
+    return all.filter(b => {
       if (!b.active) return false;
       if (b.startDate && now < b.startDate) return false;
       if (b.endDate && now > b.endDate) return false;
       return true;
     });
-    console.log('[getActiveBannersPublic] Filtered active banners:', filtered.length);
-    return filtered;
-  } catch (err) {
-    console.error('[getActiveBannersPublic] Unexpected error:', err);
+  } catch {
     return [];
   }
 }
