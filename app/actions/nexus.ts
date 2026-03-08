@@ -86,6 +86,7 @@ export async function listNexusTasks(params: {
   assigneeId?: string;
   status?: string;
   leadId?: string;
+  module?: string;
   page?: number;
   pageSize?: number;
 }): Promise<{ tasks: Task[]; page: number; pageSize: number; hasMore: boolean }> {

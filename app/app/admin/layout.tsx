@@ -10,7 +10,7 @@ import AdminBiometricGate from '@/components/admin/AdminBiometricGate';
 import AdminPushSetup from '@/components/admin/AdminPushSetup';
 import AdminNativeUpdatePrompt from '@/components/admin/AdminNativeUpdatePrompt';
 
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = getSystemMetadata('admin');
 

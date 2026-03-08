@@ -44,8 +44,14 @@ async function getCurrentOrganizationKey(): Promise<{
     // Use organizationKey from provision result to avoid re-querying profile
     if (res.organizationKey) {
       // organizationKey could be a slug or ID — resolve to organization
+      // IMPORTANT: only query by `id` if value looks like a UUID, otherwise Prisma throws
+      // "Inconsistent column data: Error creating UUID" on the @db.Uuid field.
+      const keyVal = String(res.organizationKey).trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(keyVal);
       const orgByKey = await prisma.organization.findFirst({
-        where: { OR: [{ slug: res.organizationKey }, { id: res.organizationKey }] },
+        where: isUuid
+          ? { OR: [{ slug: keyVal }, { id: keyVal }] }
+          : { slug: keyVal },
         select: { id: true, slug: true, subscription_plan: true, created_at: true },
       });
 

@@ -36,6 +36,7 @@ export async function listNexusTasks(params: {
   assigneeId?: string;
   status?: string;
   leadId?: string;
+  module?: string;
   page?: number;
   pageSize?: number;
 }): Promise<{ tasks: Task[]; page: number; pageSize: number; hasMore: boolean }> {
@@ -69,6 +70,10 @@ export async function listNexusTasks(params: {
     }
 
     const where: Omit<Prisma.NexusTaskWhereInput, 'organizationId'> = {};
+
+    if (params.module) {
+      where.module = params.module;
+    }
 
     if (taskId) {
       where.id = taskId;
@@ -194,6 +199,7 @@ export async function createNexusTask(params: {
           isFocus: Boolean(body.isFocus),
           completionDetails: safeToInputJsonValue(body.completionDetails),
           department: body.department ?? user.role ?? null,
+          module: typeof body.module === 'string' && body.module.trim() ? body.module.trim() : 'nexus',
         },
       })
     );

@@ -7,7 +7,7 @@ import { logger } from '@/lib/server/logger';
 import { currentUser } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
-import prisma, { prismaForInteractiveTransaction } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
@@ -440,77 +440,118 @@ async function upsertProfileForClerkUser(params: {
   const fullName = params.fullName ? String(params.fullName) : null;
   const avatarUrl = params.imageUrl ? String(params.imageUrl) : null;
 
-  const tempOrgId = crypto.randomUUID();
-  const { createdOrg, createdProfile } = await prismaForInteractiveTransaction().$transaction(async (tx) => {
-    const organizationUser = (tx as unknown as { organizationUser: typeof prisma.organizationUser }).organizationUser;
-    const organization = (tx as unknown as { organization: typeof prisma.organization }).organization;
+  // ── Sequential idempotent provisioning (pooler-safe, no interactive $transaction) ──
+  // Each step is idempotent via upsert/findFirst so retries after partial failure are safe.
 
-    const createdSocialUser = await organizationUser.create(
-      withPrismaTenantIsolationOverride(
-        {
-          data: {
-            clerk_user_id: clerkUserId,
-            email: emailLower,
-            full_name: fullName,
-            avatar_url: avatarUrl,
-            organization_id: null,
-            role: 'owner',
-            created_at: now,
-            updated_at: now,
-          },
-          select: { id: true },
+  // Step 1: Upsert OrganizationUser (clerk_user_id is @unique)
+  const socialUser = await prisma.organizationUser.upsert(
+    withPrismaTenantIsolationOverride(
+      {
+        where: { clerk_user_id: clerkUserId },
+        create: {
+          clerk_user_id: clerkUserId,
+          email: emailLower,
+          full_name: fullName,
+          avatar_url: avatarUrl,
+          organization_id: null,
+          role: 'owner',
+          created_at: now,
+          updated_at: now,
         },
-        {
-          reason: 'bootstrap_workspace_provision',
-          source: 'app/actions/users.ts#upsertProfileForClerkUser',
-          suppressReporting: true,
-        }
-      )
-    );
-
-    const createdOrg = await organization.create({
-      data: {
-        id: tempOrgId,
-        name: orgName,
-        slug: slugBase || null,
-        owner_id: createdSocialUser.id,
-        has_nexus: pendingPlan ? hasModule('nexus') : false,
-        has_system: pendingPlan ? hasModule('system') : false,
-        has_social: pendingPlan ? hasModule('social') : false,
-        has_finance: pendingPlan ? true : false, // Finance is a free bonus for any paid package
-        has_client: pendingPlan ? hasModule('client') : false,
-        has_operations: pendingPlan ? hasModule('operations') : false,
-        subscription_status: 'trial',
-        subscription_plan: pendingPlan ? String(pendingPlan) : null,
-        trial_start_date: now,
-        trial_days: DEFAULT_TRIAL_DAYS,
-        created_at: now,
-        updated_at: now,
+        update: {
+          email: emailLower ?? undefined,
+          full_name: fullName ?? undefined,
+          avatar_url: avatarUrl ?? undefined,
+          updated_at: now,
+        },
+        select: { id: true, organization_id: true },
       },
+      {
+        reason: 'bootstrap_workspace_provision',
+        source: 'app/actions/users.ts#upsertProfileForClerkUser',
+        suppressReporting: true,
+      }
+    )
+  );
+
+  // Step 2: Create Organization (or recover from previous partial attempt)
+  let orgId = socialUser.organization_id ? String(socialUser.organization_id) : '';
+  let orgSlug: string | null = null;
+
+  if (!orgId) {
+    // Check if an org was already created for this user in a previous failed attempt
+    const existingOwnedOrg = await prisma.organization.findFirst({
+      where: { owner_id: socialUser.id },
       select: { id: true, slug: true },
     });
 
-    await organizationUser.update({
+    if (existingOwnedOrg) {
+      orgId = existingOwnedOrg.id;
+      orgSlug = existingOwnedOrg.slug;
+    } else {
+      const tempOrgId = crypto.randomUUID();
+      const newOrg = await prisma.organization.create({
+        data: {
+          id: tempOrgId,
+          name: orgName,
+          slug: slugBase || null,
+          owner_id: socialUser.id,
+          has_nexus: pendingPlan ? hasModule('nexus') : false,
+          has_system: pendingPlan ? hasModule('system') : false,
+          has_social: pendingPlan ? hasModule('social') : false,
+          has_finance: pendingPlan ? true : false, // Finance is a free bonus for any paid package
+          has_client: pendingPlan ? hasModule('client') : false,
+          has_operations: pendingPlan ? hasModule('operations') : false,
+          subscription_status: 'trial',
+          subscription_plan: pendingPlan ? String(pendingPlan) : null,
+          trial_start_date: now,
+          trial_days: DEFAULT_TRIAL_DAYS,
+          created_at: now,
+          updated_at: now,
+        },
+        select: { id: true, slug: true },
+      });
+      orgId = newOrg.id;
+      orgSlug = newOrg.slug;
+    }
+
+    // Step 3: Link OrganizationUser to Organization
+    await prisma.organizationUser.update({
       where: { clerk_user_id: clerkUserId },
-      data: { organization_id: createdOrg.id, updated_at: now },
-      select: { id: true },
+      data: { organization_id: orgId, updated_at: now },
     });
-
-    const createdProfile = await tx.profile.create({
-      data: {
-        id: ownerProfileId,
-        organizationId: createdOrg.id,
-        clerkUserId,
-        email: params.email ?? null,
-        fullName: params.fullName ?? null,
-        avatarUrl: params.imageUrl ?? null,
-        role: 'owner',
-      },
-      select: { id: true, organizationId: true, role: true },
+  } else {
+    // Retry scenario: user already has an org — fetch slug
+    const existingOrg = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { slug: true },
     });
+    orgSlug = existingOrg?.slug ?? null;
+  }
 
-    return { createdOrg, createdProfile };
+  // Step 4: Upsert Profile (@@unique([organizationId, clerkUserId]))
+  const createdProfile = await prisma.profile.upsert({
+    where: {
+      organizationId_clerkUserId: { organizationId: orgId, clerkUserId },
+    },
+    create: {
+      id: ownerProfileId,
+      organizationId: orgId,
+      clerkUserId,
+      email: params.email ?? null,
+      fullName: params.fullName ?? null,
+      avatarUrl: params.imageUrl ?? null,
+      role: 'owner',
+    },
+    update: {
+      email: params.email ?? undefined,
+      fullName: params.fullName ?? undefined,
+      avatarUrl: params.imageUrl ?? undefined,
+    },
+    select: { id: true, organizationId: true, role: true },
   });
+
+  const createdOrg = { id: orgId, slug: orgSlug };
 
   // Fire-and-forget: auto-create BusinessClient for the new org (non-blocking)
   void import('@/app/actions/business-clients')

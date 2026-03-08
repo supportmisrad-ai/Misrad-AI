@@ -327,10 +327,10 @@ if (typeof _rawExecuteOriginal === 'function') {
         );
         if (process.env.NODE_ENV === 'production') {
           try { Sentry.captureException(err); } catch { /* ignore */ }
-          console.error(err.message);
-        } else {
-          console.error(err.message, '\n', err.stack);
         }
+        // Throw immediately — never pass interactive transactions through pooler.
+        // PgBouncer will fail unpredictably with "Transaction not found" otherwise.
+        throw err;
       }
       return Reflect.apply(_originalTransaction, _guardTarget, args);
     };
@@ -372,7 +372,18 @@ export function prismaForInteractiveTransaction(): PrismaClient {
   // Prisma Accelerate supports interactive transactions (since 5.8.0) and manages
   // connection pooling properly, so no need for a separate direct client.
   if (_isAccelerateUrl) return _basePrismaClient;
-  return getOrCreateDirectClient();
+  const client = getOrCreateDirectClient();
+  if (client === _basePrismaClient) {
+    const dbUrl = String(process.env.DATABASE_URL || '').toLowerCase();
+    if (dbUrl.includes('pooler')) {
+      console.warn(
+        '[Prisma] prismaForInteractiveTransaction() falling back to pooled client — ' +
+        'DIRECT_URL is not configured or is also a pooler URL. ' +
+        'Interactive transactions WILL fail on PgBouncer. Set DIRECT_URL to the direct (non-pooler) connection string.'
+      );
+    }
+  }
+  return client;
 }
 
 /**

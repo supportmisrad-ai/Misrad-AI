@@ -196,6 +196,7 @@ export interface Task {
     isFocus?: boolean; // New field: Is selected for today's focus
     completionDetails?: TaskCompletionDetails; // New Field for Post Mortem
     department?: string;
+    module?: string;
 }
 
 export interface Client {

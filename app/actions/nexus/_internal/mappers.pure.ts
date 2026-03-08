@@ -91,6 +91,7 @@ export function toTaskDto(row: unknown): Task {
     isFocus: obj.is_focus ?? obj.isFocus ?? undefined,
     completionDetails: parseJson(obj.completion_details ?? obj.completionDetails),
     department: obj.department ?? undefined,
+    module: obj.module ?? 'nexus',
   } as Task;
 }
 

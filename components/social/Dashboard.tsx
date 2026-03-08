@@ -7,6 +7,7 @@ import { Calendar, Users, TrendingUp, Wallet } from 'lucide-react';
 import { joinPath } from '@/lib/os/social-routing';
 import { getClientStatusLabel, getClientStatusDotColor } from '@/lib/status-labels';
 import DashboardActionsClient from '@/components/social/dashboard/DashboardActionsClient';
+import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 import ScriptsBank from '@/components/social/dashboard/ScriptsBank';
 import { useApp } from '@/contexts/AppContext';
 import { useUser } from '@clerk/nextjs';
@@ -207,4 +208,3 @@ export default function Dashboard({
     </div>
   );
 }
-

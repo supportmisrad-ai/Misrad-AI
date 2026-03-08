@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import type { Metadata } from 'next';
 import { requireSuperAdmin } from '@/lib/auth';
 import { requireAuth } from '@/lib/errorHandler';
