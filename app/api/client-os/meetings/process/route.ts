@@ -13,6 +13,7 @@ import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { formatTranscriptText } from '@/lib/services/ai/format-transcript';
+import { proofreadHebrewTranscript } from '@/lib/services/ai/proofread-transcript';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
@@ -321,7 +322,7 @@ async function POSTHandler(req: Request) {
         });
       },
     });
-    const transcript = formatTranscriptText(String(out.text || '').trim());
+    let transcript = formatTranscriptText(String(out.text || '').trim());
 
     if (!transcript) {
       console.warn('[client-os/meetings/process] AI returned empty transcript', {
@@ -334,6 +335,9 @@ async function POSTHandler(req: Request) {
       });
       return apiError('\u05d4\u05e7\u05dc\u05d8\u05d4 \u05e8\u05d9\u05e7\u05d4 \u05d0\u05d5 \u05dc\u05d0 \u05de\u05db\u05d9\u05dc\u05d4 \u05e9\u05de\u05e2 \u05d1\u05e8\u05d5\u05e8. \u05d1\u05d3\u05d5\u05e7 \u05e9\u05d4\u05e7\u05d5\u05d1\u05e5 \u05ea\u05e7\u05d9\u05df \u05d5\u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1.', { status: 422 });
     }
+
+    // Best-effort Hebrew spelling correction
+    transcript = await proofreadHebrewTranscript(transcript);
 
     const recordingUrl = `sb://${bucket}/${storagePath}`;
 

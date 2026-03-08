@@ -22,7 +22,7 @@ export class DeepgramProvider {
         bufferSize: params.audioBuffer.byteLength,
       });
 
-      const res = await fetch('https://api.deepgram.com/v1/listen?smart_format=true&punctuate=true&diarize=true&model=nova-2', {
+      const res = await fetch('https://api.deepgram.com/v1/listen?smart_format=true&punctuate=true&diarize=true&utterances=true&language=he&model=nova-2', {
         method: 'POST',
         headers: {
           Authorization: `Token ${this.apiKey}`,
@@ -49,7 +49,13 @@ export class DeepgramProvider {
 
       const utterances = Array.isArray(resultsObj.utterances) ? resultsObj.utterances : [];
 
-      // Build diarized transcript from utterances (speaker-labeled)
+      const fmtTs = (sec: number): string => {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}]`;
+      };
+
+      // Build diarized transcript from utterances (speaker-labeled + timestamps)
       let transcriptFromUtterances = '';
       if (utterances.length > 0) {
         const speakerMap = new Map<number, number>();
@@ -59,12 +65,14 @@ export class DeepgramProvider {
             const uObj = asObject(u) ?? {};
             const text = typeof uObj.transcript === 'string' ? uObj.transcript : '';
             if (!text) return '';
+            const startSec = typeof uObj.start === 'number' ? uObj.start : 0;
+            const ts = fmtTs(startSec);
             const rawSpeaker = typeof uObj.speaker === 'number' ? uObj.speaker : -1;
             if (rawSpeaker >= 0 && !speakerMap.has(rawSpeaker)) {
               speakerMap.set(rawSpeaker, ++speakerCounter);
             }
             const speakerLabel = rawSpeaker >= 0 ? `דובר ${speakerMap.get(rawSpeaker)}` : '';
-            return speakerLabel ? `${speakerLabel}: ${text}` : text;
+            return speakerLabel ? `${ts} ${speakerLabel}: ${text}` : `${ts} ${text}`;
           })
           .filter(Boolean)
           .join('\n');
@@ -82,11 +90,12 @@ export class DeepgramProvider {
             const wObj = asObject(w) ?? {};
             const word = typeof wObj.punctuated_word === 'string' ? wObj.punctuated_word : (typeof wObj.word === 'string' ? wObj.word : '');
             const speaker = typeof wObj.speaker === 'number' ? wObj.speaker : -1;
+            const wordStart = typeof wObj.start === 'number' ? wObj.start : 0;
 
             if (speaker >= 0 && speaker !== currentSpeaker) {
               if (currentSegment.trim()) segments.push(currentSegment.trim());
               if (!speakerMap.has(speaker)) speakerMap.set(speaker, ++speakerCounter);
-              currentSegment = `דובר ${speakerMap.get(speaker)}: ${word}`;
+              currentSegment = `${fmtTs(wordStart)} דובר ${speakerMap.get(speaker)}: ${word}`;
               currentSpeaker = speaker;
             } else {
               currentSegment += ` ${word}`;

@@ -30,7 +30,8 @@ export class GroqProvider {
       formData.append('file', blob, 'audio.mp3');
       formData.append('model', params.model);
       formData.append('language', 'he'); // Hebrew
-      formData.append('response_format', 'text');
+      formData.append('response_format', 'verbose_json');
+      formData.append('timestamp_granularities[]', 'segment');
 
       const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
         method: 'POST',
@@ -46,11 +47,35 @@ export class GroqProvider {
         throw new AIProviderError({ provider: 'groq', status: res.status, message: `Groq Whisper error (${res.status}): ${txt}` });
       }
 
-      const text = await res.text();
+      const json: unknown = await res.json();
+      const obj = (json && typeof json === 'object' && !Array.isArray(json) ? json : {}) as Record<string, unknown>;
+      const segments = Array.isArray(obj.segments) ? obj.segments : [];
+
+      let text: string;
+      if (segments.length > 0) {
+        const fmtTs = (sec: number): string => {
+          const m = Math.floor(sec / 60);
+          const s = Math.floor(sec % 60);
+          return `[${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}]`;
+        };
+        text = segments
+          .map((seg) => {
+            const s = (seg && typeof seg === 'object' ? seg : {}) as Record<string, unknown>;
+            const segText = typeof s.text === 'string' ? s.text.trim() : '';
+            const startSec = typeof s.start === 'number' ? s.start : 0;
+            return segText ? `${fmtTs(startSec)} ${segText}` : '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      } else {
+        text = typeof obj.text === 'string' ? obj.text : '';
+      }
+
       console.log('[GroqProvider.transcribe] Whisper response', {
         textLength: text.length,
         textPreview: text.substring(0, 100),
         hasText: !!text,
+        segmentsCount: segments.length,
       });
 
       return { text: text.trim() };

@@ -1,8 +1,12 @@
+// Matches lines that start with optional [MM:SS] timestamp + optional speaker label
+const STRUCTURED_LINE_RE = /^(\[\d{1,2}:\d{2}\]\s*)?(דובר\s*\d+|Speaker\s*\d+)\s*:/m;
+const TIMESTAMP_LINE_RE = /^\[\d{1,2}:\d{2}\]/m;
+
 /**
  * Post-process raw transcription text to improve readability:
- * - Preserve speaker labels (דובר 1:, דובר 2:, Speaker 0:, etc.)
+ * - Preserve timestamps [MM:SS] and speaker labels
  * - Insert line breaks at sentence boundaries
- * - Group into paragraphs every ~4 sentences (only for non-diarized text)
+ * - Group into paragraphs every ~4 sentences (only for flat text)
  * - Clean up whitespace
  */
 export function formatTranscriptText(raw: string): string {
@@ -10,22 +14,20 @@ export function formatTranscriptText(raw: string): string {
 
   let text = raw.trim();
 
-  // Check if text already has speaker labels (diarized)
-  const hasSpeakerLabels = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/m.test(text);
+  // Check if text already has speaker labels or timestamps (structured output)
+  const hasStructure = STRUCTURED_LINE_RE.test(text) || TIMESTAMP_LINE_RE.test(text);
 
-  if (hasSpeakerLabels) {
-    // Diarized text: clean up but preserve speaker structure
-    // Normalize whitespace within lines but keep line breaks
+  if (hasStructure) {
+    // Structured text: clean up whitespace within lines but preserve line structure
     const lines = text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    // Add empty line between different speakers for readability
     const formatted: string[] = [];
     for (let i = 0; i < lines.length; i++) {
       formatted.push(lines[i]);
-      // Add separator between speaker blocks
+      // Add empty line between different speaker blocks for readability
       if (i < lines.length - 1) {
-        const currentIsSpeaker = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/.test(lines[i]);
-        const nextIsSpeaker = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/.test(lines[i + 1]);
-        if (currentIsSpeaker && nextIsSpeaker) {
+        const currentHasLabel = STRUCTURED_LINE_RE.test(lines[i]);
+        const nextHasLabel = STRUCTURED_LINE_RE.test(lines[i + 1]);
+        if (currentHasLabel && nextHasLabel) {
           formatted.push('');
         }
       }
@@ -33,14 +35,10 @@ export function formatTranscriptText(raw: string): string {
     return formatted.join('\n');
   }
 
-  // Non-diarized text: add sentence breaks and paragraph grouping
-  // Normalize whitespace (multiple spaces → single space)
+  // Flat text (no timestamps/speakers): add sentence breaks and paragraph grouping
   text = text.replace(/\s+/g, ' ');
-
-  // Insert line break after Hebrew/Latin sentence endings (. ? ! followed by space + letter)
   text = text.replace(/([.?!。])\s+(?=[א-תA-Za-z\u0600-\u06FF])/g, '$1\n');
 
-  // Split into sentences and group into paragraphs (~4 sentences each)
   const lines = text.split('\n').filter((l) => l.trim());
   const paragraphs: string[] = [];
   let currentParagraph: string[] = [];
