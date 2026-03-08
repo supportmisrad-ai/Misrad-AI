@@ -12,6 +12,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
+import { formatTranscriptText } from '@/lib/services/ai/format-transcript';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
@@ -320,7 +321,7 @@ async function POSTHandler(req: Request) {
         });
       },
     });
-    const transcript = String(out.text || '').trim();
+    const transcript = formatTranscriptText(String(out.text || '').trim());
 
     if (!transcript) {
       console.warn('[client-os/meetings/process] AI returned empty transcript', {

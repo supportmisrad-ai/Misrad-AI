@@ -128,10 +128,11 @@ ${transcriptText.slice(0, 24000)}
       task: async () => {
         const ai = AIService.getInstance();
         return await ai.generateJson({
-          featureKey: 'system.calls.objection_suggestions',
+          featureKey: 'system.calls.analysis',
           organizationId: workspace.id,
           userId: clerkUserId,
           prompt,
+          systemInstruction: 'אתה מאמן מכירות ושירות מקצועי. החזר JSON תקין בלבד, בעברית.',
           meta: {
             module: 'system',
             source: 'call-analyzer',

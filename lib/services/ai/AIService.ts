@@ -1256,13 +1256,14 @@ export class AIService {
       const isClientMeetings = fk.startsWith('client_os.meetings.') || fk.startsWith('client-os.meetings.') || fk.startsWith('client.meetings.');
       const isClientMeetingsTranscription = fk.includes('client_os.meetings.transcription') || fk.includes('client-os.meetings.transcription') || (isClientMeetings && isTranscription);
       const isClientMeetingsAnalyze = fk.includes('client_os.meetings.analyze') || fk.includes('client-os.meetings.analyze');
-      const isObjection = fk.includes('objection') || fk.includes('objections') || fk.includes('handler');
+      const isSystemCallsAnalysis = fk.startsWith('system.calls.');
+      const isObjection = !isSystemCallsAnalysis && (fk.includes('objection') || fk.includes('objections') || fk.includes('handler'));
       const isEmbedding = fk.includes('embedding') || fk.includes('embed') || fk.includes('vector');
       const isVision = fk.includes('vision');
       const isImageGeneration = fk.includes('image_generation') || fk.includes('image.generation');
 
       const isLiveTranscription = fk.includes('live_transcribe') || fk.includes('live.transcribe');
-      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : isImageGeneration ? 60000 : 30000;
+      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : isSystemCallsAnalysis ? 90000 : isImageGeneration ? 60000 : 30000;
 
       settings = {
         id: 'default',

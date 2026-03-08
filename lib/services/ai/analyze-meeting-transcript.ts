@@ -130,17 +130,11 @@ export async function analyzeMeetingTranscript(transcript: string): Promise<unkn
     }
 
     return dataObj;
-  } catch {
-    return {
-      summary: 'לא הצלחנו לנתח את השיחה כרגע.',
-      sentimentScore: 0,
-      frictionKeywords: [],
-      objections: [],
-      compliments: [],
-      decisions: [],
-      agencyTasks: [],
-      clientTasks: [],
-      liabilityRisks: [],
-    };
+  } catch (err: unknown) {
+    console.error('[analyzeMeetingTranscript] AI analysis failed', {
+      error: err instanceof Error ? err.message : String(err),
+      transcriptLength: transcript.length,
+    });
+    throw err;
   }
 }

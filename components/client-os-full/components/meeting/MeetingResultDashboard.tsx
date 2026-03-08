@@ -54,12 +54,8 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   <div>
                       <div className="flex justify-between items-start mb-4 gap-2">
                           <div className="min-w-0">
-                              <h2 className="text-xl md:text-2xl font-display font-bold text-gray-900 mb-1 truncate">{fileName || 'ישיבת סטטוס רבעונית + השקה'}</h2>
+                              <h2 className="text-xl md:text-2xl font-display font-bold text-gray-900 mb-1 truncate">{fileName || 'שיחה מנותחת'}</h2>
                               <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs text-gray-500">
-                                  <span className="flex items-center gap-1"><CircleUser size={12}/> אלכס, אלינה, דוד</span>
-                                  <span className="hidden md:inline">•</span>
-                                  <span>שעתיים ו-15 דקות</span>
-                                  <span className="hidden md:inline">•</span>
                                   <span className="text-nexus-accent font-bold">נותח ע"י Nexus AI</span>
                               </div>
                           </div>

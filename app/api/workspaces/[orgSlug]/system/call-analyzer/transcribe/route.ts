@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
+import { formatTranscriptText } from '@/lib/services/ai/format-transcript';
 import { logAuditEvent } from '@/lib/audit';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import { createServiceRoleStorageClient } from '@/lib/supabase';
@@ -164,7 +165,7 @@ async function POSTHandler(
       },
     });
 
-    const transcriptText = String(out.text || '').trim();
+    const transcriptText = formatTranscriptText(String(out.text || '').trim());
     if (!transcriptText) {
       console.warn('[system/call-analyzer/transcribe] AI returned empty transcript', {
         provider: out.provider,
