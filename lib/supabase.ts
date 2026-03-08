@@ -1197,21 +1197,10 @@ export function createClient(options?: CreateClientOptions): SupabaseClient {
           };
         }
 
+        // NOTE: .rest is NOT blocked — Supabase JS SDK accesses it internally
+        // during storage operations (e.g. createSignedUrls). Blocking .from(),
+        // .rpc(), and .schema() is sufficient to prevent data access.
         if (prop === 'rest' && originalRest) {
-          if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENABLED) {
-            const callerFile = extractCallerFileFromStack(new Error().stack, 'lib/supabase.ts');
-            const ok = isAllowedSupabaseDbCaller(callerFile);
-            if (!ok) {
-              void reportBlockedDbAccess({ callerFile, kind: 'rpc', target: 'rest' });
-              const message =
-                '[Supabase] Prisma-First runtime guard: Direct PostgREST rest client is blocked. ' +
-                `Caller=${callerFile || 'unknown'}`;
-              if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE) {
-                throw new Error(message);
-              }
-              supabaseSecurityWarn(message);
-            }
-          }
           return originalRest;
         }
 

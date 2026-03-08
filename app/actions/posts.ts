@@ -64,7 +64,19 @@ async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string>
 }
 
 async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
-  const row = await prisma.clients.findFirst({
+  // Check ClientClient table (primary table used by social module)
+  const row = await prisma.clientClient.findFirst({
+    where: {
+      id: String(params.clientId),
+      organizationId: String(params.organizationId),
+    },
+    select: { id: true },
+  });
+
+  if (row?.id) return;
+
+  // Fallback: check legacy clients table
+  const legacyRow = await prisma.clients.findFirst({
     where: {
       id: String(params.clientId),
       organization_id: String(params.organizationId),
@@ -72,7 +84,7 @@ async function assertClientInOrganization(params: { clientId: string; organizati
     select: { id: true },
   });
 
-  if (!row?.id) {
+  if (!legacyRow?.id) {
     throw new Error('Forbidden');
   }
 }
