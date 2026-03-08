@@ -193,6 +193,23 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     outputsCount={creditsModal.outputsCount}
                     savedHours={creditsModal.savedHours}
                 />
+
+                {/* Error Banner */}
+                {state.error && (
+                    <div className="max-w-2xl mx-auto w-full bg-red-50 border border-red-200 rounded-2xl p-5 flex items-start gap-3 animate-fade-in">
+                        <TriangleAlert size={20} className="text-red-500 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-red-800 text-sm mb-1">הניתוח נכשל</h4>
+                            <p className="text-sm text-red-700">{state.error}</p>
+                        </div>
+                        <button
+                            onClick={resetAnalysis}
+                            className="text-red-400 hover:text-red-600 shrink-0"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
                 
                 {/* Upload Zone */}
                 <div className="flex flex-col items-center justify-center">
@@ -211,7 +228,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                 }
                             }} 
                             className="hidden" 
-                            accept="audio/*,.mp3,.wav,.m4a"
+                            accept=".mp3,.wav,.m4a,.aac,.ogg,.webm,.flac,audio/*"
                         />
                         <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
                             <UploadCloud size={40} className="text-indigo-600" />

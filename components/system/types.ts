@@ -362,4 +362,5 @@ export interface CallAnalysisState {
   currentStep: string;
   fileName: string | null;
   result: CallAnalysisResult | null;
+  error: string | null;
 }

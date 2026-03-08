@@ -65,6 +65,50 @@ function coerceTranscript(value: unknown): CallAnalysisResult['transcript'] {
     .filter((v): v is NonNullable<typeof v> => Boolean(v));
 }
 
+const ALLOWED_AUDIO_MIME_TYPES = new Set([
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave',
+  'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac',
+  'audio/ogg', 'audio/webm', 'audio/flac',
+]);
+
+const ALLOWED_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.webm', '.flac']);
+
+const MAX_FILE_SIZE_MB = 200;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+function validateAudioFile(file: File): string | null {
+  if (!file || file.size === 0) return 'הקובץ ריק. בחר קובץ שמע תקין.';
+  if (file.size > MAX_FILE_SIZE_BYTES) return `הקובץ גדול מדי (מקסימום ${MAX_FILE_SIZE_MB}MB).`;
+
+  const ext = (file.name || '').toLowerCase().replace(/^.*\./, '.');
+  const mime = (file.type || '').toLowerCase();
+
+  const extOk = ALLOWED_EXTENSIONS.has(ext);
+  const mimeOk = mime ? ALLOWED_AUDIO_MIME_TYPES.has(mime) || mime.startsWith('audio/') : false;
+
+  if (!extOk && !mimeOk) {
+    return `פורמט לא נתמך (${ext || mime || 'לא ידוע'}). פורמטים נתמכים: MP3, WAV, M4A, AAC, OGG, WebM, FLAC.`;
+  }
+  return null;
+}
+
+function normalizeAudioMimeType(file: File): string {
+  const mime = (file.type || '').toLowerCase();
+  if (mime && ALLOWED_AUDIO_MIME_TYPES.has(mime)) return mime;
+
+  const ext = (file.name || '').toLowerCase();
+  if (ext.endsWith('.mp3')) return 'audio/mpeg';
+  if (ext.endsWith('.wav')) return 'audio/wav';
+  if (ext.endsWith('.m4a')) return 'audio/mp4';
+  if (ext.endsWith('.aac')) return 'audio/aac';
+  if (ext.endsWith('.ogg')) return 'audio/ogg';
+  if (ext.endsWith('.webm')) return 'audio/webm';
+  if (ext.endsWith('.flac')) return 'audio/flac';
+
+  if (mime && mime.startsWith('audio/')) return mime;
+  return 'audio/mpeg';
+}
+
 interface CallAnalysisContextType {
   state: CallAnalysisState;
   history: CallAnalysisResult[];
@@ -102,7 +146,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     progress: 0,
     currentStep: '',
     fileName: null,
-    result: null
+    result: null,
+    error: null,
   });
 
   const [history, setHistory] = useLocalStorage<CallAnalysisResult[]>('call_analysis_history', []);
@@ -205,6 +250,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       currentStep: 'מייצר תובנות והצעות מענה...',
       fileName: opts?.fileName ? String(opts.fileName) : 'Live',
       result: null,
+      error: null,
     });
 
     try {
@@ -274,7 +320,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     } catch (error: unknown) {
       console.error('Analysis error:', error);
       const message = error instanceof Error ? error.message : '';
-      setState((prev) => ({ ...prev, isProcessing: false, currentStep: message || 'שגיאה בניתוח', progress: 0 }));
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: '', progress: 0, error: message || 'שגיאה בניתוח השיחה. נסה שוב.' }));
     }
   };
 
@@ -282,6 +328,13 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
   const DIRECT_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
 
   const startAnalysis = async (file: File) => {
+    // Client-side file validation
+    const validationError = validateAudioFile(file);
+    if (validationError) {
+      setState((prev) => ({ ...prev, isProcessing: false, progress: 0, currentStep: '', result: null, error: validationError }));
+      return;
+    }
+
     const audioUrl = URL.createObjectURL(file);
     abortControllerRef.current = new AbortController();
 
@@ -290,7 +343,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       progress: 10,
       currentStep: 'מעלה קובץ ומתחיל ניתוח...',
       fileName: file.name,
-      result: null
+      result: null,
+      error: null,
     });
 
     try {
@@ -303,6 +357,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       let transcribeRes: Response;
 
+      const normalizedMime = normalizeAudioMimeType(file);
+
       if (file.size > DIRECT_UPLOAD_THRESHOLD) {
         // Large file: upload to Supabase Storage via presigned URL, then transcribe from storage
         const uploadUrlRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/upload-url`, {
@@ -310,7 +366,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             fileName: file.name,
-            mimeType: file.type || '',
+            mimeType: normalizedMime,
             fileSize: file.size,
           }),
           signal: abortControllerRef.current?.signal,
@@ -370,7 +426,11 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         setState((prev) => ({ ...prev, progress: 25, currentStep: 'מתמלל את ההקלטה...' }));
 
         const fd = new FormData();
-        fd.append('file', file);
+        // Re-wrap the file with corrected MIME type if needed
+        const correctedFile = normalizedMime !== file.type
+          ? new File([file], file.name, { type: normalizedMime })
+          : file;
+        fd.append('file', correctedFile);
 
         transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
           method: 'POST',
@@ -461,7 +521,10 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     } catch (error: unknown) {
       console.error('Analysis error:', error);
       const message = error instanceof Error ? error.message : '';
-      setState((prev) => ({ ...prev, isProcessing: false, currentStep: message || 'שגיאה בניתוח', progress: 0 }));
+      const userFriendly = message.includes('aborted')
+        ? 'הניתוח בוטל.'
+        : message || 'שגיאה בניתוח השיחה. נסה שוב או בדוק שהקובץ תקין.';
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: '', progress: 0, error: userFriendly }));
     }
   };
 
@@ -474,7 +537,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       progress: 0,
       currentStep: '',
       fileName: null,
-      result: null
+      result: null,
+      error: null,
     });
   };
 
@@ -484,7 +548,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         progress: 0,
         currentStep: '',
         fileName: null,
-        result: null
+        result: null,
+        error: null,
     });
   };
 
@@ -494,7 +559,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
           progress: 100,
           currentStep: 'Loaded from History',
           fileName: result.fileName || 'Unknown File',
-          result: result
+          result: result,
+          error: null,
       });
   };
 

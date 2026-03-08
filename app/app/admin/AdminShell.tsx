@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, Megaphone, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -236,6 +236,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
     ],
     content: [
+      { href: '/app/admin/global/promotions', label: 'מבצעים', icon: Zap },
+      { href: '/app/admin/landing/promotions', label: 'באנרים תקופתיים', icon: Megaphone },
       { href: '/app/admin/landing/pricing', label: 'תמחור', icon: Globe },
       { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Globe },
       { href: '/app/admin/landing/content', label: 'תוכן נחיתה', icon: Globe },

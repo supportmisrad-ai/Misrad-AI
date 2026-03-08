@@ -15,6 +15,40 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 const CALL_RECORDINGS_BUCKET = 'call-recordings';
 
+const ALLOWED_AUDIO_MIMES = new Set([
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave',
+  'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac',
+  'audio/ogg', 'audio/webm', 'audio/flac', 'application/octet-stream',
+]);
+
+function normalizeMimeType(mime: string, fileName: string): string {
+  const m = (mime || '').toLowerCase();
+  if (m && ALLOWED_AUDIO_MIMES.has(m) && m !== 'application/octet-stream') return m;
+  const ext = (fileName || '').toLowerCase();
+  if (ext.endsWith('.mp3')) return 'audio/mpeg';
+  if (ext.endsWith('.wav')) return 'audio/wav';
+  if (ext.endsWith('.m4a')) return 'audio/mp4';
+  if (ext.endsWith('.aac')) return 'audio/aac';
+  if (ext.endsWith('.ogg')) return 'audio/ogg';
+  if (ext.endsWith('.webm')) return 'audio/webm';
+  if (ext.endsWith('.flac')) return 'audio/flac';
+  if (m && m.startsWith('audio/')) return m;
+  return 'audio/mpeg';
+}
+
+function userFriendlyError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.includes('timeout') || msg.includes('Timeout') || msg.includes('AbortError'))
+    return '\u05d4\u05e9\u05e8\u05ea \u05e2\u05de\u05d5\u05e1 \u05db\u05e8\u05d2\u05e2 \u05d5\u05dc\u05d0 \u05d4\u05e6\u05dc\u05d7\u05e0\u05d5 \u05dc\u05ea\u05de\u05dc\u05dc \u05d1\u05d6\u05de\u05df. \u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1 \u05d1\u05e2\u05d5\u05d3 \u05d3\u05e7\u05d4.';
+  if (msg.includes('quota') || msg.includes('429') || msg.includes('rate'))
+    return '\u05d7\u05e8\u05d2\u05ea \u05de\u05de\u05db\u05e1\u05d4 \u05d4\u05e9\u05d9\u05de\u05d5\u05e9 \u05d1-AI. \u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1 \u05d1\u05e2\u05d5\u05d3 \u05db\u05de\u05d4 \u05d3\u05e7\u05d5\u05ea.';
+  if (msg.includes('key') || msg.includes('API key') || msg.includes('credentials'))
+    return '\u05d1\u05e2\u05d9\u05d4 \u05d1\u05d4\u05d2\u05d3\u05e8\u05ea \u05de\u05e4\u05ea\u05d7\u05d5\u05ea AI. \u05e4\u05e0\u05d4 \u05dc\u05ea\u05de\u05d9\u05db\u05d4.';
+  if (msg.includes('empty') || msg.includes('\u05e8\u05d9\u05e7'))
+    return '\u05d4\u05e7\u05d5\u05d1\u05e5 \u05e8\u05d9\u05e7 \u05d0\u05d5 \u05dc\u05d0 \u05de\u05db\u05d9\u05dc \u05e9\u05de\u05e2. \u05d1\u05d3\u05d5\u05e7 \u05e9\u05d4\u05e7\u05d5\u05d1\u05e5 \u05ea\u05e7\u05d9\u05df \u05d5\u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1.';
+  return `\u05e9\u05d2\u05d9\u05d0\u05d4 \u05d1\u05ea\u05de\u05dc\u05d5\u05dc: ${msg}`;
+}
+
 function hasPathTraversal(v: string): boolean {
   const s = String(v || '');
   return s.includes('..') || s.includes('\\') || s.includes('//');
@@ -59,9 +93,11 @@ async function resolveAudioFromRequest(
     throw new APIError(400, 'file is required');
   }
 
-  const mimeType = String(file.type || 'application/octet-stream');
+  const rawMime = String(file.type || 'application/octet-stream');
   const fileName = String(file.name || 'recording');
+  const mimeType = normalizeMimeType(rawMime, fileName);
   const audioBuffer = await file.arrayBuffer();
+  if (audioBuffer.byteLength === 0) throw new APIError(400, '\u05d4\u05e7\u05d5\u05d1\u05e5 \u05e8\u05d9\u05e7. \u05d1\u05d7\u05e8 \u05e7\u05d5\u05d1\u05e5 \u05e9\u05de\u05e2 \u05ea\u05e7\u05d9\u05df.');
   return { audioBuffer, mimeType, fileName, source: 'formdata' };
 }
 
@@ -140,19 +176,9 @@ async function POSTHandler(
     console.error('[system/call-analyzer/transcribe] Error:', { name: errName, message: errMsg, stack: e instanceof Error ? e.stack : undefined });
 
     if (e instanceof APIError) {
-      const safeMsg =
-        e.status === 400
-          ? 'Bad request'
-          : e.status === 401
-            ? 'Unauthorized'
-            : e.status === 404
-              ? 'Not found'
-              : e.status === 500
-                ? 'Internal server error'
-                : 'Forbidden';
-      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
+      return apiError(e, { status: e.status, message: e.message || userFriendlyError(e) });
     }
-    return apiError(e, { message: `Failed to transcribe: [${errName}] ${errMsg}` });
+    return apiError(e, { status: 500, message: userFriendlyError(e) });
   }
 }
 

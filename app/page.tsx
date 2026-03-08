@@ -7,6 +7,7 @@ import { LandingHeroSection } from '@/components/landing/LandingHeroSection';
 import { AudienceSelector } from '@/components/landing/AudienceSelector';
 import { asObject } from '@/lib/shared/unknown';
 import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
+import ContextualBannerDisplay from '@/components/promotions/ContextualBannerDisplay';
 
 // Below-fold sections — lazy-loaded so they don't block first paint
 const LandingModulesSection = dynamic(() => import('@/components/landing/LandingModulesSection').then(m => ({ default: m.LandingModulesSection })));
@@ -58,6 +59,7 @@ export default async function RootPage() {
         isSignedIn={!!authData.userId}
       />
 
+      <ContextualBannerDisplay onLandingPage />
       <GlobalPromotionBanner onSignupPage />
 
       <main className="flex-1">

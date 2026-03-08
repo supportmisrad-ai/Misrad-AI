@@ -3,6 +3,7 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { Target, Palette, Zap, ArrowLeft, Sparkles } from 'lucide-react';
 import GlobalPromotionBanner from '@/components/promotions/GlobalPromotionBanner';
+import ContextualBannerDisplay from '@/components/promotions/ContextualBannerDisplay';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
@@ -17,6 +18,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
       
+      <ContextualBannerDisplay onLandingPage />
       <GlobalPromotionBanner onSignupPage />
       
       <main className="pt-20">
