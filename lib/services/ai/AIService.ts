@@ -768,37 +768,51 @@ export class AIService {
   async transcribe(params: AITranscribeParams): Promise<AITranscribeResult> {
     console.log('[AIService.transcribe] START', { featureKey: params.featureKey, mimeType: params.mimeType, bufferSize: params.audioBuffer?.byteLength });
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
-    console.log('[AIService.transcribe] context resolved', { orgId: ctx.organizationId });
     const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
-    console.log('[AIService.transcribe] feature loaded', { provider: feature.settings.primary_provider, model: feature.settings.primary_model, reserveCents: feature.settings.reserve_cost_cents });
+    console.log('[AIService.transcribe] feature loaded', { provider: feature.settings.primary_provider, model: feature.settings.primary_model, timeout: feature.settings.timeout_ms });
 
     const chargedCents = await this.reserveCredits({ organizationId: ctx.organizationId, reserveCents: feature.settings.reserve_cost_cents });
-    console.log('[AIService.transcribe] credits reserved', { chargedCents });
 
     const start = Date.now();
     let providerUsed: AIProviderName = feature.settings.primary_provider;
     let modelUsed = feature.settings.primary_model;
+    const providersTried: Array<{ provider: AIProviderName; model: string; ok: boolean; transcriptLength?: number; error?: string }> = [];
 
     try {
-      if (feature.settings.primary_provider === 'deepgram') {
-        let deepgramKey: string | null = null;
-        try {
-          deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
-        } catch {
-          // Deepgram key missing — fall through to Google fallback below
-        }
+      // Try primary provider first
+      const primaryProvider = feature.settings.primary_provider;
+      const primaryModel = feature.settings.primary_model;
+      let primaryText = '';
+      let primaryError: unknown = null;
 
-        if (deepgramKey) {
+      try {
+        if (primaryProvider === 'deepgram') {
+          const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
           const deepgram = new DeepgramProvider(deepgramKey);
-
           const out = await deepgram.transcribe({
             audioBuffer: params.audioBuffer,
             mimeType: params.mimeType,
             timeoutMs: feature.settings.timeout_ms,
           });
+          primaryText = String(out.text || '').trim();
+          console.log('[AIService.transcribe] Deepgram returned', { length: primaryText.length, preview: primaryText.substring(0, 100) });
+        } else {
+          const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+          const gemini = new GeminiProvider(googleKey);
+          const out = await gemini.transcribe({
+            model: primaryModel,
+            audioBuffer: params.audioBuffer,
+            mimeType: params.mimeType,
+            timeoutMs: feature.settings.timeout_ms,
+          });
+          primaryText = String(out.text || '').trim();
+          console.log('[AIService.transcribe] Gemini returned', { length: primaryText.length, preview: primaryText.substring(0, 100) });
+        }
 
-          providerUsed = 'deepgram';
-          modelUsed = feature.settings.primary_model;
+        if (primaryText) {
+          providersTried.push({ provider: primaryProvider, model: primaryModel, ok: true, transcriptLength: primaryText.length });
+          providerUsed = primaryProvider;
+          modelUsed = primaryModel;
 
           this.logUsage({
             organizationId: ctx.organizationId,
@@ -811,55 +825,116 @@ export class AIService {
             chargedCents,
             latencyMs: Date.now() - start,
             status: 'success',
-            meta: params.meta,
+            meta: { ...params.meta, providersTried, transcriptLength: primaryText.length },
           });
 
-          return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
+          return { text: primaryText, provider: providerUsed, model: modelUsed, chargedCents };
         }
 
-        // Deepgram key not available — fallback to Google
-        console.warn('[AIService] Deepgram key not configured, falling back to Google for transcription');
+        providersTried.push({ provider: primaryProvider, model: primaryModel, ok: false, transcriptLength: 0, error: 'Empty transcript' });
+        console.warn('[AIService.transcribe] Primary provider returned empty transcript', { provider: primaryProvider });
+      } catch (err: unknown) {
+        primaryError = err;
+        providersTried.push({ provider: primaryProvider, model: primaryModel, ok: false, error: stringifyError(err) });
+        console.warn('[AIService.transcribe] Primary provider failed', { provider: primaryProvider, error: stringifyError(err) });
       }
 
-      // Google provider (primary or fallback from Deepgram)
-      {
-        const apiKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
-        const gemini = new GeminiProvider(apiKey);
+      // Try fallback provider if primary failed or returned empty
+      const shouldTryFallback = this.isRetryableProviderFailure(primaryError) || !primaryText;
+      if (shouldTryFallback) {
+        console.log('[AIService.transcribe] Trying fallback provider');
+        const fallbackProvider: AIProviderName = primaryProvider === 'deepgram' ? 'google' : 'deepgram';
+        const fallbackModel = fallbackProvider === 'google' ? 'gemini-2.5-flash' : 'nova-2';
 
-        const geminiModel = feature.settings.primary_provider === 'google'
-          ? feature.settings.primary_model
-          : 'gemini-2.5-flash';
+        try {
+          let fallbackText = '';
 
-        const out = await gemini.transcribe({
-          model: geminiModel,
-          audioBuffer: params.audioBuffer,
-          mimeType: params.mimeType,
-          timeoutMs: feature.settings.timeout_ms,
-        });
+          if (fallbackProvider === 'deepgram') {
+            const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
+            const deepgram = new DeepgramProvider(deepgramKey);
+            const out = await deepgram.transcribe({
+              audioBuffer: params.audioBuffer,
+              mimeType: params.mimeType,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+            fallbackText = String(out.text || '').trim();
+            console.log('[AIService.transcribe] Deepgram fallback returned', { length: fallbackText.length, preview: fallbackText.substring(0, 100) });
+          } else {
+            const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+            const gemini = new GeminiProvider(googleKey);
+            const out = await gemini.transcribe({
+              model: fallbackModel,
+              audioBuffer: params.audioBuffer,
+              mimeType: params.mimeType,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+            fallbackText = String(out.text || '').trim();
+            console.log('[AIService.transcribe] Gemini fallback returned', { length: fallbackText.length, preview: fallbackText.substring(0, 100) });
+          }
 
-        providerUsed = 'google';
-        modelUsed = geminiModel;
+          if (fallbackText) {
+            providersTried.push({ provider: fallbackProvider, model: fallbackModel, ok: true, transcriptLength: fallbackText.length });
+            providerUsed = fallbackProvider;
+            modelUsed = fallbackModel;
 
-        this.logUsage({
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          featureKey: params.featureKey,
-          taskKind: 'transcription',
-          provider: providerUsed,
-          model: modelUsed,
-          modelDisplayName: null,
-          chargedCents,
-          latencyMs: Date.now() - start,
-          status: 'success',
-          meta: { ...params.meta, fallbackFromDeepgram: feature.settings.primary_provider === 'deepgram' },
-        });
+            this.logUsage({
+              organizationId: ctx.organizationId,
+              userId: ctx.userId,
+              featureKey: params.featureKey,
+              taskKind: 'transcription',
+              provider: providerUsed,
+              model: modelUsed,
+              modelDisplayName: null,
+              chargedCents,
+              latencyMs: Date.now() - start,
+              status: 'success',
+              meta: {
+                ...params.meta,
+                providersTried,
+                transcriptLength: fallbackText.length,
+                fallbackUsed: true,
+                fallbackFrom: { provider: primaryProvider, model: primaryModel },
+              },
+            });
 
-        return { text: out.text, provider: providerUsed, model: modelUsed, chargedCents };
+            return { text: fallbackText, provider: providerUsed, model: modelUsed, chargedCents };
+          }
+
+          providersTried.push({ provider: fallbackProvider, model: fallbackModel, ok: false, transcriptLength: 0, error: 'Empty transcript' });
+          console.error('[AIService.transcribe] Fallback also returned empty', { provider: fallbackProvider });
+        } catch (fallbackErr: unknown) {
+          providersTried.push({ provider: fallbackProvider, model: fallbackModel, ok: false, error: stringifyError(fallbackErr) });
+          console.error('[AIService.transcribe] Fallback provider also failed', { provider: fallbackProvider, error: stringifyError(fallbackErr) });
+        }
       }
+
+      // Both providers failed or returned empty
+      await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
+
+      this.logUsage({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        featureKey: params.featureKey,
+        taskKind: 'transcription',
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName: null,
+        chargedCents: 0,
+        latencyMs: Date.now() - start,
+        status: 'error',
+        errorMessage: 'All transcription providers returned empty transcript',
+        meta: { ...params.meta, providersTried, refundedCents: chargedCents },
+      });
+
+      throw new Error('לא הצלחנו לתמלל את הקלטה. שני ספקי התמלול החזירו תוצאה ריקה. אנא בדוק שהקובץ תקין ויש בו דיבור ברור.');
     } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('לא הצלחנו לתמלל')) {
+        throw err;
+      }
+
       const message = getErrorMessage(err);
       const errName = err instanceof Error ? err.constructor.name || err.name : 'unknown';
-      console.error('[AIService.transcribe] FAILED', { name: errName, message, provider: providerUsed, model: modelUsed, latencyMs: Date.now() - start });
+      console.error('[AIService.transcribe] FAILED', { name: errName, message, provider: providerUsed, model: modelUsed, latencyMs: Date.now() - start, providersTried });
 
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
@@ -875,7 +950,7 @@ export class AIService {
         latencyMs: Date.now() - start,
         status: 'error',
         errorMessage: message || String(err),
-        meta: { ...params.meta, refundedCents: chargedCents },
+        meta: { ...params.meta, refundedCents: chargedCents, providersTried },
       });
 
       throw err instanceof Error ? err : new Error(message || 'AI provider error');
