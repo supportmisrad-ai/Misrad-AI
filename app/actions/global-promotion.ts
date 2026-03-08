@@ -172,6 +172,13 @@ export async function upsertGlobalPromotion(data: {
       return createErrorResponse(new Error('Discount required'), 'יש להגדיר הנחה באחוזים או בסכום קבוע');
     }
 
+    // Validate or generate a proper UUID — guards against null/"null"/undefined serialization edge cases
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const promotionId =
+      typeof data.id === 'string' && UUID_RE.test(data.id)
+        ? data.id
+        : crypto.randomUUID();
+
     // If activating this promotion, deactivate all others
     if (data.isActive) {
       await prisma.globalPromotion.updateMany({
@@ -181,8 +188,9 @@ export async function upsertGlobalPromotion(data: {
     }
 
     const promotion = await prisma.globalPromotion.upsert({
-      where: { id: data.id ?? crypto.randomUUID() },
+      where: { id: promotionId },
       create: {
+        id: promotionId,
         title: data.title,
         subtitle: data.subtitle || null,
         discount_percent: data.discountPercent || null,
