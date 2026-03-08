@@ -268,6 +268,63 @@ export class OpenAIProvider {
     });
   }
 
+  async generateImage(params: {
+    prompt: string;
+    model?: string;
+    timeoutMs: number;
+  }): Promise<{ imageBase64: string }> {
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      const body = {
+        model: params.model || 'dall-e-3',
+        prompt: params.prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      };
+
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new AIProviderError({ provider: 'openai', status: res.status, message: `DALL-E error (${res.status}): ${txt}` });
+      }
+
+      const json: unknown = await res.json();
+      const obj = asObject(json);
+      const data = Array.isArray(obj?.data) ? obj.data : [];
+      const imageBase64 = typeof data[0]?.b64_json === 'string' ? data[0].b64_json : null;
+
+      if (!imageBase64) {
+        throw new AIProviderError({ provider: 'openai', message: 'DALL-E returned no image data' });
+      }
+
+      return { imageBase64 };
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
+        throw new AIProviderError({
+          provider: 'openai',
+          status: 504,
+          message: 'השרת עמוס כרגע ולא הצלחנו לייצר תמונה בזמן. נסה שוב בעוד דקה.',
+          cause: err,
+        });
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async generateVisionJson(params: {
     model: string;
     prompt: string;

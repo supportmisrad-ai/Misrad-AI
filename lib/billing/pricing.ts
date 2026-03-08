@@ -37,11 +37,24 @@ export const AI_CREDITS_PER_PLAN: Record<PackageType, number> = {
   custom: 10_000,
 };
 
+export const AI_IMAGES_PER_PLAN: Record<PackageType, number> = {
+  solo: 10,
+  the_closer: 10,
+  the_authority: 50,
+  the_operator: 10,
+  the_empire: 100,
+  the_mentor: 100,
+  custom: 10,
+};
+
+export const AI_IMAGE_OVERAGE_PRICE_ILS = 2;
+
 type PackageDefinition = {
   labelHe: string;
   modules: OSModuleKey[];
   monthlyPrice: number;
   aiCreditsCents: number;
+  aiImagesPerMonth: number;
 };
 
 export const DEFAULT_TRIAL_DAYS = 7;
@@ -52,42 +65,49 @@ export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
     modules: [],
     monthlyPrice: 149,
     aiCreditsCents: 5_000,
+    aiImagesPerMonth: 10,
   },
   the_closer: {
     labelHe: 'חבילת מכירות',
     modules: ['system', 'nexus'],
     monthlyPrice: 249,
     aiCreditsCents: 10_000,
+    aiImagesPerMonth: 10,
   },
   the_authority: {
     labelHe: 'חבילת שיווק ומיתוג',
     modules: ['social', 'client', 'nexus'],
     monthlyPrice: 349,
     aiCreditsCents: 10_000,
+    aiImagesPerMonth: 50,
   },
   the_operator: {
     labelHe: 'חבילת תפעול ושטח',
     modules: ['operations', 'nexus'],
     monthlyPrice: 349,
     aiCreditsCents: 10_000,
+    aiImagesPerMonth: 10,
   },
   the_empire: {
     labelHe: 'הכל כלול',
     modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
     aiCreditsCents: 25_000,
+    aiImagesPerMonth: 100,
   },
   the_mentor: {
     labelHe: 'כל החבילות',
     modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
     aiCreditsCents: 25_000,
+    aiImagesPerMonth: 100,
   },
   custom: {
     labelHe: 'חבילה מותאמת אישית',
     modules: [],
     monthlyPrice: 149,
     aiCreditsCents: 10_000,
+    aiImagesPerMonth: 10,
   },
 };
 

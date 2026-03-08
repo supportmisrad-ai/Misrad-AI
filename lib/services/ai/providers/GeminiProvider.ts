@@ -240,32 +240,68 @@ export class GeminiProvider {
 
   async generateImage(params: {
     prompt: string;
+    model?: string;
     timeoutMs: number;
   }): Promise<{ imageBase64: string }> {
     const ai = new GoogleGenAI({ apiKey: this.apiKey });
     const ac = new AbortController();
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
+    const modelName = params.model || 'gemini-3.1-flash-image-preview';
+    const useNanoBanana = modelName.includes('flash-image') || modelName.includes('pro-image');
+
     try {
-      const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: params.prompt,
-        config: {
-          numberOfImages: 1,
-        },
-      });
+      if (useNanoBanana) {
+        // Nano Banana (Gemini native image generation)
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: params.prompt,
+        });
 
-      if (!response.generatedImages || response.generatedImages.length === 0) {
-        throw new Error('No image generated');
+        if (!response.candidates || response.candidates.length === 0) {
+          throw new Error('No image generated');
+        }
+
+        const parts = response.candidates[0]?.content?.parts;
+        if (!parts || parts.length === 0) {
+          throw new Error('No parts in response');
+        }
+
+        let imageBase64: string | null = null;
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            imageBase64 = part.inlineData.data;
+            break;
+          }
+        }
+
+        if (!imageBase64) {
+          throw new Error('No image data in response');
+        }
+
+        return { imageBase64 };
+      } else {
+        // Imagen (legacy API)
+        const response = await ai.models.generateImages({
+          model: modelName,
+          prompt: params.prompt,
+          config: {
+            numberOfImages: 1,
+          },
+        });
+
+        if (!response.generatedImages || response.generatedImages.length === 0) {
+          throw new Error('No image generated');
+        }
+
+        const firstImage = response.generatedImages[0];
+        const imageBytes = firstImage?.image?.imageBytes;
+        if (!imageBytes) {
+          throw new Error('No image bytes returned');
+        }
+
+        return { imageBase64: imageBytes };
       }
-
-      const firstImage = response.generatedImages[0];
-      const imageBytes = firstImage?.image?.imageBytes;
-      if (!imageBytes) {
-        throw new Error('No image bytes returned');
-      }
-
-      return { imageBase64: imageBytes };
     } catch (err: unknown) {
       const obj = asObject(err) ?? {};
       const responseObj = asObject(obj.response);
@@ -275,7 +311,7 @@ export class GeminiProvider {
           : typeof responseObj?.status === 'number'
             ? responseObj.status
             : undefined;
-      throw new AIProviderError({ provider: 'google', status, message: getErrorMessage(err) || 'Imagen generation failed', cause: err });
+      throw new AIProviderError({ provider: 'google', status, message: getErrorMessage(err) || 'Image generation failed', cause: err });
     } finally {
       clearTimeout(timeout);
     }

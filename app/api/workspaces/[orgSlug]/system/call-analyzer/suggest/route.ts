@@ -141,6 +141,11 @@ ${transcriptText.slice(0, 24000)}
       chargedCents: out.chargedCents,
     }, { headers: abuse.headers });
   } catch (e: unknown) {
+    console.error('[call-analyzer/suggest] ERROR', {
+      type: e instanceof APIError ? 'APIError' : e instanceof Error ? e.constructor.name : typeof e,
+      message: e instanceof Error ? e.message : String(e),
+      status: (e as Record<string, unknown>)?.status,
+    });
     if (e instanceof APIError) {
       const safeMsg =
         e.status === 400

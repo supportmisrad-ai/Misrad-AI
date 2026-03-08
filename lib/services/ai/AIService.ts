@@ -773,57 +773,154 @@ export class AIService {
     meta?: Record<string, unknown>;
   }): Promise<{ imageDataUrl: string; chargedCents: number }> {
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
+    
+    // Check image quota
+    const { checkImageQuota, incrementImageUsage } = await import('@/lib/billing/image-quota');
+    const quota = await checkImageQuota(ctx.organizationId);
+    
+    if (!quota.allowed) {
+      throw new Error(`חרגת ממכסת התמונות החודשית. נוצלו ${quota.used} תמונות מתוך ${quota.limit}.`);
+    }
+
     const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
 
     const chargedCents = await this.reserveCredits({ organizationId: ctx.organizationId, reserveCents: feature.settings.reserve_cost_cents });
     const start = Date.now();
+    let providerUsed = feature.settings.primary_provider;
+    let modelUsed = feature.settings.primary_model;
+
+    const getModelDisplayName = (model: string): string => {
+      if (model === 'dall-e-3') return 'DALL-E 3';
+      if (model === 'imagen-4.0-generate-001') return 'Imagen 4.0';
+      if (model === 'gemini-3.1-flash-image-preview') return 'Nano Banana 2';
+      if (model === 'gemini-3-pro-image-preview') return 'Nano Banana Pro';
+      if (model === 'gemini-2.5-flash-image') return 'Nano Banana';
+      return model;
+    };
 
     try {
-      const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
-      const gemini = new GeminiProvider(googleKey);
-      
-      const result = await gemini.generateImage({
-        prompt: params.prompt,
-        timeoutMs: feature.settings.timeout_ms,
-      });
+      let result: { imageBase64: string };
+
+      if (feature.settings.primary_provider === 'openai') {
+        const openaiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
+        const openai = new OpenAIProvider(openaiKey);
+        result = await openai.generateImage({
+          prompt: params.prompt,
+          model: feature.settings.primary_model,
+          timeoutMs: feature.settings.timeout_ms,
+        });
+      } else {
+        const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+        const gemini = new GeminiProvider(googleKey);
+        result = await gemini.generateImage({
+          prompt: params.prompt,
+          timeoutMs: feature.settings.timeout_ms,
+        });
+      }
 
       const imageDataUrl = `data:image/png;base64,${result.imageBase64}`;
 
+      // Increment usage counter
+      await incrementImageUsage(ctx.organizationId);
+
       this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
         taskKind: 'image_generation',
-        provider: 'google',
-        model: 'imagen-4.0-generate-001',
-        modelDisplayName: 'Imagen 4.0',
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName: getModelDisplayName(modelUsed),
         chargedCents,
         latencyMs: Date.now() - start,
         status: 'success',
-        meta: { ...params.meta, promptLength: params.prompt.length },
+        meta: { 
+          ...params.meta, 
+          promptLength: params.prompt.length,
+          quotaUsed: quota.used + 1,
+          quotaLimit: quota.limit,
+          overageCount: quota.overageCount,
+          overageCharge: quota.overageCharge,
+        },
       });
 
       return { imageDataUrl, chargedCents };
-    } catch (err: unknown) {
+    } catch (primaryErr: unknown) {
+      // Try fallback if configured
+      if (feature.settings.fallback_provider && feature.settings.fallback_model) {
+        try {
+          providerUsed = feature.settings.fallback_provider;
+          modelUsed = feature.settings.fallback_model;
+
+          let fallbackResult: { imageBase64: string };
+
+          if (feature.settings.fallback_provider === 'openai') {
+            const openaiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
+            const openai = new OpenAIProvider(openaiKey);
+            fallbackResult = await openai.generateImage({
+              prompt: params.prompt,
+              model: feature.settings.fallback_model,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+          } else {
+            const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+            const gemini = new GeminiProvider(googleKey);
+            fallbackResult = await gemini.generateImage({
+              prompt: params.prompt,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+          }
+
+          const imageDataUrl = `data:image/png;base64,${fallbackResult.imageBase64}`;
+
+          // Increment usage counter for fallback too
+          await incrementImageUsage(ctx.organizationId);
+
+          this.logUsage({
+            organizationId: ctx.organizationId,
+            userId: ctx.userId,
+            featureKey: params.featureKey,
+            taskKind: 'image_generation',
+            provider: providerUsed,
+            model: modelUsed,
+            modelDisplayName: getModelDisplayName(modelUsed),
+            chargedCents,
+            latencyMs: Date.now() - start,
+            status: 'success',
+            meta: { 
+              ...params.meta, 
+              promptLength: params.prompt.length, 
+              fallbackUsed: true,
+              quotaUsed: quota.used + 1,
+              quotaLimit: quota.limit,
+            },
+          });
+
+          return { imageDataUrl, chargedCents };
+        } catch (fallbackErr: unknown) {
+          // Fallback failed too
+        }
+      }
+
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
-      const message = getErrorMessage(err);
+      const message = getErrorMessage(primaryErr);
       this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
         featureKey: params.featureKey,
         taskKind: 'image_generation',
-        provider: 'google',
-        model: 'imagen-4.0-generate-001',
-        modelDisplayName: 'Imagen 4.0',
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName: getModelDisplayName(modelUsed),
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: message || String(err),
+        errorMessage: message || String(primaryErr),
         meta: { ...params.meta, refundedCents: chargedCents },
       });
 
-      throw err instanceof Error ? err : new Error(message || 'Image generation failed');
+      throw primaryErr instanceof Error ? primaryErr : new Error(message || 'Image generation failed');
     }
   }
 
@@ -1176,7 +1273,7 @@ export class AIService {
           : isVision
             ? 'gpt-4o'
           : isImageGeneration
-            ? 'imagen-4.0-generate-001'
+            ? 'gemini-3.1-flash-image-preview'
           : isTranscription
             ? 'whisper-1'
             : isObjection
@@ -1184,8 +1281,8 @@ export class AIService {
               : isClientMeetingsAnalyze
                 ? 'gemini-2.0-pro'
                 : 'gemini-2.5-flash',
-        fallback_provider: null,
-        fallback_model: null,
+        fallback_provider: isImageGeneration ? 'google' : null,
+        fallback_model: isImageGeneration ? 'gemini-3-pro-image-preview' : null,
         reserve_cost_cents: isEmbedding ? 10 : isVision ? 35 : isImageGeneration ? 4 : 25,
         timeout_ms: isVision ? 45000 : defaultTimeoutMs,
         created_at: new Date().toISOString(),
@@ -1381,12 +1478,21 @@ export class AIService {
     const cached = ttlGet(AIService._providerKeyCache, cacheKey);
     if (cached) return cached;
 
-    const orgKeyRow = await prisma.ai_provider_keys.findFirst({
-      where: { provider: params.provider, organization_id: params.organizationId, enabled: true },
-      select: { api_key: true },
-    });
+    let orgKey: string | null = null;
+    try {
+      const orgKeyRow = await prisma.ai_provider_keys.findFirst({
+        where: { provider: params.provider, organization_id: params.organizationId, enabled: true },
+        select: { api_key: true },
+      });
+      orgKey = orgKeyRow?.api_key ? String(orgKeyRow.api_key) : null;
+    } catch (dbErr: unknown) {
+      console.warn('[AIService.getProviderKey] DB query failed for org key, falling through to env vars', {
+        provider: params.provider,
+        error: getErrorMessage(dbErr),
+      });
+      // DB unavailable - fall through to global keys / env vars
+    }
 
-    const orgKey = orgKeyRow?.api_key ? String(orgKeyRow.api_key) : null;
     if (orgKey) {
       const decrypted = await this.decryptKeyOrPlaintext(orgKey);
       ttlSet(AIService._providerKeyCache, cacheKey, decrypted, CACHE_TTL.PROVIDER_KEY);
@@ -1464,6 +1570,11 @@ export class AIService {
     } catch (err: unknown) {
       if (err instanceof UpgradeRequiredError) throw err;
       const msg = getErrorMessage(err);
+      // If DB is unreachable, log warning but allow the AI call to proceed
+      if (msg?.includes("Can't reach database") || msg?.includes('connect') || msg?.includes('ECONNREFUSED')) {
+        console.warn('[AIService.reserveCredits] DB unavailable, proceeding without credit check', { error: msg });
+        return 0;
+      }
       throw new Error(`Failed to debit credits: ${msg || String(err)}`);
     }
 
