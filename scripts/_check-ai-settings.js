@@ -5,7 +5,7 @@ async function checkAISettings() {
   try {
     console.log('🔍 Checking AI feature settings...\n');
     
-    const settings = await prisma.aI_feature_settings.findMany({
+    const settings = await prisma.ai_feature_settings.findMany({
       where: {
         OR: [
           { feature_key: 'social.post_variations' },

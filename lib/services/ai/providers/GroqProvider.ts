@@ -8,6 +8,69 @@ export class GroqProvider {
     this.apiKey = apiKey;
   }
 
+  async transcribe(params: {
+    model: string;
+    audioBuffer: ArrayBuffer;
+    mimeType: string;
+    timeoutMs: number;
+  }): Promise<{ text: string }> {
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      console.log('[GroqProvider.transcribe] Preparing Whisper request', {
+        model: params.model,
+        mimeType: params.mimeType,
+        bufferSize: params.audioBuffer.byteLength,
+      });
+
+      // Create FormData for multipart upload
+      const formData = new FormData();
+      const blob = new Blob([params.audioBuffer], { type: params.mimeType });
+      formData.append('file', blob, 'audio.mp3');
+      formData.append('model', params.model);
+      formData.append('language', 'he'); // Hebrew
+      formData.append('response_format', 'text');
+
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: formData,
+        signal: ac.signal,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new AIProviderError({ provider: 'groq', status: res.status, message: `Groq Whisper error (${res.status}): ${txt}` });
+      }
+
+      const text = await res.text();
+      console.log('[GroqProvider.transcribe] Whisper response', {
+        textLength: text.length,
+        textPreview: text.substring(0, 100),
+        hasText: !!text,
+      });
+
+      return { text: text.trim() };
+    } catch (err: unknown) {
+      const errObj = asObject(err) ?? {};
+      const errName = typeof errObj.name === 'string' ? errObj.name : err instanceof Error ? err.name : '';
+      if (String(errName || '') === 'AbortError') {
+        throw new AIProviderError({
+          provider: 'groq',
+          status: 504,
+          message: 'השרת עמוס כרגע ולא הצלחנו לתמלל בזמן. נסה שוב בעוד דקה.',
+          cause: err,
+        });
+      }
+      throw err instanceof Error ? err : new Error(getErrorMessage(err) || 'Groq Whisper failed');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async generateText(params: {
     model: string;
     prompt: string;

@@ -237,4 +237,47 @@ export class GeminiProvider {
       throw new AIProviderError({ provider: 'google', status, message: getErrorMessage(err) || 'Gemini streaming failed', cause: err });
     }
   }
+
+  async generateImage(params: {
+    prompt: string;
+    timeoutMs: number;
+  }): Promise<{ imageBase64: string }> {
+    const ai = new GoogleGenAI({ apiKey: this.apiKey });
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      const response = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: params.prompt,
+        config: {
+          numberOfImages: 1,
+        },
+      });
+
+      if (!response.generatedImages || response.generatedImages.length === 0) {
+        throw new Error('No image generated');
+      }
+
+      const firstImage = response.generatedImages[0];
+      const imageBytes = firstImage?.image?.imageBytes;
+      if (!imageBytes) {
+        throw new Error('No image bytes returned');
+      }
+
+      return { imageBase64: imageBytes };
+    } catch (err: unknown) {
+      const obj = asObject(err) ?? {};
+      const responseObj = asObject(obj.response);
+      const status =
+        typeof obj.status === 'number'
+          ? obj.status
+          : typeof responseObj?.status === 'number'
+            ? responseObj.status
+            : undefined;
+      throw new AIProviderError({ provider: 'google', status, message: getErrorMessage(err) || 'Imagen generation failed', cause: err });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 }

@@ -1,6 +1,6 @@
 export type AIProviderName = 'google' | 'openai' | 'anthropic' | 'groq' | 'deepgram';
 
-export type AITaskKind = 'json' | 'text' | 'transcription' | 'embedding';
+export type AITaskKind = 'json' | 'text' | 'transcription' | 'embedding' | 'image_generation';
 
 export type AIFeatureSettingsRow = {
   id: string;

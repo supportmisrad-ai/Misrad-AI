@@ -765,6 +765,68 @@ export class AIService {
     }
   }
 
+  async generateImage(params: {
+    featureKey: string;
+    organizationId?: string;
+    userId?: string;
+    prompt: string;
+    meta?: Record<string, unknown>;
+  }): Promise<{ imageDataUrl: string; chargedCents: number }> {
+    const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
+    const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
+
+    const chargedCents = await this.reserveCredits({ organizationId: ctx.organizationId, reserveCents: feature.settings.reserve_cost_cents });
+    const start = Date.now();
+
+    try {
+      const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+      const gemini = new GeminiProvider(googleKey);
+      
+      const result = await gemini.generateImage({
+        prompt: params.prompt,
+        timeoutMs: feature.settings.timeout_ms,
+      });
+
+      const imageDataUrl = `data:image/png;base64,${result.imageBase64}`;
+
+      this.logUsage({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        featureKey: params.featureKey,
+        taskKind: 'image_generation',
+        provider: 'google',
+        model: 'imagen-4.0-generate-001',
+        modelDisplayName: 'Imagen 4.0',
+        chargedCents,
+        latencyMs: Date.now() - start,
+        status: 'success',
+        meta: { ...params.meta, promptLength: params.prompt.length },
+      });
+
+      return { imageDataUrl, chargedCents };
+    } catch (err: unknown) {
+      await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
+
+      const message = getErrorMessage(err);
+      this.logUsage({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        featureKey: params.featureKey,
+        taskKind: 'image_generation',
+        provider: 'google',
+        model: 'imagen-4.0-generate-001',
+        modelDisplayName: 'Imagen 4.0',
+        chargedCents: 0,
+        latencyMs: Date.now() - start,
+        status: 'error',
+        errorMessage: message || String(err),
+        meta: { ...params.meta, refundedCents: chargedCents },
+      });
+
+      throw err instanceof Error ? err : new Error(message || 'Image generation failed');
+    }
+  }
+
   async transcribe(params: AITranscribeParams): Promise<AITranscribeResult> {
     console.log('[AIService.transcribe] START', { featureKey: params.featureKey, mimeType: params.mimeType, bufferSize: params.audioBuffer?.byteLength });
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
@@ -804,6 +866,28 @@ export class AIService {
           });
           primaryText = String(out.text || '').trim();
           console.log('[AIService.transcribe] Deepgram SUCCESS', { length: primaryText.length, isEmpty: !primaryText, preview: primaryText.substring(0, 150) });
+        } else if (primaryProvider === 'openai') {
+          const openaiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
+          const openai = new OpenAIProvider(openaiKey);
+          const out = await openai.transcribe({
+            model: primaryModel,
+            audioBuffer: params.audioBuffer,
+            mimeType: params.mimeType,
+            timeoutMs: feature.settings.timeout_ms,
+          });
+          primaryText = String(out.text || '').trim();
+          console.log('[AIService.transcribe] OpenAI Whisper SUCCESS', { length: primaryText.length, isEmpty: !primaryText, preview: primaryText.substring(0, 150) });
+        } else if (primaryProvider === 'groq') {
+          const groqKey = await this.getProviderKey({ provider: 'groq', organizationId: ctx.organizationId });
+          const groq = new GroqProvider(groqKey);
+          const out = await groq.transcribe({
+            model: primaryModel,
+            audioBuffer: params.audioBuffer,
+            mimeType: params.mimeType,
+            timeoutMs: feature.settings.timeout_ms,
+          });
+          primaryText = String(out.text || '').trim();
+          console.log('[AIService.transcribe] Groq Whisper SUCCESS', { length: primaryText.length, isEmpty: !primaryText, preview: primaryText.substring(0, 150) });
         } else {
           const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
           const gemini = new GeminiProvider(googleKey);
@@ -851,8 +935,22 @@ export class AIService {
       const shouldTryFallback = this.isRetryableProviderFailure(primaryError) || !primaryText;
       if (shouldTryFallback) {
         console.log('[AIService.transcribe] Trying fallback provider');
-        const fallbackProvider: AIProviderName = primaryProvider === 'deepgram' ? 'google' : 'deepgram';
-        const fallbackModel = fallbackProvider === 'google' ? 'gemini-2.5-flash' : 'nova-2';
+        // Smart fallback: OpenAI Whisper is most reliable, then Groq, then Deepgram, then Gemini
+        let fallbackProvider: AIProviderName;
+        let fallbackModel: string;
+        if (primaryProvider === 'openai') {
+          fallbackProvider = 'groq';
+          fallbackModel = 'whisper-large-v3';
+        } else if (primaryProvider === 'groq') {
+          fallbackProvider = 'openai';
+          fallbackModel = 'whisper-1';
+        } else if (primaryProvider === 'deepgram') {
+          fallbackProvider = 'openai';
+          fallbackModel = 'whisper-1';
+        } else {
+          fallbackProvider = 'openai';
+          fallbackModel = 'whisper-1';
+        }
 
         try {
           let fallbackText = '';
@@ -863,27 +961,28 @@ export class AIService {
             mimeType: params.mimeType
           });
 
-          if (fallbackProvider === 'deepgram') {
-            const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
-            const deepgram = new DeepgramProvider(deepgramKey);
-            const out = await deepgram.transcribe({
-              audioBuffer: params.audioBuffer,
-              mimeType: params.mimeType,
-              timeoutMs: feature.settings.timeout_ms,
-            });
-            fallbackText = String(out.text || '').trim();
-            console.log('[AIService.transcribe] Deepgram FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
-          } else {
-            const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
-            const gemini = new GeminiProvider(googleKey);
-            const out = await gemini.transcribe({
+          if (fallbackProvider === 'openai') {
+            const openaiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
+            const openai = new OpenAIProvider(openaiKey);
+            const out = await openai.transcribe({
               model: fallbackModel,
               audioBuffer: params.audioBuffer,
               mimeType: params.mimeType,
               timeoutMs: feature.settings.timeout_ms,
             });
             fallbackText = String(out.text || '').trim();
-            console.log('[AIService.transcribe] Gemini FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
+            console.log('[AIService.transcribe] OpenAI Whisper FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
+          } else if (fallbackProvider === 'groq') {
+            const groqKey = await this.getProviderKey({ provider: 'groq', organizationId: ctx.organizationId });
+            const groq = new GroqProvider(groqKey);
+            const out = await groq.transcribe({
+              model: fallbackModel,
+              audioBuffer: params.audioBuffer,
+              mimeType: params.mimeType,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+            fallbackText = String(out.text || '').trim();
+            console.log('[AIService.transcribe] Groq Whisper FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
           }
 
           if (fallbackText) {
@@ -1051,9 +1150,10 @@ export class AIService {
       const isObjection = fk.includes('objection') || fk.includes('objections') || fk.includes('handler');
       const isEmbedding = fk.includes('embedding') || fk.includes('embed') || fk.includes('vector');
       const isVision = fk.includes('vision');
+      const isImageGeneration = fk.includes('image_generation') || fk.includes('image.generation');
 
       const isLiveTranscription = fk.includes('live_transcribe') || fk.includes('live.transcribe');
-      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : 30000;
+      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : isImageGeneration ? 60000 : 30000;
 
       settings = {
         id: 'default',
@@ -1064,10 +1164,10 @@ export class AIService {
           ? 'openai'
           : isVision
             ? 'openai'
+          : isImageGeneration
+            ? 'google'
           : isTranscription
-            ? isClientMeetingsTranscription
-              ? 'google'
-              : 'deepgram'
+            ? 'openai'
             : isObjection
               ? 'groq'
               : 'google',
@@ -1075,10 +1175,10 @@ export class AIService {
           ? 'text-embedding-3-small'
           : isVision
             ? 'gpt-4o'
+          : isImageGeneration
+            ? 'imagen-4.0-generate-001'
           : isTranscription
-            ? isClientMeetingsTranscription
-              ? 'gemini-2.0-pro'
-              : 'nova-2'
+            ? 'whisper-1'
             : isObjection
               ? 'llama-3.1-70b-versatile'
               : isClientMeetingsAnalyze
@@ -1086,7 +1186,7 @@ export class AIService {
                 : 'gemini-2.5-flash',
         fallback_provider: null,
         fallback_model: null,
-        reserve_cost_cents: isEmbedding ? 10 : isVision ? 35 : 25,
+        reserve_cost_cents: isEmbedding ? 10 : isVision ? 35 : isImageGeneration ? 4 : 25,
         timeout_ms: isVision ? 45000 : defaultTimeoutMs,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

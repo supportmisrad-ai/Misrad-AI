@@ -122,13 +122,17 @@ export async function generateAIImageAction(prompt: string): Promise<string> {
     const authCheck = await requireAuth();
     if (!authCheck.success) return '';
 
-    // AI image generation: generate a descriptive seed for a contextual placeholder.
-    // Full image generation (DALL-E/Gemini Imagen) can be wired here when API is enabled.
-    const sanitized = String(prompt || '').replace(/[^a-zA-Z0-9\u0590-\u05FF ]/g, '').trim().slice(0, 80);
-    const seed = encodeURIComponent(sanitized || 'social-post');
-    return `https://picsum.photos/seed/${seed}/800/600`;
+    const ai = AIService.getInstance();
+    
+    const result = await ai.generateImage({
+      featureKey: 'social.image_generation',
+      prompt: String(prompt || 'creative social media post image'),
+      meta: { source: 'social_post_variation' },
+    });
+
+    return result.imageDataUrl;
   } catch (error) {
-    logger.error('ai-actions', 'Error generating image:', error);
+    logger.error('ai-actions', 'Error generating AI image:', error);
     return '';
   }
 }
