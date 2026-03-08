@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import CustomersDashboardClient from './CustomersDashboardClient';
 import { getOrganizations } from '@/app/actions/admin-organizations';
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const metadata = {
   title: 'דשבורד לקוחות | Admin',
@@ -11,9 +12,10 @@ export const metadata = {
 async function CustomersDashboardLoader() {
   const [result, orphanedUsersCount] = await Promise.all([
     getOrganizations({}),
-    prisma.organizationUser.count({
-      where: { organization_id: null },
-    }).catch(() => 0),
+    withTenantIsolationContext(
+      { source: 'admin_dashboard_customers', reason: 'admin_count_orphaned_users', mode: 'global_admin', isSuperAdmin: true, suppressReporting: true },
+      () => prisma.organizationUser.count({ where: { organization_id: null } })
+    ).catch(() => 0),
   ]);
 
   const organizations = result.success ? result.data ?? [] : [];

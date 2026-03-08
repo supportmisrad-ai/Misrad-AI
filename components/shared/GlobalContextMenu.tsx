@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Maximize,
   Share2,
+  Languages,
   // Module-specific icons
   BarChart3,
   Phone,
@@ -209,7 +210,7 @@ function buildGlobalItems(
 ): ContextMenuSection[] {
   const sections: ContextMenuSection[] = [];
 
-  // Clipboard section (only when text is selected)
+  // Clipboard & translate section (only when text is selected)
   if (hasSelection) {
     sections.push({
       id: 'clipboard',
@@ -221,6 +222,17 @@ function buildGlobalItems(
           shortcut: 'Ctrl+C',
           action: () => {
             document.execCommand('copy');
+          },
+        },
+        {
+          id: 'translate',
+          label: 'תרגם עם Google',
+          icon: Languages,
+          action: () => {
+            const text = window.getSelection()?.toString()?.trim() || '';
+            if (text) {
+              window.open(`https://translate.google.com/?sl=auto&tl=he&text=${encodeURIComponent(text)}`, '_blank');
+            }
           },
         },
       ],

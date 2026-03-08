@@ -2,6 +2,7 @@ import React from 'react';
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getCurrentUserInfo } from '@/app/actions/users';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
@@ -36,10 +37,12 @@ export default async function ClientAppLayoutShell({
   }
 
   // DB user lookup — fire immediately, resolve in Phase 2 alongside other I/O
-  const userPromise = prisma.organizationUser.findFirst({
-    where: { clerk_user_id: clerkUserId },
-    select: { organization_id: true, role: true },
-  }).catch(() => null);
+  const userPromise = prisma.organizationUser.findFirst(
+    withPrismaTenantIsolationOverride(
+      { where: { clerk_user_id: clerkUserId }, select: { organization_id: true, role: true } },
+      { suppressReporting: true, source: 'client_app_layout', reason: 'client_layout_cross_tenant_clerk_user_lookup' }
+    )
+  ).catch(() => null);
 
   const clerkPublicMeta = asObject(clerkUser?.publicMetadata);
   const clerkPrivateMeta = asObject(clerkUser?.privateMetadata);

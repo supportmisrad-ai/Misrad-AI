@@ -410,7 +410,7 @@ export default function TheMachine() {
 
                   <button 
                     onClick={handleGenerate} 
-                    disabled={!brief || selectedPlatforms.length === 0} 
+                    disabled={!brief || !brief.trim()} 
                     className="w-full py-4 md:py-6 bg-slate-900 text-white rounded-2xl md:rounded-[24px] font-black text-lg md:text-xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     צור סקיצות ✨

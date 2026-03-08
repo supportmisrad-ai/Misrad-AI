@@ -55,7 +55,7 @@ const VaultTab: React.FC<VaultTabProps> = ({ client }) => {
                   איך זה עובד בפועל?
                 </h4>
                 <p className="text-sm font-bold text-blue-800 leading-relaxed mb-6">
-                  <strong>Social היא "חדר המבצעים" (War Room), לא "צרור המפתחות".</strong>
+                  <strong>Social היא חדר המבצעים (War Room) שלך — תכנון, אישור ופרסום.</strong>
                 </p>
               </div>
             </div>

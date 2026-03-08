@@ -4,6 +4,7 @@ import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { deletePost } from '@/app/actions/posts';
 import { deleteIdea, createIdea } from '@/app/actions/ideas';
 import { approveClientRequest, createManagerRequest, rejectClientRequest } from '@/app/actions/requests';
+import { sendMessage } from '@/app/actions/conversations';
 
 interface UseClientWorkspaceHandlersProps {
   activeClient: Client;
@@ -122,31 +123,16 @@ export function useClientWorkspaceHandlers({
   };
 
   const handleSendMessage = async (convId: string, text: string) => {
+    const resolvedOrgSlug = String(orgSlug || '').trim();
+    if (!resolvedOrgSlug) {
+      addToast('חסר ארגון פעיל', 'error');
+      return;
+    }
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          module: 'social',
-          featureKey: 'social.sales_advisor',
-          context: {
-            clientId: activeClient.id,
-            clientName: activeClient.name,
-            conversationId: convId
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+      const result = await sendMessage(resolvedOrgSlug, convId, text);
+      if (!result.success) {
+        addToast(result.error || 'שגיאה בשליחת הודעה', 'error');
       }
-
-      const data = await response.json();
-      addToast('יועץ המכירות ענה!', 'success');
-      
-      // TODO: Add the AI response to the conversation
-      console.log('AI Response:', data.text);
     } catch (error) {
       console.error('Error sending message:', error);
       addToast('שגיאה בשליחת הודעה', 'error');

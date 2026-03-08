@@ -145,7 +145,6 @@ export default function SocialFrame({
       '/machine': 'machine',
       '/campaigns': 'campaigns',
       '/analytics': 'analytics',
-      '/team': 'team',
       '/collection': 'collection',
       '/content-bank': 'content-bank',
       '/agency-insights': 'agency-insights',
@@ -270,12 +269,11 @@ export default function SocialFrame({
       { id: 'machine', label: 'פוסט בקליק ✨', view: 'machine', icon: 'Sparkles', requiresClient: true },
       { id: 'campaigns', label: 'קמפיינים', view: 'campaigns', icon: 'Megaphone', requiresClient: true },
       { id: 'analytics', label: 'אנליטיקה', view: 'analytics', icon: 'BarChart3', requiresClient: true },
-      ...(isTeamEnabled || isTeamManagementEnabled ? [{ id: 'team', label: 'צוות', view: 'team', icon: 'Users' }] : []),
       { id: 'collection', label: 'גבייה', view: 'collection', icon: 'Wallet' },
       { id: 'agency-insights', label: 'תובנות', view: 'agency-insights', icon: 'TrendingUp' },
       { id: 'settings', label: 'הגדרות', view: 'settings', icon: 'Settings' },
     ],
-    [isTeamEnabled, isTeamManagementEnabled]
+    []
   );
 
   const getRouteForView = (view: string) => {
@@ -289,7 +287,6 @@ export default function SocialFrame({
       campaigns: '/campaigns',
       analytics: '/analytics',
       'content-bank': '/content-bank',
-      team: '/team',
       collection: '/collection',
       'agency-insights': '/agency-insights',
       settings: '/settings',

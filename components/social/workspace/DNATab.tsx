@@ -14,6 +14,12 @@ const DNATab: React.FC<DNATabProps> = ({ client, onUpdateDNA }) => {
   const [dnaState, setDnaState] = useState(client.dna.voice);
   const [isDnaDirty, setIsDnaDirty] = useState(false);
   const [isSavingDna, setIsSavingDna] = useState(false);
+  const [lovedWords, setLovedWords] = useState(client.dna.vocabulary.loved);
+  const [forbiddenWords, setForbiddenWords] = useState(client.dna.vocabulary.forbidden);
+  const [newLovedWord, setNewLovedWord] = useState('');
+  const [newForbiddenWord, setNewForbiddenWord] = useState('');
+  const [showLovedInput, setShowLovedInput] = useState(false);
+  const [showForbiddenInput, setShowForbiddenInput] = useState(false);
 
   const handleDnaChange = (key: keyof typeof dnaState, val: number) => {
     setDnaState(prev => ({ ...prev, [key]: val }));
@@ -29,35 +35,30 @@ const DNATab: React.FC<DNATabProps> = ({ client, onUpdateDNA }) => {
     }, 1000);
   };
 
+  const handleAddLovedWord = () => {
+    if (!newLovedWord.trim()) return;
+    setLovedWords(prev => [...prev, newLovedWord.trim()]);
+    setNewLovedWord('');
+    setShowLovedInput(false);
+  };
+
+  const handleRemoveLovedWord = (word: string) => {
+    setLovedWords(prev => prev.filter(w => w !== word));
+  };
+
+  const handleAddForbiddenWord = () => {
+    if (!newForbiddenWord.trim()) return;
+    setForbiddenWords(prev => [...prev, newForbiddenWord.trim()]);
+    setNewForbiddenWord('');
+    setShowForbiddenInput(false);
+  };
+
+  const handleRemoveForbiddenWord = (word: string) => {
+    setForbiddenWords(prev => prev.filter(w => w !== word));
+  };
+
   return (
     <div className="flex flex-col gap-10">
-      {/* 1. Marketing Manifesto Section (New Strategic Insight) */}
-      <section className="bg-slate-900 p-12 rounded-[64px] text-white shadow-2xl relative overflow-hidden group">
-         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-8 flex flex-col gap-6">
-               <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-900/50"><Target size={24}/></div>
-                  <h3 className="text-2xl font-black">מניפסט אסטרטגי - AI Analysis</h3>
-               </div>
-               <div className="relative">
-                  <Quote className="absolute -top-6 -right-6 text-white/10" size={80} />
-                  <p className="text-2xl md:text-3xl font-black leading-tight tracking-tight relative z-10 italic text-blue-100">
-                    "{client.dna.strategy?.aiStrategySummary || "ה-AI ינתח את נתוני המותג לאחר השלמת שאלון האיפיון."}"
-                  </p>
-               </div>
-               <div className="flex flex-wrap gap-3 mt-4">
-                  <span className="px-4 py-1.5 bg-white/10 rounded-xl text-[10px] font-black uppercase border border-white/10">🎯 מטרה: {client.dna.strategy?.mainGoal || "טרם הוגדר"}</span>
-                  <span className="px-4 py-1.5 bg-white/10 rounded-xl text-[10px] font-black uppercase border border-white/10">👥 קהל: {client.dna.strategy?.targetAudience || "טרם הוגדר"}</span>
-               </div>
-            </div>
-            <div className="lg:col-span-4 flex flex-col items-center justify-center text-center bg-white/5 border border-white/10 rounded-[48px] p-10 backdrop-blur-md">
-               <Zap className="text-amber-400 mb-4" size={48} />
-               <p className="text-xs font-bold text-slate-400 leading-relaxed">האסטרטגיה הזו מזינה את 'המכונה' ומבטיחה שכל פוסט שנכתב עבור {client.companyName} פוגע בול במטרה.</p>
-            </div>
-         </div>
-         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[140px]"></div>
-      </section>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* DNA Voice Sliders */}
         <div className="bg-white p-12 rounded-[56px] border border-slate-200 shadow-xl flex flex-col gap-10">
@@ -122,19 +123,57 @@ const DNATab: React.FC<DNATabProps> = ({ client, onUpdateDNA }) => {
           <div>
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4 mb-3 block">מילים אהובות לשימוש</label>
             <div className="flex flex-wrap gap-2">
-              {client.dna.vocabulary.loved.map(word => (
-                <span key={word} className="px-4 py-2 bg-green-50 text-green-700 font-black text-xs rounded-xl border border-green-100">{word}</span>
+              {lovedWords.map(word => (
+                <span key={word} className="px-4 py-2 bg-green-50 text-green-700 font-black text-xs rounded-xl border border-green-100 flex items-center gap-2 group">
+                  {word}
+                  <button onClick={() => handleRemoveLovedWord(word)} className="opacity-0 group-hover:opacity-100 text-green-400 hover:text-green-600 transition-all">×</button>
+                </span>
               ))}
-              <button className="px-4 py-2 bg-slate-50 text-slate-400 font-black text-xs rounded-xl border border-slate-200 hover:bg-slate-100 hover:text-slate-600 transition-all">+</button>
+              {showLovedInput ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newLovedWord}
+                    onChange={e => setNewLovedWord(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddLovedWord()}
+                    placeholder="מילה חדשה..."
+                    autoFocus
+                    className="px-3 py-2 border border-green-200 rounded-xl text-xs font-bold outline-none focus:border-green-400 w-32"
+                  />
+                  <button onClick={handleAddLovedWord} className="px-3 py-2 bg-green-500 text-white font-black text-xs rounded-xl hover:bg-green-600">✓</button>
+                  <button onClick={() => { setShowLovedInput(false); setNewLovedWord(''); }} className="px-3 py-2 bg-slate-200 text-slate-600 font-black text-xs rounded-xl hover:bg-slate-300">×</button>
+                </div>
+              ) : (
+                <button onClick={() => setShowLovedInput(true)} className="px-4 py-2 bg-slate-50 text-slate-400 font-black text-xs rounded-xl border border-slate-200 hover:bg-slate-100 hover:text-slate-600 transition-all">+</button>
+              )}
             </div>
           </div>
           <div>
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4 mb-3 block">מילים אסורות</label>
             <div className="flex flex-wrap gap-2">
-              {client.dna.vocabulary.forbidden.map(word => (
-                <span key={word} className="px-4 py-2 bg-red-50 text-red-700 font-black text-xs rounded-xl border border-red-100">{word}</span>
+              {forbiddenWords.map(word => (
+                <span key={word} className="px-4 py-2 bg-red-50 text-red-700 font-black text-xs rounded-xl border border-red-100 flex items-center gap-2 group">
+                  {word}
+                  <button onClick={() => handleRemoveForbiddenWord(word)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">×</button>
+                </span>
               ))}
-              <button className="px-4 py-2 bg-slate-50 text-slate-400 font-black text-xs rounded-xl border border-slate-200 hover:bg-slate-100 hover:text-slate-600 transition-all">+</button>
+              {showForbiddenInput ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newForbiddenWord}
+                    onChange={e => setNewForbiddenWord(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddForbiddenWord()}
+                    placeholder="מילה חדשה..."
+                    autoFocus
+                    className="px-3 py-2 border border-red-200 rounded-xl text-xs font-bold outline-none focus:border-red-400 w-32"
+                  />
+                  <button onClick={handleAddForbiddenWord} className="px-3 py-2 bg-red-500 text-white font-black text-xs rounded-xl hover:bg-red-600">✓</button>
+                  <button onClick={() => { setShowForbiddenInput(false); setNewForbiddenWord(''); }} className="px-3 py-2 bg-slate-200 text-slate-600 font-black text-xs rounded-xl hover:bg-slate-300">×</button>
+                </div>
+              ) : (
+                <button onClick={() => setShowForbiddenInput(true)} className="px-4 py-2 bg-slate-50 text-slate-400 font-black text-xs rounded-xl border border-slate-200 hover:bg-slate-100 hover:text-slate-600 transition-all">+</button>
+              )}
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ import { requireSuperAdmin } from '@/lib/auth';
 import * as Sentry from '@sentry/nextjs';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import {
   createAppInvoice,
   getOrganizationBilling,
@@ -318,8 +319,9 @@ export async function getBillingEvents(limit: number = 100): Promise<
 
     await requireSuperAdmin();
 
-    const events = await import('@/lib/prisma').then((mod) =>
-      mod.default.billing_events.findMany({
+    const events = await withTenantIsolationContext(
+      { source: 'app_billing', reason: 'admin_get_all_billing_events', mode: 'global_admin', isSuperAdmin: true, suppressReporting: true },
+      () => prisma.billing_events.findMany({
         take: Math.min(limit, 500),
         orderBy: { created_at: 'desc' },
         include: {

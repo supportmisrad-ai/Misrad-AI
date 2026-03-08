@@ -10,6 +10,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { Prisma } from '@prisma/client';
 import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
 import { ALLOW_SCHEMA_FALLBACKS, isSchemaMismatchError, reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
@@ -335,10 +336,12 @@ export async function isTenantOwner(userEmail?: string, tenantId?: string): Prom
         if (tenants.length > 0) return true;
 
         // Also check Organization ownership — new customers have Organization but no NexusTenant
-        const orgUser = await prisma.organizationUser.findFirst({
-            where: { clerk_user_id: user.id },
-            select: { role: true, organization_id: true },
-        });
+        const orgUser = await prisma.organizationUser.findFirst(
+            withPrismaTenantIsolationOverride(
+                { where: { clerk_user_id: user.id }, select: { role: true, organization_id: true } },
+                { suppressReporting: true, source: 'auth_check_tenant_ownership', reason: 'auth_cross_tenant_clerk_user_lookup' }
+            )
+        );
         if (orgUser?.role === 'owner' && orgUser.organization_id) {
             return true;
         }

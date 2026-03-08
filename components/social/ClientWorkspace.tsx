@@ -56,9 +56,15 @@ export default function ClientWorkspace() {
   const clientIdeas = ideas.filter(i => i.clientId === activeClient.id);
   const clientConversations = conversations.filter(c => c.clientId === activeClient.id);
   
-  const portalLink = `misrad-ai.com/portal/${activeClient.portalToken}`;
+  const portalLink = activeClient.portalToken
+    ? `https://misrad-ai.com/w/${orgSlug}/client/portal?token=${activeClient.portalToken}`
+    : '';
 
   const handleCopyLink = () => {
+    if (!portalLink) {
+      addToast('לא נוצר טוקן פורטל ללקוח זה', 'error');
+      return;
+    }
     setIsCopyingLink(true);
     navigator.clipboard.writeText(portalLink);
     setTimeout(() => setIsCopyingLink(false), 2000);

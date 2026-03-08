@@ -4,6 +4,7 @@
 import { logger } from '@/lib/server/logger';
 import { createErrorResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 import { getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { getOrCreateOrganizationUserByClerkUserId } from '@/lib/services/social-users';
@@ -84,10 +85,12 @@ export async function getOrganizationUserRoleFromSupabaseAction(
       };
     }
 
-    const user = await prisma.organizationUser.findFirst({
-      where: { id },
-      select: { role: true, organization_id: true },
-    });
+    const user = await prisma.organizationUser.findFirst(
+      withPrismaTenantIsolationOverride(
+        { where: { id }, select: { role: true, organization_id: true } },
+        { suppressReporting: true, source: 'social_users', reason: 'lookup_org_user_role_by_id_cross_tenant' }
+      )
+    );
 
     if (user?.role) {
       return { success: true, role: String(user.role), organizationId: user.organization_id || undefined };

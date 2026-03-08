@@ -107,7 +107,6 @@ function NavigationImpl({
       'machine': joinPath(basePath, '/machine'),
       'campaigns': joinPath(basePath, '/campaigns'),
       'analytics': joinPath(basePath, '/analytics'),
-      'team': joinPath(basePath, '/team'),
       'content-bank': joinPath(basePath, '/content-bank'),
       'collection': joinPath(basePath, '/collection'),
       'agency-insights': joinPath(basePath, '/agency-insights'),

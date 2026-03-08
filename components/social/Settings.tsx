@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React from 'react';
-import { Shield, Globe, Tag, Zap, Bot, Users, Sparkles } from 'lucide-react';
+import { Tag, Zap, Bot, Sparkles, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import dynamic from 'next/dynamic';
@@ -9,19 +9,15 @@ import dynamic from 'next/dynamic';
 const PricingTab = dynamic(() => import('./settings/PricingTab'), { ssr: false });
 const AutomationTab = dynamic(() => import('./settings/AutomationTab'), { ssr: false });
 const SocialConnectionsTab = dynamic(() => import('./settings/SocialConnectionsTab'), { ssr: false });
-const SecurityTab = dynamic(() => import('./settings/SecurityTab'), { ssr: false });
-const TeamSettingsTab = dynamic(() => import('./settings/TeamSettingsTab'), { ssr: false });
 const IntegrationsTab = dynamic(() => import('./settings/IntegrationsTab'), { ssr: false });
 const UpdatesTab = dynamic(() => import('./settings/UpdatesTab'), { ssr: false });
 
 const SETTINGS_ITEMS = [
   { id: 'updates', label: 'עדכונים', desc: 'עדכוני אפליקציה ושינויים', icon: Sparkles },
   { id: 'pricing', label: 'שירותים ומחירון', desc: 'נהל פלטפורמות ומרקטפלייס', icon: Tag },
-  { id: 'team_management', label: 'ניהול הרשאות וצוות', desc: 'הגדרת תפקידים וצירף עובדים', icon: Users },
   { id: 'integrations', label: 'אינטגרציות', desc: 'חיבור למורנינג, Make ו-Zapier', icon: Zap },
   { id: 'automation', label: 'אוטומציות וגבייה', desc: 'תזכורות תשלום ו-API', icon: Bot },
-  { id: 'security', label: 'אבטחה וסיסמה', desc: 'אימות וסיסמאות', icon: Shield },
-  { id: 'social', label: 'חיבורי רשתות', desc: 'ניהול API של פלטפורמות', icon: Globe },
+  { id: 'social', label: 'חיבורי רשתות', desc: 'Facebook, Instagram, LinkedIn, TikTok', icon: Share2 },
 ];
 
 export default function Settings() {
@@ -38,15 +34,11 @@ export default function Settings() {
     addToast,
   } = useApp();
 
-  const navItems = isTeamManagementEnabled
-    ? SETTINGS_ITEMS
-    : SETTINGS_ITEMS.filter((item) => item.id !== 'team_management');
+  const navItems = SETTINGS_ITEMS;
 
   // Set default view if none is selected or if it's 'main'
   const activeView =
-    settingsSubView === 'main' || !settingsSubView || settingsSubView === 'infrastructure'
-      ? 'pricing'
-      : settingsSubView;
+    settingsSubView === 'main' || !settingsSubView ? 'updates' : settingsSubView;
 
   const renderContent = () => {
     switch (activeView) {
@@ -68,22 +60,8 @@ export default function Settings() {
         return <AutomationTab />;
       case 'social':
         return <SocialConnectionsTab />;
-      case 'security':
-        return <SecurityTab onNotify={addToast} />;
-      case 'team_management':
-        if (!isTeamManagementEnabled) {
-          return <IntegrationsTab onNotify={addToast} />;
-        }
-        return (
-          <TeamSettingsTab
-            onNotify={addToast}
-            isEnabled={isTeamManagementEnabled}
-            setIsEnabled={setIsTeamManagementEnabled}
-            team={team}
-          />
-        );
       default:
-        return <IntegrationsTab onNotify={addToast} />;
+        return <UpdatesTab onNotify={addToast} />;
     }
   };
 
@@ -103,7 +81,7 @@ export default function Settings() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setSettingsSubView(item.id as 'updates' | 'pricing' | 'team_management' | 'integrations' | 'automation' | 'security' | 'social')}
+                    onClick={() => setSettingsSubView(item.id as 'updates' | 'pricing' | 'integrations' | 'automation' | 'social')}
                     className={`w-full flex items-center gap-4 p-6 text-right transition-all border-b border-slate-100 last:border-0 group border-r-4 ${
                       isActive
                         ? 'bg-blue-50 text-blue-600 border-r-blue-600'
