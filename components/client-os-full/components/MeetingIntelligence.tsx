@@ -493,13 +493,21 @@ const MeetingIntelligence: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {meetings.map(m => (
-                <div key={m.id} onClick={() => { setAnalysisResult(m.aiAnalysis); setActiveView('RESULT'); }} className="glass-card p-5 rounded-xl border cursor-pointer hover:shadow-lg transition-all">
+                <div key={m.id} onClick={() => {
+                  if (m.aiAnalysis) {
+                    setAnalysisResult(m.aiAnalysis);
+                    setActiveView('RESULT');
+                  } else if (m.transcript) {
+                    setTranscriptResult(m.transcript);
+                    setActiveView('TRANSCRIPT');
+                  }
+                }} className="glass-card p-5 rounded-xl border cursor-pointer hover:shadow-lg transition-all">
                   <div className="flex justify-between mb-4">
                     <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Video size={20} /></div>
                     <span className="text-xs text-gray-400">{m.date}</span>
                   </div>
                   <h4 className="font-bold text-gray-900 mb-1">{m.title}</h4>
-                  <p className="text-xs text-gray-500 line-clamp-2">{m.summary}</p>
+                  <p className="text-xs text-gray-500 line-clamp-2">{m.summary || (m.transcript ? 'תמלול בלבד' : '')}</p>
                 </div>
               ))}
             </div>

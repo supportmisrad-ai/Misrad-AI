@@ -45,7 +45,7 @@ export class GeminiProvider {
                 },
               },
               {
-                text: 'Please transcribe this audio exactly as spoken in Hebrew. Return only the raw transcript text, no summaries or corrections.',
+                text: 'תמלל את האודיו הזה בדיוק כפי שנאמר בעברית.\nאם יש יותר מדובר אחד, זהה את הדוברים השונים וסמן כל החלפת דובר בשורה חדשה עם תגית: "דובר 1:", "דובר 2:", וכו\'.\nאל תסכם, אל תתקן - רק תמלול מדויק עם זיהוי דוברים.',
               },
             ],
           },

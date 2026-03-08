@@ -380,14 +380,23 @@ async function POSTHandler(req: Request) {
       return apiSuccessCompat({ meetingId: meeting.id, transcript, mode: 'transcribe' as const }, { headers: abuse.headers });
     }
 
-    const saved = await analyzeAndStoreMeeting({
-      orgId,
-      clientId: resolvedMisradClientId,
-      title,
-      location,
-      transcript,
-      recordingUrl,
-    });
+    let saved: { meetingId: string; analysis: unknown } | null = null;
+    try {
+      saved = await analyzeAndStoreMeeting({
+        orgId,
+        clientId: resolvedMisradClientId,
+        title,
+        location,
+        transcript,
+        recordingUrl,
+      });
+    } catch (analysisErr) {
+      console.error('[client-os/meetings/process] Analysis failed, returning transcript only', {
+        error: analysisErr instanceof Error ? analysisErr.message : String(analysisErr),
+      });
+      // Analysis failed - still return the transcript so the user sees their transcription
+      return apiSuccessCompat({ transcript, mode: 'transcribe' as const, analysisError: 'ניתוח השיחה נכשל, אבל התמלול נשמר בהצלחה.' }, { headers: abuse.headers });
+    }
 
     // Best-effort: also write to client_sessions so Client OS lists can show the recording and analysis.
     try {

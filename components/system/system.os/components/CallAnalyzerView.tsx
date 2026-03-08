@@ -227,7 +227,14 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         }
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (firstErr) {
+                // Retry once after a short delay (browser permission flow)
+                await new Promise(r => setTimeout(r, 500));
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
             liveStreamRef.current = stream;
             liveChunksRef.current = [];
 
@@ -257,8 +264,10 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     liveTranscribeInFlightRef.current = true;
 
                     const mimeType = recorder.mimeType || ev.data.type || 'audio/webm';
+                    // Send ALL accumulated chunks (not just current) for reliable transcription
+                    const allChunks = new Blob(liveChunksRef.current, { type: mimeType });
                     const fd = new FormData();
-                    fd.append('file', new File([ev.data], `live-${Date.now()}.webm`, { type: mimeType }));
+                    fd.append('file', new File([allChunks], `live-${Date.now()}.webm`, { type: mimeType }));
 
                     const transcribeRes = await fetch(
                         `/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`,
@@ -274,11 +283,9 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     const text = String(nested?.transcriptText || json?.transcriptText || '').trim();
                     if (!text) return;
 
-                    let nextTranscript = '';
-                    setLiveTranscriptText((prev) => {
-                        nextTranscript = prev ? `${prev}\n${text}` : text;
-                        return nextTranscript;
-                    });
+                    // Since we send all accumulated audio, the server returns the full transcript — replace, don't append
+                    let nextTranscript = text;
+                    setLiveTranscriptText(text);
 
                     const now = Date.now();
                     const minMs = 6500;

@@ -1,7 +1,8 @@
 /**
  * Post-process raw transcription text to improve readability:
+ * - Preserve speaker labels (דובר 1:, דובר 2:, Speaker 0:, etc.)
  * - Insert line breaks at sentence boundaries
- * - Group into paragraphs every ~3-4 sentences
+ * - Group into paragraphs every ~4 sentences (only for non-diarized text)
  * - Clean up whitespace
  */
 export function formatTranscriptText(raw: string): string {
@@ -9,6 +10,30 @@ export function formatTranscriptText(raw: string): string {
 
   let text = raw.trim();
 
+  // Check if text already has speaker labels (diarized)
+  const hasSpeakerLabels = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/m.test(text);
+
+  if (hasSpeakerLabels) {
+    // Diarized text: clean up but preserve speaker structure
+    // Normalize whitespace within lines but keep line breaks
+    const lines = text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    // Add empty line between different speakers for readability
+    const formatted: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      formatted.push(lines[i]);
+      // Add separator between speaker blocks
+      if (i < lines.length - 1) {
+        const currentIsSpeaker = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/.test(lines[i]);
+        const nextIsSpeaker = /^(דובר\s*\d+|Speaker\s*\d+)\s*:/.test(lines[i + 1]);
+        if (currentIsSpeaker && nextIsSpeaker) {
+          formatted.push('');
+        }
+      }
+    }
+    return formatted.join('\n');
+  }
+
+  // Non-diarized text: add sentence breaks and paragraph grouping
   // Normalize whitespace (multiple spaces → single space)
   text = text.replace(/\s+/g, ' ');
 

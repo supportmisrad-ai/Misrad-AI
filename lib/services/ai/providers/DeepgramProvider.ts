@@ -48,15 +48,61 @@ export class DeepgramProvider {
       const transcriptFromChannels = typeof firstAltObj?.transcript === 'string' ? firstAltObj.transcript : '';
 
       const utterances = Array.isArray(resultsObj.utterances) ? resultsObj.utterances : [];
-      const transcriptFromUtterances = utterances
-        .map((u) => {
-          const uObj = asObject(u) ?? {};
-          return typeof uObj.transcript === 'string' ? uObj.transcript : '';
-        })
-        .filter(Boolean)
-        .join('\n');
 
-      const transcript = transcriptFromChannels || transcriptFromUtterances || '';
+      // Build diarized transcript from utterances (speaker-labeled)
+      let transcriptFromUtterances = '';
+      if (utterances.length > 0) {
+        const speakerMap = new Map<number, number>();
+        let speakerCounter = 0;
+        transcriptFromUtterances = utterances
+          .map((u) => {
+            const uObj = asObject(u) ?? {};
+            const text = typeof uObj.transcript === 'string' ? uObj.transcript : '';
+            if (!text) return '';
+            const rawSpeaker = typeof uObj.speaker === 'number' ? uObj.speaker : -1;
+            if (rawSpeaker >= 0 && !speakerMap.has(rawSpeaker)) {
+              speakerMap.set(rawSpeaker, ++speakerCounter);
+            }
+            const speakerLabel = rawSpeaker >= 0 ? `דובר ${speakerMap.get(rawSpeaker)}` : '';
+            return speakerLabel ? `${speakerLabel}: ${text}` : text;
+          })
+          .filter(Boolean)
+          .join('\n');
+      } else {
+        // Fallback: try to extract from words with speaker info
+        const wordsArr = Array.isArray(firstAltObj?.words) ? firstAltObj!.words : [];
+        if (wordsArr.length > 0) {
+          const speakerMap = new Map<number, number>();
+          let speakerCounter = 0;
+          let currentSpeaker = -1;
+          const segments: string[] = [];
+          let currentSegment = '';
+
+          for (const w of wordsArr) {
+            const wObj = asObject(w) ?? {};
+            const word = typeof wObj.punctuated_word === 'string' ? wObj.punctuated_word : (typeof wObj.word === 'string' ? wObj.word : '');
+            const speaker = typeof wObj.speaker === 'number' ? wObj.speaker : -1;
+
+            if (speaker >= 0 && speaker !== currentSpeaker) {
+              if (currentSegment.trim()) segments.push(currentSegment.trim());
+              if (!speakerMap.has(speaker)) speakerMap.set(speaker, ++speakerCounter);
+              currentSegment = `דובר ${speakerMap.get(speaker)}: ${word}`;
+              currentSpeaker = speaker;
+            } else {
+              currentSegment += ` ${word}`;
+            }
+          }
+          if (currentSegment.trim()) segments.push(currentSegment.trim());
+          if (segments.length > 0 && speakerMap.size > 1) {
+            transcriptFromUtterances = segments.join('\n');
+          }
+        }
+      }
+
+      // Prefer diarized utterances over flat channel transcript
+      const transcript = (transcriptFromUtterances && transcriptFromUtterances.includes('דובר'))
+        ? transcriptFromUtterances
+        : transcriptFromChannels || transcriptFromUtterances || '';
       console.log('[DeepgramProvider.transcribe] Response received', {
         textLength: transcript.length,
         textPreview: transcript.substring(0, 100),
