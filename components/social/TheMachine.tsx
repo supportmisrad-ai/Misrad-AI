@@ -6,7 +6,7 @@ import {
   X, Sparkles, Image, 
   Search, ArrowRight, Zap, Facebook, Instagram, Linkedin, 
   MessageCircle, Globe, Video, Twitter, Share2, Pin, 
-  MessageSquare, Wand, Clock
+  MessageSquare, Wand, Clock, CalendarPlus, BookmarkPlus, Check
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { generatePostVariationsAction, generateAIImageAction } from '@/app/actions/ai-actions';
@@ -62,6 +62,9 @@ export default function TheMachine() {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [postingTimes, setPostingTimes] = useState<PostingTimesResult | null>(null);
   const [showTimesModal, setShowTimesModal] = useState(false);
+  const [imageSize, setImageSize] = useState<'1024x1024' | '1792x1024' | '1024x1792'>('1024x1024');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [showScheduleInput, setShowScheduleInput] = useState(false);
 
   const editingPostId = String((activeDraft as Record<string, unknown> | null)?.id || '').trim();
   const editingPost = editingPostId && !editingPostId.startsWith('draft-') ? posts.find((p) => String(p.id) === editingPostId) : undefined;
@@ -82,6 +85,9 @@ export default function TheMachine() {
       setSelectedVariation(null);
       setEditableContent('');
       setIsGeneratingImage(false);
+      setImageSize('1024x1024');
+      setScheduledDate('');
+      setShowScheduleInput(false);
     };
 
     window.addEventListener('social:machine:new', handler as EventListener);
@@ -155,10 +161,13 @@ export default function TheMachine() {
   const handleGenerateImage = async () => {
     if (!selectedVariation || !selectedClient) return;
     setIsGeneratingImage(true);
-    const prompt = `Social media post about ${selectedClient.companyName}: ${selectedVariation.imageSuggestion || selectedVariation.content}`;
-    const imageUrl = await generateAIImageAction(prompt);
+    const prompt = `Create a visually stunning social media image for the brand "${selectedClient.companyName}": ${selectedVariation.imageSuggestion || selectedVariation.content}. Style: modern, clean, professional. No text overlay in the image.`;
+    const imageUrl = await generateAIImageAction(prompt, imageSize);
     if (imageUrl) {
       setSelectedVariation(prev => prev ? { ...prev, generatedImage: imageUrl } : null);
+      addToast('התמונה נוצרה בהצלחה! 🎨', 'success');
+    } else {
+      addToast('לא הצלחנו ליצור תמונה. נסה שוב.', 'error');
     }
     setIsGeneratingImage(false);
   };
@@ -259,6 +268,63 @@ export default function TheMachine() {
   const handleCancel = () => {
     setActiveDraft(null);
     router.push(joinPath(basePath, '/dashboard'));
+  };
+
+  const handleSaveToContentBank = async () => {
+    if (!selectedClient || !editableContent) return;
+    if (!orgSlug) {
+      addToast('יש לבחור ארגון', 'error');
+      return;
+    }
+    const created = await createPost({
+      orgSlug,
+      clientId: selectedClient.id,
+      content: editableContent,
+      platforms: selectedPlatforms,
+      mediaUrl: selectedVariation?.generatedImage || undefined,
+      status: 'draft',
+    });
+    if (!created.success) {
+      addToast(created.error || 'שגיאה בשמירה', 'error');
+      return;
+    }
+    if (created.data) {
+      setPosts(prev => [created.data as SocialPost, ...prev]);
+    }
+    addToast('נשמר לבנק התכנים בהצלחה! 📂', 'success');
+    setActiveDraft(null);
+    router.push(joinPath(basePath, '/content-bank'));
+  };
+
+  const handleSchedulePost = async () => {
+    if (!selectedClient || !editableContent) return;
+    if (!orgSlug) {
+      addToast('יש לבחור ארגון', 'error');
+      return;
+    }
+    if (!scheduledDate) {
+      addToast('יש לבחור תאריך ושעה לפרסום', 'error');
+      return;
+    }
+    const created = await createPost({
+      orgSlug,
+      clientId: selectedClient.id,
+      content: editableContent,
+      platforms: selectedPlatforms,
+      mediaUrl: selectedVariation?.generatedImage || undefined,
+      scheduledAt: new Date(scheduledDate).toISOString(),
+      status: 'scheduled',
+    });
+    if (!created.success) {
+      addToast(created.error || 'שגיאה בתזמון', 'error');
+      return;
+    }
+    if (created.data) {
+      setPosts(prev => [created.data as SocialPost, ...prev]);
+    }
+    addToast('הפוסט תוזמן בהצלחה! ⏰', 'success');
+    setActiveDraft(null);
+    router.push(joinPath(basePath, '/calendar'));
   };
 
   const filteredClients = clients.filter(c => 
@@ -455,9 +521,9 @@ export default function TheMachine() {
                         </span>
                       </div>
                       
-                      <div className="flex-1 min-h-[100px] md:min-h-[160px]">
-                        <p className="font-bold text-slate-700 leading-relaxed text-base md:text-lg italic">
-                          "{v.content}"
+                      <div className="flex-1 min-h-[100px] md:min-h-[160px] max-h-[250px] md:max-h-[300px] overflow-y-auto scrollbar-thin">
+                        <p className="font-bold text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words" dir="rtl">
+                          {v.content}
                         </p>
                       </div>
 
@@ -469,21 +535,27 @@ export default function TheMachine() {
                             <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags מומלצים</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {selectedPlatforms.map(platform => {
-                              const platformHashtags = platform === 'facebook' ? v.suggestedHashtags?.facebook :
-                                                      platform === 'instagram' ? v.suggestedHashtags?.instagram :
-                                                      platform === 'linkedin' ? v.suggestedHashtags?.linkedin :
-                                                      v.suggestedHashtags?.general;
-                              
-                              return platformHashtags?.slice(0, 5).map((tag, i) => (
+                            {(() => {
+                              const allTags = new Set<string>();
+                              selectedPlatforms.forEach(platform => {
+                                const h = platform === 'facebook' ? v.suggestedHashtags?.facebook :
+                                          platform === 'instagram' ? v.suggestedHashtags?.instagram :
+                                          platform === 'linkedin' ? v.suggestedHashtags?.linkedin :
+                                          v.suggestedHashtags?.general;
+                                h?.forEach(tag => allTags.add(tag.startsWith('#') ? tag : `#${tag}`));
+                              });
+                              if (v.suggestedHashtags?.general) {
+                                v.suggestedHashtags.general.forEach(tag => allTags.add(tag.startsWith('#') ? tag : `#${tag}`));
+                              }
+                              return Array.from(allTags).slice(0, 10).map((tag, i) => (
                                 <span 
-                                  key={`${platform}-${i}`}
+                                  key={i}
                                   className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-bold border border-purple-100"
                                 >
-                                  {tag.startsWith('#') ? tag : `#${tag}`}
+                                  {tag}
                                 </span>
                               ));
-                            }).filter(Boolean)[0]}
+                            })()}
                           </div>
                         </div>
                       )}
@@ -534,7 +606,7 @@ export default function TheMachine() {
                       <Image size={32}/>
                     )}
                   </div>
-                  <div className="p-4 md:p-5 font-bold text-[10px] md:text-[12px] leading-relaxed text-slate-700">{editableContent}</div>
+                  <div className="p-4 md:p-5 font-bold text-[10px] md:text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words overflow-y-auto max-h-[140px]">{editableContent}</div>
                 </div>
                 <div className="mt-6 md:mt-8 flex gap-2 p-2 bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm overflow-x-auto max-w-full">
                   {selectedPlatforms.map(p => {
@@ -572,26 +644,29 @@ export default function TheMachine() {
                         <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Hashtags מומלצים</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {selectedPlatforms.map(platform => {
-                          const platformHashtags = platform === 'facebook' ? selectedVariation.suggestedHashtags?.facebook :
-                                                  platform === 'instagram' ? selectedVariation.suggestedHashtags?.instagram :
-                                                  platform === 'linkedin' ? selectedVariation.suggestedHashtags?.linkedin :
-                                                  selectedVariation.suggestedHashtags?.general;
-                          
-                          return platformHashtags?.map((tag, i) => (
+                        {(() => {
+                          const allTags = new Set<string>();
+                          selectedPlatforms.forEach(platform => {
+                            const h = platform === 'facebook' ? selectedVariation.suggestedHashtags?.facebook :
+                                      platform === 'instagram' ? selectedVariation.suggestedHashtags?.instagram :
+                                      platform === 'linkedin' ? selectedVariation.suggestedHashtags?.linkedin :
+                                      selectedVariation.suggestedHashtags?.general;
+                            h?.forEach(tag => allTags.add(tag.startsWith('#') ? tag : `#${tag}`));
+                          });
+                          if (selectedVariation.suggestedHashtags?.general) {
+                            selectedVariation.suggestedHashtags.general.forEach(tag => allTags.add(tag.startsWith('#') ? tag : `#${tag}`));
+                          }
+                          return Array.from(allTags).map((tag, i) => (
                             <button
-                              key={`${platform}-${i}`}
-                              onClick={() => {
-                                const hashtagText = tag.startsWith('#') ? tag : `#${tag}`;
-                                setEditableContent(prev => `${prev}\n${hashtagText}`);
-                              }}
+                              key={i}
+                              onClick={() => setEditableContent(prev => `${prev}\n${tag}`)}
                               className="px-3 py-1.5 bg-white text-purple-700 rounded-lg text-xs font-bold border-2 border-purple-200 hover:bg-purple-100 hover:border-purple-400 transition-all"
                               title="לחץ להוספה לתוכן"
                             >
-                              {tag.startsWith('#') ? tag : `#${tag}`}
+                              {tag}
                             </button>
                           ));
-                        }).filter(Boolean)[0]}
+                        })()}
                       </div>
                       <p className="text-[10px] text-purple-600 font-medium">💡 לחץ על hashtag להוספה אוטומטית לתוכן</p>
                     </div>
@@ -620,31 +695,113 @@ export default function TheMachine() {
                   )}
                   
                   <div className="flex flex-col gap-4 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 mt-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Wand className="text-blue-600" size={20}/>
-                        <span className="font-black text-sm text-slate-800">ויז'ואל AI משלים</span>
-                      </div>
-                      <button 
-                        onClick={handleGenerateImage} 
-                        disabled={isGeneratingImage}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
-                      >
-                        {isGeneratingImage ? <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> : <Sparkles size={14}/>}
-                        {selectedVariation.generatedImage ? 'ייצר שוב' : 'ייצר תמונה'}
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <Wand className="text-blue-600" size={20}/>
+                      <span className="font-black text-sm text-slate-800">ויז׳ואל AI משלים</span>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 leading-relaxed italic">
-                      ה-AI ייצר תמונה מותאמת אישית לתוכן הפוסט. מומלץ להשתמש בזה למבצעים מהירים או סיטואציות כלליות.
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[11px] font-bold text-blue-700">גודל תמונה</span>
+                      <div className="flex gap-2">
+                        {([
+                          { label: '1:1', value: '1024x1024' as const, desc: 'ריבועי' },
+                          { label: '16:9', value: '1792x1024' as const, desc: 'רוחבי' },
+                          { label: '9:16', value: '1024x1792' as const, desc: 'סטורי' },
+                        ]).map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setImageSize(opt.value)}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border-2 transition-all text-center ${
+                              imageSize === opt.value 
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="font-black">{opt.label}</div>
+                            <div className="text-[9px] opacity-80">{opt.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleGenerateImage} 
+                      disabled={isGeneratingImage}
+                      className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isGeneratingImage ? <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> : <Sparkles size={14}/>}
+                      {selectedVariation.generatedImage ? 'ייצר תמונה חדשה' : 'ייצר תמונה'}
+                    </button>
+                    {selectedVariation.generatedImage && (
+                      <div className="mt-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-blue-700">תמונה שנוצרה</span>
+                          <button 
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = selectedVariation.generatedImage!;
+                              a.download = `ai-image-${Date.now()}.png`;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                            }} 
+                            className="text-[10px] text-blue-600 font-bold hover:underline"
+                          >
+                            הורד תמונה
+                          </button>
+                        </div>
+                        <img 
+                          src={selectedVariation.generatedImage} 
+                          className="w-full rounded-2xl border border-blue-100 shadow-sm" 
+                          alt="AI Generated" 
+                        />
+                      </div>
+                    )}
+                    <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
+                      ה-AI ייצר תמונה מותאמת אישית לתוכן הפוסט בגודל שנבחר.
                     </p>
                   </div>
                 </div>
-                <button 
-                  onClick={handleFinalize} 
-                  className="w-full py-5 md:py-6 bg-slate-900 text-white font-black text-xl md:text-2xl rounded-2xl md:rounded-[32px] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all"
-                >
-                  שגר לאוויר 🚀
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={handleFinalize} 
+                    className="w-full py-5 md:py-6 bg-slate-900 text-white font-black text-xl md:text-2xl rounded-2xl md:rounded-[32px] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all"
+                  >
+                    שגר לאוויר 🚀
+                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={handleSaveToContentBank}
+                      className="flex-1 py-3 md:py-4 bg-white text-slate-800 font-black text-sm rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all"
+                    >
+                      <BookmarkPlus size={16}/> שמור לבנק תכנים
+                    </button>
+                    <button 
+                      onClick={() => setShowScheduleInput(!showScheduleInput)}
+                      className={`flex-1 py-3 md:py-4 font-black text-sm rounded-2xl border-2 shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all ${
+                        showScheduleInput ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      <CalendarPlus size={16}/> תזמן פרסום
+                    </button>
+                  </div>
+                  {showScheduleInput && (
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-4 bg-amber-50 rounded-2xl border border-amber-200 animate-in slide-in-from-top">
+                      <input 
+                        type="datetime-local" 
+                        value={scheduledDate}
+                        onChange={e => setScheduledDate(e.target.value)}
+                        className="flex-1 p-3 border border-amber-300 rounded-xl font-bold text-sm bg-white outline-none focus:ring-2 ring-amber-200"
+                        dir="ltr"
+                      />
+                      <button 
+                        onClick={handleSchedulePost}
+                        disabled={!scheduledDate}
+                        className="px-6 py-3 bg-amber-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-amber-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        <Check size={14}/> אשר תזמון
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}

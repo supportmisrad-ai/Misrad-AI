@@ -54,10 +54,14 @@ export async function generatePostVariationsAction(
       גרסה 2: מעורבות (Social) - ממוקדת שאילת שאלות, יצירת שיח ותיוגים.
       גרסה 3: ערך (Value) - ממוקדת מתן ידע, טיפ מקצועי או השראה.
 
-      לכל וריאציה, הוסף המלצות hashtags מותאמות לפלטפורמות:
-      - Facebook: 1-2 hashtags (פחות מקובל)
-      - Instagram: 5-10 hashtags רלוונטיים
-      - LinkedIn: 3-5 hashtags מקצועיים
+      לכל וריאציה, הוסף המלצות hashtags מותאמות ורלוונטיות לנושא הספציפי של הפוסט ולתעשייה של ${clientName}:
+      - Facebook: 3-4 hashtags רלוונטיים לנושא
+      - Instagram: 8-12 hashtags - שילוב של hashtags פופולריים, ספציפיים לנישה, ובעברית
+      - LinkedIn: 4-6 hashtags מקצועיים רלוונטיים
+      - General: 5-8 hashtags כלליים שמתאימים לכל הפלטפורמות
+
+      חשוב מאוד: ה-hashtags חייבים להיות רלוונטיים לנושא הספציפי של הפוסט ולתעשייה של ${clientName}.
+      אל תשתמש ב-hashtags גנריים מדי. השתמש ב-hashtags שאנשים באמת מחפשים.
       
       החזר את התוצאה במבנה JSON array של אובייקטים עם השדות:
       {
@@ -68,12 +72,14 @@ export async function generatePostVariationsAction(
         "suggestedHashtags": {
           "facebook": [string],
           "instagram": [string],
-          "linkedin": [string]
+          "linkedin": [string],
+          "general": [string]
         }
       }
       
       הקפד על עברית טבעית, זורמת ומותאמת לקהל הישראלי.
       Hashtags יכולים להיות בעברית או אנגלית לפי הנושא והפלטפורמה.
+      הקפד שהתוכן (content) ישמר עם ירידות שורה (\n) במקומות הנכונים לקריאות טובה.
     `;
 
     const ai = AIService.getInstance();
