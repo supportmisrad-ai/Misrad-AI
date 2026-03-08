@@ -1013,9 +1013,18 @@ export class AIService {
     const cached = ttlGet(AIService._featureSettingsCache, cacheKey);
     if (cached) return cached;
 
-    const orgRow = await prisma.ai_feature_settings.findFirst({
-      where: { organization_id: params.organizationId, feature_key: params.featureKey, enabled: true },
-    });
+    let orgRow = null;
+    try {
+      orgRow = await prisma.ai_feature_settings.findFirst({
+        where: { organization_id: params.organizationId, feature_key: params.featureKey, enabled: true },
+      });
+    } catch (err: unknown) {
+      console.warn('[AIService.loadFeatureSettings] DB query failed, using defaults', { 
+        error: getErrorMessage(err),
+        featureKey: params.featureKey 
+      });
+      // DB unavailable - fall through to defaults
+    }
 
     let settings = coerceFeatureSettingsRow(orgRow);
 
