@@ -530,26 +530,37 @@ async function upsertProfileForClerkUser(params: {
   }
 
   // Step 4: Upsert Profile (@@unique([organizationId, clerkUserId]))
-  const createdProfile = await prisma.profile.upsert({
-    where: {
-      organizationId_clerkUserId: { organizationId: orgId, clerkUserId },
-    },
-    create: {
-      id: ownerProfileId,
-      organizationId: orgId,
-      clerkUserId,
-      email: params.email ?? null,
-      fullName: params.fullName ?? null,
-      avatarUrl: params.imageUrl ?? null,
-      role: 'owner',
-    },
-    update: {
-      email: params.email ?? undefined,
-      fullName: params.fullName ?? undefined,
-      avatarUrl: params.imageUrl ?? undefined,
-    },
-    select: { id: true, organizationId: true, role: true },
-  });
+  // Must be wrapped with bootstrap bypass so the tenant guard allows it before
+  // a workspace session exists (no organizationId in the ALS context yet).
+  const createdProfile = await prisma.profile.upsert(
+    withPrismaTenantIsolationOverride(
+      {
+        where: {
+          organizationId_clerkUserId: { organizationId: orgId, clerkUserId },
+        },
+        create: {
+          id: ownerProfileId,
+          organizationId: orgId,
+          clerkUserId,
+          email: params.email ?? null,
+          fullName: params.fullName ?? null,
+          avatarUrl: params.imageUrl ?? null,
+          role: 'owner',
+        },
+        update: {
+          email: params.email ?? undefined,
+          fullName: params.fullName ?? undefined,
+          avatarUrl: params.imageUrl ?? undefined,
+        },
+        select: { id: true, organizationId: true, role: true },
+      },
+      {
+        reason: 'bootstrap_workspace_provision',
+        source: 'app/actions/users.ts#upsertProfileForClerkUser',
+        suppressReporting: true,
+      }
+    )
+  );
 
   const createdOrg = { id: orgId, slug: orgSlug };
 
