@@ -191,6 +191,7 @@ export async function selectPlanForCurrentOrganization(input: {
   orgSlug: string;
   planKey: string;
   soloModuleKey?: string | null;
+  customModules?: string[] | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const orgSlug = String(input.orgSlug || '').trim();
@@ -206,11 +207,20 @@ export async function selectPlanForCurrentOrganization(input: {
     const organizationId = await requireCurrentOrganizationId(orgSlug);
     const pkg = BILLING_PACKAGES[planKey as PackageType];
 
-    const validSoloModules: OSModuleKey[] = ['system', 'social', 'client', 'operations', 'nexus'];
+    const validModules: OSModuleKey[] = ['system', 'social', 'client', 'operations', 'nexus'];
     let modules: OSModuleKey[];
-    if (planKey === 'solo') {
+
+    if (planKey === 'custom') {
+      const rawCustom = Array.isArray(input.customModules) ? input.customModules : [];
+      modules = rawCustom
+        .map((m) => String(m || '').trim().toLowerCase() as OSModuleKey)
+        .filter((m) => validModules.includes(m));
+      if (modules.length === 0) {
+        return createErrorResponse(null, 'חבילה מותאמת חייבת לכלול לפחות מודול אחד');
+      }
+    } else if (planKey === 'solo') {
       const soloMod = String(input.soloModuleKey || '').trim();
-      const resolvedMod: OSModuleKey = validSoloModules.includes(soloMod as OSModuleKey)
+      const resolvedMod: OSModuleKey = validModules.includes(soloMod as OSModuleKey)
         ? (soloMod as OSModuleKey)
         : 'system';
       modules = [resolvedMod];

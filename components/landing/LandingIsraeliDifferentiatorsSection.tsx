@@ -1,114 +1,182 @@
 'use client';
 
-import { Moon, Sun, Calendar, Clock, Star, CheckCircle2, Globe2, Shield } from 'lucide-react';
+import { Moon, Sun, Shield, Lock, Star, CheckCircle2, Globe2, Calendar, Sparkles } from 'lucide-react';
 
-const HEBREW_MONTHS = ['תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול'];
+// Hebrew gematria conversion — standard Jewish convention (15=ט״ו, 16=ט״ז to avoid divine name)
+function toHeb(n: number): string {
+  if (n === 15) return 'ט״ו';
+  if (n === 16) return 'ט״ז';
+  const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+  const tens = ['', 'י', 'כ', 'ל'];
+  if (n <= 9) return ones[n] + '׳';
+  if (n % 10 === 0) return tens[n / 10] + '׳';
+  return tens[Math.floor(n / 10)] + '״' + ones[n % 10];
+}
 
-const SHABBAT_EVENTS = [
-  { time: '17:44', label: 'כניסת שבת', icon: Moon, color: 'text-indigo-600', bg: 'bg-indigo-50', locked: false },
-  { time: '17:45', label: 'המערכת נעולה', icon: Shield, color: 'text-violet-600', bg: 'bg-violet-50', locked: true },
-  { time: '19:05', label: 'יציאת שבת', icon: Sun, color: 'text-amber-600', bg: 'bg-amber-50', locked: false },
-  { time: '19:06', label: 'המערכת חוזרת לפעולה', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', locked: false },
-];
+// Month: אדר תשפ״ה — starts Thursday (4 empty cells: Sun Mon Tue Wed before day 1)
+const MONTH_START_OFFSET = 4;
+const MONTH_DAYS = 29;
+const SHABBAT_DAYS = new Set([3, 10, 17, 24]);
+const HOLIDAY_DAYS: Record<number, { name: string; color: string }> = {
+  13: { name: 'תענית אסתר', color: 'text-violet-400' },
+  14: { name: 'פורים', color: 'text-amber-400' },
+  15: { name: 'שושן פורים', color: 'text-amber-400' },
+};
+const TODAY_DAY = 12; // כ״ג demo = 12 so we can see holidays coming up
 
-const HOLIDAYS = [
-  { date: 'א׳ תשרי', name: 'ראש השנה', emoji: '🍯' },
-  { date: 'י׳ תשרי', name: 'יום כיפור', emoji: '✡️' },
-  { date: 'ט״ו ניסן', name: 'פסח', emoji: '🌾' },
-  { date: 'ו׳ סיון', name: 'שבועות', emoji: '📜' },
-];
+type CalCell = { day: number | null; isShabbat: boolean; isToday: boolean; holiday?: { name: string; color: string } };
 
-function ShabbatMockup() {
+function buildCalCells(): CalCell[] {
+  const cells: CalCell[] = [];
+  for (let i = 0; i < MONTH_START_OFFSET; i++) cells.push({ day: null, isShabbat: false, isToday: false });
+  for (let d = 1; d <= MONTH_DAYS; d++) {
+    cells.push({ day: d, isShabbat: SHABBAT_DAYS.has(d), isToday: d === TODAY_DAY, holiday: HOLIDAY_DAYS[d] });
+  }
+  while (cells.length % 7 !== 0) cells.push({ day: null, isShabbat: false, isToday: false });
+  return cells;
+}
+
+function HebrewCalendarCard() {
+  const cells = buildCalCells();
+  const weeks: CalCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
   return (
-    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden select-none" dir="rtl">
-      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 flex items-center justify-between">
-        <span className="text-white text-sm font-black">Misrad AI</span>
-        <span className="text-indigo-200 text-xs font-bold">שמירת שבת פעילה</span>
+    <div className="rounded-2xl bg-slate-800/60 border border-white/[0.08] overflow-hidden" dir="rtl">
+      {/* Month header */}
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+        <span className="text-amber-400 text-sm font-black tracking-wide">אדר תשפ״ה</span>
+        <span className="text-slate-400 text-xs font-bold">March 2025</span>
       </div>
 
-      <div className="p-4 space-y-2">
-        {SHABBAT_EVENTS.map((event, i) => {
-          const Icon = event.icon;
-          return (
-            <div
-              key={i}
-              className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${event.locked ? 'bg-violet-50 border border-violet-200' : 'bg-slate-50 border border-slate-100'}`}
-            >
-              <div className={`w-8 h-8 rounded-lg ${event.bg} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={15} className={event.color} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className={`text-xs font-black ${event.locked ? 'text-violet-700' : 'text-slate-700'}`}>{event.label}</div>
-              </div>
-              <div className={`text-xs font-mono font-bold tabular-nums ${event.locked ? 'text-violet-500' : 'text-slate-400'}`}>{event.time}</div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7 px-3 mb-1">
+        {['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((d, i) => (
+          <div key={d} className={`text-center text-[10px] font-black py-1 ${i === 6 ? 'text-violet-400' : 'text-slate-500'}`}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="px-3 pb-3 space-y-0.5">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7">
+            {week.map((cell, ci) => {
+              if (!cell.day) return <div key={ci} />;
+              const isHolidayDay = !!cell.holiday;
+              return (
+                <div
+                  key={ci}
+                  className={`
+                    relative flex flex-col items-center justify-center rounded-lg py-1.5 mx-0.5
+                    ${cell.isToday ? 'bg-amber-500 shadow-lg shadow-amber-500/30' : ''}
+                    ${cell.isShabbat && !cell.isToday ? 'bg-violet-500/15' : ''}
+                    ${isHolidayDay && !cell.isToday ? 'bg-amber-500/10' : ''}
+                    ${!cell.isToday && !cell.isShabbat && !isHolidayDay ? 'hover:bg-white/5' : ''}
+                  `}
+                >
+                  <span className={`text-[11px] font-black tabular-nums leading-none
+                    ${cell.isToday ? 'text-white' : ''}
+                    ${cell.isShabbat && !cell.isToday ? 'text-violet-300' : ''}
+                    ${isHolidayDay && !cell.isToday ? cell.holiday!.color : ''}
+                    ${!cell.isToday && !cell.isShabbat && !isHolidayDay ? 'text-slate-300' : ''}
+                  `}>
+                    {toHeb(cell.day)}
+                  </span>
+                  {isHolidayDay && !cell.isToday && (
+                    <span className="w-1 h-1 rounded-full bg-amber-400 mt-0.5" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Upcoming holidays */}
+      <div className="border-t border-white/[0.06] px-4 py-3 space-y-1.5">
+        {[
+          { day: 14, label: 'פורים', sub: 'י״ד אדר', emoji: '🎭' },
+          { day: 15, label: 'שושן פורים', sub: 'ט״ו אדר', emoji: '🌹' },
+        ].map(h => (
+          <div key={h.day} className="flex items-center gap-2.5">
+            <span className="text-base leading-none">{h.emoji}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-black text-white/80">{h.label}</span>
+              <span className="text-[10px] text-slate-500 font-bold">{h.sub}</span>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="mx-4 mb-4 p-3 rounded-xl bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100">
-        <div className="flex items-center gap-2">
-          <Shield size={14} className="text-indigo-500 flex-shrink-0" />
-          <p className="text-[11px] text-indigo-700 font-bold leading-snug">
-            זמנים מחושבים אוטומטית לפי מיקום העסק. לא צריך להגדיר שום דבר.
-          </p>
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function HebrewCalendarMockup() {
-  const todayHebrew = 'כ״ג אדר תשפ״ה';
+function ShabbatTimelineCard() {
   return (
-    <div className="relative bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden select-none" dir="rtl">
-      <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 flex items-center justify-between">
-        <span className="text-white text-sm font-black">לוח עברי מובנה</span>
-        <span className="flex items-center gap-1.5 text-amber-100 text-xs font-bold">
-          <Star size={12} className="fill-amber-100" />
-          {todayHebrew}
-        </span>
+    <div className="rounded-2xl bg-slate-800/60 border border-white/[0.08] overflow-hidden" dir="rtl">
+      {/* Status bar */}
+      <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-black text-white/80">שמירת שבת פעילה</span>
+        </div>
+        <span className="text-xs text-slate-500 font-bold">תל אביב – יפו</span>
       </div>
 
-      <div className="p-4">
-        <div className="grid grid-cols-7 gap-1 mb-3">
-          {['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((d, i) => (
-            <div key={d} className={`text-center text-[10px] font-black py-1 ${i === 6 ? 'text-indigo-600' : 'text-slate-400'}`}>{d}</div>
-          ))}
-          {[...Array(4)].map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((d) => {
-            const isToday = d === 16;
-            const isShabbat = [7, 14, 21].includes(d);
-            const isHoliday = d === 15;
-            return (
-              <div
-                key={d}
-                className={`text-center rounded-lg py-1.5 text-[11px] font-bold transition-all
-                  ${isToday ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-sm' : ''}
-                  ${isShabbat && !isToday ? 'text-indigo-500 bg-indigo-50' : ''}
-                  ${isHoliday && !isToday ? 'text-amber-600 bg-amber-50' : ''}
-                  ${!isToday && !isShabbat && !isHoliday ? 'text-slate-600 hover:bg-slate-50' : ''}
-                `}
-              >
-                {d}
-              </div>
-            );
-          })}
+      <div className="p-4 space-y-2">
+        {/* Before Shabbat */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <Sun size={16} className="text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <div className="text-xs font-black text-white/90">המערכת פעילה</div>
+            <div className="text-[10px] text-slate-400 font-medium">שישי לפני כניסת שבת</div>
+          </div>
+          <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">17:44</span>
         </div>
 
-        <div className="space-y-1.5">
-          {HOLIDAYS.slice(0, 2).map((h, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-xl">
-              <span className="text-base">{h.emoji}</span>
-              <div>
-                <div className="text-[11px] font-black text-amber-800">{h.name}</div>
-                <div className="text-[10px] text-amber-600 font-bold">{h.date}</div>
-              </div>
-            </div>
-          ))}
+        {/* Shabbat enters — locked */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-violet-500/15 border border-violet-500/30 relative overflow-hidden">
+          <div className="absolute inset-0 backdrop-blur-[1px]" />
+          <div className="relative w-9 h-9 rounded-xl bg-violet-500/25 flex items-center justify-center flex-shrink-0">
+            <Lock size={16} className="text-violet-300" />
+          </div>
+          <div className="relative flex-1">
+            <div className="text-xs font-black text-violet-200">המערכת נעולה — שבת</div>
+            <div className="text-[10px] text-violet-400/80 font-medium">נעילה אוטומטית</div>
+          </div>
+          <span className="relative text-sm font-mono font-black text-violet-300 tabular-nums">17:45</span>
         </div>
+
+        {/* Shabbat out */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-700/50 border border-white/[0.06]">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+            <Moon size={16} className="text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <div className="text-xs font-black text-white/70">יציאת שבת</div>
+            <div className="text-[10px] text-slate-500 font-medium">מוצאי שבת</div>
+          </div>
+          <span className="text-sm font-mono font-black text-slate-400 tabular-nums">19:05</span>
+        </div>
+
+        {/* Back online */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 size={16} className="text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <div className="text-xs font-black text-white/90">המערכת חוזרת לפעולה</div>
+            <div className="text-[10px] text-slate-400 font-medium">כל הנתונים שמורים</div>
+          </div>
+          <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">19:06</span>
+        </div>
+      </div>
+
+      <div className="border-t border-white/[0.06] px-4 py-2.5 flex items-center gap-2">
+        <Shield size={12} className="text-slate-500 flex-shrink-0" />
+        <p className="text-[10px] text-slate-500 font-medium">זמנים מחושבים לפי מיקום — ללא הגדרה ידנית</p>
       </div>
     </div>
   );
@@ -116,122 +184,123 @@ function HebrewCalendarMockup() {
 
 export function LandingIsraeliDifferentiatorsSection() {
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden bg-gradient-to-b from-slate-50 to-white" dir="rtl">
-      {/* Background blobs */}
+    <section className="relative py-24 sm:py-32 overflow-hidden bg-slate-950" dir="rtl">
+      {/* Background glows */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-100/60 via-violet-100/40 to-transparent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-amber-100/60 via-orange-100/30 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-violet-600/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-[600px] h-[600px] bg-amber-500/8 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(99,102,241,0.06),transparent)]" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 relative">
-        {/* Header */}
-        <div className="text-center mb-14">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-indigo-50 to-amber-50 border border-indigo-200 mb-5">
-            <Globe2 size={15} className="text-indigo-600" />
-            <span className="text-xs font-black text-indigo-700 tracking-wide">בנוי לעסק הישראלי</span>
+
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.08] mb-6">
+            <Globe2 size={13} className="text-indigo-400" />
+            <span className="text-[11px] font-black text-white/60 tracking-widest uppercase">בנוי לעסק הישראלי</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-tight">
-            פיצ'רים שרק <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Misrad AI</span> מציע
+          <h2 className="text-4xl sm:text-5xl font-black text-white leading-[1.08] tracking-tight">
+            פיצ'רים שאף<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-amber-400">מתחרה לא מציע.</span>
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            המתחרים לא מכירים את השוק הישראלי. אנחנו בנינו את המערכת מהיסוד בשביל עסקים שעובדים לפי הלוח העברי ושומרים שבת.
+          <p className="mt-5 text-lg text-white/40 max-w-xl mx-auto leading-relaxed">
+            זה לא תרגום. זה לא פלאגין. זה מערכת שנולדה ישראלית — עם שבת ולוח עברי בליבה.
           </p>
         </div>
 
-        {/* Two feature cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
 
-          {/* Card 1: Shabbat Mode */}
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-            <div className="relative bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-3xl p-7 sm:p-8 shadow-xl h-full flex flex-col">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-black w-fit mb-5">
-                <Moon size={12} />
-                מערכת שומרת שבת
-              </div>
+          {/* Shabbat card */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-indigo-600/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-3xl bg-slate-900 border border-white/[0.07] p-8 h-full flex flex-col overflow-hidden">
+              {/* Corner glow */}
+              <div className="absolute top-0 right-0 w-[300px] h-[200px] bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
 
-              <h3 className="text-2xl font-black text-slate-900 mb-2">
-                שבת נכנסת — המערכת נועלת.
-                <span className="block text-indigo-600">שבת יוצאת — המערכת חוזרת.</span>
-              </h3>
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/15 border border-violet-500/25 mb-6">
+                  <Moon size={13} className="text-violet-400" />
+                  <span className="text-xs font-black text-violet-300">מערכת שומרת שבת</span>
+                </div>
 
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-6">
-                Misrad AI יודעת אוטומטית מתי נכנסת ויוצאת שבת לפי מיקום העסק שלכם — ללא הגדרות, ללא טעויות. מתאימה לכל עסק כשר, מלבד חריגים רפואיים ופיקוח נפש.
-              </p>
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-3">
+                  שבת נכנסת —<br />
+                  <span className="text-violet-400">המערכת נועלת.</span>
+                </h3>
+                <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm">
+                  ללא הגדרות. ללא תזכורות. Misrad AI מחשבת כניסת ושבת לפי מיקום העסק ונועלת אוטומטית — ומתעוררת כשהשבת יוצאת.
+                </p>
 
-              <div className="flex flex-wrap gap-2 mb-7">
-                {[
-                  'זמנים לפי מיקום גיאוגרפי',
-                  'נעילה אוטומטית',
-                  'חריגים בהגדרות',
-                  'ללא הגדרה ידנית',
-                ].map((tag) => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-xs font-bold text-indigo-700">
-                    <CheckCircle2 size={11} />
-                    {tag}
-                  </span>
-                ))}
+                <div className="flex flex-wrap gap-2 mb-7">
+                  {['זמנים לפי GPS', 'נעילה אוטומטית', 'חריגים בהגדרות', 'ללא הגדרה ידנית'].map((t) => (
+                    <span key={t} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-bold text-white/60">
+                      <CheckCircle2 size={10} className="text-emerald-400" />
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-auto">
-                <ShabbatMockup />
+                <ShabbatTimelineCard />
               </div>
             </div>
           </div>
 
-          {/* Card 2: Hebrew Calendar */}
-          <div className="group relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500" />
-            <div className="relative bg-white/80 backdrop-blur-sm border border-amber-100 rounded-3xl p-7 sm:p-8 shadow-xl h-full flex flex-col">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-black w-fit mb-5">
-                <Calendar size={12} />
-                לוח עברי מובנה
-              </div>
+          {/* Hebrew Calendar card */}
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-600/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative rounded-3xl bg-slate-900 border border-white/[0.07] p-8 h-full flex flex-col overflow-hidden">
+              {/* Corner glow */}
+              <div className="absolute top-0 left-0 w-[300px] h-[200px] bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
-              <h3 className="text-2xl font-black text-slate-900 mb-2">
-                תאריכים עבריים.
-                <span className="block text-amber-600">חגים. מועדים. אוטומטית.</span>
-              </h3>
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/25 mb-6">
+                  <Calendar size={13} className="text-amber-400" />
+                  <span className="text-xs font-black text-amber-300">לוח עברי מובנה</span>
+                </div>
 
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-6">
-                המערכת שלנו מציגה את הלוח העברי לצד הלוח הגרגוריאני בכל מקום — חגים, ראשי חודשים, ייחוס תאריכים — בלי תוספים חיצוניים.
-              </p>
+                <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight mb-3">
+                  תאריכים עבריים.<br />
+                  <span className="text-amber-400">חגים. מועדים. תמיד.</span>
+                </h3>
+                <p className="text-white/50 text-sm leading-relaxed mb-6 max-w-sm">
+                  הלוח העברי אינטגרלי — לא חיצוני. כל תאריך, כל חג, כל ראש חודש — מוצגים בכל מקום במערכת. בגימטריה אמיתית.
+                </p>
 
-              <div className="flex flex-wrap gap-2 mb-7">
-                {[
-                  'כל החגים מוכרים',
-                  'ראשי חודשים',
-                  'שנה מעוברת',
-                  'תאריך כפול אוטומטי',
-                ].map((tag) => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-bold text-amber-700">
-                    <CheckCircle2 size={11} />
-                    {tag}
-                  </span>
-                ))}
+                <div className="flex flex-wrap gap-2 mb-7">
+                  {['גימטריה אמיתית', 'כל החגים', 'ראשי חודשים', 'שנה מעוברת'].map((t) => (
+                    <span key={t} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-bold text-white/60">
+                      <CheckCircle2 size={10} className="text-emerald-400" />
+                      {t}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-auto">
-                <HebrewCalendarMockup />
+                <HebrewCalendarCard />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom quote */}
-        <div className="mt-14 text-center">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-amber-50 border border-slate-200">
-            <div className="flex items-center gap-2">
-              <Moon size={16} className="text-indigo-600" />
-              <span className="text-sm font-black text-slate-800">המתחרים מציעים תרגום לעברית.</span>
+        {/* Bottom differentiator strip */}
+        <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+              <span className="text-sm">✕</span>
             </div>
-            <span className="hidden sm:block text-slate-300">·</span>
-            <div className="flex items-center gap-2">
-              <Star size={16} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-black text-slate-800">אנחנו בנינו מערכת ישראלית מהיסוד.</span>
+            <span className="text-sm text-white/40 font-bold">המתחרים מציעים תרגום לעברית</span>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-white/[0.07]" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <Sparkles size={14} className="text-emerald-400" />
             </div>
+            <span className="text-sm text-white/80 font-black">אנחנו בנינו מערכת ישראלית מהיסוד</span>
           </div>
         </div>
       </div>

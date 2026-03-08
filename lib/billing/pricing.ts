@@ -8,7 +8,21 @@ export type PackageType =
   | 'the_authority'
   | 'the_operator'
   | 'the_empire'
-  | 'the_mentor';
+  | 'the_mentor'
+  | 'custom';
+
+export const CUSTOM_PLAN_PRICE_TABLE: Record<number, number> = {
+  1: 149,
+  2: 249,
+  3: 349,
+  4: 429,
+  5: 499,
+};
+
+export function calculateCustomPlanPrice(moduleCount: number): number {
+  const count = Math.max(1, Math.min(5, moduleCount));
+  return CUSTOM_PLAN_PRICE_TABLE[count] ?? 499;
+}
 
 export const VAT_RATE = 0.17;
 export const VAT_INCLUSIVE_NOTE = 'כל המחירים כוללים מע״מ';
@@ -20,6 +34,7 @@ export const AI_CREDITS_PER_PLAN: Record<PackageType, number> = {
   the_operator: 10_000,
   the_empire: 25_000,
   the_mentor: 25_000,
+  custom: 10_000,
 };
 
 type PackageDefinition = {
@@ -67,6 +82,12 @@ export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
     modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
     aiCreditsCents: 25_000,
+  },
+  custom: {
+    labelHe: 'חבילה מותאמת אישית',
+    modules: [],
+    monthlyPrice: 149,
+    aiCreditsCents: 10_000,
   },
 };
 
