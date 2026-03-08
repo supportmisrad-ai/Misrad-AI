@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Building2, Phone, Mail, ArrowLeft, Sparkles, Crown, Briefcase, Palette, Wrench, Target, GraduationCap, Loader2 } from 'lucide-react';
+import { Check, Building2, Phone, Mail, ArrowLeft, Sparkles, Crown, Briefcase, Palette, Wrench, Target, GraduationCap, Loader2, Puzzle, MessageCircle, X, ChevronDown, Tag, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { upsertCustomerAccountForCurrentOrganization, selectPlanForCurrentOrganization } from '@/app/actions/customer-accounts';
+import { getActiveGlobalPromotion } from '@/app/actions/global-promotion';
 import { Input } from '@/components/ui/input';
-import { BILLING_PACKAGES } from '@/lib/billing/pricing';
+import { BILLING_PACKAGES, CUSTOM_PLAN_PRICE_TABLE, calculateCustomPlanPrice } from '@/lib/billing/pricing';
 import type { PackageType } from '@/lib/billing/pricing';
 import { getModuleLabel, getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
@@ -17,6 +18,7 @@ const PLAN_EMOJI: Record<string, string> = {
   the_operator: '🔧',
   the_empire: '👑',
   the_mentor: '🏆',
+  custom: '🧩',
 };
 
 const PLAN_ICON: Record<string, React.ReactNode> = {
@@ -26,6 +28,7 @@ const PLAN_ICON: Record<string, React.ReactNode> = {
   the_operator: <Wrench size={20} />,
   the_empire: <Crown size={20} />,
   the_mentor: <GraduationCap size={20} />,
+  custom: <Puzzle size={20} />,
 };
 
 const PLAN_DESCRIPTION: Record<string, string> = {
@@ -35,12 +38,56 @@ const PLAN_DESCRIPTION: Record<string, string> = {
   the_operator: 'מודול OPERATIONS (תפעול) + NEXUS (נקסוס) - שטח וצוות',
   the_empire: 'כל המודולים כלולים',
   the_mentor: 'כל המודולים + ליווי',
+  custom: 'בחר בדיוק את המודולים שאתה צריך',
 };
 
 // Plans to show in the picker (excluding the_mentor which is special)
 const VISIBLE_PLANS: PackageType[] = ['the_empire', 'the_closer', 'the_authority', 'the_operator', 'solo'];
 
 type OnboardingStep = 'plan' | 'details';
+
+type ActivePromo = {
+  discountPercent: number | null;
+  discountAmountCents: number | null;
+  badgeText: string | null;
+  couponCode: string | null;
+} | null;
+
+const MODULE_OPTIONS: { key: OSModuleKey; labelEn: string; labelHe: string; desc: string; color: string }[] = [
+  { key: 'nexus',      labelEn: 'NEXUS',      labelHe: 'ניהול וצוות',    desc: 'ניהול משימות, צוות וניתוחים', color: 'indigo' },
+  { key: 'system',     labelEn: 'SYSTEM',     labelHe: 'מכירות',          desc: 'CRM, לידים ומשפכי מכירה',     color: 'blue'   },
+  { key: 'social',     labelEn: 'SOCIAL',     labelHe: 'שיווק',            desc: 'ניהול תוכן ושיווק דיגיטלי',  color: 'pink'   },
+  { key: 'client',     labelEn: 'CLIENT',     labelHe: 'לקוחות',           desc: 'ניהול לקוחות ומתאמים',        color: 'orange' },
+  { key: 'operations', labelEn: 'OPERATIONS', labelHe: 'תפעול',            desc: 'שטח, שיפטים ונוכחות',         color: 'cyan'   },
+];
+
+const MODULE_COLOR_CLASSES: Record<string, { bg: string; text: string; border: string; ring: string }> = {
+  indigo: { bg: 'bg-indigo-50',  text: 'text-indigo-700',  border: 'border-indigo-300', ring: 'ring-indigo-200' },
+  blue:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-300',   ring: 'ring-blue-200'   },
+  pink:   { bg: 'bg-pink-50',    text: 'text-pink-700',    border: 'border-pink-300',   ring: 'ring-pink-200'   },
+  orange: { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-300', ring: 'ring-orange-200' },
+  cyan:   { bg: 'bg-cyan-50',    text: 'text-cyan-700',    border: 'border-cyan-300',   ring: 'ring-cyan-200'   },
+};
+
+// Quick AI chat for plan guidance
+const AI_QUESTIONS: { q: string; a: string }[] = [
+  {
+    q: 'מה מתאים לעסק קטן שמתחיל?',
+    a: '💡 לעסק קטן שמתחיל, ממליצים על **מודול בודד** (149₪) — בחר את האזור הכי כואב: מכירות (System), שיווק (Social) או ניהול (Nexus). אפשר לשדרג בכל עת ללא קנס.',
+  },
+  {
+    q: 'יש מודולים שלא קיים בחבילה שמתאימה לי',
+    a: '🧩 בדיוק בשביל זה בנינו את **"בנה חבילה משלך"** — בחר כל שילוב של מודולים. המחיר מחושב לפי כמות המודולים: 1→149₪, 2→249₪, 3→349₪, 4→429₪, 5→499₪.',
+  },
+  {
+    q: 'מה ההבדל בין הכל כלול לבנה משלך?',
+    a: '👑 **הכל כלול** (499₪) = 5 מודולים + Finance מתנה. **בנה משלך** = שלם רק על מה שצריך. לדוגמה: Nexus + Social + System + Client = 4 מודולים = 429₪ (חיסכון של 70₪ לחודש).',
+  },
+  {
+    q: 'מה כלול בניסיון החינם?',
+    a: '✅ **7 ימים מלאים** לכל החבילות — ללא כרטיס אשראי, ללא הגבלות. גישה מלאה לכל המודולים שבחרת. בסיום ה-7 ימים תוכל לבחור להמשיך או לבטל.',
+  },
+];
 
 export default function WorkspaceOnboardingClient(props: {
   organizationKey: string;
@@ -61,6 +108,10 @@ export default function WorkspaceOnboardingClient(props: {
   const [selectedSoloModule, setSelectedSoloModule] = useState<OSModuleKey | null>(
     props.soloModuleKey ? (props.soloModuleKey as OSModuleKey) : null
   );
+  const [customModules, setCustomModules] = useState<Set<OSModuleKey>>(new Set());
+  const [activePromo, setActivePromo] = useState<ActivePromo>(null);
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
 
   const [companyName, setCompanyName] = useState(props.initialCompanyName);
   const [phone, setPhone] = useState(props.initialPhone);
@@ -68,6 +119,20 @@ export default function WorkspaceOnboardingClient(props: {
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load active promotion
+  useEffect(() => {
+    getActiveGlobalPromotion().then((res) => {
+      if (res.success && res.data) {
+        setActivePromo({
+          discountPercent: res.data.discountPercent,
+          discountAmountCents: res.data.discountAmountCents,
+          badgeText: res.data.badgeText,
+          couponCode: res.data.couponCode,
+        });
+      }
+    }).catch(() => null);
+  }, []);
 
   const activePlanKey = selectedPlan || props.planKey;
 
@@ -85,18 +150,24 @@ export default function WorkspaceOnboardingClient(props: {
     if (planDef.key === 'solo' && activeSoloModule) {
       return [activeSoloModule as OSModuleKey];
     }
+    if (planDef.key === 'custom') {
+      return Array.from(customModules) as OSModuleKey[];
+    }
     return planDef.modules;
-  }, [planDef, activeSoloModule]);
+  }, [planDef, activeSoloModule, customModules]);
 
   const canSubmitDetails = useMemo(() => {
     return Boolean(companyName.trim() && phone.trim() && email.trim());
   }, [companyName, phone, email]);
 
+  const customPrice = useMemo(() => calculateCustomPlanPrice(customModules.size), [customModules]);
+
   const canProceedFromPlan = useMemo(() => {
     if (!selectedPlan) return false;
     if (selectedPlan === 'solo' && !selectedSoloModule) return false;
+    if (selectedPlan === 'custom' && customModules.size === 0) return false;
     return true;
-  }, [selectedPlan, selectedSoloModule]);
+  }, [selectedPlan, selectedSoloModule, customModules]);
 
   const handlePlanContinue = async () => {
     if (!canProceedFromPlan || isSaving) return;
@@ -108,6 +179,7 @@ export default function WorkspaceOnboardingClient(props: {
         orgSlug: props.organizationKey,
         planKey: String(selectedPlan),
         soloModuleKey: selectedPlan === 'solo' ? selectedSoloModule : null,
+        customModules: selectedPlan === 'custom' ? Array.from(customModules) : null,
       });
 
       if (!res.success) {
@@ -182,6 +254,16 @@ export default function WorkspaceOnboardingClient(props: {
     { key: 'client', label: 'לקוחות', labelEn: 'CLIENT' },
     { key: 'operations', label: 'תפעול', labelEn: 'OPERATIONS' },
   ];
+
+  const toggleCustomModule = (mod: OSModuleKey) => {
+    setCustomModules(prev => {
+      const next = new Set(prev);
+      if (next.has(mod)) next.delete(mod);
+      else next.add(mod);
+      return next;
+    });
+    setError(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]" dir="rtl">
@@ -266,11 +348,51 @@ export default function WorkspaceOnboardingClient(props: {
         {/* ═══════════════════════════════════════ */}
         {step === 'plan' ? (
           <div className="space-y-4">
+
+            {/* Recommendation Banner */}
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 flex gap-3">
+              <Lightbulb size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-black text-emerald-800">המלצה לעסקים קטנים</p>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  התחל עם <strong>מודול בודד (149₪)</strong> — הכי כלכלי לשלב ההתחלה. אפשר לשדרג בכל עת ללא קנס. 80% מהלקוחות מגיעים ל-3+ מודולים תוך 3 חודשים.
+                </p>
+              </div>
+            </div>
+
+            {/* Active Promo Banner */}
+            {activePromo ? (
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 p-4 flex items-center gap-3">
+                <Tag size={18} className="text-amber-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-amber-800">
+                    {activePromo.badgeText || '⚡ מבצע פעיל'}
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {activePromo.discountPercent
+                      ? `${activePromo.discountPercent}% הנחה על כל החבילות`
+                      : activePromo.discountAmountCents
+                        ? `${Math.round(activePromo.discountAmountCents / 100)}₪ הנחה`
+                        : 'הנחה מיוחדת'}
+                    {activePromo.couponCode ? (
+                      <span className="mr-2 font-mono font-black bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded text-amber-900">
+                        קוד: {activePromo.couponCode}
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Plan Cards */}
             <div className="grid grid-cols-1 gap-3">
               {VISIBLE_PLANS.map((key) => {
                 const pkg = BILLING_PACKAGES[key];
                 const isSelected = selectedPlan === key;
                 const isPopular = key === 'the_empire';
+                const displayPrice = activePromo?.discountPercent
+                  ? Math.round(pkg.monthlyPrice * (1 - activePromo.discountPercent / 100))
+                  : pkg.monthlyPrice;
 
                 return (
                   <button
@@ -295,9 +417,7 @@ export default function WorkspaceOnboardingClient(props: {
 
                     <div className="flex items-center gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-500'
+                        isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
                       }`}>
                         {PLAN_ICON[key] || <Target size={20} />}
                       </div>
@@ -323,14 +443,17 @@ export default function WorkspaceOnboardingClient(props: {
                       </div>
 
                       <div className="text-left shrink-0">
-                        <div className="text-lg font-black text-slate-900">{pkg.monthlyPrice}₪</div>
+                        {activePromo?.discountPercent && displayPrice < pkg.monthlyPrice ? (
+                          <div className="text-[10px] text-slate-400 line-through">{pkg.monthlyPrice}₪</div>
+                        ) : null}
+                        <div className={`text-lg font-black ${
+                          activePromo?.discountPercent ? 'text-emerald-600' : 'text-slate-900'
+                        }`}>{displayPrice}₪</div>
                         <div className="text-[10px] text-slate-400 font-bold">לחודש</div>
                       </div>
 
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        isSelected
-                          ? 'border-indigo-600 bg-indigo-600'
-                          : 'border-slate-300'
+                        isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
                       }`}>
                         {isSelected ? <Check size={14} strokeWidth={3} className="text-white" /> : null}
                       </div>
@@ -338,6 +461,63 @@ export default function WorkspaceOnboardingClient(props: {
                   </button>
                 );
               })}
+
+              {/* Build Your Own Card */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlan('custom');
+                  setSelectedSoloModule(null);
+                  setError(null);
+                }}
+                className={`relative w-full text-right rounded-2xl border-2 p-5 transition-all ${
+                  selectedPlan === 'custom'
+                    ? 'border-violet-500 bg-violet-50/50 shadow-lg shadow-violet-100/50'
+                    : 'border-dashed border-slate-300 bg-white/70 hover:border-violet-300 hover:shadow-md'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                    selectedPlan === 'custom' ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Puzzle size={20} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-900">בנה חבילה משלך 🧩</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">בחר בדיוק את המודולים שאתה צריך — שלם רק על מה שמשתמשים</div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {Object.entries(CUSTOM_PLAN_PRICE_TABLE).map(([count, price]) => (
+                        <span key={count} className="px-2 py-0.5 rounded-full bg-violet-50 text-[10px] font-bold text-violet-600">
+                          {count} מודול{Number(count) > 1 ? 'ים' : ''} = {price}₪
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="text-left shrink-0">
+                    {selectedPlan === 'custom' && customModules.size > 0 ? (
+                      <>
+                        <div className="text-lg font-black text-violet-700">{customPrice}₪</div>
+                        <div className="text-[10px] text-slate-400 font-bold">לחודש</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-sm font-black text-slate-400">מ-149₪</div>
+                        <div className="text-[10px] text-slate-400 font-bold">לחודש</div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    selectedPlan === 'custom' ? 'border-violet-600 bg-violet-600' : 'border-slate-300'
+                  }`}>
+                    {selectedPlan === 'custom' ? <Check size={14} strokeWidth={3} className="text-white" /> : null}
+                  </div>
+                </div>
+              </button>
             </div>
 
             {/* Solo module picker */}
@@ -356,11 +536,72 @@ export default function WorkspaceOnboardingClient(props: {
                           : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-300'
                       }`}
                     >
-                        <span className="text-[10px] opacity-70">{opt.labelEn}</span>
-                      <span>({opt.label})</span>
+                      <div className="text-[10px] opacity-70">{opt.labelEn}</div>
+                      <div>({opt.label})</div>
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : null}
+
+            {/* Custom module picker */}
+            {selectedPlan === 'custom' ? (
+              <div className="rounded-2xl border-2 border-violet-200 bg-violet-50/30 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm font-black text-slate-700">בחר את המודולים שלך:</div>
+                  {customModules.size > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{customModules.size} מודולים</span>
+                      <span className="text-base font-black text-violet-700">{customPrice}₪/חודש</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400">בחר לפחות מודול אחד</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {MODULE_OPTIONS.map((mod) => {
+                    const isChecked = customModules.has(mod.key);
+                    const colors = MODULE_COLOR_CLASSES[mod.color];
+                    return (
+                      <button
+                        key={mod.key}
+                        type="button"
+                        onClick={() => toggleCustomModule(mod.key)}
+                        className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-right ${
+                          isChecked
+                            ? `${colors.bg} ${colors.border} shadow-sm`
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
+                          isChecked ? `${colors.border.replace('border', 'bg').replace('-300', '-500')} border-transparent` : 'border-slate-300 bg-white'
+                        }`}>
+                          {isChecked ? <Check size={12} strokeWidth={3} className="text-white" /> : null}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-sm text-slate-900">{mod.labelEn}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text}`}>{mod.labelHe}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">{mod.desc}</div>
+                        </div>
+                        {isChecked ? (
+                          <CheckCircle2 size={16} className={`shrink-0 ${colors.text}`} />
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                {customModules.size > 0 ? (
+                  <div className="mt-4 pt-4 border-t border-violet-100 flex items-center justify-between">
+                    <div className="text-xs text-slate-500">
+                      + Finance (כספים) — מתנה לכל חבילה
+                    </div>
+                    <div className="text-base font-black text-violet-700">
+                      סה״כ: {customPrice}₪/חודש
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -392,6 +633,58 @@ export default function WorkspaceOnboardingClient(props: {
             <p className="text-[11px] text-slate-400 text-center">
               ללא כרטיס אשראי · בטל בכל עת · 7 ימי ניסיון מלא
             </p>
+
+            {/* AI Chat Help Widget */}
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+              <button
+                type="button"
+                onClick={() => { setShowAiChat(v => !v); setAiAnswer(null); }}
+                className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={16} className="text-indigo-500" />
+                  <span className="text-sm font-black text-slate-700">לא בטוח איזו חבילה מתאימה? שאל אותנו</span>
+                </div>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform ${showAiChat ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showAiChat ? (
+                <div className="border-t border-slate-100 p-4">
+                  {aiAnswer ? (
+                    <div className="mb-4">
+                      <div className="bg-indigo-50 rounded-2xl p-4 text-sm text-slate-700 leading-relaxed border border-indigo-100">
+                        {aiAnswer.split('**').map((part, i) =>
+                          i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAiAnswer(null)}
+                        className="mt-2 text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
+                      >
+                        <X size={12} /> שאלה נוספת
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 mb-3">בחר שאלה נפוצה:</p>
+                  )}
+                  {!aiAnswer ? (
+                    <div className="flex flex-col gap-2">
+                      {AI_QUESTIONS.map((item, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setAiAnswer(item.a)}
+                          className="text-right px-4 py-2.5 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-sm text-slate-700 font-medium transition-colors"
+                        >
+                          {item.q}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -419,12 +712,15 @@ export default function WorkspaceOnboardingClient(props: {
                       {getModuleLabelHe(m)}
                     </span>
                   ))}
-                  {(planDef.key === 'the_operator' || planDef.key === 'the_empire') ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-[11px] font-bold text-amber-700">
-                      🎁 Finance
-                    </span>
-                  ) : null}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-100 text-[11px] font-bold text-amber-700">
+                    🎁 Finance (כספים) — מתנה
+                  </span>
                 </div>
+                {planDef.key === 'custom' ? (
+                  <div className="mt-2 text-sm font-black text-violet-700">
+                    סה״כ: {calculateCustomPlanPrice(planModules.length)}₪/חודש
+                  </div>
+                ) : null}
                 {props.seats && props.seats > 1 ? (
                   <div className="mt-2 text-xs text-slate-500">
                     {props.seats} משתמשים

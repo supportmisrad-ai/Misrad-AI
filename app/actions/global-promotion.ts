@@ -247,8 +247,12 @@ export async function upsertGlobalPromotion(data: {
       createdAt: promotion.created_at,
     });
   } catch (error: unknown) {
-    captureActionException(error, { action: 'upsertGlobalPromotion', data });
-    return createErrorResponse(error, 'שגיאה בשמירת מבצע');
+    console.error('[upsertGlobalPromotion] ERROR:', error);
+    console.error('[upsertGlobalPromotion] Stack:', error instanceof Error ? error.stack : 'no stack');
+    console.error('[upsertGlobalPromotion] Data:', JSON.stringify(data, null, 2));
+    captureActionException(error, { action: 'upsertGlobalPromotion', promotionId: data.id, errorMessage: error instanceof Error ? error.message : String(error) });
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה לא ידועה';
+    return createErrorResponse(error, `שגיאה בשמירת מבצע: ${errorMessage}`);
   }
 }
 

@@ -138,7 +138,7 @@ export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (
 
   function handlePersonaMap(pkg: PackageType) {
     if (!onSelectPersona) return;
-    const map: Record<PackageType, string> = {
+    const map: Partial<Record<PackageType, string>> = {
       solo: 'freelancer',
       the_closer: 'smb',
       the_authority: 'freelancer',
