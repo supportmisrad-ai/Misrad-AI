@@ -937,6 +937,52 @@ function isOrganizationUserBootstrapCreateAllowed(params: {
   return orgVal === null;
 }
 
+// Bootstrap upsert: during workspace provisioning, OrganizationUser is upserted
+// with organization_id: null in create (org doesn't exist yet) and no org key in update
+// (only updating profile fields). The org link is done in a later step.
+function isOrganizationUserBootstrapUpsertAllowed(params: {
+  model: string;
+  action: string;
+  args: Record<string, unknown>;
+  override?: TenantIsolationOverrideContext;
+  expectedOrganizationId: string | null;
+}): boolean {
+  if (params.expectedOrganizationId) return false;
+  if (params.action !== 'upsert') return false;
+
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'organizationuser') return false;
+
+  const reason = String(params.override?.reason || '').trim();
+  if (reason !== 'bootstrap_workspace_provision') return false;
+
+  const createData = params.args.create;
+  if (!createData || typeof createData !== 'object' || Array.isArray(createData)) return false;
+  const createObj = createData as Record<string, unknown>;
+
+  const clerkUserIdRaw = createObj.clerk_user_id ?? createObj.clerkUserId;
+  const clerkUserId = typeof clerkUserIdRaw === 'string' ? clerkUserIdRaw.trim() : '';
+  if (!clerkUserId) return false;
+
+  // create must explicitly set organization_id to null (org created later)
+  const orgVal = Object.prototype.hasOwnProperty.call(createObj, 'organization_id')
+    ? createObj.organization_id
+    : Object.prototype.hasOwnProperty.call(createObj, 'organizationId')
+      ? createObj.organizationId
+      : undefined;
+
+  if (orgVal !== null) return false;
+
+  // where must be scoped to clerk_user_id (single-user upsert)
+  const where = params.args.where;
+  if (!where || typeof where !== 'object') return false;
+  const whereObj = where as Record<string, unknown>;
+  const hasClerkKey = Object.prototype.hasOwnProperty.call(whereObj, 'clerk_user_id') || Object.prototype.hasOwnProperty.call(whereObj, 'clerkUserId');
+  if (!hasClerkKey) return false;
+
+  return true;
+}
+
 function isNexusUserLookupByEmailUnscopedAllowed(params: {
   model: string;
   action: string;
@@ -1047,6 +1093,13 @@ export function installPrismaTenantGuard(
 
     const where = (args as { where?: unknown }).where;
     const action = params.action;
+
+    // Early bypass: bootstrap OrganizationUser.upsert during workspace provisioning.
+    // The upsert creates with organization_id: null (org doesn't exist yet) and
+    // updates only profile fields. The org link is done in a subsequent step.
+    if (action === 'upsert' && isOrganizationUserBootstrapUpsertAllowed({ model, action, args, override, expectedOrganizationId: expected.organizationId })) {
+      return next(params);
+    }
 
     if (ACTIONS_REQUIRING_WHERE.has(action)) {
       if (!isGlobalAdmin && req.requiresOrg && !isWhereScoped(where, ORG_KEYS)) {

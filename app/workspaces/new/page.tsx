@@ -19,7 +19,7 @@ export default async function NewWorkspacePage() {
           <div className="text-sm text-slate-600 mt-2">{res.error || 'אנא נסה שוב בעוד רגע.'}</div>
           <div className="mt-6 flex gap-3">
             <Link
-              href="/app"
+              href="/workspaces/new"
               className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-white font-black shadow-md hover:bg-slate-800 transition"
             >
               נסה שוב

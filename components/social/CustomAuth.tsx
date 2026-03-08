@@ -147,7 +147,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push('/');
+          router.push('/me');
         }
       } else {
         setError('ההתחברות נכשלה. נסה שוב.');
@@ -205,7 +205,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         if (onSuccess) {
           onSuccess();
         } else {
-          router.push('/');
+          router.push('/workspaces/onboarding');
         }
         return;
       }
