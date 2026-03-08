@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Search, Headphones, Bell } from 'lucide-react';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
@@ -109,8 +108,6 @@ export function SharedHeader({
 
       <div className="flex items-center gap-1 md:gap-5 relative bg-[color:var(--os-header-actions-surface,rgba(255,255,255,0.40))] backdrop-blur-xl p-1 pr-1.5 md:p-2 rounded-full border border-[color:var(--os-header-actions-border,rgba(255,255,255,0.60))] shadow-[0_4px_20px_rgba(0,0,0,0.03)] shrink-0 ml-2">
         {switcherSlot ? <div className="hidden md:contents">{switcherSlot}</div> : null}
-
-        <AttendanceMiniStatus />
 
         <button
           id="command-search-btn"
