@@ -19,20 +19,9 @@ export function formatTranscriptText(raw: string): string {
 
   if (hasStructure) {
     // Structured text: clean up whitespace within lines but preserve line structure
+    // NO empty lines - keep timestamps compact and clean
     const lines = text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    const formatted: string[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      formatted.push(lines[i]);
-      // Add empty line between different speaker blocks for readability
-      if (i < lines.length - 1) {
-        const currentHasLabel = STRUCTURED_LINE_RE.test(lines[i]);
-        const nextHasLabel = STRUCTURED_LINE_RE.test(lines[i + 1]);
-        if (currentHasLabel && nextHasLabel) {
-          formatted.push('');
-        }
-      }
-    }
-    return formatted.join('\n');
+    return lines.join('\n');
   }
 
   // Flat text (no timestamps/speakers): add sentence breaks and paragraph grouping

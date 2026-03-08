@@ -1263,7 +1263,7 @@ export class AIService {
       const isImageGeneration = fk.includes('image_generation') || fk.includes('image.generation');
 
       const isLiveTranscription = fk.includes('live_transcribe') || fk.includes('live.transcribe');
-      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : isSystemCallsAnalysis ? 90000 : isImageGeneration ? 60000 : 30000;
+      const defaultTimeoutMs = isLiveTranscription ? 15000 : isClientMeetingsTranscription ? 180000 : isClientMeetingsAnalyze ? 180000 : isClientMeetings ? 180000 : isSystemCallsAnalysis ? 90000 : isImageGeneration ? 60000 : 30000;
 
       settings = {
         id: 'default',

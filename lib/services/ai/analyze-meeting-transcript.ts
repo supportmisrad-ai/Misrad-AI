@@ -5,7 +5,14 @@ import { AIService } from '@/lib/services/ai/AIService';
 import { asObject } from '@/lib/shared/unknown';
 
 export async function analyzeMeetingTranscript(transcript: string): Promise<unknown> {
+  const startTime = Date.now();
+  
   try {
+    console.log('[analyzeMeetingTranscript] Starting analysis', {
+      transcriptLength: transcript.length,
+      transcriptPreview: transcript.substring(0, 200),
+    });
+
     const systemPrompt = `
       You are the Nexus Meeting Analyzer, specialized in B2B Account Management.
 
@@ -105,11 +112,18 @@ export async function analyzeMeetingTranscript(transcript: string): Promise<unkn
     };
 
     const ai = AIService.getInstance();
+    console.log('[analyzeMeetingTranscript] Calling AIService.generateJson');
+    
     const out = await ai.generateJson<unknown>({
       featureKey: 'client_os.meetings.analyze',
       prompt: transcript,
       systemInstruction: systemPrompt,
       responseSchema,
+    });
+
+    console.log('[analyzeMeetingTranscript] AI response received', {
+      hasResult: !!out.result,
+      latencyMs: Date.now() - startTime,
     });
 
     const dataObj = asObject(out.result) ?? {};
@@ -129,12 +143,24 @@ export async function analyzeMeetingTranscript(transcript: string): Promise<unkn
       }));
     }
 
+    console.log('[analyzeMeetingTranscript] ✅ Analysis completed successfully', {
+      latencyMs: Date.now() - startTime,
+      hasSummary: !!dataObj.summary,
+      agencyTasksCount: Array.isArray(dataObj.agencyTasks) ? dataObj.agencyTasks.length : 0,
+      clientTasksCount: Array.isArray(dataObj.clientTasks) ? dataObj.clientTasks.length : 0,
+    });
+
     return dataObj;
   } catch (err: unknown) {
-    console.error('[analyzeMeetingTranscript] AI analysis failed', {
+    const errorDetails = {
       error: err instanceof Error ? err.message : String(err),
+      errorType: err instanceof Error ? err.constructor.name : typeof err,
+      stack: err instanceof Error ? err.stack : undefined,
       transcriptLength: transcript.length,
-    });
+      latencyMs: Date.now() - startTime,
+    };
+    
+    console.error('[analyzeMeetingTranscript] ❌ AI analysis failed', errorDetails);
     throw err;
   }
 }

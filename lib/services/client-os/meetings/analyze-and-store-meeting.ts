@@ -134,25 +134,44 @@ export async function analyzeAndStoreMeeting(params: {
 
   let analysis: unknown;
   let retryCount = 0;
-  const maxRetries = 2;
+  const maxRetries = 4; // הגדלה מ-2 ל-4 - ניתוח זה קריטי
 
   while (retryCount <= maxRetries) {
     try {
+      console.log(`[analyzeAndStoreMeeting] Starting analysis attempt ${retryCount + 1}/${maxRetries + 1}`, {
+        transcriptLength: transcript.length,
+        clientId,
+        orgId,
+        meetingId: meeting.id,
+      });
+      
       analysis = await analyzeMeetingTranscript(transcript);
+      
+      console.log('[analyzeAndStoreMeeting] Analysis succeeded', {
+        attempt: retryCount + 1,
+        meetingId: meeting.id,
+      });
       break;
     } catch (err) {
       retryCount++;
-      if (retryCount > maxRetries) {
-        console.error('[analyzeAndStoreMeeting] AI analysis failed after retries', {
-          error: err instanceof Error ? err.message : String(err),
-          retries: retryCount,
-        });
-        throw new Error('AI analysis failed after multiple attempts');
-      }
-      console.warn(`[analyzeAndStoreMeeting] Retry ${retryCount}/${maxRetries} after error`, {
+      const errorDetails = {
         error: err instanceof Error ? err.message : String(err),
-      });
-      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        errorType: err instanceof Error ? err.constructor.name : typeof err,
+        stack: err instanceof Error ? err.stack : undefined,
+        attempt: retryCount,
+        maxRetries,
+        meetingId: meeting.id,
+        transcriptLength: transcript.length,
+      };
+
+      if (retryCount > maxRetries) {
+        console.error('[analyzeAndStoreMeeting] ❌ AI analysis FAILED after all retries', errorDetails);
+        throw new Error(`AI analysis failed after ${maxRetries + 1} attempts: ${errorDetails.error}`);
+      }
+      
+      const delayMs = 2000 * retryCount; // 2s, 4s, 6s, 8s
+      console.warn(`[analyzeAndStoreMeeting] ⚠️ Retry ${retryCount}/${maxRetries} after ${delayMs}ms delay`, errorDetails);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
 
