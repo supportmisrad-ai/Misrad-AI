@@ -11,6 +11,7 @@ import { cronGuard } from '@/lib/api-cron-guard';
 import { sendStorageDeletionNotification } from '@/lib/email/storage-deletion-notification';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes
 
 interface ScanResult {

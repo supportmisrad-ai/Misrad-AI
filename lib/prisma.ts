@@ -175,6 +175,8 @@ type PrismaClientWithAliases = PrismaClient & {
   siteAnalyticsSession: PrismaClient['siteAnalyticsSession'];
   siteAnalyticsPageView: PrismaClient['siteAnalyticsPageView'];
   siteAnalyticsEvent: PrismaClient['siteAnalyticsEvent'];
+  storageFile: PrismaClient['storageFile'];
+  storageDeletionLog: PrismaClient['storageDeletionLog'];
 };
 
 const _basePrismaClient = _client;
@@ -197,6 +199,8 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   siteAnalyticsSession: _basePrismaClient.siteAnalyticsSession,
   siteAnalyticsPageView: _basePrismaClient.siteAnalyticsPageView,
   siteAnalyticsEvent: _basePrismaClient.siteAnalyticsEvent,
+  storageFile: _basePrismaClient.storageFile,
+  storageDeletionLog: _basePrismaClient.storageDeletionLog,
 });
 
 // ═══════════════════════════════════════════════════════════════════

@@ -1,7 +1,11 @@
 import { Resend } from 'resend';
 import { getRetentionPolicy } from '@/lib/storage/retention-policy';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 interface StorageDeletionNotificationData {
   organizationId: string;
@@ -138,7 +142,7 @@ export async function sendStorageDeletionNotification(data: StorageDeletionNotif
   `;
 
   try {
-    const { data: emailData, error } = await resend.emails.send({
+    const { data: emailData, error } = await getResend().emails.send({
       from: 'MISRAD AI <notifications@misrad-ai.com>',
       to: [ownerEmail],
       subject: `⚠️ התראה: ${files.length} קבצים עומדים להימחק`,
