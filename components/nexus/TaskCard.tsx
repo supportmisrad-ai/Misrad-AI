@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Task, User, Client } from '../../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
 import { CalendarDays, Play, Pause, Timer, Lock, MoreHorizontal, Clock, Briefcase, TriangleAlert, ShieldAlert } from 'lucide-react';
@@ -44,26 +44,26 @@ const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
   }
 };
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTimer: propToggleTimer }) => {
+const TaskCardInner: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTimer: propToggleTimer }) => {
   const { toggleTimer: contextToggleTimer, clients } = useData();
   const toggleTimer = propToggleTimer || contextToggleTimer;
   const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
   const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
-  const isExplicitlyUnassigned = task.assigneeId === null;
-  const effectiveAssigneeIds: string[] = (() => {
+
+  const effectiveAssigneeIds = useMemo(() => {
     if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
     if (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId)) return [String(task.assigneeId)];
-    if (isExplicitlyUnassigned) return [];
+    if (task.assigneeId === null) return [];
     const fallback = task.creatorId;
     return fallback ? [String(fallback)] : [];
-  })();
+  }, [task.assigneeIds, task.assigneeId, task.creatorId]);
 
-  const assignedUsers = users.filter(u => effectiveAssigneeIds.includes(String(u.id)));
+  const assignedUsers = useMemo(() => users.filter(u => effectiveAssigneeIds.includes(String(u.id))), [users, effectiveAssigneeIds]);
   
-  // Find linked client if exists
-  const linkedClient = task.clientId 
-    ? clients.find((c: Client) => c.id === task.clientId)
-    : clients.find((c: Client) => task.tags.some(tag => tag.toLowerCase() === c.companyName.toLowerCase()));
+  const linkedClient = useMemo(() => {
+    if (task.clientId) return clients.find((c: Client) => c.id === task.clientId);
+    return clients.find((c: Client) => task.tags.some(tag => tag.toLowerCase() === c.companyName.toLowerCase()));
+  }, [task.clientId, task.tags, clients]);
 
   const snoozeCount = task.snoozeCount || 0;
   const isPendingApproval = task.approvalStatus === 'pending';
@@ -281,3 +281,5 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick, toggle
     </motion.div>
   );
 };
+
+export const TaskCard = React.memo(TaskCardInner);

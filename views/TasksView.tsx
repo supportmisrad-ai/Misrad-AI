@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -112,16 +112,20 @@ export const TasksView: React.FC = () => {
   const [isTaskStatusSheetOpen, setIsTaskStatusSheetOpen] = useState(false);
   const [taskStatusSheetTaskId, setTaskStatusSheetTaskId] = useState<string | null>(null);
 
-  // Check if mobile on mount and resize
+  // Check if mobile on mount and resize (debounced)
   useEffect(() => {
+      let rafId = 0;
       const checkMobile = () => {
-          const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
-          setIsMobile(mobile);
+          cancelAnimationFrame(rafId);
+          rafId = requestAnimationFrame(() => {
+              const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+              setIsMobile(mobile);
+          });
       };
       checkMobile();
       if (typeof window !== 'undefined') {
       window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
+      return () => { window.removeEventListener('resize', checkMobile); cancelAnimationFrame(rafId); };
       }
   }, []);
 
@@ -422,7 +426,7 @@ export const TasksView: React.FC = () => {
       };
   }, [isTemplatesOpen, isFilterMenuOpen, isGroupByOpen]);
 
-  const getFilteredTasks = () => {
+  const filteredTasks = useMemo(() => {
       // 1. Initial Scope Filtering
       let filtered = tasks.filter(t => {
           // Super Admin sees all tasks (all tenants)
@@ -456,14 +460,13 @@ export const TasksView: React.FC = () => {
       }
 
       return filtered;
-  };
+  }, [tasks, isSuperAdmin, isTenantAdmin, isManager, currentUser.department, currentUser.id, isFocusMode, filterPriority, filterAssignee]);
 
-  const filteredTasks = getFilteredTasks();
   const activeFiltersCount = (filterPriority !== 'all' ? 1 : 0) + (filterAssignee !== 'all' ? 1 : 0);
 
-  // --- Grouping Logic ---
+  // --- Grouping Logic (memoized) ---
   
-  const getColumns = (): { id: string; title: string; color: string; avatar?: string }[] => {
+  const columns = useMemo((): { id: string; title: string; color: string; avatar?: string }[] => {
       switch (groupBy) {
           case 'status':
               return workflowStages.map((s: WorkflowStage) => ({ id: s.id, title: s.name, color: s.color }));
@@ -486,28 +489,55 @@ export const TasksView: React.FC = () => {
           default:
               return [];
       }
-  };
+  }, [groupBy, workflowStages, scopedUsers, clients]);
 
-  const getTasksForColumn = (columnId: string) => {
-      return filteredTasks.filter(task => {
+  // Pre-compute tasks per column in a single pass (O(n) instead of O(n*m))
+  const tasksByColumn = useMemo(() => {
+      const map = new Map<string, Task[]>();
+      for (const task of filteredTasks) {
+          let colId: string;
           switch (groupBy) {
               case 'status':
-                  return task.status === columnId;
+                  colId = task.status;
+                  break;
               case 'assignee':
-                  if (columnId === 'unassigned') return !task.assigneeIds || task.assigneeIds.length === 0;
-                  return task.assigneeIds?.includes(columnId) || task.assigneeId === columnId;
+                  if (!task.assigneeIds || task.assigneeIds.length === 0) {
+                      colId = 'unassigned';
+                  } else {
+                      // Add task to each assignee's column
+                      for (const aid of task.assigneeIds) {
+                          const arr = map.get(aid);
+                          if (arr) arr.push(task);
+                          else map.set(aid, [task]);
+                      }
+                      continue;
+                  }
+                  break;
               case 'priority':
-                  return task.priority === columnId;
-              case 'client':
-                  if (columnId === 'no-client') return !task.clientId && !task.tags.some(t => clients.some((c: Client) => c.companyName === t));
-                  // Match by ID or Tag Name
-                  const client = clients.find((c: Client) => c.id === columnId);
-                  return task.clientId === columnId || (client && task.tags.includes(client.companyName));
+                  colId = task.priority;
+                  break;
+              case 'client': {
+                  if (task.clientId) {
+                      colId = task.clientId;
+                  } else {
+                      const matchedClient = clients.find((c: Client) => task.tags.some(t => c.companyName === t));
+                      colId = matchedClient ? matchedClient.id : 'no-client';
+                  }
+                  break;
+              }
               default:
-                  return false;
+                  continue;
           }
-      });
-  };
+          const arr = map.get(colId);
+          if (arr) arr.push(task);
+          else map.set(colId, [task]);
+      }
+      return map;
+  }, [filteredTasks, groupBy, clients]);
+
+  const getTasksForColumn = useCallback((columnId: string): Task[] => {
+      return tasksByColumn.get(columnId) || [];
+  }, [tasksByColumn]);
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     setDraggedTaskId(taskId);
@@ -638,7 +668,7 @@ export const TasksView: React.FC = () => {
       return ao - bo;
   });
 
-  const columns = getColumns();
+  // columns is already memoized above via useMemo
 
   return (
     <div className="w-full h-full md:h-[calc(100vh-10rem)] flex flex-col overflow-hidden min-h-0" style={{ touchAction: 'pan-y' }}>

@@ -2,30 +2,18 @@
  * Token Refresh Cron Job
  * Runs daily to refresh expiring OAuth tokens
  * Vercel Cron: https://vercel.com/docs/cron-jobs
+ *
+ * Security: Protected by cronGuard (CRON_SECRET + tenant isolation global_admin)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { refreshFacebookToken, isTokenExpiringSoon } from '@/lib/social-oauth/facebook';
+import { refreshFacebookToken } from '@/lib/social-oauth/facebook';
 import { logger } from '@/lib/server/logger';
+import { cronGuard } from '@/lib/api-cron-guard';
 
-function verifyCronSecret(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  
-  if (!cronSecret) {
-    return true; // Allow in dev
-  }
-  
-  return authHeader === `Bearer ${cronSecret}`;
-}
-
-export async function GET(request: NextRequest) {
+async function GETHandler(_request: NextRequest) {
   try {
-    if (!verifyCronSecret(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     // Find tokens expiring within 7 days
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
@@ -93,6 +81,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  return GET(request);
-}
+export const GET = cronGuard(GETHandler);
+export const POST = cronGuard(GETHandler);
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

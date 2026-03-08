@@ -2,34 +2,19 @@
  * Scheduled Post Publishing Cron Job
  * Runs every 5 minutes to publish scheduled posts
  * Vercel Cron: https://vercel.com/docs/cron-jobs
+ *
+ * Security: Protected by cronGuard (CRON_SECRET + tenant isolation global_admin)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { publishToMultiplePlatforms } from '@/lib/social-publishing';
+import { publishToMultiplePlatforms, type SocialPlatform } from '@/lib/social-publishing';
 import { logger } from '@/lib/server/logger';
 import { resolveStorageUrlsMaybeBatchedServiceRole } from '@/lib/services/operations/storage';
+import { cronGuard } from '@/lib/api-cron-guard';
 
-// Verify cron secret to prevent unauthorized access
-function verifyCronSecret(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  
-  if (!cronSecret) {
-    logger.warn('CronPublish', 'CRON_SECRET not configured');
-    return true; // Allow in dev
-  }
-  
-  return authHeader === `Bearer ${cronSecret}`;
-}
-
-export async function GET(request: NextRequest) {
+async function GETHandler(_request: NextRequest) {
   try {
-    // Verify authorization
-    if (!verifyCronSecret(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const now = new Date();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
@@ -92,7 +77,7 @@ export async function GET(request: NextRequest) {
             content: post.content,
             mediaUrl,
           },
-          platforms as any[]
+          platforms as SocialPlatform[]
         );
 
         // Check if at least one platform succeeded
@@ -147,7 +132,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST method for manual triggering
-export async function POST(request: NextRequest) {
-  return GET(request);
-}
+export const GET = cronGuard(GETHandler);
+export const POST = cronGuard(GETHandler);
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

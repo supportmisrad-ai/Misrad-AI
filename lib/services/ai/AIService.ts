@@ -2,7 +2,7 @@ import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { AIProviderError, UpgradeRequiredError } from './errors';
 import {
   AIFeatureSettingsRow,
@@ -1247,17 +1247,20 @@ export class AIService {
     if (reserve <= 0) return 0;
 
     try {
-      const affected = await executeRawOrgScoped(prisma, {
-        organizationId: params.organizationId,
-        reason: 'ai_debit_credits',
-        query:
-          'UPDATE "organizations" ' +
-          'SET ai_credits_balance_cents = ai_credits_balance_cents - $2::bigint ' +
-          'WHERE id = $1::uuid AND ai_credits_balance_cents >= $2::bigint',
-        values: [params.organizationId, reserve],
-      });
+      const result = await withTenantIsolationContext(
+        { source: 'ai_service', reason: 'ai_debit_credits', mode: 'global_admin', isSuperAdmin: true },
+        () => prisma.organization.updateMany({
+          where: {
+            id: params.organizationId,
+            ai_credits_balance_cents: { gte: BigInt(reserve) },
+          },
+          data: {
+            ai_credits_balance_cents: { decrement: BigInt(reserve) },
+          },
+        })
+      );
 
-      if (affected === 0) {
+      if (result.count === 0) {
         throw new UpgradeRequiredError();
       }
     } catch (err: unknown) {
@@ -1274,15 +1277,23 @@ export class AIService {
     if (delta === 0) return;
 
     try {
-      await executeRawOrgScoped(prisma, {
-        organizationId: params.organizationId,
-        reason: 'ai_adjust_credits',
-        query:
-          'UPDATE "organizations" ' +
-          'SET ai_credits_balance_cents = ai_credits_balance_cents + $2::bigint ' +
-          'WHERE id = $1::uuid',
-        values: [params.organizationId, delta],
-      });
+      if (delta > 0) {
+        await withTenantIsolationContext(
+          { source: 'ai_service', reason: 'ai_adjust_credits', mode: 'global_admin', isSuperAdmin: true },
+          () => prisma.organization.update({
+            where: { id: params.organizationId },
+            data: { ai_credits_balance_cents: { increment: BigInt(delta) } },
+          })
+        );
+      } else {
+        await withTenantIsolationContext(
+          { source: 'ai_service', reason: 'ai_adjust_credits', mode: 'global_admin', isSuperAdmin: true },
+          () => prisma.organization.update({
+            where: { id: params.organizationId },
+            data: { ai_credits_balance_cents: { decrement: BigInt(Math.abs(delta)) } },
+          })
+        );
+      }
     } catch (err: unknown) {
       console.error('[AIService] adjustCredits failed:', getErrorMessage(err));
     }

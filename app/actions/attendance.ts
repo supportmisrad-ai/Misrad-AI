@@ -186,6 +186,12 @@ export async function updateEntryLocation(
   side: 'start' | 'end',
   location: AttendanceGeoLocationInput,
 ) {
+  // Reject optimistic / non-UUID IDs before they reach raw SQL
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!entryId || !UUID_RE.test(entryId)) {
+    return { updated: false };
+  }
+
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
   const geo = parseGeoLocation(location);

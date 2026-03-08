@@ -356,8 +356,9 @@ async function POSTHandler(request: NextRequest) {
 
         const newClient = mapClientRow(created);
 
-        // ── Cross-sync: Nexus → ClientClient (if org has Client module) ──
-        if (workspace.entitlements?.client) {
+        // ── Run cross-sync, audit, and notifications in PARALLEL (all best-effort) ──
+        const crossSyncPromise = (async () => {
+            if (!workspace.entitlements?.client) return;
             try {
                 const syncEmail = String(clientData.email || '').trim().toLowerCase();
                 const syncPhone = String(clientData.phone || '').trim();
@@ -398,24 +399,23 @@ async function POSTHandler(request: NextRequest) {
                 if (IS_PROD) console.warn('[API] Nexus→ClientClient sync failed (ignored)');
                 else console.warn('[API] Nexus→ClientClient sync failed:', syncMsg);
             }
-        }
+        })();
 
-        await logAuditEvent('data.write', 'client', {
+        const auditPromise = logAuditEvent('data.write', 'client', {
             resourceId: newClient.id,
             details: { createdBy: user.id }
-        });
-        
-        // Send notification to CRM managers and admins (best-effort)
-        try {
-            const actorName = typeof user?.firstName === 'string' && user.firstName.trim() ? String(user.firstName).trim() : 'מערכת';
+        }).catch(() => { /* non-critical */ });
 
-            const crmManagerIds = await selectCrmManagerIdsInWorkspace({ workspaceId: workspace.id });
+        const notificationPromise = (async () => {
+            try {
+                const actorName = typeof user?.firstName === 'string' && user.firstName.trim() ? String(user.firstName).trim() : 'מערכת';
+                const crmManagerIds = await selectCrmManagerIdsInWorkspace({ workspaceId: workspace.id });
+                if (crmManagerIds.length === 0) return;
 
-            if (crmManagerIds.length > 0) {
                 const nowIso = new Date().toISOString();
-                for (const managerId of crmManagerIds) {
-                    const text = `לקוח חדש נוסף: ${newClient.companyName}`;
+                const text = `לקוח חדש נוסף: ${newClient.companyName}`;
 
+                await Promise.allSettled(crmManagerIds.map(async (managerId) => {
                     try {
                         await executeRawOrgScoped(prisma, {
                             organizationId: String(workspace.id),
@@ -437,20 +437,12 @@ async function POSTHandler(request: NextRequest) {
                             ],
                         });
                     } catch (fullNotifError: unknown) {
-                        if (isMissingRelationOrColumnError(fullNotifError) && !ALLOW_SCHEMA_FALLBACKS) {
-                            throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(fullNotifError) || 'missing relation'})`);
-                        }
-
                         if (isMissingRelationOrColumnError(fullNotifError) && ALLOW_SCHEMA_FALLBACKS) {
                             reportSchemaFallback({
                                 source: 'app/api/clients.POSTHandler',
                                 reason: 'misrad_notifications insert schema mismatch (fallback to minimal insert)',
                                 error: fullNotifError,
-                                extras: {
-                                    organizationId: String(workspace.id),
-                                    clientId: String(newClient.id),
-                                    managerId: String(managerId),
-                                },
+                                extras: { organizationId: String(workspace.id), clientId: String(newClient.id), managerId: String(managerId) },
                             });
                         }
                         try {
@@ -463,48 +455,21 @@ async function POSTHandler(request: NextRequest) {
                                     values
                                       ($1::uuid, $2::uuid, $3::text, $4::text, false, $5::timestamptz, $5::timestamptz)
                                 `,
-                                values: [
-                                    String(workspace.id),
-                                    String(managerId),
-                                    'client_created',
-                                    String(text),
-                                    nowIso,
-                                ],
+                                values: [String(workspace.id), String(managerId), 'client_created', String(text), nowIso],
                             });
-                        } catch (e: unknown) {
-                            const msg = getErrorMessage(e);
-                            if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
-                                throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${msg || 'missing relation'})`);
-                            }
-
-                            if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
-                                reportSchemaFallback({
-                                    source: 'app/api/clients.POSTHandler',
-                                    reason: 'misrad_notifications insert schema mismatch (drop notification)',
-                                    error: e,
-                                    extras: {
-                                        organizationId: String(workspace.id),
-                                        clientId: String(newClient.id),
-                                        managerId: String(managerId),
-                                    },
-                                });
-                            }
-                            if (String(msg || '').includes('[SchemaMismatch]')) {
-                                throw e instanceof Error ? e : new Error(msg);
-                            }
-                            if (IS_PROD) console.warn('[API] Could not create client notification (ignored)');
-                            else console.warn('[API] Could not create client notification (ignored):', msg);
+                        } catch {
+                            // non-critical
                         }
                     }
-                }
+                }));
+            } catch (notifError: unknown) {
+                if (IS_PROD) console.warn('[API] Error sending client notifications');
+                else console.warn('[API] Error sending client notifications:', notifError);
             }
-        } catch (notifError: unknown) {
-            if (getErrorMessage(notifError).includes('[SchemaMismatch]')) {
-                throw notifError;
-            }
-            if (IS_PROD) console.warn('[API] Error sending client notifications');
-            else console.warn('[API] Error sending client notifications:', notifError);
-        }
+        })();
+
+        // Wait for all best-effort work in parallel
+        await Promise.allSettled([crossSyncPromise, auditPromise, notificationPromise]);
         
         return apiSuccess({ client: newClient });
         

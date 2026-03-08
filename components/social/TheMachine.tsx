@@ -25,6 +25,8 @@ interface VariationWithImage extends PostVariation {
   isGeneratingImage?: boolean;
 }
 
+const DEFAULT_PLATFORMS: SocialPlatform[] = ['facebook', 'instagram', 'linkedin', 'tiktok'];
+
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   facebook: Facebook,
   instagram: Instagram,
@@ -97,7 +99,11 @@ export default function TheMachine() {
         if (isEditingExistingPost && editingPost?.platforms?.length) {
           setSelectedPlatforms(editingPost.platforms);
         } else {
-          setSelectedPlatforms(client.activePlatforms || ['facebook', 'instagram']);
+          setSelectedPlatforms(
+            Array.isArray(client.activePlatforms) && client.activePlatforms.length > 0
+              ? client.activePlatforms
+              : DEFAULT_PLATFORMS
+          );
         }
       }
     }
@@ -343,7 +349,11 @@ export default function TheMachine() {
                         key={c.id} 
                         onClick={() => { 
                           setSelectedClient(c); 
-                          setSelectedPlatforms(c.activePlatforms || ['facebook', 'instagram']); 
+                          setSelectedPlatforms(
+                            Array.isArray(c.activePlatforms) && c.activePlatforms.length > 0
+                              ? c.activePlatforms
+                              : DEFAULT_PLATFORMS
+                          ); 
                         }} 
                         className="p-3 md:p-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200 flex flex-col items-center gap-2 md:gap-3 hover:shadow-xl transition-all group"
                       >
@@ -367,7 +377,10 @@ export default function TheMachine() {
                   <div className="flex flex-col gap-3">
                     <h3 className="text-lg md:text-2xl font-black">איפה מפרסמים?</h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedClient.activePlatforms.map(platform => {
+                      {(Array.isArray(selectedClient.activePlatforms) && selectedClient.activePlatforms.length > 0
+                        ? selectedClient.activePlatforms
+                        : DEFAULT_PLATFORMS
+                      ).map(platform => {
                         const Icon = PLATFORM_ICONS[platform];
                         const isSelected = selectedPlatforms.includes(platform);
                         return (

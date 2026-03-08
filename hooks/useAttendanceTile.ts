@@ -10,6 +10,12 @@ import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
+/** Guard: never send optimistic IDs to server raw-SQL calls */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isRealEntryId(id: string | null | undefined): id is string {
+  return typeof id === 'string' && UUID_RE.test(id);
+}
+
 const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus', 'system', 'operations', 'finance', 'social', 'client']);
 
 export function formatAttendanceDuration(ms: number): string {
@@ -209,7 +215,7 @@ export function useAttendanceTile(): UseAttendanceTileResult {
           setStartTime(new Date(realStart).toISOString());
           broadcast({ orgSlug, entryId: realId, startTime: new Date(realStart).toISOString() });
           const loc = await gpsPromise;
-          if (loc && (loc.lat !== 0 || loc.lng !== 0)) {
+          if (loc && (loc.lat !== 0 || loc.lng !== 0) && isRealEntryId(realId)) {
             try {
               await updateEntryLocation(orgSlug, realId, 'start', loc);
             } catch { /* non-critical */ }
@@ -242,7 +248,7 @@ export function useAttendanceTile(): UseAttendanceTileResult {
         const res = await punchOut(orgSlug, undefined, { lat: 0, lng: 0, accuracy: 0 });
         void loadActiveShift();
         const closedId = res?.entryId || prevEntryId;
-        if (closedId && orgSlug) {
+        if (isRealEntryId(closedId) && orgSlug) {
           const loc = await gpsPromise;
           if (loc && (loc.lat !== 0 || loc.lng !== 0)) {
             try {

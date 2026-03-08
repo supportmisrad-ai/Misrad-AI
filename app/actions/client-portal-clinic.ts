@@ -313,9 +313,7 @@ export async function getClientOSTasks(orgId: string, clientId: string): Promise
     });
     return tasks.map(mapClinicTaskToClientAction);
   } catch (error: unknown) {
-    logger.error('getClientOSTasks', 'error', {
-      message: getErrorMessage(error) || String(error),
-    });
+    logger.error('getClientOSTasks', getErrorMessage(error) || 'unexpected error', error);
     return [];
   }
 }
@@ -328,24 +326,27 @@ export async function getClientOSSessions(orgId: string, clientId: string): Prom
       count: sessions.length,
       sessionIds: sessions.slice(0, 5).map((s) => s.id),
     });
-    const ttlSeconds = 60 * 60;
     const meetings = sessions.map(mapClinicSessionToMeeting);
-    const supabase = createStorageClient();
-    const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
-      supabase,
-      meetings.map((m) => m.recordingUrl),
-      ttlSeconds,
-      { organizationId: orgId }
-    );
 
-    return meetings.map((m, idx) => ({
-      ...m,
-      recordingUrl: resolvedUrls[idx] || m.recordingUrl,
-    }));
+    // Resolve storage URLs separately so a failure doesn't break the whole list
+    try {
+      const ttlSeconds = 60 * 60;
+      const supabase = createStorageClient();
+      const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
+        supabase,
+        meetings.map((m) => m.recordingUrl),
+        ttlSeconds,
+        { organizationId: orgId }
+      );
+      return meetings.map((m, idx) => ({
+        ...m,
+        recordingUrl: resolvedUrls[idx] || m.recordingUrl,
+      }));
+    } catch {
+      return meetings;
+    }
   } catch (error: unknown) {
-    logger.error('getClientOSSessions', 'error', {
-      message: getErrorMessage(error) || String(error),
-    });
+    logger.error('getClientOSSessions', getErrorMessage(error) || 'unexpected error', error);
     return [];
   }
 }
@@ -358,24 +359,27 @@ export async function getOrganizationSessions(orgId: string): Promise<Meeting[]>
       count: sessions.length,
       sessionIds: sessions.slice(0, 5).map((s) => s.id),
     });
-    const ttlSeconds = 60 * 60;
     const meetings = sessions.map(mapClinicSessionToMeeting);
-    const supabase = createStorageClient();
-    const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
-      supabase,
-      meetings.map((m) => m.recordingUrl),
-      ttlSeconds,
-      { organizationId: orgId }
-    );
 
-    return meetings.map((m, idx) => ({
-      ...m,
-      recordingUrl: resolvedUrls[idx] || m.recordingUrl,
-    }));
+    // Resolve storage URLs separately so a failure doesn't break the whole list
+    try {
+      const ttlSeconds = 60 * 60;
+      const supabase = createStorageClient();
+      const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
+        supabase,
+        meetings.map((m) => m.recordingUrl),
+        ttlSeconds,
+        { organizationId: orgId }
+      );
+      return meetings.map((m, idx) => ({
+        ...m,
+        recordingUrl: resolvedUrls[idx] || m.recordingUrl,
+      }));
+    } catch {
+      return meetings;
+    }
   } catch (error: unknown) {
-    logger.error('getOrganizationSessions', 'error', {
-      message: getErrorMessage(error) || String(error),
-    });
+    logger.error('getOrganizationSessions', getErrorMessage(error) || 'unexpected error', error);
     return [];
   }
 }
