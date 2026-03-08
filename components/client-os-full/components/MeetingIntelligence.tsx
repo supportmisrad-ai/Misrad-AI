@@ -233,6 +233,22 @@ const MeetingIntelligence: React.FC = () => {
     })();
   };
 
+  const handleFileInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    // Check client BEFORE opening file picker
+    const effectiveClientId = selectedClientId || clients?.[0]?.id;
+    if (!effectiveClientId) {
+      e.preventDefault();
+      globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'בחר לקוח לפני בחירת קובץ.', type: 'error' } }));
+      return;
+    }
+
+    if (!orgId) {
+      e.preventDefault();
+      globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
+      return;
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -241,12 +257,6 @@ const MeetingIntelligence: React.FC = () => {
       const isVideo = mime.startsWith('video/');
       if (!isAudio && !isVideo) {
         globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ניתן להעלות קבצי שמע/וידאו בלבד.', type: 'error' } }));
-        e.target.value = '';
-        return;
-      }
-
-      if (!orgId) {
-        globalThis.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'חסר organizationId. התחבר מחדש.', type: 'error' } }));
         e.target.value = '';
         return;
       }
@@ -529,7 +539,7 @@ const MeetingIntelligence: React.FC = () => {
             </div>
 
             <div className="relative border-2 border-dashed border-slate-200/70 rounded-3xl p-12 text-center bg-white hover:border-nexus-primary transition-all cursor-pointer">
-              <input type="file" accept="audio/*,video/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <input type="file" accept="audio/*,video/*" onClick={handleFileInputClick} onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
               <UploadCloud size={48} className="mx-auto text-nexus-primary mb-4" />
               <h3 className="text-xl font-bold">
                 {uploadMode === 'transcribe' ? 'העלאת הקלטה לתמלול' : 'העלאת הקלטה לניתוח'}
