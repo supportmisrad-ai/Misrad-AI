@@ -5,6 +5,7 @@ import { NAV_ITEMS, PRIMARY_NAV_PATHS } from './layout.types';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { useRouter } from 'next/navigation';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
@@ -64,12 +65,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       isActiveAction={isActive}
       onNavigateAction={navigate}
       bottomSlot={
-        <OSAppSwitcher
-          compact={true}
-          buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
-          buttonLabel="מודולים"
-          className={isSidebarOpen ? '' : 'w-full flex justify-center'}
-        />
+        <div className="space-y-3">
+          <AttendanceMiniStatus />
+          <OSAppSwitcher
+            compact={true}
+            buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+            buttonLabel="מודולים"
+            className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+          />
+        </div>
       }
     />
   );

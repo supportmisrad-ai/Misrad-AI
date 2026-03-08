@@ -170,7 +170,7 @@ export const DashboardView: React.FC<{
     initialOnboardingTemplateKey?: string | null;
     initialBillingItems?: unknown[] | null;
 }> = ({ initialOwnerDashboard, initialOnboardingTemplateKey, initialBillingItems }) => {
-    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
+    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial, timeEntries } = useData();
     const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
     const [users, setUsers] = useState<UserType[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -473,7 +473,7 @@ export const DashboardView: React.FC<{
             id: 4,
             label: 'כניסה למשמרת',
             subLabel: 'הפעל שעון נוכחות',
-            done: !!activeShift || tasks.some((t) => t.timeSpent > 0),
+            done: !!activeShift || (Array.isArray(timeEntries) && timeEntries.some(t => t.userId === currentUser.id)) || tasks.some((t) => t.timeSpent > 0),
             icon: Clock,
             action: () => {
                 if (typeof document === 'undefined') return;

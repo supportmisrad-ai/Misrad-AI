@@ -72,10 +72,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
                 
                 const next = prev + increment;
                 if (next >= 100 && !isCompletingRef.current) {
-                    // Use setTimeout to defer the completion call until after render
-                    setTimeout(() => {
                     completeHold();
-                    }, 0);
                     return 100;
                 }
                 return next;

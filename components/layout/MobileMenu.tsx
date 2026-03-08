@@ -6,6 +6,7 @@ import { Mic, PenTool, Sun, Settings, Headphones, Sparkles, Home, CheckSquare, P
 import { NAV_ITEMS, getMobileGridStyles } from './layout.types';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
+import MobileMenuAttendanceButton from '@/components/shared/MobileMenuAttendanceButton';
 import { PermissionId } from '@/types';
 
 interface MobileMenuProps {
@@ -213,9 +214,9 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 {/* Separator */}
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                {/* OS Modules */}
+                {/* Attendance + OS Modules */}
                 <div className="space-y-3">
-                  <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                  <MobileMenuAttendanceButton />
                   <OSAppSwitcher mode="inlineGrid" compact={true} />
                 </div>
               </div>
