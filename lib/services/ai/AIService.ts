@@ -786,6 +786,14 @@ export class AIService {
       let primaryError: unknown = null;
 
       try {
+        console.log('[AIService.transcribe] About to call primary provider', { 
+          provider: primaryProvider, 
+          model: primaryModel,
+          bufferSize: params.audioBuffer.byteLength,
+          mimeType: params.mimeType,
+          timeout: feature.settings.timeout_ms
+        });
+
         if (primaryProvider === 'deepgram') {
           const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
           const deepgram = new DeepgramProvider(deepgramKey);
@@ -795,7 +803,7 @@ export class AIService {
             timeoutMs: feature.settings.timeout_ms,
           });
           primaryText = String(out.text || '').trim();
-          console.log('[AIService.transcribe] Deepgram returned', { length: primaryText.length, preview: primaryText.substring(0, 100) });
+          console.log('[AIService.transcribe] Deepgram SUCCESS', { length: primaryText.length, isEmpty: !primaryText, preview: primaryText.substring(0, 150) });
         } else {
           const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
           const gemini = new GeminiProvider(googleKey);
@@ -806,7 +814,7 @@ export class AIService {
             timeoutMs: feature.settings.timeout_ms,
           });
           primaryText = String(out.text || '').trim();
-          console.log('[AIService.transcribe] Gemini returned', { length: primaryText.length, preview: primaryText.substring(0, 100) });
+          console.log('[AIService.transcribe] Gemini SUCCESS', { length: primaryText.length, isEmpty: !primaryText, preview: primaryText.substring(0, 150) });
         }
 
         if (primaryText) {
@@ -848,6 +856,12 @@ export class AIService {
 
         try {
           let fallbackText = '';
+          console.log('[AIService.transcribe] About to call FALLBACK provider', { 
+            provider: fallbackProvider, 
+            model: fallbackModel,
+            bufferSize: params.audioBuffer.byteLength,
+            mimeType: params.mimeType
+          });
 
           if (fallbackProvider === 'deepgram') {
             const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
@@ -858,7 +872,7 @@ export class AIService {
               timeoutMs: feature.settings.timeout_ms,
             });
             fallbackText = String(out.text || '').trim();
-            console.log('[AIService.transcribe] Deepgram fallback returned', { length: fallbackText.length, preview: fallbackText.substring(0, 100) });
+            console.log('[AIService.transcribe] Deepgram FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
           } else {
             const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
             const gemini = new GeminiProvider(googleKey);
@@ -869,7 +883,7 @@ export class AIService {
               timeoutMs: feature.settings.timeout_ms,
             });
             fallbackText = String(out.text || '').trim();
-            console.log('[AIService.transcribe] Gemini fallback returned', { length: fallbackText.length, preview: fallbackText.substring(0, 100) });
+            console.log('[AIService.transcribe] Gemini FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
           }
 
           if (fallbackText) {
