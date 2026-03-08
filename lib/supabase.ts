@@ -227,6 +227,7 @@ async function reportServiceRoleUsage(params: {
 }
 
 const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
+  'admin_apk_signed_url',
   'app_version_manifest_read',
   'app_binary_signed_url',
   'auth_find_user_global_by_email',
@@ -250,6 +251,7 @@ const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
   'landing_upload_public_assets',
   'meeting-recording-signed-upload',
   'meeting-recording-download',
+  'storage_default_client',
   'storage_upload_default',
   'storage_signed_url_resolve',
   'storage_test_admin',
@@ -1218,7 +1220,7 @@ export function createClient(options?: CreateClientOptions): SupabaseClient {
 }
 
 export function createStorageClient(): SupabaseStorageClient {
-  const client = createClient();
+  const client = createServiceRoleClient({ reason: 'storage_default_client', allowUnscoped: true });
   return wrapStorageOnlyClient(client, 'createStorageClient');
 }
 
@@ -1229,8 +1231,8 @@ export function createServiceRoleStorageClient(params: { reason: string; allowUn
 
 export function createStorageClientMaybe(): SupabaseStorageClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
   try {
     return createStorageClient();
   } catch {

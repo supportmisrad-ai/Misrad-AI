@@ -112,7 +112,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com'],
-      bodySizeLimit: '25mb',
+      bodySizeLimit: '100mb',
     },
     // Modern tree-shaking optimization for icon libraries and UI components
     optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', '@radix-ui/react-icons'],

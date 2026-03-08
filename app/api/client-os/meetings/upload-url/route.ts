@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const MEETING_RECORDINGS_BUCKET = 'meeting-recordings';
-const MAX_MEETING_RECORDING_SIZE = 1024 * 1024 * 1024; // 1GB
+const MAX_MEETING_RECORDING_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 function hasPathTraversal(v: string): boolean {
   const s = String(v || '');

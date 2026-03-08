@@ -8,7 +8,6 @@ import {
   Video, Layout, BookOpen, Lightbulb, Palette, Hash
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { uploadFile } from '@/app/actions/files';
 import { useParams } from 'next/navigation';
 
 interface ContentItem {
@@ -115,19 +114,47 @@ export default function ContentBank() {
 
     setUploadingFile(true);
     try {
-      const result = await uploadFile(file, file.name, 'media', orgSlug);
-      if (result.success && result.signedUrl) {
-        const newFile = {
-          id: `media_${Date.now()}`,
-          url: result.signedUrl,
-          name: file.name,
-          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
-        };
-        setMediaFiles(prev => [newFile, ...prev]);
-        addToast('הקובץ הועלה בהצלחה! ✅');
-      } else {
-        addToast(result.error || 'שגיאה בהעלאת הקובץ', 'error');
+      // Step 1: Get signed upload URL from server
+      const urlRes = await fetch('/api/storage/media-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgSlug,
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          folder: 'media',
+        }),
+      });
+
+      const urlData = await urlRes.json();
+      if (!urlRes.ok || !urlData.signedUrl) {
+        addToast(urlData.error || 'שגיאה בהכנת העלאה', 'error');
+        return;
       }
+
+      // Step 2: Upload file directly to Supabase (bypasses Vercel 4.5MB limit)
+      const uploadRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        addToast('שגיאה בהעלאת הקובץ', 'error');
+        return;
+      }
+
+      const newFile = {
+        id: `media_${Date.now()}`,
+        url: `sb://media/${urlData.path}`,
+        name: file.name,
+        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
+      };
+      setMediaFiles(prev => [newFile, ...prev]);
+      addToast('הקובץ הועלה בהצלחה! ✅');
     } catch (error) {
       addToast('שגיאה בהעלאת הקובץ', 'error');
     } finally {

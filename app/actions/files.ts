@@ -11,13 +11,13 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf'];
 
 const CALL_RECORDINGS_BUCKET = 'call-recordings';
-const MAX_CALL_RECORDING_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_CALL_RECORDING_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 export interface UploadResult {
   success: boolean;
@@ -51,7 +51,7 @@ export async function uploadFile(
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return { success: false, error: 'הקובץ גדול מדי (מקסימום 20MB)' };
+      return { success: false, error: 'הקובץ גדול מדי (מקסימום 1GB)' };
     }
 
     // Validate file type
@@ -164,7 +164,7 @@ export async function uploadCallRecordingFile(
     const supabaseUserId = userResult.userId;
 
     if (file.size > MAX_CALL_RECORDING_SIZE) {
-      return { success: false, error: 'הקובץ גדול מדי (מקסימום 200MB)' };
+      return { success: false, error: 'הקובץ גדול מדי (מקסימום 2GB)' };
     }
 
     const fileType = String(file.type || '');

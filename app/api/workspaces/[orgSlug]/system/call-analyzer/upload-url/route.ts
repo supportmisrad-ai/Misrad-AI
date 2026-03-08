@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 const CALL_RECORDINGS_BUCKET = 'call-recordings';
-const MAX_CALL_RECORDING_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_CALL_RECORDING_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 function hasPathTraversal(v: string): boolean {
   const s = String(v || '');
@@ -54,7 +54,7 @@ async function POSTHandler(
     }
 
     if (Number.isFinite(fileSize) && fileSize > MAX_CALL_RECORDING_SIZE) {
-      return apiError('הקובץ גדול מדי (מקסימום 200MB)', { status: 400 });
+      return apiError('הקובץ גדול מדי (מקסימום 2GB)', { status: 400 });
     }
 
     const bucket = CALL_RECORDINGS_BUCKET;
