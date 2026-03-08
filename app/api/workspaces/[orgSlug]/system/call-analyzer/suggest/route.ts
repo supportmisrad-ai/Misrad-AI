@@ -10,6 +10,7 @@ import { asObject } from '@/lib/shared/unknown';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 

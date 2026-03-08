@@ -151,13 +151,74 @@ async function POSTHandler(req: Request) {
       }
     }
 
-    // Verify client exists in MisradClient table (FK constraint: misrad_meetings_client_id_fkey)
-    const clientExists = await prisma.misradClient.findFirst({
+    // Resolve clientId to a MisradClient.id (FK: misrad_meetings_client_id_fkey)
+    // The UI may send a ClientClient ID — we need to find or create the matching MisradClient.
+    let resolvedMisradClientId = clientId;
+
+    const directMatch = await prisma.misradClient.findFirst({
       where: { id: clientId, organizationId: orgId },
       select: { id: true },
     });
-    if (!clientExists) {
-      return apiError('הלקוח לא נמצא במערכת. יש ליצור את הלקוח קודם.', { status: 404 });
+
+    if (!directMatch) {
+      // clientId might be a ClientClient ID — check the cross-module link
+      const linkedMisrad = await prisma.misradClient.findFirst({
+        where: { clientClientId: clientId, organizationId: orgId },
+        select: { id: true },
+      });
+
+      if (linkedMisrad) {
+        resolvedMisradClientId = linkedMisrad.id;
+      } else {
+        // No MisradClient exists — auto-create from ClientClient data
+        const cc = await prisma.clientClient.findFirst({
+          where: { id: clientId, organizationId: orgId },
+          select: { id: true, fullName: true },
+        });
+        if (!cc) {
+          return apiError('הלקוח לא נמצא במערכת. יש ליצור את הלקוח קודם.', { status: 404 });
+        }
+        const initials = cc.fullName.replace(/\s+/g, ' ').trim().split(' ').map(w => w[0] || '').join('').substring(0, 2) || '??';
+        const newMisrad = await prisma.misradClient.create({
+          data: {
+            organizationId: orgId,
+            clientClientId: cc.id,
+            name: cc.fullName,
+            industry: 'לא צוין',
+            employeeCount: 0,
+            logoInitials: initials,
+            healthScore: 50,
+            healthStatus: 'STABLE',
+            status: 'ACTIVE',
+            type: 'RETAINER',
+            tags: [],
+            monthlyRetainer: 0,
+            profitMargin: 0,
+            lifetimeValue: 0,
+            hoursLogged: 0,
+            internalHourlyRate: 0,
+            directExpenses: 0,
+            profitabilityVerdict: 'לא חושב',
+            lastContact: new Date().toLocaleDateString('he-IL'),
+            nextRenewal: '',
+            mainContact: cc.fullName,
+            mainContactRole: '',
+            strengths: [],
+            weaknesses: [],
+            sentimentTrend: [],
+            referralStatus: '',
+            healthBreakdown: {},
+            engagementMetrics: {},
+          },
+          select: { id: true },
+        });
+        resolvedMisradClientId = newMisrad.id;
+        console.log('[client-os/meetings/process] Auto-created MisradClient from ClientClient', {
+          clientClientId: cc.id,
+          misradClientId: newMisrad.id,
+          name: cc.fullName,
+        });
+      }
     }
 
     const abuse = await enforceAiAbuseGuard({
@@ -282,7 +343,7 @@ async function POSTHandler(req: Request) {
       const meeting = await prisma.misradMeeting.create({
         data: {
           organization_id: orgId,
-          client_id: clientId,
+          client_id: resolvedMisradClientId,
           date: meetingDateLabel,
           title,
           location,
@@ -298,7 +359,7 @@ async function POSTHandler(req: Request) {
       try {
         await createClinicSessionForOrganizationId({
           organizationId: orgId,
-          clientId,
+          clientId: clientId,
           startAt: now.toISOString(),
           status: 'completed',
           sessionType: title,
@@ -320,7 +381,7 @@ async function POSTHandler(req: Request) {
 
     const saved = await analyzeAndStoreMeeting({
       orgId,
-      clientId,
+      clientId: resolvedMisradClientId,
       title,
       location,
       transcript,
@@ -334,7 +395,7 @@ async function POSTHandler(req: Request) {
 
       await createClinicSessionForOrganizationId({
         organizationId: orgId,
-        clientId,
+        clientId: clientId,
         startAt: new Date().toISOString(),
         status: 'completed',
         sessionType: title,
