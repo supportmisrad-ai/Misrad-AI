@@ -8,6 +8,7 @@ import {
   shouldNotifyBeforeDelete,
 } from '@/lib/storage/retention-policy';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { sendStorageDeletionNotification } from '@/lib/email/storage-deletion-notification';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes
@@ -38,6 +39,16 @@ async function POSTHandler(req: NextRequest) {
 
   const results: ScanResult[] = [];
   const buckets = ['media', 'call-recordings', 'meeting-recordings', 'operations-files', 'attachments'];
+  
+  // Track files to notify per organization
+  const notificationsByOrg = new Map<string, Array<{
+    fileName: string;
+    bucket: string;
+    path: string;
+    uploadedAt: Date;
+    sizeBytes: bigint;
+    deleteScheduledAt: Date;
+  }>>();
 
   for (const bucket of buckets) {
     const policy = getRetentionPolicy(bucket);
@@ -122,19 +133,31 @@ async function POSTHandler(req: NextRequest) {
           result.filesToNotify++;
 
           try {
-            // Mark as notified
+            const deleteScheduledAt = new Date(
+              file.uploadedAt.getTime() + policy.retentionDays * 24 * 60 * 60 * 1000
+            );
+
+            // Mark as notified in DB
             await prisma.storageFile.update({
               where: { id: file.id },
               data: {
                 deletionNotifiedAt: new Date(),
-                deleteScheduledAt: new Date(
-                  file.uploadedAt.getTime() + policy.retentionDays * 24 * 60 * 60 * 1000
-                ),
+                deleteScheduledAt,
               },
             });
 
-            // TODO: Send email notification
-            // await sendStorageDeletionNotification(file.organizationId, file);
+            // Group files by organization for batch email sending
+            if (!notificationsByOrg.has(file.organizationId)) {
+              notificationsByOrg.set(file.organizationId, []);
+            }
+            notificationsByOrg.get(file.organizationId)!.push({
+              fileName: file.fileName,
+              bucket,
+              path: file.path,
+              uploadedAt: file.uploadedAt,
+              sizeBytes: file.sizeBytes,
+              deleteScheduledAt,
+            });
 
             result.notifiedFiles++;
           } catch (err) {
@@ -151,6 +174,50 @@ async function POSTHandler(req: NextRequest) {
     results.push(result);
   }
 
+  // Send batched email notifications
+  let emailsSent = 0;
+  let emailsFailed = 0;
+
+  for (const [organizationId, files] of notificationsByOrg.entries()) {
+    try {
+      // Fetch organization details
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: {
+          name: true,
+          slug: true,
+          owner: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!org || !org.owner?.email) {
+        console.warn(`[storage-cleanup] No owner email for org ${organizationId}`);
+        emailsFailed++;
+        continue;
+      }
+
+      const result = await sendStorageDeletionNotification({
+        organizationId,
+        organizationName: org.name,
+        ownerEmail: org.owner.email,
+        files,
+      });
+
+      if (result.success) {
+        emailsSent++;
+      } else {
+        emailsFailed++;
+      }
+    } catch (err) {
+      console.error(`[storage-cleanup] Failed to send email for org ${organizationId}:`, err);
+      emailsFailed++;
+    }
+  }
+
   const summary = {
     timestamp: new Date().toISOString(),
     totalBuckets: buckets.length,
@@ -160,6 +227,11 @@ async function POSTHandler(req: NextRequest) {
       deleted: results.reduce((sum, r) => sum + r.deletedFiles, 0),
       notified: results.reduce((sum, r) => sum + r.notifiedFiles, 0),
       errors: results.reduce((sum, r) => sum + r.errors, 0),
+    },
+    emails: {
+      sent: emailsSent,
+      failed: emailsFailed,
+      totalOrgs: notificationsByOrg.size,
     },
   };
 

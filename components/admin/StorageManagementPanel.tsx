@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Database, Clock, AlertCircle, Shield, HardDrive, Trash2 } from 'lucide-react';
 import { getAllRetentionPolicies, getRetentionPolicyDescription } from '@/lib/storage/retention-policy';
+import { getStorageStats, type StorageStats } from '@/app/actions/storage-stats';
 
 /**
  * Storage Management Panel - ממשק ניהול אחסון
@@ -10,9 +11,25 @@ import { getAllRetentionPolicies, getRetentionPolicyDescription } from '@/lib/st
  * מיועד למנהלי מערכת בדף Settings -> Storage.
  * מציג סטטיסטיקות שימוש, מדיניות שמירה, וכלי ניהול.
  */
-export function StorageManagementPanel() {
+export function StorageManagementPanel({ organizationId }: { organizationId: string }) {
   const policies = getAllRetentionPolicies();
   const [activeTab, setActiveTab] = useState<'overview' | 'policy'>('overview');
+  const [stats, setStats] = useState<StorageStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const data = await getStorageStats(organizationId);
+        setStats(data);
+      } catch (err) {
+        console.error('Failed to load storage stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, [organizationId]);
 
   return (
     <div className="space-y-6">
@@ -71,7 +88,9 @@ export function StorageManagementPanel() {
                   <Database className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900">—</div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {loading ? '...' : stats?.totalFiles.toLocaleString('he-IL') || '0'}
+                  </div>
                   <div className="text-xs text-slate-500">סה"כ קבצים</div>
                 </div>
               </div>
@@ -83,7 +102,9 @@ export function StorageManagementPanel() {
                   <HardDrive className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900">—</div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {loading ? '...' : `${stats?.totalSizeMB || '0'} MB`}
+                  </div>
                   <div className="text-xs text-slate-500">נפח מנוצל</div>
                 </div>
               </div>
@@ -95,23 +116,35 @@ export function StorageManagementPanel() {
                   <AlertCircle className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900">—</div>
+                  <div className="text-2xl font-black text-slate-900">
+                    {loading ? '...' : stats?.filesToDelete.toLocaleString('he-IL') || '0'}
+                  </div>
                   <div className="text-xs text-slate-500">קבצים לקראת מחיקה</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Info Box */}
-          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900">
-                <strong className="font-black">סטטיסטיקות בזמן אמת</strong> - נתונים אלו יעודכנו בהמשך
-                לכלול מעקב אחר שימוש בפועל, קבצים שנמחקו, והתראות ששלחו.
+          {/* Bucket Breakdown */}
+          {stats && stats.filesByBucket.length > 0 && (
+            <div className="p-5 rounded-xl border-2 border-slate-200 bg-white">
+              <h3 className="font-black text-slate-900 mb-4">פילוח לפי Bucket</h3>
+              <div className="space-y-3">
+                {stats.filesByBucket.map(bucket => (
+                  <div key={bucket.bucket} className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <Database className="w-4 h-4 text-slate-400" />
+                      <span className="font-bold text-slate-900 text-sm">{bucket.bucket}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-slate-600">{bucket.count.toLocaleString('he-IL')} קבצים</span>
+                      <span className="text-sm font-bold text-slate-900">{bucket.sizeMB} MB</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
