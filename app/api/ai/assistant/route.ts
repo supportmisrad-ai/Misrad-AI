@@ -215,7 +215,7 @@ function streamClaudeResponse(params: {
         const anthropic = new Anthropic({ apiKey: params.apiKey });
         
         const messageStream = await anthropic.messages.stream({
-          model: 'claude-3-5-haiku-20241022',
+          model: 'claude-3-5-haiku-20250219',
           max_tokens: params.maxTokens ?? 400,
           temperature: params.temperature ?? 0.3,
           system: params.systemInstruction,
