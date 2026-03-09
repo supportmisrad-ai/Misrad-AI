@@ -684,6 +684,7 @@ async function POSTHandler(req: Request) {
       });
     }
 
+    // === Workspace (non-sales) mode - requires authentication ===
     await getAuthenticatedUser();
 
     const clerkUserId = await getCurrentUserId();
