@@ -221,8 +221,9 @@ export const DashboardView: React.FC<{
             return listNexusUsers({ orgId: workspaceOrgSlug as string, page: 1, pageSize: 200 });
         },
         enabled: Boolean(workspaceOrgSlug),
-        staleTime: 5_000,
-        refetchInterval: 30_000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        refetchInterval: false,
+        refetchOnWindowFocus: false,
         retry: 1,
     });
 

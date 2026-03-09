@@ -530,7 +530,7 @@ export const useAuth = (
             !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) &&
             !stopAllActivityRef.current
         ),
-        staleTime: 5_000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
         refetchInterval: () => {
             if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
@@ -571,7 +571,7 @@ export const useAuth = (
             orgSlug &&
             !stopAllActivityRef.current
         ),
-        staleTime: 5_000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
         refetchInterval: () => {
             if (stopAllActivityRef.current) return false; // Stop polling if unauthorized
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;

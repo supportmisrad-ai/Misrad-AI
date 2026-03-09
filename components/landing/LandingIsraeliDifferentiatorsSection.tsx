@@ -66,12 +66,13 @@ function HebrewCalendarMockup() {
         <div className="grid grid-cols-7 gap-2">
           {/* Empty offset */}
           {Array.from({ length: 6 }).map((_, i) => <div key={`e-${i}`} />)}
-          
+
           {/* Days 1-21 */}
           {Array.from({ length: 21 }, (_, i) => i + 1).map((d) => {
             const isShabbat = d === 1 || d === 8 || d === 15;
             const isPurim = d === 14;
             const isToday = d === 8;
+            const hebrewNumerals = ['', 'א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ז׳', 'ח׳', 'ט׳', 'י׳', 'י״א', 'י״ב', 'י״ג', 'י״ד', 'ט״ו', 'ט״ז', 'י״ז', 'י״ח', 'י״ט', 'כ׳', 'כ״א'];
             return (
               <div
                 key={d}
@@ -82,7 +83,7 @@ function HebrewCalendarMockup() {
                   ${!isToday && !isShabbat && !isPurim ? 'text-white/40' : ''}
                 `}
               >
-                {d}
+                {hebrewNumerals[d]}
               </div>
             );
           })}

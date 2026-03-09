@@ -66,8 +66,9 @@ export const TeamView: React.FC = () => {
           });
       },
       enabled: Boolean(orgSlug),
-      staleTime: 5_000,
-      refetchInterval: 30_000,
+      staleTime: 5 * 60 * 1000, // 5 דקות במקום 5 שניות
+      refetchInterval: false, // ביטול polling אוטומטי
+      refetchOnWindowFocus: false, // ביטול refetch בחזרה לחלון
       retry: 1,
   });
 

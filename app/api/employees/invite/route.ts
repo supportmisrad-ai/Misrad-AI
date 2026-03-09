@@ -93,12 +93,9 @@ async function insertNotification(params: {
         organization_id: string;
         recipient_id: string;
         type: string;
-        text: string;
-        actor_id?: string | null;
-        actor_name?: string | null;
-        related_id?: string | null;
+        title: string;
+        message: string;
         is_read: boolean;
-        metadata?: unknown;
         created_at: string;
     };
 }) {
@@ -107,20 +104,17 @@ async function insertNotification(params: {
         reason: 'employee_invite_notification_insert',
         query: `
             insert into misrad_notifications
-                (organization_id, recipient_id, type, text, actor_id, actor_name, related_id, is_read, metadata, created_at, updated_at)
+                (organization_id, recipient_id, type, title, message, is_read, created_at, updated_at)
             values
-                ($1::uuid, $2::uuid, $3::text, $4::text, $5::uuid, $6::text, $7::uuid, $8::boolean, $9::jsonb, $10::timestamptz, $10::timestamptz)
+                ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::boolean, $7::timestamptz, $7::timestamptz)
         `,
         values: [
             params.notification.organization_id,
             params.notification.recipient_id,
             params.notification.type,
-            params.notification.text,
-            params.notification.actor_id ?? null,
-            params.notification.actor_name ?? null,
-            params.notification.related_id ?? null,
+            params.notification.title,
+            params.notification.message,
             Boolean(params.notification.is_read),
-            params.notification.metadata ?? {},
             params.notification.created_at,
         ],
     });
@@ -389,16 +383,9 @@ async function POSTHandler(request: NextRequest) {
                     organization_id: String(workspace.id),
                     recipient_id: String(user.id),
                     type: 'employee_invitation',
-                    text: `קישור הזמנה לעובד נוצר: ${employeeEmail}`,
-                    actor_id: String(user.id),
-                    actor_name: user.name || null,
-                    related_id: String(invitation.id),
+                    title: 'הזמנת עובד חדש',
+                    message: `קישור הזמנה נוצר עבור ${employeeName || employeeEmail} (${department})`,
                     is_read: false,
-                    metadata: {
-                        employee_email: employeeEmail,
-                        department: department,
-                        role: role,
-                    },
                     created_at: new Date().toISOString(),
                 },
             });

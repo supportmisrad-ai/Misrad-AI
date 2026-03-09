@@ -46,8 +46,8 @@ export const TasksView: React.FC = () => {
           return listNexusTasks({ orgId: orgSlug as string });
       },
       enabled: Boolean(orgSlug),
-      staleTime: 5_000,
-      refetchInterval: 30_000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchInterval: false,
       // Disable window-focus refetch: we manage cache manually via setQueryData on
       // mutations, so an automatic focus-refetch would race against optimistic state
       // and cause deleted/updated tasks to reappear briefly.

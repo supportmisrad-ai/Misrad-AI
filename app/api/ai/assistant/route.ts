@@ -206,7 +206,7 @@ function streamClaudeResponse(params: {
   postProcess?: (text: string) => string;
 }): Response {
   const ac = new AbortController();
-  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 8000);
+  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 15000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -215,7 +215,7 @@ function streamClaudeResponse(params: {
         const anthropic = new Anthropic({ apiKey: params.apiKey });
         
         const messageStream = await anthropic.messages.stream({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-3-5-haiku-20241022',
           max_tokens: params.maxTokens ?? 400,
           temperature: params.temperature ?? 0.3,
           system: params.systemInstruction,
@@ -670,7 +670,7 @@ async function POSTHandler(req: Request) {
         prompt,
         temperature: 0.3,
         maxTokens: 350,
-        timeoutMs: 8000,
+        timeoutMs: 15000,
         postProcess: (raw) => {
           const actions = extractDynamicActions(raw);
           let cleaned = stripActionsTag(raw);
@@ -781,7 +781,7 @@ async function POSTHandler(req: Request) {
       prompt,
       temperature: 0.2,
       maxTokens: 350,
-      timeoutMs: 8000,
+      timeoutMs: 15000,
     });
   } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Chat failed' });
