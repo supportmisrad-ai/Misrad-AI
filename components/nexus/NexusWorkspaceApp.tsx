@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
@@ -122,7 +122,9 @@ export function NexusWorkspaceApp({
       case '/me':
         return (
           <Layout>
-            <MeView />
+            <Suspense fallback={null}>
+              <MeView />
+            </Suspense>
           </Layout>
         );
       case '/attendance-reports':

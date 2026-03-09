@@ -71,16 +71,7 @@ export function useWorkspaceSystemIdentity(
   identity: WorkspaceSystemIdentity | null;
   isLoading: boolean;
 } {
-  let clerkUser: unknown = null;
-  let isClerkLoaded = false;
-  try {
-    const clerk = useUser();
-    clerkUser = clerk.user;
-    isClerkLoaded = clerk.isLoaded;
-  } catch {
-    clerkUser = null;
-    isClerkLoaded = false;
-  }
+  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const { identity: profileIdentity, isLoading } = useWorkspaceProfileIdentity(orgSlug);
 
   const identity = useMemo<WorkspaceSystemIdentity | null>(() => {

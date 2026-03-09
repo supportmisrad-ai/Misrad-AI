@@ -176,17 +176,18 @@ export const useAuth = (
     }, [pathname]);
 
     const activeShift = useMemo(() => {
-        const found = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
-        // Keep module-level cache in sync so other components get instant state on mount
-        if (orgSlug) {
-            if (found) {
-                setAttendanceCache(orgSlug, { entryId: found.id, startTime: found.startTime });
-            } else {
-                setAttendanceCache(orgSlug, null);
-            }
+        return timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+    }, [timeEntries, currentUser.id]);
+
+    // Keep module-level cache in sync — must be a useEffect, not useMemo (no side effects in useMemo)
+    useEffect(() => {
+        if (!orgSlug) return;
+        if (activeShift) {
+            setAttendanceCache(orgSlug, { entryId: activeShift.id, startTime: activeShift.startTime });
+        } else {
+            setAttendanceCache(orgSlug, null);
         }
-        return found;
-    }, [timeEntries, currentUser.id, orgSlug]);
+    }, [activeShift, orgSlug]);
 
     const refreshTimeEntriesRetryRef = useRef(0);
     const refreshTimeEntries = useCallback(async () => {

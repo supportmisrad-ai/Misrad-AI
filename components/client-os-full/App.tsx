@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Layout from './components/ui/Layout';
 import Dashboard from './components/Dashboard';
@@ -188,27 +188,29 @@ export default function App({
       case 'me':
         return (
           <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-            <MeView
-              basePathOverride={basePath}
-              moduleCards={
-                basePath
-                  ? [
-                      {
-                        title: 'הגדרות לקוחות',
-                        subtitle: 'פורטל, אוטומציות וחיבורים',
-                        href: `${basePath}/hub`,
-                        iconId: 'settings',
-                      },
-                      {
-                        title: 'לקוחות',
-                        subtitle: 'רשימה, סטטוסים ופעולות',
-                        href: `${basePath}?tab=clients`,
-                        iconId: 'user',
-                      },
-                    ]
-                  : undefined
-              }
-            />
+            <Suspense fallback={null}>
+              <MeView
+                basePathOverride={basePath}
+                moduleCards={
+                  basePath
+                    ? [
+                        {
+                          title: 'הגדרות לקוחות',
+                          subtitle: 'פורטל, אוטומציות וחיבורים',
+                          href: `${basePath}/hub`,
+                          iconId: 'settings',
+                        },
+                        {
+                          title: 'לקוחות',
+                          subtitle: 'רשימה, סטטוסים ופעולות',
+                          href: `${basePath}?tab=clients`,
+                          iconId: 'user',
+                        },
+                      ]
+                    : undefined
+                }
+              />
+            </Suspense>
           </DataProvider>
         );
       case 'settings':
