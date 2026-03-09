@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useMemo, useState, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useCallback } from 'react';
 import { useToasts } from '../hooks/useToasts';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -116,47 +116,22 @@ export const DataProvider = ({
         setSystemReports(prev => prev.map(r => r.id === id ? { ...r, isRead: true } : r));
     }, []);
 
-    // Combine all hooks and state
-    const value = useMemo<DataContextValue>(() => {
-        return {
-            toasts, addToast, removeToast,
-            ...auth,
-            ...notifications,
-            ...taskManager,
-            ...content,
-            ...crm,
-            ...admin,
-            initialAdminKPIs,
-            activeCelebration,
-            isTutorialActive, startTutorial, endTutorial,
-            isSupportModalOpen, openSupport, closeSupport, supportDraft, setSupportDraft,
-            feedbacks, addFeedback,
-            systemReports, markReportRead
-        };
-    }, [
-        toasts,
-        addToast,
-        removeToast,
-        auth,
-        notifications,
-        taskManager,
-        content,
-        crm,
-        admin,
+    // Combine all hooks and state — NO useMemo! React 19 error #482 if any hook returns async value
+    const value: DataContextValue = {
+        toasts, addToast, removeToast,
+        ...auth,
+        ...notifications,
+        ...taskManager,
+        ...content,
+        ...crm,
+        ...admin,
         initialAdminKPIs,
         activeCelebration,
-        isTutorialActive,
-        startTutorial,
-        endTutorial,
-        isSupportModalOpen,
-        openSupport,
-        closeSupport,
-        supportDraft,
-        feedbacks,
-        addFeedback,
-        systemReports,
-        markReportRead,
-    ]);
+        isTutorialActive, startTutorial, endTutorial,
+        isSupportModalOpen, openSupport, closeSupport, supportDraft, setSupportDraft,
+        feedbacks, addFeedback,
+        systemReports, markReportRead
+    };
 
     return (
         <DataContext.Provider value={value}>
