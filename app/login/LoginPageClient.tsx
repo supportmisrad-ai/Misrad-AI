@@ -444,6 +444,8 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
   const mode = (searchParams.get('mode') || '').toLowerCase();
   const isSignUpMode = mode === 'sign-up' || mode === 'signup' || mode === 'register';
 
+  const [inlineMode, setInlineMode] = useState<'sign-in' | 'sign-up'>(() => (isSignUpMode ? 'sign-up' : 'sign-in'));
+
   const ssoError = searchParams.get('error');
   const ssoErrorMessage = ssoError === 'sso_timeout'
     ? 'תהליך האימות לקח יותר מדי זמן. נא לנסות שוב.'
@@ -451,7 +453,7 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
       ? 'ההרשמה נכשלה. ייתכן שהרשמות חדשות מוגבלות. נא ליצור קשר עם התמיכה.'
       : null;
 
-  if (isSignUpMode) {
+  if (inlineMode === 'sign-up') {
     return (
       <div className="min-h-screen bg-white flex flex-row overflow-hidden" dir="rtl">
         <main className="w-full flex flex-row">
@@ -527,7 +529,7 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
 
               <button
                 type="button"
-                onClick={() => window.location.href = '/login'}
+                onClick={() => setInlineMode('sign-in')}
                 className="mt-4 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
               >
                 כבר יש לך חשבון? התחבר כאן
@@ -540,7 +542,6 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
     );
   }
 
-  // Show login view
-  const loginMode = isSignUpMode ? "sign-up" : "sign-in";
-  return <LoginView mode={loginMode} />;
+  // Show login view (inline sign-in), with internal toggle to sign-up
+  return <LoginView mode="sign-in" onSwitchToSignUp={() => setInlineMode('sign-up')} />;
 }

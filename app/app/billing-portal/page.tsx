@@ -12,6 +12,7 @@ import { CreditCard, CircleCheck, Clock, Mail, Phone, Building2, Shield } from '
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 export const metadata = {
   title: 'פורטל תשלומים | Misrad AI',
@@ -20,21 +21,30 @@ export const metadata = {
 
 async function getUserOrganization(clerkUserId: string) {
   try {
-    const orgUser = await prisma.organizationUser.findFirst({
-      where: { clerk_user_id: clerkUserId },
-      select: {
-        owned_organizations: {
+    const orgUser = await prisma.organizationUser.findFirst(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerk_user_id: clerkUserId },
           select: {
-            id: true,
-            name: true,
-            mrr: true,
-            subscription_status: true,
-            billing_email: true,
+            owned_organizations: {
+              select: {
+                id: true,
+                name: true,
+                mrr: true,
+                subscription_status: true,
+                billing_email: true,
+              },
+              take: 1,
+            },
           },
-          take: 1,
         },
-      },
-    });
+        {
+          reason: 'billing_portal_lookup_owner_by_clerk_id',
+          source: 'app/app/billing-portal/page.tsx',
+          suppressReporting: true,
+        }
+      )
+    );
 
     return orgUser?.owned_organizations?.[0] || null;
   } catch (error) {

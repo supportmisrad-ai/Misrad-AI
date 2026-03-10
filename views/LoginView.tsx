@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
@@ -15,10 +14,13 @@ function asObj(v: unknown): Record<string, unknown> | undefined {
   return undefined;
 }
 
-export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' | 'sign-up' }> = ({ organizationName, mode = 'sign-in' }) => {
+export const LoginView: React.FC<{
+  organizationName?: string;
+  mode?: 'sign-in' | 'sign-up';
+  onSwitchToSignUp?: () => void;
+}> = ({ organizationName, mode = 'sign-in', onSwitchToSignUp }) => {
   const orgName = organizationName || 'MISRAD AI';
   const isSignUpMode = mode === 'sign-up';
-  const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
 
   const [targetModule, setTargetModule] = useState<OSModule | 'misrad'>('misrad');
@@ -550,7 +552,13 @@ export const LoginView: React.FC<{ organizationName?: string; mode?: 'sign-in' |
                                 <div className="mt-4 pt-4 border-t border-gray-100 text-center">
                                   <button
                                     type="button"
-                                    onClick={() => router.push('/login?mode=sign-up')}
+                                    onClick={() => {
+                                      if (onSwitchToSignUp) {
+                                        onSwitchToSignUp();
+                                      } else if (typeof window !== 'undefined') {
+                                        window.location.href = '/login?mode=sign-up';
+                                      }
+                                    }}
                                     className="text-sm font-bold text-gray-500 hover:text-gray-800 transition-colors"
                                   >
                                     אין לך חשבון? <span className="text-indigo-600 underline">הצטרף כאן</span>

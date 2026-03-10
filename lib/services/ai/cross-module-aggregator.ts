@@ -160,8 +160,8 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
         SELECT
           COUNT(*) AS total_clients,
           COUNT(*) FILTER (WHERE lower(COALESCE(status,'')) NOT IN ('churned','inactive','archived')) AS active_clients,
-          COUNT(*) FILTER (WHERE COALESCE(health_score,100)::int < 50) AS at_risk_clients,
-          COALESCE(AVG(COALESCE(health_score,0)::numeric), 0) AS avg_health_score
+          0::int AS at_risk_clients,
+          0::numeric AS avg_health_score
         FROM client_clients
         WHERE organization_id = $1::uuid
       `,
@@ -359,7 +359,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
       module: 'client',
       title: `${clientStats.atRiskClients} לקוחות בסיכון`,
       description: `ציון בריאות מתחת ל-50 — דורש התערבות מיידית`,
-      dataSource: 'client_clients WHERE health_score < 50',
+      dataSource: 'client_clients (health_score disabled: column not present)',
     });
   }
 

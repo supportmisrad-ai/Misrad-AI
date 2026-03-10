@@ -7,7 +7,6 @@ import { Building2, Plus, Search, Filter, Users, Mail, Phone, Globe, MapPin, Use
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import AddBusinessClientModal from '@/components/admin/AddBusinessClientModal';
 import AddContactToClientModal from '@/components/admin/AddContactToClientModal';
 import AddOrganizationToClientModal from '@/components/admin/AddOrganizationToClientModal';
 import ManageBillingModal from '@/components/admin/ManageBillingModal';
@@ -140,7 +139,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'created' | 'orgs'>('created');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [selectedClientForContact, setSelectedClientForContact] = useState<BusinessClient | null>(null);
   const [selectedClientForOrg, setSelectedClientForOrg] = useState<BusinessClient | null>(null);
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
@@ -452,10 +450,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
               <Archive className="w-4 h-4" />
               סל מיחזור
             </Button>
-            <Button onClick={() => setIsAddClientModalOpen(true)} className="w-full sm:w-auto shadow-sm">
-              <Plus className="w-4 h-4" />
-              הוסף לקוח עסקי
-            </Button>
           </div>
         }
       />
@@ -728,10 +722,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
                     <RefreshCw className="w-5 h-5 ml-2" />
                   )}
                   {isSyncing ? 'מסנכרן...' : 'סנכרן מארגונים קיימים'}
-                </Button>
-                <Button onClick={() => setIsAddClientModalOpen(true)} size="lg" variant="outline">
-                  <Plus className="w-5 h-5 ml-2" />
-                  הוסף לקוח עסקי ידנית
                 </Button>
               </div>
             </div>
@@ -1089,13 +1079,6 @@ export default function BusinessClientsClient({ initialClients }: { initialClien
           })
         )}
       </div>
-
-      {/* Modals */}
-      <AddBusinessClientModal
-        isOpen={isAddClientModalOpen}
-        onClose={() => setIsAddClientModalOpen(false)}
-        onSuccess={handleAddClientSuccess}
-      />
 
       {selectedClientForContact && (
         <AddContactToClientModal
