@@ -82,9 +82,24 @@ async function GETHandler(request: NextRequest) {
       prisma.nexusLeaveRequest.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
     );
 
-    await runCheck('nexus_employee_invitation_links.organization_id', () =>
-      prisma.nexusEmployeeInvitationLink.findFirst({ where: { organizationId: workspaceId }, select: { id: true, organizationId: true } })
-    );
+    await runCheck('nexus_employee_invitation_links.organization_id', async () => {
+      const row = await prisma.$queryRawUnsafe<
+        Array<{ id?: string | null; organization_id?: string | null }>
+      >(
+        `
+          select id::text as id, organization_id::text as organization_id
+          from nexus_employee_invitation_links
+          where organization_id::uuid = $1::uuid
+          limit 1
+        `,
+        workspaceId,
+      );
+      const first = Array.isArray(row) ? row[0] : null;
+      if (!first?.id) {
+        throw new Error('No rows found in nexus_employee_invitation_links for workspace');
+      }
+      return { id: first.id, organizationId: first.organization_id ?? workspaceId };
+    });
 
     await runCheck('misrad_notifications.is_read', () =>
       prisma.misradNotification.findFirst({

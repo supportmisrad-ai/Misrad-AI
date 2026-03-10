@@ -106,7 +106,24 @@ async function insertNotification(params: {
             insert into misrad_notifications
                 (organization_id, recipient_id, type, title, message, is_read, created_at, updated_at)
             values
-                ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::boolean, $7::timestamptz, $7::timestamptz)
+                (
+                  $1::uuid,
+                  $2::uuid,
+                  -- map arbitrary string to valid MisradNotificationType enum on the DB side
+                  case upper(trim($3::text))
+                    when 'ALERT' then 'ALERT'::"MisradNotificationType"
+                    when 'MESSAGE' then 'MESSAGE'::"MisradNotificationType"
+                    when 'SUCCESS' then 'SUCCESS'::"MisradNotificationType"
+                    when 'TASK' then 'TASK'::"MisradNotificationType"
+                    when 'SYSTEM' then 'SYSTEM'::"MisradNotificationType"
+                    else 'SYSTEM'::"MisradNotificationType"
+                  end,
+                  $4::text,
+                  $5::text,
+                  $6::boolean,
+                  $7::timestamptz,
+                  $7::timestamptz
+                )
         `,
         values: [
             params.notification.organization_id,
