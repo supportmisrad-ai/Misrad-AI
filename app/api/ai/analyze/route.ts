@@ -56,7 +56,9 @@ async function POSTHandler(request: NextRequest) {
         const { workspace: callerWorkspace } = await getWorkspaceByOrgKeyOrThrow(callerOrganizationId);
 
         // Subscription guard — block AI for suspended/past_due/cancelled orgs
-        const aiAccess = checkAiAccess(callerWorkspace.subscriptionStatus);
+        // Super Admins are always allowed (they need to debug and support tenants regardless of billing state).
+        const isSuperAdmin = user.isSuperAdmin === true;
+        const aiAccess = isSuperAdmin ? { allowed: true as const } : checkAiAccess(callerWorkspace.subscriptionStatus);
         if (!aiAccess.allowed) {
             return apiError(aiAccess.message, { status: 403 });
         }
