@@ -38,6 +38,7 @@ interface MeAttendancePanelProps {
     onClockIn: () => void;
     onClockOut: () => void;
     onRequestLeave: () => void;
+    actionsEnabled?: boolean;
 }
 
 const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
@@ -60,6 +61,7 @@ export const MeAttendancePanel: React.FC<MeAttendancePanelProps> = ({
     onClockIn,
     onClockOut,
     onRequestLeave,
+    actionsEnabled = true,
 }) => {
     return (
         <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
@@ -68,13 +70,17 @@ export const MeAttendancePanel: React.FC<MeAttendancePanelProps> = ({
                     <h3 className="text-xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2 mb-2">
                         <Clock size={20} className="text-blue-600" />
                         שעון נוכחות
-                        {activeShift && <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full animate-pulse border border-green-200">פעיל</span>}
+                        {actionsEnabled && activeShift && (
+                            <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full animate-pulse border border-green-200">פעיל</span>
+                        )}
                     </h3>
                     
                     <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 mb-6">
-                        <div className="font-mono text-4xl md:text-5xl font-black text-gray-900 tracking-tight tabular-nums">
-                            {elapsed}
-                        </div>
+                        {actionsEnabled ? (
+                            <div className="font-mono text-4xl md:text-5xl font-black text-gray-900 tracking-tight tabular-nums">
+                                {elapsed}
+                            </div>
+                        ) : null}
                     </div>
                     
                     <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-8 border-t border-gray-100 pt-6 w-full">
@@ -101,15 +107,17 @@ export const MeAttendancePanel: React.FC<MeAttendancePanelProps> = ({
                     </div>
                 </div>
 
-                <div className="shrink-0 relative">
-                    <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl transform scale-150 pointer-events-none"></div>
-                    <HoldButton 
-                        isActive={!!activeShift} 
-                        onComplete={activeShift ? onClockOut : onClockIn} 
-                        label={activeShift ? 'יציאה' : 'כניסה'} 
-                        size="normal"
-                    />
-                </div>
+                {actionsEnabled ? (
+                    <div className="shrink-0 relative">
+                        <div className="absolute inset-0 bg-blue-50/50 rounded-full blur-3xl transform scale-150 pointer-events-none"></div>
+                        <HoldButton 
+                            isActive={!!activeShift} 
+                            onComplete={activeShift ? onClockOut : onClockIn} 
+                            label={activeShift ? 'יציאה' : 'כניסה'} 
+                            size="normal"
+                        />
+                    </div>
+                ) : null}
             </div>
 
             <div className="border-t border-gray-100 bg-gray-50/30">

@@ -615,7 +615,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             כתובת אימייל
           </label>
           <div className="relative">
-            <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+            <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={20} aria-hidden="true" />
             <input
               type="email"
               value={email}
@@ -623,7 +623,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
               placeholder="your@email.com"
               required
               disabled={!isSignIn && step === 'verify'}
-              className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-12 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-right"
+              dir="ltr"
+              className="w-full bg-slate-50 border border-slate-100 rounded-[24px] pr-12 pl-5 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-left"
             />
           </div>
         </div>
@@ -634,7 +635,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
               סיסמה
             </label>
             <div className="relative">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={20} aria-hidden="true" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -642,7 +643,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
                 placeholder="••••••••"
                 required
                 disabled={!isSignIn && step === 'verify'}
-                className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-12 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-right"
+                dir="ltr"
+                className="w-full bg-slate-50 border border-slate-100 rounded-[24px] pr-12 pl-12 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-left"
               />
               <button
                 type="button"

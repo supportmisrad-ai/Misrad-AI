@@ -321,7 +321,11 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     if (status === 503) {
       redirect('/maintenance');
     }
-    redirect('/');
+    // Do not bounce users to the public homepage on access problems — keep them in-app.
+    if (status === 403) {
+      redirect(`/w/${encodeURIComponent(orgSlug)}/no-access`);
+    }
+    redirect('/workspaces');
   }
 }
 

@@ -916,6 +916,7 @@ export const MeView: React.FC<{
                   onClockIn={clockIn}
                   onClockOut={clockOut}
                   onRequestLeave={() => setShowLeaveRequestModal(true)}
+                  actionsEnabled={false}
               />
           ) : null}
 

@@ -80,12 +80,8 @@ export function AIAttentionCard({ orgSlug, maxAlerts = 3 }: AIAttentionCardProps
   }, [orgSlug, maxAlerts]);
 
   if (loading) {
-    return (
-      <div className="ui-card p-6 flex items-center gap-3 text-slate-500">
-        <Loader2 size={18} className="animate-spin" />
-        <span className="text-sm font-medium">AI סורק את המערכת...</span>
-      </div>
-    );
+    // Do not show internal scanning status to end-users (keep the UI clean).
+    return null;
   }
 
   if (error || alerts.length === 0) return null;
