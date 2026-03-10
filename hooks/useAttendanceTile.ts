@@ -7,6 +7,7 @@ import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 // Import the raw context so we can do a safe (non-throwing) check
 import { DataContext } from '@/context/DataContext';
+import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
 const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus', 'system', 'operations', 'finance', 'social', 'client']);
 
@@ -58,8 +59,24 @@ export function useAttendanceTile(): UseAttendanceTileResult {
   const authClockIn = data?.clockIn;
   const authClockOut = data?.clockOut;
 
-  const isActive = Boolean(activeShift);
-  const startTime = activeShift?.startTime ?? null;
+  // Local cache fallback: makes state instant across module navigation,
+  // even while DataProvider/user is still loading.
+  const [cachedSnapshot, setCachedSnapshot] = useState(() => (orgSlug ? getAttendanceCache(orgSlug) : null));
+  useEffect(() => {
+    if (!orgSlug) {
+      setCachedSnapshot(null);
+      return;
+    }
+    setCachedSnapshot(getAttendanceCache(orgSlug));
+    return subscribeAttendanceCache((changedOrgSlug, snapshot) => {
+      if (changedOrgSlug !== orgSlug) return;
+      setCachedSnapshot(snapshot);
+    });
+  }, [orgSlug]);
+
+  const effectiveStartTime = activeShift?.startTime ?? cachedSnapshot?.startTime ?? null;
+  const isActive = Boolean(effectiveStartTime);
+  const startTime = effectiveStartTime;
 
   const now = useSecondTicker(isActive);
   const elapsedMs = startTime ? now - new Date(startTime).getTime() : 0;

@@ -476,6 +476,7 @@ export const useAuth = (
 
                 // Immediate optimistic update so dashboard feels instant
                 if (data.entryId === null || data.startTime === null) {
+                    setAttendanceCache(orgSlug, null);
                     // Clock-out broadcast → mark current user's active shift as ended
                     setTimeEntries(prev => prev.map(t =>
                         t.userId === currentUser.id && !t.endTime
@@ -483,6 +484,7 @@ export const useAuth = (
                             : t
                     ));
                 } else if (data.entryId && data.startTime) {
+                    setAttendanceCache(orgSlug, { entryId: String(data.entryId), startTime: String(data.startTime) });
                     // Clock-in broadcast → add optimistic entry if not already present
                     setTimeEntries(prev => {
                         if (prev.some(t => t.id === data.entryId)) return prev;
@@ -785,6 +787,8 @@ export const useAuth = (
         // OPTIMISTIC: immediately show active shift so clock starts counting
         const optimisticId = `optimistic-${Date.now()}`;
         const optimisticStart = new Date().toISOString();
+        // Keep cache in sync immediately (works even before currentUser.id is loaded)
+        setAttendanceCache(orgSlug, { entryId: optimisticId, startTime: optimisticStart });
         const optimisticEntry: TimeEntry = {
             id: optimisticId,
             userId: currentUser.id,
@@ -809,7 +813,9 @@ export const useAuth = (
 
                 const entryId = res?.activeShift?.id;
                 if (entryId && res?.activeShift?.startTime) {
-                    broadcastAttendanceUpdate(capturedOrgSlug, entryId, new Date(res.activeShift.startTime).toISOString());
+                    const startIso = new Date(res.activeShift.startTime).toISOString();
+                    setAttendanceCache(capturedOrgSlug, { entryId: String(entryId), startTime: startIso });
+                    broadcastAttendanceUpdate(capturedOrgSlug, entryId, startIso);
                 }
                 if (res?.alreadyActive) {
                     addToast('כבר יש משמרת פעילה.', 'info');
@@ -831,6 +837,7 @@ export const useAuth = (
             } catch (e: unknown) {
                 // ROLLBACK optimistic entry — only on actual server failure
                 setTimeEntries(prevEntries);
+                setAttendanceCache(capturedOrgSlug, null);
                 broadcastAttendanceUpdate(capturedOrgSlug, null, null);
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
@@ -849,6 +856,7 @@ export const useAuth = (
         const prevEntries = timeEntries;
         const capturedShift = activeShift;
         const nowIso = new Date().toISOString();
+        setAttendanceCache(orgSlug, null);
         setTimeEntries(prev => prev.map(t =>
             t.id === capturedShift.id
                 ? { ...t, endTime: nowIso, durationMinutes: Math.round((Date.now() - new Date(t.startTime).getTime()) / 60000) }
@@ -873,6 +881,7 @@ export const useAuth = (
                 }
 
                 // Confirm clock-out broadcast after server success
+                setAttendanceCache(capturedOrgSlug, null);
                 broadcastAttendanceUpdate(capturedOrgSlug, null, null);
 
                 // GPS was acquiring in parallel — use result now
@@ -892,6 +901,7 @@ export const useAuth = (
             } catch (e: unknown) {
                 // ROLLBACK — restore active shift
                 setTimeEntries(prevEntries);
+                setAttendanceCache(capturedOrgSlug, { entryId: capturedShift.id, startTime: capturedShift.startTime });
                 broadcastAttendanceUpdate(capturedOrgSlug, capturedShift.id, capturedShift.startTime);
                 const msg = String(e instanceof Error ? e.message : e);
                 addToast(msg || 'שגיאה ביציאה ממשמרת — המשמרת עדיין פעילה', 'error');

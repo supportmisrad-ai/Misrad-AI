@@ -18,6 +18,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
     const [progress, setProgress] = useState(0);
     const intervalRef = useRef<number | null>(null);
     const isCompletingRef = useRef<boolean>(false); // Guard to prevent double calls
+    const pointerDownRef = useRef(false);
 
     // Pulse animation logic
     useEffect(() => {
@@ -51,15 +52,33 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
         };
     }, [isActive]);
 
+    // Cleanup interval on unmount (prevents "stuck" intervals)
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
+    }, []);
+
     // Size configs
     const containerSize = size === 'small' ? 'w-32 h-32' : 'w-40 h-40 md:w-48 md:h-48';
     const iconSize = size === 'small' ? 40 : 64;
     const strokeWidth = 8;
 
     const startHold = () => {
+        // Guard against duplicate firing (touch + mouse or multi-pointer)
+        if (pointerDownRef.current) return;
+        pointerDownRef.current = true;
         setIsHolding(true);
         setProgress(0);
         isCompletingRef.current = false; // Reset guard when starting new hold
+
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
         
         intervalRef.current = window.setInterval(() => {
             setProgress((prev) => {
@@ -81,8 +100,10 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
     };
 
     const stopHold = () => {
+        pointerDownRef.current = false;
         setIsHolding(false);
         if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
         setProgress(0);
         isCompletingRef.current = false; // Reset guard when stopping
     };
@@ -94,6 +115,8 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
         
         // Clear interval manually here to prevent extra ticks
         if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        pointerDownRef.current = false;
         setIsHolding(false);
         setProgress(0);
         
@@ -104,11 +127,14 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
     return (
         <div 
             className="relative flex flex-col items-center justify-center gap-2 select-none touch-none"
-            onMouseDown={startHold}
-            onMouseUp={stopHold}
-            onMouseLeave={stopHold}
-            onTouchStart={() => { startHold(); }}
-            onTouchEnd={stopHold}
+            onPointerDown={(e) => {
+                // Only primary button / primary pointer
+                if ('button' in e && typeof e.button === 'number' && e.button !== 0) return;
+                startHold();
+            }}
+            onPointerUp={stopHold}
+            onPointerCancel={stopHold}
+            onPointerLeave={stopHold}
         >
             <div className={`relative ${containerSize} cursor-pointer group`}>
                 {/* Background Track */}
