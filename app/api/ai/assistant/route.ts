@@ -204,9 +204,10 @@ function streamClaudeResponse(params: {
   maxTokens?: number;
   timeoutMs?: number;
   postProcess?: (text: string) => string;
+  fallbackText?: string;
 }): Response {
   const ac = new AbortController();
-  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 15000);
+  const timeout = setTimeout(() => ac.abort(), params.timeoutMs || 20000);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -244,7 +245,12 @@ function streamClaudeResponse(params: {
       } catch (err: unknown) {
         clearTimeout(timeout);
         const isAbort = err instanceof Error && err.name === 'AbortError';
-        controller.enqueue(encoder.encode(isAbort ? 'הבקשה לקחה יותר מדי זמן. נסה שוב.' : 'שגיאה בשרת AI. נסה שוב.'));
+        const fallback =
+          params.fallbackText ||
+          (isAbort
+            ? 'הבקשה לקחה יותר מדי זמן. אפשר לנסות שוב או לעבור למחירון, להרשמה או לטופס יצירת קשר מהתפריט הראשי.'
+            : 'כרגע יש תקלה זמנית בעוזר ה-AI. בינתיים אפשר לראות את המחירון, להירשם או ליצור קשר עם צוות MISRAD AI דרך הקישורים באתר.');
+        controller.enqueue(encoder.encode(fallback));
         controller.close();
       }
     },
@@ -681,6 +687,8 @@ async function POSTHandler(req: Request) {
           }
           return cleaned;
         },
+        fallbackText:
+          'כרגע יש תקלה זמנית בעוזר ה-AI. בינתיים אפשר לראות את המחירון המלא בדף [/pricing](/pricing), להירשם למערכת בדף [/login?mode=sign-up](/login?mode=sign-up) או ליצור קשר עם הצוות בעמוד [/contact](/contact).',
       });
     }
 
