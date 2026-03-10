@@ -14,6 +14,7 @@ import {
   deleteNexusTaskRowsById,
   findNexusTaskRow,
   listNexusTaskRows,
+  listNexusTaskRowsLight,
   updateNexusTaskRowsById,
 } from '@/lib/services/nexus-tasks-service';
 import { hasPermission, requirePermission } from '@/lib/auth';
@@ -92,13 +93,21 @@ export async function listNexusTasks(params: {
     }
 
     const rows = await metrics.step('db.nexusTask.findMany', () =>
-      listNexusTaskRows({
-        organizationId: workspace.id,
-        where,
-        orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
-        skip: offset,
-        take,
-      })
+      (taskId
+        ? listNexusTaskRows({
+            organizationId: workspace.id,
+            where,
+            orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+            skip: offset,
+            take,
+          })
+        : listNexusTaskRowsLight({
+            organizationId: workspace.id,
+            where,
+            orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+            skip: offset,
+            take,
+          }))
     );
 
     const hasMore = rows.length > pageSize;

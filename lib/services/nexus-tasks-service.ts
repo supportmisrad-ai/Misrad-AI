@@ -6,6 +6,34 @@ import prisma from '@/lib/prisma';
 import { withTenantIsolationContext, withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 type NexusTaskRow = Prisma.NexusTaskGetPayload<Prisma.NexusTaskDefaultArgs>;
+type NexusTaskListRow = Prisma.NexusTaskGetPayload<{
+  select: {
+    id: true;
+    organizationId: true;
+    title: true;
+    description: true;
+    status: true;
+    priority: true;
+    assigneeIds: true;
+    assigneeId: true;
+    creatorId: true;
+    tags: true;
+    createdAt: true;
+    dueDate: true;
+    dueTime: true;
+    timeSpent: true;
+    estimatedTime: true;
+    approvalStatus: true;
+    isTimerRunning: true;
+    clientId: true;
+    isPrivate: true;
+    audioUrl: true;
+    snoozeCount: true;
+    isFocus: true;
+    department: true;
+    module: true;
+  };
+}>;
 
 type OrderBy = Prisma.Enumerable<Prisma.NexusTaskOrderByWithRelationInput>;
 
@@ -36,6 +64,50 @@ export async function listNexusTaskRows(params: {
     orderBy: params.orderBy,
     skip: params.skip,
     take: params.take,
+  });
+}
+
+export async function listNexusTaskRowsLight(params: {
+  organizationId: string;
+  where?: Omit<Prisma.NexusTaskWhereInput, 'organizationId'>;
+  orderBy?: OrderBy;
+  skip?: number;
+  take?: number;
+}): Promise<NexusTaskListRow[]> {
+  return prisma.nexusTask.findMany({
+    where: {
+      organizationId: params.organizationId,
+      ...(params.where ?? {}),
+    },
+    orderBy: params.orderBy,
+    skip: params.skip,
+    take: params.take,
+    select: {
+      id: true,
+      organizationId: true,
+      title: true,
+      description: true,
+      status: true,
+      priority: true,
+      assigneeIds: true,
+      assigneeId: true,
+      creatorId: true,
+      tags: true,
+      createdAt: true,
+      dueDate: true,
+      dueTime: true,
+      timeSpent: true,
+      estimatedTime: true,
+      approvalStatus: true,
+      isTimerRunning: true,
+      clientId: true,
+      isPrivate: true,
+      audioUrl: true,
+      snoozeCount: true,
+      isFocus: true,
+      department: true,
+      module: true,
+    },
   });
 }
 

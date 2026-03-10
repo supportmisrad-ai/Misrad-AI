@@ -116,6 +116,7 @@ export default function WorkspaceOnboardingClient(props: {
   const [companyName, setCompanyName] = useState(props.initialCompanyName);
   const [phone, setPhone] = useState(props.initialPhone);
   const [email, setEmail] = useState(props.initialEmail);
+  const [useSignupDetails, setUseSignupDetails] = useState<boolean>(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -732,6 +733,33 @@ export default function WorkspaceOnboardingClient(props: {
             {/* Form */}
             <form onSubmit={handleDetailsSubmit} className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
               <div className="grid grid-cols-1 gap-5">
+                <div className="flex items-start gap-2 rounded-2xl bg-violet-50/70 border border-violet-100 px-3 py-2.5">
+                  <input
+                    id="use-signup-details"
+                    type="checkbox"
+                    checked={useSignupDetails}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setUseSignupDetails(checked);
+                      if (checked) {
+                        setError(null);
+                        if (!companyName.trim() && props.initialCompanyName) {
+                          setCompanyName(props.initialCompanyName);
+                        }
+                        if (!phone.trim() && props.initialPhone) {
+                          setPhone(props.initialPhone);
+                        }
+                        if (!email.trim() && props.initialEmail) {
+                          setEmail(props.initialEmail);
+                        }
+                      }
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-violet-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  <label htmlFor="use-signup-details" className="text-[11px] leading-4 text-violet-800 font-bold">
+                    אותם פרטים כמו בהרשמה — השתמש בשם העסק, הטלפון והאימייל שהזנת קודם כדי לא להקליד שוב.
+                  </label>
+                </div>
                 <div>
                   <label className="flex items-center gap-2 text-sm font-black text-slate-700 mb-2">
                     <Building2 size={15} className="text-slate-400" />
