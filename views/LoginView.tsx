@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
 import { useSignIn } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import type { OSModule } from '@/types/os-modules';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { translateClerkError } from '@/lib/errorTranslations';
@@ -22,6 +23,7 @@ export const LoginView: React.FC<{
   const orgName = organizationName || 'MISRAD AI';
   const isSignUpMode = mode === 'sign-up';
   const { isLoaded, signIn, setActive } = useSignIn();
+  const router = useRouter();
 
   const [targetModule, setTargetModule] = useState<OSModule | 'misrad'>('misrad');
   
