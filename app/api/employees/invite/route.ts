@@ -390,11 +390,10 @@ async function POSTHandler(request: NextRequest) {
                 },
             });
         } catch (notifError: unknown) {
-            if (isMissingRelationOrColumnError(notifError) && !ALLOW_SCHEMA_FALLBACKS) {
-                throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(notifError) || 'missing relation'})`);
-            }
+            const msg = getErrorMessage(notifError);
+            const isSchemaIssue = isMissingRelationOrColumnError(notifError) || msg.includes('misrad_notifications');
 
-            if (isMissingRelationOrColumnError(notifError) && ALLOW_SCHEMA_FALLBACKS) {
+            if (isSchemaIssue && ALLOW_SCHEMA_FALLBACKS) {
                 reportSchemaFallback({
                     source: 'app/api/employees/invite.POSTHandler',
                     reason: 'misrad_notifications insert schema mismatch (drop notification)',
@@ -402,9 +401,13 @@ async function POSTHandler(request: NextRequest) {
                     extras: { organizationId, invitationId: String(invitation?.id || '') },
                 });
             }
-            if (IS_PROD) console.warn('[API] Could not create notification');
-            else console.warn('[API] Could not create notification:', notifError);
-            // Don't fail the request if notification fails
+
+            if (IS_PROD) {
+                console.warn('[API] Could not create notification for employee invitation (non-fatal)');
+            } else {
+                console.warn('[API] Could not create notification for employee invitation (non-fatal):', notifError);
+            }
+            // Never fail the main invitation flow because of notification issues
         }
 
         await logAuditEvent('data.write', 'employees.invite', {

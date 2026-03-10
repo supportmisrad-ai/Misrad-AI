@@ -7,7 +7,7 @@ import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 // Import the raw context so we can do a safe (non-throwing) check
 import { DataContext } from '@/context/DataContext';
-import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
+import { getAttendanceCache, setAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
 // TEMP: Attendance clock is enabled ONLY inside Nexus module to avoid cross-module state confusion.
 const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus']);
@@ -108,6 +108,13 @@ export function useAttendanceTile(): UseAttendanceTileResult {
 
   const clockIn = useCallback(() => {
     if (!authClockIn || isBusy) return;
+    if (orgSlug) {
+      const nowIso = new Date().toISOString();
+      setAttendanceCache(orgSlug, {
+        entryId: activeShift?.id ?? 'pending',
+        startTime: nowIso,
+      });
+    }
     setIsBusy(true);
     // Safety timeout: auto-reset after 10s in case state doesn't change
     busyTimerRef.current = setTimeout(() => { setIsBusy(false); busyTimerRef.current = null; }, 10_000);
@@ -116,6 +123,9 @@ export function useAttendanceTile(): UseAttendanceTileResult {
 
   const clockOut = useCallback(() => {
     if (!authClockOut || isBusy) return;
+    if (orgSlug) {
+      setAttendanceCache(orgSlug, null);
+    }
     setIsBusy(true);
     busyTimerRef.current = setTimeout(() => { setIsBusy(false); busyTimerRef.current = null; }, 10_000);
     authClockOut();

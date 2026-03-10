@@ -13,7 +13,7 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -34,16 +34,52 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
 }
 
 async function loadInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return prisma.nexusEmployeeInvitationLink.findFirst({
-        where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: String(params.workspaceId),
+        reason: 'employee_invitation_deactivate_load',
+        query: `
+            select 
+                id::text as id,
+                organization_id::text as organization_id,
+                created_by::text as created_by,
+                is_active,
+                is_used
+            from nexus_employee_invitation_links
+            where organization_id::uuid = $1::uuid
+              and id::uuid = $2::uuid
+            limit 1
+        `,
+        values: [String(params.workspaceId), String(params.invitationId)],
     });
+
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const obj = asObject(row);
+    if (!obj) return null;
+    return {
+        id: String(obj.id || ''),
+        organization_id: String(obj.organization_id || ''),
+        created_by: obj.created_by ? String(obj.created_by) : null,
+        is_active: Boolean(obj.is_active ?? true),
+        is_used: Boolean(obj.is_used ?? false),
+    };
 }
 
 async function deactivateInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return prisma.nexusEmployeeInvitationLink.updateMany({
-        where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
-        data: { is_active: false, updated_at: new Date() },
+    const result = await executeRawOrgScoped(prisma, {
+        organizationId: String(params.workspaceId),
+        reason: 'employee_invitation_deactivate_update',
+        query: `
+            update nexus_employee_invitation_links
+            set is_active = false,
+                updated_at = now()
+            where organization_id::uuid = $1::uuid
+              and id::uuid = $2::uuid
+        `,
+        values: [String(params.workspaceId), String(params.invitationId)],
     });
+
+    const affected = typeof result === 'number' ? result : 0;
+    return { count: affected };
 }
 async function POSTHandler(
     request: NextRequest,
