@@ -93,15 +93,37 @@ export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps)
     };
 
     updateHighlight();
-    window.addEventListener('resize', updateHighlight);
-    window.addEventListener('scroll', updateHighlight);
+    
+    // Throttled resize handler
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const throttledResize = () => {
+        if (resizeTimeout) return;
+        resizeTimeout = setTimeout(() => {
+            updateHighlight();
+            resizeTimeout = null;
+        }, 100);
+    };
+    window.addEventListener('resize', throttledResize);
+    
+    // Throttled scroll handler
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const throttledScroll = () => {
+        if (scrollTimeout) return;
+        scrollTimeout = setTimeout(() => {
+            updateHighlight();
+            scrollTimeout = null;
+        }, 50);
+    };
+    window.addEventListener('scroll', throttledScroll);
     
     const timer = setTimeout(updateHighlight, 500);
 
     return () => {
-      window.removeEventListener('resize', updateHighlight);
-      window.removeEventListener('scroll', updateHighlight);
+      window.removeEventListener('resize', throttledResize);
+      window.removeEventListener('scroll', throttledScroll);
       clearTimeout(timer);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, [currentStep, isOpen, step.selector]);
 
