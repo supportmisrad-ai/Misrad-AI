@@ -121,13 +121,13 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
 
         const tick = () => {
             computeElapsed();
-            rafId = window.requestAnimationFrame(tick);
         };
 
         // Initial sync from cache + activeShift
         computeElapsed();
         if (startTime) {
-            rafId = window.requestAnimationFrame(tick);
+            // Update every 1 second instead of every frame (60fps) to reduce CPU load
+            rafId = window.setInterval(tick, 1000) as unknown as number;
         }
 
         const unsubscribe = subscribeAttendanceCache((changedOrgSlug, snapshot) => {
@@ -137,20 +137,20 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
                 setOptimisticElapsed('00:00:00');
                 setIsOptimisticActive(false);
                 if (rafId !== null) {
-                    window.cancelAnimationFrame(rafId);
+                    window.clearInterval(rafId);
                     rafId = null;
                 }
                 return;
             }
             if (rafId === null) {
-                rafId = window.requestAnimationFrame(tick);
+                rafId = window.setInterval(tick, 1000) as unknown as number;
             }
         });
 
         return () => {
             unsubscribe();
             if (rafId !== null) {
-                window.cancelAnimationFrame(rafId);
+                window.clearInterval(rafId);
             }
         };
     }, [activeShift, elapsed]);
