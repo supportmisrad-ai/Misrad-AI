@@ -37,7 +37,7 @@ export const ClientOSDemo = () => {
                 {/* Content Area */}
                 <div className="flex-1 relative bg-slate-50 p-5">
                     {/* VIEW 1: CLIENT LIST */}
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {view === 'list' && (
                             <motion.div 
                                 key="list"
@@ -101,7 +101,7 @@ export const ClientOSDemo = () => {
                     </AnimatePresence>
 
                     {/* VIEW 2: ANALYTICS */}
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {view === 'analytics' && (
                             <motion.div 
                                 key="analytics"
@@ -160,7 +160,7 @@ export const ClientOSDemo = () => {
                     </AnimatePresence>
 
                     {/* VIEW 3: SquareActivity */}
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {view === 'SquareActivity' && (
                             <motion.div 
                                 key="SquareActivity"

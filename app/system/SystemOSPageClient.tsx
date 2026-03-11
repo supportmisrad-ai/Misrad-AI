@@ -297,7 +297,7 @@ export default function SystemOSLandingPage() {
           </div>
 
           {/* Pricing Cards */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <motion.div
               key={billingCycle}
               initial={{ opacity: 0, y: 20 }}

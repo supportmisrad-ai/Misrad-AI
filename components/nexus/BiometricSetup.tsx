@@ -201,7 +201,7 @@ export const BiometricSetup: React.FC = () => {
                         השתמש ב-Face ID, Touch ID או מפתח אבטחה כדי להתחבר במהירות וביטחון ללא סיסמה.
                     </p>
 
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {flowStep === 'success' && (
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}

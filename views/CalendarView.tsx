@@ -14,12 +14,19 @@ export const CalendarView: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const showUnscheduled = true; // Always show unscheduled sidebar
   const [selectedDayDetail, setSelectedDayDetail] = useState<Date | null>(null);
-  const [showHebrewCalendar, setShowHebrewCalendar] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('showHebrewCalendar') === 'true';
-    }
-    return false;
-  });
+  const [showHebrewCalendar, setShowHebrewCalendar] = useState(false);
+
+  // Load Hebrew calendar preference from localStorage after mount (client-side only)
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem('showHebrewCalendar');
+        if (saved === 'true') {
+          setShowHebrewCalendar(true);
+        }
+      }
+    } catch { }
+  }, []);
 
   // Save preference to localStorage
   useEffect(() => {

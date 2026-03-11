@@ -80,7 +80,7 @@ export default function CampaignWizard() {
             <div className="absolute top-5 left-10 right-10 h-[2px] bg-slate-100 -z-0"></div>
           </div>
 
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {step === 1 && (
               <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-8">
                 <h3 className="text-2xl font-black text-center">מה המטרה המרכזית?</h3>

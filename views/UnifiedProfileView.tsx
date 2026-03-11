@@ -828,7 +828,7 @@ export const MeView: React.FC<{
                   </button>
                   </div>
                   
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="sync">
                       {showHistory ? (
                           <motion.div
                               key="history"

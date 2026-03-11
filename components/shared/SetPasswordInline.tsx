@@ -160,7 +160,7 @@ export const SetPasswordInline: React.FC<SetPasswordInlineProps> = ({
         <p className="text-sm font-bold text-amber-800">{title}</p>
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         {step === 'send_code' && (
           <motion.div
             key="send-code"

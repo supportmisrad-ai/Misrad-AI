@@ -110,7 +110,7 @@ export function GlobalSupportModal() {
               <X size={20} />
             </button>
 
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {step === 'form' ? (
                 <motion.div
                   key="form"

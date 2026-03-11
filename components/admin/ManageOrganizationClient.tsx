@@ -564,7 +564,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
 
         {/* Tab Content */}
         <div className="p-6">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {/* Tab 1: Settings */}
             {activeTab === 'settings' && (
               <motion.div

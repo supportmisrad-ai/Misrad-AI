@@ -1070,7 +1070,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
 
         {/* Desktop Popovers Portal */}
         {typeof window !== 'undefined' && popoverPosition && activePopover !== 'none' && createPortal(
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
                 {activePopover === 'status' && popoverPosition && (
                     <motion.div 
                         initial={{ opacity: 0, y: -5 }}

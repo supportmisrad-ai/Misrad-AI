@@ -310,7 +310,7 @@ export default function SetupCustomerWizard() {
       </div>
 
       {/* Content */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <motion.div
           key={currentStep}
           initial={{ opacity: 0, x: 20 }}

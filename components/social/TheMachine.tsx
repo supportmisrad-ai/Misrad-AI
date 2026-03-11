@@ -385,7 +385,7 @@ export default function TheMachine() {
       </div>
 
       <div className="flex-1 p-6 md:p-12 flex flex-col items-center justify-start overflow-y-auto">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {step === 1 && (
             <motion.div 
               key="s1" 

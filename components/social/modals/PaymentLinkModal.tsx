@@ -132,7 +132,7 @@ export default function PaymentLinkModal() {
         </div>
 
         <div className="p-10 flex-1">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {step === 1 ? (
               <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-8">
                 {!activeClientId && (

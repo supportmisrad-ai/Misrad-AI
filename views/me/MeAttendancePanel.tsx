@@ -144,7 +144,7 @@ export const MeAttendancePanel: React.FC<MeAttendancePanelProps> = ({
                     </button>
                 </div>
                 
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="sync">
                     {showHistory ? (
                         <motion.div
                             key="history"

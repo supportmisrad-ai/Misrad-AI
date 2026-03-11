@@ -433,7 +433,7 @@ export const LoginView: React.FC<{
 
             <div className="bg-white p-2 rounded-3xl shadow-xl shadow-gray-200/50 border border-white">
                 <div className="p-6">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {!showPassword ? (
                             <motion.div 
                                 key="email-input"

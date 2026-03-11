@@ -215,7 +215,7 @@ export default function LandingPage() {
           >
             <div className="bg-white rounded-[64px] p-6 shadow-[0_100px_140px_-50px_rgba(15,23,42,0.1)] relative z-10 border border-slate-100/50 overflow-hidden min-h-[450px]">
               <div className="bg-slate-50 rounded-[48px] overflow-hidden aspect-[4/3] relative p-8 flex flex-col items-center justify-center gap-8 border border-slate-200">
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="sync">
                   {demoStep === 0 && (
                     <motion.div 
                       key="input"

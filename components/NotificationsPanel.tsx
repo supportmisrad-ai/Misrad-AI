@@ -18,7 +18,11 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
   const panelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  }, []);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
   useEffect(() => {

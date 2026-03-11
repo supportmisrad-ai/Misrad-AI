@@ -358,7 +358,7 @@ export default function ShabbatScreen() {
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.5 }}
                   className="w-full rounded-[24px] border border-[#D4AF37]/15 bg-gradient-to-b from-[#D4AF37]/[0.04] to-transparent px-6 sm:px-8 py-6 sm:py-7 text-center backdrop-blur-sm"
                 >
-                  <AnimatePresence mode="wait">
+                  <AnimatePresence mode="sync">
                     <motion.p key={currentMessage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.5 }}
                       className="text-base sm:text-lg font-bold leading-relaxed text-[#F8F1D6]/80"
                     >

@@ -169,7 +169,7 @@ export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps)
         className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden flex flex-col pointer-events-auto"
       >
         <div className="p-8 md:p-10 flex flex-col items-center text-center gap-6">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <motion.div 
               key={currentStep}
               initial={{ opacity: 0, y: 10 }}

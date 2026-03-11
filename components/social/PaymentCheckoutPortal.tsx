@@ -139,7 +139,7 @@ export default function PaymentCheckoutPortal({ order, client, orgSlug, onSucces
         </div>
 
         <div className="flex-1 p-12 md:p-16 flex flex-col relative">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             {step === 'checkout' ? (
               <motion.div key="checkout" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-10">
                 <div className="flex justify-between items-center">

@@ -321,7 +321,7 @@ export const MorningBriefing: React.FC = () => {
 
           {/* Content Area */}
           <div className="flex-1 relative flex flex-col overflow-hidden">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
                 
                 {/* STEP 1: GREETING & FOCUS */}
                 {step === 'greeting' && (

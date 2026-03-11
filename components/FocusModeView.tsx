@@ -185,7 +185,7 @@ const FocusModeView: React.FC = () => {
                                 </motion.div>
                                 
                                 <div className="mt-2 md:mt-4">
-                                    <AnimatePresence mode="wait">
+                                    <AnimatePresence mode="sync">
                                         <motion.div 
                                             key={isActive ? 'focus' : 'paused'}
                                             initial={{ opacity: 0, y: 10 }}
@@ -211,7 +211,7 @@ const FocusModeView: React.FC = () => {
 
                 {/* --- אזור המשימה הנוכחית --- */}
                 <div className="w-full max-w-xl mt-6 md:mt-10 shrink-0">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {!selectedTask ? (
                             <motion.div 
                                 initial={{ opacity: 0, scale: 0.95 }}

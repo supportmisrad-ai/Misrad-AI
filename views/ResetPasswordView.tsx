@@ -358,7 +358,7 @@ export const ResetPasswordView: React.FC = () => {
                         </div>
                     </div>
 
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence mode="sync">
                         {step === 'email' && (
                             <motion.form
                                 key="email-step"
