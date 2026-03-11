@@ -71,15 +71,37 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 
     if (isOpen) {
         document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('resize', () => setIsOpen(false));
-        window.addEventListener('scroll', handleScroll, true);
+        
+        // Throttled resize handler
+        let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+        const handleResize = () => {
+            if (resizeTimeout) return;
+            resizeTimeout = setTimeout(() => {
+                setIsOpen(false);
+                resizeTimeout = null;
+            }, 100);
+        };
+        window.addEventListener('resize', handleResize);
+        
+        // Throttled scroll handler
+        let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+        const throttledHandleScroll = (event: Event) => {
+            if (scrollTimeout) return;
+            scrollTimeout = setTimeout(() => {
+                handleScroll(event);
+                scrollTimeout = null;
+            }, 50);
+        };
+        window.addEventListener('scroll', throttledHandleScroll, true);
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('resize', handleResize);
+            window.removeEventListener('scroll', throttledHandleScroll, true);
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            if (scrollTimeout) clearTimeout(scrollTimeout);
+        };
     }
-    
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        window.removeEventListener('resize', () => setIsOpen(false));
-        window.removeEventListener('scroll', handleScroll, true);
-    };
   }, [isOpen]);
 
   const toggleOpen = () => {
