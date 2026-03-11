@@ -29,6 +29,7 @@ import { joinPath } from '@/lib/os/social-routing';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
+import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
@@ -362,7 +363,12 @@ export default function SocialFrame({
           }}
           brandSubtitle={moduleTitle}
           onBrandClickAction={() => onNavigateAction('/dashboard')}
-          topSlot={<WorkspaceSwitcher className="w-full" />}
+          topSlot={
+            <div className="flex flex-col gap-2">
+              <BusinessSwitcher currentTenantName={initialOrganization?.name || moduleTitle} />
+              <WorkspaceSwitcher className="w-full" />
+            </div>
+          }
           navItems={navItems}
           primaryNavPaths={primaryNavPaths}
           isActiveAction={isActiveAction}

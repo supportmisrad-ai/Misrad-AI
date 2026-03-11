@@ -21,7 +21,8 @@ function stop() {
 }
 
 export function useSecondTicker(enabled: boolean): number {
-  const [now, setNow] = useState<number>(() => Date.now());
+  // Initialize with 0 to avoid hydration mismatch (server vs client time difference)
+  const [now, setNow] = useState<number>(0);
 
   useEffect(() => {
     if (!enabled) return;
