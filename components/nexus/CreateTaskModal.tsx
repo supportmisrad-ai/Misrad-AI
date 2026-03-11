@@ -283,12 +283,20 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        const handleScroll = () => { if (showTagSuggestions) updateTagRect(); };
+        // Throttled scroll handler to prevent excessive re-renders
+        let scrollRafId = 0;
+        const handleScroll = () => {
+            cancelAnimationFrame(scrollRafId);
+            scrollRafId = requestAnimationFrame(() => {
+                if (showTagSuggestions) updateTagRect();
+            });
+        };
         window.addEventListener('scroll', handleScroll, true);
         
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('scroll', handleScroll, true);
+            cancelAnimationFrame(scrollRafId);
         };
     }, [showTagSuggestions, activePopover]);
 

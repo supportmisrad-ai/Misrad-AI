@@ -227,8 +227,8 @@ export default function AddClientModal() {
     }, 300);
   };
 
-  return (
-    <div className="fixed inset-0 z-[200] flex items-start md:items-center justify-center p-0 sm:p-2 md:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto" onClick={resetAndClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-start md:items-center justify-center p-0 sm:p-2 md:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto" onClick={resetAndClose}>
       <motion.div 
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -568,7 +568,8 @@ export default function AddClientModal() {
           </AnimatePresence>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
