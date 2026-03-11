@@ -499,6 +499,22 @@ export default function TheMachine() {
                   <Skeleton className="w-12 h-12 rounded-full bg-blue-100" />
                   <p className="font-black text-lg">ה-AI בונה וריאציות...</p>
                 </div>
+              ) : variations.length === 0 ? (
+                <div className="flex flex-col items-center py-24 gap-6">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
+                    <Sparkles size={32} className="text-slate-400" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-black text-lg text-slate-700 mb-2">לא נמצאו וריאציות</p>
+                    <p className="text-sm text-slate-500">נסה ליצור סקיצות שוב או לשנות את התיאור</p>
+                  </div>
+                  <button
+                    onClick={() => setStep(1)}
+                    className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-slate-800 transition-all"
+                  >
+                    חזור ונסה שוב
+                  </button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                   {variations.map((v, idx) => (
