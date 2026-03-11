@@ -86,17 +86,26 @@ export function useSecureAPI() {
             userObj.organization_id ??
             null;
 
-        return typeof fallbackFromUser === 'string' && fallbackFromUser.length > 0 ? fallbackFromUser : null;
+        const orgSlug =
+            typeof fallbackFromUser === 'string' && fallbackFromUser.length > 0
+                ? fallbackFromUser
+                : null;
+
+        return orgSlug;
     }, [currentUser]);
 
-    const secureFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit, orgSlugOverride?: string | null) => {
-        const orgSlug = orgSlugOverride ?? getOrgSlugFromBrowser();
-        const headers = new Headers(init?.headers || undefined);
-        if (orgSlug && !headers.has('x-org-id')) {
-            headers.set('x-org-id', encodeURIComponent(orgSlug));
-        }
-        return fetch(input, { ...init, headers });
-    }, [getOrgSlugFromBrowser]);
+    const secureFetch = useCallback(
+        async (input: RequestInfo | URL, init?: RequestInit, orgSlugOverride?: string | null) => {
+            const orgSlug = orgSlugOverride ?? getOrgSlugFromBrowser();
+            const headers = new Headers(init?.headers || undefined);
+            if (orgSlug && !headers.has('x-org-id')) {
+                headers.set('x-org-id', encodeURIComponent(orgSlug));
+            }
+
+            return fetch(input, { ...init, headers });
+        },
+        [getOrgSlugFromBrowser],
+    );
 
     /**
      * Fetch users with proper authorization

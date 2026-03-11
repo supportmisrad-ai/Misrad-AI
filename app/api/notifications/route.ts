@@ -1,4 +1,5 @@
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
 /**
  * Notifications API
  * 
@@ -7,10 +8,10 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { APIError, getOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma, { queryRawOrgScoped } from '@/lib/prisma';
-import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv, requireWorkspaceIdByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -43,7 +44,8 @@ async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const { workspaceId } = await getWorkspaceOrThrow(request);
+        const orgKey = getOrgKeyOrThrow(request);
+        const { id: workspaceId } = await requireWorkspaceIdByOrgSlugApi(orgKey);
 
         const allowUnscoped = isBypassModuleEntitlementsEnabled();
         if (allowUnscoped) {

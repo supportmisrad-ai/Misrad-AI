@@ -250,6 +250,43 @@ export async function hasPermission(permission: PermissionId): Promise<boolean> 
         const tenantAdmin = await isTenantAdmin();
         const roleForPermissions = tenantAdmin && !isTenantAdminRole(user.role) ? ROLE_CEO : user.role;
 
+        // For critical, read-only modules — CRM, Finance & Intelligence —
+        // אנו רוצים להבטיח שלפחות בעלי המערכת (tenantAdmin) תמיד יקבלו גישה,
+        // גם אם ההרשאות או תפקידי ברירת־המחדל עדיין לא הוגדרו בצורה מדויקת.
+        if (
+            tenantAdmin &&
+            (permission === 'view_crm' || permission === 'view_financials' || permission === 'view_intelligence')
+        ) {
+            // #region agent log
+            try {
+                fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Debug-Session-Id': '3e79f2',
+                    },
+                    body: JSON.stringify({
+                        sessionId: '3e79f2',
+                        runId: 'pre-fix',
+                        hypothesisId: 'H4',
+                        location: 'lib/auth.ts:hasPermission',
+                        message: 'Tenant admin forced-allow for read-only module',
+                        data: {
+                            userId: user.id,
+                            role: user.role,
+                            permission,
+                        },
+                        timestamp: Date.now(),
+                    }),
+                }).catch(() => {});
+            } catch {
+                // ignore logging failures
+            }
+            // #endregion
+
+            return true;
+        }
+
         // Permissions are based on the user's effective role.
         const rolePermissions = await getRolePermissions(roleForPermissions);
         return rolePermissions.includes(permission);

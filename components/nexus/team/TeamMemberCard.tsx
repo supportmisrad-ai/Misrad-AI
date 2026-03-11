@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Zap, LogOut, EyeOff, MoreHorizontal, Edit, Trash2, TrendingUp, Crown } from 'lucide-react';
 import { User, Task } from '../../../types';
+import { Avatar } from '@/components/Avatar';
 
 interface TeamMemberCardProps {
     user: User;
@@ -35,17 +36,6 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
     user, workloadData, isOverloaded, isMenuOpen, canManageTeam, canEditUser, editTooltip, canSwitchUser, isCurrentUser,
     onToggleMenu, onEdit, onDelete, onSwitchUser, onAssignClick, onDragOver, onDrop
 }) => {
-    const [avatarError, setAvatarError] = useState(false);
-
-    const hasAvatar = Boolean(user.avatar) && !avatarError;
-    const initials = (user.name || '')
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join('')
-        .toUpperCase();
-
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -59,18 +49,14 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
             <div className="p-4 md:p-5 flex items-start justify-between border-b border-gray-50 relative">
                 <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                     <div className="relative shrink-0">
-                        {hasAvatar ? (
-                            <img
-                                src={user.avatar}
-                                alt={user.name}
-                                className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-gray-100 bg-gray-100"
-                                onError={() => setAvatarError(true)}
-                            />
-                        ) : (
-                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-100 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xs md:text-sm font-bold text-gray-700 select-none">
-                                {initials || 'ע'}
-                            </div>
-                        )}
+                        <Avatar
+                            src={user.avatar}
+                            alt={user.name}
+                            name={user.name}
+                            size="lg"
+                            rounded="full"
+                            className="border border-gray-100 bg-gray-100"
+                        />
                         <div className={`absolute -bottom-0.5 -right-0.5 md:-bottom-1 md:-right-1 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-white flex items-center justify-center ${user.online ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         
                         {/* Gamification Badge: Fire Streak */}

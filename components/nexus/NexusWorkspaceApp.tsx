@@ -193,13 +193,13 @@ export function NexusWorkspaceApp({
 
   return (
     <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="sync" initial={false}>
         <motion.div
           key={relative}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.15, ease: 'easeInOut' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1, ease: 'easeOut' }}
           className="flex-1 min-h-0"
         >
           {content}

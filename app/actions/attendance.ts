@@ -47,6 +47,33 @@ export async function getActiveShift(orgSlugOrId: string) {
   const workspace = resolved.workspace;
   const dbUser = resolved.user;
 
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '3e79f2',
+      },
+      body: JSON.stringify({
+        sessionId: '3e79f2',
+        runId: 'pre-fix',
+        hypothesisId: 'A1',
+        location: 'app/actions/attendance.ts:getActiveShift',
+        message: 'Resolved workspace/user for getActiveShift',
+        data: {
+          orgSlugOrId,
+          workspaceId: String(workspace.id ?? ''),
+          dbUserId: String(dbUser.id ?? ''),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {
+    // ignore logging failures
+  }
+  // #endregion
+
   const row = await prisma.nexusTimeEntry.findFirst({
     where: {
       organizationId: String(workspace.id),
@@ -73,6 +100,33 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
   const dbUser = resolved.user;
+
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '3e79f2',
+      },
+      body: JSON.stringify({
+        sessionId: '3e79f2',
+        runId: 'pre-fix',
+        hypothesisId: 'A2',
+        location: 'app/actions/attendance.ts:punchIn',
+        message: 'Resolved workspace/user for punchIn',
+        data: {
+          orgSlugOrId,
+          workspaceId: String(workspace.id ?? ''),
+          dbUserId: String(dbUser.id ?? ''),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {
+    // ignore logging failures
+  }
+  // #endregion
 
   const existing = await getActiveShift(String(orgSlugOrId));
   if (existing.activeShift) {
@@ -138,6 +192,33 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
 export async function punchOut(orgSlugOrId: string, note: string | undefined, location: AttendanceGeoLocationInput) {
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
+
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '3e79f2',
+      },
+      body: JSON.stringify({
+        sessionId: '3e79f2',
+        runId: 'pre-fix',
+        hypothesisId: 'A3',
+        location: 'app/actions/attendance.ts:punchOut',
+        message: 'Resolved workspace/user for punchOut',
+        data: {
+          orgSlugOrId,
+          workspaceId: String(workspace.id ?? ''),
+          dbUserId: String(resolved.user?.id ?? ''),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  } catch {
+    // ignore logging failures
+  }
+  // #endregion
 
   const existing = await getActiveShift(String(orgSlugOrId));
   if (!existing.activeShift) {

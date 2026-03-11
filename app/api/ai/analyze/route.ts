@@ -59,6 +59,36 @@ async function POSTHandler(request: NextRequest) {
         // Super Admins are always allowed (they need to debug and support tenants regardless of billing state).
         const isSuperAdmin = user.isSuperAdmin === true;
         const aiAccess = isSuperAdmin ? { allowed: true as const } : checkAiAccess(callerWorkspace.subscriptionStatus);
+
+        // #region agent log
+        try {
+            await fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Debug-Session-Id': '3e79f2',
+                },
+                body: JSON.stringify({
+                    sessionId: '3e79f2',
+                    runId: 'pre-fix',
+                    hypothesisId: 'H3',
+                    location: 'app/api/ai/analyze/route.ts:subscriptionGuard',
+                    message: 'AI subscription guard evaluation',
+                    data: {
+                        callerOrganizationId,
+                        subscriptionStatus: callerWorkspace.subscriptionStatus ?? null,
+                        isSuperAdmin,
+                        aiAllowed: aiAccess.allowed,
+                        aiMessage: aiAccess.allowed ? null : aiAccess.message,
+                    },
+                    timestamp: Date.now(),
+                }),
+            }).catch(() => {});
+        } catch {
+            // ignore logging failures
+        }
+        // #endregion
+
         if (!aiAccess.allowed) {
             return apiError(aiAccess.message, { status: 403 });
         }

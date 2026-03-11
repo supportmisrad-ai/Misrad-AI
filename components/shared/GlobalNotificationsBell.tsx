@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bell, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface Notification {
   id: string;
@@ -52,9 +53,20 @@ export function GlobalNotificationsBell() {
   const [loading, setLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
+    const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+    if (!orgSlug) {
+      setNotifications([]);
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch('/api/notifications', { cache: 'no-store' });
+      const res = await fetch('/api/notifications', {
+        cache: 'no-store',
+        headers: {
+          'x-org-id': orgSlug,
+        },
+      });
       if (!res.ok) return;
       const data = await res.json();
       const items = (data as { data?: { notifications?: unknown[] } })?.data?.notifications || (data as { notifications?: unknown[] })?.notifications || [];

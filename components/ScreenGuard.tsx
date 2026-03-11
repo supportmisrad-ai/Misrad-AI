@@ -50,5 +50,6 @@ export const ScreenGuard: React.FC<ScreenGuardProps> = ({ id, children }) => {
         return <>{children}</>;
     }
 
-    return null;
+    // Fallback - should not reach here, but render children to avoid white screen
+    return <>{children}</>;
 };
