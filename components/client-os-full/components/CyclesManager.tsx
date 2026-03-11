@@ -22,15 +22,17 @@ import { GlowButton } from './ui/GlowButton';
 interface Cycle {
   id: string;
   name: string;
-  description?: string;
-  status: 'RECRUITING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-  startDate?: string;
-  endDate?: string;
-  whatsappGroupLink?: string;
-  slackChannelLink?: string;
+  description?: string | null;
+  status: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
+  whatsappGroupLink?: string | null;
+  slackChannelLink?: string | null;
   clients: CycleClient[];
   tasks: CycleTask[];
   assets: CycleAsset[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface CycleClient {
@@ -48,10 +50,10 @@ interface CycleClient {
 interface CycleTask {
   id: string;
   title: string;
-  description?: string;
-  status: 'PENDING' | 'COMPLETED';
-  priority: 'HIGH' | 'NORMAL' | 'LOW';
-  dueDate?: string;
+  description?: string | null;
+  status: string;
+  priority: string;
+  dueDate?: Date | null;
   completions: TaskCompletion[];
 }
 
@@ -70,6 +72,8 @@ interface CycleAsset {
   category: string;
   fileUrl: string;
   fileType: string;
+  sizeBytes?: number | null;
+  uploadedAt: Date;
 }
 
 const CyclesManager: React.FC = () => {

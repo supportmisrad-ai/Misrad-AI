@@ -77,14 +77,14 @@ export const LeadsView: React.FC = () => {
                         <h1 className="text-2xl font-bold text-gray-900">ניהול לידים</h1>
                         <p className="text-gray-500 text-sm mt-1">מעקב אחר פניות, מכירות וסגירת עסקאות.</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                          <button 
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             title="סנכרן נתונים ממערכת CRM חיצונית"
                         >
-                            <RefreshCw size={16} className={isSyncing ? 'opacity-70' : ''} /> 
+                            <RefreshCw size={14} className={isSyncing ? 'opacity-70' : ''} /> 
                             <span className="hidden sm:inline">{isSyncing ? 'מסנכרן...' : 'סנכרן CRM'}</span>
                         </button>
                         <button 
@@ -103,45 +103,45 @@ export const LeadsView: React.FC = () => {
                                     });
                                 }
                             }}
-                            className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2"
+                            className="bg-black text-white px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold shadow-lg flex items-center gap-1.5 sm:gap-2"
                         >
-                            <Plus size={18} /> הוסף ליד
+                            <Plus size={16} /> <span className="hidden sm:inline">הוסף ליד</span>
                         </button>
                         <button 
                             onClick={handleCopyLeadFormLink}
-                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2 sm:px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors"
                             title="העתק לינק לטופס לידים ציבורי"
                         >
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
                             <span className="hidden sm:inline">{copied ? 'הועתק!' : 'לינק טופס'}</span>
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
-                            <TrendingUp size={14} className="text-green-600" /> הכנסות
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                    <div className="bg-white p-2 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
+                        <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                            <TrendingUp size={12} className="text-green-600 sm:size-14" /> הכנסות
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
-                            <DollarSign size={14} className="text-blue-600" /> פוטנציאל פתוח
+                    <div className="bg-white p-2 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
+                        <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                            <DollarSign size={12} className="text-blue-600 sm:size-14" /> פוטנציאל
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{formatCurrency(potentialRevenue)}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{formatCurrency(potentialRevenue)}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
-                            <Users size={14} className="text-purple-600" /> יחס סגירה
+                    <div className="bg-white p-2 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
+                        <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                            <Users size={12} className="text-purple-600 sm:size-14" /> סגירה
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{Math.round(winRate)}%</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{Math.round(winRate)}%</div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                         <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
-                            <Users size={14} className="text-orange-600" /> לידים חדשים
+                    <div className="bg-white p-2 sm:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
+                         <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                            <Users size={12} className="text-orange-600 sm:size-14" /> חדשים
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{(leads as Lead[]).filter((l: Lead) => l.status === LeadStatus.NEW).length}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{(leads as Lead[]).filter((l: Lead) => l.status === LeadStatus.NEW).length}</div>
                     </div>
                 </div>
             </div>
