@@ -386,14 +386,36 @@ function ContextMenuOverlay({
 
     window.addEventListener('keydown', handleKey);
     window.addEventListener('click', handleClick);
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleResize);
+    
+    // Throttled scroll handler
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const throttledHandleScroll = () => {
+        if (scrollTimeout) return;
+        scrollTimeout = setTimeout(() => {
+            handleScroll();
+            scrollTimeout = null;
+        }, 50);
+    };
+    window.addEventListener('scroll', throttledHandleScroll, true);
+    
+    // Throttled resize handler
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const throttledHandleResize = () => {
+        if (resizeTimeout) return;
+        resizeTimeout = setTimeout(() => {
+            handleResize();
+            resizeTimeout = null;
+        }, 100);
+    };
+    window.addEventListener('resize', throttledHandleResize);
 
     return () => {
       window.removeEventListener('keydown', handleKey);
       window.removeEventListener('click', handleClick);
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', throttledHandleScroll, true);
+      window.removeEventListener('resize', throttledHandleResize);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
     };
   }, [onClose]);
 
