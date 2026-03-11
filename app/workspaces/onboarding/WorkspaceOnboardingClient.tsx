@@ -32,13 +32,13 @@ const PLAN_ICON: Record<string, React.ReactNode> = {
 };
 
 const PLAN_DESCRIPTION: Record<string, string> = {
-  solo: 'מודול אחד לבחירתך',
+  solo: 'מודול ניהול וצוות (Nexus) בלבד',
   the_closer: 'מודול SYSTEM (מכירות) + מודול NEXUS (נקסוס) - ניהול וצוות',
   the_authority: 'מודול SOCIAL (שיווק) + CLIENT (לקוחות) + NEXUS (נקסוס) - מיתוג ולקוחות',
   the_operator: 'מודול OPERATIONS (תפעול) + NEXUS (נקסוס) - שטח וצוות',
   the_empire: 'כל המודולים כלולים',
   the_mentor: 'כל המודולים + ליווי',
-  custom: 'בחר בדיוק את המודולים שאתה צריך',
+  custom: 'בנה חבילה משלך — נקסוס חובה + מודולים נוספים לבחירה',
 };
 
 // Plans to show in the picker (excluding the_mentor which is special)
@@ -134,6 +134,20 @@ export default function WorkspaceOnboardingClient(props: {
       }
     }).catch(() => null);
   }, []);
+
+  // Nexus הוא מודול חובה בכל חבילה - מוסיף אוטומטית כשנכנסים ל-custom
+  useEffect(() => {
+    if (selectedPlan === 'custom') {
+      setCustomModules(prev => {
+        if (!prev.has('nexus')) {
+          const next = new Set(prev);
+          next.add('nexus');
+          return next;
+        }
+        return prev;
+      });
+    }
+  }, [selectedPlan]);
 
   const activePlanKey = selectedPlan || props.planKey;
 
@@ -249,14 +263,13 @@ export default function WorkspaceOnboardingClient(props: {
   const currentStepNumber = step === 'plan' ? 2 : (needsPlanSelection ? 3 : 2);
 
   const soloModuleOptions: { key: OSModuleKey; label: string; labelEn: string }[] = [
+    // רק נקסוס זמין כמודול בודד - כל השאר חייבים לבוא עם נקסוס
     { key: 'nexus', label: 'ניהול וצוות', labelEn: 'NEXUS' },
-    { key: 'system', label: 'מכירות', labelEn: 'SYSTEM' },
-    { key: 'social', label: 'שיווק', labelEn: 'SOCIAL' },
-    { key: 'client', label: 'לקוחות', labelEn: 'CLIENT' },
-    { key: 'operations', label: 'תפעול', labelEn: 'OPERATIONS' },
   ];
 
   const toggleCustomModule = (mod: OSModuleKey) => {
+    // נקסוס הוא מודול חובה - לא ניתן להסיר
+    if (mod === 'nexus') return;
     setCustomModules(prev => {
       const next = new Set(prev);
       if (next.has(mod)) next.delete(mod);
@@ -356,7 +369,7 @@ export default function WorkspaceOnboardingClient(props: {
               <div>
                 <p className="text-xs font-black text-emerald-800">המלצה לעסקים קטנים</p>
                 <p className="text-xs text-emerald-700 mt-0.5">
-                  התחל עם <strong>מודול בודד (149₪)</strong> — הכי כלכלי לשלב ההתחלה. אפשר לשדרג בכל עת ללא קנס. 80% מהלקוחות מגיעים ל-3+ מודולים תוך 3 חודשים.
+                  התחל עם <strong>מודול נקסוס (149₪)</strong> — הכי כלכלי לשלב ההתחלה עם ניהול משימות וצוות. אפשר לשדרג בכל עת ללא קנס. 80% מהלקוחות מגיעים ל-3+ מודולים תוך 3 חודשים.
                 </p>
               </div>
             </div>
@@ -562,17 +575,19 @@ export default function WorkspaceOnboardingClient(props: {
                 <div className="grid grid-cols-1 gap-2">
                   {MODULE_OPTIONS.map((mod) => {
                     const isChecked = customModules.has(mod.key);
+                    const isLocked = mod.key === 'nexus'; // נקסוס הוא מודול חובה
                     const colors = MODULE_COLOR_CLASSES[mod.color];
                     return (
                       <button
                         key={mod.key}
                         type="button"
-                        onClick={() => toggleCustomModule(mod.key)}
+                        onClick={() => !isLocked && toggleCustomModule(mod.key)}
+                        disabled={isLocked}
                         className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-right ${
                           isChecked
                             ? `${colors.bg} ${colors.border} shadow-sm`
                             : 'bg-white border-slate-200 hover:border-slate-300'
-                        }`}
+                        } ${isLocked ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
                       >
                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${
                           isChecked ? `${colors.border.replace('border', 'bg').replace('-300', '-500')} border-transparent` : 'border-slate-300 bg-white'
@@ -583,6 +598,9 @@ export default function WorkspaceOnboardingClient(props: {
                           <div className="flex items-center gap-2">
                             <span className="font-black text-sm text-slate-900">{mod.labelEn}</span>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${colors.bg} ${colors.text}`}>{mod.labelHe}</span>
+                            {isLocked ? (
+                              <span className="text-[9px] font-black bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">חובה</span>
+                            ) : null}
                           </div>
                           <div className="text-[11px] text-slate-500 mt-0.5">{mod.desc}</div>
                         </div>

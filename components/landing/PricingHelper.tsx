@@ -41,21 +41,21 @@ function recommend(answers: Answer): { packageType: PackageType; reason: string 
 
   if (mainNeed === 'fieldwork') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'עצמאי בשטח? מודול Operations בודד מספיק לך בשלב הזה.' };
+      return { packageType: 'solo', reason: 'עצמאי בשטח? נקסוס נותן ניהול משימות וצוות — בסיס מצוין לשלב הראשון.' };
     }
     return { packageType: 'the_operator', reason: 'תפעול + ניהול צוות שטח — שיבוץ AI, סיכום קריאות, מלאי ורכבים.' };
   }
 
   if (mainNeed === 'sales') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'מודול System בודד נותן לך CRM + לידים + מרכזייה — בלי לשלם על מה שלא צריך.' };
+      return { packageType: 'solo', reason: 'נקסוס נותן ניהול משימות ולקוחות — בסיס מצוין להתחלת עבודה.' };
     }
     return { packageType: 'the_closer', reason: 'חבילת מכירות כוללת CRM, ניתוח שיחות ב-AI, ולידים — הכל מוכן לסגור עסקאות.' };
   }
 
   if (mainNeed === 'marketing') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'מודול Social או Client בודד — מספיק לניהול תוכן או לקוחות.' };
+      return { packageType: 'solo', reason: 'נקסוס מספק ניהול משימות ולקוחות — בסיס טוב לפרילנסר.' };
     }
     return { packageType: 'the_authority', reason: 'שיווק + ניהול לקוחות + צוות — הפלטפורמה השלמה לבניית סמכות מקצועית.' };
   }
@@ -65,7 +65,7 @@ function recommend(answers: Answer): { packageType: PackageType; reason: string 
   }
 
   if (priority === 'price') {
-    return { packageType: 'solo', reason: 'התחל ממודול אחד ב-149 ₪ — תמיד אפשר לשדרג אחר כך.' };
+    return { packageType: 'solo', reason: 'התחל עם נקסוס ב-149 ₪ — ניהול משימות וצוות. תמיד אפשר לשדרג אחר כך.' };
   }
 
   return { packageType: 'the_empire', reason: 'הכל כלול — הבחירה הטובה ביותר לערך מקסימלי.' };
@@ -100,7 +100,7 @@ export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (
         'אני צריך עזרה בבחירת חבילה ב-MISRAD AI. הנה תיאור העסק שלי:',
         text,
         '',
-        'החבילות הזמינות: solo (מודול בודד 149₪), the_closer (מכירות 249₪ System+Nexus), the_authority (שיווק 349₪ Social+Client+Nexus), the_operator (תפעול 349₪ Operations+Nexus), the_empire (הכל 499₪).',
+        'החבילות הזמינות: solo (נקסוס בלבד 149₪), the_closer (מכירות 249₪ System+Nexus), the_authority (שיווק 349₪ Social+Client+Nexus), the_operator (תפעול 349₪ Operations+Nexus), the_empire (הכל 499₪).',
         'המלץ לי על חבילה אחת. ענה אך ורק ב-JSON: {"package":"<שם>","reason":"<נימוק קצר בעברית>"}',
       ].join('\n');
 
@@ -332,7 +332,7 @@ export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (
                   ))}
                 </div>
               ) : (
-                <div className="mt-2 text-xs text-indigo-600 font-bold">בחר מודול בודד לפי הצורך שלך</div>
+                <div className="mt-2 text-xs text-indigo-600 font-bold">נקסוס — ניהול משימות וצוות</div>
               )}
               <div className="mt-3 text-sm text-slate-700 leading-relaxed">{result.reason}</div>
             </div>

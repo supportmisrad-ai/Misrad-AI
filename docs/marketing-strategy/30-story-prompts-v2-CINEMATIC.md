@@ -142,9 +142,9 @@ LAYOUT (safeFill, 0° tilt — clean/flat):
     Below: 6 minimal icons in a row — 5 gray outlines, 1 filled indigo.
     Arrow → "אתה בוחר."
   HEADLINE: Rubik 800 96px #0F172A: "₪149"
-  SUBTITLE: Heebo 52px #475569: "מודול אחד. התחלה חכמה."
+  SUBTITLE: Heebo 52px #475569: "נקסוס בלבד. התחלה חכמה."
   Glass card (light variant: rgba(0,0,0,0.03), border slate-200):
-    "משתמש 1 · מודול 1 · גדל איתך"
+    "משתמש 1 · ניהול צוות ומשימות · גדל איתך"
   CTA: Dark pill #0F172A, white text "התחל עכשיו" + misrad-ai.com
 ```
 

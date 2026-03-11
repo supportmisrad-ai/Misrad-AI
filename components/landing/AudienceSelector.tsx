@@ -53,8 +53,8 @@ const audiences = [
   {
     icon: User,
     label: 'עצמאי / מתחיל',
-    desc: 'מודול אחד, ניהול נקי — מתחילים קטן ומתרחבים לפי הצורך.',
-    tag: 'מודול בודד',
+    desc: 'נקסוס בלבד, ניהול משימות וצוות — מתחילים קטן ומתרחבים לפי הצורך.',
+    tag: 'נקסוס בלבד',
     href: '/solo',
     gradient: 'from-indigo-500 to-blue-600',
     bg: 'from-indigo-50 to-white',

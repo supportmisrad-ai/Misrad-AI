@@ -138,11 +138,23 @@ export function calculatePackageModules(params: { packageType: PackageType; solo
   if (params.packageType === 'solo') {
     const mk = params.soloModuleKey ? String(params.soloModuleKey) : '';
     if (!mk) return [];
-    return [mk as OSModuleKey];
+    const selected = mk as OSModuleKey;
+    // נקסוס הוא המודול היחיד שיכול להיות רכוש בנפרד - כל השאר חייבים לבוא עם נקסוס
+    if (selected !== 'nexus') {
+      return ['nexus', selected];
+    }
+    return [selected];
   }
 
   const def = BILLING_PACKAGES[params.packageType];
-  return def?.modules ? [...def.modules] : [];
+  const modules = def?.modules ? [...def.modules] : [];
+  
+  // custom חייב לכלול nexus - מוסיף אוטומטית אם חסר
+  if (params.packageType === 'custom' && !modules.includes('nexus')) {
+    modules.unshift('nexus');
+  }
+  
+  return modules;
 }
 
 export function calculateOrderAmount(params: {

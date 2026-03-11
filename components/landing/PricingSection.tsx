@@ -19,7 +19,7 @@ interface PricingSectionProps {
 type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire';
 
 const PACKAGES: { key: PackageKey; emoji: string; label: string; who: string; price: number; modules: string; freeUsers: number }[] = [
-  { key: 'solo', emoji: '🎯', label: 'מודול בודד', who: 'צריך רק דבר אחד ספציפי', price: 149, modules: 'מודול לבחירה', freeUsers: 1 },
+  { key: 'solo', emoji: '🎯', label: 'נקסוס בלבד', who: 'מתחילים עם ניהול משימות וצוות', price: 149, modules: 'ניהול וצוות (Nexus)', freeUsers: 1 },
   { key: 'the_closer', emoji: '💼', label: 'מכירות', who: 'סוכן ביטוח, נדל״ן, מוקד — מנהל לידים עם AI', price: 249, modules: 'מכירות + ניהול', freeUsers: 1 },
   { key: 'the_authority', emoji: '🎨', label: 'שיווק ומיתוג', who: 'פרילנסר / נותן שירות שמייצר תוכן', price: 349, modules: 'שיווק + לקוחות + ניהול', freeUsers: 1 },
   { key: 'the_operator', emoji: '🔧', label: 'תפעול ושטח', who: 'קבלן / אנשי שטח שרוצים סדר', price: 349, modules: 'תפעול + ניהול + כספים', freeUsers: 1 },
@@ -34,7 +34,7 @@ export default function PricingSection({
 }: PricingSectionProps) {
   const router = useRouter();
   const [selectedPkg, setSelectedPkg] = useState<PackageKey>('the_empire');
-  const [selectedSoloModule, setSelectedSoloModule] = useState<OSModuleKey>('system');
+  const [selectedSoloModule, setSelectedSoloModule] = useState<OSModuleKey>('nexus');
   const [users, setUsers] = useState<number>(1);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(externalBillingCycle || 'monthly');
   const [isNavigating, setIsNavigating] = useState(false);
@@ -246,7 +246,7 @@ export default function PricingSection({
                     <StyledDropdown
                       value={selectedSoloModule}
                       onChange={(value) => setSelectedSoloModule(value as OSModuleKey)}
-                      options={(['system', 'social', 'client', 'operations', 'nexus'] as OSModuleKey[]).map((mk) => ({
+                      options={(['nexus'] as OSModuleKey[]).map((mk) => ({
                         value: mk,
                         label: getModuleLabelHe(mk),
                       }))}

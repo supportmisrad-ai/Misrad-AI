@@ -9,31 +9,31 @@ export default async function SoloLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="מודול בודד"
-      title="התחלה חכמה: לבחור מודול אחד ולהתחיל לעבוד מסודר."
-      subtitle="מתחילים קטן — גדלים חכם. בוחרים מודול ומתמקדים במה שכואב."
-      audience="פרילאנסרים ועצמאים · עסקים קטנים · ארגונים בצמיחה · צוותים בתחילת הדרך"
-      pain="יותר מדי כלים, יותר מדי רעש, ואין מקום אחד שמחזיק תהליך."
+      badge="נקסוס בלבד"
+      title="התחלה חכמה: ניהול משימות וצוות עם נקסוס."
+      subtitle="מתחילים עם בסיס חזק — ניהול משימות, צוות ולקוחות במקום אחד."
+      audience="פרילאנסרים ועצמאים · עסקים קטנים · צוותים בתחילת הדרך"
+      pain="אין מקום אחד שמחזיק את כל המשימות, הלקוחות והצוות."
       bullets={[
         {
-          title: 'פשוט וקל',
-          desc: 'ממשק נקי שלא מפחיד להשתמש בו.',
+          title: 'ניהול משימות',
+          desc: 'משימות, פרויקטים ומעקב אחרי התקדמות בצוות.',
         },
         {
-          title: 'ממוקד',
-          desc: 'משלמים רק על מה שצריכים באמת.',
+          title: 'CRM בסיסי',
+          desc: 'ניהול לקוחות ומעקב אחרי תקשורת.',
         },
         {
           title: 'מוכן לצמיחה',
-          desc: 'כשתרצה — מוסיפים עוד מודולים בלחיצת כפתור.',
+          desc: 'כשתרצה — מוסיפים מודולים נוספים בלחיצת כפתור.',
         },
       ]}
-      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=solo"
+      ctaPrimaryHref="/login?mode=sign-up&redirect=/workspaces/onboarding&plan=solo&module=nexus"
       ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
-      videoTitle="סרטון הסבר · מודול בודד"
+      videoTitle="סרטון הסבר · נקסוס"
     />
   );
 }

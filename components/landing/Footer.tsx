@@ -135,7 +135,7 @@ export const Footer = ({ initialLogo, initialLogoText }: FooterProps = {}) => {
                         </h4>
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/pricing" className={linkClasses}>כל החבילות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/solo" className={linkClasses}>מודול בודד<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/solo" className={linkClasses}>נקסוס בלבד<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/the-closer" className={linkClasses}>חבילת מכירות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/the-authority" className={linkClasses}>חבילת שיווק ומיתוג<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li><Link href="/the-operator" className={linkClasses}>חבילת תפעול ושטח<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
