@@ -16,7 +16,8 @@ import {
 } from 'recharts';
 import { Lead, DashboardStats, PipelineStage } from './types';
 import { STAGES } from './constants';
-import { CircleAlert, TrendingUp, DollarSign, Users, ArrowUpRight, Target, SquareActivity, Zap, Layers, PieChart as PieChartIcon, Calendar, Megaphone, Wallet, Play, PhoneCall } from 'lucide-react';
+import { CircleAlert, TrendingUp, DollarSign, Users, ArrowUpRight, Target, SquareActivity, Zap, Layers, PieChart as PieChartIcon, Calendar, Megaphone, Wallet, Play, PhoneCall, Copy, Check } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
 
 interface DashboardProps {
   leads: Lead[];
@@ -35,12 +36,25 @@ const DashboardSkeleton = () => (
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction }) => {
+  const { orgSlug } = useApp();
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
       const timer = setTimeout(() => setLoading(false), 600);
       return () => clearTimeout(timer);
   }, []);
+
+  const handleCopyLeadFormLink = () => {
+    if (!orgSlug) return;
+    const leadFormUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/lead/${orgSlug}`
+      : `/lead/${orgSlug}`;
+    navigator.clipboard.writeText(leadFormUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   if (loading) return <DashboardSkeleton />;
 
@@ -117,6 +131,17 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
                   <Play size={20} fill="currentColor" />
               </div>
               <span className="text-xs font-bold text-white text-center leading-tight">הוסף ליד</span>
+          </button>
+
+          <button 
+            onClick={handleCopyLeadFormLink}
+            className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200/60 rounded-[32px] hover:bg-slate-50 hover:shadow-float transition-all group hover:-translate-y-1 active:scale-95"
+            title="העתק לינק לטופס לידים ציבורי"
+          >
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  {copied ? <Check size={18} /> : <Copy size={18} />}
+              </div>
+              <span className="text-xs font-bold text-slate-700 text-center leading-tight">{copied ? 'הועתק!' : 'לינק טופס'}</span>
           </button>
       </div>
 

@@ -3,12 +3,26 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { LeadStatus, Lead } from '../types';
 import { motion } from 'framer-motion';
-import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CircleCheckBig, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CircleCheckBig, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag, Copy, Check } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
 
 export const LeadsView: React.FC = () => {
     const { leads, updateLead, addLead, products, convertLeadToClient } = useData();
+    const { orgSlug } = useApp();
     const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyLeadFormLink = () => {
+        if (!orgSlug) return;
+        const leadFormUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/lead/${orgSlug}`
+            : `/lead/${orgSlug}`;
+        navigator.clipboard.writeText(leadFormUrl).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     // KPI Calculations
     const totalRevenue = leads.reduce((sum: number, lead: Lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
@@ -92,6 +106,14 @@ export const LeadsView: React.FC = () => {
                             className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2"
                         >
                             <Plus size={18} /> הוסף ליד
+                        </button>
+                        <button 
+                            onClick={handleCopyLeadFormLink}
+                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                            title="העתק לינק לטופס לידים ציבורי"
+                        >
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                            <span className="hidden sm:inline">{copied ? 'הועתק!' : 'לינק טופס'}</span>
                         </button>
                     </div>
                 </div>
