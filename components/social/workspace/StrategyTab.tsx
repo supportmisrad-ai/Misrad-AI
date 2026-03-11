@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Client } from '@/types/social';
 import type { MarketingStrategy, ClientProfile } from '@/lib/ai/marketing-strategy-generator';
+import { getClientStrategiesAction, getMarketingStrategyAction, createMarketingStrategyAction } from '@/app/actions/marketing-strategy';
 
 // Types
 interface StrategyTabProps {
@@ -92,21 +93,19 @@ export default function StrategyTab({ client, orgSlug }: StrategyTabProps) {
 
   const loadSavedStrategies = async () => {
     try {
-      const response = await fetch(`/api/social/clients/${client.id}/strategies`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.strategies) {
-          setSavedStrategies(data.strategies);
-          if (data.strategies.length > 0 && data.strategies[0].is_active) {
-            // Load the active strategy
-            const activeStrategy = await fetch(`/api/social/clients/${client.id}/strategies/${data.strategies[0].id}`);
-            if (activeStrategy.ok) {
-              const strategyData = await activeStrategy.json();
-              if (strategyData.strategy) {
-                setStrategy(strategyData.strategy);
-                setCurrentStep('results');
-              }
-            }
+      const result = await getClientStrategiesAction({ orgSlug, clientId: client.id });
+      if (result.success && result.strategies) {
+        setSavedStrategies(result.strategies);
+        if (result.strategies.length > 0 && result.strategies[0].is_active) {
+          // Load the active strategy
+          const strategyResult = await getMarketingStrategyAction({ 
+            orgSlug, 
+            clientId: client.id, 
+            strategyId: result.strategies[0].id 
+          });
+          if (strategyResult.success && strategyResult.strategy) {
+            setStrategy(strategyResult.strategy);
+            setCurrentStep('results');
           }
         }
       }
@@ -155,24 +154,18 @@ export default function StrategyTab({ client, orgSlug }: StrategyTabProps) {
         religiousConsiderations: questionnaire.religiousConsiderations,
       };
 
-      const response = await fetch('/api/social/clients/strategy/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgSlug,
-          clientId: client.id,
-          profile: clientProfile,
-        }),
+      const result = await createMarketingStrategyAction({
+        orgSlug,
+        clientId: client.id,
+        profile: clientProfile,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'שגיאה ביצירת האסטרטגיה');
+      if (!result.success) {
+        throw new Error(result.error || 'שגיאה ביצירת האסטרטגיה');
       }
 
-      const data = await response.json();
-      if (data.strategy) {
-        setStrategy(data.strategy);
+      if (result.strategy) {
+        setStrategy(result.strategy);
         setCurrentStep('results');
         // Reload saved strategies
         await loadSavedStrategies();
