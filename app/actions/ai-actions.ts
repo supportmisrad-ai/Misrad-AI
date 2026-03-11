@@ -27,26 +27,58 @@ export async function generatePostVariationsAction(
 ): Promise<PostVariation[]> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return [];
+    if (!authCheck.success) {
+      logger.warn('ai-actions', 'generatePostVariationsAction: auth failed', { clientName });
+      return [];
+    }
 
-    const formalText = dna.voice.formal > 70 ? "רשמי מאוד, שפה נקייה ומכובדת" : dna.voice.formal < 30 ? "חברי, בגובה העיניים, סלנג עדין" : "מאוזן";
-    const funnyText = dna.voice.funny > 70 ? "הומוריסטי, שנון, משתמש באימוג'ים מצחיקים" : dna.voice.funny < 30 ? "רציני, ענייני, מקצועי" : "חיובי";
-    const lengthText = dna.voice.length > 70 ? "מפורט, עם הרבה ערך מוסף" : dna.voice.length < 30 ? "קצר וקולע, פאנצ'י" : "בינוני";
+    // Validate DNA structure
+    logger.info('ai-actions', 'generatePostVariationsAction: DNA received', {
+      hasDna: !!dna,
+      hasVoice: !!dna?.voice,
+      hasVocabulary: !!dna?.vocabulary,
+      voiceKeys: dna?.voice ? Object.keys(dna.voice) : [],
+      vocabKeys: dna?.vocabulary ? Object.keys(dna.vocabulary) : [],
+      lovedCount: dna?.vocabulary?.loved?.length || 0,
+      forbiddenCount: dna?.vocabulary?.forbidden?.length || 0,
+      formalValue: dna?.voice?.formal,
+      funnyValue: dna?.voice?.funny,
+      lengthValue: dna?.voice?.length,
+    });
+
+    // Default DNA values if missing
+    const safeDna: ClientDNA = {
+      brandSummary: dna?.brandSummary || 'עסק ישראלי מקצועי.',
+      voice: {
+        formal: dna?.voice?.formal ?? 50,
+        funny: dna?.voice?.funny ?? 50,
+        length: dna?.voice?.length ?? 50,
+      },
+      vocabulary: {
+        loved: dna?.vocabulary?.loved || [],
+        forbidden: dna?.vocabulary?.forbidden || [],
+      },
+      colors: dna?.colors || { primary: '#3B82F6', secondary: '#10B981' },
+    };
+
+    const formalText = safeDna.voice.formal > 70 ? "רשמי מאוד, שפה נקייה ומכובדת" : safeDna.voice.formal < 30 ? "חברי, בגובה העיניים, סלנג עדין" : "מאוזן";
+    const funnyText = safeDna.voice.funny > 70 ? "הומוריסטי, שנון, משתמש באימוג'ים מצחיקים" : safeDna.voice.funny < 30 ? "רציני, ענייני, מקצועי" : "חיובי";
+    const lengthText = safeDna.voice.length > 70 ? "מפורט, עם הרבה ערך מוסף" : safeDna.voice.length < 30 ? "קצר וקולע, פאנצ'י" : "בינוני";
 
     const prompt = `
       אתה מנהל סושיאל מדיה ישראלי בכיר.
       ייצר 3 גרסאות לפוסט עבור המותג: ${clientName}.
       
       תיאור המותג וזהותו (BRAND IDENTITY):
-      ${dna.brandSummary || "עסק ישראלי מקצועי."}
+      ${safeDna.brandSummary}
 
       דגשים לסגנון הכתיבה (DNA של המותג):
-      - רמת רשמיות: ${formalText} (${dna.voice.formal}%)
-      - רמת הומור: ${funnyText} (${dna.voice.funny}%)
-      - אורך הפוסט: ${lengthText} (${dna.voice.length}%)
+      - רמת רשמיות: ${formalText} (${safeDna.voice.formal}%)
+      - רמת הומור: ${funnyText} (${safeDna.voice.funny}%)
+      - אורך הפוסט: ${lengthText} (${safeDna.voice.length}%)
       
-      מילים אהובות לשימוש: ${dna.vocabulary.loved.join(', ')}
-      מילים אסורות: ${dna.vocabulary.forbidden.join(', ')}
+      מילים אהובות לשימוש: ${safeDna.vocabulary.loved.join(', ')}
+      מילים אסורות: ${safeDna.vocabulary.forbidden.join(', ')}
 
       הנושא המבוקש לפוסט: ${brief}.
       
@@ -82,43 +114,69 @@ export async function generatePostVariationsAction(
       הקפד שהתוכן (content) ישמר עם ירידות שורה (\n) במקומות הנכונים לקריאות טובה.
     `;
 
+    logger.info('ai-actions', 'generatePostVariationsAction: calling AI service', { 
+      clientName, 
+      briefLength: brief?.length,
+      useSearch,
+    });
+
     const ai = AIService.getInstance();
     const out = await ai.generateText({
       featureKey: 'social.post_variations',
       prompt,
       meta: { clientName, useSearch },
     });
+    
     const text = out.text || '';
+    logger.info('ai-actions', 'generatePostVariationsAction: AI response received', {
+      textLength: text?.length,
+      hasText: !!text,
+      preview: text?.substring(0, 200),
+    });
     
     // Parse JSON response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      const parsed: unknown = JSON.parse(jsonMatch[0]);
-      const list: unknown[] = Array.isArray(parsed) ? parsed : [];
-      const fallbackTypes = ['sales', 'social', 'value'];
-      return list.map((p, i): PostVariation => {
-        const obj = asObject(p);
-        const id = getStringProp(obj, 'id') || `var-${Date.now()}-${i}`;
-        const type = getStringProp(obj, 'type') || fallbackTypes[i] || '';
-        const content = getStringProp(obj, 'content') || '';
-        const imageSuggestion = getStringProp(obj, 'imageSuggestion') || '';
-        
-        // Parse suggestedHashtags
-        const hashtagsObj = asObject(obj?.suggestedHashtags);
-        const suggestedHashtags = hashtagsObj ? {
-          facebook: Array.isArray(hashtagsObj.facebook) ? hashtagsObj.facebook.map(String).filter(Boolean) : undefined,
-          instagram: Array.isArray(hashtagsObj.instagram) ? hashtagsObj.instagram.map(String).filter(Boolean) : undefined,
-          linkedin: Array.isArray(hashtagsObj.linkedin) ? hashtagsObj.linkedin.map(String).filter(Boolean) : undefined,
-          general: Array.isArray(hashtagsObj.general) ? hashtagsObj.general.map(String).filter(Boolean) : undefined,
-        } : undefined;
-        
-        return { id, type, content, imageSuggestion, suggestedHashtags };
-      });
+      try {
+        const parsed: unknown = JSON.parse(jsonMatch[0]);
+        const list: unknown[] = Array.isArray(parsed) ? parsed : [];
+        logger.info('ai-actions', 'generatePostVariationsAction: parsed variations', {
+          count: list?.length,
+        });
+        const fallbackTypes = ['sales', 'social', 'value'];
+        return list.map((p, i): PostVariation => {
+          const obj = asObject(p);
+          const id = getStringProp(obj, 'id') || `var-${Date.now()}-${i}`;
+          const type = getStringProp(obj, 'type') || fallbackTypes[i] || '';
+          const content = getStringProp(obj, 'content') || '';
+          const imageSuggestion = getStringProp(obj, 'imageSuggestion') || '';
+          
+          // Parse suggestedHashtags
+          const hashtagsObj = asObject(obj?.suggestedHashtags);
+          const suggestedHashtags = hashtagsObj ? {
+            facebook: Array.isArray(hashtagsObj.facebook) ? hashtagsObj.facebook.map(String).filter(Boolean) : undefined,
+            instagram: Array.isArray(hashtagsObj.instagram) ? hashtagsObj.instagram.map(String).filter(Boolean) : undefined,
+            linkedin: Array.isArray(hashtagsObj.linkedin) ? hashtagsObj.linkedin.map(String).filter(Boolean) : undefined,
+            general: Array.isArray(hashtagsObj.general) ? hashtagsObj.general.map(String).filter(Boolean) : undefined,
+          } : undefined;
+          
+          return { id, type, content, imageSuggestion, suggestedHashtags };
+        });
+      } catch (parseError) {
+        logger.error('ai-actions', 'generatePostVariationsAction: JSON parse error', {
+          error: String(parseError),
+          jsonPreview: jsonMatch[0]?.substring(0, 500),
+        });
+        return [];
+      }
     }
     
+    logger.warn('ai-actions', 'generatePostVariationsAction: no JSON array found in response', {
+      textPreview: text?.substring(0, 500),
+    });
     return [];
   } catch (error) {
-    logger.error('ai-actions', 'Error generating post variations:', error);
+    logger.error('ai-actions', 'generatePostVariationsAction: Error generating post variations:', error);
     return [];
   }
 }

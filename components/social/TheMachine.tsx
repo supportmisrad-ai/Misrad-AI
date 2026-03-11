@@ -140,13 +140,41 @@ export default function TheMachine() {
     );
   };
 
+  useEffect(() => {
+    console.log('[OneClick] Step 2 state check:', {
+      isLoading,
+      variationsCount: variations?.length,
+      hasSelectedVariation: !!selectedVariation,
+      step,
+      hasClient: !!selectedClient,
+    });
+  }, [isLoading, variations, selectedVariation, step, selectedClient]);
+
   const handleGenerate = async () => {
     if (!selectedClient || !brief) return;
+    
+    console.log('[OneClick] Starting generation...', {
+      clientId: selectedClient?.id,
+      hasDna: !!selectedClient?.dna,
+      dnaKeys: selectedClient?.dna ? Object.keys(selectedClient.dna) : [],
+      briefLength: brief?.length,
+      companyName: selectedClient?.companyName,
+    });
+    
     setIsLoading(true);
     setStep(2);
-    const results = await generatePostVariationsAction(brief, selectedClient.companyName, selectedClient.dna);
-    setVariations(results.map(v => ({ ...v, generatedImage: null, isGeneratingImage: false })));
-    setIsLoading(false);
+    try {
+      const results = await generatePostVariationsAction(brief, selectedClient.companyName, selectedClient.dna);
+      console.log('[OneClick] Received results:', {
+        count: results?.length,
+        firstResult: results?.[0] ? { id: results[0].id, type: results[0].type, contentLength: results[0].content?.length } : null,
+      });
+      setVariations(results.map(v => ({ ...v, generatedImage: null, isGeneratingImage: false })));
+    } catch (error) {
+      console.error('[OneClick] Generation failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectVariation = (v: VariationWithImage) => {
@@ -486,7 +514,6 @@ export default function TheMachine() {
             </motion.div>
           )}
 
-          {step === 2 && (
             <motion.div 
               key="s2" 
               initial={{ opacity: 0, x: 20 }} 

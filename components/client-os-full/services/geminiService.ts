@@ -103,13 +103,22 @@ export const generateProgressSummary = async (goalTitle: string, current: number
 };
 
 export const generateSuccessRecommendation = async (clientName: string, healthScore: number) => {
+    console.log('[SuccessRec] Called with:', { clientName: clientName || '(empty)', healthScore });
+    
+    if (!clientName || !clientName.trim()) {
+      console.warn('[SuccessRec] Empty clientName, returning fallback');
+      return { tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.', expectedBenefit: 'שיפור בשימור לקוח (Retention)' };
+    }
+    
     const res = await fetch('/api/client-os/ai/success-recommendation', {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...getOrgHeaders() },
-      body: JSON.stringify({ clientName, healthScore }),
+      body: JSON.stringify({ clientName: clientName.trim(), healthScore }),
     });
 
     const parsed = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    console.log('[SuccessRec] API response:', { status: res.status, ok: res.ok, hasTip: !!parsed?.tip });
+    
     if (!res.ok) {
       return { tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.', expectedBenefit: 'שיפור בשימור לקוח (Retention)' };
     }

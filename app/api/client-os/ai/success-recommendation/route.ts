@@ -42,7 +42,12 @@ async function POSTHandler(req: Request) {
     const clientName = String(bodyObj.clientName || '').trim();
     const healthScore = Number(bodyObj.healthScore || 0);
 
-    if (!clientName) return NextResponse.json({ error: 'clientName is required' }, { status: 400 });
+    console.log('[API:success-recommendation] Received:', { clientName: clientName || '(empty)', healthScore, bodyKeys: Object.keys(bodyObj) });
+
+    if (!clientName) {
+      console.warn('[API:success-recommendation] Missing clientName - returning 400');
+      return NextResponse.json({ error: 'clientName is required' }, { status: 400 });
+    }
 
     const prompt = `As a high-end agency consultant, provide a tip in Hebrew for the business owner on how to use transparency to retain client "${clientName}". Health Score is ${healthScore}/100. Tip should be motivating and professional (max 15 words). JSON: {tip, expectedBenefit}`;
 

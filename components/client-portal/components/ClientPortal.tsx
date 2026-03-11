@@ -219,10 +219,17 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
   const renderActiveScreen = () => {
     if (!client) {
       return (
-        <div className="max-w-2xl">
-          <div className="text-2xl font-bold">אין עדיין נתונים להצגה</div>
-          <div className="text-slate-600 mt-2">
-            ברגע שייווצרו משימות/פגישות/קבצים ללקוח, הם יופיעו כאן.
+        <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+          <div className="max-w-md w-full text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">אין עדיין נתונים להצגה</h2>
+            <p className="text-slate-600 text-sm md:text-base">
+              ברגע שייווצרו משימות/פגישות/קבצים ללקוח, הם יופיעו כאן.
+            </p>
           </div>
         </div>
       );
@@ -302,14 +309,20 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
 
       {activeFormToFill && <PortalFormFiller activeForm={activeFormToFill} onClose={() => setActiveFormToFill(null)} onSubmit={handleSubmitForm} />}
 
-      <PortalSidebar
-        activeScreen={activeScreen}
-        setActiveScreen={(screen: unknown) => setActiveScreen(screen as PortalScreen)}
-        onShowFriction={() => setShowFrictionModal(true)}
-        client={client}
-      />
-
-      <main className="flex-1 overflow-y-auto custom-scrollbar relative z-10 p-6 lg:p-12 pb-32">{renderActiveScreen()}</main>
+      <div className="flex flex-col md:flex-row w-full h-screen overflow-hidden pt-14 lg:pt-0 pb-16 lg:pb-0">
+        <PortalSidebar
+          activeScreen={activeScreen}
+          setActiveScreen={(screen: unknown) => setActiveScreen(screen as PortalScreen)}
+          onShowFriction={() => setShowFrictionModal(true)}
+          client={client}
+        />
+        
+        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full">
+          <div className="p-4 md:p-6 lg:p-8 min-h-full">
+            {renderActiveScreen()}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
