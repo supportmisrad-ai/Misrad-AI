@@ -845,6 +845,7 @@ model clients {
   
   // ──── Cycles / Client Groups ────
   cycleClients           CycleClient[]
+  cycleTaskCompletions   CycleTaskCompletion[]
 
   @@index([organization_id], map: "idx_clients_organization_id")
   @@index([client_client_id], map: "idx_clients_client_client_id")
@@ -5233,6 +5234,7 @@ model CycleTaskCompletion {
   
   // Relations
   task            CycleTask       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  client          clients         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   
   @@unique([taskId, clientId])
   @@index([taskId])
