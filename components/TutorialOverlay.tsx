@@ -156,8 +156,16 @@ export const TutorialOverlay: React.FC = () => {
             });
         }
 
-        // Update on resize/scroll
-        const handleUpdate = () => findAndHighlight();
+        // Update on resize/scroll with throttle
+        let ticking = false;
+        const handleUpdate = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+                findAndHighlight();
+                ticking = false;
+            });
+        };
         window.addEventListener('resize', handleUpdate);
         window.addEventListener('scroll', handleUpdate, true);
 

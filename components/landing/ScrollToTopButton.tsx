@@ -1,19 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp } from 'lucide-react';
 
 export const ScrollToTopButton = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const tickingRef = useRef(false);
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      if (tickingRef.current) return;
+      
+      tickingRef.current = true;
+      
+      // Use requestAnimationFrame for smooth throttle
+      requestAnimationFrame(() => {
+        if (window.pageYOffset > 300) {
+          setIsVisible(true);
+        } else {
+          setIsVisible(false);
+        }
+        tickingRef.current = false;
+      });
     };
 
     window.addEventListener('scroll', toggleVisibility);

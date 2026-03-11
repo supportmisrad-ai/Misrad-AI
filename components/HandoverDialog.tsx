@@ -57,9 +57,9 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
           if (prev > 75 && msgIndex === 3) { msgIndex++; setLogs(p => [...p, msgs[4]]); }
           if (prev > 95 && msgIndex === 4) { msgIndex++; setLogs(p => [...p, msgs[5]]); }
           
-          return prev + 1.2; // Smooth progress
+          return prev + 3; // Smooth progress (10fps is enough)
         });
-      }, 40);
+      }, 100);
       return () => clearInterval(interval);
     }
   }, [step]);
