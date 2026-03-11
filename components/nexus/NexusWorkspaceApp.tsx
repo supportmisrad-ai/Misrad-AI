@@ -2,7 +2,6 @@
 
 import React, { useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { DataProvider } from '@/context/DataContext';
 import { Layout } from '@/components/Layout';
@@ -193,18 +192,12 @@ export function NexusWorkspaceApp({
 
   return (
     <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-      <AnimatePresence mode="sync" initial={false}>
-        <motion.div
-          key={relative}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.1, ease: 'easeOut' }}
-          className="flex-1 min-h-0"
-        >
-          {content}
-        </motion.div>
-      </AnimatePresence>
+      <div 
+        key={relative}
+        className="flex-1 min-h-0 animate-fade-in"
+      >
+        {content}
+      </div>
     </DataProvider>
   );
 }

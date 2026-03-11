@@ -695,7 +695,7 @@ export const DashboardView: React.FC<{
 
         return (
         <div className="flex flex-col gap-8 pb-16 md:pb-20">
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
                 {isEditingGoals && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditingGoals(false)} />
@@ -714,7 +714,7 @@ export const DashboardView: React.FC<{
             {/* ===== SECTION 1: PRIMARY WIDGET (Onboarding / Template / Owner Dashboard) ===== */}
             
             {/* ONBOARDING WIDGET - For new users */}
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
                 {isNewUser && (
                     <DashboardOnboarding
                         steps={onboardingSteps}

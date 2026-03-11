@@ -176,7 +176,7 @@ export const CalendarView: React.FC = () => {
     <div className="flex flex-col md:flex-row h-full gap-6 relative overflow-hidden" style={{ touchAction: 'pan-y' }}>
       
       {/* Drag Confirmation Modal */}
-      <AnimatePresence>
+      <AnimatePresence mode="sync">
           {dropConfirmState.isOpen && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setDropConfirmState(prev => ({ ...prev, isOpen: false }))}>
                   <motion.div 
@@ -577,7 +577,7 @@ export const CalendarView: React.FC = () => {
           </div>
           
           {/* Mobile Modal for Unscheduled */}
-          <AnimatePresence>
+          <AnimatePresence mode="sync">
               {showUnscheduledMobile && (
                   <div className="fixed inset-0 z-[150] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm xl:hidden" onClick={() => setShowUnscheduledMobile(false)}>
                       <motion.div 
@@ -632,7 +632,7 @@ export const CalendarView: React.FC = () => {
       )}
 
       {/* Day Detail Modal */}
-      <AnimatePresence>
+      <AnimatePresence mode="sync">
         {selectedDayDetail && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedDayDetail(null)}>
                 <motion.div 

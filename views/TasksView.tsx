@@ -898,7 +898,7 @@ export const TasksView: React.FC = () => {
                 </button>
 
                 {isNarrow && typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
+                <AnimatePresence mode="sync">
                         {isGroupByOpen && (
                         <>
                         <motion.div 
@@ -951,7 +951,7 @@ export const TasksView: React.FC = () => {
                         document.body
                 )}
                 {!isNarrow && (
-                    <AnimatePresence>
+                    <AnimatePresence mode="sync">
                         {isGroupByOpen && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -1015,7 +1015,7 @@ export const TasksView: React.FC = () => {
                 </button>
 
                 {isNarrow && typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
+                <AnimatePresence mode="sync">
                         {isFilterMenuOpen && (
                         <>
                         <motion.div 
@@ -1061,7 +1061,7 @@ export const TasksView: React.FC = () => {
                         document.body
                 )}
                 {!isNarrow && (
-                    <AnimatePresence>
+                    <AnimatePresence mode="sync">
                     {isFilterMenuOpen && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}

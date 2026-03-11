@@ -114,7 +114,7 @@ export const ContentMachineView: React.FC = () => {
           isHardDelete={false}
       />
 
-      <AnimatePresence>
+      <AnimatePresence mode="sync">
         {activeTask && (
             <TaskDetailModal 
                 task={activeTask} 

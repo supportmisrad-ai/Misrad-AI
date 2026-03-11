@@ -74,16 +74,20 @@ export const ClientsView: React.FC = () => {
     // Filter only onboarding templates
     const onboardingTemplates = templates.filter((t: { category?: string }) => t.category === 'onboarding');
 
-    // View Mode with Persistence (Safely)
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    // View Mode with Persistence (Safely) - lazy init to avoid hydration mismatch
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    // Load view mode from localStorage after mount (client-side only)
+    useEffect(() => {
         try {
             if (typeof window !== 'undefined' && window.localStorage) {
                 const saved = localStorage.getItem('nexus_clients_view_mode');
-                return (saved === 'list' || saved === 'grid') ? saved : 'grid';
+                if (saved === 'list' || saved === 'grid') {
+                    setViewMode(saved);
+                }
             }
         } catch (e) { }
-        return 'grid';
-    });
+    }, []);
 
     useEffect(() => {
         try {
@@ -264,7 +268,7 @@ export const ClientsView: React.FC = () => {
 
     return (
         <div className="w-full flex flex-col h-auto md:h-full pb-16 md:pb-0">
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
                 {selectedClient && (
                     <ClientDetailModal 
                         client={selectedClient} 
@@ -273,7 +277,7 @@ export const ClientsView: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
                 {isAddClientOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div 

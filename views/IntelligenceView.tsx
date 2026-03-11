@@ -227,7 +227,7 @@ export const IntelligenceView: React.FC = () => {
         <div className="h-full flex flex-col md:flex-row bg-[#0f172a] text-slate-100 overflow-hidden rounded-3xl shadow-2xl border border-slate-800 relative font-sans" dir="rtl">
             
             {/* Goal Setting Modal */}
-            <AnimatePresence>
+            <AnimatePresence mode="sync">
                 {isGoalModalOpen && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsGoalModalOpen(false)}></div>
