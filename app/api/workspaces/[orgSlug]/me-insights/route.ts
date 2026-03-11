@@ -282,73 +282,61 @@ async function GETHandler(
         return Number.isFinite(n) ? n : 0;
       };
 
-      const [weightedPipelineRow] = await queryRawOrgScoped<Array<{ weighted_pipeline: unknown }>>(prisma, {
-        organizationId: workspace.id,
-        reason: 'me_insights_finance_weighted_pipeline',
-        query: `
-          SELECT COALESCE(
-            SUM(
-              COALESCE(value, 0) * GREATEST(0, LEAST(1, (COALESCE(score, 0)::float / 100.0)))
-            ),
-            0
-          ) AS weighted_pipeline
-          FROM system_leads
-          WHERE organization_id = $1::uuid
-            AND LOWER(COALESCE(status, '')) NOT IN ('won', 'lost')
-        `,
-        values: [workspace.id],
-      });
+      const [weightedPipelineRow, systemInvoicesOpenRow, misradInvoicesOpenRow] = await Promise.all([
+        queryRawOrgScoped<Array<{ weighted_pipeline: unknown }>>(prisma, {
+          organizationId: workspace.id,
+          reason: 'me_insights_finance_weighted_pipeline',
+          query: `
+            SELECT COALESCE(
+              SUM(
+                COALESCE(value, 0) * GREATEST(0, LEAST(1, (COALESCE(score, 0)::float / 100.0)))
+              ),
+              0
+            ) AS weighted_pipeline
+            FROM system_leads
+            WHERE organization_id = $1::uuid
+              AND LOWER(COALESCE(status, '')) NOT IN ('won', 'lost')
+          `,
+          values: [workspace.id],
+        }),
+        queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
+          organizationId: workspace.id,
+          reason: 'me_insights_finance_system_invoices_open',
+          query: `
+            SELECT COALESCE(SUM(si.amount), 0) AS open_sum
+            FROM system_invoices si
+            JOIN system_leads sl ON sl.id = si.lead_id
+            WHERE sl.organization_id = $1::uuid
+              AND si.date >= $2::timestamptz
+              AND si.date < $3::timestamptz
+              AND (
+                LOWER(COALESCE(si.status, '')) NOT LIKE '%paid%'
+                AND LOWER(COALESCE(si.status, '')) NOT LIKE '%settled%'
+                AND LOWER(COALESCE(si.status, '')) NOT LIKE '%complete%'
+                AND LOWER(COALESCE(si.status, '')) NOT LIKE '%void%'
+                AND LOWER(COALESCE(si.status, '')) NOT LIKE '%cancel%'
+              )
+          `,
+          values: [workspace.id, startOfMonth, startOfNextMonth],
+        }),
+        queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
+          organizationId: workspace.id,
+          reason: 'me_insights_finance_misrad_invoices_open',
+          query: `
+            SELECT COALESCE(SUM(mi.amount), 0) AS open_sum
+            FROM misrad_invoices mi
+            WHERE mi.organization_id = $1::uuid
+              AND mi.status <> 'PAID'
+              AND mi.due_date_at >= $2::date
+              AND mi.due_date_at < $3::date
+          `,
+          values: [workspace.id, startOfMonth, startOfNextMonth],
+        }),
+      ]);
 
-      const weightedPipeline = toNumberSafe(weightedPipelineRow?.weighted_pipeline);
-
-      const [systemInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
-        organizationId: workspace.id,
-        reason: 'me_insights_finance_system_invoices_open',
-        query: `
-          SELECT COALESCE(SUM(si.amount), 0) AS open_sum
-          FROM system_invoices si
-          JOIN system_leads sl ON sl.id = si.lead_id
-          WHERE sl.organization_id = $1::uuid
-            AND si.date >= $2::timestamptz
-            AND si.date < $3::timestamptz
-            AND (
-              LOWER(COALESCE(si.status, '')) NOT LIKE '%paid%'
-              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%settled%'
-              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%complete%'
-              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%void%'
-              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%cancel%'
-            )
-        `,
-        values: [workspace.id, startOfMonth, startOfNextMonth],
-      });
-
-      const systemInvoicesOpen = toNumberSafe(systemInvoicesOpenRow?.open_sum);
-
-      const [misradInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
-        organizationId: workspace.id,
-        reason: 'me_insights_finance_misrad_invoices_open',
-        query: `
-          SELECT COALESCE(SUM(mi.amount), 0) AS open_sum
-          FROM misrad_invoices mi
-          WHERE mi.organization_id = $1::uuid
-            AND mi.status <> 'PAID'
-            AND (
-              CASE
-                WHEN mi.due_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN mi.due_date::date
-                ELSE NULL
-              END
-            ) >= $2::date
-            AND (
-              CASE
-                WHEN mi.due_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN mi.due_date::date
-                ELSE NULL
-              END
-            ) < $3::date
-        `,
-        values: [workspace.id, startOfMonth, startOfNextMonth],
-      });
-
-      const misradInvoicesOpenThisMonth = toNumberSafe(misradInvoicesOpenRow?.open_sum);
+      const weightedPipeline = toNumberSafe((weightedPipelineRow as unknown as Array<{ weighted_pipeline: unknown }>)?.[0]?.weighted_pipeline);
+      const systemInvoicesOpen = toNumberSafe((systemInvoicesOpenRow as unknown as Array<{ open_sum: unknown }>)?.[0]?.open_sum);
+      const misradInvoicesOpenThisMonth = toNumberSafe((misradInvoicesOpenRow as unknown as Array<{ open_sum: unknown }>)?.[0]?.open_sum);
 
       let recurringMonthly = 0;
 

@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ChevronLeft, ChevronRight, Plus, Trash2, Edit3, 
   Clock, X, CalendarDays, RefreshCw, Settings, Check
@@ -39,7 +39,13 @@ export default function Calendar() {
   const { addToast } = useSocialUI();
   const { orgSlug } = useApp();
 
-  const [viewDate, setViewDate] = useState(new Date());
+  // Initialize with static date to avoid hydration mismatch
+  const [viewDate, setViewDate] = useState(() => new Date(2026, 0, 1));
+  
+  useEffect(() => {
+    setViewDate(new Date());
+  }, []);
+  
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);

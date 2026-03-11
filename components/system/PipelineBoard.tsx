@@ -266,7 +266,12 @@ const PipelineCard = memo(({
 });
 
 const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClick, onStatusChange, onUpdateFollowUp }) => {
-    const [now, setNow] = useState(new Date());
+    // Initialize with static date to avoid hydration mismatch
+    const [now, setNow] = useState(() => new Date(2026, 0, 1));
+    
+    useEffect(() => {
+        setNow(new Date());
+    }, []);
     const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
     useEffect(() => {

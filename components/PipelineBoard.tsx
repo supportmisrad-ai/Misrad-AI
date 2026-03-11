@@ -115,9 +115,10 @@ const PipelineCard = memo(({ lead, onDragStart, onClick, now }: {
 });
 
 const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, onLeadClick, onStatusChange }) => {
-    const [now, setNow] = useState(new Date());
+    const [now, setNow] = useState(() => new Date(2026, 0, 1));
 
     useEffect(() => {
+        setNow(new Date());
         const interval = setInterval(() => setNow(new Date()), 60000);
         return () => clearInterval(interval);
     }, []);

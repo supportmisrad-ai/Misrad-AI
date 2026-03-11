@@ -23,7 +23,15 @@ export const TimeEntryModal: React.FC<TimeEntryModalProps> = ({
 }) => {
     useBackButtonClose(isOpen, onClose);
     const [userId, setUserId] = useState(currentUserId);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    // Initialize with static date to avoid hydration mismatch
+    const [date, setDate] = useState('2026-01-01');
+    
+    useEffect(() => {
+        if (isOpen && !entryToEdit) {
+            setDate(new Date().toISOString().split('T')[0]);
+        }
+    }, [isOpen, entryToEdit]);
+    
     const [startTime, setStartTime] = useState('09:00');
     const [endTime, setEndTime] = useState('17:00');
 

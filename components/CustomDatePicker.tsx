@@ -34,7 +34,13 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   onValidationError
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [viewDate, setViewDate] = useState(new Date());
+  // Initialize with static date to avoid hydration mismatch
+  const [viewDate, setViewDate] = useState(() => new Date(2026, 0, 1));
+  
+  useEffect(() => {
+    setViewDate(new Date());
+  }, []);
+  
   const [position, setPosition] = useState<{ top: number; left: number; width: number; placement: 'bottom' | 'top' } | null>(null);
   const [showHebrewCalendar, setShowHebrewCalendar] = useState(false);
   
