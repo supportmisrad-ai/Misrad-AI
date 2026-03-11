@@ -5,6 +5,7 @@ import { getClientStrategiesAction, getMarketingStrategyAction } from '@/app/act
 /**
  * GET /api/social/clients/[id]/strategies
  * Get all strategies for a client
+ * protected:workspace - requireWorkspaceAccessByOrgSlugApi
  */
 export async function GET(
   request: NextRequest,
