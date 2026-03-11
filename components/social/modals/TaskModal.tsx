@@ -1,6 +1,7 @@
 ﻿'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
@@ -139,12 +140,12 @@ export default function TaskModal() {
     setEditingTask(null);
   };
 
-  return (
-    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-0 sm:p-2 md:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto" onClick={handleClose}>
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-white w-full max-w-2xl rounded-[48px] shadow-2xl overflow-visible flex flex-col relative z-[250]"
+        className="bg-white w-full max-w-2xl rounded-none sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col min-h-screen sm:min-h-0 max-h-screen sm:max-h-[95vh] my-0 sm:my-4"
         onClick={e => e.stopPropagation()}
         dir="rtl"
       >
@@ -419,7 +420,8 @@ export default function TaskModal() {
           </button>
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
