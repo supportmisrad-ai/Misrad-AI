@@ -494,7 +494,7 @@ ${String(request.description || '').trim()}`.trim();
       </div>
 
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 flex flex-col gap-6 md:gap-10">
-         <AnimatePresence mode="wait">
+         <AnimatePresence mode="sync">
             {renderTabContent()}
          </AnimatePresence>
       </main>

@@ -128,7 +128,7 @@ export default function ClientWorkspace() {
 
       <ClientWorkspaceTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         <motion.div 
           key={activeTab} 
           initial={{ opacity: 0, y: 10 }} 
