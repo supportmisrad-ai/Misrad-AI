@@ -901,8 +901,8 @@ export const MeView: React.FC<{
           })()}
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
-          {/* Optimistic: show panel immediately while entitlements load (null) so it appears without delay */}
-          {hasNexusEntitlement !== false ? (
+          {/* Show attendance panel only when Nexus entitlement is available */}
+          {hasNexusEntitlement ? (
               <MeAttendancePanel
                   activeShift={activeShift}
                   elapsed={elapsed}
@@ -916,7 +916,7 @@ export const MeView: React.FC<{
                   onClockIn={clockIn}
                   onClockOut={clockOut}
                   onRequestLeave={() => setShowLeaveRequestModal(true)}
-                  actionsEnabled={false}
+                  actionsEnabled={true}
               />
           ) : null}
 

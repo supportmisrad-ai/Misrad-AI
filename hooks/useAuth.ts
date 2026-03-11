@@ -815,7 +815,7 @@ export const useAuth = (
                 await refreshTimeEntries();
 
                 const entryId = res?.activeShift?.id;
-                if (entryId && res?.activeShift?.startTime) {
+                if (entryId && isUUID(String(entryId)) && res?.activeShift?.startTime) {
                     const startIso = new Date(res.activeShift.startTime).toISOString();
                     setAttendanceCache(capturedOrgSlug, { entryId: String(entryId), startTime: startIso });
                     broadcastAttendanceUpdate(capturedOrgSlug, entryId, startIso);
@@ -825,11 +825,11 @@ export const useAuth = (
                 }
 
                 // GPS was acquiring in parallel — use result now
-                if (entryId) {
+                if (entryId && isUUID(String(entryId))) {
                     const location = await gpsPromise;
                     if (location && (location.lat !== 0 || location.lng !== 0)) {
                         try {
-                            await updateEntryLocation(capturedOrgSlug, entryId, 'start', location);
+                            await updateEntryLocation(capturedOrgSlug, String(entryId), 'start', location);
                         } catch (updErr) {
                             console.warn('[Attendance] updateEntryLocation failed (clockIn):', updErr instanceof Error ? updErr.message : updErr);
                         }
@@ -838,31 +838,6 @@ export const useAuth = (
                     }
                 }
             } catch (e: unknown) {
-                // #region agent log
-                try {
-                    fetch('http://127.0.0.1:7328/ingest/bbae1bc8-c2a1-4945-9a27-fe94f6ee54cf', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Debug-Session-Id': '3e79f2',
-                        },
-                        body: JSON.stringify({
-                            sessionId: '3e79f2',
-                            runId: 'pre-fix',
-                            hypothesisId: 'H2',
-                            location: 'hooks/useAuth.ts:clockIn',
-                            message: 'punchIn threw error',
-                            data: {
-                                orgSlug: capturedOrgSlug,
-                                errorMessage: e instanceof Error ? e.message : String(e),
-                            },
-                            timestamp: Date.now(),
-                        }),
-                    }).catch(() => {});
-                } catch {
-                    // ignore logging failures
-                }
-                // #endregion
                 // ROLLBACK optimistic entry — only on actual server failure
                 setTimeEntries(prevEntries);
                 setAttendanceCache(capturedOrgSlug, null);
@@ -914,11 +889,11 @@ export const useAuth = (
 
                 // GPS was acquiring in parallel — use result now
                 const closedEntryId = res?.entryId || capturedShift.id;
-                if (closedEntryId) {
+                if (closedEntryId && isUUID(String(closedEntryId))) {
                     const location = await gpsPromise;
                     if (location && (location.lat !== 0 || location.lng !== 0)) {
                         try {
-                            await updateEntryLocation(capturedOrgSlug, closedEntryId, 'end', location);
+                            await updateEntryLocation(capturedOrgSlug, String(closedEntryId), 'end', location);
                         } catch (updErr) {
                             console.warn('[Attendance] updateEntryLocation failed (clockOut):', updErr instanceof Error ? updErr.message : updErr);
                         }
