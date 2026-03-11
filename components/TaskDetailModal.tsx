@@ -64,14 +64,40 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           setActivePopover('none');
       };
 
+      // Throttled handlers - defined outside if block for cleanup access
+      let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+      let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+      let handleResize: (() => void) | null = null;
+      let throttledHandleScroll: ((event: Event) => void) | null = null;
+
       document.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('resize', () => setActivePopover('none'));
-      window.addEventListener('scroll', handleScroll, true);
+      
+      // Throttled resize handler
+      handleResize = () => {
+          if (resizeTimeout) return;
+          resizeTimeout = setTimeout(() => {
+              setActivePopover('none');
+              resizeTimeout = null;
+          }, 100);
+      };
+      window.addEventListener('resize', handleResize);
+      
+      // Throttled scroll handler
+      throttledHandleScroll = (event: Event) => {
+          if (scrollTimeout) return;
+          scrollTimeout = setTimeout(() => {
+              handleScroll(event);
+              scrollTimeout = null;
+          }, 50);
+      };
+      window.addEventListener('scroll', throttledHandleScroll, true);
 
       return () => {
           document.removeEventListener('mousedown', handleClickOutside);
-          window.removeEventListener('resize', () => setActivePopover('none'));
-          window.removeEventListener('scroll', handleScroll, true);
+          if (handleResize) window.removeEventListener('resize', handleResize);
+          if (throttledHandleScroll) window.removeEventListener('scroll', throttledHandleScroll, true);
+          if (resizeTimeout) clearTimeout(resizeTimeout);
+          if (scrollTimeout) clearTimeout(scrollTimeout);
       };
   }, [activePopover]);
 
