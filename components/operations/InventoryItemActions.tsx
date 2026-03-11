@@ -2,6 +2,7 @@
 
 import { Pencil, Trash2, X, Check, Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { updateOperationsItem, deleteOperationsItem } from '@/app/actions/operations';
 import { useOpsToast } from '@/components/operations/OperationsToastProvider';
@@ -64,8 +65,8 @@ export function InventoryItemActions({
   }, [orgSlug, item.id, router, toast]);
 
   if (confirmDelete) {
-    return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
+    return createPortal(
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(false)}>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 max-w-sm mx-4" onClick={(e) => e.stopPropagation()} dir="rtl">
           <div className="text-sm font-black text-slate-900 mb-2">אישור מחיקה</div>
           <div className="text-sm text-slate-600 mb-5">
@@ -80,13 +81,14 @@ export function InventoryItemActions({
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   if (editing) {
-    return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setEditing(false)}>
+    return createPortal(
+      <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setEditing(false)}>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 max-w-md mx-4 w-full" onClick={(e) => e.stopPropagation()} dir="rtl">
           <div className="text-sm font-black text-slate-900 mb-4">עריכת פריט</div>
           <div className="space-y-3">
@@ -112,7 +114,8 @@ export function InventoryItemActions({
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 

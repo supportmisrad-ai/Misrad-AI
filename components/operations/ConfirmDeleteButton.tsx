@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export function ConfirmDeleteButton({
   id,
@@ -37,8 +38,8 @@ export function ConfirmDeleteButton({
         </button>
       </form>
 
-      {open ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)}>
+      {open ? createPortal(
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div
             className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 max-w-sm mx-4 animate-in fade-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
@@ -65,7 +66,8 @@ export function ConfirmDeleteButton({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );

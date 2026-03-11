@@ -2,6 +2,7 @@
 
 import { Loader2, Pencil } from 'lucide-react';
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { updateOperationsWorkOrder } from '@/app/actions/operations';
 import { useOpsToast } from '@/components/operations/OperationsToastProvider';
@@ -74,8 +75,8 @@ export default function WorkOrderEditButton({
         עריכה
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleCancel}>
+      {open ? createPortal(
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={handleCancel}>
           <div
             className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 max-w-lg mx-4 w-full"
             onClick={(e) => e.stopPropagation()}
@@ -144,7 +145,8 @@ export default function WorkOrderEditButton({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </>
   );
