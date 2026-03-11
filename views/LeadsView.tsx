@@ -109,11 +109,11 @@ export const LeadsView: React.FC = () => {
                         </button>
                         <button 
                             onClick={handleCopyLeadFormLink}
-                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2 sm:px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors"
+                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2.5 sm:px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap"
                             title="העתק לינק לטופס לידים ציבורי"
                         >
                             {copied ? <Check size={14} /> : <Copy size={14} />}
-                            <span className="hidden sm:inline">{copied ? 'הועתק!' : 'לינק טופס'}</span>
+                            <span>{copied ? 'הועתק!' : 'לינק טופס'}</span>
                         </button>
                     </div>
                 </div>
@@ -156,7 +156,7 @@ export const LeadsView: React.FC = () => {
                                 key={col.id}
                                 onDragOver={handleDragOver}
                                 onDrop={(e) => handleDrop(e, col.id)}
-                                className="w-[300px] flex flex-col h-full rounded-xl bg-gray-50/80 border border-gray-200"
+                                className="w-[92vw] sm:w-[300px] flex flex-col h-full rounded-xl bg-gray-50/80 border border-gray-200 flex-shrink-0"
                             >
                                 <div className="p-3 border-b border-gray-200/50 bg-gray-50 sticky top-0 rounded-t-xl z-10 flex justify-between items-center">
                                     <div className="flex items-center gap-2">
