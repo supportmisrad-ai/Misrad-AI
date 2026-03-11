@@ -196,7 +196,7 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
                           fontWeight: 'bold',
                           fontSize: '12px'
                       }}
-                      formatter={(value: number | undefined) => [value ?? 0, 'כמות']}
+                      formatter={(value) => [typeof value === 'number' ? value : 0, 'כמות']}
                     />
                     <Bar dataKey="count" radius={[8, 8, 8, 8]}>
                         {funnelData.map((entry, index) => (

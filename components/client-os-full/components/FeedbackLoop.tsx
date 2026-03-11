@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FeedbackItem } from '../types';
 import { MessageSquareQuote, TrendingUp, TrendingDown, MessageCircle, CircleAlert, Sparkles, Send, Settings, Mail, BellRing } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, PieChart, Pie } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell, PieChart, Pie, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 import { getClientOSFeedbacks } from '@/app/actions/client-portal-clinic';
 
 const FeedbackLoop: React.FC = () => {
@@ -150,10 +150,6 @@ const FeedbackLoop: React.FC = () => {
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                         contentStyle={{ backgroundColor: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                         itemStyle={{ color: '#000' }}
-                      />
                     </PieChart>
                   </ResponsiveContainer>
                </div>

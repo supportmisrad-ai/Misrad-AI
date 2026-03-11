@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Calendar as CalIcon, Inbox, ShieldCheck, Database, Zap, MessageSquare } from 'lucide-react';
+import { LayoutGrid, Calendar as CalIcon, Inbox, ShieldCheck, Database, Zap, MessageSquare, Sparkles } from 'lucide-react';
 
 interface ClientWorkspaceTabsProps {
-  activeTab: 'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault';
-  onTabChange: (tab: 'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault') => void;
+  activeTab: 'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault' | 'strategy';
+  onTabChange: (tab: 'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault' | 'strategy') => void;
 }
 
 export function ClientWorkspaceTabs({ activeTab, onTabChange }: ClientWorkspaceTabsProps) {
@@ -13,6 +13,7 @@ export function ClientWorkspaceTabs({ activeTab, onTabChange }: ClientWorkspaceT
     { id: 'overview', label: 'סקירה', icon: LayoutGrid },
     { id: 'content', label: 'שידורים', icon: CalIcon },
     { id: 'requests', label: 'בקשות', icon: Inbox },
+    { id: 'strategy', label: 'אסטרטגיה', icon: Sparkles },
     { id: 'vault', label: 'כספת גישה', icon: ShieldCheck },
     { id: 'bank', label: 'בנק תכנים', icon: Database },
     { id: 'dna', label: 'זהות', icon: Zap },

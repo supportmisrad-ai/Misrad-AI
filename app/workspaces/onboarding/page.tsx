@@ -28,16 +28,28 @@ async function getCurrentOrganizationKey(): Promise<{
   let organizationId: string | null = profile?.organizationId ?? null;
 
   if (!organizationId) {
-    let res: { success: boolean; organizationKey?: string; error?: string };
-    try {
-      res = await provisionCurrentUserWorkspaceAction();
-    } catch {
-      // Provision threw unexpectedly — redirect to /workspaces/new for retry
-      redirect('/workspaces/new');
+    let res: { success: boolean; organizationKey?: string; error?: string } = { success: false };
+    let provisionAttempts = 0;
+    const MAX_PROVISION_ATTEMPTS = 2;
+    
+    while (provisionAttempts < MAX_PROVISION_ATTEMPTS) {
+      try {
+        res = await provisionCurrentUserWorkspaceAction();
+        if (res.success) break;
+      } catch {
+        res = { success: false, error: 'Provision threw unexpectedly' };
+      }
+      
+      provisionAttempts++;
+      if (provisionAttempts < MAX_PROVISION_ATTEMPTS) {
+        // Wait before retry - gives time for user record to be ready
+        await new Promise(resolve => setTimeout(resolve, 750));
+      }
     }
 
     if (!res.success) {
       // Provision returned failure — redirect to /workspaces/new for retry
+      console.error('[Onboarding] provisionCurrentUserWorkspaceAction failed after', provisionAttempts, 'attempts:', res.error);
       redirect('/workspaces/new');
     }
 

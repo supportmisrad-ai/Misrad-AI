@@ -51,19 +51,25 @@ export async function createMarketingStrategyAction(params: {
     logger.info('marketing-strategy', 'Generating strategy for client:', params.clientId);
     const strategy = await generateMarketingStrategy(params.profile);
 
+    // Deactivate previous strategies
+    await prisma.$executeRaw`
+      UPDATE client_marketing_strategy 
+      SET is_active = false 
+      WHERE client_id = ${params.clientId}::uuid 
+      AND organization_id = ${organizationId}::uuid
+    `;
+
     // Save to database
-    // TODO: Add clientMarketingStrategy table to Prisma schema
-    // For now, save to JSON file or skip storage
-    /* await prisma.clientMarketingStrategy.create({
-      data: {
-        client_id: params.clientId,
-        organization_id: organizationId,
-        strategy_data: strategy as any, // Prisma Json type
-        profile_data: params.profile as any,
-        created_at: new Date(),
-        updated_at: new Date(),
-      },
-    }); */
+    await prisma.$executeRaw`
+      INSERT INTO client_marketing_strategy (
+        id, client_id, organization_id, strategy_data, profile_data, 
+        version, is_active, generated_by, created_at, updated_at
+      ) VALUES (
+        gen_random_uuid(), ${params.clientId}::uuid, ${organizationId}::uuid,
+        ${JSON.stringify(strategy)}::jsonb, ${JSON.stringify(params.profile)}::jsonb,
+        1, true, 'gpt-4-turbo', now(), now()
+      )
+    `;
 
     revalidatePath(`/w/${params.orgSlug}/social`);
 
@@ -83,6 +89,7 @@ export async function createMarketingStrategyAction(params: {
 export async function getMarketingStrategyAction(params: {
   orgSlug: string;
   clientId: string;
+  strategyId?: string;
 }): Promise<{ success: boolean; strategy?: MarketingStrategy; profile?: ClientProfile; error?: string }> {
   try {
     const authCheck = await requireAuth();
@@ -91,10 +98,41 @@ export async function getMarketingStrategyAction(params: {
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlugApi(params.orgSlug);
+    const organizationId = workspace.id;
+
+    // Fetch strategy from database
+    let strategyRecord;
+    if (params.strategyId) {
+      strategyRecord = await prisma.$queryRaw`
+        SELECT * FROM client_marketing_strategy 
+        WHERE id = ${params.strategyId}::uuid 
+        AND client_id = ${params.clientId}::uuid
+        AND organization_id = ${organizationId}::uuid
+        LIMIT 1
+      `;
+    } else {
+      // Get the latest active strategy
+      strategyRecord = await prisma.$queryRaw`
+        SELECT * FROM client_marketing_strategy 
+        WHERE client_id = ${params.clientId}::uuid
+        AND organization_id = ${organizationId}::uuid
+        AND is_active = true
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+    }
+
+    const record = Array.isArray(strategyRecord) && strategyRecord.length > 0 ? strategyRecord[0] : null;
     
-    // TODO: Implement after testing ClientMarketingStrategy table
-    // For now, return placeholder
-    return { success: false, error: 'תכונה תעבוד לאחר הרצת Migration והוספת נתונים' }; 
+    if (!record) {
+      return { success: false, error: 'לא נמצאה אסטרטגיה' };
+    }
+
+    return { 
+      success: true, 
+      strategy: record.strategy_data as MarketingStrategy,
+      profile: record.profile_data as ClientProfile
+    };
   } catch (error: unknown) {
     logger.error('marketing-strategy', 'Error fetching strategy:', error);
     return {
@@ -105,13 +143,12 @@ export async function getMarketingStrategyAction(params: {
 }
 
 /**
- * מייצר תוכנית תוכן שבועית
+ * שולף את כל האסטרטגיות של לקוח
  */
-export async function generateWeeklyPlanAction(params: {
+export async function getClientStrategiesAction(params: {
   orgSlug: string;
   clientId: string;
-  weekNumber: number;
-}): Promise<{ success: boolean; plan?: any[]; error?: string }> {
+}): Promise<{ success: boolean; strategies?: any[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
@@ -121,31 +158,20 @@ export async function generateWeeklyPlanAction(params: {
     const workspace = await requireWorkspaceAccessByOrgSlugApi(params.orgSlug);
     const organizationId = workspace.id;
 
-    // Get client profile from latest strategy
-    /* const strategyRecord = await prisma.clientMarketingStrategy.findFirst({
-      where: {
-        client_id: params.clientId,
-        organization_id: organizationId,
-      },
-      orderBy: { created_at: 'desc' },
-    });
+    const strategies = await prisma.$queryRaw`
+      SELECT id, version, is_active, generated_by, created_at, updated_at
+      FROM client_marketing_strategy 
+      WHERE client_id = ${params.clientId}::uuid
+      AND organization_id = ${organizationId}::uuid
+      ORDER BY created_at DESC
+    `;
 
-    if (!strategyRecord) {
-      return { success: false, error: 'נדרשת אסטרטגיה קיימת' };
-    }
-
-    const profile = strategyRecord.profile_data as ClientProfile;
-    const plan = await generateWeeklyContentPlan(profile, params.weekNumber);
-
-    return { success: true, plan }; */
-    
-    // Temporary: Return mock until DB migration
-    return { success: false, error: 'תכונה תעבוד לאחר הרצת Migration' };
+    return { success: true, strategies: Array.isArray(strategies) ? strategies : [] };
   } catch (error: unknown) {
-    logger.error('marketing-strategy', 'Error generating weekly plan:', error);
+    logger.error('marketing-strategy', 'Error fetching strategies:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'שגיאה ביצירת תוכנית',
+      error: error instanceof Error ? error.message : 'שגיאה בטעינת אסטרטגיות',
     };
   }
 }

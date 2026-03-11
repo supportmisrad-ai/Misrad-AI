@@ -10,9 +10,9 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   Legend,
+  Tooltip,
 } from 'recharts';
 
 type WorkOrderStats = {
@@ -68,15 +68,7 @@ export function WorkOrderStatusChart({ stats }: { stats: WorkOrderStats }) {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              fontSize: '12px',
-              fontWeight: 700,
-              direction: 'rtl',
-            }}
-          />
+          <Tooltip />
           <Legend
             wrapperStyle={{ fontSize: '11px', fontWeight: 700, direction: 'rtl' }}
           />
@@ -112,15 +104,7 @@ export function WorkOrderPriorityChart({ stats }: { stats: WorkOrderStats }) {
             tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }}
             width={50}
           />
-          <Tooltip
-            contentStyle={{
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              fontSize: '12px',
-              fontWeight: 700,
-              direction: 'rtl',
-            }}
-          />
+          <Tooltip />
           <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={20}>
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -162,15 +146,7 @@ export function InventoryPieChart({ inventory }: { inventory: InventorySummary }
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip
-            contentStyle={{
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              fontSize: '12px',
-              fontWeight: 700,
-              direction: 'rtl',
-            }}
-          />
+          <Tooltip />
           <Legend
             wrapperStyle={{ fontSize: '11px', fontWeight: 700, direction: 'rtl' }}
           />

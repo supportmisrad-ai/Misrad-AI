@@ -67,15 +67,6 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
                 <YAxis hide domain={[0, 100]} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '24px',
-                    border: 'none',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                    padding: '20px',
-                  }}
-                  itemStyle={{ color: '#0F172A', fontWeight: 'bold' }}
-                />
                 <Area type="monotone" dataKey="value" stroke="#C5A572" strokeWidth={4} fillOpacity={1} fill="url(#colorValue)" />
                 <Area type="monotone" dataKey="baseline" stroke="#e2e8f0" strokeWidth={2} strokeDasharray="5 5" fill="transparent" />
               </AreaChart>

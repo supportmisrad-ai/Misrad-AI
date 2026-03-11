@@ -1,6 +1,6 @@
 /**
- * AI Marketing Strategy Generator
- * יוצר אסטרטגיית שיווק מותאמת אישית לכל לקוח
+ * AI Marketing Strategy Generator - Israel Market Optimized
+ * יוצר אסטרטגיית שיווק מותאמת אישית לכל לקוח - מותאם לשוק הישראלי
  */
 
 import { generateText } from 'ai';
@@ -14,6 +14,13 @@ export interface ClientProfile {
   competitors?: string[];
   budget?: string;
   currentChallenges?: string[];
+  uniqueValue?: string;
+  brandVoice?: string;
+  // Israel-specific fields
+  businessSize?: 'solo' | 'small' | 'medium' | 'large';
+  targetLocations?: string[]; // e.g., ['תל אביב', 'ירושלים', 'חיפה']
+  contentLanguages?: ('hebrew' | 'english' | 'arabic' | 'russian')[];
+  religiousConsiderations?: boolean; // שבת, חגים
 }
 
 export interface MarketingStrategy {
@@ -29,6 +36,8 @@ export interface MarketingStrategy {
       platform: string;
       topic: string;
       contentType: string;
+      timing?: string;
+      hebrewDate?: string;
     }[];
   }[];
   hashtags: {
@@ -45,34 +54,66 @@ export interface MarketingStrategy {
     metric: string;
     target: string;
   }[];
+  specialCampaigns?: {
+    name: string;
+    timing: string;
+    idea: string;
+  }[];
 }
 
 /**
- * יוצר אסטרטגיית שיווק מלאה מותאמת ללקוח
+ * יוצר אסטרטגיית שיווק מלאה מותאמת ללקוח - ישראל מותאם
  */
 export async function generateMarketingStrategy(
   clientProfile: ClientProfile
 ): Promise<MarketingStrategy> {
-  const prompt = `
-אתה מומחה אסטרטגיית שיווק דיגיטלי. צור אסטרטגיה מלאה ללקוח הבא:
+  const hebrewCalendarNote = clientProfile.religiousConsiderations !== false 
+    ? `חשוב: המערכת מושבתת אוטומטית בשבת וחגים יהודיים (יש לתזמן תוכן בהתאם).`
+    : '';
 
+  const locationContext = clientProfile.targetLocations?.length 
+    ? `אזורי פעילות עיקריים בישראל: ${clientProfile.targetLocations.join(', ')}`
+    : '';
+
+  const prompt = `
+אתה מומחה אסטרטגיית שיווק דיגיטלי לשוק הישראלי עם 15 שנות ניסיון. 
+צור אסטרטגיה מלאה ללקוח הבא - מותאם ספציפית לשוק הישראלי:
+
+---
+פרטי הלקוח:
 שם העסק: ${clientProfile.name}
 תחום: ${clientProfile.industry}
+גודל עסק: ${clientProfile.businessSize}
 קהל יעד: ${clientProfile.targetAudience}
-מטרות: ${clientProfile.goals.join(', ')}
-${clientProfile.competitors ? `מתחרים: ${clientProfile.competitors.join(', ')}` : ''}
-${clientProfile.budget ? `תקציב: ${clientProfile.budget}` : ''}
-${clientProfile.currentChallenges ? `אתגרים: ${clientProfile.currentChallenges.join(', ')}` : ''}
+מטרות עסקיות: ${clientProfile.goals.join(', ')}
+${clientProfile.uniqueValue ? `ערך ייחודי: ${clientProfile.uniqueValue}` : ''}
+${clientProfile.brandVoice ? `טון דיבור: ${clientProfile.brandVoice}` : ''}
+${clientProfile.competitors?.length ? `מתחרים ישראלים עיקריים: ${clientProfile.competitors.join(', ')}` : ''}
+${clientProfile.budget ? `תקציב שיווק חודשי: ${clientProfile.budget}` : ''}
+${clientProfile.currentChallenges?.length ? `אתגרים נוכחיים: ${clientProfile.currentChallenges.join(', ')}` : ''}
+${locationContext}
 
-צור אסטרטגיית שיווק מפורטת הכוללת:
+---
+הנחיות ספציפיות לשוק הישראלי:
 
-1. סקירה כללית (2-3 פסקאות)
-2. 4 עמודי תוכן ראשיים (Content Pillars) - כל אחד עם כותרת, תיאור, ו-5 נושאים ספציפיים
-3. תוכנית תוכן חודשית (4 שבועות) - כל שבוע עם 3-4 פוסטים מוצעים לפלטפורמות שונות
-4. Hashtags מומלצים (10 primary + 10 secondary)
-5. זמני פרסום מיטביים לכל פלטפורמה
-6. 5 יתרונות תחרותיים
-7. 6 KPIs למדידה
+1. **פלטפורמות:** WhatsApp הוא קריטי בישראל (לקוחות מצפים לתקשורת שם), Instagram ו-Facebook עדיין מובילים, LinkedIn בולט ב-B2B
+2. **לוח זמנים:** יום רביעי 11:00 הוא זמן פרסום מיטבי בישראל. התחשב בלוח השנה העברי (חגים, שבתות, צומות)
+3. **תוכן:** עברית צריכה להיות טבעית, לא תרגום. שימוש במילים "יחד", "משפחה", "קהילה" מחזק engagement
+4. **Hashtags:** חובב שילוב של עברית ואנגלית (#יום_הולדת #birthday) מכיוון ששני הקהלים קיימים
+5. **תרבות:** ישראלים אוהבים ישירות, הומור, ותוכן "מבושל מקומית" (לא גנרי)
+${hebrewCalendarNote}
+
+---
+יצר אסטרטגיית שיווק מפורטת הכוללת:
+
+1. **סקירה כללית** (2-3 פסקאות) - הסבר איך האסטרטגיה מתאימה לשוק הישראלי
+2. **4 עמודי תוכן ראשיים (Content Pillars)** - כל אחד עם כותרת בעברית, תיאור, ו-5 נושאים ספציפיים מותאמים לישראל
+3. **תוכנית תוכן חודשית (4 שבועות)** - כל שבוע עם 3-4 פוסטים מוצעים לפלטפורמות שונות, כולל התחשבות בחגים עבריים ושבתות
+4. **Hashtags מומלצים** (10 primary בעברית + 10 secondary בשילוב עברית/אנגלית)
+5. **זמני פרסום מיטביים לכל פלטפורמה** - ספציפית לישראל (לדוג': רביעי 11:00 לפייסבוק)
+6. **5 יתרונות תחרותיים** - מנקודת מבט ישראלית
+7. **6 KPIs למדידה** - מותאמים לשוק הישראלי (לדוג': "שיעור פתיחה ב-WhatsApp")
+8. **רעיונות לקמפיינים מיוחדים** - כמו "מבצע לפסח", "Back to School", "ימי הולדת לעסק"
 
 החזר את התשובה בפורמט JSON הבא:
 {
@@ -91,7 +132,9 @@ ${clientProfile.currentChallenges ? `אתגרים: ${clientProfile.currentChalle
         {
           "platform": "facebook",
           "topic": "...",
-          "contentType": "תמונה/וידאו/טקסט"
+          "contentType": "תמונה/וידאו/טקסט/סטורי",
+          "timing": "יום X בשעה Y",
+          "hebrewDate": "כ"ה בשבט" // אם רלוונטי
         }
       ]
     }
@@ -113,10 +156,17 @@ ${clientProfile.currentChallenges ? `אתגרים: ${clientProfile.currentChalle
       "metric": "...",
       "target": "..."
     }
+  ],
+  "specialCampaigns": [
+    {
+      "name": "...",
+      "timing": "...",
+      "idea": "..."
+    }
   ]
 }
 
-**חשוב:** החזר רק את ה-JSON, ללא טקסט נוסף.
+**חשוב:** החזר רק את ה-JSON, ללא טקסט נוסף. האסטרטגיה חייבת להרגיש ישראלית-אותנטית, לא תרגום מערבית.
 `;
 
   try {
@@ -141,36 +191,57 @@ ${clientProfile.currentChallenges ? `אתגרים: ${clientProfile.currentChalle
 }
 
 /**
- * מייצר תוכנית תוכן שבועית פשוטה
+ * מייצר תוכנית תוכן שבועית פשוטה - מותאם לשוק הישראלי
  */
 export async function generateWeeklyContentPlan(
   clientProfile: ClientProfile,
   weekNumber: number
-): Promise<{ day: string; platform: string; topic: string; contentType: string }[]> {
+): Promise<{ day: string; platform: string; topic: string; contentType: string; timing: string; hebrewDateContext?: string }[]> {
+  const locationContext = clientProfile.targetLocations?.length 
+    ? `מיקוד גיאוגרפי: ${clientProfile.targetLocations.join(', ')}`
+    : '';
+  
   const prompt = `
 צור תוכנית תוכן לשבוע ${weekNumber} עבור:
 עסק: ${clientProfile.name}
 תחום: ${clientProfile.industry}
 קהל יעד: ${clientProfile.targetAudience}
+גודל עסק: ${clientProfile.businessSize}
+${locationContext}
+${clientProfile.brandVoice ? `טון דיבור: ${clientProfile.brandVoice}` : ''}
+
+הנחיות לשוק הישראלי:
+1. **WhatsApp** - חשוב במיוחד בישראל ללידים ומכירות (2 פוסטים בשבוע)
+2. **Instagram** - הפלטפורמה המובילה ל-B2C בישראל (2 פוסטים)
+3. **Facebook** - עדיין חזק בישראל, במיוחד לגילאי 35+ (1-2 פוסטים)
+4. **LinkedIn** - רק אם B2B (1 פוסט)
+5. **תזמון:** רביעי 11:00 הוא הזמן הטוב ביותר בישראל
+6. **שבת:** ללא פוסטים בשבת (מערכת מושבתת אוטומטית)
+7. **עברית:** תוכן בעברית טבעית, לא תרגום
 
 צור 7 פוסטים (אחד ליום) עם התפלגות:
-- 3 פוסטים לפייסבוק
-- 2 פוסטים לאינסטגרם
-- 2 פוסטים ללינקדאין
+- 2 פוסטים ל-WhatsApp (מודעות/סטטוס)
+- 2 פוסטים לאינסטגרם (Feed/Stories)
+- 2 פוסטים לפייסבוק
+- 1 פוסט ל-LinkedIn (אם B2B) או נוסף לפייסבוק/אינסטגרם
 
 כל פוסט צריך:
 - יום (ראשון-שבת)
 - פלטפורמה
-- נושא ספציפי
-- סוג תוכן (תמונה/וידאו/טקסט/סטורי)
+- נושא ספציפי בעברית
+- סוג תוכן (תמונה/וידאו/טקסט/סטורי/רילס)
+- תזמון מיטבי (לדוג': "רביעי 11:00")
+- הקשר עברי אם רלוונטי (חג, מועד, וכו')
 
 החזר JSON בפורמט:
 [
   {
     "day": "ראשון",
-    "platform": "facebook",
+    "platform": "instagram",
     "topic": "...",
-    "contentType": "תמונה"
+    "contentType": "רילס",
+    "timing": "20:00",
+    "hebrewDateContext": "ערב פתיחת השבוע"
   }
 ]
 `;

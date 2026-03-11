@@ -196,12 +196,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns }) => {
                                     dy={10}
                                 />
                                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 11}} />
-                                <Tooltip 
-                                    cursor={{fill: '#F8FAFC', radius: 12}}
-                                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.1)', padding: '16px' }}
-                                />
                                 <Bar dataKey="revenue" name="הכנסות" fill="#4338CA" radius={[8, 8, 0, 0]} barSize={40} />
                                 <Line type="monotone" dataKey="profit" name="רווח" stroke="#10B981" strokeWidth={4} dot={{ r: 6, fill: '#10B981', strokeWidth: 3, stroke: '#fff' }} />
+                                <Tooltip />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </div>
@@ -232,7 +229,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns }) => {
                                         <Cell key={`cell-${index}`} fill={['#4338CA', '#6366F1', '#818CF8', '#A5B4FC', '#C7D2FE', '#E0E7FF', '#F1F5F9'][index % 7]} />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.1)' }} />
+                                <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -271,12 +268,12 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns }) => {
                                     tickLine={false} 
                                     tick={{fill: '#64748B', fontWeight: 700, fontSize: 13}} 
                                 />
-                                <Tooltip cursor={{fill: '#F1F5F9', radius: 10}} contentStyle={{ borderRadius: '12px' }} />
                                 <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={40}>
                                     {funnelData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.fill} />
                                     ))}
                                 </Bar>
+                                <Tooltip />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

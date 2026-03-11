@@ -11,6 +11,7 @@ import VaultTab from './workspace/VaultTab';
 import BankTab from './workspace/BankTab';
 import DNATab from './workspace/DNATab';
 import MessagesTab from './workspace/MessagesTab';
+import StrategyTab from './workspace/StrategyTab';
 import { ClientWorkspaceHeader } from './workspace/ClientWorkspaceHeader';
 import { ClientWorkspaceTabs } from './workspace/ClientWorkspaceTabs';
 import { useClientWorkspaceHandlers } from './workspace/useClientWorkspaceHandlers';
@@ -38,7 +39,7 @@ export default function ClientWorkspace() {
     orgSlug
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault' | 'strategy'>('overview');
   const [isCopyingLink, setIsCopyingLink] = useState(false);
 
   if (!activeClient) {
@@ -106,6 +107,8 @@ export default function ClientWorkspace() {
         return <BankTab client={activeClient} ideas={clientIdeas} onDeleteIdea={handlers.handleDeleteIdea} onAddIdea={handlers.handleAddIdea} onNewPost={handlers.handleNewPostFromContext} />;
       case 'dna':
         return <DNATab client={activeClient} onUpdateDNA={handlers.handleUpdateDNA} />;
+      case 'strategy':
+        return <StrategyTab client={activeClient} orgSlug={orgSlug || ''} />;
       case 'messages':
         return <MessagesTab conversations={clientConversations} onSendMessage={handlers.handleSendMessage} />;
       default:

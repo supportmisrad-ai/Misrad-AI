@@ -75,7 +75,11 @@ async function GETHandler() {
       }
     }
 
+    // CRITICAL FIX: If no organizationUser exists yet, this is a first-time user.
+    // Return empty array immediately so the client can redirect to /workspaces/new
+    // This prevents race conditions where user is created but organizationUser is not yet ready
     if (!socialUser?.id) {
+      console.log(`[Workspaces API] No organizationUser found for clerkUserId=${clerkUserId.substring(0, 8)}..., returning empty workspaces`);
       return [] as WorkspaceApiItem[];
     }
 
@@ -224,7 +228,7 @@ async function GETHandler() {
     workspacesCache.set(clerkUserId, { value: workspaces, expiresAt: Date.now() + WORKSPACES_TTL_MS });
     return apiSuccess({ workspaces });
   } catch (error: unknown) {
-    console.error('[/api/workspaces] Failed to load workspaces:', error);
+    console.error(`[/api/workspaces] Failed to load workspaces for clerkUserId=${clerkUserId.substring(0, 8)}...:`, error);
     return apiError('שגיאה לא צפויה', { status: 500 });
   } finally {
     workspacesInFlight.delete(clerkUserId);

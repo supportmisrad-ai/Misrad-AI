@@ -22,19 +22,27 @@ type WorkspacesApiPayload = {
 };
 
 // Minimized retries for fastest login experience - customer feedback: system feels slow
-const MAX_WORKSPACE_RETRIES = 1;
-const WORKSPACE_RETRY_DELAY = 300;
+const MAX_WORKSPACE_RETRIES = 3; // Increased from 1 to handle race conditions
+const WORKSPACE_RETRY_DELAY = 500; // Slightly increased for better reliability
+const WORKSPACE_TIMEOUT_MS = 10000; // 10 second timeout for workspace fetch
 
 async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean>; onboardingComplete: boolean }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {
     try {
-      // Fetch workspaces and last location in parallel
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), WORKSPACE_TIMEOUT_MS);
+      
+      // Fetch workspaces and last location in parallel with timeout
       const [workspacesRes, lastLocationRes] = await Promise.all([
-        fetch('/api/workspaces', { cache: 'no-store' }),
-        fetch('/api/user/last-location', { cache: 'no-store' }).catch(() => null),
+        fetch('/api/workspaces', { cache: 'no-store', signal: controller.signal }),
+        fetch('/api/user/last-location', { cache: 'no-store', signal: controller.signal }).catch(() => null),
       ]);
+      
+      clearTimeout(timeoutId);
 
       if (!workspacesRes.ok) {
+        console.warn(`[Login] /api/workspaces returned ${workspacesRes.status} on attempt ${attempt + 1}`);
         if (attempt < MAX_WORKSPACE_RETRIES - 1) {
           await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
           continue;
@@ -84,6 +92,7 @@ async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitl
 
       return { orgSlug: orgSlug ? String(orgSlug) : null, entitlements, onboardingComplete };
     } catch (err) {
+      console.error(`[Login] resolveFirstWorkspace error on attempt ${attempt + 1}:`, err);
       if (attempt < MAX_WORKSPACE_RETRIES - 1) {
         await new Promise(resolve => setTimeout(resolve, WORKSPACE_RETRY_DELAY));
         continue;
@@ -367,12 +376,14 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
           const { orgSlug, entitlements, onboardingComplete } = await resolveFirstWorkspace();
           
           if (!orgSlug) {
+            console.log('[Login] No orgSlug found, redirecting to /workspaces/new');
             router.push('/workspaces/new');
             return;
           }
 
           // If onboarding is not complete (no plan selected), send to onboarding
           if (!onboardingComplete) {
+            console.log('[Login] Onboarding not complete, redirecting to /workspaces/onboarding');
             router.push('/workspaces/onboarding');
             return;
           }
@@ -388,6 +399,7 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
 
           const first = priority.find(p => Boolean(entitlements[p.key]));
           const targetRoute = first?.route || '/workspaces';
+          console.log('[Login] Redirecting to:', targetRoute);
           router.push(targetRoute);
         } catch (error) {
           console.error('[Login] Error during redirect:', error);

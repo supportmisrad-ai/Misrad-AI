@@ -63,10 +63,6 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                             fill="#C5A572"
                             fillOpacity={0.4}
                         />
-                        <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                            itemStyle={{ color: '#0F172A', fontWeight: 'bold' }}
-                        />
                     </RadarChart>
                 </ResponsiveContainer>
                 <div className="text-center mt-4">

@@ -127,10 +127,24 @@ export default async function MePage({
   }
 
   let resolved: { slug: string; hasPlan: boolean } | null = null;
-  try {
-    resolved = await resolveRedirectWorkspaceSlugForCurrentUser();
-  } catch (error) {
-    console.error('[MePage] failed to resolve redirect workspace:', error);
+  let retryCount = 0;
+  const MAX_RETRIES = 2;
+  
+  while (!resolved && retryCount < MAX_RETRIES) {
+    try {
+      resolved = await resolveRedirectWorkspaceSlugForCurrentUser();
+    } catch (error) {
+      console.error(`[MePage] Attempt ${retryCount + 1} failed to resolve redirect workspace:`, error);
+      if (retryCount < MAX_RETRIES - 1) {
+        // Wait a bit before retry - gives time for webhook/user creation to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    retryCount++;
+  }
+  
+  if (!resolved) {
+    console.error('[MePage] All attempts failed to resolve workspace');
   }
 
   if (resolved) {
