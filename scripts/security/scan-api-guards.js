@@ -149,6 +149,7 @@ function classify(content) {
   }
 
   if (content.includes('requireWorkspaceAccessByOrgSlugApi')) return 'protected:workspace';
+  if (content.includes('requireWorkspaceIdByOrgSlugApi')) return 'protected:workspace';
   if (content.includes('getWorkspaceOrThrow')) return 'protected:workspace';
   if (content.includes('getWorkspaceByOrgKeyOrThrow')) return 'protected:workspace';
   if (content.includes('getWorkspaceContextOrThrow')) return 'protected:workspace';
@@ -204,6 +205,7 @@ function hasWorkspaceTenantContextGuard(content) {
   if (content.includes('shabbatGuard')) return true;
   if (content.includes('cronGuard')) return true;
   if (content.includes('requireWorkspaceAccessByOrgSlugApi')) return true;
+  if (content.includes('requireWorkspaceIdByOrgSlugApi')) return true;
   if (content.includes('getWorkspaceOrThrow')) return true;
   if (content.includes('getWorkspaceContextOrThrow')) return true;
   if (content.includes('getWorkspaceByOrgKeyOrThrow')) return true;
