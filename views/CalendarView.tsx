@@ -11,7 +11,15 @@ import { Skeleton } from '@/components/ui/skeletons';
 
 export const CalendarView: React.FC = () => {
   const { tasks, users, openCreateTask, isCalendarConnected, isConnectingCalendar, calendarEvents, connectGoogleCalendar, openTask, updateTask } = useData();
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Initialize with static date to avoid hydration mismatch, then update on mount
+  const [currentDate, setCurrentDate] = useState(() => new Date(2026, 0, 1));
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    setCurrentDate(new Date());
+  }, []);
+  
   const showUnscheduled = true; // Always show unscheduled sidebar
   const [selectedDayDetail, setSelectedDayDetail] = useState<Date | null>(null);
   const [showHebrewCalendar, setShowHebrewCalendar] = useState(false);

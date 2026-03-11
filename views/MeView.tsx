@@ -354,8 +354,12 @@ export const MeView: React.FC<{
       }
   };
   
-  // Timer State
-  const [currentTime, setCurrentTime] = useState(new Date());
+  // Timer State - initialize with static date to avoid hydration mismatch
+  const [currentTime, setCurrentTime] = useState(() => new Date(2026, 0, 1));
+  
+  useEffect(() => {
+    setCurrentTime(new Date());
+  }, []);
 
   // Stats Calculation
   const myTasks = (tasks as Task[]).filter((t) => t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id);
