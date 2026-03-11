@@ -842,6 +842,9 @@ model clients {
   platform_credentials   platform_credentials[]
   platform_quotas        platform_quotas[]
   clientClient           ClientClient?          @relation("SocialClientToClientClient", fields: [client_client_id], references: [id], onDelete: SetNull)
+  
+  // ──── Cycles / Client Groups ────
+  cycleClients           CycleClient[]
 
   @@index([organization_id], map: "idx_clients_organization_id")
   @@index([client_client_id], map: "idx_clients_client_client_id")
@@ -3180,6 +3183,9 @@ model Organization {
   customerRatings          CustomerRating[]
   storageFiles             StorageFile[]
   storageDeletionLogs      StorageDeletionLog[]
+  
+  // ──── Cycles / Client Groups ────
+  clientCycles             ClientCycle[]
 
   @@index([owner_id])
   @@index([partnerId])
@@ -5133,4 +5139,125 @@ model StorageDeletionLog {
   @@index([organizationId])
   @@index([deletedAt])
   @@map("storage_deletion_log")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CYCLE MANAGEMENT SYSTEM (Client-OS Cycles Feature)
+// ═══════════════════════════════════════════════════════════════════
+
+/// Cycles - Group management system for clients
+model ClientCycle {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String              @map("organization_id") @db.Uuid
+  name            String
+  description     String?
+  startDate       DateTime?           @map("start_date") @db.Date
+  endDate         DateTime?           @map("end_date") @db.Date
+  status          MisradCycleStatus   @default(RECRUITING)
+  
+  // Group integrations
+  whatsappGroupLink   String?         @map("whatsapp_group_link")
+  slackChannelLink    String?         @map("slack_channel_link")
+  
+  // Metadata
+  metadata        Json?               @default("{}")
+  createdBy       String              @map("created_by") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  
+  // Relations
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clients         CycleClient[]
+  tasks           CycleTask[]
+  assets          CycleAsset[]
+  
+  @@index([organizationId])
+  @@index([status])
+  @@index([organizationId, status])
+  @@index([createdAt])
+  @@map("client_cycles")
+}
+
+/// Many-to-many relation between Cycles and Clients
+model CycleClient {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cycleId         String          @map("cycle_id") @db.Uuid
+  clientId        String          @map("client_id") @db.Uuid
+  joinedAt        DateTime        @default(now()) @map("joined_at") @db.Timestamptz(6)
+  
+  // Relations
+  cycle           ClientCycle     @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  client          clients         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@unique([cycleId, clientId])
+  @@index([cycleId])
+  @@index([clientId])
+  @@map("cycle_clients")
+}
+
+/// Tasks shared within a cycle
+model CycleTask {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cycleId         String              @map("cycle_id") @db.Uuid
+  title           String
+  description     String?
+  dueDate         DateTime?           @map("due_date") @db.Date
+  status          MisradTaskStatus    @default(PENDING)
+  priority        MisradTaskPriority  @default(NORMAL)
+  
+  // Assignment
+  assignedToAll   Boolean             @default(true) @map("assigned_to_all")
+  
+  // Metadata
+  createdBy       String              @map("created_by") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  
+  // Relations
+  cycle           ClientCycle         @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  completions     CycleTaskCompletion[]
+  
+  @@index([cycleId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("cycle_tasks")
+}
+
+/// Task completions by clients
+model CycleTaskCompletion {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  taskId          String          @map("task_id") @db.Uuid
+  clientId        String          @map("client_id") @db.Uuid
+  completedAt     DateTime        @default(now()) @map("completed_at") @db.Timestamptz(6)
+  completedBy     String?         @map("completed_by") @db.Uuid
+  
+  // Relations
+  task            CycleTask       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@unique([taskId, clientId])
+  @@index([taskId])
+  @@index([clientId])
+  @@map("cycle_task_completions")
+}
+
+/// Assets shared within a cycle
+model CycleAsset {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cycleId         String              @map("cycle_id") @db.Uuid
+  name            String
+  category        String              @default("GENERAL")
+  fileUrl         String              @map("file_url")
+  fileType        String              @map("file_type")
+  sizeBytes       Int?                @map("size_bytes")
+  
+  // Upload info
+  uploadedBy      String              @map("uploaded_by") @db.Uuid
+  uploadedAt      DateTime            @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  
+  // Relations
+  cycle           ClientCycle         @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  
+  @@index([cycleId])
+  @@index([category])
+  @@map("cycle_assets")
 }
