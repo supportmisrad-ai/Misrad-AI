@@ -8,7 +8,7 @@ import { useTasks } from '../hooks/useTasks';
 import { useCRM } from '../hooks/useCRM';
 import { useAdmin } from '../hooks/useAdmin';
 import { useContent } from '../hooks/useContent';
-import { GeneratedReport, Feedback, OrganizationProfile, User } from '../types';
+import { GeneratedReport, Feedback, OrganizationProfile, User, Task } from '../types';
 
 type SupportDraft = {
     category: string;
@@ -55,11 +55,13 @@ export const DataProvider = ({
     initialCurrentUser,
     initialOrganization,
     initialAdminKPIs,
+    initialTasks,
 }: {
     children: ReactNode;
     initialCurrentUser?: User;
     initialOrganization?: Partial<OrganizationProfile>;
     initialAdminKPIs?: unknown;
+    initialTasks?: Task[];
 }) => {
     // 1. Base Utilities
     const { toasts, addToast, removeToast } = useToasts();
@@ -70,8 +72,8 @@ export const DataProvider = ({
     // 3. Notifications (Needs User)
     const notifications = useNotifications(auth.currentUser, auth.users, addToast);
 
-    // 4. Tasks (Needs Notification & User)
-    const taskManager = useTasks(auth.currentUser, notifications.addNotification, addToast);
+    // 4. Tasks (Needs Notification & User) - with initialTasks preloaded from server
+    const taskManager = useTasks(auth.currentUser, notifications.addNotification, addToast, initialTasks);
 
     // 4.5 Content/Studio (Needs Notification & User)
     const content = useContent(auth.currentUser, notifications.addNotification, addToast, auth.users);

@@ -71,10 +71,11 @@ function computeElapsedSeconds(startMs: number, endMs: number): number {
 export const useTasks = (
     currentUser: User, 
     addNotification: (n: NotificationInput) => void, 
-    addToast: (m: string, t?: ToastKind) => void
+    addToast: (m: string, t?: ToastKind) => void,
+    initialTasks?: Task[]
 ) => {
 
-    const [tasks, setTasks] = useState<Task[]>([]);
+    const [tasks, setTasks] = useState<Task[]>(initialTasks || []);
     const [trashTasks, setTrashTasks] = useState<Task[]>([]);
     // Guard: prevents concurrent in-flight timer toggles for the same task
     const timerInFlightRef = useRef<Set<string>>(new Set());

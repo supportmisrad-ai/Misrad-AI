@@ -21,7 +21,7 @@ import { IntelligenceView } from '@/views/IntelligenceView';
 import { AttendanceReportsView } from '@/views/AttendanceReportsView';
 import { ModuleGuard } from '@/components/ModuleGuard';
 import { getNexusBasePath } from '@/lib/os/nexus-routing';
-import type { OrganizationProfile, User } from '@/types';
+import type { OrganizationProfile, User, Task } from '@/types';
 
 export function NexusWorkspaceApp({
   initialCurrentUser,
@@ -29,12 +29,14 @@ export function NexusWorkspaceApp({
   initialOwnerDashboard,
   initialOnboardingTemplateKey,
   initialBillingItems,
+  initialTasks,
 }: {
   initialCurrentUser?: User;
   initialOrganization?: Partial<OrganizationProfile>;
   initialOwnerDashboard?: unknown;
   initialOnboardingTemplateKey?: string | null;
   initialBillingItems?: unknown[] | null;
+  initialTasks?: Task[];
 } = {}) {
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);
@@ -191,7 +193,7 @@ export function NexusWorkspaceApp({
   const content = useMemo(() => render(), [relative, initialOwnerDashboard, initialOnboardingTemplateKey, initialBillingItems]);
 
   return (
-    <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+    <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization} initialTasks={initialTasks}>
       <div 
         key={relative}
         className="flex-1 min-h-0 animate-fade-in"

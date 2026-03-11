@@ -8,6 +8,7 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import type { WorkspaceInfo } from '@/lib/server/workspace';
 import { getNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import { getNexusBillingItems } from '@/lib/services/nexus-billing-service';
+import type { Task } from '@/types';
 
 type ActionPriority = 'urgent' | 'high' | 'normal';
 
@@ -44,6 +45,7 @@ export type NexusDashboardBootstrap = {
   ownerDashboard: NexusOwnerDashboardData;
   onboardingTemplateKey?: string | null;
   billingItems?: unknown[] | null;
+  initialTasks?: Task[];
 };
 
 const reactCache: unknown = Reflect.get(React, 'cache');
@@ -240,10 +242,45 @@ async function buildNexusOwnerDashboardDataForWorkspace(params: {
 export async function getNexusDashboardBootstrap(params: { orgSlug: string }): Promise<NexusDashboardBootstrap> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
 
-  const [ownerDashboard, onboarding, billing] = await Promise.all([
+  const [ownerDashboard, onboarding, billing, initialTasks] = await Promise.all([
     buildNexusOwnerDashboardDataForWorkspace({ orgSlug: params.orgSlug, workspace }),
     getNexusOnboardingTemplate(workspace.id).catch(() => undefined),
     getNexusBillingItems(workspace.id).catch(() => undefined),
+    // Preload tasks for immediate display - prevents slow loading on tasks view
+    prisma.nexusTask.findMany({
+      where: {
+        organizationId: workspace.id,
+        status: { notIn: ['Done', 'done'] },
+      },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      take: 100,
+      select: {
+        id: true,
+        organizationId: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        assigneeIds: true,
+        assigneeId: true,
+        creatorId: true,
+        tags: true,
+        createdAt: true,
+        dueDate: true,
+        dueTime: true,
+        timeSpent: true,
+        estimatedTime: true,
+        approvalStatus: true,
+        isTimerRunning: true,
+        clientId: true,
+        isPrivate: true,
+        audioUrl: true,
+        snoozeCount: true,
+        isFocus: true,
+        department: true,
+        module: true,
+      },
+    }).catch(() => []),
   ]);
 
   return {
@@ -251,6 +288,7 @@ export async function getNexusDashboardBootstrap(params: { orgSlug: string }): P
     ownerDashboard,
     onboardingTemplateKey: onboarding?.key ? String(onboarding.key) : onboarding === undefined ? undefined : null,
     billingItems: Array.isArray(billing?.items) ? (billing.items as unknown[]) : billing === undefined ? undefined : null,
+    initialTasks: initialTasks as Task[] | undefined,
   };
 }
 

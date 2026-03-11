@@ -2,7 +2,7 @@
 
 import { NexusWorkspaceApp } from '@/components/nexus/NexusWorkspaceApp';
 import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
-import type { OrganizationProfile, User } from '@/types';
+import type { OrganizationProfile, User, Task } from '@/types';
 
 export default function NexusModuleClient({
   initialCurrentUser,
@@ -10,12 +10,14 @@ export default function NexusModuleClient({
   initialOwnerDashboard,
   initialOnboardingTemplateKey,
   initialBillingItems,
+  initialTasks,
 }: {
   initialCurrentUser?: User;
   initialOrganization?: Partial<OrganizationProfile>;
   initialOwnerDashboard?: unknown;
   initialOnboardingTemplateKey?: string | null;
   initialBillingItems?: unknown[] | null;
+  initialTasks?: Task[];
 }) {
   return (
     <ReactQueryProvider>
@@ -25,6 +27,7 @@ export default function NexusModuleClient({
         initialOwnerDashboard={initialOwnerDashboard}
         initialOnboardingTemplateKey={initialOnboardingTemplateKey}
         initialBillingItems={initialBillingItems}
+        initialTasks={initialTasks}
       />
     </ReactQueryProvider>
   );

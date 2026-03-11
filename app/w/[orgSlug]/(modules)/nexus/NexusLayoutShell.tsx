@@ -62,6 +62,7 @@ export default async function NexusLayoutShell({
         initialOwnerDashboard={bootstrap.ownerDashboard}
         initialOnboardingTemplateKey={bootstrap.onboardingTemplateKey}
         initialBillingItems={bootstrap.billingItems}
+        initialTasks={bootstrap.initialTasks}
       />
       {children}
     </>
