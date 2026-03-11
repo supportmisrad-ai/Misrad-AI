@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Send, Copy, Check, MessageCircle, Link as LinkIcon, Zap, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
@@ -193,11 +194,115 @@ export default function InviteClientModal() {
 
   const reset = () => {
     setStep(1);
-    setName('');
-    setGeneratedLink('');
-    setNewClientId(null);
-    setError('');
-    setIsInviteModalOpen(false);
+    return createPortal(
+      <AnimatePresence>
+        {isInviteModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsInviteModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-black">הזמנת לקוח</h2>
+                  <button
+                    onClick={() => setIsInviteModalOpen(false)}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                {/* Modal content */}
+                <div className="flex flex-col gap-6 sm:gap-8">
+                  <div className="flex flex-col gap-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">שם הלקוח / העסק</label>
+                    <input 
+                      autoFocus
+                      value={name}
+                      onChange={e => {
+                        setName(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="מי הלקוח החדש?"
+                      className={`bg-slate-50 border rounded-2xl sm:rounded-[28px] px-4 sm:px-6 py-4 sm:py-5 text-lg sm:text-xl font-black outline-none min-h-[48px] transition-all ${
+                        error 
+                          ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
+                          : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      }`}
+                    />
+                    {error && (
+                      <p className="text-xs text-red-500 mt-1">{error}</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">בחר חבילת שירות ללינק</label>
+                    <div className="grid grid-cols-1 gap-3">
+                      {PLANS.map(plan => (
+                        <button 
+                          key={plan.id}
+                          onClick={() => {
+                            setSelectedPlan(plan.id);
+                            setMonthlyFee(plan.price);
+                          }}
+                          disabled={isGenerating}
+                          className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 flex items-center justify-between transition-all ${
+                            selectedPlan === plan.id 
+                              ? 'border-green-600 bg-green-50/50 shadow-sm' 
+                              : 'border-slate-100 hover:border-slate-300 hover:shadow-md'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <div className="flex flex-col text-right">
+                            <span className="font-black text-base sm:text-lg">{plan.name}</span>
+                            <span className="text-xs font-bold text-slate-400">{plan.desc}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">מחיר חודשי ללקוח (₪)</label>
+                    <input
+                      type="number"
+                      value={monthlyFee}
+                      onChange={(e) => setMonthlyFee(Number(e.target.value))}
+                      min={0}
+                      disabled={isGenerating}
+                      className="bg-slate-50 border border-slate-100 rounded-2xl sm:rounded-[28px] px-4 sm:px-6 py-4 sm:py-5 text-lg sm:text-xl font-black outline-none min-h-[48px] transition-all focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="לדוגמה: 2990"
+                    />
+                    <p className="text-xs text-slate-400 font-bold px-1">ברירת המחדל מגיעה מהחבילה שבחרת — אפשר לערוך לפני יצירת הלינק.</p>
+                  </div>
+
+                  <button 
+                    onClick={handleGenerate}
+                    disabled={!name || !name.trim() || name.trim().length < 2 || isGenerating}
+                    className="w-full bg-slate-900 text-white py-4 sm:py-6 rounded-2xl sm:rounded-[28px] font-black text-lg sm:text-xl shadow-xl flex items-center justify-center gap-3 sm:gap-4 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 min-h-[48px] sm:min-h-[56px]"
+                  >
+                    {isGenerating ? (
+                      <>מעבד...</>
+                    ) : (
+                      <><Zap size={20} className="sm:w-6 sm:h-6" /> צור לינק הקמה</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+    );
   };
 
   return (
