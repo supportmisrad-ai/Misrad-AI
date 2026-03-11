@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, ArrowRight, User, LayoutGrid, Sparkles, Link, Copy, Send } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Lead } from './types';
@@ -130,8 +131,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center px-3 sm:px-4 transition-all duration-300" onClick={onClose} style={{ paddingTop: '6vh' }}>
+  return createPortal(
+    <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center px-3 sm:px-4 transition-all duration-300" onClick={onClose} style={{ paddingTop: '6vh' }}>
       <div 
         className={`w-full bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-slate-200/60 animate-scale-in transform transition-all ${
           mode === 'chat' ? 'max-w-3xl h-[80vh] flex flex-col' : 'max-w-lg'
@@ -303,7 +304,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

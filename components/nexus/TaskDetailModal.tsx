@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { Task } from '../../types';
 import { useData } from '../../context/DataContext';
@@ -215,7 +216,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     </div>
   );
 
-  return (
+  return createPortal(
     <div>
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
@@ -335,7 +336,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
       />
 
       <div
-        className="fixed inset-0 bg-slate-900/70 z-[100] flex items-center justify-center p-0 md:p-6 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-900/70 z-[300] flex items-center justify-center p-0 md:p-6 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -506,6 +507,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           </div>
         </motion.div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

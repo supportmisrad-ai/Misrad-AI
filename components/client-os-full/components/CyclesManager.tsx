@@ -215,7 +215,13 @@ const CyclesManager: React.FC = () => {
                 <div className="lg:col-span-8 space-y-8">
                     
                     {/* Common Tasks / Shared Success */}
-                    <div className="bg-white border border-gray-200 rounded-[32px] p-8 shadow-sm">
+                    <div 
+                        className="bg-white border border-gray-200 rounded-[32px] p-8 shadow-sm cursor-pointer hover:shadow-md hover:border-nexus-primary/30 transition-all"
+                        onClick={() => {
+                            // TODO: Open add shared task modal
+                            console.log('Add shared task clicked');
+                        }}
+                    >
                         <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                             <Zap size={22} className="text-nexus-accent" fill="currentColor" /> משימות קבוצתיות (Shared Journey)
                         </h3>
@@ -246,12 +252,25 @@ const CyclesManager: React.FC = () => {
                     </div>
 
                     {/* Common Vault */}
-                    <div className="bg-white border border-gray-200 rounded-[32px] p-8 shadow-sm">
+                    <div 
+                        className="bg-white border border-gray-200 rounded-[32px] p-8 shadow-sm cursor-pointer hover:shadow-md hover:border-nexus-primary/30 transition-all"
+                        onClick={() => {
+                            // TODO: Open upload file modal
+                            console.log('Upload file clicked');
+                        }}
+                    >
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                                 <FileText size={22} className="text-nexus-accent" /> ספרית חומרים משותפת
                             </h3>
-                            <button className="px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-all flex items-center gap-2">
+                            <button 
+                                className="px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-all flex items-center gap-2"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // TODO: Open upload file modal
+                                    console.log('Upload file button clicked');
+                                }}
+                            >
                                 <Upload size={14} /> העלה קובץ
                             </button>
                         </div>

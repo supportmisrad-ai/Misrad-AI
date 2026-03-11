@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Sparkles } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -57,9 +58,9 @@ export default function CommandPalette({
     .filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
     .slice(0, 8);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] transition-all duration-200"
+      className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-start justify-center pt-[12vh] transition-all duration-200"
       onClick={onCloseAction}
     >
       <div
@@ -171,6 +172,7 @@ export default function CommandPalette({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
