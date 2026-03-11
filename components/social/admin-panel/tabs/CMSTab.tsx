@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, CreditCard, MessageSquare } from 'lucide-react';
 import { bulkUpdateSiteContent, seedDefaultLegalDocuments } from '@/app/actions/admin-site-content';
@@ -57,6 +57,23 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
   const getContentValue = (page: 'landing' | 'pricing' | 'legal', key: string) => {
     return contentByPage[page]?.find((c) => c.key === key)?.content;
   };
+
+  // Memoize expensive JSON.stringify calls to prevent re-computation on every render
+  const featuresDefaultValue = useMemo(() => JSON.stringify(getContentValue('landing', 'features') || [
+    { title: 'הקמת לקוח ב-60 שניות', desc: 'שלחו לינק וואטסאפ ללקוח, והוא כבר יזין הכל.', icon: 'Rocket' },
+    { title: 'The Machine ✨', desc: 'Gemini 3 בונה עבורכם פוסטים בטון המדויק של המותג.', icon: 'Zap' },
+    { title: 'גבייה ללא מגע אדם', desc: 'תזכורות אוטומטיות, חסימת גישה בפיגור.', icon: 'ShieldCheck' },
+  ], null, 2), [contentByPage]);
+
+  const faqDefaultValue = useMemo(() => JSON.stringify(getContentValue('pricing', 'faq') || [
+    { q: 'האם יש התחייבות?', a: 'לא. תוכלו לבטל בכל עת ללא עמלות.' },
+    { q: 'מה כולל הניסיון החינם?', a: 'גישה מלאה לכל התכונות למשך 7 ימים.' },
+    { q: 'איך מתבצע התשלום?', a: 'תשלום אוטומטי בכרטיס אשראי בתחילת כל חודש.' },
+  ], null, 2), [contentByPage]);
+
+  const testimonialsDefaultValue = useMemo(() => JSON.stringify(getContentValue('landing', 'testimonials') || [
+    { name: 'לירון אביב', role: 'בעלים, AVIV Digital', quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע.', avatar: '' },
+  ], null, 2), [contentByPage]);
 
   return (
     <motion.div key="cms" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8 w-full">
@@ -122,11 +139,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 <div className="md:col-span-2">
                   <label className="block text-sm font-black text-slate-700 mb-2">תכונות (Features) - JSON</label>
                   <textarea
-                    defaultValue={JSON.stringify(getContentValue('landing', 'features') || [
-                      { title: 'הקמת לקוח ב-60 שניות', desc: 'שלחו לינק וואטסאפ ללקוח, והוא כבר יזין הכל.', icon: 'Rocket' },
-                      { title: 'The Machine ✨', desc: 'Gemini 3 בונה עבורכם פוסטים בטון המדויק של המותג.', icon: 'Zap' },
-                      { title: 'גבייה ללא מגע אדם', desc: 'תזכורות אוטומטיות, חסימת גישה בפיגור.', icon: 'ShieldCheck' },
-                    ], null, 2)}
+                    defaultValue={featuresDefaultValue}
                     onBlur={async (e) => {
                       try {
                         const parsed = JSON.parse(e.target.value);
@@ -368,11 +381,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
               <div className="mt-8">
                 <label className="block text-sm font-black text-slate-700 mb-2">שאלות נפוצות (FAQ) - JSON</label>
                 <textarea
-                  defaultValue={JSON.stringify(getContentValue('pricing', 'faq') || [
-                    { q: 'האם יש התחייבות?', a: 'לא. תוכלו לבטל בכל עת ללא עמלות.' },
-                    { q: 'מה כולל הניסיון החינם?', a: 'גישה מלאה לכל התכונות למשך 7 ימים.' },
-                    { q: 'איך מתבצע התשלום?', a: 'תשלום אוטומטי בכרטיס אשראי בתחילת כל חודש.' },
-                  ], null, 2)}
+                  defaultValue={faqDefaultValue}
                   onBlur={async (e) => {
                     try {
                       const parsed = JSON.parse(e.target.value);
@@ -403,9 +412,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 המלצות (Testimonials)
               </h4>
               <textarea
-                defaultValue={JSON.stringify(getContentValue('landing', 'testimonials') || [
-                  { name: 'לירון אביב', role: 'בעלים, AVIV Digital', quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע.', avatar: '' },
-                ], null, 2)}
+                defaultValue={testimonialsDefaultValue}
                 onBlur={async (e) => {
                   try {
                     const parsed = JSON.parse(e.target.value);
