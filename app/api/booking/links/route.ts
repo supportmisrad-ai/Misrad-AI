@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
 /**
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('GET /api/booking/links', organizationId);
 
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('POST /api/booking/links', organizationId);
 
