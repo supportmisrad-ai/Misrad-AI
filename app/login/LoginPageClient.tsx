@@ -21,10 +21,13 @@ type WorkspacesApiPayload = {
   workspaces?: WorkspacesApiItem[];
 };
 
-// Minimized retries for fastest login experience - customer feedback: system feels slow
-const MAX_WORKSPACE_RETRIES = 3; // Increased from 1 to handle race conditions
-const WORKSPACE_RETRY_DELAY = 500; // Slightly increased for better reliability
-const WORKSPACE_TIMEOUT_MS = 10000; // 10 second timeout for workspace fetch
+// Detect mobile for reduced retries (faster UX on slow networks)
+const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// Minimized retries for fastest login experience - mobile gets fewer retries
+const MAX_WORKSPACE_RETRIES = isMobile ? 2 : 3; // Reduced for mobile speed
+const WORKSPACE_RETRY_DELAY = isMobile ? 300 : 500; // Faster on mobile
+const WORKSPACE_TIMEOUT_MS = 8000; // 8 second timeout (reduced from 10s)
 
 async function resolveFirstWorkspace(): Promise<{ orgSlug: string | null; entitlements: Record<string, boolean>; onboardingComplete: boolean }> {
   for (let attempt = 0; attempt < MAX_WORKSPACE_RETRIES; attempt++) {

@@ -123,8 +123,27 @@ self.addEventListener('fetch', (event) => {
     return; // Let browser handle these requests normally
   }
   
-  // Skip service worker for API routes and external requests
-  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
+  // Skip service worker for API routes, external requests, and dynamic HTML pages
+  if (url.pathname.startsWith('/api/') || 
+      url.origin !== self.location.origin ||
+      // NEVER cache dynamic pages that require auth - they cause stale data issues
+      url.pathname.startsWith('/w/') ||
+      url.pathname.startsWith('/workspaces/') ||
+      url.pathname.startsWith('/me') ||
+      url.pathname === '/login' ||
+      url.pathname.startsWith('/login/') ||
+      url.pathname === '/client' ||
+      url.pathname.startsWith('/client/') ||
+      url.pathname === '/system' ||
+      url.pathname.startsWith('/system/') ||
+      url.pathname === '/nexus' ||
+      url.pathname.startsWith('/nexus/') ||
+      url.pathname === '/operations' ||
+      url.pathname.startsWith('/operations/') ||
+      url.pathname === '/social' ||
+      url.pathname.startsWith('/social/') ||
+      url.pathname === '/finance' ||
+      url.pathname.startsWith('/finance/')) {
     return;
   }
 

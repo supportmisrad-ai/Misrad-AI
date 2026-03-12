@@ -99,20 +99,20 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb overflow-x-auto">
-        <div className="flex items-center justify-around px-2 py-2 min-w-max">
-          {menuItems.slice(0, 5).map((item) => {
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 safe-area-pb">
+        <div className="flex items-center px-2 py-2 overflow-x-auto no-scrollbar gap-1">
+          {menuItems.map((item) => {
             const isActive = activeScreen === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveScreen(item.id)}
-                className={`flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-all min-w-[64px] ${
-                  isActive ? 'text-nexus-accent' : 'text-slate-400'
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-w-[72px] flex-shrink-0 ${
+                  isActive ? 'text-nexus-accent bg-slate-50' : 'text-slate-400'
                 }`}
               >
                 <item.icon size={20} />
-                <span className="text-[10px] font-medium leading-tight text-center">{item.label.split(' ')[0]}</span>
+                <span className="text-[10px] font-medium leading-tight text-center whitespace-nowrap">{item.label.split(' ')[0]}</span>
               </button>
             );
           })}

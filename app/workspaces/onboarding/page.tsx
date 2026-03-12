@@ -42,8 +42,9 @@ async function getCurrentOrganizationKey(): Promise<{
       
       provisionAttempts++;
       if (provisionAttempts < MAX_PROVISION_ATTEMPTS) {
-        // Wait before retry - gives time for user record to be ready
-        await new Promise(resolve => setTimeout(resolve, 750));
+        // Fast exponential backoff: 50ms, 200ms (not 750ms fixed)
+        const backoffMs = provisionAttempts === 1 ? 50 : 200;
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
     }
 
@@ -60,22 +61,22 @@ async function getCurrentOrganizationKey(): Promise<{
       // "Inconsistent column data: Error creating UUID" on the @db.Uuid field.
       const keyVal = String(res.organizationKey).trim();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(keyVal);
-      const orgByKey = await prisma.organization.findFirst({
-        where: isUuid
-          ? { OR: [{ slug: keyVal }, { id: keyVal }] }
-          : { slug: keyVal },
-        select: { id: true, slug: true, subscription_plan: true, created_at: true },
-      });
+      
+      // Parallel fetch: organization + customer account
+      const [orgByKey, accountRes] = await Promise.all([
+        prisma.organization.findFirst({
+          where: isUuid
+            ? { OR: [{ slug: keyVal }, { id: keyVal }] }
+            : { slug: keyVal },
+          select: { id: true, slug: true, subscription_plan: true, created_at: true },
+        }),
+        getCustomerAccountForCurrentOrganization({ orgSlug: keyVal })
+          .catch(() => ({ success: false as const, data: null, error: 'lookup failed' })),
+      ]);
 
       if (orgByKey?.id) {
         const orgKey = String(orgByKey.slug || orgByKey.id);
-        let customerAccount: { companyName: string | null; phone: string | null; email: string | null } | null = null;
-        try {
-          const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: orgKey });
-          customerAccount = accountRes.success ? (accountRes.data ?? null) : null;
-        } catch {
-          // Customer account lookup failed — proceed without it
-        }
+        const customerAccount = accountRes.success ? (accountRes.data ?? null) : null;
         return {
           organizationId: orgByKey.id,
           organizationKey: orgKey,

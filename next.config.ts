@@ -192,12 +192,64 @@ const nextConfig: NextConfig = {
       };
     }
 
-    // Production optimizations
+    // Production optimizations with aggressive code splitting
     if (!dev) {
       config.optimization = {
         ...config.optimization,
         usedExports: true,
         sideEffects: true,
+        // Aggressive code splitting for PWA performance
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          maxAsyncRequests: 25,
+          minSize: 20000,
+          maxSize: 244000, // ~244KB - optimal for mobile
+          cacheGroups: {
+            // Vendor libraries
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+              priority: 10,
+              reuseExistingChunk: true,
+            },
+            // Clerk (heavy auth library) - separate chunk
+            clerk: {
+              test: /[\\/]node_modules[\\/]@clerk[\\/]/,
+              name: 'clerk',
+              chunks: 'all',
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+            // Prisma client - separate chunk
+            prisma: {
+              test: /[\\/]node_modules[\\/]@prisma[\\/]/,
+              name: 'prisma',
+              chunks: 'all',
+              priority: 15,
+              reuseExistingChunk: true,
+            },
+            // Common UI components
+            ui: {
+              test: /[\\/]components[\\/]ui[\\/]/,
+              name: 'ui-components',
+              chunks: 'all',
+              priority: 5,
+              reuseExistingChunk: true,
+            },
+            // Shared utilities
+            shared: {
+              test: /[\\/]lib[\\/]shared[\\/]/,
+              name: 'shared-utils',
+              chunks: 'all',
+              priority: 5,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+        // Minimize runtime chunk
+        runtimeChunk: { name: 'runtime' },
       };
     }
 

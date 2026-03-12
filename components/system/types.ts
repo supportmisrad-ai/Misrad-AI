@@ -42,6 +42,7 @@ export interface UserProfile {
   role: UserRole;
   avatar: string;
   email?: string;
+  organizationId?: string;
 }
 
 export interface SquareActivity {
