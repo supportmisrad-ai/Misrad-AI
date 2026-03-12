@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Clock, TrendingUp, Users, Target, ArrowRight, Edit2, ArrowUpRight, ArrowDownRight, RefreshCw, Trophy, ThumbsUp } from 'lucide-react';
 import { HoldButton } from '@/components/HoldButton';
-import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
+import { useAttendanceTile, formatAttendanceDuration } from '@/hooks/useAttendanceTile';
 import type { User as UserType } from '@/types';
 
 const TrendChart = ({ data, color }: { data: number[], color: string }) => {
@@ -35,10 +35,6 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
 };
 
 interface DashboardKPIWidgetsProps {
-    activeShift: { startTime: string } | null;
-    elapsed: string;
-    onClockIn: () => void;
-    onClockOut: () => void;
     canViewFinancials: boolean;
     totalRevenue: number;
     revenueGoal: number;
@@ -59,10 +55,6 @@ interface DashboardKPIWidgetsProps {
 }
 
 export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
-    activeShift,
-    elapsed,
-    onClockIn,
-    onClockOut,
     canViewFinancials,
     totalRevenue,
     revenueGoal,
@@ -81,109 +73,44 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
     users,
     onNavigateTeam,
 }) => {
-    // Local optimistic timer based on attendance cache so the big card
-    // always feels instant, even if server refresh is slow.
-    const [optimisticElapsed, setOptimisticElapsed] = React.useState<string>(elapsed);
-    const [isOptimisticActive, setIsOptimisticActive] = React.useState<boolean>(Boolean(activeShift));
-
-    React.useEffect(() => {
-        let orgSlug: string | null = null;
-        if (typeof window !== 'undefined') {
-            const path = window.location.pathname || '';
-            const m = path.match(/\/w\/([^/]+)\/nexus/);
-            orgSlug = m ? decodeURIComponent(m[1]) : null;
-        }
-        if (!orgSlug) {
-            setOptimisticElapsed(elapsed);
-            setIsOptimisticActive(Boolean(activeShift));
-            return;
-        }
-
-        let startTime: string | null = activeShift?.startTime ?? getAttendanceCache(orgSlug)?.startTime ?? null;
-        let rafId: number | null = null;
-
-        const computeElapsed = () => {
-            if (!startTime) {
-                setOptimisticElapsed('00:00:00');
-                setIsOptimisticActive(false);
-                return;
-            }
-            const startMs = new Date(startTime).getTime();
-            const diff = Math.max(0, Date.now() - startMs);
-            const totalSeconds = Math.floor(diff / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const seconds = totalSeconds % 60;
-            const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            setOptimisticElapsed(formatted);
-            setIsOptimisticActive(true);
-        };
-
-        const tick = () => {
-            computeElapsed();
-        };
-
-        // Initial sync from cache + activeShift
-        computeElapsed();
-        if (startTime) {
-            // Update every 1 second instead of every frame (60fps) to reduce CPU load
-            rafId = window.setInterval(tick, 1000) as unknown as number;
-        }
-
-        const unsubscribe = subscribeAttendanceCache((changedOrgSlug, snapshot) => {
-            if (changedOrgSlug !== orgSlug!) return;
-            startTime = snapshot?.startTime ?? null;
-            if (!startTime) {
-                setOptimisticElapsed('00:00:00');
-                setIsOptimisticActive(false);
-                if (rafId !== null) {
-                    window.clearInterval(rafId);
-                    rafId = null;
-                }
-                return;
-            }
-            if (rafId === null) {
-                rafId = window.setInterval(tick, 1000) as unknown as number;
-            }
-        });
-
-        return () => {
-            unsubscribe();
-            if (rafId !== null) {
-                window.clearInterval(rafId);
-            }
-        };
-    }, [activeShift, elapsed]);
+    // Unified attendance source - same as sidebar/mobile menu
+    const { isActive, elapsedMs, clockIn, clockOut } = useAttendanceTile();
+    
+    // Format elapsed time for display (convert ms to HH:MM:SS)
+    const formatElapsed = (ms: number): string => {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+    
+    const elapsedFormatted = formatElapsed(elapsedMs);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {/* 1. Time Clock Widget */}
-            <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${isOptimisticActive ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
-                {isOptimisticActive && (
+            <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${isActive ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
+                {isActive && (
                     <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-green-500/20 rounded-full blur-[80px] animate-pulse"></div>
                 )}
                 <div className="relative z-10 flex flex-col justify-between h-full min-h-[240px]">
                     <div className="flex justify-between items-start">
-                        <div className={`p-3.5 rounded-2xl ${isOptimisticActive ? 'bg-white/10 text-green-400' : 'bg-white text-gray-900 shadow-sm'}`}>
+                        <div className={`p-3.5 rounded-2xl ${isActive ? 'bg-white/10 text-green-400' : 'bg-white text-gray-900 shadow-sm'}`}>
                             <Clock size={28} />
                         </div>
-                        {activeShift && <span className="bg-green-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-green-500/40 border border-white/20">משמרת פעילה</span>}
+                        {isActive && <span className="bg-green-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-green-500/40 border border-white/20">משמרת פעילה</span>}
                     </div>
                     <div className="mt-6 text-center">
-                        {isOptimisticActive ? (
+                        {isActive ? (
                             <>
-                                <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-1 drop-shadow-lg">{optimisticElapsed}</div>
-                                {activeShift?.startTime && (
-                                    <div className="text-xs font-bold text-white/50 mb-1">
-                                        כניסה: {new Date(activeShift.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                )}
-                                <div className="flex justify-center mt-6"><HoldButton isActive={true} onComplete={onClockOut} label="יציאה" size="small" /></div>
+                                <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-1 drop-shadow-lg">{elapsedFormatted}</div>
+                                <div className="flex justify-center mt-6"><HoldButton isActive={true} onComplete={clockOut} label="יציאה" size="small" /></div>
                             </>
                         ) : (
                             <>
                                 <div className="text-4xl font-bold tracking-tight text-gray-300 mb-6">00:00:00</div>
-                                <div className="flex justify-center"><HoldButton isActive={false} onComplete={onClockIn} label="כניסה" size="small" /></div>
+                                <div className="flex justify-center"><HoldButton isActive={false} onComplete={clockIn} label="כניסה" size="small" /></div>
                             </>
                         )}
                     </div>

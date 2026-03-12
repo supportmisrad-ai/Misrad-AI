@@ -790,10 +790,6 @@ export const DashboardView: React.FC<{
 
             {/* ===== SECTION 4: KPI WIDGETS ===== */}
             <DashboardKPIWidgets
-                activeShift={activeShift}
-                elapsed={elapsed}
-                onClockIn={clockIn}
-                onClockOut={clockOut}
                 canViewFinancials={canViewFinancials}
                 totalRevenue={totalRevenue}
                 revenueGoal={revenueGoal}
