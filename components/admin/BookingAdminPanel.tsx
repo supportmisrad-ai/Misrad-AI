@@ -51,6 +51,7 @@ interface BookingAdminPanelProps {
     todayAppointments: number;
     pendingPayments: number;
   };
+  children?: React.ReactNode;
 }
 
 type TabId = 'calendar' | 'appointments' | 'providers' | 'services' | 'links' | 'settings';
@@ -59,7 +60,7 @@ type TabId = 'calendar' | 'appointments' | 'providers' | 'services' | 'links' | 
 // MAIN COMPONENT
 // ============================================
 
-export function BookingAdminPanel({ orgSlug, initialData }: BookingAdminPanelProps) {
+export function BookingAdminPanel({ orgSlug, initialData, children }: BookingAdminPanelProps) {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<TabId>('calendar');
   const [searchQuery, setSearchQuery] = useState('');
