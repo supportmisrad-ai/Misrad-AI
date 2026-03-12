@@ -73,3 +73,5 @@ deploy.ps1
 # DO NOT CREATE proxy.ts - We merged it into middleware.ts
 # Creating proxy.ts will cause conflicts and break the system
 /proxy.ts
+
+scripts/update-blaster-secret.ps1
