@@ -235,7 +235,7 @@ export default function AddOrganizationToClientModal({
                   disabled={isPending || !primaryContactUserId}
                   placeholder="ללא חבילה (ניסיון)"
                   options={[
-                    { value: 'solo', label: '🎯 מודול בודד — ₪149' },
+                    { value: 'solo', label: '🎯 נקסוס בלבד — ₪149' },
                     { value: 'the_closer', label: '💼 מכירות — ₪249' },
                     { value: 'the_authority', label: '🎨 שיווק ומיתוג — ₪349' },
                     { value: 'the_operator', label: '🔧 תפעול ושטח — ₪349' },

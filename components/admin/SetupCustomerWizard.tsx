@@ -19,7 +19,7 @@ const STEPS = [
 
 const PLANS = [
   { value: '', label: 'ללא חבילה (ניסיון בלבד)', price: '₪0', seats: 1, description: 'ללא עלות, מודול בסיסי אחד' },
-  { value: 'solo', label: '🎯 מודול בודד', price: '₪149', seats: 1, description: 'מודול יחיד לבחירתך' },
+  { value: 'solo', label: '🎯 נקסוס בלבד', price: '₪149', seats: 1, description: 'ניהול צוות ומשימות' },
   { value: 'the_closer', label: '💼 מכירות', price: '₪249', seats: 3, description: 'Nexus למכירות ומשימות' },
   { value: 'the_authority', label: '🎨 שיווק ומיתוג', price: '₪349', seats: 5, description: 'Social + Client + Nexus' },
   { value: 'the_operator', label: '🔧 תפעול ושטח', price: '₪349', seats: 5, description: 'Finance + Operations + Nexus' },
