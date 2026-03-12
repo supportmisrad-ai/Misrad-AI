@@ -74,6 +74,11 @@ export function isAdminRole(role: string | null | undefined): boolean {
   return (ADMIN_ROLE_ALIASES as readonly string[]).includes(normalized);
 }
 
+export function isSuperAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return email.toLowerCase() === 'itsikdahan1@gmail.com';
+}
+
 export function isTenantAdminRole(role: string | null | undefined): boolean {
   return isCeoRole(role) || isAdminRole(role);
 }

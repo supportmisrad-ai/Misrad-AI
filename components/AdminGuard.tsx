@@ -1,5 +1,6 @@
 'use client';
 
+import { isSuperAdminEmail } from '@/lib/constants/roles';
 import React from 'react';
 import { useData } from '../context/DataContext';
 import { usePathname, useRouter } from 'next/navigation';
@@ -21,8 +22,10 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
     normalizedRole === 'audit_service' || normalizedRole === 'audit-service' || normalizedRole === 'audit service';
   const isLogsPage = String(pathname || '').startsWith('/app/admin/logs');
 
+  const isSuperAdmin = currentUser?.isSuperAdmin || isSuperAdminEmail(currentUser?.email);
+
   // Check if user is Super Admin
-  if (!currentUser.isSuperAdmin) {
+  if (!isSuperAdmin) {
     if (isAuditServiceRole && isLogsPage) {
       return <>{children}</>;
     }
