@@ -514,7 +514,6 @@ export default function TheMachine() {
             </motion.div>
           )}
 
-          {step === 2 && (
             <motion.div 
               key="s2" 
               initial={{ opacity: 0, x: 20 }} 
