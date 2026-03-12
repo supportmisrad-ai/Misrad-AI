@@ -76,6 +76,8 @@ function coerceLeaveRequest(value: unknown): LeaveRequest {
     leaveType: (obj.leaveType ?? obj.type ?? 'vacation') as LeaveRequestType,
     startDate: String(obj.startDate ?? obj.start_date ?? ''),
     endDate: String(obj.endDate ?? obj.end_date ?? ''),
+    start_date: String(obj.startDate ?? obj.start_date ?? ''),
+    end_date: String(obj.endDate ?? obj.end_date ?? ''),
     daysRequested: Number(obj.daysRequested ?? obj.days_requested ?? 1),
     reason: obj.reason ? String(obj.reason) : undefined,
     status: (obj.status ?? 'pending') as LeaveRequestStatus,

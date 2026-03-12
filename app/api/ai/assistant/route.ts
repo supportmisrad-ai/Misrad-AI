@@ -1,8 +1,10 @@
 import { apiError } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
-// Using Claude (Anthropic) for AI chat - restored from temporary OpenAI switch
-import Anthropic from '@anthropic-ai/sdk';
+// NOTE: Currently using OpenAI (gpt-4o-mini) for AI chat.
+// Switch to Claude (Anthropic) requires EXPLICIT user request only.
+// Do NOT change to Claude without explicit user approval.
+import OpenAI from 'openai';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { checkAiAccess } from '@/lib/server/subscription-guard';

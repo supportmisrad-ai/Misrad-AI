@@ -701,6 +701,8 @@ export interface LeaveRequest {
     leaveType: LeaveRequestType;
     startDate: string; // Date string
     endDate: string; // Date string
+    start_date?: string; // Legacy/Snake case support
+    end_date?: string; // Legacy/Snake case support
     daysRequested: number; // Can be decimal (0.5, 1.5, etc.)
     reason?: string;
     status: LeaveRequestStatus;
