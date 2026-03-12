@@ -7,7 +7,7 @@ import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 // Import the raw context so we can do a safe (non-throwing) check
 import { DataContext } from '@/context/DataContext';
-import { getAttendanceCache, setAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
+import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
 // TEMP: Attendance clock is enabled ONLY inside Nexus module to avoid cross-module state confusion.
 const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus']);
@@ -75,12 +75,19 @@ export function useAttendanceTile(): UseAttendanceTileResult {
     });
   }, [orgSlug]);
 
-  const effectiveStartTime = activeShift?.startTime ?? cachedSnapshot?.startTime ?? null;
+  // Local optimistic state for immediate UI response on clockIn (before cache/auth update arrives)
+  const [optimisticStartTime, setOptimisticStartTime] = useState<string | null>(null);
+
+  // Combine sources: optimistic > activeShift > cachedSnapshot
+  const effectiveStartTime = optimisticStartTime ?? activeShift?.startTime ?? cachedSnapshot?.startTime ?? null;
   const isActive = Boolean(effectiveStartTime);
   const startTime = effectiveStartTime;
 
   const now = useSecondTicker(isActive);
-  const elapsedMs = startTime ? now - new Date(startTime).getTime() : 0;
+  // Calculate elapsed time from the moment isActive becomes true
+  // When ticker starts (now becomes Date.now()), calculate from startTime
+  // If now is 0 (initial state), show 0 elapsed time
+  const elapsedMs = startTime && now > 0 ? now - new Date(startTime).getTime() : 0;
 
   // Anti-double-click guard with safety timeout
   const [isBusy, setIsBusy] = useState(false);
@@ -94,8 +101,12 @@ export function useAttendanceTile(): UseAttendanceTileResult {
       prevShiftIdRef.current = currentId;
       setIsBusy(false);
       if (busyTimerRef.current) { clearTimeout(busyTimerRef.current); busyTimerRef.current = null; }
+      // Clear optimistic state once real state arrives
+      if (optimisticStartTime) {
+        setOptimisticStartTime(null);
+      }
     }
-  }, [activeShift?.id]);
+  }, [activeShift?.id, optimisticStartTime]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -108,13 +119,9 @@ export function useAttendanceTile(): UseAttendanceTileResult {
 
   const clockIn = useCallback(() => {
     if (!authClockIn || isBusy) return;
-    if (orgSlug) {
-      const nowIso = new Date().toISOString();
-      setAttendanceCache(orgSlug, {
-        entryId: activeShift?.id ?? 'pending',
-        startTime: nowIso,
-      });
-    }
+    // Set optimistic state immediately for instant UI feedback
+    // This ensures the clock starts showing 00:00 immediately, then 00:01 on next tick
+    setOptimisticStartTime(new Date().toISOString());
     setIsBusy(true);
     // Safety timeout: auto-reset after 10s in case state doesn't change
     busyTimerRef.current = setTimeout(() => { setIsBusy(false); busyTimerRef.current = null; }, 10_000);
@@ -123,9 +130,8 @@ export function useAttendanceTile(): UseAttendanceTileResult {
 
   const clockOut = useCallback(() => {
     if (!authClockOut || isBusy) return;
-    if (orgSlug) {
-      setAttendanceCache(orgSlug, null);
-    }
+    // Clear optimistic state immediately
+    setOptimisticStartTime(null);
     setIsBusy(true);
     busyTimerRef.current = setTimeout(() => { setIsBusy(false); busyTimerRef.current = null; }, 10_000);
     authClockOut();

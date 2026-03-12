@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type Listener = () => void;
 
@@ -20,12 +20,26 @@ function stop() {
   intervalId = null;
 }
 
+// Use useLayoutEffect if available (client-side), fallback to useEffect
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export function useSecondTicker(enabled: boolean): number {
   // Initialize with 0 to avoid hydration mismatch (server vs client time difference)
   const [now, setNow] = useState<number>(0);
+  const firstRenderRef = useRef(true);
 
-  useEffect(() => {
-    if (!enabled) return;
+  // Synchronous update on enable - ensures immediate display without waiting for next tick
+  useIsomorphicLayoutEffect(() => {
+    if (!enabled) {
+      firstRenderRef.current = true;
+      return;
+    }
+
+    // On first enable, set immediately synchronously to avoid 1-frame delay
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      setNow(Date.now());
+    }
 
     const listener = () => setNow(Date.now());
     listeners.add(listener);
