@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
 /**
  * GET /api/booking/links?orgSlug=xxx
+ * Protected: Requires authentication and workspace access
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication guard
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const orgSlug = searchParams.get('orgSlug');
 
@@ -37,9 +45,16 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/booking/links
+ * Protected: Requires authentication and workspace access
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication guard
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { orgSlug, serviceIds, ...data } = body;
 

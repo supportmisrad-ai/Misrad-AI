@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
 /**
  * GET /api/booking/providers?orgSlug=xxx
  * Fetch all providers for organization
+ * Protected: Requires authentication and workspace access
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication guard
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const orgSlug = searchParams.get('orgSlug');
 
@@ -16,7 +24,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    // Verify access
+    // Workspace access guard
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('GET /api/booking/providers', organizationId);
@@ -62,9 +70,16 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/booking/providers
  * Create a new provider
+ * Protected: Requires authentication and workspace access
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication guard
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { orgSlug, ...data } = body;
 
@@ -72,7 +87,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    // Verify access
+    // Workspace access guard
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('POST /api/booking/providers', organizationId);
