@@ -72,7 +72,7 @@ export default async function PublicBookingLinkPage({ params }: PageProps) {
         provider={{
           id: link.provider.id,
           name: link.provider.name,
-          avatar: link.provider.avatar,
+          avatar: link.provider.avatar ?? undefined,
         }}
         services={link.services.map((s: { service: BookingService }) => ({
           id: s.service.id,
