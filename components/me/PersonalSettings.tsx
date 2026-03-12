@@ -5,6 +5,7 @@ import { Camera, Loader2 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
+import type { UIPreferences } from '@/types';
 
 interface PersonalSettingsProps {
     onClose: () => void;
@@ -24,7 +25,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         phone: currentUser.phone || '',
         location: currentUser.location || '',
         bio: currentUser.bio || '',
-        landingPage: currentUser.uiPreferences?.landingPage || 'last_module'
+        landingPage: (currentUser.uiPreferences?.landingPage as UIPreferences['landingPage']) || 'last_module'
     });
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +164,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             bio: form.bio,
             uiPreferences: {
                 ...currentUser.uiPreferences,
-                landingPage: form.landingPage as any
+                landingPage: form.landingPage
             }
         });
         queryClient.invalidateQueries({ queryKey: ['nexus', 'me'] });
@@ -278,7 +279,12 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     <select
                         id="landing-page-select"
                         value={form.landingPage}
-                        onChange={(e) => setForm({ ...form, landingPage: e.target.value as any })}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === 'last_module' || val === 'lobby' || val === 'me' || val === 'nexus') {
+                                setForm({ ...form, landingPage: val });
+                            }
+                        }}
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black transition-all appearance-none cursor-pointer"
                     >
                         <option value="last_module">המודול האחרון שהייתי בו (ברירת מחדל)</option>
