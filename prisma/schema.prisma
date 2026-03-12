@@ -3098,6 +3098,7 @@ model Organization {
   arr                              Decimal?                           @default(0) @db.Decimal(10, 2)
   discount_percent                 Int?                               @default(0)
   trial_extended_days              Int?                               @default(0)
+  trial_reset_count                Int?                               @default(0)
   trial_end_date                   DateTime?                          @db.Date
   last_payment_date                DateTime?                          @db.Timestamptz(6)
   last_payment_amount              Decimal?                           @db.Decimal(10, 2)

@@ -1,14 +1,75 @@
-import React from 'react';
-import { Calendar, Mail, Phone, CircleAlert, Building2, Clock, CreditCard } from 'lucide-react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Calendar, Mail, Phone, CircleAlert, Building2, Clock, CreditCard, RefreshCw, Package, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 
-export const metadata = {
-  title: 'תקופת הניסיון הסתיימה | Misrad AI',
-  description: 'תקופת הניסיון שלך הסתיימה. צור קשר איתנו להמשך שימוש במערכת.',
-};
+interface OrganizationInfo {
+  id: string;
+  name: string;
+  slug: string;
+  trialEndDate: string;
+  daysSinceExpired: number;
+  canStartNewTrial: boolean;
+  subscriptionStatus: string;
+}
 
 export default function TrialExpiredPage() {
+  const { isSignedIn, userId } = useAuth();
+  const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [startingNewTrial, setStartingNewTrial] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSignedIn || !userId) {
+      setLoading(false);
+      return;
+    }
+
+    // Fetch current organization info
+    fetch('/api/user/organization-info')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.organization) {
+          setOrgInfo(data.organization);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, [isSignedIn, userId]);
+
+  const handleStartNewTrial = async () => {
+    if (!orgInfo?.canStartNewTrial) return;
+    
+    setStartingNewTrial(true);
+    setError(null);
+    
+    try {
+      const res = await fetch('/api/trial/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        // Redirect to onboarding or workspace
+        window.location.href = data.redirectUrl || '/workspaces/onboarding';
+      } else {
+        setError(data.error || 'לא ניתן להתחיל ניסיון חדש כעת');
+        setStartingNewTrial(false);
+      }
+    } catch (err) {
+      setError('שגיאה בתקשורת עם השרת');
+      setStartingNewTrial(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -25,6 +86,11 @@ export default function TrialExpiredPage() {
             <p className="text-blue-100 text-lg" dir="rtl">
               הגעת לסוף תקופת הניסיון החינמית
             </p>
+            {orgInfo && (
+              <p className="text-blue-200 text-sm mt-2" dir="rtl">
+                {orgInfo.name} • תם לפני {orgInfo.daysSinceExpired} ימים
+              </p>
+            )}
           </div>
 
           {/* Content */}
@@ -40,8 +106,9 @@ export default function TrialExpiredPage() {
                 <div>
                   <h3 className="font-black text-blue-900 mb-2">מה זה אומר?</h3>
                   <p className="text-sm text-blue-800 leading-relaxed">
-                    תקופת הניסיון החינמית שלך במערכת Misrad AI הסתיימה. כדי להמשיך להשתמש במערכת,
-                    יש ליצור קשר עם הצוות שלנו לבחירת חבילה מתאימה והמשך השימוש.
+                    תקופת הניסיון החינמית שלך במערכת Misrad AI הסתיימה. 
+                    כל המידע שלך נשמר ומאובטח. כדי להמשיך להשתמש במערכת,
+                    יש לבחור באחת מהאפשרויות הבאות.
                   </p>
                 </div>
               </div>
@@ -65,11 +132,53 @@ export default function TrialExpiredPage() {
               </div>
             </div>
 
-            {/* Primary CTA - Payment */}
+            {/* Option 1: Start New Trial (if eligible) */}
+            {orgInfo?.canStartNewTrial && (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-6 shadow-lg">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-amber-100 rounded-xl mb-2">
+                    <RefreshCw className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h3 className="font-black text-slate-900 text-xl mb-2">
+                    התחל ניסיון חדש 🎁
+                  </h3>
+                  <p className="text-slate-700 text-sm">
+                    זכאי לניסיון נוסף! לאחר {orgInfo.daysSinceExpired} ימים מהניסיון הקודם,
+                    ניתן להתחיל ניסיון חדש של 7 ימים.
+                  </p>
+                </div>
+                <Button
+                  size="lg"
+                  onClick={handleStartNewTrial}
+                  disabled={startingNewTrial}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black text-lg py-6"
+                >
+                  {startingNewTrial ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 ml-2 animate-spin" />
+                      מכין ניסיון חדש...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-5 h-5 ml-2" />
+                      התחל ניסיון חדש
+                    </>
+                  )}
+                </Button>
+                {error && (
+                  <p className="text-red-600 text-sm text-center mt-2">{error}</p>
+                )}
+              </div>
+            )}
+
+            {/* Option 2: Upgrade to Paid */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6 shadow-lg">
               <div className="text-center mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mb-2">
+                  <Package className="w-6 h-6 text-green-600" />
+                </div>
                 <h3 className="font-black text-slate-900 text-2xl mb-2">
-                  מוכנים להמשיך? 🚀
+                  שדרג לחבילה בתשלום 🚀
                 </h3>
                 <p className="text-slate-700">
                   השלם תשלום והמשך להשתמש במערכת באופן מיידי
@@ -81,7 +190,7 @@ export default function TrialExpiredPage() {
                   className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-black text-lg py-6"
                 >
                   <CreditCard className="w-6 h-6 ml-2" />
-                  הסדר תשלום עכשיו
+                  צפה בחבילות ושדרג
                 </Button>
               </Link>
               <p className="text-xs text-center text-slate-600 mt-3">
@@ -89,7 +198,7 @@ export default function TrialExpiredPage() {
               </p>
             </div>
 
-            {/* Alternative: Contact Section */}
+            {/* Option 3: Contact Support */}
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6">
               <h3 className="font-black text-slate-900 text-lg mb-3 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-indigo-600" />
@@ -100,7 +209,6 @@ export default function TrialExpiredPage() {
               </p>
 
               <div className="space-y-3">
-                {/* Contact Info */}
                 <a
                   href="mailto:support@misrad-ai.com"
                   className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:shadow-md transition-shadow group"
@@ -124,12 +232,22 @@ export default function TrialExpiredPage() {
                     <Phone className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-600">טלפון</p>
+                    <p className="text-xs font-medium text-slate-600">טלפון / WhatsApp</p>
                     <p className="font-bold text-slate-900 group-hover:text-green-600 transition-colors" dir="ltr">
                       051-2239520
                     </p>
                   </div>
                 </a>
+              </div>
+            </div>
+
+            {/* Security Note */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <div className="flex items-center gap-3 text-slate-600">
+                <Shield className="w-5 h-5 text-slate-400" />
+                <p className="text-sm">
+                  המידע שלך מאובטח ונשמר. שחזור הגישה לא יאבד שום נתון.
+                </p>
               </div>
             </div>
 
