@@ -38,6 +38,8 @@ export type OrganizationRecord = {
   subscription_plan: string | null;
   trial_start_date: string | Date | null;
   trial_days: number | null;
+  trial_extended_days: number | null;
+  trial_reset_count: number | null;
   subscription_start_date: string | Date | null;
   created_at: string | Date | null;
   updated_at: string | Date | null;
@@ -152,6 +154,8 @@ export async function getOrganizations(params?: {
             subscription_plan: true,
             trial_start_date: true,
             trial_days: true,
+            trial_extended_days: true,
+            trial_reset_count: true,
             subscription_start_date: true,
             created_at: true,
             updated_at: true,
@@ -279,6 +283,8 @@ export async function getOrganizations(params?: {
           subscription_plan: string | null;
           trial_start_date: Date | null;
           trial_days: number | null;
+          trial_extended_days: number | null;
+          trial_reset_count: number | null;
           subscription_start_date: Date | null;
           created_at: Date | null;
           updated_at: Date | null;
@@ -300,6 +306,8 @@ export async function getOrganizations(params?: {
           subscription_plan: o.subscription_plan == null ? null : String(o.subscription_plan),
           trial_start_date: toIsoOrNull(o.trial_start_date),
           trial_days: o.trial_days == null ? null : Number(o.trial_days),
+          trial_extended_days: o.trial_extended_days == null ? null : Number(o.trial_extended_days),
+          trial_reset_count: o.trial_reset_count == null ? null : Number(o.trial_reset_count),
           subscription_start_date: toIsoOrNull(o.subscription_start_date),
           created_at: toIsoOrNull(o.created_at),
           updated_at: toIsoOrNull(o.updated_at),

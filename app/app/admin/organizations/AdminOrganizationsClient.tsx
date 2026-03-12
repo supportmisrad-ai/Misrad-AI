@@ -566,6 +566,7 @@ export default function AdminOrganizationsClient(props: {
               <tr>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">סטטוס</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">מידע ניסיון</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חבילה</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
@@ -587,6 +588,19 @@ export default function AdminOrganizationsClient(props: {
 
                 const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
 
+                // Calculate trial days remaining
+                const getTrialInfo = () => {
+                  if (o.subscription_status !== 'trial') return null;
+                  const start = o.trial_start_date ? new Date(o.trial_start_date) : null;
+                  if (!start) return null;
+                  const days = (o.trial_days || 7) + (o.trial_extended_days || 0);
+                  const end = new Date(start);
+                  end.setDate(end.getDate() + days);
+                  const remaining = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return { remaining, days, resetCount: o.trial_reset_count || 0 };
+                };
+                const trialInfo = getTrialInfo();
+
                 return (
                   <tr key={String(o.id)} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm font-bold text-slate-900">{o.name}</td>
@@ -598,6 +612,22 @@ export default function AdminOrganizationsClient(props: {
                       }`}>
                         {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      {trialInfo ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className={trialInfo.remaining <= 3 ? 'text-red-600 font-bold' : 'text-slate-700'}>
+                            {trialInfo.remaining > 0 ? `נשארו ${trialInfo.remaining} ימים` : 'פג תוקף'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {trialInfo.resetCount > 0 && `איפוס ${trialInfo.resetCount}/2`}
+                          </span>
+                        </div>
+                      ) : o.subscription_status === 'expired' ? (
+                        <span className="text-red-500">פג תוקף</span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{o.subscription_plan ? String(o.subscription_plan).toUpperCase() : '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
