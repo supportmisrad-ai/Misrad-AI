@@ -5,6 +5,9 @@ import { ExternalLink, FileText, Receipt, Plus, Download, ChevronDown, Clipboard
 import type { FinanceInvoice } from '@/lib/services/finance-service';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
 import { useToast } from '@/components/system/contexts/ToastContext';
+import NumberTicker from '@/components/shared/NumberTicker';
+import NoiseTexture from '@/components/shared/NoiseTexture';
+import { motion } from 'framer-motion';
 
 type DocumentTypeKey = 'invoice' | 'quote' | 'receipt' | 'invoice_receipt';
 
@@ -36,9 +39,12 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 
 function getStatusBadge(status: string) {
   const s = STATUS_MAP[status] || { label: status || '—', className: 'bg-slate-50 text-slate-600 border-slate-200' };
+  const isPaid = status.toLowerCase() === 'paid';
+  
   return (
-    <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-black border ${s.className}`}>
-      {s.label}
+    <span className={`relative inline-block px-3 py-1.5 rounded-xl text-[10px] font-black border backdrop-blur-md overflow-hidden transition-all duration-300 ${s.className} ${isPaid ? 'shadow-[0_0_15px_rgba(16,185,129,0.2)]' : ''}`}>
+      {isPaid && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+      <span className="relative z-10">{s.label}</span>
     </span>
   );
 }
@@ -229,31 +235,42 @@ export default function FinanceInvoicesClient(props: { invoices: FinanceInvoice[
         <>
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
-            {invoices.map((inv) => (
-              <div key={inv.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-black text-slate-900">#{inv.number || inv.id}</div>
-                  {getStatusBadge(inv.status)}
+            {invoices.map((inv, idx) => (
+              <motion.div 
+                key={inv.id} 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="relative overflow-hidden bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-4 space-y-3 shadow-glass active:scale-[0.98] transition-transform"
+              >
+                <NoiseTexture />
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-900 bg-slate-100/50 px-2 py-1 rounded-lg border border-slate-200/50">#{inv.number || inv.id}</div>
+                    {getStatusBadge(inv.status)}
+                  </div>
+                  {inv.clientName && (
+                    <div className="text-sm font-bold text-slate-700">{inv.clientName}</div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-slate-100/50 pt-2">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{inv.date || '—'}</div>
+                    <div className="text-lg font-black text-slate-900 tracking-tight">
+                      <NumberTicker value={Number(inv.amount || 0)} prefix="₪" />
+                    </div>
+                  </div>
+                  {inv.downloadUrl && (
+                    <a
+                      href={inv.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 text-white text-xs font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+                    >
+                      <Download size={16} />
+                      הורדת מסמך
+                    </a>
+                  )}
                 </div>
-                {inv.clientName && (
-                  <div className="text-sm text-slate-700">{inv.clientName}</div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-slate-500">{inv.date || '—'}</div>
-                  <div className="text-lg font-black text-slate-900">₪{Number(inv.amount || 0).toLocaleString('he-IL')}</div>
-                </div>
-                {inv.downloadUrl && (
-                  <a
-                    href={inv.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-black hover:bg-indigo-100 transition-colors"
-                  >
-                    <ExternalLink size={14} />
-                    פתח חשבונית
-                  </a>
-                )}
-              </div>
+              </motion.div>
             ))}
           </div>
 

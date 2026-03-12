@@ -5,6 +5,9 @@ import { TrendingUp, DollarSign, FileText, CircleAlert, Wallet, Users, BarChart3
 import { useRouter, usePathname } from 'next/navigation';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import NumberTicker from '@/components/shared/NumberTicker';
+import NoiseTexture from '@/components/shared/NoiseTexture';
+import { motion } from 'framer-motion';
 
 type ChartPoint = {
   date: string;
@@ -118,55 +121,105 @@ const OverviewView: React.FC<{ initialFinanceOverview?: unknown; initialFrom?: s
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="text-emerald-600" size={20} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative overflow-hidden bg-white/70 backdrop-blur-xl p-5 rounded-2xl border border-white/40 shadow-glass group"
+        >
+          <NoiseTexture />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-emerald-100/80 rounded-xl flex items-center justify-center shadow-sm">
+                <TrendingUp className="text-emerald-600" size={20} />
+              </div>
             </div>
+            <div className="text-2xl font-black text-slate-900">
+              <NumberTicker value={totalRevenue} prefix="₪" />
+            </div>
+            <div className="text-xs font-bold text-slate-500 mt-1">הכנסות החודש</div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{formatCurrency(totalRevenue)}</div>
-          <div className="text-xs font-bold text-slate-500 mt-1">הכנסות החודש</div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <DollarSign className="text-blue-600" size={20} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="relative overflow-hidden bg-white/70 backdrop-blur-xl p-5 rounded-2xl border border-white/40 shadow-glass group"
+        >
+          <NoiseTexture />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-100/80 rounded-xl flex items-center justify-center shadow-sm">
+                <DollarSign className="text-blue-600" size={20} />
+              </div>
             </div>
+            <div className="text-2xl font-black text-slate-900">
+              <NumberTicker value={totalCost} prefix="₪" />
+            </div>
+            <div className="text-xs font-bold text-slate-500 mt-1">הוצאות החודש</div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{formatCurrency(totalCost)}</div>
-          <div className="text-xs font-bold text-slate-500 mt-1">הוצאות החודש</div>
-        </div>
+        </motion.div>
 
-        <div className={`p-5 rounded-2xl border shadow-sm ${netProfit >= 0 ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'}`}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${netProfit >= 0 ? 'bg-emerald-100' : 'bg-rose-100'}`}>
-              <Wallet className={netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'} size={20} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className={`relative overflow-hidden p-5 rounded-2xl border shadow-glass ${netProfit >= 0 ? 'bg-emerald-50/40 border-emerald-200/50' : 'bg-rose-50/40 border-rose-200/50'} backdrop-blur-xl`}
+        >
+          <NoiseTexture />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${netProfit >= 0 ? 'bg-emerald-100/80' : 'bg-rose-100/80'}`}>
+                <Wallet className={netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'} size={20} />
+              </div>
             </div>
+            <div className={`text-2xl font-black ${netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              <NumberTicker value={netProfit} prefix="₪" />
+            </div>
+            <div className="text-xs font-bold text-slate-500 mt-1">רווח נקי</div>
           </div>
-          <div className={`text-2xl font-black ${netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{formatCurrency(netProfit)}</div>
-          <div className="text-xs font-bold text-slate-500 mt-1">רווח נקי</div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-              <FileText className="text-amber-600" size={20} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="relative overflow-hidden bg-white/70 backdrop-blur-xl p-5 rounded-2xl border border-white/40 shadow-glass group"
+        >
+          <NoiseTexture />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-amber-100/80 rounded-xl flex items-center justify-center shadow-sm">
+                <FileText className="text-amber-600" size={20} />
+              </div>
             </div>
+            <div className="text-2xl font-black text-slate-900">
+              <NumberTicker value={openInvoicesCount} />
+            </div>
+            <div className="text-xs font-bold text-slate-500 mt-1">חשבוניות פתוחות</div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{openInvoicesCount}</div>
-          <div className="text-xs font-bold text-slate-500 mt-1">חשבוניות פתוחות</div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center">
-              <CircleAlert className="text-rose-600" size={20} />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="relative overflow-hidden bg-white/70 backdrop-blur-xl p-5 rounded-2xl border border-white/40 shadow-glass group"
+        >
+          <NoiseTexture />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-rose-100/80 rounded-xl flex items-center justify-center shadow-sm">
+                <CircleAlert className="text-rose-600" size={20} />
+              </div>
             </div>
+            <div className="text-2xl font-black text-slate-900">
+              <NumberTicker value={pendingReceivables} prefix="₪" />
+            </div>
+            <div className="text-xs font-bold text-slate-500 mt-1">ממתין לגבייה</div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{formatCurrency(pendingReceivables)}</div>
-          <div className="text-xs font-bold text-slate-500 mt-1">ממתין לגבייה</div>
-        </div>
+        </motion.div>
       </div>
 
       {hasData ? (

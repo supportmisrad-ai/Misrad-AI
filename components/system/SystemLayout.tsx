@@ -11,6 +11,8 @@ import { RoomSwitcher } from '../shared/RoomSwitcher';
 import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
 import { useShabbat } from '@/hooks/useShabbat';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
+import { BottomTabBar } from './BottomTabBar';
+import { MobileQuickActions } from './MobileQuickActions';
 
 interface SystemLayoutProps {
   children?: React.ReactNode;
@@ -44,7 +46,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
 
   return (
     <div className="flex h-screen w-full bg-[#020617] text-slate-200 font-sans overflow-hidden selection:bg-rose-600/30" dir="rtl">
-        {/* Sidebar */}
+        {/* Sidebar - Desktop Only */}
         <aside className="hidden md:flex w-64 border-l border-slate-800 bg-[#020617] flex-col p-4 relative z-20">
             {/* Logo Area */}
             <div className="flex items-center gap-3 px-4 py-6 mb-4">
@@ -109,13 +111,6 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
 
             <header className="h-14 sm:h-16 border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 md:px-8 backdrop-blur-sm z-10">
                 <div className="flex items-center gap-2 text-slate-400 text-xs sm:text-sm min-w-0">
-                    <button 
-                        onClick={() => setIsMobileMenuOpen(true)}
-                        className="md:hidden p-2 -mr-2 text-slate-400 hover:text-white"
-                    >
-                        <Menu size={20} />
-                    </button>
-                    <span className="hidden sm:inline">/</span>
                     <span className="text-white font-bold truncate">{navItems.find(i => isActive(i.path))?.label}</span>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -209,9 +204,27 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
                 )}
             </AnimatePresence>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 z-10 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 pb-32 md:pb-8 z-10 custom-scrollbar">
                 {children}
             </div>
+
+            {/* Bottom Tab Bar - Mobile Only */}
+            <BottomTabBar 
+                items={navItems}
+                activePath={pathname || '/'}
+                onTabClick={(path) => router.push(toNexusPath(basePath, path))}
+            />
+
+            {/* Mobile Quick Actions (FAB) */}
+            <MobileQuickActions 
+                onDialerClick={() => router.push(toNexusPath(basePath, '/sales/comms'))}
+                onAddLeadClick={() => {
+                    // This will be handled by the child components via event or context if needed, 
+                    // but for now we navigate to the leads page or show a modal if we had one.
+                    router.push(toNexusPath(basePath, '/sales/pipeline'));
+                }}
+                onFocusClick={() => router.push(toNexusPath(basePath, '/sales/focus'))}
+            />
         </main>
     </div>
   );

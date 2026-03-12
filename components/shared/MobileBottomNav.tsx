@@ -45,15 +45,24 @@ export default function MobileBottomNav({
           aria-label={item.ariaLabel || item.label}
           aria-current={isActive ? 'page' : undefined}
           type="button"
-          className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200 ${
+          className={`flex items-center justify-center w-12 h-12 rounded-[20px] transition-all duration-300 relative group overflow-hidden ${
             isActive
-              ? 'bg-slate-900 text-white shadow-lg shadow-black/20'
-              : 'bg-white/80 text-slate-500 border border-slate-200/60 shadow-sm hover:bg-white hover:border-slate-200'
+              ? 'text-white shadow-[0_8px_25px_rgba(0,0,0,0.2)] scale-110'
+              : 'bg-white/40 text-slate-500 border border-white/40 backdrop-blur-md hover:bg-white/60'
           }`}
         >
-          <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className="sm:w-5 sm:h-5" />
+          {isActive && (
+            <>
+              <div 
+                className="absolute inset-0 z-0 opacity-100 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] animate-pulse-soft"
+                style={{ background: plusGradient ? `linear-gradient(135deg, ${plusGradient.split(' ').map(s => s.replace(/^(from-|to-)/, '')).join(', ')})` : 'linear-gradient(135deg, #0f172a, #334155)' }}
+              />
+              <div className="absolute inset-0 bg-white/20 blur-md animate-pulse" />
+            </>
+          )}
+          <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={`relative z-10 transition-transform group-active:scale-90 ${isActive ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : ''}`} />
         </button>
-        <span className={`text-[10px] font-bold leading-none ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+        <span className={`text-[10px] font-black tracking-tight leading-none transition-colors ${isActive ? 'text-slate-900 scale-105' : 'text-slate-400'}`}>
           {item.label}
         </span>
       </div>
@@ -67,7 +76,7 @@ export default function MobileBottomNav({
       aria-label="ניווט תחתון"
     >
       <div className="absolute inset-0 rounded-t-[40px] bg-[var(--bg-app)]"></div>
-      <div className="absolute inset-0 rounded-t-[40px] bg-white/90 backdrop-blur-xl border-t border-slate-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pointer-events-none [-webkit-mask-image:radial-gradient(circle_48px_at_50%_-8px,transparent_47px,#000_48px)] [mask-image:radial-gradient(circle_48px_at_50%_-8px,transparent_47px,#000_48px)]"></div>
+      <div className="absolute inset-0 rounded-t-[40px] bg-white/60 backdrop-blur-2xl border-t border-white/50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pointer-events-none [-webkit-mask-image:radial-gradient(circle_52px_at_50%_-8px,transparent_51px,#000_52px)] [mask-image:radial-gradient(circle_52px_at_50%_-8px,transparent_51px,#000_52px)]"></div>
 
       <div
         className="relative z-10 h-full grid grid-cols-5 items-center px-4"
@@ -83,7 +92,7 @@ export default function MobileBottomNav({
               onClick={onPlusClickAction}
               aria-label={plusAriaLabel || 'פעולה חדשה'}
               type="button"
-              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[5px] border-white transition-all duration-200 ${plusClassName || ''}`}
+              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_15px_35px_rgba(0,0,0,0.25)] border-[6px] border-[#f8fafc] transition-all duration-300 hover:scale-105 active:scale-95 ${plusClassName || ''}`}
               style={{
                 background: (() => {
                   if (!plusGradient) return 'linear-gradient(135deg, #0f172a, #334155)';

@@ -1,21 +1,26 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
-import { Task, Priority, Status, User, Client, WorkflowStage, Template } from '../types';
+import { Priority, Task, Status, TaskCreationDefaults, User, Template, Client, WorkflowStage } from '../types';
 import { Avatar } from '../components/Avatar';
 import { useData } from '../context/DataContext';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeletons';
 import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
 import { TaskItem } from '../components/nexus/TaskItem';
-import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, SquareCheck, Star, Flag, Briefcase, Server, Check, FileUp } from 'lucide-react';
+import { TaskCard } from '../components/nexus/TaskCard';
+import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, SquareCheck, Star, Users, Flag, Briefcase, Server, Settings, X, Check, FileUp } from 'lucide-react';
 import SmartImportTasksDialog from '@/components/nexus/SmartImportTasksDialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
+import { CustomSelect } from '../components/CustomSelect';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { TasksStatusSheet, TasksBoardView, TasksFilterContent } from './tasks';
 import { MobileDrawer } from '../components/shared/MobileDrawer';
 
+// Map string names to components for templates
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
     'Layers': Layers,
     'UserPlus': UserPlus,
@@ -29,7 +34,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
 type GroupByOption = 'status' | 'assignee' | 'priority' | 'client';
 
 export const TasksView: React.FC = () => {
-  const { pathname } = useNexusNavigation();
+  const { navigate, pathname } = useNexusNavigation();
   const { users, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission, tasks: contextTasks, toggleTimer: contextToggleTimer, replaceTasks: replaceContextTasks } = useData();
   const queryClient = useQueryClient();
   
@@ -57,9 +62,11 @@ export const TasksView: React.FC = () => {
       },
   });
 
+  // State
   const [tasks, setTasks] = useState<Task[]>(contextTasks || []);
   const [cachedTasks, setCachedTasks] = useState<Task[]>(contextTasks || []);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -72,13 +79,17 @@ export const TasksView: React.FC = () => {
   const [isTaskStatusSheetOpen, setIsTaskStatusSheetOpen] = useState(false);
   const [taskStatusSheetTaskId, setTaskStatusSheetTaskId] = useState<string | null>(null);
 
+  // Refs
   const pendingMutationsRef = useRef<Map<string, Partial<Task>>>(new Map());
   const templatesButtonRef = useRef<HTMLButtonElement>(null);
   const groupByButtonRef = useRef<HTMLButtonElement>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const isNarrow = isMobile || (typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const isInitialLoading = tasksQuery.isLoading && tasks.length === 0;
 
+  // Memoized Values
   const filterAssigneeLabel = useMemo(() => {
       if (filterAssignee === 'all') return 'כל הצוות';
       const user = users.find(u => u.id === filterAssignee);
@@ -167,6 +178,7 @@ export const TasksView: React.FC = () => {
       return map;
   }, [filteredTasks, groupBy, clients]);
 
+  // Callbacks
   const getTasksForColumn = useCallback((columnId: string): Task[] => tasksByColumn.get(columnId) || [], [tasksByColumn]);
 
   const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
@@ -223,6 +235,7 @@ export const TasksView: React.FC = () => {
         }
         updateTask(taskId, updates);
     }
+    setDraggedTaskId(null);
   };
 
   const clearFilters = () => {
@@ -231,6 +244,7 @@ export const TasksView: React.FC = () => {
       setIsFilterMenuOpen(false);
   };
 
+  // Effects
   useEffect(() => {
       if (typeof window === 'undefined') return;
       const handler = (e: Event) => {

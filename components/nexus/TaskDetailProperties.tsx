@@ -10,6 +10,8 @@ import { CustomTimePicker } from '../CustomTimePicker';
 import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
+import { MobileDrawer } from '../shared/MobileDrawer';
+
 interface TaskDetailPropertiesProps {
     task: Task;
     onOpenPopover: (type: 'assignee' | 'priority' | 'estimate', rect: DOMRect) => void;
@@ -116,7 +118,13 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
         updateTask,
     ]);
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
     const handlePopoverClick = (type: 'assignee' | 'priority' | 'estimate', ref: React.RefObject<HTMLButtonElement | null>) => {
+        if (isMobile) {
+            onOpenPopover(type, new DOMRect()); // Rect doesn't matter for drawer
+            return;
+        }
         if (ref.current) {
             onOpenPopover(type, ref.current.getBoundingClientRect());
         }

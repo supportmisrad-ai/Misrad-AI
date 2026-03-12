@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Message = {
   id: string;
@@ -284,29 +285,37 @@ export default function WorkOrderChat({
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
-    <div className="rounded-2xl border border-slate-200 overflow-hidden flex flex-col bg-[#e5ddd5]" style={{ maxHeight: '520px' }}>
+    <div className="rounded-2xl border border-white/20 overflow-hidden flex flex-col bg-slate-900/5 relative" style={{ maxHeight: '520px' }}>
+      {/* Background with Bloom and Grain */}
+      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      <div className="absolute top-0 left-0 w-64 h-64 bg-sky-500/10 blur-[100px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" />
+
       {/* Header */}
-      <div className="p-3 border-b border-slate-200 bg-[#f0f2f5] flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span className="text-xs font-black text-slate-800">הערות ועדכונים</span>
-          <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full text-[10px] font-black">{msgCount}</span>
+      <div className="p-4 border-b border-white/10 bg-white/40 backdrop-blur-md flex items-center justify-between z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <span className="text-sm font-black text-slate-800 block leading-tight">הערות ועדכונים</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{msgCount} הודעות</span>
+          </div>
         </div>
       </div>
 
       {/* Messages area */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2 relative"
-        style={{ minHeight: '160px', backgroundImage: "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22%3E%3Crect width=%2220%22 height=%2220%22 fill=%22%23e5ddd5%22/%3E%3Ccircle cx=%2210%22 cy=%2210%22 r=%220.5%22 fill=%22%23d4cdc3%22/%3E%3C/svg%3E')" }}
+        className="flex-1 overflow-y-auto p-4 space-y-4 relative z-10 no-scrollbar"
       >
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-500">
-            <div className="bg-[#dcf8c6] p-3 rounded-full mb-2 shadow-sm">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-600"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+            <div className="bg-white/60 backdrop-blur-md p-5 rounded-3xl mb-4 shadow-xl shadow-black/5 border border-white">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <p className="text-sm font-bold bg-white/60 px-3 py-1 rounded-lg">אין הודעות עדיין</p>
-            <p className="text-[11px] mt-1 bg-white/60 px-3 py-1 rounded-lg">שלח הודעה, קובץ, או הקלטה קולית</p>
+            <p className="text-sm font-black text-slate-700">ממתינים לעדכון ראשון</p>
+            <p className="text-[11px] mt-1.5 font-bold text-slate-400">שלח הודעה, קובץ, או הקלטה קולית</p>
           </div>
         ) : (
           messages.map((m) => {
@@ -318,53 +327,54 @@ export default function WorkOrderChat({
             return (
               <div key={m.id} className={`flex flex-col ${isMe ? 'items-start' : 'items-end'} group relative`}>
                 <div
-                  className={`relative p-2.5 px-3 shadow-[0_1px_0.5px_rgba(0,0,0,0.1)] text-sm min-w-[100px] max-w-[85%]
+                  className={`relative p-3 shadow-xl backdrop-blur-md text-sm min-w-[120px] max-w-[88%] border transition-all
                     ${isMe
-                      ? 'bg-[#d9fdd3] text-slate-900 rounded-bl-lg rounded-tr-lg rounded-br-lg rounded-tl-none'
-                      : 'bg-white text-slate-900 rounded-bl-none rounded-tr-lg rounded-br-lg rounded-tl-lg'
+                      ? 'bg-sky-500 text-white rounded-2xl rounded-tl-none border-sky-400/30 shadow-sky-500/20'
+                      : 'bg-white/80 text-slate-900 rounded-2xl rounded-tr-none border-white shadow-black/5'
                     } ${isOptimistic ? 'opacity-60' : ''}`}
                 >
                   {isEditing ? (
-                    <div className="space-y-2 min-w-[200px]">
+                    <div className="space-y-3 min-w-[220px]">
                       <textarea
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="w-full bg-white/60 border border-slate-200 rounded-lg p-2 text-sm outline-none resize-none min-h-[50px]"
+                        className="w-full bg-white/20 border border-white/30 rounded-xl p-3 text-sm outline-none resize-none min-h-[70px] text-white placeholder:text-white/60 font-bold"
                         autoFocus
                       />
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => setEditingId(null)} className="p-1 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 text-xs font-bold px-2">ביטול</button>
-                        <button onClick={() => handleSaveEdit(m.id)} className="p-1 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-xs font-bold px-2">שמור</button>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 text-[11px] font-black transition-colors">ביטול</button>
+                        <button onClick={() => handleSaveEdit(m.id)} className="px-3 py-1.5 rounded-lg bg-white text-sky-600 hover:bg-sky-50 text-[11px] font-black shadow-lg transition-colors">שמור</button>
                       </div>
                     </div>
                   ) : (
                     <>
                       {!isMe && (
-                        <div className={`text-[11px] font-black mb-0.5 ${getAvatarColor(m.authorName)}`}>{m.authorName}</div>
+                        <div className={`text-[10px] font-black mb-1 uppercase tracking-wider ${getAvatarColor(m.authorName)}`}>{m.authorName}</div>
                       )}
 
                       {/* Attachment */}
                       {m.attachmentUrl && !m.attachmentUrl.startsWith('sb://') ? (
-                        <div className="mb-1.5">
+                        <div className="mb-2 group/attachment">
                           {m.attachmentType === 'image' ? (
-                            <a href={m.attachmentUrl} target="_blank" rel="noreferrer">
-                              <img src={m.attachmentUrl} alt="" className="rounded-lg max-h-48 object-cover border border-black/5" />
+                            <a href={m.attachmentUrl} target="_blank" rel="noreferrer" className="block relative overflow-hidden rounded-xl border border-black/5 shadow-inner">
+                              <img src={m.attachmentUrl} alt="" className="rounded-xl max-h-56 object-cover transition-transform duration-500 group-hover/attachment:scale-105" />
+                              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/attachment:opacity-100 transition-opacity" />
                             </a>
                           ) : (
-                            <a href={m.attachmentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-black/5 p-2 rounded-lg border border-black/5 text-xs font-bold hover:bg-black/10">
-                              <div className="w-8 h-8 bg-white rounded flex items-center justify-center text-slate-500 shadow-sm text-[10px] font-black">PDF</div>
+                            <a href={m.attachmentUrl} target="_blank" rel="noreferrer" className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-black transition-all ${isMe ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'}`}>
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-sm text-[10px] font-black ${isMe ? 'bg-white text-sky-600' : 'bg-white text-slate-500 border border-slate-100'}`}>PDF</div>
                               <span className="truncate">קובץ מצורף</span>
                             </a>
                           )}
                         </div>
                       ) : null}
 
-                      {m.content ? <span className="whitespace-pre-wrap break-words block text-[13px]">{m.content}</span> : null}
+                      {m.content ? <span className="whitespace-pre-wrap break-words block text-[13.5px] font-bold leading-relaxed">{m.content}</span> : null}
 
-                      <div className="flex justify-end items-center gap-1 mt-0.5">
-                        <span className="text-[10px] text-slate-400">{isOptimistic ? 'שולח...' : formatTime(m.createdAt)}</span>
+                      <div className="flex justify-end items-center gap-1.5 mt-1.5 opacity-70">
+                        <span className="text-[9px] font-black uppercase tracking-tight">{isOptimistic ? 'שולח...' : formatTime(m.createdAt)}</span>
                         {isMe && !isOptimistic ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-blue-400"><polyline points="20 6 9 17 4 12"/></svg>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-white"><polyline points="20 6 9 17 4 12"/></svg>
                         ) : null}
                       </div>
 
@@ -372,9 +382,9 @@ export default function WorkOrderChat({
                       {!isOptimistic ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); setMenuId(isMenuOpen ? null : m.id); }}
-                          className={`absolute -top-1 ${isMe ? '-right-1' : '-left-1'} w-5 h-5 flex items-center justify-center bg-white/80 rounded-full shadow-sm text-slate-500 hover:text-slate-800 transition-all ${isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                          className={`absolute -top-2 ${isMe ? '-right-2' : '-left-2'} w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-lg text-slate-500 hover:text-sky-600 transition-all scale-0 group-hover:scale-100 z-20 ${isMenuOpen ? 'scale-100 ring-2 ring-sky-100' : ''}`}
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                         </button>
                       ) : null}
                     </>
@@ -382,18 +392,18 @@ export default function WorkOrderChat({
 
                   {/* Context menu */}
                   {isMenuOpen && !isEditing ? (
-                    <div className={`absolute top-6 ${isMe ? 'right-0' : 'left-0'} bg-white rounded-lg shadow-xl border border-slate-100 py-1 z-50 min-w-[130px]`}>
-                      <button onClick={() => handleCopy(m.content)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 w-full text-right">
-                        העתק
+                    <div className={`absolute top-6 ${isMe ? 'right-0' : 'left-0'} bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 z-50 min-w-[140px] animate-in fade-in zoom-in duration-200`}>
+                      <button onClick={() => handleCopy(m.content)} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold hover:bg-slate-50 text-slate-700 w-full text-right transition-colors">
+                        העתק טקסט
                       </button>
                       {isMe ? (
-                        <button onClick={() => { setEditingId(m.id); setEditText(m.content); setMenuId(null); }} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-slate-700 w-full text-right">
-                          ערוך
+                        <button onClick={() => { setEditingId(m.id); setEditText(m.content); setMenuId(null); }} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold hover:bg-slate-50 text-slate-700 w-full text-right transition-colors">
+                          ערוך הודעה
                         </button>
                       ) : null}
                       {isMe ? (
-                        <button onClick={() => handleDelete(m.id)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-rose-50 text-rose-600 w-full text-right border-t border-slate-50 mt-1">
-                          מחק
+                        <button onClick={() => handleDelete(m.id)} className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-black hover:bg-rose-50 text-rose-600 w-full text-right border-t border-slate-50 mt-1 transition-colors">
+                          מחק הודעה
                         </button>
                       ) : null}
                     </div>
@@ -406,42 +416,52 @@ export default function WorkOrderChat({
       </div>
 
       {/* Error */}
-      {error ? (
-        <div className="px-3 py-2 bg-rose-50 border-t border-rose-100 text-xs font-bold text-rose-700">{error}</div>
-      ) : null}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-2.5 bg-rose-500 text-white text-[11px] font-black text-center z-20"
+          >
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input area */}
-      <div className="bg-[#f0f2f5] px-3 py-2.5 border-t border-slate-200">
+      <div className="bg-white/60 backdrop-blur-xl px-4 py-3.5 border-t border-white/40 z-10">
         {isTranscribing ? (
-          <div className="flex items-center justify-center gap-2 p-3 text-slate-500 bg-white rounded-xl animate-pulse shadow-sm">
-            <div className="w-3 h-3 rounded-full bg-slate-400 animate-bounce" />
-            <span className="text-xs font-bold">מעבד הקלטה...</span>
+          <div className="flex items-center justify-center gap-3 p-3.5 text-sky-600 bg-sky-500/5 rounded-2xl border border-sky-100 animate-pulse shadow-sm">
+            <div className="w-3 h-3 rounded-full bg-sky-500 animate-bounce" />
+            <span className="text-xs font-black">AI מעבד הקלטה קולית...</span>
           </div>
         ) : isRecording ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-white text-rose-600 rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-sm border border-rose-100">
-              <div className="w-2 h-2 bg-rose-600 rounded-full animate-pulse" />
-              <span className="font-mono font-bold text-sm">{formatDuration(recordingSeconds)}</span>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 bg-rose-500 text-white rounded-2xl px-5 py-3 flex items-center gap-4 shadow-xl shadow-rose-500/20 border border-rose-400/30">
+              <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+              <span className="font-mono font-black text-base">{formatDuration(recordingSeconds)}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80">מקליט...</span>
             </div>
-            <button onClick={stopAndTranscribe} className="p-2.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors shadow-sm" title="סיים והוסף תמלול">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <button onClick={stopAndTranscribe} className="w-12 h-12 flex items-center justify-center bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-90" title="סיים והוסף תמלול">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
-            <button onClick={cancelRecording} className="p-2.5 bg-white text-slate-600 rounded-full hover:bg-slate-100 transition-colors shadow-sm" title="ביטול">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={cancelRecording} className="w-12 h-12 flex items-center justify-center bg-white text-slate-500 rounded-full hover:bg-slate-50 transition-all shadow-md active:scale-90 border border-slate-200" title="ביטול">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSend} className="flex items-center gap-2">
+          <form onSubmit={handleSend} className="flex items-center gap-2.5">
             <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept="image/*,application/pdf,video/*" />
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-full transition-colors shrink-0" title="צרף קובץ">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-sky-600 hover:bg-sky-500/5 rounded-2xl transition-all shrink-0 active:scale-90" title="צרף קובץ">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
             </button>
-            <div className="flex-1 bg-white rounded-2xl flex items-center border border-white focus-within:shadow-sm px-3 py-2 shadow-sm">
+            <div className="flex-1 bg-white rounded-2xl flex items-center border border-slate-200 focus-within:border-sky-500 focus-within:ring-4 focus-within:ring-sky-500/10 px-4 py-2.5 shadow-sm transition-all group/input">
               <input
                 ref={inputRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="הקלד הודעה..."
+                placeholder="הקלד עדכון מהשטח..."
                 className="flex-1 outline-none text-sm bg-transparent font-bold text-slate-900 placeholder:text-slate-400"
                 dir="rtl"
                 autoComplete="off"
@@ -451,12 +471,12 @@ export default function WorkOrderChat({
               />
             </div>
             {text.trim() ? (
-              <button type="submit" disabled={isSending} className="p-2.5 bg-[#00a884] text-white rounded-full hover:bg-[#008f6f] transition-all shadow-sm shrink-0 disabled:opacity-50" title="שלח">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <button type="submit" disabled={isSending} className="w-12 h-12 flex items-center justify-center bg-sky-500 text-white rounded-2xl hover:bg-sky-600 transition-all shadow-lg shadow-sky-500/20 shrink-0 disabled:opacity-50 active:scale-90" title="שלח">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             ) : (
-              <button type="button" onClick={startRecording} className="p-2 text-slate-500 hover:bg-white hover:text-rose-500 rounded-full transition-colors shrink-0" title="הקלט הודעה קולית">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <button type="button" onClick={startRecording} className="w-11 h-11 flex items-center justify-center text-slate-400 hover:bg-rose-500/5 hover:text-rose-500 rounded-2xl transition-all shrink-0 active:scale-90" title="הקלט הודעה קולית">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
               </button>
             )}
           </form>

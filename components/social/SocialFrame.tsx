@@ -74,6 +74,10 @@ export default function SocialFrame({
     setIsHelpModalOpen,
     isSidebarOpen,
     setIsSidebarOpen,
+    isAddClientModalOpen,
+    setIsAddClientModalOpen,
+    isCampaignWizardOpen,
+    setIsCampaignWizardOpen,
   } = useSocialUI();
 
   const { activeClient } = useSocialData();
@@ -339,19 +343,42 @@ export default function SocialFrame({
   };
 
   const handlePlusClick = () => {
-    if (isActive('/machine')) {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('social:machine:new'));
-      }
-      return;
+    // Contextual Plus Action based on current view
+    const actions: Record<string, () => void> = {
+      'all-clients': () => setIsAddClientModalOpen(true),
+      'campaigns': () => {
+        if (!activeClient) { openComingSoon(); return; }
+        setIsCampaignWizardOpen(true);
+      },
+      'machine': () => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('social:machine:new'));
+        }
+      },
+    };
+
+    const action = actions[currentView];
+    if (action) {
+      action();
+    } else {
+      // Default fallback to machine
+      navigate('/machine');
     }
-    navigate('/machine');
   };
+
+  const isPlusActive = useMemo(() => {
+    if (currentView === 'machine') return true;
+    if (currentView === 'all-clients' && isAddClientModalOpen) return true;
+    if (currentView === 'campaigns' && isCampaignWizardOpen) return true;
+    return false;
+  }, [currentView, isAddClientModalOpen, isCampaignWizardOpen]);
 
   return (
     <>
-      <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden relative" dir="rtl">
+      <div className="flex h-screen w-full bg-[#f8fafc] text-gray-900 overflow-hidden relative" dir="rtl">
         <ModuleBackground moduleKey="social" />
+        {/* Grain Overlay for Cinematic Feel */}
+        <div className="fixed inset-0 pointer-events-none z-[1] opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
         <SharedSidebar
           isOpen={isSidebarOpen}
           onSetOpenAction={setIsSidebarOpen}
@@ -455,112 +482,140 @@ export default function SocialFrame({
               aria-modal="true"
               aria-label="תפריט"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
-              <div className="space-y-6">
-                <div className="grid grid-cols-4 gap-4">
-                  {menuItems.filter(i => ['inbox','content-bank'].includes(i.id)).map((item) => {
-                    const isActiveItem = currentView === item.view;
-                    const IconComponent = iconMap[item.icon] || Icons.Home;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
-                        className="flex flex-col items-center gap-2 group"
-                        aria-label={item.label}
-                      >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                          isActiveItem
-                            ? 'bg-[#7C3AED] text-white shadow-[#7C3AED]/30'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                        }`}>
-                          <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                        </div>
-                        <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#7C3AED]' : 'text-slate-500'}`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="h-px bg-gradient-to-r from-transparent via-purple-200 to-transparent"></div>
-
-                <div className="bg-gradient-to-br from-purple-50/80 to-violet-50/50 border border-purple-100/60 rounded-2xl p-4">
-                  <div className="text-[10px] font-black text-purple-600 uppercase tracking-wider text-right mb-3">סביבת לקוח</div>
-                  <div className="grid grid-cols-4 gap-4">
-                    {menuItems.filter(i => ['workspace','machine','campaigns','analytics'].includes(i.id)).map((item) => {
-                      const isActiveItem = currentView === item.view;
-                      const IconComponent = iconMap[item.icon] || Icons.Home;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            if (item.requiresClient && !activeClient) { openComingSoon(); return; }
-                            onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false);
-                          }}
-                          className="flex flex-col items-center gap-2 group"
-                          aria-label={item.label}
-                        >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                            isActiveItem
-                              ? 'bg-purple-600 text-white shadow-purple-600/20'
-                              : 'bg-purple-50 text-purple-700 border border-purple-100 hover:bg-white'
-                          }`}>
-                            <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                          </div>
-                          <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-purple-700' : 'text-slate-500'}`}>
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+                      <OSModuleSquircleIcon moduleKey="social" boxSize={24} iconSize={12} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 leading-tight">{moduleTitle}</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">תפריט פעולות</p>
+                    </div>
                   </div>
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full text-slate-400"
+                  >
+                    <Icons.X size={20} />
+                  </button>
                 </div>
 
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
+                <div className="space-y-8">
+                  {/* Quick Switcher Section */}
+                  <div className="bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
+                    <div className="flex flex-col gap-3">
+                      <BusinessSwitcher currentTenantName={initialOrganization?.name || moduleTitle} />
+                      <WorkspaceSwitcher className="w-full" />
+                    </div>
+                  </div>
 
-                <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">ניהול</div>
+                  {/* Main Navigation Grid */}
+                  <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">ניווט מהיר</div>
+                    <div className="grid grid-cols-4 gap-y-6">
+                      {menuItems.filter(i => !i.isClientSection && !['settings','collection','agency-insights'].includes(i.id)).map((item) => {
+                        const isActiveItem = currentView === item.view;
+                        const IconComponent = iconMap[item.icon] || Icons.Home;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
+                            className="flex flex-col items-center gap-2"
+                          >
+                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
+                              isActiveItem
+                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
+                                : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
+                            }`}>
+                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                              {item.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Client Section (Glassmorphism) */}
+                  <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/5 rounded-[2.5rem] p-6 border border-purple-100/50 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+                    <div className="flex items-center justify-between mb-5 relative z-10">
+                      <div className="text-[10px] font-black text-purple-600 uppercase tracking-wider">סביבת לקוח</div>
+                      <div className="px-3 py-1 bg-purple-600 text-white text-[9px] font-black rounded-full shadow-lg shadow-purple-200">
+                        {activeClient ? 'פעיל' : 'בחר לקוח'}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-y-6 relative z-10">
+                      {menuItems.filter(i => i.isClientSection || ['machine','campaigns','analytics'].includes(i.id)).map((item) => {
+                        const isActiveItem = currentView === item.view;
+                        const IconComponent = iconMap[item.icon] || Icons.Home;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              if (item.requiresClient && !activeClient) { openComingSoon(); return; }
+                              onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false);
+                            }}
+                            className="flex flex-col items-center gap-2"
+                          >
+                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
+                              isActiveItem
+                                ? 'bg-purple-600 text-white shadow-xl shadow-purple-200 scale-105'
+                                : 'bg-white/80 text-purple-700 border border-purple-100/50 backdrop-blur-md shadow-sm'
+                            }`}>
+                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-purple-900' : 'text-slate-500'}`}>
+                              {item.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* System & Management */}
                   <div className="grid grid-cols-2 gap-4">
-                    {menuItems.filter(i => ['settings','collection','agency-insights'].includes(i.id)).map((item) => {
-                      const isActiveItem = currentView === item.view;
-                      const IconComponent = iconMap[item.icon] || Icons.Home;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
-                          className="flex flex-col items-center gap-2 group"
-                          aria-label={item.label}
+                    <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">ניהול וגבייה</div>
+                      <div className="flex flex-wrap gap-3">
+                        {menuItems.filter(i => ['collection', 'agency-insights'].includes(i.id)).map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
+                            className="flex items-center gap-2 p-1 group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-600 shadow-sm group-active:scale-95 transition-transform">
+                              {React.createElement(iconMap[item.icon] || Icons.Home, { size: 18 })}
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-700">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">מערכת</div>
+                      <div className="space-y-3">
+                        <MobileMenuAttendanceButton />
+                        <button 
+                          onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
+                          className="w-full flex items-center gap-3 p-1 group"
                         >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                            isActiveItem
-                              ? 'bg-[#7C3AED] text-white shadow-[#7C3AED]/30'
-                              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                          }`}>
-                            <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-600 shadow-sm group-active:scale-95 transition-transform">
+                            <Icons.Settings size={18} />
                           </div>
-                          <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#7C3AED]' : 'text-slate-500'}`}>
-                            {item.label}
-                          </span>
+                          <span className="text-[11px] font-bold text-slate-700">הגדרות</span>
                         </button>
-                      );
-                    })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
-
-                <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
-                  <div className="space-y-3">
-                    <MobileMenuAttendanceButton />
-                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
-                  </div>
-                </div>
-              </div>
             </motion.div>
           </>
         ) : null}
@@ -602,7 +657,7 @@ export default function SocialFrame({
           ]}
           onPlusClickAction={handlePlusClick}
           plusAriaLabel="יצירת פוסט"
-          plusActive={isActive('/machine')}
+          plusActive={isPlusActive}
           plusGradient={getOSModule('social')?.gradient}
         />
       )}

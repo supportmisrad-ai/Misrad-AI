@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, MapPin, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function GeoCheckInButton({
   formId,
@@ -64,16 +65,50 @@ export default function GeoCheckInButton({
 
   if (checkedIn) {
     return (
-      <div className={`touch-manipulation inline-flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 rounded-2xl px-4 py-3 font-black ${className || ''}`}>
-        <Check size={18} className="text-emerald-600" />
+      <div className={`relative overflow-hidden touch-manipulation inline-flex items-center justify-center gap-2.5 bg-emerald-500 text-white rounded-2xl px-6 py-4 font-black shadow-lg shadow-emerald-500/20 border border-emerald-400/30 ${className || ''}`}>
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        <Check size={20} strokeWidth={3} className="text-white" />
         הגעה דווחה
       </div>
     );
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={busy} className={`touch-manipulation ${className || ''}`}>
-      {busy ? 'מאמת מיקום…' : label}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className={`group relative overflow-hidden touch-manipulation flex items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-base font-black transition-all duration-300 active:scale-95 disabled:opacity-80
+        ${busy 
+          ? 'bg-slate-100 text-slate-400 border-slate-200' 
+          : 'bg-slate-900 text-white shadow-xl shadow-black/20 hover:bg-black border-white/10'
+        } ${className || ''}`}
+    >
+      {/* Bloom Effect on Busy */}
+      <AnimatePresence>
+        {busy && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1.2 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-sky-500/20 blur-2xl pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      
+      {busy ? (
+        <>
+          <Loader2 size={20} strokeWidth={3} className="animate-spin" />
+          מאמת מיקום…
+        </>
+      ) : (
+        <>
+          <MapPin size={20} strokeWidth={2.5} className="group-hover:animate-bounce" />
+          {label}
+        </>
+      )}
     </button>
   );
 }

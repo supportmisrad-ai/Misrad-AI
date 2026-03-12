@@ -14,6 +14,7 @@ import { TaskDetailProperties } from './TaskDetailProperties';
 import { TaskDetailPopovers } from './TaskDetailPopovers';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
+import { MobileDrawer } from '../shared/MobileDrawer';
 
 interface TaskDetailModalProps {
   task: Task;
@@ -26,6 +27,14 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
   const [activeTab, setActiveTab] = useState<'details' | 'chat'>('details'); 
   const [showShareTooltip, setShowShareTooltip] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Popover State
   const [activePopover, setActivePopover] = useState<'none' | 'assignee' | 'priority' | 'estimate'>('none');
@@ -216,6 +225,162 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
     </div>
   );
 
+  const ModalContent = (
+    <div className="flex flex-col md:flex-row h-full">
+      {/* Mobile Tabs */}
+      <div className="md:hidden flex bg-white border-b border-gray-100 px-2 pt-2 shrink-0">
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 pb-3 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'chat' ? 'border-black text-black' : 'border-transparent text-gray-400'
+          }`}
+        >
+          הערות ועדכונים
+        </button>
+        <button
+          onClick={() => setActiveTab('details')}
+          className={`flex-1 pb-3 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'details' ? 'border-black text-black' : 'border-transparent text-gray-400'
+          }`}
+        >
+          פרטים ראשיים
+        </button>
+      </div>
+
+      {/* CHAT SECTION (Left) */}
+      <TaskDetailChat task={task} activeTab={activeTab} />
+
+      {/* DETAILS SECTION (Right) */}
+      <div
+        className={`w-full md:w-[65%] flex flex-col bg-white overflow-y-auto custom-scrollbar ${
+          activeTab === 'details' ? 'flex-1 h-full min-h-0' : 'hidden md:flex h-full'
+        }`}
+      >
+        <div className="hidden md:flex items-center justify-between p-6 pb-2 bg-white sticky top-0 z-20">
+          <div className="flex items-center gap-2 text-gray-400 font-mono text-xs">
+            <Layout size={14} />
+            <span>{task.id}</span>
+            <AnimatePresence>
+              {isSaving && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1 text-green-600 font-bold ml-2"
+                >
+                  <Check size={12} /> נשמר
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-2">
+            {linkedClient && (
+              <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[10px] font-bold border border-emerald-100 flex items-center gap-1.5">
+                <Zap size={12} /> {linkedClient.companyName}
+              </div>
+            )}
+            {task.isPrivate && <Lock size={14} className="text-gray-400" />}
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-black hover:bg-gray-100 p-2 rounded-full transition-colors ml-2"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 md:p-8 space-y-8">
+          <div>
+            <textarea
+              value={task.title}
+              onChange={(e) => updateTask(task.id, { title: e.target.value })}
+              className="text-2xl md:text-3xl font-black text-gray-900 leading-tight w-full bg-transparent border-none outline-none resize-none overflow-hidden placeholder:text-gray-300"
+              placeholder="שם המשימה..."
+              rows={2}
+            />
+          </div>
+
+          <TaskDetailProperties
+            task={task}
+            onOpenPopover={handleOpenPopover}
+            activePopover={activePopover}
+          />
+
+          {/* Snooze Alert Banner */}
+          {(task.snoozeCount || 0) > 0 && (
+            <div
+              className={`text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-2 border ${
+                (task.snoozeCount || 0) >= 3
+                  ? 'bg-red-50 text-red-600 border-red-200'
+                  : 'bg-orange-50 text-orange-600 border-orange-200'
+              }`}
+            >
+              <Clock size={14} />
+              נדחה {task.snoozeCount} פעמים
+              {(task.snoozeCount || 0) >= 3 && (
+                <span className="mr-auto flex items-center gap-1">
+                  <TriangleAlert size={12} /> בטיפול מנהל
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Description */}
+          <div>
+            <RenderLabel icon={<StickyNote size={12} />} label="תיאור ופרטים" />
+            <textarea
+              className="w-full min-h-[140px] md:min-h-[200px] p-4 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-100 outline-none resize-none transition-all leading-relaxed hover:bg-gray-100/50"
+              placeholder="תיאור המשימה, פרטים נוספים והערות..."
+              defaultValue={task.description}
+              onBlur={(e) => updateTask(task.id, { description: e.target.value })}
+            />
+          </div>
+
+          {/* Footer Actions */}
+          <div className="mt-auto space-y-3 pb-6 md:pb-0">
+            <div className="flex gap-2 relative snooze-container">
+              <div className="relative flex-1">
+                <button
+                  onClick={openSnoozeModal}
+                  className="w-full flex items-center justify-center gap-2 text-orange-600 bg-orange-50 hover:bg-orange-100 py-3 rounded-xl transition-colors text-xs font-bold border border-orange-100"
+                >
+                  <Clock size={16} /> דחה ביצוע
+                </button>
+              </div>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex-1 flex items-center justify-center gap-2 text-red-500 bg-red-50 hover:bg-red-100 py-3 rounded-xl transition-colors text-xs font-bold border border-red-100"
+              >
+                <Trash2 size={16} /> מחק
+              </button>
+              {!task.isPrivate && (
+                <button
+                  onClick={handleShare}
+                  disabled={isGeneratingShare}
+                  className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-100 py-3 rounded-xl transition-colors text-xs font-bold relative border border-blue-100 disabled:opacity-60"
+                >
+                  {showShareTooltip ? (
+                    'הלינק הועתק!'
+                  ) : isGeneratingShare ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <div className="rotate-45">
+                        <Paperclip size={16} />
+                      </div>
+                      שיתוף
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return createPortal(
     <div>
       <DeleteConfirmationModal
@@ -335,178 +500,30 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
         onClose={() => setActivePopover('none')}
       />
 
-      <div
-        className="fixed inset-0 bg-slate-900/70 z-[300] flex items-center justify-center p-0 md:p-6 backdrop-blur-sm"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full h-full md:h-[85vh] md:max-w-6xl bg-white md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/20"
+      {isMobile ? (
+        <MobileDrawer 
+          isOpen={true} 
+          onClose={onClose} 
+          title={task.title}
         >
-          {/* Mobile Header */}
-          <div className="md:hidden bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-20">
-            <div className="flex items-center gap-3 overflow-hidden w-full">
-              <button onClick={onClose} className="bg-gray-50 text-gray-600 p-2 rounded-full shrink-0">
-                <X size={20} />
-              </button>
-              <span className="font-bold text-gray-900 truncate w-full">{task.title}</span>
-            </div>
-          </div>
-          <div className="md:hidden flex bg-white border-b border-gray-100 px-2 pt-2">
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex-1 pb-3 text-sm font-bold transition-all border-b-2 ${
-                activeTab === 'chat' ? 'border-black text-black' : 'border-transparent text-gray-400'
-              }`}
-            >
-              הערות ועדכונים
-            </button>
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`flex-1 pb-3 text-sm font-bold transition-all border-b-2 ${
-                activeTab === 'details' ? 'border-black text-black' : 'border-transparent text-gray-400'
-              }`}
-            >
-              פרטים ראשיים
-            </button>
-          </div>
-
-          {/* CHAT SECTION (Left) */}
-          <TaskDetailChat task={task} activeTab={activeTab} />
-
-          {/* DETAILS SECTION (Right) */}
-          <div
-            className={`w-full md:w-[65%] flex flex-col bg-white overflow-y-auto custom-scrollbar ${
-              activeTab === 'details' ? 'flex-1 h-full min-h-0' : 'hidden md:flex h-full'
-            }`}
+          {ModalContent}
+        </MobileDrawer>
+      ) : (
+        <div
+          className="fixed inset-0 bg-slate-900/70 z-[300] flex items-center justify-center p-6 backdrop-blur-sm"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full h-full md:h-[85vh] md:max-w-6xl bg-white md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white/20"
           >
-            <div className="hidden md:flex items-center justify-between p-6 pb-2 bg-white sticky top-0 z-20">
-              <div className="flex items-center gap-2 text-gray-400 font-mono text-xs">
-                <Layout size={14} />
-                <span>{task.id}</span>
-                <AnimatePresence>
-                  {isSaving && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center gap-1 text-green-600 font-bold ml-2"
-                    >
-                      <Check size={12} /> נשמר
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="flex items-center gap-2">
-                {linkedClient && (
-                  <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[10px] font-bold border border-emerald-100 flex items-center gap-1.5">
-                    <Zap size={12} /> {linkedClient.companyName}
-                  </div>
-                )}
-                {task.isPrivate && <Lock size={14} className="text-gray-400" />}
-
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-black hover:bg-gray-100 p-2 rounded-full transition-colors ml-2"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 md:p-8 space-y-8">
-              <div>
-                <textarea
-                  value={task.title}
-                  onChange={(e) => updateTask(task.id, { title: e.target.value })}
-                  className="text-3xl font-black text-gray-900 leading-tight w-full bg-transparent border-none outline-none resize-none overflow-hidden placeholder:text-gray-300"
-                  placeholder="שם המשימה..."
-                  rows={2}
-                />
-              </div>
-
-              <TaskDetailProperties
-                task={task}
-                onOpenPopover={handleOpenPopover}
-                activePopover={activePopover}
-              />
-
-              {/* Snooze Alert Banner */}
-              {(task.snoozeCount || 0) > 0 && (
-                <div
-                  className={`text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-2 border ${
-                    (task.snoozeCount || 0) >= 3
-                      ? 'bg-red-50 text-red-600 border-red-200'
-                      : 'bg-orange-50 text-orange-600 border-orange-200'
-                  }`}
-                >
-                  <Clock size={14} />
-                  נדחה {task.snoozeCount} פעמים
-                  {(task.snoozeCount || 0) >= 3 && (
-                    <span className="mr-auto flex items-center gap-1">
-                      <TriangleAlert size={12} /> בטיפול מנהל
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <RenderLabel icon={<StickyNote size={12} />} label="תיאור ופרטים" />
-                <textarea
-                  className="w-full min-h-[140px] md:min-h-[200px] p-4 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-100 outline-none resize-none transition-all leading-relaxed hover:bg-gray-100/50"
-                  placeholder="תיאור המשימה, פרטים נוספים והערות..."
-                  defaultValue={task.description}
-                  onBlur={(e) => updateTask(task.id, { description: e.target.value })}
-                />
-              </div>
-
-              {/* Footer Actions */}
-              <div className="mt-auto space-y-3 pb-6 md:pb-0">
-                <div className="flex gap-2 relative snooze-container">
-                  <div className="relative flex-1">
-                    <button
-                      onClick={openSnoozeModal}
-                      className="w-full flex items-center justify-center gap-2 text-orange-600 bg-orange-50 hover:bg-orange-100 py-3 rounded-xl transition-colors text-xs font-bold border border-orange-100"
-                    >
-                      <Clock size={16} /> דחה ביצוע
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowDeleteModal(true)}
-                    className="flex-1 flex items-center justify-center gap-2 text-red-500 bg-red-50 hover:bg-red-100 py-3 rounded-xl transition-colors text-xs font-bold border border-red-100"
-                  >
-                    <Trash2 size={16} /> מחק
-                  </button>
-                  {!task.isPrivate && (
-                    <button
-                      onClick={handleShare}
-                      disabled={isGeneratingShare}
-                      className="flex-1 flex items-center justify-center gap-2 text-blue-600 bg-blue-50 hover:bg-blue-100 py-3 rounded-xl transition-colors text-xs font-bold relative border border-blue-100 disabled:opacity-60"
-                    >
-                      {showShareTooltip ? (
-                        'הלינק הועתק!'
-                      ) : isGeneratingShare ? (
-                        <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <div className="rotate-45">
-                            <Paperclip size={16} />
-                          </div>
-                          שיתוף
-                        </span>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+            {ModalContent}
+          </motion.div>
+        </div>
+      )}
     </div>,
     document.body
   );

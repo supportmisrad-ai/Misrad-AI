@@ -10,6 +10,7 @@ import type { OperationsInventoryOption } from '@/app/actions/operations';
 import { WorkOrderStatusChart, WorkOrderPriorityChart, InventoryPieChart } from '@/components/operations/DashboardCharts';
 import { formatWorkOrderStatus, formatProjectStatus, slaLabel } from '@/lib/services/operations/format';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
+import { FloatingAIInsight } from '@/components/operations/FloatingAIInsight';
 
 export function OperationsDashboard({
   orgSlug,
@@ -32,6 +33,8 @@ export function OperationsDashboard({
 
   const [selectedItemId, setSelectedItemId] = useState(initialInventoryOptions?.length ? String(initialInventoryOptions[0].itemId) : '');
   const [showFlash, setShowFlash] = useState(!!flash);
+  const [showAiInsight, setShowAiInsight] = useState(true);
+
   useEffect(() => {
     if (!flash) return;
     setShowFlash(true);
@@ -56,11 +59,21 @@ export function OperationsDashboard({
   }, [inventory?.critical, inventory?.low, inventory?.ok, inventory?.total]);
 
   const hasUrgent = (woStats?.slaBreach ?? 0) > 0 || (woStats?.priorityCritical ?? 0) > 0 || (woStats?.priorityUrgent ?? 0) > 0;
+  const aiMessage = hasUrgent 
+    ? 'זיהוי AI: ישנן קריאות דחופות הדורשות טיפול מיידי למניעת חריגת SLA' 
+    : 'זיהוי AI: המערכת פועלת כסדרה. כל המשימות בטיפול.';
 
   const isEmpty = !recentWorkOrders.length && !recentProjects.length && (woStats?.total ?? 0) === 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="mx-auto w-full max-w-6xl relative">
+      <FloatingAIInsight 
+        message={aiMessage} 
+        isVisible={showAiInsight} 
+        onClose={() => setShowAiInsight(false)}
+        priority={hasUrgent ? 'urgent' : 'normal'}
+      />
+
       {flash && showFlash ? (
         <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm font-bold text-sky-800 flex items-center justify-between animate-in fade-in">
           <span>{flash}</span>
@@ -71,31 +84,30 @@ export function OperationsDashboard({
       ) : null}
 
       {/* ──── Quick Action Bar ──── */}
-      <div className="mb-8 flex flex-wrap items-center gap-4">
+      <div className="mb-8 flex flex-wrap items-center gap-4 px-1 md:px-0">
         <Link
           href={`${base}/work-orders/new`}
-          className="group relative overflow-hidden inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all duration-200"
+          className="group relative overflow-hidden flex-1 md:flex-none inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all duration-200"
         >
           <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <Plus size={20} strokeWidth={3} />
-          פתח קריאה חדשה
+          קריאה חדשה
         </Link>
         <Link
           href={`${base}/projects/new`}
-          className="inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-bold bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-200"
+          className="flex-1 md:flex-none inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-bold bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-200"
         >
           <Plus size={18} strokeWidth={2.5} />
           פרויקט חדש
         </Link>
 
-        {/* AI Insight Pill */}
+        {/* Desktop AI Insight Pill */}
         <div className="hidden lg:flex flex-1 items-center justify-end">
-          <div className="bg-white/60 backdrop-blur-md border border-sky-100 px-5 py-3 rounded-2xl shadow-sm flex items-center gap-3 animate-fade-in">
-            <div className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+          <div className="bg-white/60 backdrop-blur-md border border-sky-100 px-5 py-3 rounded-2xl shadow-sm flex items-center gap-3 animate-fade-in relative overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+            <div className={`w-2 h-2 rounded-full ${hasUrgent ? 'bg-rose-500 animate-pulse' : 'bg-sky-500'}`} />
             <span className="text-sm font-bold text-slate-700">
-              {hasUrgent 
-                ? 'זיהוי AI: ישנן קריאות דחופות הדורשות טיפול מיידי למניעת חריגת SLA' 
-                : 'זיהוי AI: המערכת פועלת כסדרה. כל המשימות בטיפול.'}
+              {aiMessage}
             </span>
           </div>
         </div>

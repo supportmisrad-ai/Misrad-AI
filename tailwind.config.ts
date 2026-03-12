@@ -42,6 +42,9 @@ const config: Config = {
         'glass-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 100%)',
         'dark-glass': 'linear-gradient(145deg, rgba(24,24,27,0.8) 0%, rgba(9,9,11,0.9) 100%)',
       },
+      spacing: {
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+      },
       boxShadow: {
         'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.04)',
         'neon': '0 0 20px rgba(162, 29, 60, 0.1)', 
