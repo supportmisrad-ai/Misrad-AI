@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { getBotLeadsAnalytics } from '@/app/actions/bot-leads';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { 
   Users, 
   MessageSquare, 
@@ -13,8 +11,6 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface AnalyticsData {
   totalLeads: number;
@@ -35,7 +31,7 @@ export function BotAnalyticsDashboard() {
       const data = await getBotLeadsAnalytics();
       setAnalytics(data);
     } catch (error) {
-      toast.error('שגיאה בטעינת נתונים');
+      console.error('Failed to load analytics:', error);
     } finally {
       setIsLoading(false);
     }
@@ -49,9 +45,7 @@ export function BotAnalyticsDashboard() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="h-32" />
-          </Card>
+          <div key={i} className="bg-gray-200 rounded-lg h-32 animate-pulse" />
         ))}
       </div>
     );
@@ -114,16 +108,16 @@ export function BotAnalyticsDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">אנליטיקס לידים</h2>
-          <p className="text-muted-foreground">סקירת ביצועים בזמן אמת</p>
+          <p className="text-gray-500">סקירת ביצועים בזמן אמת</p>
         </div>
-        <Button
-          variant="outline"
+        <button
           onClick={fetchAnalytics}
           disabled={isLoading}
+          className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
         >
-          <RefreshCw className={cn('w-4 h-4 ml-2', isLoading && 'animate-spin')} />
+          <RefreshCw className={`w-4 h-4 ${isLoading && 'animate-spin'}`} />
           רענן
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -132,31 +126,26 @@ export function BotAnalyticsDashboard() {
           const ChangeIcon = stat.changeType === 'positive' ? ArrowUpRight : ArrowDownRight;
           
           return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <div key={stat.title} className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-gray-500">
                   {stat.title}
-                </CardTitle>
-                <div className={cn('p-2 rounded-full', stat.color, 'bg-opacity-20')}>
+                </h3>
+                <div className={`p-2 rounded-full ${stat.color} bg-opacity-20`}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-bold">
-                    {stat.value.toLocaleString()}
-                    {stat.suffix}
-                  </div>
-                  <div className={cn(
-                    'flex items-center text-sm',
-                    stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                  )}>
-                    <ChangeIcon className="w-4 h-4 ml-1" />
-                    {stat.change}
-                  </div>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-3xl font-bold">
+                  {stat.value.toLocaleString()}
+                  {stat.suffix}
                 </div>
-              </CardContent>
-            </Card>
+                <div className={`flex items-center text-sm ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
+                  <ChangeIcon className="w-4 h-4 ml-1" />
+                  {stat.change}
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>

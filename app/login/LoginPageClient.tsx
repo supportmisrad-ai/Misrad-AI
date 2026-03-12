@@ -116,8 +116,28 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
   const { signIn, setActive, isLoaded: signInLoaded } = useSignIn();
   const router = useRouter();
   const [continuationState, setContinuationState] = useState<'idle' | 'handling' | 'done' | 'failed'>('idle');
+  const [inlineMode, setInlineMode] = useState<'sign-in' | 'sign-up'>('sign-in');
+  const [ssoErrorMessage, setSsoErrorMessage] = useState<string | null>(null);
   const continuationAttempted = useRef(false);
   const redirectAttempted = useRef(false);
+
+  // Parse URL params safely in useEffect to avoid SSR issues
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const searchParams = new URLSearchParams(window.location.search);
+    const mode = (searchParams.get('mode') || '').toLowerCase();
+    const isSignUpMode = mode === 'sign-up' || mode === 'signup' || mode === 'register';
+    setInlineMode(isSignUpMode ? 'sign-up' : 'sign-in');
+    
+    const ssoError = searchParams.get('error');
+    const msg = ssoError === 'sso_timeout'
+      ? 'תהליך האימות לקח יותר מדי זמן. נא לנסות שוב.'
+      : ssoError === 'sso_failed'
+        ? 'ההרשמה נכשלה. ייתכן שהרשמות חדשות מוגבלות. נא ליצור קשר עם התמיכה.'
+        : null;
+    setSsoErrorMessage(msg);
+  }, []);
 
   // Client-side fallback: persist plan info to cookies if server-side set failed
   useEffect(() => {
@@ -451,19 +471,6 @@ export default function LoginPageClient({ initialUserId, pendingPlan, pendingSea
       </div>
     );
   }
-
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const mode = (searchParams.get('mode') || '').toLowerCase();
-  const isSignUpMode = mode === 'sign-up' || mode === 'signup' || mode === 'register';
-
-  const [inlineMode, setInlineMode] = useState<'sign-in' | 'sign-up'>(() => (isSignUpMode ? 'sign-up' : 'sign-in'));
-
-  const ssoError = searchParams.get('error');
-  const ssoErrorMessage = ssoError === 'sso_timeout'
-    ? 'תהליך האימות לקח יותר מדי זמן. נא לנסות שוב.'
-    : ssoError === 'sso_failed'
-      ? 'ההרשמה נכשלה. ייתכן שהרשמות חדשות מוגבלות. נא ליצור קשר עם התמיכה.'
-      : null;
 
   if (inlineMode === 'sign-up') {
     return (
