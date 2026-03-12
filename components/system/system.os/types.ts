@@ -120,6 +120,7 @@ export interface CalendarEvent {
     date: string;
     time: string;
     type: 'zoom' | 'frontal' | 'group_session';
+    module?: string;
     location: string;
     participants?: number;
     reminders?: {
