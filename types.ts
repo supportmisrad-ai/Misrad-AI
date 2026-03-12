@@ -135,6 +135,7 @@ export interface NotificationPreferences {
 export interface UIPreferences {
     showHebrewCalendar?: boolean;
     showHebrewDates?: boolean;
+    landingPage?: 'last_module' | 'lobby' | 'me' | 'nexus';
 }
 
 export interface Attachment {

@@ -111,6 +111,9 @@ export async function getNexusMe(params: { orgId: string }): Promise<{
     return {
       ...(typeof obj.showHebrewCalendar === 'boolean' ? { showHebrewCalendar: obj.showHebrewCalendar } : {}),
       ...(typeof obj.showHebrewDates === 'boolean' ? { showHebrewDates: obj.showHebrewDates } : {}),
+      ...(typeof obj.landingPage === 'string' && ['last_module', 'lobby', 'me', 'nexus'].includes(obj.landingPage)
+        ? { landingPage: obj.landingPage as UIPreferences['landingPage'] }
+        : {}),
     };
   };
 

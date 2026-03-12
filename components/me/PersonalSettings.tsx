@@ -23,7 +23,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         email: currentUser.email || '',
         phone: currentUser.phone || '',
         location: currentUser.location || '',
-        bio: currentUser.bio || ''
+        bio: currentUser.bio || '',
+        landingPage: currentUser.uiPreferences?.landingPage || 'last_module'
     });
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +142,10 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     phone: cleanedPhone || null,
                     location: form.location || null,
                     bio: form.bio || null,
-                    uiPreferences: { profileCompleted: true },
+                    uiPreferences: { 
+                        profileCompleted: true,
+                        landingPage: form.landingPage
+                    },
                 },
             });
 
@@ -156,7 +160,11 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
             name: String(form.name || '').trim(),
             phone: cleanedPhone,
             location: form.location,
-            bio: form.bio
+            bio: form.bio,
+            uiPreferences: {
+                ...currentUser.uiPreferences,
+                landingPage: form.landingPage as any
+            }
         });
         queryClient.invalidateQueries({ queryKey: ['nexus', 'me'] });
         setIsSaving(false);
@@ -263,6 +271,22 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                         placeholder="ספר על עצמך או על התפקיד שלך..."
                         rows={3}
                     />
+                </div>
+
+                <div>
+                    <label htmlFor="landing-page-select" className="block text-xs font-bold text-gray-500 uppercase mb-2">דף נחיתה לאחר כניסה</label>
+                    <select
+                        id="landing-page-select"
+                        value={form.landingPage}
+                        onChange={(e) => setForm({ ...form, landingPage: e.target.value as any })}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black transition-all appearance-none cursor-pointer"
+                    >
+                        <option value="last_module">המודול האחרון שהייתי בו (ברירת מחדל)</option>
+                        <option value="lobby">לובי המודולים</option>
+                        <option value="me">הדף האישי שלי (/me)</option>
+                        <option value="nexus">נקסוס (ניהול ומשימות)</option>
+                    </select>
+                    <p className="text-[10px] text-gray-400 mt-1">בחר לאן המערכת תפנה אותך מיד לאחר ההתחברות או בחירת ארגון.</p>
                 </div>
             </div>
             

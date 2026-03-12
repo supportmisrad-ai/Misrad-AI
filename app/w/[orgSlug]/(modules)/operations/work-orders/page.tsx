@@ -52,14 +52,14 @@ export default async function OperationsWorkOrdersPage({
 
   const status = parseStatus(statusParam);
 
-  // Use cached workspace (layout already verified) + resolve project options + departments in parallel
+  // Fetch all data in parallel for maximum performance
   const [workspace, projectOptionsRes, departmentsRes] = await Promise.all([
     requireWorkspaceAccessByOrgSlug(orgSlug),
     getOperationsProjectOptions({ orgSlug }),
     getOperationsDepartments({ orgSlug }),
   ]);
 
-  // When onlyMine is false, user resolution and work orders fetch are independent — run in parallel
+  // Resolve user and work orders in parallel if onlyMine is false, or sequentially if user ID is needed first
   let user: Awaited<ReturnType<typeof resolveWorkspaceCurrentUserForUiWithWorkspaceId>>;
   let workOrdersRes: Awaited<ReturnType<typeof getOperationsWorkOrdersData>>;
 
@@ -76,6 +76,7 @@ export default async function OperationsWorkOrdersPage({
       limit: PAGE_SIZE,
     });
   } else {
+    // Independent calls can run in parallel
     const [u, wo] = await Promise.all([
       resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
       getOperationsWorkOrdersData({

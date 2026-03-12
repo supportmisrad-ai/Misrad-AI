@@ -59,7 +59,7 @@ export function useUIPreferences(options: UseUIPreferencesOptions = {}) {
     }, [syncToDB, userId, updateUserAPI, debounceMs, syncTimer]);
 
     // Update preference
-    const updatePreference = useCallback((key: keyof UIPreferences, value: boolean) => {
+    const updatePreference = useCallback(<K extends keyof UIPreferences>(key: K, value: UIPreferences[K]) => {
         const newPrefs = { ...preferences, [key]: value };
         
         // Update state
@@ -72,8 +72,11 @@ export function useUIPreferences(options: UseUIPreferencesOptions = {}) {
         syncToDatabase(newPrefs);
     }, [preferences, syncToDatabase]);
 
-    // Get specific preference
-    const getPreference = useCallback((key: keyof UIPreferences, defaultValue: boolean = false): boolean => {
+    // Get specific boolean preference
+    const getPreference = useCallback(<K extends keyof UIPreferences>(
+        key: K, 
+        defaultValue: UIPreferences[K]
+    ): UIPreferences[K] => {
         return preferences[key] ?? defaultValue;
     }, [preferences]);
 

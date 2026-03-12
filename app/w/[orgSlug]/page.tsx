@@ -45,17 +45,34 @@ export default async function WorkspaceEntryPage({
     .filter(([, v]) => v)
     .map(([k]) => k);
 
-  // Run persist and load in parallel (both are independent)
-  const [, lastResult] = await Promise.all([
-    persistCurrentUserLastLocation({ orgSlug }).catch((e: unknown) => {
-      console.error('[WorkspaceEntryPage] persistCurrentUserLastLocation failed (ignored):', e);
-    }),
+  // Load last location and user preferences
+  const [lastResult, meData] = await Promise.all([
     loadCurrentUserLastLocation().catch((e: unknown) => {
       console.error('[WorkspaceEntryPage] loadCurrentUserLastLocation failed (ignored):', e);
       return null;
     }),
+    import('@/app/actions/nexus/_internal/me').then(m => m.getNexusMe({ orgId: workspace.id }).catch(() => null))
   ]);
+
   const last = lastResult ?? null;
+  const landingPage = meData?.user?.uiPreferences?.landingPage || 'last_module';
+
+  // 1. Explicit preference: Me Page
+  if (landingPage === 'me') {
+    redirect(`/w/${encodeURIComponent(orgSlug)}/me`);
+  }
+
+  // 2. Explicit preference: Lobby
+  if (landingPage === 'lobby') {
+    redirect(`/w/${encodeURIComponent(orgSlug)}/lobby`);
+  }
+
+  // 3. Explicit preference: Nexus
+  if (landingPage === 'nexus' && entitlements.nexus) {
+    redirect(`/w/${encodeURIComponent(orgSlug)}/nexus`);
+  }
+
+  // 4. Default / Last Module preference
   if (last?.orgSlug && String(last.orgSlug) === String(orgSlug) && last.module) {
     if (entitlements[last.module]) {
       redirect(`/w/${encodeURIComponent(orgSlug)}/${last.module}`);

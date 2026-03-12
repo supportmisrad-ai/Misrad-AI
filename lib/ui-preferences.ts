@@ -43,15 +43,15 @@ export function saveUIPreferencesToStorage(prefs: UIPreferences): void {
 /**
  * Get specific preference from localStorage
  */
-export function getUIPreference(key: keyof UIPreferences, defaultValue: boolean = false): boolean {
+export function getUIPreference<K extends keyof UIPreferences>(key: K, defaultValue: NonNullable<UIPreferences[K]>): NonNullable<UIPreferences[K]> {
     const prefs = getUIPreferencesFromStorage();
-    return prefs[key] ?? defaultValue;
+    return (prefs[key] ?? defaultValue) as NonNullable<UIPreferences[K]>;
 }
 
 /**
  * Save specific preference to localStorage
  */
-export function setUIPreference(key: keyof UIPreferences, value: boolean): void {
+export function setUIPreference<K extends keyof UIPreferences>(key: K, value: UIPreferences[K]): void {
     const prefs = getUIPreferencesFromStorage();
     prefs[key] = value;
     saveUIPreferencesToStorage(prefs);
