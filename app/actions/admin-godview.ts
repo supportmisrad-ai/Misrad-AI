@@ -163,15 +163,16 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
           if (orgId) usedCentsByOrgId.set(orgId, used);
         }
 
+        // Only process orgs that actually have usage or low balance
         for (const org of orgRows) {
           const orgId = String(org.id);
           const balance = Number(org.ai_credits_balance_cents ?? 0);
           const used = usedCentsByOrgId.get(orgId) ?? 0;
 
-          if (balance <= 0 && used > 0) {
+          if (balance <= 1000 && (balance <= 0 || used > 0)) { // Alert if balance is low (under 10 NIS) and has usage
             alerts.push({
               type: 'ai_quota_exceeded',
-              title: `קרדיטי AI אזלו${org.name ? ` - ${org.name}` : ''}`,
+              title: `יתרת AI נמוכה${org.name ? ` - ${org.name}` : ''}`,
               details: `נוצלו ${Math.round(used / 100).toLocaleString('he-IL')}₪ החודש. יתרה: ${Math.round(balance / 100).toLocaleString('he-IL')}₪`,
               organizationId: orgId,
               organizationSlug: org.slug ? String(org.slug) : null,
@@ -190,7 +191,7 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
             metadata: {
               path: ['paymentStatus'],
               equals: 'overdue',
-            } satisfies Prisma.JsonFilter,
+            },
           },
           select: { organizationId: true },
           distinct: ['organizationId'],

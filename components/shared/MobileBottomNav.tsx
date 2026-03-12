@@ -38,6 +38,43 @@ export default function MobileBottomNav({
   const renderItem = (item: MobileBottomNavItem) => {
     const Icon = item.icon;
     const isActive = Boolean(item.active);
+    
+    // Build gradient style for active state using the same colorMap as plus button
+    const activeGradientStyle = (() => {
+      if (!isActive || !plusGradient) return undefined;
+      const colorMap: Record<string, string> = {
+        'slate-900': '#0f172a', 'slate-700': '#334155', 'slate-800': '#1e293b',
+        'indigo-500': '#6366f1', 'indigo-600': '#4f46e5',
+        'purple-600': '#9333ea', 'purple-700': '#7e22ce',
+        'violet-600': '#7c3aed',
+        'blue-600': '#2563eb',
+        'pink-600': '#db2777',
+        'fuchsia-600': '#c026d3',
+        'cyan-600': '#0891b2',
+        'sky-500': '#0ea5e9', 'sky-600': '#0284c7',
+        'emerald-500': '#10b981', 'emerald-600': '#059669',
+        'teal-600': '#0d9488',
+        'red-600': '#dc2626', 'red-700': '#b91c1c',
+        'rose-600': '#e11d48',
+        'amber-500': '#f59e0b',
+        'orange-600': '#ea580c',
+      };
+      const resolveColor = (token: string): string | null => {
+        const arbMatch = token.match(/\[([^\]]+)\]/);
+        if (arbMatch) return arbMatch[1];
+        return colorMap[token] || null;
+      };
+      const stops = plusGradient
+        .split(/\s+/)
+        .map(t => t.replace(/^(?:from-|via-|to-)/, ''))
+        .map(resolveColor)
+        .filter(Boolean) as string[];
+      const gradient = stops.length >= 2
+        ? `linear-gradient(135deg, ${stops.join(', ')})`
+        : `linear-gradient(135deg, ${stops[0] || '#0f172a'}, ${stops[0] || '#334155'})`;
+      return { background: gradient };
+    })();
+    
     return (
       <div key={item.id} className="flex flex-col items-center gap-1.5">
         <button
@@ -54,10 +91,10 @@ export default function MobileBottomNav({
           {isActive && (
             <>
               <div 
-                className="absolute inset-0 z-0 opacity-100 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] animate-pulse-soft"
-                style={{ background: plusGradient ? `linear-gradient(135deg, ${plusGradient.split(' ').map(s => s.replace(/^(from-|to-)/, '')).join(', ')})` : 'linear-gradient(135deg, #0f172a, #334155)' }}
+                className="absolute inset-0 z-0 opacity-100 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]"
+                style={activeGradientStyle}
               />
-              <div className="absolute inset-0 bg-white/20 blur-md animate-pulse" />
+              <div className="absolute inset-0 bg-white/20 blur-md" />
             </>
           )}
           <Icon size={20} strokeWidth={isActive ? 2.5 : 2} className={`relative z-10 transition-transform group-active:scale-90 ${isActive ? 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : ''}`} />

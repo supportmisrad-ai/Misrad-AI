@@ -38,10 +38,10 @@ export async function createBookingNexusTask(appointmentId: string) {
 
     // נחפש את ה-NexusUser שמתאים ל-Provider לפי האימייל
     const providerEmail = appointment.provider.email;
-    // NexusUser לא תמיד מכיל את האימייל ישירות - נחפש לפי שם או נשתמש באדמין הראשון
     const nexusUser = await prisma.nexusUser.findFirst({
       where: {
         organizationId: appointment.organizationId,
+        email: providerEmail
       }
     });
 
