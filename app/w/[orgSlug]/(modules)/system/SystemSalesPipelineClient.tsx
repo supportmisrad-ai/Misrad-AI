@@ -681,12 +681,12 @@ export default function SystemSalesPipelineClient({
               ניהול שלבים
             </button>
           )}
-          <button
+            <button
             type="button"
             onClick={() => setShowNewLeadModal(true)}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-2"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-2 md:px-4 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-1 md:gap-2 whitespace-nowrap"
           >
-            <UserPlus size={16} /> ליד חדש
+            <UserPlus size={14} className="md:size-16" /> <span className="hidden sm:inline">ליד חדש</span><span className="sm:hidden">חדש</span>
           </button>
         </div>
       </div>
@@ -740,7 +740,7 @@ export default function SystemSalesPipelineClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="חיפוש..."
-            className="w-full md:w-[320px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
+            className="w-full md:w-[320px] bg-white border border-slate-200 rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-bold shadow-sm"
           />
 
           <div className="w-full md:w-[220px]">
@@ -789,7 +789,7 @@ export default function SystemSalesPipelineClient({
           <button
             type="button"
             onClick={() => setTodayOnly((v) => !v)}
-            className={`w-full md:w-auto px-4 py-2 rounded-full text-sm font-black border shadow-sm transition-colors inline-flex items-center gap-2 justify-center ${
+            className={`w-full md:w-auto px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors inline-flex items-center gap-1.5 md:gap-2 justify-center ${
               todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200'
             }`}
           >
@@ -797,11 +797,11 @@ export default function SystemSalesPipelineClient({
           </button>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 md:gap-2">
           <button
             type="button"
             onClick={() => setViewMode('board')}
-            className={`px-4 py-2 rounded-full text-sm font-black border shadow-sm transition-colors ${
+            className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors ${
               viewMode === 'board' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-800 border-slate-200'
             }`}
           >
@@ -810,7 +810,7 @@ export default function SystemSalesPipelineClient({
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded-full text-sm font-black border shadow-sm transition-colors ${
+            className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors ${
               viewMode === 'list' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-800 border-slate-200'
             }`}
           >

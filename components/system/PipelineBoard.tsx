@@ -317,7 +317,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
                     return (
                         <div 
                             key={stage.id} 
-                            className="w-[92vw] md:w-[320px] flex flex-col h-full min-h-0 rounded-3xl bg-slate-50/50 border border-slate-200/60 flex-shrink-0"
+                            className="w-[92vw] md:w-[320px] flex flex-col h-[65vh] md:h-full min-h-0 rounded-3xl bg-slate-50/50 border border-slate-200/60 flex-shrink-0"
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, stage.id)}
                         >
