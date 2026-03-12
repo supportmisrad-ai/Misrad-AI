@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CustomSelect } from '../components/CustomSelect';
 
 // Dynamic import for MobileDrawer to avoid build issues
-const MobileDrawer = React.lazy(() => import('@/components/shared/MobileDrawer').then(m => ({ default: m.MobileDrawer })));
+const MobileDrawer = React.lazy(() => import('./MobileDrawer').then(m => ({ default: m.MobileDrawer })));
 
 function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;
