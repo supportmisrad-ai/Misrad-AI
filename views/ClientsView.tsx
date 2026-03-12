@@ -7,7 +7,7 @@ import { Client } from '../types';
 import { ClientDetailModal } from '../components/ClientDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CustomSelect } from '../components/CustomSelect';
-import { MobileDrawer } from '../components/shared/MobileDrawer';
+import { MobileDrawer } from '@/components/shared/MobileDrawer';
 
 function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;
