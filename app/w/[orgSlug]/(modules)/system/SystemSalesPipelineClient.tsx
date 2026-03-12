@@ -822,7 +822,7 @@ export default function SystemSalesPipelineClient({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 h-[calc(100vh-280px)] md:h-auto">
+      <div className="h-[calc(100vh-280px)] md:h-auto md:flex-1 md:min-h-0">
         {viewMode === 'board' ? (
           <PipelineBoard
             leads={visibleLeads}
