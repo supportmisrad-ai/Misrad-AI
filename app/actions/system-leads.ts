@@ -26,11 +26,46 @@ import {
   loadLeadDtoWithActivities,
   computeLeadAiScore,
   persistAiScore,
-  type SystemLeadDTO,
-  type SystemLeadActivityDTO,
 } from '@/lib/services/system/leads-service';
 
-export type { SystemLeadDTO, SystemLeadActivityDTO };
+// Direct type re-exports to avoid Turbopack cache issues
+export type SystemLeadDTO = {
+  id: string;
+  organization_id: string;
+  name: string;
+  company: string | null;
+  phone: string;
+  email: string | null;
+  installation_address: string | null;
+  source: string;
+  status: string;
+  value: number;
+  last_contact: string;
+  created_at: string;
+  is_hot: boolean;
+  score: number;
+  assigned_agent_id: string | null;
+  product_interest?: string | null;
+  ai_tags?: string[];
+  closure_probability?: number | null;
+  closure_rationale?: string | null;
+  recommended_action?: string | null;
+  next_action_date?: string | null;
+  next_action_date_suggestion?: string | null;
+  next_action_note?: string | null;
+  next_action_date_rationale?: string | null;
+  activities?: SystemLeadActivityDTO[];
+};
+
+export type SystemLeadActivityDTO = {
+  id: string;
+  lead_id: string;
+  type: string;
+  content: string;
+  timestamp: string;
+  metadata?: unknown;
+  direction: string | null;
+};
 
 type SystemLeadRow = SystemLead & { activities?: SystemLeadActivity[] };
 
