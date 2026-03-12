@@ -7,7 +7,9 @@ import { Client } from '../types';
 import { ClientDetailModal } from '../components/ClientDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CustomSelect } from '../components/CustomSelect';
-import { MobileDrawer } from '@/components/shared/MobileDrawer';
+
+// Dynamic import for MobileDrawer to avoid build issues
+const MobileDrawer = React.lazy(() => import('@/components/shared/MobileDrawer').then(m => ({ default: m.MobileDrawer })));
 
 function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;
