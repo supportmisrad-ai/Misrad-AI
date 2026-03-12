@@ -1,0 +1,1268 @@
+// ═══════════════════════════════════════════════════════════════════
+// BOT LEADS & WHATSAPP SYSTEM - Schema Additions
+// Generated: 2026-03-12
+// Purpose: Extend BotLead + Add 15 new tables for complete WhatsApp bot system
+// ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// EXTENDED BotLead Model - All 200 fields from Google Sheets
+// ═══════════════════════════════════════════════════════════════════
+
+model BotLeadExtended {
+  id               String            @id @default(cuid())
+  phone            String            @unique
+  
+  // Basic Info (existing + extended)
+  name             String?
+  first_name       String?
+  last_name        String?
+  business_name    String?
+  business_type    String?
+  email            String?
+  email_validated  Boolean?          @default(false)
+  alternative_phone String?
+  
+  // Industry & Company Details
+  industry         String?
+  sub_industry     String?
+  org_size         String?
+  employee_count   Int?
+  annual_revenue   String?
+  years_in_business String?
+  
+  // Online Presence
+  website          String?
+  linkedin_company String?
+  facebook_page    String?
+  instagram_handle String?
+  
+  // Location
+  address          String?
+  city             String?
+  region           String?
+  country          String?
+  zip_code         String?
+  latitude         Decimal?          @db.Decimal(10, 6)
+  longitude        Decimal?          @db.Decimal(10, 6)
+  location_name    String?
+  location_type    String?
+  service_area     String?
+  timezone         String?           @default("Asia/Jerusalem")
+  
+  // Communication Preferences
+  preferred_language String?       @default("hebrew")
+  communication_pref String?         @default("whatsapp")
+  best_time_to_call String?
+  
+  // Source & UTM Tracking
+  source           String?           @default("blaster")
+  medium           String?           @default("whatsapp")
+  campaign         String?
+  campaign_id      String?
+  ad_group         String?
+  ad_id            String?
+  creative         String?
+  keyword          String?
+  match_type       String?
+  placement        String?
+  device           String?
+  browser          String?
+  os               String?
+  
+  // UTM Parameters
+  utm_source       String?
+  utm_medium       String?
+  utm_campaign     String?
+  utm_term         String?
+  utm_content      String?
+  utm_id           String?
+  gclid            String?
+  fbclid           String?
+  
+  // Referrer & Entry
+  landing_page     String?
+  referrer_url     String?
+  first_page       String?
+  entry_point      String?
+  session_id       String?
+  referrer_type    String?
+  referrer_name    String?
+  referrer_code    String?
+  referrer_relationship String?
+  
+  // Affiliates & Partners
+  affiliate_id     String?
+  affiliate_name   String?
+  influencer_code  String?
+  influencer_name  String?
+  partner_code     String?
+  partner_name     String?
+  channel_partner  String?
+  reseller_code    String?
+  reseller_name    String?
+  
+  // Events
+  event_source     String?
+  event_name       String?
+  event_type       String?
+  event_date       DateTime?         @db.Date
+  event_location   String?
+  booth_number     String?
+  scan_type        String?
+  badge_id         String?
+  attendee_type    String?
+  registration_type String?
+  checked_in       Boolean?          @default(false)
+  check_in_time    String?
+  team_member      String?
+  
+  // Coupons & Promotions
+  coupon_code      String?
+  coupon_type      String?
+  discount_amount  Decimal?          @db.Decimal(10, 2)
+  discount_percent Int?
+  promo_code       String?
+  offer_name       String?
+  offer_value      String?
+  bundle_id        String?
+  bundle_name      String?
+  trial_days       Int?
+  voucher_code     String?
+  gift_code        String?
+  loyalty_points   Int?
+  
+  // Media & Content
+  has_media        Boolean?          @default(false)
+  media_type       String?
+  media_count      Int?
+  image_url        String?
+  image_count      Int?
+  video_url        String?
+  video_count      Int?
+  video_duration   String?
+  audio_url        String?
+  audio_count      Int?
+  audio_duration   String?
+  document_url     String?
+  document_name    String?
+  
+  // Interactive Elements
+  links_in_message String?
+  link_clicked     Boolean?          @default(false)
+  clicked_url      String?
+  button_clicked   String?
+  button_value     String?
+  menu_selection   String?
+  menu_value       String?
+  qr_scanned       Boolean?          @default(false)
+  qr_value         String?
+  location_shared  Boolean?          @default(false)
+  shared_lat       Decimal?          @db.Decimal(10, 6)
+  shared_lng       Decimal?          @db.Decimal(10, 6)
+  shared_location_name String?
+  
+  // Product & Interest
+  selected_plan    String?
+  plan_price       Decimal?          @db.Decimal(10, 2)
+  plan_currency    String?           @default("ILS")
+  billing_cycle    String?
+  pain_point       String?
+  pain_level       String?
+  
+  // Sales Info
+  budget_range     String?
+  budget_min       Decimal?          @db.Decimal(10, 2)
+  budget_max       Decimal?          @db.Decimal(10, 2)
+  timeline         String?
+  urgency_level    String?
+  decision_makers  String?
+  decision_process String?
+  
+  // Current Solution
+  current_solution String?
+  current_satisfaction String?
+  competitor       String?
+  competitor_price String?
+  objection        String?
+  objection_type   String?
+  objection_handled Boolean?         @default(false)
+  needs_analysis   String?
+  feature_requests String?
+  integration_needed String?
+  customization_needed String?
+  training_needed  String?
+  support_level    String?
+  
+  // Status & Pipeline
+  status           BotLeadStatus     @default(new)
+  status_detail    String?
+  priority         String?           @default("medium")
+  lead_score       Int?              @default(0)
+  lead_quality     String?           @default("warm")
+  stage            String?           @default("new_lead")
+  pipeline         String?           @default("default")
+  assigned_to      String?
+  assigned_date    DateTime?
+  owner            String?
+  
+  // Actions & Follow-ups
+  next_action      String?
+  next_action_date DateTime?         @db.Date
+  next_action_time String?
+  
+  // Important Dates
+  first_contact_date DateTime?
+  last_activity_date DateTime?
+  last_message_date DateTime?
+  demo_requested_date DateTime?
+  demo_scheduled_date DateTime?
+  demo_completed_date DateTime?
+  trial_start_date DateTime?
+  trial_end_date   DateTime?
+  quote_sent_date  DateTime?
+  quote_expiry_date DateTime?
+  contract_sent_date DateTime?
+  contract_signed_date DateTime?
+  payment_date     DateTime?
+  
+  // Closure
+  closed_date      DateTime?
+  closed_by        String?
+  won_lost         String?
+  won_date         DateTime?
+  lost_date        DateTime?
+  lost_reason      String?
+  churn_date       DateTime?
+  churn_reason     String?
+  retention_status String?
+  retention_efforts String?
+  win_back_date    DateTime?
+  win_back_success Boolean?          @default(false)
+  lifetime_value   Decimal?          @db.Decimal(10, 2)
+  
+  // Tags & Categorization
+  tags             String[]          @default([])
+  category         String?
+  segment          String?
+  persona          String?
+  
+  // Notes
+  notes            String?           @db.Text
+  internal_notes   String?           @db.Text
+  call_notes       String?           @db.Text
+  meeting_notes    String?           @db.Text
+  demo_notes       String?           @db.Text
+  objection_notes  String?           @db.Text
+  competitor_notes String?           @db.Text
+  
+  // Custom Fields (JSON for flexibility)
+  custom_fields    Json?             @default("{}")
+  
+  // Relations
+  conversations    BotConversation[]
+  media            BotMedia[]
+  outgoingMessages BotOutgoingMessage[]
+  surveyResponses  BotSurveyResponse[]
+  
+  // Metadata
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  last_interaction DateTime          @default(now())
+  
+  // Organization
+  organization_id  String?           @db.Uuid
+  organization     Organization?     @relation(fields: [organization_id], references: [id])
+
+  @@index([status])
+  @@index([created_at])
+  @@index([organization_id])
+  @@index([phone])
+  @@index([campaign])
+  @@index([source])
+  @@index([assigned_to])
+  @@index([lead_score])
+  @@map("bot_leads_extended")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 1. BotOutgoingMessage - הודעות יוצאות מהבוט
+// ═══════════════════════════════════════════════════════════════════
+
+model BotOutgoingMessage {
+  id               String   @id @default(cuid())
+  lead_id          String
+  lead             BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  
+  // Message Content
+  phone            String
+  message          String   @db.Text
+  message_type     String   @default("text") // text, template, media, interactive
+  
+  // Media
+  media_url        String?
+  media_type       String?  // image, video, audio, document
+  
+  // Template Info
+  template_name    String?
+  template_language String? @default("he")
+  
+  // Interactive Elements
+  button_text      String?
+  button_url       String?
+  list_title       String?
+  list_items       Json?    @default("[]")
+  
+  // Status Tracking
+  status           String   @default("pending") // pending, sent, delivered, read, failed
+  sent_at          DateTime?
+  delivered_at     DateTime?
+  read_at          DateTime?
+  failed_reason    String?
+  retry_count      Int      @default(0)
+  
+  // Scheduling
+  scheduled_at     DateTime?
+  timezone         String?  @default("Asia/Jerusalem")
+  priority         String?  @default("normal") // low, normal, high, urgent
+  
+  // Campaign
+  campaign_id      String?
+  sequence_step    Int?
+  
+  // Personalization
+  personalization_1 String?
+  personalization_2 String?
+  
+  // Cost Tracking
+  cost             Decimal? @db.Decimal(10, 4)
+  currency         String?  @default("ILS")
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  sent_by          String?  // user_id or 'system'
+  
+  @@index([lead_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([scheduled_at])
+  @@map("bot_outgoing_messages")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 2. BotMedia - קבצי מדיה
+// ═══════════════════════════════════════════════════════════════════
+
+model BotMedia {
+  id               String   @id @default(cuid())
+  lead_id          String
+  lead             BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  
+  // File Info
+  file_name        String
+  file_url         String
+  file_type        String   // image, video, audio, document, sticker
+  mime_type        String?
+  file_size_bytes  BigInt?
+  
+  // Media Properties
+  duration_seconds Int?
+  width            Int?
+  height           Int?
+  thumbnail_url    String?
+  
+  // Content
+  caption          String?  @db.Text
+  
+  // Storage
+  storage_location String?  // local, s3, gcs, etc.
+  cloud_url        String?
+  
+  // Processing
+  processing_status String? @default("pending") // pending, processing, completed, failed
+  ai_analysis      Json?    // AI-generated analysis
+  detected_text    String?  @db.Text // OCR results
+  detected_objects Json?    // Object detection results
+  
+  // Duplicate Detection
+  is_duplicate     Boolean? @default(false)
+  related_media_id String?
+  
+  // Usage
+  uploaded_by      String?  // 'bot' or user_id
+  tags             String[] @default([])
+  category         String?  @default("general")
+  usage_count      Int      @default(0)
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  
+  @@index([lead_id])
+  @@index([file_type])
+  @@index([created_at])
+  @@map("bot_media")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 3. BotContact - אנשי קשר (לידים מרובים)
+// ═══════════════════════════════════════════════════════════════════
+
+model BotContact {
+  id               String   @id @default(cuid())
+  lead_id          String
+  lead             BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  
+  // Contact Info
+  contact_type     String   @default("primary") // primary, secondary, decision_maker, influencer
+  first_name       String?
+  last_name        String?
+  title            String?  // CEO, Manager, etc.
+  department       String?
+  
+  // Contact Details
+  email            String?
+  phone            String?
+  mobile           String?
+  whatsapp         String?
+  linkedin         String?
+  
+  // Role in Decision
+  decision_power   String?  // final, influencer, recommender, user
+  influence_level  Int?     @default(50) // 0-100
+  relationship_to_lead String? // spouse, colleague, assistant
+  
+  // Preferences
+  meeting_preference String? // phone, video, in_person
+  availability     String?
+  
+  // Notes
+  notes            String?  @db.Text
+  
+  // Status
+  is_primary       Boolean? @default(false)
+  
+  // Engagement
+  added_date       DateTime @default(now())
+  last_interaction DateTime?
+  engagement_score Int?     @default(0)
+  
+  @@index([lead_id])
+  @@index([contact_type])
+  @@index([is_primary])
+  @@map("bot_contacts")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. BotCampaign - קמפיינים
+// ═══════════════════════════════════════════════════════════════════
+
+model BotCampaign {
+  id               String   @id @default(cuid())
+  
+  // Campaign Info
+  name             String
+  campaign_type    String   // whatsapp_broadcast, drip_sequence, event, referral
+  description      String?  @db.Text
+  
+  // Dates
+  start_date       DateTime?
+  end_date         DateTime?
+  
+  // Budget
+  budget           Decimal? @db.Decimal(10, 2)
+  spend            Decimal? @db.Decimal(10, 2) @default(0)
+  
+  // Targeting
+  target_audience  String?  @db.Text
+  goal             String?  // leads, conversions, engagement, awareness
+  
+  // Status
+  status           String   @default("draft") // draft, active, paused, completed
+  
+  // Performance Metrics
+  impressions      Int      @default(0)
+  clicks           Int      @default(0)
+  conversions      Int      @default(0)
+  leads_generated  Int      @default(0)
+  messages_sent    Int      @default(0)
+  messages_delivered Int   @default(0)
+  messages_read    Int      @default(0)
+  
+  // Calculated Metrics
+  ctr              Decimal? @db.Decimal(5, 2) // Click-through rate
+  cpc              Decimal? @db.Decimal(10, 2) // Cost per click
+  cpa              Decimal? @db.Decimal(10, 2) // Cost per acquisition
+  roas             Decimal? @db.Decimal(5, 2) // Return on ad spend
+  cost_per_lead    Decimal? @db.Decimal(10, 2)
+  
+  // Relations
+  leads            BotCampaignLead[]
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  created_by       String?
+  
+  @@index([status])
+  @@index([start_date])
+  @@index([campaign_type])
+  @@map("bot_campaigns")
+}
+
+// Junction table: Campaign <-> Lead
+model BotCampaignLead {
+  id          String        @id @default(cuid())
+  campaign_id String
+  campaign    BotCampaign   @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  lead_id     String
+  
+  // Campaign-specific data
+  joined_at   DateTime      @default(now())
+  step_number Int           @default(1)
+  status      String        @default("active") // active, completed, opted_out
+  
+  @@unique([campaign_id, lead_id])
+  @@index([campaign_id])
+  @@index([lead_id])
+  @@map("bot_campaign_leads")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. BotLottery - הגרלות
+// ═══════════════════════════════════════════════════════════════════
+
+model BotLottery {
+  id               String   @id @default(cuid())
+  
+  // Lottery Info
+  name             String
+  description      String?  @db.Text
+  
+  // Dates
+  start_date       DateTime
+  end_date         DateTime
+  draw_date        DateTime?
+  
+  // Status
+  status           String   @default("upcoming") // upcoming, active, completed, cancelled
+  
+  // Prizes
+  prize_count      Int      @default(1)
+  prize_type       String?  // cash, product, service, discount
+  prize_value      Decimal? @db.Decimal(10, 2)
+  prize_description String? @db.Text
+  
+  // Participation Rules
+  winner_selection String   @default("random") // random, manual, score_based
+  participation_criteria String? @db.Text
+  min_points_required Int?
+  entry_method     String?  @default("message") // message, purchase, referral, quiz
+  
+  // Stats
+  total_participants Int    @default(0)
+  total_entries    Int      @default(0)
+  
+  // Winner (set after draw)
+  winner_id        String?
+  winner_name      String?
+  winner_phone     String?
+  prize_claimed    Boolean? @default(false)
+  claimed_date     DateTime?
+  verification_status String? @default("pending") // pending, verified, rejected
+  
+  // Relations
+  participants     BotLotteryParticipant[]
+  
+  // Metadata
+  created_by       String?
+  rules_url        String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([status])
+  @@index([start_date])
+  @@map("bot_lotteries")
+}
+
+model BotLotteryParticipant {
+  id           String     @id @default(cuid())
+  lottery_id   String
+  lottery      BotLottery @relation(fields: [lottery_id], references: [id], onDelete: Cascade)
+  
+  // Participant Info
+  lead_id      String?
+  phone        String
+  name         String?
+  
+  // Entries
+  entry_count  Int        @default(1)
+  entries      Json?      @default("[]") // Array of entry methods/timestamps
+  
+  // Score (for score-based selection)
+  score        Int        @default(0)
+  
+  // Winner Status
+  is_winner    Boolean?   @default(false)
+  prize_claimed Boolean?  @default(false)
+  
+  // Metadata
+  joined_at    DateTime   @default(now())
+  
+  @@unique([lottery_id, phone])
+  @@index([lottery_id])
+  @@index([phone])
+  @@map("bot_lottery_participants")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. BotReferral - מערכת הפניות (רשת)
+// ═══════════════════════════════════════════════════════════════════
+
+model BotReferral {
+  id               String   @id @default(cuid())
+  
+  // Referral Chain
+  referrer_id      String   // The one who referred (lead_id)
+  referred_id      String   // The one who was referred (lead_id)
+  
+  // Referral Info
+  referral_code    String   @unique
+  referral_link    String?
+  referral_date    DateTime @default(now())
+  
+  // Source
+  source_platform  String?  // whatsapp, facebook, email, sms
+  referral_type    String   @default("direct") // direct, affiliate, influencer
+  
+  // Network Structure
+  level            Int      @default(1) // 1 = direct, 2 = referred by referred, etc.
+  parent_id        String?  // Parent in the chain (for MLM structure)
+  root_id          String?  // Root of the chain
+  chain_length     Int      @default(1)
+  
+  // Status
+  is_active        Boolean? @default(true)
+  is_valid         Boolean? @default(true) // Did the referred convert?
+  validated_at     DateTime?
+  
+  // Commission
+  commission_rate  Decimal? @db.Decimal(5, 2) // Percentage
+  commission_amount Decimal? @db.Decimal(10, 2)
+  bonus_amount     Decimal? @db.Decimal(10, 2)
+  
+  // Totals
+  total_earned     Decimal? @db.Decimal(10, 2) @default(0)
+  pending_amount   Decimal? @db.Decimal(10, 2) @default(0)
+  paid_amount      Decimal? @db.Decimal(10, 2) @default(0)
+  
+  // Payment
+  payment_status   String?  @default("pending") // pending, approved, paid
+  last_payment_date DateTime?
+  next_payment_date DateTime?
+  payment_method   String?
+  currency         String?  @default("ILS")
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@unique([referrer_id, referred_id])
+  @@index([referrer_id])
+  @@index([referred_id])
+  @@index([referral_code])
+  @@index([parent_id])
+  @@map("bot_referrals")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 7. BotCoupon - קופונים ומבצעים
+// ═══════════════════════════════════════════════════════════════════
+
+model BotCoupon {
+  id               String   @id @default(cuid())
+  
+  // Coupon Info
+  code             String   @unique
+  name             String
+  description      String?  @db.Text
+  
+  // Discount
+  discount_type    String   // percentage, fixed_amount, free_product, free_shipping
+  discount_value   Decimal? @db.Decimal(10, 2)
+  
+  // Limits
+  min_order_value  Decimal? @db.Decimal(10, 2)
+  max_discount     Decimal? @db.Decimal(10, 2)
+  usage_limit      Int?     // Global limit
+  usage_limit_per_user Int? // Per user limit
+  
+  // Usage Stats
+  usage_count      Int      @default(0)
+  
+  // Dates
+  start_date       DateTime @default(now())
+  expiry_date      DateTime?
+  
+  // Status
+  status           String   @default("active") // active, expired, disabled, depleted
+  
+  // Applicability
+  applicable_products String[] @default([]) // Product IDs or 'all'
+  excluded_products String[] @default([])
+  customer_segments String[] @default([]) // 'new', 'returning', 'vip', etc.
+  
+  // Relations
+  usages           BotCouponUsage[]
+  
+  // Metadata
+  created_by       String?
+  notes            String?  @db.Text
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([code])
+  @@index([status])
+  @@index([expiry_date])
+  @@map("bot_coupons")
+}
+
+model BotCouponUsage {
+  id          String     @id @default(cuid())
+  coupon_id   String
+  coupon      BotCoupon  @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+  
+  // Usage Info
+  lead_id     String?
+  phone       String
+  order_id    String?
+  order_value Decimal?   @db.Decimal(10, 2)
+  discount_applied Decimal? @db.Decimal(10, 2)
+  
+  // When
+  used_at     DateTime   @default(now())
+  
+  @@index([coupon_id])
+  @@index([phone])
+  @@index([used_at])
+  @@map("bot_coupon_usages")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 8. BotAffiliate - תוכנית שותפים
+// ═══════════════════════════════════════════════════════════════════
+
+model BotAffiliate {
+  id               String   @id @default(cuid())
+  
+  // Affiliate Info
+  name             String
+  email            String   @unique
+  phone            String?
+  
+  // Codes
+  affiliate_code   String   @unique
+  affiliate_link   String?
+  
+  // Program Info
+  join_date        DateTime @default(now())
+  status           String   @default("active") // active, paused, suspended, terminated
+  
+  // Commission Structure
+  commission_rate  Decimal? @db.Decimal(5, 2) @default(10.00) // Default 10%
+  tier_level       String?  @default("bronze") // bronze, silver, gold, platinum
+  
+  // Performance
+  total_sales      Decimal? @db.Decimal(12, 2) @default(0)
+  total_commission Decimal? @db.Decimal(12, 2) @default(0)
+  paid_commission  Decimal? @db.Decimal(12, 2) @default(0)
+  pending_commission Decimal? @db.Decimal(12, 2) @default(0)
+  
+  // Stats
+  referral_count   Int      @default(0)
+  conversion_count Int      @default(0)
+  
+  // Last Activity
+  last_sale_date   DateTime?
+  performance_score Int?    @default(0) // 0-100
+  
+  // Payment Info
+  payment_method   String?  // bank_transfer, paypal, crypto
+  payment_details  Json?    // Encrypted account info
+  
+  // Metadata
+  notes            String?  @db.Text
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([affiliate_code])
+  @@index([status])
+  @@index([tier_level])
+  @@map("bot_affiliates")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 9. BotAnalytics - אנליטיקס ודוחות (Daily Aggregation)
+// ═══════════════════════════════════════════════════════════════════
+
+model BotAnalytics {
+  id               String   @id @default(cuid())
+  
+  // Date
+  date             DateTime @unique @db.Date
+  
+  // Lead Metrics
+  total_leads      Int      @default(0)
+  new_leads        Int      @default(0)
+  qualified_leads  Int      @default(0)
+  
+  // Funnel Metrics
+  demos_scheduled  Int      @default(0)
+  demos_completed  Int      @default(0)
+  trials_started   Int      @default(0)
+  trials_converted Int      @default(0)
+  deals_closed     Int      @default(0)
+  
+  // Financial
+  revenue          Decimal? @db.Decimal(12, 2) @default(0)
+  expenses         Decimal? @db.Decimal(12, 2) @default(0)
+  profit           Decimal? @db.Decimal(12, 2) @default(0)
+  
+  // Conversion Metrics
+  conversion_rate  Decimal? @db.Decimal(5, 2) // Percentage
+  avg_deal_size    Decimal? @db.Decimal(10, 2)
+  cac              Decimal? @db.Decimal(10, 2) // Customer acquisition cost
+  ltv              Decimal? @db.Decimal(10, 2) // Lifetime value
+  roi              Decimal? @db.Decimal(5, 2)
+  
+  // Top Performers (stored as JSON for flexibility)
+  top_source       String?
+  top_campaign     String?
+  top_referrer     String?
+  top_affiliate    String?
+  
+  // Message Metrics
+  messages_sent    Int      @default(0)
+  messages_delivered Int    @default(0)
+  messages_read    Int      @default(0)
+  response_rate    Decimal? @db.Decimal(5, 2)
+  avg_response_time Int?     // Minutes
+  
+  // Satisfaction
+  satisfaction_score Decimal? @db.Decimal(3, 1) // 0-5
+  nps_score        Int?     // -100 to 100
+  
+  // Retention
+  churn_rate       Decimal? @db.Decimal(5, 2)
+  retention_rate   Decimal? @db.Decimal(5, 2)
+  
+  // Raw Data (for detailed analysis)
+  raw_data         Json?    @default("{}")
+  
+  // Metadata
+  calculated_at    DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([date])
+  @@map("bot_analytics")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. BotConversion - המרות ואטריביוציה
+// ═══════════════════════════════════════════════════════════════════
+
+model BotConversion {
+  id               String   @id @default(cuid())
+  lead_id          String?
+  
+  // Conversion Info
+  timestamp        DateTime @default(now())
+  conversion_type  String   // signup, purchase, demo_booking, trial_start
+  conversion_value Decimal? @db.Decimal(10, 2)
+  currency         String?  @default("ILS")
+  
+  // Attribution
+  source           String?
+  campaign         String?
+  funnel_stage     String?  // awareness, consideration, decision, retention
+  
+  // Attribution Model
+  attribution_model String? @default("last_touch") // first_touch, last_touch, linear, time_decay, position_based
+  
+  // Touchpoints (full journey)
+  touchpoints_count Int?
+  touchpoints      Json?   // Array of all touchpoints leading to conversion
+  
+  // First & Last Touch
+  first_touch_source String?
+  first_touch_date   DateTime?
+  last_touch_source  String?
+  last_touch_date    DateTime?
+  
+  // Time to Conversion
+  time_to_conversion_minutes Int?
+  
+  // Device & Location
+  device           String?
+  browser          String?
+  os               String?
+  location         String?
+  
+  // Notes
+  notes            String?  @db.Text
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  
+  @@index([lead_id])
+  @@index([timestamp])
+  @@index([conversion_type])
+  @@index([source])
+  @@map("bot_conversions")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 11. BotEngagement - מעורבות ופעילות
+// ═══════════════════════════════════════════════════════════════════
+
+model BotEngagement {
+  id               String   @id @default(cuid())
+  lead_id          String   @unique
+  
+  // Activity Summary
+  last_activity_date DateTime?
+  total_messages_received Int @default(0)
+  total_messages_sent Int @default(0)
+  
+  // Response Metrics
+  response_rate    Decimal? @db.Decimal(5, 2) // Percentage
+  avg_response_time_minutes Int?
+  
+  // Engagement
+  click_rate       Decimal? @db.Decimal(5, 2)
+  media_view_rate  Decimal? @db.Decimal(5, 2)
+  poll_participation_rate Decimal? @db.Decimal(5, 2)
+  
+  // Last Interaction
+  last_engagement_type String? // message, click, media_view, poll, location_share
+  
+  // Scores
+  engagement_score   Int?     @default(0) // 0-100
+  engagement_level   String?  @default("low") // low, medium, high, very_high
+  
+  // Risk Analysis
+  risk_of_churn    String?  @default("low") // low, medium, high
+  days_since_last_contact Int?
+  
+  // Preferences
+  preferred_contact_time String? // morning, afternoon, evening
+  communication_frequency String? // daily, weekly, monthly, rare
+  
+  // Notes
+  notes            String?  @db.Text
+  
+  // Metadata
+  updated_at       DateTime @updatedAt
+  calculated_at    DateTime @default(now())
+  
+  @@index([lead_id])
+  @@index([engagement_score])
+  @@index([risk_of_churn])
+  @@map("bot_engagements")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 12. BotTicket - פניות תמיכה
+// ═══════════════════════════════════════════════════════════════════
+
+model BotTicket {
+  id               String   @id @default(cuid())
+  lead_id          String?
+  
+  // Ticket Info
+  ticket_number    String   @unique
+  ticket_type      String   // support, sales, technical, billing, general
+  subject          String
+  description      String   @db.Text
+  
+  // Priority & Status
+  priority         String   @default("medium") // low, medium, high, critical
+  status           String   @default("open") // open, in_progress, waiting, resolved, closed
+  
+  // Assignment
+  assigned_to      String?  // user_id
+  assigned_at      DateTime?
+  
+  // Dates
+  created_at       DateTime @default(now())
+  resolved_at      DateTime?
+  closed_at        DateTime?
+  
+  // Resolution
+  resolution_notes String?  @db.Text
+  satisfaction_rating Int?  // 1-5
+  
+  // Categorization
+  category         String?
+  tags             String[] @default([])
+  
+  // Time Tracking
+  time_to_resolution_minutes Int?
+  
+  // Relations
+  messages         BotTicketMessage[]
+  
+  // Metadata
+  created_by       String?  // 'bot' or user_id
+  updated_at       DateTime @updatedAt
+  
+  @@index([lead_id])
+  @@index([status])
+  @@index([priority])
+  @@index([assigned_to])
+  @@map("bot_tickets")
+}
+
+model BotTicketMessage {
+  id          String    @id @default(cuid())
+  ticket_id   String
+  ticket      BotTicket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  
+  // Message
+  sender_type String   // 'customer', 'agent', 'system'
+  sender_id   String?
+  message     String   @db.Text
+  
+  // Media
+  media_url   String?
+  media_type  String?
+  
+  // When
+  created_at  DateTime @default(now())
+  
+  // Read Status
+  read_at     DateTime?
+  read_by     String?
+  
+  @@index([ticket_id])
+  @@index([created_at])
+  @@map("bot_ticket_messages")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 13. BotTask - משימות ופעולות
+// ═══════════════════════════════════════════════════════════════════
+
+model BotTask {
+  id               String   @id @default(cuid())
+  lead_id          String?
+  
+  // Task Info
+  task_type        String   // follow_up, demo, call, email, meeting, send_quote
+  task_description String   @db.Text
+  
+  // Scheduling
+  due_date         DateTime? @db.Date
+  due_time         String?   // HH:MM format
+  timezone         String?   @default("Asia/Jerusalem")
+  
+  // Priority & Status
+  priority         String   @default("medium") // low, medium, high, urgent
+  status           String   @default("pending") // pending, in_progress, completed, cancelled, overdue
+  
+  // Assignment
+  assigned_to      String?  // user_id
+  assigned_by      String?  // user_id
+  
+  // Related
+  related_ticket_id String?
+  related_campaign_id String?
+  
+  // Completion
+  completed_at     DateTime?
+  completed_by     String?
+  completion_notes String?  @db.Text
+  
+  // Reminders
+  reminder_set     Boolean? @default(false)
+  reminder_time    DateTime?
+  
+  // Metadata
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([lead_id])
+  @@index([status])
+  @@index([due_date])
+  @@index([assigned_to])
+  @@index([priority])
+  @@map("bot_tasks")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 14. BotTemplate - תבניות הודעות
+// ═══════════════════════════════════════════════════════════════════
+
+model BotTemplate {
+  id               String   @id @default(cuid())
+  
+  // Template Info
+  template_id      String   @unique // Official WhatsApp template ID
+  name             String
+  template_type    String   // text, media, interactive, carousel
+  category         String   // marketing, utility, authentication
+  
+  // Content
+  language         String   @default("he") // ISO code
+  header_text      String?
+  body_text        String   @db.Text
+  footer_text      String?
+  
+  // Interactive
+  button_type      String?  // none, quick_reply, call_to_action, url
+  button_text      String?
+  button_url       String?
+  
+  // Media
+  media_url        String?
+  media_type       String?  // image, video, document
+  
+  // Variables
+  variables_count  Int      @default(0)
+  variables_names  String[] @default([])
+  
+  // Status
+  status           String   @default("draft") // draft, pending_approval, approved, rejected, deprecated
+  approved_by_whatsapp Boolean? @default(false)
+  approval_date    DateTime?
+  rejection_reason String?  @db.Text
+  
+  // Usage
+  usage_count      Int      @default(0)
+  last_used        DateTime?
+  
+  // Relations
+  category_templates BotTemplateCategory[]
+  
+  // Metadata
+  created_by       String?
+  notes            String?  @db.Text
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([template_id])
+  @@index([status])
+  @@index([category])
+  @@index([language])
+  @@map("bot_templates")
+}
+
+model BotTemplateCategory {
+  id          String      @id @default(cuid())
+  template_id String
+  template    BotTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  
+  category    String      // e.g., 'onboarding', 'follow_up', 'promotion'
+  
+  @@unique([template_id, category])
+  @@index([template_id])
+  @@index([category])
+  @@map("bot_template_categories")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 15. BotSurvey - סקרים (בונוס)
+// ═══════════════════════════════════════════════════════════════════
+
+model BotSurvey {
+  id               String   @id @default(cuid())
+  
+  // Survey Info
+  name             String
+  description      String?  @db.Text
+  survey_type      String   @default("feedback") // feedback, nps, csat, research, quiz
+  
+  // Questions (stored as JSON array)
+  questions        Json     // Array of {id, type, text, options, required}
+  
+  // Configuration
+  allow_multiple_responses Boolean? @default(false)
+  is_anonymous     Boolean? @default(false)
+  
+  // Dates
+  start_date       DateTime @default(now())
+  end_date         DateTime?
+  
+  // Status
+  status           String   @default("draft") // draft, active, paused, closed
+  
+  // Targeting
+  target_audience  String[] @default([]) // 'all', 'new_customers', 'vip', etc.
+  
+  // Stats
+  total_responses  Int      @default(0)
+  completion_rate  Decimal? @db.Decimal(5, 2)
+  
+  // Relations
+  responses        BotSurveyResponse[]
+  
+  // Metadata
+  created_by       String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([status])
+  @@index([survey_type])
+  @@map("bot_surveys")
+}
+
+model BotSurveyResponse {
+  id          String    @id @default(cuid())
+  survey_id   String
+  survey      BotSurvey @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+  
+  // Respondent
+  lead_id     String?
+  lead        BotLeadExtended? @relation(fields: [lead_id], references: [id])
+  phone       String?
+  
+  // Anonymous tracking
+  is_anonymous Boolean? @default(false)
+  anonymous_id String?
+  
+  // Responses (JSON object mapping question_id to answer)
+  answers     Json      // { question_id: answer_value }
+  
+  // Calculated Scores
+  nps_score   Int?      // -100 to 100 (if NPS survey)
+  csat_score  Int?      // 1-5 (if CSAT survey)
+  sentiment   String?   // positive, neutral, negative
+  
+  // Metadata
+  started_at  DateTime?
+  completed_at DateTime @default(now())
+  time_spent_seconds Int?
+  
+  @@index([survey_id])
+  @@index([lead_id])
+  @@index([completed_at])
+  @@map("bot_survey_responses")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════════
+
+enum BotLeadStatus {
+  new
+  contacted
+  qualified
+  demo_scheduled
+  demo_completed
+  proposal_sent
+  negotiation
+  trial
+  customer
+  churned
+  lost
+  unsubscribed
+}

@@ -36,9 +36,9 @@ export async function POST(req: NextRequest) {
   }
 
   return withWebhookGlobalAdminContext({ source: 'blaster-webhook' }, async () => {
+  const body: Record<string, unknown> = await req.json().catch(() => ({}));
+  
   try {
-
-    const body: Record<string, unknown> = await req.json().catch(() => ({}));
     const type = req.nextUrl.searchParams.get('type') ?? 'lead';
 
     const phone = String(body.phone ?? body.Phone ?? body.from ?? '').replace(/\D/g, '');
@@ -115,8 +115,12 @@ export async function POST(req: NextRequest) {
 
     return json({ ok: true, leadId: lead.id, type });
   } catch (err: unknown) {
-    console.error('[blaster-webhook]', getErrorMessage(err));
-    return json({ error: 'Internal error' }, 500);
+    const errorMessage = getErrorMessage(err);
+    const errorStack = err instanceof Error ? err.stack : '';
+    console.error('[blaster-webhook] ERROR:', errorMessage);
+    console.error('[blaster-webhook] STACK:', errorStack);
+    console.error('[blaster-webhook] BODY:', JSON.stringify(body));
+    return json({ error: 'Internal error', details: errorMessage }, 500);
   }
   });
 }

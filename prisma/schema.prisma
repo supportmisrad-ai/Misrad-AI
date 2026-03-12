@@ -5264,3 +5264,309 @@ model CycleAsset {
   @@index([category])
   @@map("cycle_assets")
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// BOT LEADS & WHATSAPP SYSTEM - Extended Schema
+// ═══════════════════════════════════════════════════════════════════
+
+model BotLeadExtended {
+  id               String            @id @default(cuid())
+  phone            String            @unique
+  
+  // Basic Info
+  name             String?
+  first_name       String?
+  last_name        String?
+  business_name    String?
+  business_type    String?
+  email            String?
+  email_validated  Boolean?          @default(false)
+  alternative_phone String?
+  
+  // Industry & Company
+  industry         String?
+  sub_industry     String?
+  org_size         String?
+  employee_count   Int?
+  annual_revenue   String?
+  years_in_business String?
+  
+  // Online Presence
+  website          String?
+  linkedin_company String?
+  facebook_page    String?
+  instagram_handle String?
+  
+  // Location
+  address          String?
+  city             String?
+  region           String?
+  country          String?
+  zip_code         String?
+  latitude         Decimal?          @db.Decimal(10, 6)
+  longitude        Decimal?          @db.Decimal(10, 6)
+  location_name    String?
+  location_type    String?
+  service_area     String?
+  timezone         String?           @default("Asia/Jerusalem")
+  
+  // Communication
+  preferred_language String?         @default("hebrew")
+  communication_pref String?         @default("whatsapp")
+  best_time_to_call String?
+  
+  // Source & Tracking
+  source           String?           @default("blaster")
+  medium           String?           @default("whatsapp")
+  campaign         String?
+  campaign_id      String?
+  referrer_name    String?
+  referrer_code    String?
+  landing_page     String?
+  utm_source       String?
+  utm_medium       String?
+  utm_campaign     String?
+  
+  // Coupons
+  coupon_code      String?
+  coupon_type      String?
+  discount_amount  Decimal?          @db.Decimal(10, 2)
+  discount_percent Int?
+  
+  // Media
+  has_media        Boolean?          @default(false)
+  media_type       String?
+  image_url        String?
+  
+  // Interactive
+  button_clicked   String?
+  qr_scanned       Boolean?          @default(false)
+  
+  // Product
+  selected_plan    String?
+  plan_price       Decimal?          @db.Decimal(10, 2)
+  pain_point       String?
+  pain_level       String?
+  
+  // Sales
+  budget_range     String?
+  urgency_level    String?
+  
+  // Status
+  status           BotLeadStatus     @default(new)
+  priority         String?           @default("medium")
+  lead_score       Int?              @default(0)
+  lead_quality     String?           @default("warm")
+  stage            String?           @default("new_lead")
+  assigned_to      String?
+  
+  // Actions
+  next_action      String?
+  next_action_date DateTime?         @db.Date
+  
+  // Dates
+  first_contact_date DateTime?
+  last_activity_date DateTime?
+  demo_scheduled_date DateTime?
+  trial_start_date DateTime?
+  closed_date      DateTime?
+  
+  // Notes
+  tags             String[]          @default([])
+  notes            String?             @db.Text
+  custom_fields    Json?             @default("{}")
+  
+  // Relations
+  conversations    BotConversationExtended[]
+  media            BotMedia[]
+  outgoingMessages BotOutgoingMessage[]
+  surveyResponses  BotSurveyResponse[]
+  
+  // Metadata
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+  last_interaction DateTime          @default(now())
+  
+  organization_id  String?           @db.Uuid
+
+  @@index([status])
+  @@index([created_at])
+  @@index([organization_id])
+  @@map("bot_leads_extended")
+}
+
+model BotConversationExtended {
+  id         String   @id @default(cuid())
+  lead_id    String
+  lead       BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  direction  String
+  message    String
+  rule_id    String?
+  variables  Json?
+  created_at DateTime @default(now())
+
+  @@index([lead_id])
+  @@index([created_at])
+  @@map("bot_conversations_extended")
+}
+
+model BotOutgoingMessage {
+  id           String   @id @default(cuid())
+  lead_id      String
+  lead         BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  phone        String
+  message      String   @db.Text
+  message_type String   @default("text")
+  media_url    String?
+  template_name String?
+  status       String   @default("pending")
+  sent_at      DateTime?
+  delivered_at DateTime?
+  read_at      DateTime?
+  scheduled_at DateTime?
+  campaign_id  String?
+  created_at   DateTime @default(now())
+
+  @@index([lead_id])
+  @@index([status])
+  @@map("bot_outgoing_messages")
+}
+
+model BotMedia {
+  id              String   @id @default(cuid())
+  lead_id         String
+  lead            BotLeadExtended @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  file_name       String
+  file_url        String
+  file_type       String
+  mime_type       String?
+  file_size_bytes BigInt?
+  caption         String?  @db.Text
+  ai_analysis     Json?
+  created_at      DateTime @default(now())
+
+  @@index([lead_id])
+  @@map("bot_media")
+}
+
+model BotCampaign {
+  id               String   @id @default(cuid())
+  name             String
+  campaign_type    String
+  description      String?  @db.Text
+  start_date       DateTime?
+  end_date         DateTime?
+  status           String   @default("draft")
+  messages_sent    Int      @default(0)
+  messages_delivered Int   @default(0)
+  messages_read    Int      @default(0)
+  leads_generated  Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([status])
+  @@map("bot_campaigns")
+}
+
+model BotLottery {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?  @db.Text
+  start_date       DateTime
+  end_date         DateTime
+  status           String   @default("upcoming")
+  prize_count      Int      @default(1)
+  prize_value      Decimal? @db.Decimal(10, 2)
+  total_participants Int    @default(0)
+  winner_id        String?
+  winner_name      String?
+  created_at       DateTime @default(now())
+
+  @@index([status])
+  @@map("bot_lotteries")
+}
+
+model BotReferral {
+  id               String   @id @default(cuid())
+  referrer_id      String
+  referred_id      String
+  referral_code    String   @unique
+  referral_date    DateTime @default(now())
+  level            Int      @default(1)
+  is_active        Boolean? @default(true)
+  commission_rate  Decimal? @db.Decimal(5, 2)
+  total_earned     Decimal? @db.Decimal(10, 2) @default(0)
+  created_at       DateTime @default(now())
+
+  @@unique([referrer_id, referred_id])
+  @@index([referrer_id])
+  @@map("bot_referrals")
+}
+
+model BotCoupon {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  discount_type    String
+  discount_value   Decimal? @db.Decimal(10, 2)
+  usage_limit      Int?
+  usage_count      Int      @default(0)
+  start_date       DateTime @default(now())
+  expiry_date      DateTime?
+  status           String   @default("active")
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([code])
+  @@index([status])
+  @@map("bot_coupons")
+}
+
+model BotAnalytics {
+  id               String   @id @default(cuid())
+  date             DateTime @unique @db.Date
+  total_leads      Int      @default(0)
+  new_leads        Int      @default(0)
+  qualified_leads  Int      @default(0)
+  deals_closed     Int      @default(0)
+  revenue          Decimal? @db.Decimal(12, 2) @default(0)
+  conversion_rate  Decimal? @db.Decimal(5, 2)
+  messages_sent    Int      @default(0)
+  messages_read    Int      @default(0)
+  calculated_at    DateTime @default(now())
+
+  @@index([date])
+  @@map("bot_analytics")
+}
+
+model BotSurvey {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?  @db.Text
+  survey_type      String   @default("feedback")
+  questions        Json
+  status           String   @default("draft")
+  total_responses  Int      @default(0)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([status])
+  @@map("bot_surveys")
+}
+
+model BotSurveyResponse {
+  id           String    @id @default(cuid())
+  survey_id    String
+  lead_id      String?
+  lead         BotLeadExtended? @relation(fields: [lead_id], references: [id])
+  phone        String?
+  answers      Json
+  nps_score    Int?
+  csat_score   Int?
+  sentiment    String?
+  completed_at DateTime  @default(now())
+
+  @@index([survey_id])
+  @@index([lead_id])
+  @@map("bot_survey_responses")
+}
