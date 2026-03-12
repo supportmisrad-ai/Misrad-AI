@@ -29,7 +29,7 @@ Account: MISRAD AI Marketing
 
 ### Ad Copy
 **Headline 1:** MISRAD AI — האתר הרשמי  
-**Headline 2:** 6 מודולים במחיר אחד  
+**Headline 2:** נקסוס בלבד — ניהול צוות ומשימות  
 **Headline 3:** התחל ניסיון 7 ימים חינם  
 **Description:** מערכת AI שמנהלת את הארגון. CRM, שיווק, תפעול, Finance — הכל במקום אחד. AI מנתח, מחזה, וממליץ.
 
@@ -184,7 +184,7 @@ Account: MISRAD AI Marketing
 **Bid:** CPV ₪0.05-0.10
 
 #### Bumper Ads (6 שניות)
-**Message:** "MISRAD AI — 6 מודולים, מחיר אחד"  
+**Message:** "MISRAD AI — נקסוס בלבד ₪149, חבילות מ-₪249"  
 **Budget:** ₪300/חודש  
 **Bid:** CPM ₪40-60
 
