@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
 /**
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const { searchParams } = new URL(request.url);
     const orgSlug = searchParams.get('orgSlug');
     const start = searchParams.get('start');
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('GET /api/booking/appointments', organizationId);
 
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('POST /api/booking/appointments', organizationId);
 

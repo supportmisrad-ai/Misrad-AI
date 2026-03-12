@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
 /**
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Workspace access guard
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('GET /api/booking/providers', organizationId);
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Workspace access guard
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const workspace = await requireWorkspaceAccessByOrgSlugApiCached(clerkUserId, orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('POST /api/booking/providers', organizationId);
 
