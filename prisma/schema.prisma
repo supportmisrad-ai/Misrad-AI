@@ -5652,6 +5652,10 @@ model BookingLink {
   
   /// ימים זמינים בשבוע (מערך של 0-6)
   availableDays     Int[]    @map("available_days")
+  /// שעת התחלה לקביעה (למשל: "09:00")
+  availableStartTime String   @default("09:00") @map("available_start_time")
+  /// שעת סיום לקביעה (למשל: "17:00")
+  availableEndTime   String   @default("17:00") @map("available_end_time")
   /// מינימום שעות מראש לקביעה
   minNoticeHours    Int      @default(24) @map("min_notice_hours")
   /// עד כמה ימים קדימה ניתן לקבוע
