@@ -119,13 +119,15 @@ export function useAttendanceTile(): UseAttendanceTileResult {
 
   const clockIn = useCallback(() => {
     if (!authClockIn || isBusy) return;
+    // Capture timestamp IMMEDIATELY on click - this is the authoritative start time
+    const clickTimestamp = new Date().toISOString();
     // Set optimistic state immediately for instant UI feedback
-    // This ensures the clock starts showing 00:00 immediately, then 00:01 on next tick
-    setOptimisticStartTime(new Date().toISOString());
+    setOptimisticStartTime(clickTimestamp);
     setIsBusy(true);
     // Safety timeout: auto-reset after 10s in case state doesn't change
     busyTimerRef.current = setTimeout(() => { setIsBusy(false); busyTimerRef.current = null; }, 10_000);
-    authClockIn();
+    // Pass the original timestamp to useAuth so it uses the same time
+    authClockIn(clickTimestamp);
   }, [authClockIn, isBusy]);
 
   const clockOut = useCallback(() => {

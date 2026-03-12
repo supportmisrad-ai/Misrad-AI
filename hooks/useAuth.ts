@@ -778,7 +778,7 @@ export const useAuth = (
         addToast('משתמש נמחק לצמיתות', 'warning');
     };
 
-    const clockIn = () => {
+    const clockIn = (clickTimestamp?: string) => {
         if (!orgSlug) {
             addToast('חסר ארגון פעיל', 'error');
             return;
@@ -788,8 +788,9 @@ export const useAuth = (
         const gpsPromise = getLocation().catch(() => null);
 
         // OPTIMISTIC: immediately show active shift so clock starts counting
+        // Use provided timestamp (from UI click) or generate new one
+        const optimisticStart = clickTimestamp || new Date().toISOString();
         const optimisticId = `optimistic-${Date.now()}`;
-        const optimisticStart = new Date().toISOString();
         // Keep cache in sync immediately (works even before currentUser.id is loaded)
         setAttendanceCache(orgSlug, { entryId: optimisticId, startTime: optimisticStart });
         const optimisticEntry: TimeEntry = {
