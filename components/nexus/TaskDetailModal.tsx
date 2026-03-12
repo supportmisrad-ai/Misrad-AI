@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { TaskDetailChat } from './TaskDetailChat';
 import { TaskDetailProperties } from './TaskDetailProperties';
-import { TaskDetailPopovers } from './TaskDetailPopovers';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { MobileDrawer } from '../shared/MobileDrawer';
@@ -492,13 +491,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
           </div>
         )}
       </AnimatePresence>
-
-      <TaskDetailPopovers
-        task={task}
-        activePopover={activePopover}
-        popoverCoords={popoverCoords}
-        onClose={() => setActivePopover('none')}
-      />
 
       {isMobile ? (
         <MobileDrawer 

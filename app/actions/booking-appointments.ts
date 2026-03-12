@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
@@ -57,7 +58,7 @@ export async function createBookingAppointment(
         }
 
         // בדיקת זמינות עם נעילה (Transaction)
-        const appointment = await prisma.$transaction(async (tx: typeof prisma) => {
+        const appointment = await prisma.$transaction(async (tx) => {
           // בדיקה שאין תור קיים באותו זמן
           const existing = await tx.bookingAppointment.findFirst({
             where: {
