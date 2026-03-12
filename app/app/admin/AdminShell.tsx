@@ -263,6 +263,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     ],
     bot: [
       { href: '/app/admin/bot', label: 'דשבורד בוט', icon: MessageSquare },
+      { href: '/admin/bot-leads', label: 'לידים מהבוט', icon: Users },
+      { href: '/admin/bot-analytics', label: 'אנליטיקס לידים', icon: BarChart3 },
     ],
     ai: [
       { href: '/app/admin/ai', label: 'ניהול AI', icon: BrainCircuit },
