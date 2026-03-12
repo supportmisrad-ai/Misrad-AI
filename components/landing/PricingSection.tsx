@@ -18,13 +18,92 @@ interface PricingSectionProps {
 
 type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire';
 
-const PACKAGES: { key: PackageKey; emoji: string; label: string; who: string; price: number; modules: string; freeUsers: number }[] = [
-  { key: 'solo', emoji: '🎯', label: 'נקסוס בלבד', who: 'מתחילים עם ניהול משימות וצוות', price: 149, modules: 'ניהול וצוות (Nexus)', freeUsers: 1 },
-  { key: 'the_closer', emoji: '💼', label: 'מכירות', who: 'סוכן ביטוח, נדל״ן, מוקד — מנהל לידים עם AI', price: 249, modules: 'מכירות + ניהול', freeUsers: 1 },
-  { key: 'the_authority', emoji: '🎨', label: 'שיווק ומיתוג', who: 'פרילנסר / נותן שירות שמייצר תוכן', price: 349, modules: 'שיווק + לקוחות + ניהול', freeUsers: 1 },
-  { key: 'the_operator', emoji: '🔧', label: 'תפעול ושטח', who: 'קבלן / אנשי שטח שרוצים סדר', price: 349, modules: 'תפעול + ניהול + כספים', freeUsers: 1 },
-  { key: 'the_empire', emoji: '👑', label: 'הכל כלול', who: 'ארגון בצמיחה שרוצה AI בכל מודול', price: 499, modules: 'כל 6 המודולים', freeUsers: 5 },
-];
+const PACKAGES: { 
+  key: PackageKey; 
+  emoji: string; 
+  label: string; 
+  who: string; 
+  price: number; 
+  modules: string; 
+  freeUsers: number;
+  bullets: string[];
+}[] = [
+    { 
+      key: 'solo', 
+      emoji: '🎯', 
+      label: 'מודול בודד', 
+      who: 'בעלי עסקים שצריכים פתרון ממוקד', 
+      price: 149, 
+      modules: 'Nexus בלבד', 
+      freeUsers: 1,
+      bullets: [
+        'מודול הפיקוד והשליטה (Nexus)',
+        'ניהול משימות וצוות בזמן אמת',
+        'יומן עבודה מסונכרן',
+        'AI לסיכום משימות ותעדוף'
+      ]
+    },
+    { 
+      key: 'the_closer', 
+      emoji: '💼', 
+      label: 'חבילת מכירות', 
+      who: 'מוקדי מכירות, נדל״ן וסוכנים — ניהול לידים', 
+      price: 249, 
+      modules: 'System + Nexus', 
+      freeUsers: 1,
+      bullets: [
+        'מודול המכירות והסגירות (System)',
+        'מודול הפיקוד והשליטה (Nexus)',
+        'ניהול לידים וחיזוי סגירות AI',
+        'ניתוח שיחות ותובנות מכירה'
+      ]
+    },
+    { 
+      key: 'the_authority', 
+      emoji: '🎨', 
+      label: 'חבילת שיווק', 
+      who: 'יוצרי תוכן ובעלי קהילות שרוצים נוכחות', 
+      price: 349, 
+      modules: 'Social + Client + Nexus', 
+      freeUsers: 1,
+      bullets: [
+        'מודול הנוכחות והשיווק (Social)',
+        'מודול חוויית הלקוח (Client)',
+        'מודול הפיקוד והשליטה (Nexus)',
+        'יצירת תוכן ותזמון פוסטים AI'
+      ]
+    },
+    { 
+      key: 'the_operator', 
+      emoji: '🔧', 
+      label: 'חבילת תפעול', 
+      who: 'חברות אחזקה, קבלנים ואנשי שטח', 
+      price: 349, 
+      modules: 'Operations + Nexus', 
+      freeUsers: 1,
+      bullets: [
+        'מודול הביצוע והשטח (Operations)',
+        'מודול הפיקוד והשליטה (Nexus)',
+        'ניהול צוותי שטח ודיווחים',
+        'אופטימיזציית מסלולים ולו״ז AI'
+      ]
+    },
+    { 
+      key: 'the_empire', 
+      emoji: '👑', 
+      label: 'חבילת ארגון (הכל כלול)', 
+      who: 'חברות וארגונים שצריכים שליטה מלאה', 
+      price: 499, 
+      modules: 'כל 6 המודולים', 
+      freeUsers: 5,
+      bullets: [
+        'כל 6 המודולים של MISRAD AI',
+        'סנכרון מלא בין מכירות, שיווק ותפעול',
+        'AI מקיף לכל מחלקות הארגון',
+        'תמיכה עדיפה והטמעה אישית'
+      ]
+    },
+  ];
 
 export default function PricingSection({ 
   isAuthenticated,
@@ -57,9 +136,10 @@ export default function PricingSection({
         seats: users,
       });
     } catch {
-      return { amount: pkg.price, modules: BILLING_PACKAGES[selectedPkg].modules, includedSeats: pkg.freeUsers, extraSeats: 0 };
+      const p = PACKAGES.find(x => x.key === selectedPkg) || PACKAGES[4];
+      return { amount: p.price, modules: BILLING_PACKAGES[selectedPkg].modules, includedSeats: p.freeUsers, extraSeats: 0 };
     }
-  }, [selectedPkg, isSolo, selectedSoloModule, billingCycle, users, pkg.price, pkg.freeUsers]);
+  }, [selectedPkg, isSolo, selectedSoloModule, billingCycle, users]);
 
   const monthlyPrice = useMemo(() => {
     try {
@@ -70,9 +150,10 @@ export default function PricingSection({
         seats: users,
       }).amount;
     } catch {
-      return pkg.price;
+      const p = PACKAGES.find(x => x.key === selectedPkg) || PACKAGES[4];
+      return p.price;
     }
-  }, [selectedPkg, isSolo, selectedSoloModule, users, pkg.price]);
+  }, [selectedPkg, isSolo, selectedSoloModule, users]);
 
   const yearlySavings = billingCycle === 'yearly' ? (monthlyPrice * 12) - (pricing.amount * 12) : 0;
 
@@ -202,16 +283,16 @@ export default function PricingSection({
 
             <div className="p-6 sm:p-8 md:p-10">
               {/* Package name + price */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <div>
-                  <div className="text-sm font-bold text-indigo-600 mb-1">{pkg.emoji} {BILLING_PACKAGES[selectedPkg].labelHe}</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                  <div className="text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">{pkg.emoji} {BILLING_PACKAGES[selectedPkg].labelHe}</div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-5xl sm:text-6xl font-black text-slate-900 tracking-tighter">
                       ₪{pricing.amount}
                     </span>
-                    <span className="text-slate-500 text-lg font-bold">/חודש{billingCycle === 'yearly' ? ' · שנתי' : ''}</span>
-                    <span className="text-xs font-bold text-slate-400">(כולל מע&quot;מ)</span>
+                    <span className="text-slate-500 text-xl font-bold">/חודש{billingCycle === 'yearly' ? ' · שנתי' : ''}</span>
                   </div>
+                  <div className="text-xs font-bold text-slate-400 mt-1">כולל מע"מ</div>
                   {billingCycle === 'yearly' && (
                     <div className="flex items-center gap-2 mt-2">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700">
@@ -240,7 +321,7 @@ export default function PricingSection({
 
               {/* Modules */}
               <div className="mb-6">
-                <div className="text-xs font-black text-slate-500 mb-2.5">מודולים כלולים</div>
+                <div className="text-xs font-black text-slate-400 mb-3 uppercase tracking-widest">מודולים כלולים</div>
                 {isSolo ? (
                   <div className="space-y-3">
                     <StyledDropdown
@@ -257,12 +338,12 @@ export default function PricingSection({
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {(BILLING_PACKAGES[selectedPkg].modules || []).map((m) => (
-                      <span key={m} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-700">
-                        <Check size={12} strokeWidth={3} />
+                      <span key={m} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-black text-white">
+                        <Check size={14} strokeWidth={3} className="text-emerald-400" />
                         {getModuleLabelHe(m)}
                       </span>
                     ))}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-100 text-xs font-bold text-amber-700">
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-900 border border-amber-800 text-xs font-black text-white">
                       🎁 כספים — בונוס חינם
                     </span>
                   </div>
@@ -277,10 +358,22 @@ export default function PricingSection({
                 </span>
               </div>
 
+              {/* Features List */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                {pkg.bullets.map((bullet, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <div className="mt-1 bg-indigo-100 rounded-full p-0.5">
+                      <Check size={12} className="text-indigo-600" />
+                    </div>
+                    <span className="text-sm text-slate-700 font-medium">{bullet}</span>
+                  </div>
+                ))}
+              </div>
+
               {/* AI Credits */}
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-100 mb-6">
-                <span className="text-sm">🤖</span>
-                <span className="text-xs font-bold text-purple-700">
+              <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-50 border-2 border-slate-100 mb-8">
+                <span className="text-lg">🤖</span>
+                <span className="text-sm font-black text-slate-900">
                   {AI_CREDITS_PER_PLAN[selectedPkg].toLocaleString()} קרדיטי AI לחודש
                 </span>
               </div>

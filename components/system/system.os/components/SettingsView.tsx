@@ -1,19 +1,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CustomSelect } from '@/components/CustomSelect';
+import Link from 'next/link';
 import { 
-    User, Bell, Shield, Building, Mail, Smartphone, 
+    User, Bell, Shield, Mail, Smartphone, 
     SquareActivity, CreditCard, Users, Plus, Trash2, Check, 
     Globe, Lock, LogOut, Receipt, FileText, TriangleAlert, 
     Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target,
     FileInput, Zap, ExternalLink, BrainCircuit, Loader2, Info,
     Phone, ShoppingBag, MessageSquareText, Lightbulb, BookOpenText
 } from 'lucide-react';
-import Link from 'next/link';
 import { INITIAL_AGENTS, STAGES } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { useBrand } from '../contexts/BrandContext';
 import SystemTargetsView from './SalesTargetsView';
 import { Lead } from '../types';
 
@@ -23,7 +21,7 @@ interface SettingsViewProps {
   orgSlug?: string;
 }
 
-type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications' | 'ai_sales';
+type SettingsTabId = 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications' | 'ai_sales';
 
 interface AiSalesContextData {
   businessDescription: string;
@@ -48,20 +46,9 @@ const EMPTY_SALES_CONTEXT: AiSalesContextData = {
 const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' }) => {
   const { canAccess, user, isSuperAdmin, isTenantAdmin } = useAuth();
   const { addToast } = useToast();
-  const { brandName, brandLogo, setBrandName, setBrandLogo } = useBrand();
   
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTabId>('targets');
   const [teamMembers, setTeamMembers] = useState(INITIAL_AGENTS);
-  
-  // Local state for brand editing
-  const [tempName, setTempName] = useState(brandName);
-  const [tempLogo, setTempLogo] = useState<string | null>(brandLogo);
-
-  // Sync when context changes (if updated elsewhere)
-  useEffect(() => {
-      setTempName(brandName);
-      setTempLogo(brandLogo);
-  }, [brandName, brandLogo]);
   
   // Notification preferences state
   const [notifPrefs, setNotifPrefs] = useState([
@@ -138,23 +125,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
   // Rule 1: Dynamic Configuration State (Simulated)
   const [editableStages, setEditableStages] = useState(STAGES);
 
-  const handleSave = () => {
-      setBrandName(tempName);
-      setBrandLogo(tempLogo);
-      addToast('הגדרות נשמרו בהצלחה', 'success');
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setTempLogo(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-    }
-  };
-
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange?: () => void }) => (
       <div
           role="switch"
@@ -181,7 +151,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
   // Filter Tabs based on RBAC
   const TABS = (
     [
-      { id: 'general', label: 'על העסק', icon: Building, desc: 'פרטים ומיתוג', allowed: true },
       { id: 'targets', label: 'יעדים', icon: Target, desc: 'ניהול יעדי מכירות', allowed: true },
       { id: 'pipeline', label: 'תהליך המכירה', icon: Kanban, desc: 'עריכת שלבים', allowed: canAccess('settings_team') },
       { id: 'team', label: 'צוות והרשאות', icon: Users, desc: 'מי במערכת', allowed: canAccess('settings_team') },
@@ -283,100 +252,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                   <div className="animate-slide-up h-full">
                       <SystemTargetsView leads={leads} />
                   </div>
-              )}
-
-              {/* GENERAL TAB */}
-              {activeTab === 'general' && (
-                <div className="space-y-6 animate-slide-up">
-                    
-                    {/* Brand Settings */}
-                    <div className="ui-card overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Building size={20} className="text-primary" />
-                                מיתוג המערכת
-                            </h3>
-                        </div>
-                        <div className="p-6 md:p-8">
-                            <div className="flex flex-col md:flex-row gap-8 items-start">
-                                {/* Logo Upload */}
-                                <div className="flex flex-col items-center gap-3">
-                                    <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative group">
-                                        {tempLogo ? (
-                                            <img src={tempLogo} alt="Logo" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Target size={32} className="text-slate-300" />
-                                        )}
-                                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white text-xs font-bold">
-                                            החלף לוגו
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                                        </label>
-                                    </div>
-                                    <div className="text-xs text-slate-400">מומלץ: PNG שקוף</div>
-                                </div>
-
-                                {/* Fields */}
-                                <div className="flex-1 space-y-4 w-full">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">שם המערכת (העסק)</label>
-                                        <input 
-                                            type="text" 
-                                            value={tempName}
-                                            onChange={(e) => setTempName(e.target.value)}
-                                            className="w-full" 
-                                            placeholder="שם העסק שלך"
-                                        />
-                                        <p className="text-xs text-slate-400">זה השם שיופיע בראש התפריט ובמסך הכניסה.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="ui-card overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <Globe size={20} className="text-primary" />
-                                שפה ומטבע
-                            </h3>
-                        </div>
-                        <div className="p-6 md:p-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">שפת מערכת</label>
-                                    <CustomSelect
-                                        value="עברית"
-                                        onChange={() => {}}
-                                        options={[
-                                            { value: 'עברית', label: 'עברית' },
-                                            { value: 'אנגלית', label: 'אנגלית' },
-                                        ]}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-slate-700">מטבע ראשי</label>
-                                    <CustomSelect
-                                        value="₪ שקל חדש"
-                                        onChange={() => {}}
-                                        options={[
-                                            { value: '₪ שקל חדש', label: '₪ שקל חדש' },
-                                            { value: '$ דולר אמריקאי', label: '$ דולר אמריקאי' },
-                                        ]}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                        <button 
-                            onClick={handleSave}
-                            className="bg-onyx-900 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all flex items-center gap-2 hover:-translate-y-0.5"
-                        >
-                            <Save size={18} /> שמור הגדרות
-                        </button>
-                    </div>
-                </div>
               )}
 
               {/* PIPELINE CONFIG TAB */}
@@ -607,7 +482,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                         <div className="ui-card overflow-hidden">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                    <Building size={20} className="text-indigo-500" />
+                                    <Info size={20} className="text-indigo-500" />
                                     תיאור העסק
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-1">ספר ל-AI מי אתה ומה העסק שלך עושה</p>
@@ -768,7 +643,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
 
               {/* NOTIFICATIONS TAB */}
               {activeTab === 'notifications' && (
-                  <div className="space-y-6 animate-slide-up">
+                  <div className="space-y-6 animate-slide-up pb-24 md:pb-8">
                       <div className="ui-card p-6 md:p-8">
                           <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                               <Bell size={20} className="text-primary" />

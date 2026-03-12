@@ -1270,6 +1270,8 @@ export class AIService {
         organization_id: null,
         feature_key: params.featureKey,
         enabled: true,
+        // TODO(גיהוי): זה תיקון זמני - מחליף את Gemini ב-OpenAI כי יש יתרה ומפתח תקין ב-OpenAI.
+        // יש להחזיר בהמשם ל-google/gemini-2.5-flash כשיתוקן המפתח של Gemini.
         primary_provider: isEmbedding
           ? 'openai'
           : isVision
@@ -1280,7 +1282,9 @@ export class AIService {
             ? 'openai'
             : isObjection
               ? 'groq'
-              : 'google',
+              : 'openai',
+        // TODO(גיהוי): זה תיקון זמני - מחליף את gemini-2.5-flash ב-gpt-4o-mini.
+        // יש להחזיר בהמשם ל-gemini-2.5-flash כשיתוקן המפתח של Gemini.
         primary_model: isEmbedding
           ? 'text-embedding-3-small'
           : isVision
@@ -1293,7 +1297,7 @@ export class AIService {
               ? 'llama-3.1-70b-versatile'
               : isClientMeetingsAnalyze
                 ? 'gemini-2.5-flash'
-                : 'gemini-2.5-flash',
+                : 'gpt-4o-mini',
         fallback_provider: isImageGeneration ? 'google' : null,
         fallback_model: isImageGeneration ? 'gemini-3-pro-image-preview' : null,
         reserve_cost_cents: isEmbedding ? 10 : isVision ? 35 : isImageGeneration ? 4 : 25,

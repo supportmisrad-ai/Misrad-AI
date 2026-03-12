@@ -35,7 +35,7 @@
   /* פונטים */
   --font-sans: 'Assistant', 'Heebo', sans-serif;
 
-  /* Shadows (Client OS Admin) */
+  /* Shadows (Client Admin) */
   --shadow-glow-gold: 0 0 20px rgba(197, 165, 114, 0.35);
   --shadow-luxury: 0 25px 60px -15px rgba(15, 23, 42, 0.18);
 }
@@ -157,7 +157,7 @@ html.high-contrast *:focus-visible {
   outline-offset: 2px;
 }
 
-/* Client OS Admin utilities */
+/* Client Admin utilities */
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }

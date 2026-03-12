@@ -43,7 +43,7 @@
   - **`ai_embeddings` עם vector index** — בינה מלאכותית embeddings בלי pgvector-specific config (HNSW/IVFFlat params). ב-scale זה יהיה איטי.
 
 - **Schema Bloat**: יש חפיפה בין מערכות:
-  - `clients` (legacy social), `ClientClient` (Client OS), `NexusClient` (nexus module), `MisradClient` (misrad module), `CustomerAccount` — **5 טבלאות לקוחות**. זו לא בעיית ביצועים ישירה אלא סיכון תחזוקתי שיגרום ל-queries לא אופטימליים כשמישהו ישלוף לקוח מהטבלה הלא נכונה.
+  - `clients` (legacy social), `ClientClient` (Client), `NexusClient` (nexus module), `MisradClient` (misrad module), `CustomerAccount` — **5 טבלאות לקוחות**. זו לא בעיית ביצועים ישירה אלא סיכון תחזוקתי שיגרום ל-queries לא אופטימליים כשמישהו ישלוף לקוח מהטבלה הלא נכונה.
 
 ### צווארי בקבוק ברורים 🔴
 1. **Prisma middleware (tenant guard) על כל query** — כל DB operation עוברת middleware שבודקת scoping. זה נכון מבחינת אבטחה אבל מוסיף latency. ב-heavy load זה ירגיש.

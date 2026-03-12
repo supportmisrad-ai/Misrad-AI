@@ -123,23 +123,28 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
                     <>
                         <div className="flex items-center justify-between mb-4 z-10 relative">
                             <div className="flex items-center gap-4">
-                                <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm"><TrendingUp size={28} /></div>
-                                <div><h3 className="font-bold text-gray-900 text-lg">הכנסות</h3><p className="text-xs text-blue-600 font-bold flex items-center gap-1"><RefreshCw size={10} /> Live</p></div>
+                                <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm border border-blue-100 group-hover:scale-110 transition-transform"><TrendingUp size={28} /></div>
+                                <div><h3 className="font-black text-gray-900 text-lg uppercase tracking-tight">הכנסות</h3><p className="text-xs text-blue-600 font-bold flex items-center gap-1 animate-pulse"><RefreshCw size={10} /> Live Insights</p></div>
                             </div>
                             <button onClick={onEditGoals} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" aria-label="ערוך יעדים חודשיים"><Edit2 size={18} /></button>
                         </div>
                         <div className="relative z-10">
                             <div className="flex items-end justify-between mb-6">
                                 <div>
-                                    <div className="text-4xl font-black text-gray-900 tracking-tight">{formatCurrency(totalRevenue)}</div>
-                                    <div className={`text-xs font-bold flex items-center gap-1 mt-1 ${growth >= 0 ? 'text-green-600' : 'text-red-500'}`}>{growth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(Math.round(growth))}% צמיחה</div>
+                                    <div className="text-5xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalRevenue)}</div>
+                                    <div className={`text-sm font-black flex items-center gap-1 mt-2 ${growth >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        <div className={`p-1 rounded-full ${growth >= 0 ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+                                            {growth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                                        </div>
+                                        {Math.abs(Math.round(growth))}% צמיחה מהחודש שעבר
+                                    </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">יעד</div>
-                                    <div className="text-sm font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-lg inline-block">{formatCurrency(revenueGoal)}</div>
+                                    <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">יעד חודשי</div>
+                                    <div className="text-sm font-black text-slate-700 bg-slate-100/80 px-3 py-1.5 rounded-xl inline-block shadow-inner">{formatCurrency(revenueGoal)}</div>
                                 </div>
                             </div>
-                            <div className="-mx-4 -mb-4 opacity-50 group-hover:opacity-100 transition-opacity"><TrendChart data={revenueHistory} color="text-blue-500" /></div>
+                            <div className="-mx-4 -mb-4 opacity-40 group-hover:opacity-100 transition-opacity"><TrendChart data={revenueHistory} color="text-blue-500" /></div>
                         </div>
                     </>
                 ) : (

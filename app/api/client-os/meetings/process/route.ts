@@ -432,7 +432,7 @@ async function POSTHandler(req: Request) {
       }, { headers: abuse.headers });
     }
 
-    // Best-effort: also write to client_sessions so Client OS lists can show the recording and analysis.
+    // Best-effort: also write to client_sessions so Client lists can show the recording and analysis.
     try {
       const analysisObj = asObject(saved.analysis) ?? {};
       const summary = typeof analysisObj.summary === 'string' ? analysisObj.summary : null;

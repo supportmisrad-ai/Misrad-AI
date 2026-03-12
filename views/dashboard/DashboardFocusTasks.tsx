@@ -48,16 +48,27 @@ export const DashboardFocusTasks: React.FC<DashboardFocusTasksProps> = ({
                     focusTasks.map((task) => (
                         <div key={task.id} className="relative">
                             {task.isFocus && (
-                                <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-400 rounded-r-lg shadow-sm"></div>
+                                <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1.5 h-16 bg-yellow-400 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.5)] z-10 animate-pulse"></div>
                             )}
                             <TaskCard task={task} users={users} onClick={() => onOpenTask(task.id)} />
                         </div>
                     ))
                 ) : (
-                    <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-12 text-center border border-dashed border-gray-300">
-                        <Trophy size={64} className="mx-auto text-yellow-400 mb-4 drop-shadow-md" />
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">סיימת את המיקוד להיום!</h3>
-                        <p className="text-gray-500">קח משימה חדשה מהמאגר או צא להפסקה.</p>
+                    <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] p-12 text-center border-2 border-dashed border-slate-200 shadow-inner group hover:bg-white/80 transition-all duration-500">
+                        <div className="relative inline-block mb-6">
+                            <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full scale-150 group-hover:scale-110 transition-transform duration-700"></div>
+                            <Trophy size={80} className="relative text-yellow-400 drop-shadow-2xl animate-float" />
+                        </div>
+                        <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">השולחן נקי, מצוין!</h3>
+                        <p className="text-slate-500 text-lg max-w-md mx-auto leading-relaxed font-medium">
+                            סיימת את כל משימות המיקוד להיום. ה-AI מציע לך לקחת רגע של נחת, או לרענן משימות חדשות מהמאגר.
+                        </p>
+                        <button 
+                            onClick={onNavigateTasks}
+                            className="mt-8 px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-base shadow-xl shadow-slate-900/20 hover:bg-slate-800 active:scale-95 transition-all"
+                        >
+                            צפה במאגר המשימות
+                        </button>
                     </div>
                 )}
             </div>

@@ -1,6 +1,7 @@
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 import Link from 'next/link';
+import { Briefcase } from 'lucide-react';
 
 import { getOperationsProjectsData } from '@/app/actions/operations';
 import { formatProjectStatus } from '@/lib/services/operations/format';

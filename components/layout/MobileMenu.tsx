@@ -163,7 +163,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 {/* Separator */}
                 {allowMorningBrief ? <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div> : null}
 
-                {/* Primary Navigation Items (including Calendar) */}
+                {/* Primary Navigation Items (including Calendar) - Exclude settings and brain */}
                 <div className="grid grid-cols-4 gap-4">
                   {filteredNavItems
                     .filter(item => {
@@ -171,6 +171,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                       if (item.path === '/calendar') return false;
                       if (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden') return false;
                       if (item.path === '/settings') return false;
+                      if (item.path === '/brain') return false;
                       return true;
                     })
                     .map((item) => {
@@ -192,32 +193,43 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   })}
                 </div>
 
-                {/* Settings - Full Width, Centered */}
-                <div className="flex justify-center">
-                  <button 
-                    onClick={() => { 
-                      setIsMobileMenuOpen(false); 
-                      navigate('/settings?menu=1'); 
-                    }} 
-                    className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 group shadow-md ${
-                      isActive('/settings') 
-                        ? 'bg-slate-800 text-white shadow-lg shadow-slate-800/30' 
-                        : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
-                    }`}
-                    aria-label="הגדרות ופיצ'רים"
-                  >
-                    <Settings size={24} strokeWidth={2} />
-                    <span className={`text-sm font-bold ${isActive('/settings') ? 'text-white' : 'text-slate-800'}`}>הגדרות ופיצ'רים</span>
-                  </button>
+                {/* Settings & Nexus AI - 2 Column Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  {filteredNavItems
+                    .filter(item => item.path === '/settings' || item.path === '/brain')
+                    .map((item) => {
+                    const isActiveItem = isActive(item.path);
+                    const itemStyle = getMobileGridStyles(item.path, isActiveItem);
+                    return (
+                      <button 
+                        key={item.path}
+                        onClick={() => handleNavClick(item.path)} 
+                        className="flex flex-col items-center gap-2 group"
+                        aria-label={item.label}
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${itemStyle} ${isActiveItem ? 'shadow-slate-800/30' : 'shadow-gray-200/50'}`}>
+                          <item.icon size={22} strokeWidth={2} />
+                        </div>
+                        <span className={`text-[10px] font-medium text-center leading-tight transition-colors ${isActiveItem ? 'text-black font-bold' : 'text-gray-500'}`}>{item.label}</span>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* Separator */}
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                {/* Attendance + OS Modules */}
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} />
+                {/* Modules Section */}
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                  
+                  {/* Separator before Attendance */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent mb-3"></div>
+                  
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <OSAppSwitcher mode="inlineGrid" compact={true} />
+                  </div>
                 </div>
               </div>
             </motion.div>

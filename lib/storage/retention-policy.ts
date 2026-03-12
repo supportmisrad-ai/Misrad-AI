@@ -37,7 +37,7 @@ export const STORAGE_RETENTION_POLICY: Record<string, RetentionRule> = {
     mandatory: true, // חובה משפטית - לא ניתן להארכה
   },
 
-  // הקלטות פגישות - Client OS Module
+  // הקלטות פגישות - Client Module
   'meeting-recordings': {
     retentionDays: 365, // שנה
     description: 'הקלטות פגישות עם לקוחות נשמרות למשך שנה. ניתן להוריד ולגבות באופן ידני לפני המחיקה.',

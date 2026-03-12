@@ -2,6 +2,7 @@ import { DataProvider } from '@/context/DataContext';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { getMePageData } from '@/lib/server/me-page-data';
 import { MeView } from '@/views/MeView';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -14,11 +15,12 @@ export default async function ClientMePage({
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
 
-  const [user, signedLogo] = await Promise.all([
+  const [user, signedLogo, { leaveRequests, events }] = await Promise.all([
     resolveWorkspaceCurrentUserForUi(orgSlug),
     workspace.logo
       ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
       : Promise.resolve(''),
+    getMePageData(orgSlug),
   ]);
 
   const initialCurrentUser = {
@@ -49,6 +51,8 @@ export default async function ClientMePage({
             iconId: 'user',
           },
         ]}
+        initialLeaveRequests={leaveRequests}
+        initialEvents={events}
       />
     </DataProvider>
   );

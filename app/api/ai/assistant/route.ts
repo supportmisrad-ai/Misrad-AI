@@ -1,6 +1,7 @@
 import { apiError } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
+// Using Claude (Anthropic) for AI chat - restored from temporary OpenAI switch
 import Anthropic from '@anthropic-ai/sdk';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -677,16 +678,6 @@ async function POSTHandler(req: Request) {
         temperature: 0.3,
         maxTokens: 350,
         timeoutMs: 15000,
-        postProcess: (raw) => {
-          const actions = extractDynamicActions(raw);
-          let cleaned = stripActionsTag(raw);
-          if (actions.length === 0) {
-            cleaned = ensureSalesCTA(cleaned);
-          } else {
-            cleaned = cleaned + '\n\n' + JSON.stringify({ quickActions: actions.map(a => a.label) });
-          }
-          return cleaned;
-        },
         fallbackText:
           'כרגע יש תקלה זמנית בעוזר ה-AI. בינתיים אפשר לראות את המחירון המלא בדף [/pricing](/pricing), להירשם למערכת בדף [/login?mode=sign-up](/login?mode=sign-up) או ליצור קשר עם הצוות בעמוד [/contact](/contact).',
       });

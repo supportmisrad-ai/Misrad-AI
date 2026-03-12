@@ -9,8 +9,8 @@ import { useSecondTicker } from '@/hooks/useSecondTicker';
 import { DataContext } from '@/context/DataContext';
 import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-cache';
 
-// TEMP: Attendance clock is enabled ONLY inside Nexus module to avoid cross-module state confusion.
-const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus']);
+// Attendance clock is enabled in all OS modules with unified state across modules
+const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus', 'client', 'social', 'operations', 'system']);
 
 export function formatAttendanceDuration(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));

@@ -634,27 +634,48 @@ export default function SystemSalesPipelineClient({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="min-w-0">
-          <div className="text-xs font-black text-slate-400 uppercase tracking-widest">מכירות</div>
-          <div className="text-2xl md:text-3xl font-black text-slate-900 truncate flex items-center gap-3">
-            לידים
-            {!isAdmin && (
-              <span className="text-[10px] font-bold bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">הלידים שלי</span>
-            )}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div className="min-w-0">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">מכירות</div>
+            <div className="text-xl md:text-3xl font-black text-slate-900 truncate flex items-center gap-2">
+              לידים
+              {!isAdmin && (
+                <span className="text-[9px] font-bold bg-amber-50 border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full">שלי</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5 md:hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode('board')}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === 'board' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              <ListIcon size={16} />
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View Mode Icons - moved to top */}
-          <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar md:pb-0">
+          <div className="hidden md:flex items-center bg-slate-100 rounded-xl p-1 gap-1">
             <button
               type="button"
               onClick={() => setViewMode('board')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'board' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
-              title="לוח קנבן"
             >
               <LayoutGrid size={18} />
             </button>
@@ -664,33 +685,41 @@ export default function SystemSalesPipelineClient({
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
-              title="רשימה"
             >
               <ListIcon size={18} />
             </button>
           </div>
 
-          <div className="w-px h-6 bg-slate-200 mx-1" />
+          <div className="hidden md:block w-px h-6 bg-slate-200 mx-1" />
+
+          <button
+            type="button"
+            onClick={() => setShowNewLeadModal(true)}
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-xl text-xs font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-1.5 whitespace-nowrap"
+          >
+            <UserPlus size={14} /> חדש
+          </button>
 
           <button
             type="button"
             onClick={handleCopyLeadFormLink}
-            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all whitespace-nowrap ${
+            className={`inline-flex items-center gap-1.5 border px-3 py-2 rounded-xl text-xs font-black shadow-sm transition-all whitespace-nowrap ${
               leadFormCopied
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                 : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
             }`}
           >
             {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
-            {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
+            טופס
           </button>
+          
           {isAdmin && (
             <button
               type="button"
               onClick={() => setShowImportDialog(true)}
-              className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
+              className="bg-white border border-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-black shadow-sm transition-all whitespace-nowrap"
             >
-              ייבוא לידים
+              ייבוא
             </button>
           )}
           {isAdmin && (
@@ -700,125 +729,106 @@ export default function SystemSalesPipelineClient({
                 setIsStagesModalOpen(true);
                 void refreshStages();
               }}
-              className="bg-white border border-slate-200 text-slate-800 px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all"
+              className="bg-white border border-slate-200 text-slate-800 px-3 py-2 rounded-xl text-xs font-black shadow-sm transition-all whitespace-nowrap"
             >
-              ניהול שלבים
+              שלבים
             </button>
           )}
-            <button
-            type="button"
-            onClick={() => setShowNewLeadModal(true)}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
-          >
-            <UserPlus size={16} /> ליד חדש
-          </button>
         </div>
       </div>
 
       {/* Lead Capture Settings Banner — admin only */}
-      {isAdmin && <div className="mb-4 flex flex-wrap items-center gap-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-black text-slate-600">טופס לידים ציבורי</span>
+      {isAdmin && <div className="mb-4 flex items-center gap-4 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[10px] font-black text-slate-500 uppercase">טופס</span>
           <button
             type="button"
             disabled={lcLoading}
             onClick={() => void handleToggleLeadCapture()}
             dir="ltr"
-            className={`relative w-11 h-6 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+            className={`relative w-8 h-4.5 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
           >
-            <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEnabled ? 'translate-x-3.5' : 'translate-x-0'}`} />
           </button>
         </div>
-        {lcSettings.leadCaptureEnabled ? (
-          <>
-            <div className="hidden md:block w-px h-5 bg-slate-200" />
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-black text-slate-600">התראת מייל</span>
+        
+        {lcSettings.leadCaptureEnabled && (
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="w-px h-3.5 bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase">מייל</span>
               <button
                 type="button"
                 disabled={lcLoading}
                 onClick={() => void handleToggleEmailNotify()}
                 dir="ltr"
-                className={`relative w-11 h-6 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEmailNotify ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
+                className={`relative w-8 h-4.5 rounded-full p-0.5 transition-colors ${lcSettings.leadCaptureEmailNotify ? 'bg-emerald-500' : 'bg-slate-300'} ${lcLoading ? 'opacity-60' : ''}`}
               >
-                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEmailNotify ? 'translate-x-5' : 'translate-x-0'}`} />
+                <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transform transition-transform ${lcSettings.leadCaptureEmailNotify ? 'translate-x-3.5' : 'translate-x-0'}`} />
               </button>
             </div>
-            <div className="hidden md:block w-px h-5 bg-slate-200" />
-            <button
-              type="button"
-              onClick={handleCopyLeadFormLink}
-              className="text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors"
-            >
-              {leadFormCopied ? '✓ הועתק' : 'העתק קישור'}
-            </button>
-          </>
-        ) : (
-          <span className="text-[11px] text-slate-400">הפעל כדי לקבל לידים מטופס ציבורי</span>
+          </div>
         )}
       </div>}
 
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="חיפוש..."
-            className="flex-1 min-w-[120px] md:w-[320px] bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm"
+            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:border-slate-900 transition-colors"
           />
-
-          <div className="w-[140px] md:w-[220px]">
-            <CustomSelect
-              value={statusFilter}
-              onChange={(val) => {
-                if (val === 'all') {
-                  setStatusFilter('all');
-                  return;
-                }
-                setStatusFilter(val);
-              }}
-              options={[
-                { value: 'all', label: 'כל הסטטוסים' },
-                ...stagesForUi.map((s) => ({ value: String(s.key), label: String(s.label) })),
-              ]}
-            />
-          </div>
-
-          <div className="w-[140px] md:w-[240px]">
-            <CustomSelect
-              value={sortKey}
-              onChange={(val) => {
-                if (
-                  val === 'created_desc' ||
-                  val === 'created_asc' ||
-                  val === 'value_desc' ||
-                  val === 'value_asc' ||
-                  val === 'name_asc' ||
-                  val === 'name_desc'
-                ) {
-                  setSortKey(val);
-                }
-              }}
-              options={[
-                { value: 'created_desc', label: 'חדש ביותר' },
-                { value: 'created_asc', label: 'ישן ביותר' },
-                { value: 'value_desc', label: 'שווי גבוה' },
-                { value: 'value_asc', label: 'שווי נמוך' },
-                { value: 'name_asc', label: 'שם (א-ת)' },
-                { value: 'name_desc', label: 'שם (ת-א)' },
-              ]}
-            />
-          </div>
-
           <button
             type="button"
             onClick={() => setTodayOnly((v) => !v)}
-            className={`px-2.5 py-1.5 rounded-full text-xs font-black border shadow-sm transition-colors inline-flex items-center gap-1.5 whitespace-nowrap ${
+            className={`px-3 py-2 rounded-xl text-xs font-black border shadow-sm transition-colors whitespace-nowrap ${
               todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200'
             }`}
           >
-            לטיפול היום
+            היום
           </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <CustomSelect
+            value={statusFilter}
+            onChange={(val) => {
+              if (val === 'all') {
+                setStatusFilter('all');
+                return;
+              }
+              setStatusFilter(val);
+            }}
+            options={[
+              { value: 'all', label: 'כל הסטטוסים' },
+              ...stagesForUi.map((s) => ({ value: String(s.key), label: String(s.label) })),
+            ]}
+          />
+
+          <CustomSelect
+            value={sortKey}
+            onChange={(val) => {
+              if (
+                val === 'created_desc' ||
+                val === 'created_asc' ||
+                val === 'value_desc' ||
+                val === 'value_asc' ||
+                val === 'name_asc' ||
+                val === 'name_desc'
+              ) {
+                setSortKey(val);
+              }
+            }}
+            options={[
+              { value: 'created_desc', label: 'חדש ביותר' },
+              { value: 'created_asc', label: 'ישן ביותר' },
+              { value: 'value_desc', label: 'שווי גבוה' },
+              { value: 'value_asc', label: 'שווי נמוך' },
+              { value: 'name_asc', label: 'שם (א-ת)' },
+              { value: 'name_desc', label: 'שם (ת-א)' },
+            ]}
+          />
         </div>
       </div>
 

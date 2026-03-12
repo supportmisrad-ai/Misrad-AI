@@ -9,11 +9,17 @@ import { FormPendingButton } from '@/components/operations/FormPendingButton';
 
 export default async function OperationsNewProjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
 }) {
   const { orgSlug } = await params;
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
+
+  const errorRaw = sp.error;
+  const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 
   const clientOptionsRes = await getOperationsClientOptions({ orgSlug });
   const clientOptions = clientOptionsRes.success ? clientOptionsRes.data ?? [] : [];
@@ -56,6 +62,11 @@ export default async function OperationsNewProjectPage({
           </div>
 
           <form action={createAction} className="p-5 space-y-4">
+            {error ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-800">
+                {decodeURIComponent(error)}
+              </div>
+            ) : null}
             <div>
               <label htmlFor="title" className="block text-xs font-black text-slate-700">
                 שם פרויקט

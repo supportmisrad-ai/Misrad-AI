@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { FileText, Camera } from 'lucide-react';
 
 import { Select } from '@/components/ui/select';
 import { FormPendingButton } from '@/components/operations/FormPendingButton';
@@ -61,6 +61,7 @@ export default function WorkOrderDetailsTab({
   uploadAction: (formData: FormData) => Promise<void>;
   completeWithSignatureAction: (formData: FormData) => Promise<void>;
 }) {
+  const hasCheckIn = checkins.length > 0;
   return (
     <>
       <div className="rounded-xl border border-slate-200/60 bg-white p-4">
@@ -158,17 +159,34 @@ export default function WorkOrderDetailsTab({
           <GeoCheckInButton
             formId="ops-internal-checkin-form"
             label="הגעתי לאתר"
-            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+            checkedIn={hasCheckIn}
+            className={`w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black transition-colors ${hasCheckIn ? '' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
           />
         </form>
 
-        <form action={uploadAction} className="mt-3 space-y-2">
-          <input type="file" name="file" accept="image/*,application/pdf" capture="environment" className="block w-full text-sm" required />
+        <form action={uploadAction} className="mt-3">
+          <input type="file" name="file" id="file-input" accept="image/*,application/pdf" className="hidden" required />
+          <div className="grid grid-cols-2 gap-3">
+            <label 
+              htmlFor="file-input" 
+              className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-sky-400 hover:bg-sky-50 transition-all active:scale-95"
+            >
+              <FileText size={28} className="text-slate-600" />
+              <span className="text-xs font-bold text-slate-600">קובץ</span>
+            </label>
+            <label 
+              htmlFor="file-input"
+              className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-slate-200 rounded-2xl p-4 cursor-pointer hover:border-sky-400 hover:bg-sky-50 transition-all active:scale-95"
+            >
+              <Camera size={28} className="text-slate-600" />
+              <span className="text-xs font-bold text-slate-600">צילום</span>
+            </label>
+          </div>
           <FormPendingButton
             pendingText="מעלה..."
-            className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-50"
+            className="w-full mt-3 inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150 disabled:opacity-50"
           >
-            העלה תמונה/מסמך
+            העלה
           </FormPendingButton>
         </form>
 
@@ -225,7 +243,6 @@ export default function WorkOrderDetailsTab({
         </form>
       </div>
 
-      <WorkOrderAiSummary orgSlug={orgSlug} workOrderId={w.id} initialSummary={w.aiSummary} />
     </>
   );
 }

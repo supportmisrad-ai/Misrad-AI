@@ -53,7 +53,7 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents }) => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto no-scrollbar">
             {activeTab === 'analytics' && <AIAnalyticsView leads={leads} agents={agents} />}
             {activeTab === 'integrations' && canAccess('integrations_config') && <IntegrationsView logs={logs} />}
             {activeTab === 'settings' && <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />}

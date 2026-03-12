@@ -9,9 +9,9 @@ import ContextualBannerDisplay from '@/components/promotions/ContextualBannerDis
 
 export default function AboutPage() {
   const values = [
-    { icon: Target, title: 'פשוט. חד. ממוקד.', label: 'גישה', desc: 'בלי רעש, בלי עודף פיצ׳רים, רק מה שגורם לדברים לזוז.', gradient: 'from-indigo-500 to-purple-600' },
-    { icon: Palette, title: 'Luxury Light', label: 'עיצוב', desc: 'מערכת שנראית כמו מוצר פרימיום, ונשארת קריאה ונוחה כל היום.', gradient: 'from-rose-500 to-pink-600' },
-    { icon: Zap, title: 'מהירות ויציבות', label: 'ביצועים', desc: 'תהליכים קצרים, UI זורם, ותוצאות שמגיעות מהר.', gradient: 'from-amber-500 to-orange-600' },
+    { icon: Target, title: 'פשוט. חד. ממוקד.', label: 'גישה', desc: 'בלי רעש, בלי עודף פיצ׳רים, רק מה שגורם לדברים לזוז.', gradient: 'from-slate-900 to-slate-800' },
+    { icon: Palette, title: 'עיצוב פרימיום', label: 'חוויה', desc: 'מערכת שנראית כמו מוצר יוקרה, ונשארת קריאה ונוחה לשימוש אינטנסיבי.', gradient: 'from-slate-800 to-slate-700' },
+    { icon: Zap, title: 'ביצועים אגרסיביים', label: 'מהירות', desc: 'תגובתיות מיידית, UI זורם, ותוצאות שמגיעות בלי לחכות.', gradient: 'from-slate-900 to-slate-700' },
   ];
 
   return (
@@ -30,25 +30,27 @@ export default function AboutPage() {
               <Sparkles size={14} />
               <span>אודות</span>
             </div>
-            <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
+            <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-slate-900">
               MISRAD AI
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
+              <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 drop-shadow-sm">
                 מערכת שנבנתה לעבודה אמיתית
               </span>
             </h1>
-            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">
+              <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">
               אנחנו בונים את Misrad AI כדי לתת לעסקים בישראל מערכת אחת שמרכזת הכל: ניהול, תהליכים, צוות, לקוחות ותובנות — בלי רעש ובלי מערכות מפוזרות.
+              <br />
+              <span className="mt-4 block font-bold text-slate-900">ישיר. פשוט. חזק.</span>
             </p>
 
             <div className="mt-10 sm:mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
               {values.map((v) => (
-                <div key={v.label} className="group rounded-2xl sm:rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${v.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                    <v.icon size={20} className="sm:w-6 sm:h-6" />
+                <div key={v.label} className="group rounded-3xl bg-white border-2 border-slate-100 p-8 hover:border-slate-900 transition-all duration-500 shadow-sm hover:shadow-2xl">
+                  <div className={`w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                    <v.icon size={24} />
                   </div>
-                  <div className="mt-4 sm:mt-5 text-xs font-black text-slate-500">{v.label}</div>
-                  <div className="mt-1.5 sm:mt-2 text-lg sm:text-xl font-black text-slate-900">{v.title}</div>
-                  <div className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">{v.desc}</div>
+                  <div className="mt-6 text-xs font-black text-slate-400 uppercase tracking-widest">{v.label}</div>
+                  <div className="mt-2 text-xl font-black text-slate-900">{v.title}</div>
+                  <div className="mt-3 text-base text-slate-500 leading-relaxed font-medium">{v.desc}</div>
                 </div>
               ))}
             </div>
@@ -56,7 +58,7 @@ export default function AboutPage() {
             <div className="mt-12 flex flex-col sm:flex-row gap-4">
               <Link
                 href="/pricing"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
+                className="group inline-flex items-center justify-center gap-2 px-10 py-5 rounded-2xl bg-slate-900 text-white font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all"
               >
                 ראה מחירים
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -94,21 +96,21 @@ export default function AboutPage() {
           <div className="max-w-4xl mx-auto px-6">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-8 text-center">במספרים</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                <div className="text-3xl font-black text-indigo-700">6</div>
-                <div className="text-sm text-slate-600 mt-1">מודולים מובנים</div>
+              <div className="bg-white border-2 border-slate-100 rounded-3xl p-8 text-center shadow-sm hover:border-slate-200 transition-colors">
+                <div className="text-4xl font-black text-slate-900">6</div>
+                <div className="text-xs font-black text-slate-500 mt-2 uppercase tracking-widest">מודולים מובנים</div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                <div className="text-3xl font-black text-indigo-700">100%</div>
-                <div className="text-sm text-slate-600 mt-1">עברית מלאה</div>
+              <div className="bg-white border-2 border-slate-100 rounded-3xl p-8 text-center shadow-sm hover:border-slate-200 transition-colors">
+                <div className="text-4xl font-black text-slate-900">100%</div>
+                <div className="text-xs font-black text-slate-500 mt-2 uppercase tracking-widest">עברית מלאה</div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                <div className="text-3xl font-black text-indigo-700">AI</div>
-                <div className="text-sm text-slate-600 mt-1">מובנה בכל מודול</div>
+              <div className="bg-white border-2 border-slate-100 rounded-3xl p-8 text-center shadow-sm hover:border-slate-200 transition-colors">
+                <div className="text-4xl font-black text-slate-900">AI</div>
+                <div className="text-xs font-black text-slate-500 mt-2 uppercase tracking-widest">מובנה בכל מודול</div>
               </div>
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                <div className="text-3xl font-black text-indigo-700">₪149</div>
-                <div className="text-sm text-slate-600 mt-1">מתחיל מ-</div>
+              <div className="bg-white border-2 border-slate-100 rounded-3xl p-8 text-center shadow-sm hover:border-slate-200 transition-colors">
+                <div className="text-4xl font-black text-slate-900">₪149</div>
+                <div className="text-xs font-black text-slate-500 mt-2 uppercase tracking-widest">מחיר התחלתי</div>
               </div>
             </div>
           </div>

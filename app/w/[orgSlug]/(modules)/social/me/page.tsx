@@ -1,3 +1,4 @@
+import { getMePageData } from '@/lib/server/me-page-data';
 import { MeView } from '@/views/MeView';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -8,6 +9,7 @@ export default async function SocialMePage({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
+  const { leaveRequests, events } = await getMePageData(orgSlug);
 
   return (
     <MeView
@@ -26,6 +28,8 @@ export default async function SocialMePage({
           iconId: 'trending_up',
         },
       ]}
+      initialLeaveRequests={leaveRequests}
+      initialEvents={events}
     />
   );
 }

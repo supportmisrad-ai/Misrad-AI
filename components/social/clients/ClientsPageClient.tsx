@@ -11,13 +11,23 @@ import { joinPath } from '@/lib/os/social-routing';
 import { getClientsPage } from '@/app/actions/clients';
 import type { Client } from '@/types/social';
 
-export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
+export default function ClientsPageClient({ 
+  orgSlug,
+  initialClients = [],
+  initialNextCursor = null,
+  initialHasMore = false
+}: { 
+  orgSlug: string;
+  initialClients?: Client[];
+  initialNextCursor?: string | null;
+  initialHasMore?: boolean;
+}) {
   const basePath = `/w/${orgSlug}/social`;
   const { addToast, clients: contextClients } = useApp();
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [clients, setClients] = useState<Client[]>(initialClients);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'starter' | 'pro' | 'agency' | 'custom'>('all');

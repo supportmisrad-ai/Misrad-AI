@@ -51,69 +51,78 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
                                     id="create-task-btn"
                                     onClick={onCreateTask}
                                     type="button"
-                                    className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
+                                    className="group rounded-3xl border-2 border-slate-200 bg-white hover:border-slate-900 transition-all shadow-md hover:shadow-xl p-5 text-right relative overflow-hidden active:scale-95"
                                     aria-label="משימה חדשה"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative mr-auto">
-                                        <Plus size={18} />
-                                        <span
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (typeof window !== 'undefined') {
-                                                    window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key !== 'Enter' && e.key !== ' ') return;
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                if (typeof window !== 'undefined') {
-                                                    window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
-                                                }
-                                            }}
-                                            className="absolute -bottom-1 -left-1 w-6 h-6 rounded-xl bg-white text-slate-900 border border-slate-200 flex items-center justify-center shadow-sm"
-                                            aria-label="הקלטת משימה"
-                                        >
-                                            <Mic size={12} />
-                                        </span>
+                                    <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/[0.02] transition-colors" />
+                                    <div className="relative z-10">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/20 mb-4 group-hover:scale-110 transition-transform relative mr-auto">
+                                            <Plus size={22} strokeWidth={3} />
+                                            <span
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (typeof window !== 'undefined') {
+                                                        window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    if (typeof window !== 'undefined') {
+                                                        window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
+                                                    }
+                                                }}
+                                                className="absolute -bottom-1 -left-1 w-7 h-7 rounded-xl bg-white text-slate-900 border-2 border-slate-100 flex items-center justify-center shadow-md hover:bg-slate-50 transition-colors"
+                                                aria-label="הקלטת משימה"
+                                            >
+                                                <Mic size={14} strokeWidth={2.5} />
+                                            </span>
+                                        </div>
+                                        <div className="font-black text-base text-slate-900 tracking-tight">משימה חדשה</div>
+                                        <div className="mt-1 text-[11px] font-bold text-slate-500 uppercase tracking-tighter">התחלה מהירה</div>
                                     </div>
-                                    <div className="font-black text-sm text-slate-900">משימה חדשה</div>
-                                    <div className="mt-1 text-[10px] font-bold text-slate-500">התחלה מהירה</div>
                                 </button>
 
                                 <button
                                     onClick={onInviteEmployee}
                                     type="button"
-                                    className="group rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
+                                    className="group rounded-3xl border-2 border-slate-200 bg-white hover:border-purple-500 transition-all shadow-md hover:shadow-xl p-5 text-right relative overflow-hidden active:scale-95"
                                     aria-label="עובד חדש"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                        <Users size={18} />
+                                    <div className="absolute inset-0 bg-purple-500/0 group-hover:bg-purple-500/[0.02] transition-colors" />
+                                    <div className="relative z-10">
+                                        <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border-2 border-purple-100 mb-4 group-hover:scale-110 transition-transform mr-auto shadow-sm">
+                                            <Users size={22} />
+                                        </div>
+                                        <div className="font-black text-base text-slate-900 tracking-tight">עובד חדש</div>
+                                        <div className="mt-1 text-[11px] font-bold text-slate-500 uppercase tracking-tighter">הזמנה / הוספה</div>
                                     </div>
-                                    <div className="font-black text-sm text-slate-900">עובד חדש</div>
-                                    <div className="mt-1 text-[10px] font-bold text-slate-500">הזמנה / הוספה</div>
                                 </button>
 
                                 {isHomeDashboard && (
                                     <button
                                         onClick={onMorningBrief}
                                         type="button"
-                                        className="group relative rounded-3xl border border-slate-200/80 bg-white/90 hover:bg-white transition-all shadow-md hover:shadow-lg p-4 text-right"
+                                        className="group rounded-3xl border-2 border-slate-200 bg-white hover:border-orange-500 transition-all shadow-md hover:shadow-xl p-5 text-right relative overflow-hidden active:scale-95"
                                         aria-label="תדריך בוקר"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
-                                            <Sun size={18} />
+                                        <div className="absolute inset-0 bg-orange-500/0 group-hover:bg-orange-500/[0.02] transition-colors" />
+                                        <div className="relative z-10">
+                                            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border-2 border-orange-100 mb-4 group-hover:scale-110 transition-transform mr-auto shadow-sm relative">
+                                                <Sun size={22} />
+                                                {!isSynced && (
+                                                    <span className="absolute -top-1 -left-1 flex h-4 w-4" aria-hidden>
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 border-2 border-white"></span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="font-black text-base text-slate-900 tracking-tight">תדריך בוקר</div>
+                                            <div className="mt-1 text-[11px] font-bold text-slate-500 uppercase tracking-tighter">מיקוד יומי</div>
                                         </div>
-                                        <div className="font-black text-sm text-slate-900">תדריך בוקר</div>
-                                        <div className="mt-1 text-[10px] font-bold text-slate-500">מיקוד להיום</div>
-                                        {!isSynced && (
-                                            <span className="absolute top-3 left-3 flex h-2.5 w-2.5" aria-hidden>
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                                            </span>
-                                        )}
                                     </button>
                                 )}
 

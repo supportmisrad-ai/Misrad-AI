@@ -29,7 +29,7 @@
 | 3 | `/api/ai/analyze` | Nexus | "Nexus Brain" — BI/אנליטיקס עם סכמת JSON מובנית | ✅ פעיל |
 | 4 | `/api/ai/feedback` | Global | שמירת feedback על שיחות AI | ⚠️ חלקי — רק לוג, אין שמירה ל-DB |
 | 5 | `/api/ai/vision/identify` | Operations | זיהוי חלקים בתמונה (Vision AI) | ✅ פעיל |
-| 6 | `/api/client-os/ai/success-recommendation` | Client OS | טיפ AI לשימור לקוח | ✅ פעיל |
+| 6 | `/api/client-os/ai/success-recommendation` | Client | טיפ AI לשימור לקוח | ✅ פעיל |
 | 7 | `/api/operations/ai/vision` | Operations | תיאור תמונה למילוי שדה "תיאור פריט" | ✅ פעיל |
 | 8 | `/api/settings/ai-key` | Admin | בדיקת סטטוס מפתח AI | ✅ פעיל |
 | 9 | `/api/workspaces/[orgSlug]/ai/transcribe` | Global | תמלול אודיו (Speech-to-Text) | ✅ פעיל |
@@ -48,7 +48,7 @@
 | 4 | `getBusinessAuditAction` | Social | ביקורת עסקית ללקוח | ⛔ Placeholder — מחזיר string ריק |
 | 5 | `draftAIResponseAction` | Social | טיוטת תגובה AI | ✅ פעיל |
 | 6 | `getGlobalAgencyAuditAction` | Nexus | ניתוח רווחיות סוכנות | ✅ פעיל |
-| 7 | `analyzeMeetingTranscriptAction` | Client OS | ניתוח תמלול פגישה | ✅ פעיל, מתקדם מאוד |
+| 7 | `analyzeMeetingTranscriptAction` | Client | ניתוח תמלול פגישה | ✅ פעיל, מתקדם מאוד |
 | 8 | `generateClientInsightAction` | Nexus | תובנה אסטרטגית ללקוח | ✅ פעיל |
 | 9 | `generateDailyBriefingAction` | Nexus | "Morning Protocol" — תדריך בוקר | ✅ פעיל |
 | 10 | `generateSuccessRecommendationAction` | Nexus/Client | טיפ לשימור לקוח | ✅ פעיל |
@@ -183,7 +183,7 @@ WHERE EXISTS (...)
 - ❌ **אין חיזוי סגירות** — כתבנו על זה בחומרי השיווק ("75% סיכוי סגירה") אבל אין ML/AI שעושה את זה
 - ❌ **אין התראות AI proactive** — "ליד X לא ענה 3 ימים, כדאי להתקשר"
 
-### 3.3 Client OS (ניהול לקוחות)
+### 3.3 Client (ניהול לקוחות)
 
 **מה יש:**
 - `analyzeMeetingTranscript` — **הפיצ'ר הכי מתקדם!** — 13 שדות output כולל commitments, sentiment, liability risks

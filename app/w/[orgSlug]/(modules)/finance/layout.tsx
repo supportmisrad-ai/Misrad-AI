@@ -6,12 +6,20 @@ import {
   persistCurrentUserLastLocation,
 } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import FinanceLayoutShell from './FinanceLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('finance');
+
+// Async component for access check - wrapped in Suspense
+async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
+  return <>{children}</>;
+}
 
 export default async function FinanceModuleLayout({
   children,
@@ -22,11 +30,6 @@ export default async function FinanceModuleLayout({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-
-  // Only the fast access check blocks the layout — everything else streams
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
-  // Fire-and-forget: don't block render for location tracking
-  persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
 
   const def = getModuleDefinition('finance');
 
@@ -42,10 +45,13 @@ export default async function FinanceModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="finance" /></div>}>
-        <FinanceLayoutShell orgSlug={orgSlug}>
-          {children}
-        </FinanceLayoutShell>
+      {/* Immediate shell while access check runs */}
+      <Suspense fallback={<UnifiedLoadingShell moduleKey="finance" stage="shell" />}>
+        <AccessCheck orgSlug={orgSlug}>
+          <FinanceLayoutShell orgSlug={orgSlug}>
+            {children}
+          </FinanceLayoutShell>
+        </AccessCheck>
       </Suspense>
     </div>
   );

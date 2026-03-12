@@ -32,12 +32,12 @@ const ContractorPortalLinkCopy: React.FC<ContractorPortalLinkCopyProps> = ({ tok
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-row items-center gap-2">
         <input
           readOnly
           value={link}
           dir="ltr"
-          className="flex-1 h-10 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-mono text-slate-800 outline-none select-all"
+          className="flex-1 min-w-0 h-10 rounded-lg border border-emerald-200 bg-white px-3 text-sm font-mono text-slate-800 outline-none select-all"
           onFocus={(e) => e.currentTarget.select()}
         />
         <button
@@ -46,7 +46,7 @@ const ContractorPortalLinkCopy: React.FC<ContractorPortalLinkCopyProps> = ({ tok
           className={`shrink-0 h-10 inline-flex items-center justify-center rounded-lg px-4 text-sm font-bold transition-all duration-150 shadow-sm ${
             copied
               ? 'bg-emerald-600 text-white'
-              : 'bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+              : 'bg-emerald-50 border border-emerald-300 text-emerald-700 hover:bg-emerald-100'
           }`}
         >
           {copied ? 'הועתק!' : 'העתק'}

@@ -115,7 +115,7 @@
 
 ---
 
-### 4️⃣ CLIENT Module (Client OS)
+### 4️⃣ CLIENT Module (Client)
 **14 טבלאות חסרות:**
 
 - `client_clients` - לקוחות
@@ -133,7 +133,7 @@
 - `client_service_tiers` - רמות שירות
 - `client_sessions` - סשנים
 
-**סטטוס:** 🔴 **CRITICAL** - מודול Client OS חסר!
+**סטטוס:** 🔴 **CRITICAL** - מודול Client חסר!
 
 ---
 

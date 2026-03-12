@@ -10,7 +10,7 @@
 | # | Model | DB Table | שורות שימוש | תפקיד |
 |---|-------|----------|-------------|--------|
 | 1 | `clients` | `clients` | 16 | Legacy Social CRM clients |
-| 2 | `ClientClient` | `client_clients` | **58** | Client OS — הטבלה הראשית |
+| 2 | `ClientClient` | `client_clients` | **58** | Client — הטבלה הראשית |
 | 3 | `NexusClient` | `nexus_clients` | 18 | Nexus module clients |
 | 4 | `MisradClient` | `misrad_clients` | 9 | Professional services CRM |
 | 5 | `CustomerAccount` | `customer_accounts` | 4 | Bridge entity (מקשרת MisradClient ← → Org) |
@@ -31,7 +31,7 @@
 ### שכבת טננט (לקוחות של המשתמשים)
 
 #### `ClientClient` — ⭐ הטבלה המרכזית (58 שימושים)
-- **Client OS module** — ניהול לקוחות בתוך ארגון
+- **Client module** — ניהול לקוחות בתוך ארגון
 - שדות: fullName, phone, email, notes, metadata (JSON)
 - Relations: approvals, documents, feedbacks, notes, portal, sessions, tasks, files, serviceTier
 - **הכי מפותחת** — עם מערכת portal, documents, approvals, sessions

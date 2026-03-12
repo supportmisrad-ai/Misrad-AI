@@ -17,7 +17,7 @@
 | `social_organizations` | `organizations` | ארגונים/workspaces |
 | `TeamMember` | `team_members` | חברי צוות |
 | `NexusUser` | `nexus_users` | משתמשי Nexus |
-| `ClientClient` | `client_clients` | לקוחות Client OS |
+| `ClientClient` | `client_clients` | לקוחות Client |
 | `social_posts` | `social_posts` | פוסטים Social |
 
 ---

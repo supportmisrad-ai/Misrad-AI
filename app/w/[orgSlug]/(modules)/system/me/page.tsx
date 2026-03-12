@@ -1,4 +1,5 @@
 import { getSystemBootstrapCached } from '@/lib/services/system-service';
+import { getMePageData } from '@/lib/server/me-page-data';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
 
@@ -10,7 +11,10 @@ export default async function SystemMePage({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  const { initialCurrentUser, initialOrganization } = await getSystemBootstrapCached(orgSlug);
+  const [{ initialCurrentUser, initialOrganization }, { leaveRequests, events }] = await Promise.all([
+    getSystemBootstrapCached(orgSlug),
+    getMePageData(orgSlug),
+  ]);
 
   const normalizedCurrentUser = initialCurrentUser
     ? {
@@ -64,6 +68,8 @@ export default async function SystemMePage({
             iconId: 'bar_chart_3',
           },
         ]}
+        initialLeaveRequests={leaveRequests}
+        initialEvents={events}
       />
     </DataProvider>
   );

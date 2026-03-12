@@ -458,9 +458,12 @@ export default function OperationsShell({
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                  </div>
                 </div>
               </div>
             </motion.div>

@@ -1,15 +1,15 @@
 # MIGRATION_BLUEPRINT
 
-> Planning-only artifacts for Client OS merge into MISRAD AI.
+> Planning-only artifacts for Client merge into MISRAD AI.
 > No runtime code changes. No deletions.
 
 ## Scope
-- Reverse-engineered DB schema (Prisma models + enums) for Client OS
+- Reverse-engineered DB schema (Prisma models + enums) for Client
 - Refactoring Plan for splitting large files in the monorepo (nexus/social/system)
 - Supabase SQL migration output (separate file)
 
 ## Naming & multi-tenancy conventions
-- All Client OS tables: `misrad_*`
+- All Client tables: `misrad_*`
 - Every table includes: `organization_id` (uuid)
 - Any record belonging to a specific client also includes: `client_id` (uuid) FK -> `misrad_clients.id`
 - Primary keys: `id uuid`
@@ -21,7 +21,7 @@
 
 ---
 
-# 1) Reverse-engineered Prisma schema (Client OS)
+# 1) Reverse-engineered Prisma schema (Client)
 
 ## 1.1 Enums
 ```prisma
@@ -1224,7 +1224,7 @@ model MisradModuleSettings {
 
 ### 1.2.9 OPTIONAL: Chat schema (requested)
 
-Client OS source includes EmailCenter + ActivityLog but no formal chat thread model.
+Client source includes EmailCenter + ActivityLog but no formal chat thread model.
 If you want true chat threads in DB, add this minimal layer:
 
 ```prisma

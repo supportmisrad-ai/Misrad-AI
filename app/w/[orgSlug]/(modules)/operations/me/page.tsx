@@ -2,6 +2,7 @@ import { DataProvider } from '@/context/DataContext';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
+import { getMePageData } from '@/lib/server/me-page-data';
 import { MeView } from '@/views/MeView';
 import { FormCustomSelect } from '@/components/FormCustomSelect';
 import Link from 'next/link';
@@ -30,12 +31,13 @@ export default async function OperationsMePage({
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
 
-  // Parallelize user resolution and logo signing — both only need workspace.id
-  const [user, signedLogo] = await Promise.all([
+  // Parallelize user resolution, logo signing, and me data — all only need workspace.id
+  const [user, signedLogo, { leaveRequests, events }] = await Promise.all([
     resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id),
     workspace.logo
       ? resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id })
       : Promise.resolve(''),
+    getMePageData(orgSlug),
   ]);
 
   const initialCurrentUser = {
@@ -131,6 +133,8 @@ export default async function OperationsMePage({
               iconId: 'trending_up',
             },
           ]}
+          initialLeaveRequests={leaveRequests}
+          initialEvents={events}
         >
           {error ? (
             <div className="mb-3 rounded-2xl border border-rose-100 bg-rose-50 p-3 text-sm font-bold text-rose-800">{error}</div>

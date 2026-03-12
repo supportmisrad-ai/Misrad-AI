@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 
 import type { OperationsDashboardData } from '@/app/actions/operations';
 import type { OperationsInventoryOption } from '@/app/actions/operations';
@@ -71,21 +71,34 @@ export function OperationsDashboard({
       ) : null}
 
       {/* ──── Quick Action Bar ──── */}
-      <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="mb-8 flex flex-wrap items-center gap-4">
         <Link
           href={`${base}/work-orders/new`}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-black bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-200"
+          className="group relative overflow-hidden inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all duration-200"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Plus size={20} strokeWidth={3} />
           פתח קריאה חדשה
         </Link>
         <Link
           href={`${base}/projects/new`}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm transition-all duration-200"
+          className="inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-bold bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-200"
         >
-          <Plus size={16} strokeWidth={2} />
+          <Plus size={18} strokeWidth={2.5} />
           פרויקט חדש
         </Link>
+
+        {/* AI Insight Pill */}
+        <div className="hidden lg:flex flex-1 items-center justify-end">
+          <div className="bg-white/60 backdrop-blur-md border border-sky-100 px-5 py-3 rounded-2xl shadow-sm flex items-center gap-3 animate-fade-in">
+            <div className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+            <span className="text-sm font-bold text-slate-700">
+              {hasUrgent 
+                ? 'זיהוי AI: ישנן קריאות דחופות הדורשות טיפול מיידי למניעת חריגת SLA' 
+                : 'זיהוי AI: המערכת פועלת כסדרה. כל המשימות בטיפול.'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ──── Empty State ──── */}
@@ -113,23 +126,23 @@ export function OperationsDashboard({
       ) : null}
 
       {/* ──── Work Order Stats Cards ──── */}
-      <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link href={`${base}/work-orders`} className="group rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200">
-          <div className="text-2xl font-extrabold text-slate-900">{woStats?.open ?? 0}</div>
-          <div className="text-xs font-medium text-slate-500 mt-1">קריאות פתוחות</div>
-        </Link>
-        <Link href={`${base}/work-orders`} className="group rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200">
-          <div className="text-2xl font-extrabold text-amber-500">{woStats?.inProgress ?? 0}</div>
-          <div className="text-xs font-medium text-slate-500 mt-1">בטיפול</div>
-        </Link>
-        <Link href={`${base}/work-orders`} className="group rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200">
-          <div className="text-2xl font-extrabold text-emerald-500">{woStats?.doneToday ?? 0}</div>
-          <div className="text-xs font-medium text-slate-500 mt-1">הושלמו היום</div>
-        </Link>
-        <Link href={`${base}/work-orders?status=ALL`} className="group rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200">
-          <div className="text-2xl font-extrabold text-slate-900">{woStats?.total ?? 0}</div>
-          <div className="text-xs font-medium text-slate-500 mt-1">סה״כ קריאות</div>
-        </Link>
+      <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'קריאות פתוחות', value: woStats?.open ?? 0, color: 'text-slate-900', href: `${base}/work-orders` },
+          { label: 'בטיפול', value: woStats?.inProgress ?? 0, color: 'text-amber-500', href: `${base}/work-orders` },
+          { label: 'הושלמו היום', value: woStats?.doneToday ?? 0, color: 'text-emerald-500', href: `${base}/work-orders` },
+          { label: 'סה״כ קריאות', value: woStats?.total ?? 0, color: 'text-slate-900', href: `${base}/work-orders?status=ALL` },
+        ].map((card, idx) => (
+          <Link 
+            key={idx}
+            href={card.href} 
+            className="group relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200"
+          >
+            <div className={`text-3xl font-black ${card.color}`}>{card.value}</div>
+            <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-tight">{card.label}</div>
+            <div className="absolute bottom-0 left-0 h-1 w-0 bg-sky-500 transition-all duration-300 group-hover:w-full" />
+          </Link>
+        ))}
       </div>
 
       {/* ──── Closure Stats ──── */}
@@ -158,36 +171,39 @@ export function OperationsDashboard({
 
       {/* ──── Alerts Row ──── */}
       {hasUrgent ? (
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           {(woStats?.slaBreach ?? 0) > 0 ? (
-            <Link href={`${base}/work-orders`} className="rounded-2xl border border-red-200 bg-red-50/80 p-4 hover:bg-red-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-red-700 font-black text-sm">{woStats!.slaBreach}</div>
+            <Link href={`${base}/work-orders`} className="relative group overflow-hidden rounded-2xl border-2 border-red-500 bg-red-600 p-6 shadow-xl shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/30 transition-colors" />
+              <div className="relative flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center text-white font-black text-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">{woStats!.slaBreach}</div>
                 <div>
-                  <div className="text-sm font-black text-red-800">חריגות SLA</div>
-                  <div className="text-[11px] text-red-600">קריאות שעברו את זמן התגובה</div>
+                  <div className="text-sm font-black text-white uppercase tracking-widest">חריגות SLA</div>
+                  <div className="text-xs text-red-100 font-bold mt-0.5">קריאות שחורגות מזמן התגובה</div>
                 </div>
               </div>
             </Link>
           ) : null}
           {(woStats?.unassigned ?? 0) > 0 ? (
-            <Link href={`${base}/work-orders`} className="rounded-2xl border border-orange-200 bg-orange-50/80 p-4 hover:bg-orange-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-700 font-black text-sm">{woStats!.unassigned}</div>
+            <Link href={`${base}/work-orders`} className="relative group overflow-hidden rounded-2xl border-2 border-orange-500 bg-orange-500 p-6 shadow-xl shadow-orange-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/30 transition-colors" />
+              <div className="relative flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center text-white font-black text-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">{woStats!.unassigned}</div>
                 <div>
-                  <div className="text-sm font-black text-orange-800">ממתינות לשיוך</div>
-                  <div className="text-[11px] text-orange-600">קריאות ללא טכנאי</div>
+                  <div className="text-sm font-black text-white uppercase tracking-widest">ממתינות לשיוך</div>
+                  <div className="text-xs text-orange-50 font-bold mt-0.5">קריאות פתוחות ללא טכנאי</div>
                 </div>
               </div>
             </Link>
           ) : null}
           {((woStats?.priorityCritical ?? 0) + (woStats?.priorityUrgent ?? 0)) > 0 ? (
-            <Link href={`${base}/work-orders`} className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 hover:bg-rose-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-black text-sm">{(woStats?.priorityCritical ?? 0) + (woStats?.priorityUrgent ?? 0)}</div>
+            <Link href={`${base}/work-orders`} className="relative group overflow-hidden rounded-2xl border-2 border-rose-600 bg-rose-600 p-6 shadow-xl shadow-rose-600/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/30 transition-colors" />
+              <div className="relative flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center text-white font-black text-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">{(woStats?.priorityCritical ?? 0) + (woStats?.priorityUrgent ?? 0)}</div>
                 <div>
-                  <div className="text-sm font-black text-rose-800">דחיפות גבוהה</div>
-                  <div className="text-[11px] text-rose-600">{woStats?.priorityCritical ?? 0} קריטי, {woStats?.priorityUrgent ?? 0} דחוף</div>
+                  <div className="text-sm font-black text-white uppercase tracking-widest">דחיפות גבוהה</div>
+                  <div className="text-xs text-rose-100 font-bold mt-0.5">{woStats?.priorityCritical ?? 0} קריטי, {woStats?.priorityUrgent ?? 0} דחוף</div>
                 </div>
               </div>
             </Link>
@@ -316,32 +332,66 @@ export function OperationsDashboard({
             </div>
           </div>
           <div className="p-5 space-y-3">
-            <div className="rounded-xl border border-slate-200/60 bg-slate-50/50 p-4">
-              <div className="text-xs font-semibold text-slate-600">קליטת מלאי לרכב</div>
-              <div className="text-[11px] text-slate-400 mt-0.5">
-                {activeVehicleName ? `רכב: ${activeVehicleName}` : 'אין רכב פעיל'}
+            <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                  <Package size={20} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-slate-800 uppercase tracking-tight">קליטת מלאי מהירה</div>
+                  <div className="text-[11px] text-slate-500 font-bold">
+                    {activeVehicleName ? `מזין לרכב: ${activeVehicleName}` : 'יש לבחור רכב פעיל בהגדרות'}
+                  </div>
+                </div>
               </div>
-              <form action={onQuickAddStockAction} className="mt-3 flex gap-2">
+              
+              <form action={onQuickAddStockAction} className="flex flex-col gap-3">
                 <input type="hidden" name="itemId" value={selectedItemId} />
-                <div className="flex-1">
+                <div className="w-full">
                   <CustomSelect
                     value={selectedItemId}
                     onChange={(val) => setSelectedItemId(val)}
-                    placeholder="אין פריטים"
+                    placeholder="בחר פריט..."
                     options={inventoryOptions.map((o) => ({ value: String(o.itemId), label: o.label }))}
                   />
                 </div>
-                <input name="qty" type="number" step="0.001" min="0.001" placeholder="כמות" required className="w-20 h-10 rounded-lg border border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100" />
-                <button type="submit" disabled={!activeVehicleName || !inventoryOptions.length} className="h-10 rounded-lg px-4 text-sm font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed">קלוט</button>
+                <div className="flex gap-3">
+                  <input 
+                    name="qty" 
+                    type="number" 
+                    step="0.001" 
+                    min="0.001" 
+                    placeholder="כמות" 
+                    required 
+                    className="flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 text-base font-black text-slate-800 shadow-inner outline-none focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 transition-all" 
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={!activeVehicleName || !inventoryOptions.length} 
+                    className="h-12 rounded-2xl px-8 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all disabled:opacity-40 disabled:grayscale"
+                  >
+                    קלוט
+                  </button>
+                </div>
               </form>
             </div>
-            <div className="rounded-xl border border-slate-200/60 bg-slate-50/50 p-4">
-              <div className="text-xs font-semibold text-slate-600">פריט חדש</div>
-              <form action={onQuickCreateItemAction} className="mt-3 flex gap-2">
-                <input name="name" required placeholder="שם פריט" className="flex-1 h-10 rounded-lg border border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100" />
-                <input name="sku" placeholder="מק״ט" className="w-24 h-10 rounded-lg border border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100" />
-                <input name="unit" placeholder="יחידה" className="w-20 h-10 rounded-lg border border-slate-200/80 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100" />
-                <button type="submit" className="h-10 rounded-lg px-4 text-sm font-medium text-slate-700 bg-white border border-slate-200/80 shadow-sm hover:shadow hover:border-slate-300 transition-all duration-150">צור</button>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-6">
+              <div className="text-xs font-black text-slate-700 uppercase mb-6 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+                  <Plus size={18} strokeWidth={3} />
+                </div>
+                הוספת פריט חדש למחירון
+              </div>
+              <form action={onQuickCreateItemAction} className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input name="name" required placeholder="שם הפריט (למשל: ברז ניל 1/2)" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
+                  <input name="sku" placeholder="מק״ט" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
+                </div>
+                <div className="flex gap-3">
+                  <input name="unit" placeholder="יחידה" className="flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
+                  <button type="submit" className="h-12 rounded-2xl px-8 text-base font-black text-slate-700 bg-white border-2 border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-all">צור</button>
+                </div>
               </form>
             </div>
           </div>

@@ -387,8 +387,9 @@ function SystemShellGateClientCore({
                       >
                         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
                         <div className="space-y-6">
+                          {/* Group 0 + 1: Main items (4 + 4 = 8 items) */}
                           <div className="grid grid-cols-4 gap-4">
-                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'sales_leads', 'dialer'].includes(item.id)).map((item) => {
+                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'dialer'].includes(item.id)).map((item) => {
                               const path = item.id === 'workspace' ? '/' : `/${item.id}`;
                               const isActiveItem = isActiveAction(path);
                               return (
@@ -411,41 +412,7 @@ function SystemShellGateClientCore({
                                 </button>
                               );
                             })}
-                          </div>
-
-                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
-                          <div>
-                            <div className="grid grid-cols-4 gap-4">
-                              {[...NAV_GROUPS.slice(1, 3).flatMap(g => g.items)].map((item) => {
-                                const isActiveItem = isActiveAction(`/${item.id}`);
-                                return (
-                                  <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
-                                    className="flex flex-col items-center gap-2 group"
-                                  >
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                                      isActiveItem
-                                        ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
-                                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                                    }`}>
-                                      <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                    </div>
-                                    <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
-                                      {item.label}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
-                          <div className="flex justify-center">
-                            {NAV_GROUPS[3]?.items.filter(i => i.id !== 'settings').map((item) => {
+                            {NAV_GROUPS[1]?.items.map((item) => {
                               const isActiveItem = isActiveAction(`/${item.id}`);
                               return (
                                 <button
@@ -471,26 +438,42 @@ function SystemShellGateClientCore({
 
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
-                          <div className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
-                              className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 group shadow-md ${
-                                isActiveAction('/settings')
-                                  ? 'bg-[#A21D3C] text-white shadow-lg shadow-[#A21D3C]/30'
-                                  : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
-                              }`}
-                            >
-                              <Settings size={24} strokeWidth={2} />
-                              <span className="text-sm font-bold">הגדרות ופיצ׳רים</span>
-                            </button>
+                          {/* Group 2: Settings + Analytics - 2 columns */}
+                          <div className="grid grid-cols-2 gap-4">
+                            {NAV_GROUPS[2]?.items.map((item) => {
+                              const isActiveItem = isActiveAction(`/${item.id}`);
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
+                                  className="flex flex-col items-center gap-2 group"
+                                >
+                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                    isActiveItem
+                                      ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
+                                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                                  }`}>
+                                    <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                                  </div>
+                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                    {item.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
 
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
-                          <div className="space-y-3">
-                            <MobileMenuAttendanceButton />
-                            <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
+                          {/* Modules Section */}
+                          <div>
+                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                            
+                            <div className="space-y-3">
+                              <MobileMenuAttendanceButton />
+                              <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="system" />
+                            </div>
                           </div>
                         </div>
                       </motion.div>

@@ -20,10 +20,10 @@ const TEAM_OPTIONS = [
 ];
 
 const NEED_OPTIONS = [
-  { value: 'sales' as const, label: 'מכירות ולידים', desc: 'CRM, ניהול עסקאות, שיחות' },
-  { value: 'marketing' as const, label: 'שיווק ולקוחות', desc: 'תוכן, פוסטים, ניהול לקוחות' },
-  { value: 'fieldwork' as const, label: 'תפעול ושטח', desc: 'קריאות, טכנאים, מלאי' },
-  { value: 'everything' as const, label: 'הכל ביחד', desc: 'כל המחלקות תחת מערכת אחת' },
+  { value: 'sales' as const, label: 'מכירות ולידים', desc: 'CRM, ניהול עסקאות, חיזוי סגירות' },
+  { value: 'marketing' as const, label: 'שיווק ולקוחות', desc: 'תוכן, פוסטים, חוויית לקוח' },
+  { value: 'fieldwork' as const, label: 'תפעול ושטח', desc: 'ניהול צוותים, דיווחים, לוגיסטיקה' },
+  { value: 'everything' as const, label: 'פתרון ארגוני מלא', desc: 'כל המחלקות תחת מערכת אחת' },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -36,39 +36,69 @@ function recommend(answers: Answer): { packageType: PackageType; reason: string 
   const { teamSize, mainNeed, priority } = answers;
 
   if (mainNeed === 'everything' || teamSize === 'medium') {
-    return { packageType: 'the_empire', reason: 'עסק עם כמה מחלקות צריך שהכל ידבר עם הכל — הכל כלול זה הבחירה הנכונה.' };
+    return { 
+      packageType: 'the_empire', 
+      reason: 'חבילת ארגון (הכל כלול) היא הפתרון המקצועי ביותר לערך מקסימלי בכל המחלקות.' 
+    };
   }
 
   if (mainNeed === 'fieldwork') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'עצמאי בשטח? נקסוס נותן ניהול משימות וצוות — בסיס מצוין לשלב הראשון.' };
+      return { 
+        packageType: 'solo', 
+        reason: 'מודול הפיקוד (Nexus) ב-149 ₪. הוא יסדר לך את העסק, ותמיד תוכל להוסיף עוד מודולים כשתגדל.' 
+      };
     }
-    return { packageType: 'the_operator', reason: 'תפעול + ניהול צוות שטח — שיבוץ AI, סיכום קריאות, מלאי ורכבים.' };
+    return { 
+      packageType: 'the_operator', 
+      reason: 'חבילת תפעול משלבת את מודול השטח (Operations) עם מודול הפיקוד. זה הכלים שאתה צריך כדי לשלוט במה שקורה בחוץ.' 
+    };
   }
 
   if (mainNeed === 'sales') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'נקסוס נותן ניהול משימות ולקוחות — בסיס מצוין להתחלת עבודה.' };
+      return { 
+        packageType: 'solo', 
+        reason: 'מודול הפיקוד (Nexus) ב-149 ₪. הוא יסדר לך את העסק, ותמיד תוכל להוסיף עוד מודולים כשתגדל.' 
+      };
     }
-    return { packageType: 'the_closer', reason: 'חבילת מכירות כוללת CRM, ניתוח שיחות ב-AI, ולידים — הכל מוכן לסגור עסקאות.' };
+    return { 
+      packageType: 'the_closer', 
+      reason: 'חבילת מכירות משלבת את מודול המכירות (System) עם מודול הפיקוד. זה הכלים שאתה צריך כדי לסגור עסקאות.' 
+    };
   }
 
   if (mainNeed === 'marketing') {
     if (priority === 'price' && teamSize === 'solo') {
-      return { packageType: 'solo', reason: 'נקסוס מספק ניהול משימות ולקוחות — בסיס טוב לפרילנסר.' };
+      return { 
+        packageType: 'solo', 
+        reason: 'מודול הפיקוד (Nexus) ב-149 ₪. הוא יסדר לך את העסק, ותמיד תוכל להוסיף עוד מודולים כשתגדל.' 
+      };
     }
-    return { packageType: 'the_authority', reason: 'שיווק + ניהול לקוחות + צוות — הפלטפורמה השלמה לבניית סמכות מקצועית.' };
+    return { 
+      packageType: 'the_authority', 
+      reason: 'כדי לבנות סמכות, אתה צריך את מודול השיווק (Social) ומודול חוויית הלקוח. שילוב מנצח שמביא ומנהל לקוחות אוטומטית.' 
+    };
   }
 
   if (priority === 'ai') {
-    return { packageType: 'the_empire', reason: 'כל יכולות ה-AI של MISRAD (שיבוץ, סיכומים, ניתוח שיחות, תוכן) נמצאות בחבילה המלאה.' };
+    return { 
+      packageType: 'the_empire', 
+      reason: 'חבילת ארגון (הכל כלול) היא הפתרון המקצועי ביותר לערך מקסימלי בכל המחלקות.' 
+    };
   }
 
   if (priority === 'price') {
-    return { packageType: 'solo', reason: 'התחל עם נקסוס ב-149 ₪ — ניהול משימות וצוות. תמיד אפשר לשדרג אחר כך.' };
+    return { 
+      packageType: 'solo', 
+      reason: 'מודול הפיקוד (Nexus) ב-149 ₪. הוא יסדר לך את העסק, ותמיד תוכל להוסיף עוד מודולים כשתגדל.' 
+    };
   }
 
-  return { packageType: 'the_empire', reason: 'הכל כלול — הבחירה הטובה ביותר לערך מקסימלי.' };
+  return { 
+    packageType: 'the_empire', 
+    reason: 'חבילת ארגון (הכל כלול) היא הפתרון המקצועי ביותר לערך מקסימלי בכל המחלקות.' 
+  };
 }
 
 export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (persona: string) => void }) {
@@ -100,8 +130,8 @@ export default function PricingHelper({ onSelectPersona }: { onSelectPersona?: (
         'אני צריך עזרה בבחירת חבילה ב-MISRAD AI. הנה תיאור העסק שלי:',
         text,
         '',
-        'החבילות הזמינות: solo (נקסוס בלבד 149₪), the_closer (מכירות 249₪ System+Nexus), the_authority (שיווק 349₪ Social+Client+Nexus), the_operator (תפעול 349₪ Operations+Nexus), the_empire (הכל 499₪).',
-        'המלץ לי על חבילה אחת. ענה אך ורק ב-JSON: {"package":"<שם>","reason":"<נימוק קצר בעברית>"}',
+        'החבילות הזמינות: solo (מודול בודד 149₪), the_closer (חבילת מכירות 249₪ System+Nexus), the_authority (חבילת שיווק 349₪ Social+Client+Nexus), the_operator (חבילת תפעול 349₪ Operations+Nexus), the_empire (חבילת ארגון 499₪).',
+        'המלץ לי על חבילה אחת. ענה אך ורק ב-JSON: {"package":"<שם>","reason":"<נימוק מקצועי, ישיר ודוגרי בעברית בלבד>"}',
       ].join('\n');
 
       const res = await fetch('/api/ai/chat', {

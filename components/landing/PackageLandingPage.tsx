@@ -95,33 +95,38 @@ export default function PackageLandingPage({
             <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">{subtitle}</p>
 
             {price && (
-              <div className="mt-6 inline-flex items-baseline gap-2 bg-white border-2 border-slate-200 rounded-2xl px-6 py-4 shadow-lg">
-                <span className="text-4xl sm:text-5xl font-black text-slate-900">₪{price}</span>
-                <span className="text-sm font-bold text-slate-500">/חודש</span>
-                {priceNote && <span className="text-xs text-slate-400 mr-2">{priceNote}</span>}
+              <div className="mt-8 inline-flex items-baseline gap-3 bg-slate-900 border-2 border-slate-800 rounded-3xl px-8 py-5 shadow-2xl">
+                <span className="text-4xl sm:text-5xl font-black text-white tracking-tighter">₪{price}</span>
+                <span className="text-sm font-black text-slate-400">/חודש</span>
+                {priceNote && (
+                  <div className="mr-4 border-r border-slate-700 pr-4">
+                    <span className="text-xs font-black text-slate-300 uppercase tracking-widest block leading-none">{priceNote}</span>
+                    <span className="text-[10px] text-slate-500 font-bold block mt-1">כולל מע"מ</span>
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-600 flex items-center justify-center text-white flex-shrink-0">
-                    <Users size={18} className="sm:w-5 sm:h-5" />
+            <div className="mt-10 sm:mt-12 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div className="group rounded-[2.5rem] bg-white border-2 border-slate-100 p-8 hover:border-emerald-500 transition-all duration-500 shadow-sm hover:shadow-2xl">
+                <div className="flex items-start gap-5">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-white flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                    <Users size={24} />
                   </div>
                   <div>
-                    <div className="text-xs font-black text-slate-500">למי זה</div>
-                    <div className="mt-1.5 sm:mt-2 text-base sm:text-lg font-black text-slate-900">{audience}</div>
+                    <div className="text-xs font-black text-slate-400 uppercase tracking-widest">קהל יעד</div>
+                    <div className="mt-2 text-xl font-black text-slate-900 leading-tight">{audience}</div>
                   </div>
                 </div>
               </div>
-              <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-600 flex items-center justify-center text-white flex-shrink-0">
-                    <TriangleAlert size={18} className="sm:w-5 sm:h-5" />
+              <div className="group rounded-[2.5rem] bg-white border-2 border-slate-100 p-8 hover:border-rose-500 transition-all duration-500 shadow-sm hover:shadow-2xl">
+                <div className="flex items-start gap-5">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-600 flex items-center justify-center text-white flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                    <TriangleAlert size={24} />
                   </div>
                   <div>
-                    <div className="text-xs font-black text-slate-500">הבעיה שאנחנו פותרים</div>
-                    <div className="mt-1.5 sm:mt-2 text-base sm:text-lg font-black text-slate-900">{pain}</div>
+                    <div className="text-xs font-black text-slate-400 uppercase tracking-widest">הבעיה שאנחנו פותרים</div>
+                    <div className="mt-2 text-xl font-black text-slate-900 leading-tight">{pain}</div>
                   </div>
                 </div>
               </div>
@@ -148,16 +153,16 @@ export default function PackageLandingPage({
                     isTactical ? 'from-orange-600 to-amber-600' : 'from-indigo-600 to-purple-600'
                   }`}>בפועל</span>
                 </h2>
-                <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+                <div className="mt-8 sm:mt-10 space-y-4 sm:space-y-5">
                   {bullets.map((b, i) => (
-                    <div key={b.title} className="group rounded-2xl sm:rounded-3xl bg-white border border-slate-200 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                      <div className="flex items-start gap-4">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${bulletGradients[i % bulletGradients.length]} flex items-center justify-center text-white shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                          <CircleCheckBig size={18} className="sm:w-5 sm:h-5" />
+                    <div key={b.title} className="group rounded-[2rem] bg-white border-2 border-slate-100 p-6 sm:p-8 hover:border-slate-900 transition-all duration-500 shadow-sm hover:shadow-2xl">
+                      <div className="flex items-start gap-5">
+                        <div className={`w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                          <CircleCheckBig size={24} />
                         </div>
                         <div>
-                          <div className="text-base sm:text-lg font-black text-slate-900">{b.title}</div>
-                          <div className="text-sm sm:text-base text-slate-600 mt-1.5 sm:mt-2 leading-relaxed">{b.desc}</div>
+                          <div className="text-xl font-black text-slate-900">{b.title}</div>
+                          <div className="text-base text-slate-500 mt-2 leading-relaxed font-medium">{b.desc}</div>
                         </div>
                       </div>
                     </div>

@@ -766,7 +766,7 @@ function getLinks(): HubLink[] {
     },
     {
       id: 'workspace-client',
-      title: 'Client OS',
+      title: 'Client',
       href: '/w/{orgSlug}/client',
       category: 'מערכת (Workspace)',
       icon: Briefcase,

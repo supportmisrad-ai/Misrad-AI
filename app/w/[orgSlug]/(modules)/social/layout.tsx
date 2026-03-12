@@ -3,12 +3,20 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import SocialLayoutShell from './SocialLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('social');
+
+// Async component for access check - wrapped in Suspense
+async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'social' });
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
+  return <>{children}</>;
+}
 
 export default async function SocialModuleLayout({
   children,
@@ -18,11 +26,6 @@ export default async function SocialModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-
-  // Only the fast access check blocks the layout — everything else streams
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'social' });
-  // Fire-and-forget: don't block render for location tracking
-  persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
 
   const def = getModuleDefinition('social');
 
@@ -37,10 +40,13 @@ export default async function SocialModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
-      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="social" /></div>}>
-        <SocialLayoutShell orgSlug={orgSlug}>
-          {children}
-        </SocialLayoutShell>
+      {/* Immediate shell while access check runs */}
+      <Suspense fallback={<UnifiedLoadingShell moduleKey="social" stage="shell" />}>
+        <AccessCheck orgSlug={orgSlug}>
+          <SocialLayoutShell orgSlug={orgSlug}>
+            {children}
+          </SocialLayoutShell>
+        </AccessCheck>
       </Suspense>
     </div>
   );

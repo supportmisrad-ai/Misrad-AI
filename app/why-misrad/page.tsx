@@ -19,16 +19,16 @@ export default function WhyMisradPage() {
       <main className="pt-24">
         {/* Page Hero */}
         <section className="relative overflow-hidden py-16 sm:py-24 bg-gradient-to-b from-slate-50 to-white">
-          <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-rose-200/25 rounded-full blur-[140px] pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-[500px] h-[500px] bg-indigo-200/20 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-slate-100 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-[500px] h-[500px] bg-slate-50 rounded-full blur-[140px] pointer-events-none" />
           <div className="max-w-4xl mx-auto px-6 relative text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-black mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 border border-slate-800 text-white text-xs font-black mb-6 shadow-xl">
               <Sparkles size={14} />
               למה דווקא MISRAD AI?
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-tight tracking-tighter">
               כל מה שצריך לדעת
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+              <span className="block text-slate-400 mt-2">
                 לפני שמחליטים
               </span>
             </h1>

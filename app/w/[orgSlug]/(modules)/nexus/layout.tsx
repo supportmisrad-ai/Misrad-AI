@@ -3,13 +3,20 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import NexusLayoutShell from './NexusLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('nexus');
 
+// Async component for access check - wrapped in Suspense
+async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'nexus' }).catch(() => undefined);
+  return <>{children}</>;
+}
 
 export default async function NexusModuleLayout({
   children,
@@ -19,9 +26,6 @@ export default async function NexusModuleLayout({
   params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });
-  // Fire-and-forget: don't block render for location tracking
-  persistCurrentUserLastLocation({ orgSlug, module: 'nexus' }).catch(() => undefined);
   const def = getModuleDefinition('nexus');
 
   const style = {
@@ -36,10 +40,13 @@ export default async function NexusModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="nexus" /></div>}>
-        <NexusLayoutShell orgSlug={orgSlug}>
-          {children}
-        </NexusLayoutShell>
+      {/* Immediate shell while access check runs */}
+      <Suspense fallback={<UnifiedLoadingShell moduleKey="nexus" stage="shell" />}>
+        <AccessCheck orgSlug={orgSlug}>
+          <NexusLayoutShell orgSlug={orgSlug}>
+            {children}
+          </NexusLayoutShell>
+        </AccessCheck>
       </Suspense>
     </div>
   );

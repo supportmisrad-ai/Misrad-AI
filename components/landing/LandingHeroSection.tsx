@@ -1,3 +1,5 @@
+'use client';
+
 import { ClipboardCheck, Sparkles, Zap, Shield, Users, Target, Rocket, Share2, TrendingUp } from 'lucide-react';
 import { CTAButtons } from '@/components/landing/CTAButtons';
 

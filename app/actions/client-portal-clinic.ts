@@ -4,7 +4,7 @@
 import { logger } from '@/lib/server/logger';
 // IMPORTANT:
 // This file is an adapter layer.
-// It keeps the existing Client OS UI contracts intact while routing core data
+// It keeps the existing Client UI contracts intact while routing core data
 // to the new clinic tables (client_*). We do NOT delete legacy actions yet.
 
 import type {

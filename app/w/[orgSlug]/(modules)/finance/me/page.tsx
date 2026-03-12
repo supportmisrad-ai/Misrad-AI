@@ -1,4 +1,5 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { getMePageData } from '@/lib/server/me-page-data';
 import { MeView } from '@/views/MeView';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -10,6 +11,7 @@ export default async function FinanceMePage({
 }) {
   const { orgSlug } = await params;
   await requireWorkspaceAccessByOrgSlug(orgSlug);
+  const { leaveRequests, events } = await getMePageData(orgSlug);
 
   return (
     <MeView
@@ -34,6 +36,8 @@ export default async function FinanceMePage({
           iconId: 'settings',
         },
       ]}
+      initialLeaveRequests={leaveRequests}
+      initialEvents={events}
     />
   );
 }

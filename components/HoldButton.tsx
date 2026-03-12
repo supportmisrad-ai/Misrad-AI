@@ -121,7 +121,8 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
         setProgress(0);
         
         try { if (navigator.vibrate) navigator.vibrate(50); } catch { /* browser may block vibrate before user interaction */ }
-        onComplete();
+        // Defer callback to break out of render cycle and avoid setState warning
+        setTimeout(() => onComplete(), 0);
     };
 
     return (

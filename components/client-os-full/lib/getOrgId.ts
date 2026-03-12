@@ -1,7 +1,7 @@
 /**
  * Centralised helper to read the current organisation ID
  * from the global `__CLIENT_OS_USER__` object that is injected
- * by the Client OS App component.
+ * by the Client App component.
  *
  * Usage:  `const orgId = getClientOsOrgId();`
  */

@@ -99,92 +99,83 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
   };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-20">
+    <div className="space-y-10 animate-fade-in pb-20">
       
       {/* --- LAUNCHPAD: Pill Shaped Buttons --- */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {[ 
-              { id: 'sales_mgmt', icon: Zap, label: 'ניהול שוטף', color: 'text-slate-700', bg: 'bg-slate-100' },
-              { id: 'pipeline', icon: Layers, label: 'צנרת עסקאות', color: 'text-indigo-700', bg: 'bg-indigo-50' },
-              { id: 'comms', icon: PhoneCall, label: 'מרכזיה', color: 'text-rose-700', bg: 'bg-rose-50' },
-              { id: 'calendar', icon: Calendar, label: 'אירועים', color: 'text-slate-700', bg: 'bg-slate-100' },
-              { id: 'marketing', icon: Megaphone, label: 'קמפיינים', color: 'text-slate-700', bg: 'bg-slate-100' },
-              { id: 'finance', icon: Wallet, label: 'כספים', color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          ].map((item) => (
-              <button 
-                key={item.id}
-                onClick={() => onNavigate && onNavigate(item.id)}
-                className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200/60 rounded-[32px] hover:bg-slate-50 hover:shadow-float transition-all group hover:-translate-y-1 active:scale-95"
-              >
-                  <div className={`w-10 h-10 rounded-full ${item.bg} ${item.color} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
-                      <item.icon size={20} />
-                  </div>
-                  <span className="text-xs font-bold text-slate-700 text-center leading-tight">{item.label}</span>
-              </button>
-          ))}
+      <div className="bg-white/40 backdrop-blur-md p-4 rounded-[2rem] border border-white/60 shadow-sm">
+        <div className="grid grid-cols-4 md:grid-cols-7 lg:grid-cols-8 gap-3">
+            {[ 
+                { id: 'sales_mgmt', icon: Zap, label: 'ניהול', color: 'text-slate-700', bg: 'bg-slate-100' },
+                { id: 'pipeline', icon: Layers, label: 'צנרת', color: 'text-indigo-700', bg: 'bg-indigo-50' },
+                { id: 'comms', icon: PhoneCall, label: 'מרכזיה', color: 'text-rose-700', bg: 'bg-rose-50' },
+                { id: 'calendar', icon: Calendar, label: 'אירועים', color: 'text-slate-700', bg: 'bg-slate-100' },
+                { id: 'marketing', icon: Megaphone, label: 'שיווק', color: 'text-slate-700', bg: 'bg-slate-100' },
+                { id: 'finance', icon: Wallet, label: 'כספים', color: 'text-emerald-700', bg: 'bg-emerald-50' },
+            ].map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => onNavigate && onNavigate(item.id)}
+                  className="flex flex-col items-center justify-center p-3 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 hover:shadow-md transition-all group active:scale-95"
+                >
+                    <div className={`w-9 h-9 rounded-xl ${item.bg} ${item.color} flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
+                        <item.icon size={18} />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">{item.label}</span>
+                </button>
+            ))}
 
-          <button 
-            onClick={() => onQuickAction && onQuickAction('lead')}
-            className="flex flex-col items-center justify-center p-4 bg-nexus-gradient border border-transparent rounded-[32px] hover:opacity-95 hover:shadow-float transition-all group hover:-translate-y-1 active:scale-95"
-          >
-              <div className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center mb-2 group-hover:scale-110 transition-transform backdrop-blur-sm">
-                  <Play size={20} fill="currentColor" />
-              </div>
-              <span className="text-xs font-bold text-white text-center leading-tight">הוסף ליד</span>
-          </button>
-
-          <button 
-            onClick={handleCopyLeadFormLink}
-            className="flex flex-col items-center justify-center p-4 bg-white border border-slate-200/60 rounded-[32px] hover:bg-slate-50 hover:shadow-float transition-all group hover:-translate-y-1 active:scale-95"
-            title="העתק לינק לטופס לידים ציבורי"
-          >
-              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  {copied ? <Check size={18} /> : <Copy size={18} />}
-              </div>
-              <span className="text-xs font-bold text-slate-700 text-center leading-tight">{copied ? 'הועתק!' : 'לינק טופס'}</span>
-          </button>
+            <button 
+              onClick={() => onQuickAction && onQuickAction('lead')}
+              className="flex flex-col items-center justify-center p-3 bg-slate-900 border border-transparent rounded-2xl hover:bg-black hover:shadow-lg transition-all group active:scale-95"
+            >
+                <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                    <Play size={18} fill="currentColor" />
+                </div>
+                <span className="text-[11px] font-bold text-white text-center leading-tight">הוסף ליד</span>
+            </button>
+        </div>
       </div>
 
-      {/* KPI Cards Row - Using .ui-card class */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          <div className="col-span-2 md:col-span-1 ui-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group">
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
               <div className="flex justify-between items-start z-10">
-                  <div className="p-3 bg-slate-100 text-slate-800 rounded-full shadow-sm"><DollarSign size={20} /></div>
-                  <span className="text-emerald-700 text-[10px] md:text-xs font-bold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">+12%</span>
+                  <div className="p-2 bg-slate-50 text-slate-800 rounded-lg border border-slate-100"><DollarSign size={18} /></div>
+                  <span className="text-emerald-700 text-[10px] font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">+12%</span>
               </div>
               <div className="z-10">
-                  <div className="text-2xl md:text-3xl font-mono font-black tracking-tight text-slate-900">₪{stats.totalValue.toLocaleString()}</div>
-                  <div className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mt-1">כסף בקנה</div>
+                  <div className="text-2xl font-black font-mono tracking-tight text-slate-900 tabular-nums">₪{stats.totalValue.toLocaleString()}</div>
+                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">שווי צנרת</div>
               </div>
           </div>
 
-          <div className="ui-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group">
+          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
               <div className="flex justify-between items-start z-10">
-                  <div className="p-3 bg-indigo-50 text-indigo-800 rounded-full shadow-sm"><Layers size={20} /></div>
+                  <div className="p-2 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-100"><Layers size={18} /></div>
               </div>
               <div className="z-10">
-                  <div className="text-2xl md:text-3xl font-mono font-black tracking-tight text-slate-900">{stats.totalLeads}</div>
-                  <div className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mt-1">אנשים מחכים</div>
+                  <div className="text-2xl font-black font-mono tracking-tight text-slate-900 tabular-nums">{stats.totalLeads}</div>
+                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">לידים</div>
               </div>
           </div>
 
-          <div className="ui-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group">
+          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
               <div className="flex justify-between items-start z-10">
-                  <div className="p-3 bg-slate-100 text-slate-800 rounded-full shadow-sm"><Target size={20} /></div>
+                  <div className="p-2 bg-slate-50 text-slate-800 rounded-lg border border-slate-100"><Target size={18} /></div>
               </div>
               <div className="z-10">
-                  <div className="text-2xl md:text-3xl font-mono font-black tracking-tight text-slate-900">{stats.conversionRate}%</div>
-                  <div className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wider mt-1">כמה סוגרים</div>
+                  <div className="text-2xl font-black font-mono tracking-tight text-slate-900 tabular-nums">{stats.conversionRate}%</div>
+                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">המרה</div>
               </div>
           </div>
 
-          <div className="ui-card p-6 md:p-8 flex flex-col justify-between h-44 relative overflow-hidden group bg-red-50/20 border-red-100/50">
+          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-red-50 bg-red-50/5">
               <div className="flex justify-between items-start z-10">
-                  <div className="p-3 bg-white rounded-full text-red-700 shadow-sm border border-red-100"><CircleAlert size={20} /></div>
+                  <div className="p-2 bg-white rounded-lg text-red-700 border border-red-100"><CircleAlert size={18} /></div>
               </div>
               <div className="z-10">
-                  <div className="text-2xl md:text-3xl font-mono font-black tracking-tight text-red-800">{stats.leadsNeedingAttention}</div>
-                  <div className="text-red-600/60 text-[10px] md:text-xs font-bold uppercase tracking-wider mt-1">שים לב אליהם</div>
+                  <div className="text-2xl font-black font-mono tracking-tight text-red-800 tabular-nums">{stats.leadsNeedingAttention}</div>
+                  <div className="text-red-600/60 text-[10px] font-bold uppercase tracking-wider">דחוף</div>
               </div>
           </div>
       </div>

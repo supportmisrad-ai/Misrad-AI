@@ -6,7 +6,7 @@ import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { HoldButton } from '../components/HoldButton';
-import { LeadStatus, Status, type Lead, type Task, type TimeEntry } from '../types';
+import { LeadStatus, Status, type Lead, type Task, type TimeEntry, type LeaveRequest, type TeamEvent, type LeaveRequestType, type LeaveRequestStatus, type TeamEventType, type TeamEventStatus } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
 import { encodeWorkspaceOrgSlug, parseWorkspaceRoute } from '@/lib/os/social-routing';
@@ -65,26 +65,57 @@ function coerceStringArray(value: unknown): string[] {
   return value.map((v) => String(v)).filter(Boolean);
 }
 
-type LeaveRequestStatus = 'approved' | 'rejected' | 'pending' | string;
-type LeaveRequest = {
-  id: string;
-  start_date: string;
-  end_date: string | null;
-  status: LeaveRequestStatus;
-  reason: string | null;
-  metadata: { isUrgent?: boolean } | null;
-};
-
+// Helper functions to coerce API responses to proper types
 function coerceLeaveRequest(value: unknown): LeaveRequest {
   const obj = asObject(value) ?? {};
-  const meta = asObject(obj.metadata);
   return {
     id: String(obj.id ?? ''),
-    start_date: String(obj.start_date ?? ''),
-    end_date: obj.end_date == null ? null : String(obj.end_date),
-    status: String(obj.status ?? 'pending'),
-    reason: obj.reason == null ? null : String(obj.reason),
-    metadata: meta ? { ...(typeof meta.isUrgent === 'boolean' ? { isUrgent: meta.isUrgent } : {}) } : null,
+    tenantId: obj.tenantId ? String(obj.tenantId) : undefined,
+    organizationId: obj.organizationId ? String(obj.organizationId) : undefined,
+    employeeId: String(obj.employeeId ?? obj.userId ?? obj.employee_id ?? ''),
+    leaveType: (obj.leaveType ?? obj.type ?? 'vacation') as LeaveRequestType,
+    startDate: String(obj.startDate ?? obj.start_date ?? ''),
+    endDate: String(obj.endDate ?? obj.end_date ?? ''),
+    daysRequested: Number(obj.daysRequested ?? obj.days_requested ?? 1),
+    reason: obj.reason ? String(obj.reason) : undefined,
+    status: (obj.status ?? 'pending') as LeaveRequestStatus,
+    requestedBy: obj.requestedBy ? String(obj.requestedBy) : undefined,
+    approvedBy: obj.approvedBy ? String(obj.approvedBy) : undefined,
+    approvedAt: obj.approvedAt ? String(obj.approvedAt) : undefined,
+    rejectionReason: obj.rejectionReason ? String(obj.rejectionReason) : undefined,
+    notificationSent: Boolean(obj.notificationSent ?? false),
+    employeeNotified: Boolean(obj.employeeNotified ?? false),
+    createdAt: obj.createdAt ? String(obj.createdAt) : '',
+    updatedAt: obj.updatedAt ? String(obj.updatedAt) : '',
+  };
+}
+
+function coerceTeamEvent(value: unknown): TeamEvent {
+  const obj = asObject(value) ?? {};
+  return {
+    id: String(obj.id ?? ''),
+    tenantId: obj.tenantId ? String(obj.tenantId) : undefined,
+    organizationId: obj.organizationId ? String(obj.organizationId) : undefined,
+    title: String(obj.title ?? ''),
+    description: obj.description ? String(obj.description) : undefined,
+    eventType: (obj.eventType ?? 'other') as TeamEventType,
+    startDate: String(obj.startDate ?? obj.start_date ?? ''),
+    endDate: String(obj.endDate ?? obj.end_date ?? ''),
+    allDay: Boolean(obj.allDay ?? false),
+    location: obj.location ? String(obj.location) : undefined,
+    organizerId: obj.organizerId ? String(obj.organizerId) : undefined,
+    requiredAttendees: coerceStringArray(obj.requiredAttendees ?? obj.required_attendees),
+    optionalAttendees: coerceStringArray(obj.optionalAttendees ?? obj.optional_attendees),
+    status: (obj.status ?? 'scheduled') as TeamEventStatus,
+    requiresApproval: Boolean(obj.requiresApproval ?? false),
+    approvedBy: obj.approvedBy ? String(obj.approvedBy) : undefined,
+    approvedAt: obj.approvedAt ? String(obj.approvedAt) : undefined,
+    notificationSent: Boolean(obj.notificationSent ?? false),
+    reminderSent: Boolean(obj.reminderSent ?? false),
+    reminderDaysBefore: obj.reminderDaysBefore ? Number(obj.reminderDaysBefore) : undefined,
+    createdAt: obj.createdAt ? String(obj.createdAt) : '',
+    createdBy: obj.createdBy ? String(obj.createdBy) : undefined,
+    updatedAt: obj.updatedAt ? String(obj.updatedAt) : '',
   };
 }
 
@@ -99,33 +130,19 @@ function coerceAttendanceRow(value: unknown): AttendanceRow {
   return { userId, status };
 }
 
-type TeamEvent = {
-  id: string;
-  title: string;
-  start_date: string;
-  required_attendees: string[];
-  optional_attendees: string[];
-};
-
-function coerceTeamEvent(value: unknown): TeamEvent {
-  const obj = asObject(value) ?? {};
-  return {
-    id: String(obj.id ?? ''),
-    title: String(obj.title ?? ''),
-    start_date: String(obj.start_date ?? ''),
-    required_attendees: coerceStringArray(obj.required_attendees),
-    optional_attendees: coerceStringArray(obj.optional_attendees),
-  };
-}
 
 export const MeView: React.FC<{
   children?: React.ReactNode;
   basePathOverride?: string;
   moduleCards?: MeModuleCard[];
+  initialLeaveRequests?: LeaveRequest[];
+  initialEvents?: TeamEvent[];
 }> = ({
   children,
   basePathOverride,
   moduleCards,
+  initialLeaveRequests = [],
+  initialEvents = [],
 }) => {
   const { currentUser, logout, tasks, activeShift, clockIn, clockOut, timeEntries, leads, addToast, users } = useData();
   const router = useRouter();
@@ -193,10 +210,10 @@ export const MeView: React.FC<{
   const [showHistory, setShowHistory] = useState(true); // Start with history tab open
   const [showLeaveRequestModal, setShowLeaveRequestModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
-  const [myLeaveRequests, setMyLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<TeamEvent[]>([]);
-  const [cachedLeaveRequests, setCachedLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [cachedEvents, setCachedEvents] = useState<TeamEvent[]>([]);
+  const [myLeaveRequests, setMyLeaveRequests] = useState<LeaveRequest[]>(initialLeaveRequests);
+  const [upcomingEvents, setUpcomingEvents] = useState<TeamEvent[]>(initialEvents);
+  const [cachedLeaveRequests, setCachedLeaveRequests] = useState<LeaveRequest[]>(initialLeaveRequests);
+  const [cachedEvents, setCachedEvents] = useState<TeamEvent[]>(initialEvents);
   const [isLoadingLeaveRequests, setIsLoadingLeaveRequests] = useState(false);
   const [leaveRequestsErrorCount, setLeaveRequestsErrorCount] = useState(0);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
@@ -338,7 +355,7 @@ export const MeView: React.FC<{
                       const upcoming = (payload?.events || [])
                           .map((e) => coerceTeamEvent(e))
                           .filter((e) => {
-                              const eventDate = new Date(e.start_date);
+                              const eventDate = new Date(e.startDate);
                               return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
                           })
                           .slice(0, 3);
@@ -498,7 +515,7 @@ export const MeView: React.FC<{
                   const upcoming = (payload?.events || [])
                       .map((e) => coerceTeamEvent(e))
                       .filter((e) => {
-                          const eventDate = new Date(e.start_date);
+                          const eventDate = new Date(e.startDate);
                           return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
                       })
                       .slice(0, 3); // Show only next 3
@@ -508,8 +525,8 @@ export const MeView: React.FC<{
                   // Load RSVP status for events where user is invited
                   upcoming.forEach(async (event) => {
                       const isInvited = 
-                          event.required_attendees.includes(currentUser.id) ||
-                          event.optional_attendees.includes(currentUser.id);
+                          (event.requiredAttendees || []).includes(currentUser.id) ||
+                          (event.optionalAttendees || []).includes(currentUser.id);
                       
                       if (isInvited) {
                           try {
@@ -939,15 +956,15 @@ export const MeView: React.FC<{
                           <div className="space-y-2">
                               {upcomingEvents.map((event) => {
                                   const isInvited = 
-                                      event.required_attendees.includes(currentUser.id) ||
-                                      event.optional_attendees.includes(currentUser.id);
+                                      (event.requiredAttendees || []).includes(currentUser.id) ||
+                                      (event.optionalAttendees || []).includes(currentUser.id);
                                   const rsvpStatus = eventRSVPStatus[event.id];
                                   
                                   return (
                                       <div key={event.id} className="p-3 bg-gray-50 rounded-xl">
                                           <div className="text-sm font-bold text-gray-900 mb-1">{event.title}</div>
                                           <div className="text-xs text-gray-500 mb-2">
-                                              {new Date(event.start_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                              {new Date(event.startDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                           </div>
                                           {isInvited && (
                                               <div className="flex items-center gap-2 mt-2">
@@ -1164,7 +1181,7 @@ export const MeView: React.FC<{
                               const upcoming = (payload?.events || [])
                                   .map((e) => coerceTeamEvent(e))
                                   .filter((e) => {
-                                      const eventDate = new Date(e.start_date);
+                                      const eventDate = new Date(e.startDate);
                                       return !Number.isNaN(eventDate.getTime()) && eventDate >= now;
                                   })
                                   .slice(0, 3);

@@ -1,20 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 
 export default function GeoCheckInButton({
   formId,
   className,
   label = 'הגעתי לאתר',
+  checkedIn = false,
 }: {
   formId: string;
   className?: string;
   label?: string;
+  checkedIn?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
   async function onClick() {
-    if (busy) return;
+    if (busy || checkedIn) return;
     setBusy(true);
 
     try {
@@ -57,6 +60,15 @@ export default function GeoCheckInButton({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (checkedIn) {
+    return (
+      <div className={`touch-manipulation inline-flex items-center justify-center gap-2 bg-emerald-100 text-emerald-700 rounded-2xl px-4 py-3 font-black ${className || ''}`}>
+        <Check size={18} className="text-emerald-600" />
+        הגעה דווחה
+      </div>
+    );
   }
 
   return (

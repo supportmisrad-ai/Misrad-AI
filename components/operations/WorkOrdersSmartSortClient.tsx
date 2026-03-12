@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Plus, MapPin, ListFilter, LayoutGrid } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatWorkOrderStatus, formatPriority, slaLabel } from '@/lib/services/operations/format';
 
@@ -117,33 +118,44 @@ export default function WorkOrdersSmartSortClient({
   }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white/40 backdrop-blur-md p-4 rounded-3xl border border-slate-200/50">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={sortByLocation}
             disabled={isSorting}
-            className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-black bg-white/80 border border-slate-200 hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-black transition-all duration-200 shadow-sm border ${
+              mode === 'location'
+                ? 'bg-sky-500 text-white border-sky-400 shadow-sky-200'
+                : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+            } disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
           >
+            <MapPin size={16} className="ml-2" />
             סדר לפי מיקום
           </button>
           {mode === 'location' ? (
             <button
               type="button"
               onClick={reset}
-              className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-black bg-white/80 border border-slate-200 hover:bg-white transition-colors"
+              className="inline-flex items-center justify-center rounded-2xl px-5 py-2.5 text-sm font-black bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
             >
-              חזור
+              ביטול
             </button>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-3">
-          {mode === 'location' && userPos ? (
-            <div className="text-xs font-bold text-slate-500">מיקום פעיל</div>
-          ) : null}
-          <div className="text-xs font-bold text-slate-400">{workOrders.length} קריאות</div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/50 text-slate-500">
+            <LayoutGrid size={14} />
+            <span className="text-xs font-bold">{workOrders.length} קריאות</span>
+          </div>
+          {mode === 'location' && userPos && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 animate-pulse">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-xs font-bold">מרחק פעיל</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -155,7 +167,7 @@ export default function WorkOrdersSmartSortClient({
 
       <div className="mt-4">
         {/* ──── Mobile Cards ──── */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-4">
           {sorted.length ? (
             sorted.map((w) => {
               const statusBadge = formatWorkOrderStatus(w.status);
@@ -166,50 +178,68 @@ export default function WorkOrdersSmartSortClient({
                 <Link
                   key={w.id}
                   href={`${baseHref}/work-orders/${encodeURIComponent(w.id)}`}
-                  className="block rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50 transition-colors"
+                  className="group block relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 hover:border-sky-200 hover:shadow-xl hover:shadow-sky-500/5 transition-all duration-300"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-black text-slate-900 truncate">{w.title}</div>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <div className="text-base font-black text-slate-900 leading-tight group-hover:text-sky-600 transition-colors truncate">{w.title}</div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
                         <span className={`${badgeCls} ${statusBadge.cls}`}>{statusBadge.label}</span>
                         {priorityBadge ? <span className={`${badgeCls} ${priorityBadge.cls}`}>{priorityBadge.label}</span> : null}
-                        {w.categoryName ? <span className={`${badgeCls} bg-violet-50 text-violet-700 border border-violet-100`}>{w.categoryName}</span> : null}
+                        {w.categoryName ? <span className={`${badgeCls} bg-violet-50 text-violet-700 border border-violet-100 shadow-sm`}>{w.categoryName}</span> : null}
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
-                    {w.projectTitle ? <span>פרויקט: <b>{w.projectTitle}</b></span> : null}
-                    {w.technicianLabel ? <span>טכנאי: <b>{w.technicianLabel}</b></span> : <span className="text-slate-400">ללא טכנאי</span>}
-                    {loc ? <span>{loc}</span> : null}
-                    {w.reporterName ? <span>מדווח: {w.reporterName}</span> : null}
+                  <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-600">
+                    {w.projectTitle ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">פרויקט:</span>
+                        <span className="font-bold text-slate-700 truncate">{w.projectTitle}</span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">מיקום:</span>
+                      <span className="font-bold text-slate-700 truncate">{loc || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400">טכנאי:</span>
+                      <span className={`font-bold ${w.technicianLabel ? 'text-slate-700' : 'text-orange-500 animate-pulse'}`}>
+                        {w.technicianLabel || 'ממתין לשיוך'}
+                      </span>
+                    </div>
                   </div>
 
-                  {sla ? <div className={`mt-2 text-[11px] ${sla.cls}`}>{sla.text}</div> : null}
+                  {sla && (
+                    <div className={`mt-4 pt-3 border-t border-slate-50 flex items-center justify-between`}>
+                       <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">זמן יעד</span>
+                       <span className={`text-xs font-black ${sla.cls}`}>{sla.text}</span>
+                    </div>
+                  )}
                 </Link>
               );
             })
           ) : (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">אין עדיין קריאות להצגה</div>
+            <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center animate-fade-in">
+              <div className="text-sm font-bold text-slate-500">אין קריאות להצגה בסינון הנוכחי</div>
+            </div>
           )}
         </div>
 
         {/* ──── Desktop Table ──── */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block rounded-3xl border border-slate-100 bg-white shadow-xl shadow-slate-200/20 overflow-hidden">
+          <table className="w-full text-right border-collapse">
             <thead>
-              <tr className="text-right text-slate-500">
-                <th className="pb-3 font-bold">כותרת</th>
-                <th className="pb-3 font-bold">סטטוס</th>
-                <th className="pb-3 font-bold">דחיפות</th>
-                <th className="pb-3 font-bold">קטגוריה</th>
-                <th className="pb-3 font-bold">מיקום</th>
-                <th className="pb-3 font-bold">טכנאי</th>
-                <th className="pb-3 font-bold">SLA</th>
+              <tr className="bg-slate-50/50 text-slate-500 border-b border-slate-100">
+                <th className="px-6 py-4 text-xs font-black uppercase tracking-widest">כותרת ופרויקט</th>
+                <th className="px-4 py-4 text-xs font-black uppercase tracking-widest text-center">סטטוס</th>
+                <th className="px-4 py-4 text-xs font-black uppercase tracking-widest text-center">דחיפות</th>
+                <th className="px-4 py-4 text-xs font-black uppercase tracking-widest">מיקום ומחלקה</th>
+                <th className="px-4 py-4 text-xs font-black uppercase tracking-widest">טכנאי</th>
+                <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-left">SLA</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {sorted.length ? (
                 sorted.map((w) => {
                   const statusBadge = formatWorkOrderStatus(w.status);
@@ -217,34 +247,58 @@ export default function WorkOrdersSmartSortClient({
                   const sla = slaLabel(w.slaDeadline);
                   const loc = locationLabel(w);
                   return (
-                    <tr key={w.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                      <td className="py-3 max-w-[260px]">
-                        <Link href={`${baseHref}/work-orders/${encodeURIComponent(w.id)}`} className="hover:underline">
-                          <div className="font-bold text-slate-900 truncate">{w.title}</div>
-                          {w.projectTitle ? <div className="text-[11px] text-slate-500 truncate mt-0.5">{w.projectTitle}</div> : null}
+                    <tr key={w.id} className="group hover:bg-sky-50/30 transition-all duration-150">
+                      <td className="px-6 py-5 max-w-[300px]">
+                        <Link href={`${baseHref}/work-orders/${encodeURIComponent(w.id)}`} className="block group/link">
+                          <div className="font-black text-slate-900 leading-snug group-hover/link:text-sky-600 transition-colors truncate">{w.title}</div>
+                          {w.projectTitle && <div className="text-[11px] font-bold text-slate-400 truncate mt-1">{w.projectTitle}</div>}
                         </Link>
                       </td>
-                      <td className="py-3">
-                        <span className={`${badgeCls} ${statusBadge.cls}`}>{statusBadge.label}</span>
+                      <td className="px-4 py-5 text-center">
+                        <span className={`${badgeCls} ${statusBadge.cls} shadow-sm px-3 py-1`}>{statusBadge.label}</span>
                       </td>
-                      <td className="py-3">
+                      <td className="px-4 py-5 text-center">
                         {priorityBadge ? (
-                          <span className={`${badgeCls} ${priorityBadge.cls}`}>{priorityBadge.label}</span>
+                          <span className={`${badgeCls} ${priorityBadge.cls} shadow-sm px-3 py-1`}>{priorityBadge.label}</span>
                         ) : (
-                          <span className="text-slate-400 text-xs">רגיל</span>
+                          <span className="text-slate-300 font-bold text-[11px] uppercase tracking-tighter">רגיל</span>
                         )}
                       </td>
-                      <td className="py-3 text-slate-600 text-xs">{w.categoryName || <span className="text-slate-400">—</span>}</td>
-                      <td className="py-3 text-slate-600 text-xs max-w-[160px] truncate">{loc || <span className="text-slate-400">—</span>}</td>
-                      <td className="py-3 text-slate-600 text-xs">{w.technicianLabel || <span className="text-slate-400">—</span>}</td>
-                      <td className="py-3 text-xs">{sla ? <span className={sla.cls}>{sla.text}</span> : <span className="text-slate-400">—</span>}</td>
+                      <td className="px-4 py-5">
+                         <div className="text-xs font-bold text-slate-700 truncate">{loc || '—'}</div>
+                         {w.categoryName && <div className="text-[10px] font-black text-violet-500 mt-1 uppercase tracking-tight">{w.categoryName}</div>}
+                      </td>
+                      <td className="px-4 py-5">
+                        {w.technicianLabel ? (
+                          <div className="flex items-center gap-2">
+                             <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200 uppercase">
+                               {w.technicianLabel.charAt(0)}
+                             </div>
+                             <span className="text-xs font-bold text-slate-700">{w.technicianLabel}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-black text-orange-400 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 uppercase tracking-tight">ממתין לשיוך</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-5 text-left">
+                        {sla ? (
+                          <div className="inline-flex flex-col items-end">
+                            <span className={`text-xs font-black ${sla.cls}`}>{sla.text}</span>
+                            <div className="h-1 w-8 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                              <div className={`h-full rounded-full ${sla.cls.includes('red') ? 'bg-red-500' : 'bg-sky-500'}`} style={{ width: '60%' }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
               ) : (
-                <tr className="border-t border-slate-100">
-                  <td className="py-6 text-sm text-slate-500" colSpan={7}>
-                    אין עדיין קריאות להצגה
+                <tr>
+                  <td className="px-6 py-12 text-center text-slate-400 font-bold italic" colSpan={6}>
+                    אין קריאות שירות להצגה
                   </td>
                 </tr>
               )}

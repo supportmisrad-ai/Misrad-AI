@@ -201,7 +201,7 @@
 ### 8.1 שלושה סוגי "לקוחות"
 | מודל | טבלה | מהות |
 |-------|-------|-------|
-| `ClientClient` | `client_clients` | לקוחות *בתוך* ארגון (מודול Client OS) |
+| `ClientClient` | `client_clients` | לקוחות *בתוך* ארגון (מודול Client) |
 | `BusinessClient` | `business_clients` | לקוחות B2B של MISRAD AI עצמו |
 | `Organization` | `social_organizations` | טננטים/ארגונים במערכת (כל ארגון = מנוי) |
 

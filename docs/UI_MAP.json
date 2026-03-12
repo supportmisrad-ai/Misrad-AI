@@ -171,39 +171,39 @@
     },
     {
       "id": "client.dashboard",
-      "title": "Client OS - דשבורד",
+      "title": "Client - דשבורד",
       "pathTemplate": "/w/{orgSlug}/client/dashboard",
-      "description": "דשבורד Client OS.",
+      "description": "דשבורד Client.",
       "primaryActions": [],
-      "keywords": ["client", "קליינט", "דשבורד לקוח", "Client OS", "client os"]
+      "keywords": ["client", "קליינט", "דשבורד לקוח", "Client", "Client"]
     },
     {
       "id": "client.clients",
-      "title": "Client OS - לקוחות",
+      "title": "Client - לקוחות",
       "pathTemplate": "/w/{orgSlug}/client/clients",
-      "description": "רשימת לקוחות בתוך Client OS.",
+      "description": "רשימת לקוחות בתוך Client.",
       "primaryActions": [],
       "keywords": ["לקוחות", "לקוח", "clients", "client"]
     },
     {
       "id": "client.clientsDeepLink",
-      "title": "Client OS - לקוחות (Deep Link)",
+      "title": "Client - לקוחות (Deep Link)",
       "pathTemplate": "/w/{orgSlug}/client/clients?tab={tab}&meetingId={meetingId}",
       "description": "פתיחה עם טאב/פגישה ספציפית (לפי query params).",
       "primaryActions": [],
-      "keywords": ["tab", "meetingId", "פגישה", "טאב", "לקוחות", "client os"]
+      "keywords": ["tab", "meetingId", "פגישה", "טאב", "לקוחות", "Client"]
     },
     {
       "id": "client.settings",
-      "title": "Client OS - הגדרות",
+      "title": "Client - הגדרות",
       "pathTemplate": "/w/{orgSlug}/client/hub",
-      "description": "הגדרות Client OS.",
+      "description": "הגדרות Client.",
       "primaryActions": [],
       "keywords": ["הגדרות", "settings", "hub"]
     },
     {
       "id": "client.workflows",
-      "title": "Client OS - תהליכים (Workflows)",
+      "title": "Client - תהליכים (Workflows)",
       "pathTemplate": "/w/{orgSlug}/client/workflows",
       "description": "בניית תהליכים אוטומטיים (Workflow Builder).",
       "primaryActions": [],
@@ -211,7 +211,7 @@
     },
     {
       "id": "client.analyzer",
-      "title": "Client OS - מנתח שיחות",
+      "title": "Client - מנתח שיחות",
       "pathTemplate": "/w/{orgSlug}/client/view/analyzer",
       "description": "Meeting Analyzer / ניתוח שיחות.",
       "primaryActions": [],
@@ -219,7 +219,7 @@
     },
     {
       "id": "client.intelligence",
-      "title": "Client OS - אינטליגנציה",
+      "title": "Client - אינטליגנציה",
       "pathTemplate": "/w/{orgSlug}/client/view/intelligence",
       "description": "Meeting Intelligence / תובנות מישיבות.",
       "primaryActions": [],
@@ -227,7 +227,7 @@
     },
     {
       "id": "client.email",
-      "title": "Client OS - מרכז אימייל",
+      "title": "Client - מרכז אימייל",
       "pathTemplate": "/w/{orgSlug}/client/view/email",
       "description": "Email Center.",
       "primaryActions": [],
@@ -235,7 +235,7 @@
     },
     {
       "id": "client.forms",
-      "title": "Client OS - טפסים",
+      "title": "Client - טפסים",
       "pathTemplate": "/w/{orgSlug}/client/view/forms",
       "description": "Forms Manager.",
       "primaryActions": [],
@@ -243,7 +243,7 @@
     },
     {
       "id": "client.feedback",
-      "title": "Client OS - פידבק",
+      "title": "Client - פידבק",
       "pathTemplate": "/w/{orgSlug}/client/view/feedback",
       "description": "Feedback Loop.",
       "primaryActions": [],
@@ -251,15 +251,13 @@
     },
     {
       "id": "client.portal",
-      "title": "פורטל לקוחות",
-      "pathTemplate": "/w/{orgSlug}/client/portal",
-      "description": "פורטל לקוחות (Client Portal).",
-      "primaryActions": [],
-      "keywords": ["פורטל", "portal", "פורטל לקוחות"]
+      "title": "Client",
+      "module": "client",
+      "description": "Customer management and relationship portal"
     },
     {
       "id": "client.clientPortal",
-      "title": "Client OS - פורטל לקוח (מסך ללקוח ספציפי)",
+      "title": "Client - פורטל לקוח (מסך ללקוח ספציפי)",
       "pathTemplate": "/w/{orgSlug}/client/client-portal",
       "description": "פורטל לקוח לפי clientId (בדרך כלל מגיעים מכרטיס לקוח או לינק פנימי).",
       "primaryActions": [],
@@ -267,7 +265,7 @@
     },
     {
       "id": "client.cycles",
-      "title": "Client OS - מחזורים (Cycles)",
+      "title": "Client - מחזורים (Cycles)",
       "pathTemplate": "/w/{orgSlug}/client/view/cycles",
       "description": "Cycles Manager.",
       "primaryActions": [],
@@ -275,7 +273,7 @@
     },
     {
       "id": "client.me",
-      "title": "Client OS - אזור אישי",
+      "title": "Client - אזור אישי",
       "pathTemplate": "/w/{orgSlug}/client/me",
       "description": "אזור אישי במודול Client.",
       "primaryActions": [],

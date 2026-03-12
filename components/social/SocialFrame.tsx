@@ -523,8 +523,8 @@ export default function SocialFrame({
 
                 <div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">ניהול</div>
-                  <div className="grid grid-cols-4 gap-4">
-                    {menuItems.filter(i => ['team','collection','agency-insights'].includes(i.id)).map((item) => {
+                  <div className="grid grid-cols-2 gap-4">
+                    {menuItems.filter(i => ['settings','collection','agency-insights'].includes(i.id)).map((item) => {
                       const isActiveItem = currentView === item.view;
                       const IconComponent = iconMap[item.icon] || Icons.Home;
                       return (
@@ -553,34 +553,12 @@ export default function SocialFrame({
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                <div className="flex justify-center">
-                  {(() => {
-                    const settingsItem = menuItems.find(i => i.id === 'settings');
-                    if (!settingsItem) return null;
-                    const isActiveItem = currentView === settingsItem.view;
-                    const IconComponent = iconMap[settingsItem.icon] || Icons.Settings;
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => { onNavigateAction(getRouteForView(settingsItem.view)); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
-                          isActiveItem
-                            ? 'bg-[#7C3AED] text-white shadow-lg shadow-[#7C3AED]/30'
-                            : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
-                        }`}
-                      >
-                        <IconComponent size={24} strokeWidth={2} />
-                        <span className="text-sm font-bold">הגדרות ופיצ׳רים</span>
-                      </button>
-                    );
-                  })()}
-                </div>
-
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
-
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
+                  </div>
                 </div>
               </div>
             </motion.div>

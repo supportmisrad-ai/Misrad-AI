@@ -1,6 +1,6 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Clock, Video, MapPin, Plus, ChevronLeft, ChevronRight, RefreshCw, Phone, ExternalLink, Check, Users, Zap } from 'lucide-react';
+import { formatHebrewDate } from '@/lib/hebrew-calendar';
+import { Calendar, Clock, Video, MapPin, Plus, ChevronLeft, ChevronRight, RefreshCw, Phone, ExternalLink, Check, Users, Zap, Search, Filter, Mail, MoreVertical, X, AlertCircle } from 'lucide-react';
 import { Lead, CalendarEvent } from '../types';
 
 interface CalendarViewProps {
@@ -92,7 +92,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     return {
       name: dayNames[d.getDay()] || '',
       date: String(d.getDate()),
-      hebrewDate: getHebrewDate(d),
+      hebrewDate: formatHebrewDate(d, { shortFormat: true }),
       iso: toISODate(d),
     };
   });
@@ -172,7 +172,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     const dateStr = toISODate(dateObj);
                     const dayEvents = displayEvents.filter(e => e.date === dateStr);
                     const isToday = dateStr === toISODate(new Date());
-                    const heb = getHebrewDate(dateObj);
+    const heb = formatHebrewDate(dateObj, { shortFormat: true });
 
                     return (
                         <div key={i} className="bg-white p-2 relative group hover:bg-slate-50/50 transition-colors flex flex-col gap-1 min-h-[80px]">
@@ -305,7 +305,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                     <div className={`text-2xl font-bold ${index === 3 ? 'text-white bg-black w-10 h-10 rounded-full flex items-center justify-center mx-auto shadow-lg' : 'text-slate-800'}`}>
                                         {day.date}
                                     </div>
-                                    {day.hebrewDate ? <div className="text-[9px] text-slate-400 font-medium mt-0.5">{day.hebrewDate}</div> : null}
+                                    {day.hebrewDate ? <div className="text-[10px] text-slate-400 font-bold mt-0.5">{day.hebrewDate}</div> : null}
                                 </div>
                                 <div className={`flex-1 p-3 space-y-3 relative transition-colors ${index === 3 ? 'bg-rose-50/5' : 'group-hover/col:bg-slate-50/20'}`}>
                                     {/* Minimalist Time Lines */}

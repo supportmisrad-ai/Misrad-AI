@@ -129,9 +129,9 @@ const PipelineCard = memo(({
             onDragStart={(e) => onDragStart(e, lead.id)}
             onClick={() => onClick(lead)}
             className={`
-                bg-white p-4 rounded-2xl mb-3 cursor-grab active:cursor-grabbing 
+                bg-white p-4 md:p-4 rounded-[1.5rem] mb-4 md:mb-3 cursor-grab active:cursor-grabbing 
                 transition-all duration-300 group relative overflow-hidden
-                border border-transparent hover:border-primary-glow/30 hover:shadow-lg hover:-translate-y-1
+                border border-slate-100 hover:border-primary-glow/30 hover:shadow-md hover:-translate-y-0.5
                 ${isWon ? 'shadow-none border-emerald-100 bg-emerald-50/30' : 'shadow-sm'}
             `}
         >
@@ -147,7 +147,7 @@ const PipelineCard = memo(({
 
             <div className="pr-3">
                 {/* Header tags */}
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                         <ProductBadge type={lead.productInterest} />
                         {lead.isHot && !isWon && <Flame size={10} className="text-amber-500 fill-amber-500 animate-pulse" />}
@@ -158,17 +158,17 @@ const PipelineCard = memo(({
                 </div>
 
                 {/* Name & Value */}
-                <h4 className="font-bold text-slate-800 text-sm leading-snug mb-1 group-hover:text-primary transition-colors">
+                <h4 className="font-black text-slate-900 text-sm md:text-sm leading-snug mb-1 group-hover:text-primary transition-colors">
                     {lead.name}
                 </h4>
-                <div className="text-xs text-slate-500 font-medium mb-3 truncate">
+                <div className="text-xs md:text-xs text-slate-500 font-bold mb-4 truncate">
                     {lead.company || 'לקוח פרטי'}
                 </div>
 
                 {/* Footer Info */}
-                <div className="pt-3 border-t border-slate-50 space-y-2">
+                <div className="pt-4 border-t border-slate-100 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-slate-700 text-xs">
+                      <span className="font-mono font-black text-slate-900 text-[11px] md:text-xs">
                           ₪{lead.value.toLocaleString()}
                       </span>
 
@@ -230,7 +230,7 @@ const PipelineCard = memo(({
                               nextActionNote: followUpNote.trim() ? followUpNote : null,
                             });
                           }}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-700"
+                          className="w-full bg-slate-50 border-none rounded-xl px-2.5 py-1 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-slate-200"
                         />
                         <input
                           value={followUpNote}
@@ -243,8 +243,8 @@ const PipelineCard = memo(({
                               nextActionNote: followUpNote.trim() ? followUpNote : null,
                             });
                           }}
-                          placeholder="למה לחזור?"
-                          className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-[11px] font-black text-slate-700"
+                          placeholder="מה המשימה הבאה?"
+                          className="w-full bg-slate-50 border-none rounded-xl px-2.5 py-1 text-[10px] font-bold text-slate-600 focus:ring-1 focus:ring-slate-200"
                         />
                       </div>
                     </div>
@@ -317,7 +317,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
                     return (
                         <div 
                             key={stage.id} 
-                            className="w-[92vw] md:w-[320px] flex flex-col h-[65vh] md:h-full min-h-0 rounded-3xl bg-slate-50/50 border border-slate-200/60 flex-shrink-0"
+                            className="w-[92vw] md:w-[320px] flex flex-col h-[75vh] md:h-full min-h-0 rounded-3xl bg-slate-50/50 border border-slate-200/60 flex-shrink-0"
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, stage.id)}
                         >
@@ -340,7 +340,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
                             </div>
 
                             {/* Cards Area */}
-                            <div className="flex-1 min-h-0 overflow-y-auto p-3 custom-scrollbar relative">
+                            <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-3 custom-scrollbar relative">
                                 {stageLeads.map(lead => (
                                     <PipelineCard 
                                         key={lead.id} 

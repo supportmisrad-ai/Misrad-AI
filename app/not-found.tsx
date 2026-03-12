@@ -90,7 +90,7 @@ export default function NotFound() {
             </Link>
             <span className="text-gray-300">|</span>
             <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Client OS
+              Client
             </Link>
             <span className="text-gray-300">|</span>
             <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">

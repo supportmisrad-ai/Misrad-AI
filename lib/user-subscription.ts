@@ -134,7 +134,7 @@ export async function getUserPurchasedModules(userId: string, orgSlug?: string |
  * 2. System OS (if purchased)
  * 3. Social (if purchased)
  * 4. Finance OS (if purchased)
- * 5. Client OS (if purchased)
+ * 5. Client (if purchased)
  * 
  * @param purchasedModules - Array of purchased module IDs
  * @returns First available OS module route, or null if none

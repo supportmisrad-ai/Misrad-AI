@@ -25,13 +25,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'workspace', label: 'לוח בקרה', icon: LayoutDashboard },
       { id: 'sales_pipeline', label: 'לידים', icon: Users },
       { id: 'dialer', label: 'חייגן', icon: PhoneCall },
+      { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
       { id: 'calendar', label: 'אירועים', icon: CalendarDays },
     ]
   },
   {
     title: '',
     items: [
-      { id: 'call_analyzer', label: 'ניתוח שיחות', icon: PhoneCall },
       { id: 'partners', label: 'שותפים', icon: Network },
       { id: 'teams', label: 'צוותי מכירות', icon: Users },
       { id: 'field_map', label: 'צוותי שטח', icon: Map },

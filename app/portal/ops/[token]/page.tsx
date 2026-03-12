@@ -37,11 +37,11 @@ export default async function OpsContractorPortalPage({
   params,
   searchParams,
 }: {
-  params: { token: string };
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: Promise<{ token: string }> | { token: string };
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { token } = params;
-  const sp = searchParams ?? {};
+  const { token } = await params;
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const errorRaw = sp.error;
   const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 

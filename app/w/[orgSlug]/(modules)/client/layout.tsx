@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
 export const metadata: Metadata = getSystemMetadata('client');
+
+// Async component for access check - wrapped in Suspense
+async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'client' });
+  // Fire-and-forget: don't block render for location tracking
+  persistCurrentUserLastLocation({ orgSlug, module: 'client' }).catch(() => undefined);
+  return <>{children}</>;
+}
 
 export default async function ClientModuleLayout({
   children,
@@ -17,9 +26,7 @@ export default async function ClientModuleLayout({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'client' });
-  // Fire-and-forget: don't block render for location tracking
-  persistCurrentUserLastLocation({ orgSlug, module: 'client' }).catch(() => undefined);
+
   const def = getModuleDefinition('client');
 
   const style = {
@@ -41,7 +48,12 @@ export default async function ClientModuleLayout({
       className="min-h-screen bg-[color:var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      <div className="w-full">{children}</div>
+      {/* Immediate shell while access check runs */}
+      <Suspense fallback={<UnifiedLoadingShell moduleKey="client" stage="shell" />}>
+        <AccessCheck orgSlug={orgSlug}>
+          <div className="w-full">{children}</div>
+        </AccessCheck>
+      </Suspense>
     </div>
   );
 }

@@ -263,12 +263,15 @@ export async function getBusinessClients(filters?: {
     );
 
     // Serialize Decimal fields to plain numbers for client transport
-    const serialized = clients.map((c) => ({
+    const serialized = (clients as any[]).map((c: any) => ({
       ...c,
-      organizations: c.organizations.map((o) => ({
+      total_revenue_lifetime: c.total_revenue_lifetime != null ? Number(c.total_revenue_lifetime) : 0,
+      mrr: c.mrr != null ? Number(c.mrr) : 0,
+      arr: c.arr != null ? Number(c.arr) : 0,
+      organizations: (c.organizations as any[]).map((o: any) => ({
         ...o,
-        mrr: o.mrr != null ? Number(o.mrr) : null,
-        arr: o.arr != null ? Number(o.arr) : null,
+        mrr: o.mrr != null ? Number(o.mrr) : 0,
+        arr: o.arr != null ? Number(o.arr) : 0,
       })),
     }));
 

@@ -46,9 +46,9 @@ export default function PricingPageClient() {
             <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-4 sm:p-5 font-black text-slate-700 text-right">פיצ׳ר</th>
-                    <th className="p-4 sm:p-5 font-black text-indigo-700 text-center">MISRAD AI</th>
+                  <tr className="bg-slate-900 border-b border-slate-800">
+                    <th className="p-4 sm:p-5 font-black text-slate-300 text-right">פיצ׳ר</th>
+                    <th className="p-4 sm:p-5 font-black text-white text-center bg-slate-800/50">MISRAD AI</th>
                     <th className="p-4 sm:p-5 font-black text-slate-500 text-center">Fireberry</th>
                     <th className="p-4 sm:p-5 font-black text-slate-500 text-center">הכוורת</th>
                     <th className="p-4 sm:p-5 font-black text-slate-500 text-center">Monday</th>
@@ -57,9 +57,9 @@ export default function PricingPageClient() {
                 <tbody>
                   {([
                     { label: 'מחיר ל-5 משתמשים (חבילת הכל כלול)', ours: '₪499', fireberry: '₪640–820', kaveret: '₪675', monday: '₪220–440' },
-                    { label: 'משתמשים כלולים (חבילת הכל כלול)', ours: '5', fireberry: '0 (per user)', kaveret: '0 (per user)', monday: '0 (per user)' },
+                    { label: 'משתמשים כלולים (חבילת הכל כלול)', ours: '5', fireberry: '0 (לפי משתמש)', kaveret: '0 (לפי משתמש)', monday: '0 (לפי משתמש)' },
                     { label: 'מינימום משתמשים נדרש', ours: '1', fireberry: '1', kaveret: '1', monday: '3' },
-                    { label: '6 מודולים (CRM+שיווק+תפעול+...)', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: '6 מודולים (מכירות+שיווק+תפעול+...)', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'Finance מובנה (במתנה)', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'שליטה קולית בעברית', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'טופס לידים ציבורי (לינק לשיתוף)', ours: true, fireberry: false, kaveret: false, monday: false },
@@ -68,20 +68,20 @@ export default function PricingPageClient() {
                     { label: 'מותאם לשבת', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'לוח שנה עברי', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'עברית מלאה', ours: true, fireberry: true, kaveret: true, monday: true },
-                    { label: 'אפליקציית מובייל', ours: 'PWA (כמו אפליקציה)', fireberry: true, kaveret: true, monday: true },
+                    { label: 'אפליקציית מובייל', ours: 'מערכת מותאמת (ללא התקנה)', fireberry: true, kaveret: true, monday: true },
                   ] as Array<{ label: string; ours: boolean | string; fireberry: boolean | string; kaveret: boolean | string; monday: boolean | string }>).map((row) => (
                     <tr key={row.label} className="border-b border-slate-200 last:border-b-0">
                       <td className="p-4 sm:p-5 font-bold text-slate-700 text-right">{row.label}</td>
                       {(['ours', 'fireberry', 'kaveret', 'monday'] as const).map((col) => {
                         const val = row[col];
                         return (
-                          <td key={col} className="p-4 sm:p-5 text-center">
+                          <td key={col} className={`p-4 sm:p-5 text-center ${col === 'ours' ? 'bg-slate-50/30' : ''}`}>
                             {typeof val === 'string' ? (
-                              <span className={`text-xs font-bold ${col === 'ours' ? 'text-indigo-700' : 'text-slate-500'}`}>{val}</span>
+                              <span className={`text-xs font-black ${col === 'ours' ? 'text-slate-900' : 'text-slate-400'}`}>{val}</span>
                             ) : val ? (
-                              <Check size={22} className="text-emerald-600 mx-auto" />
+                              <Check size={20} className={`${col === 'ours' ? 'text-slate-900' : 'text-slate-400'} mx-auto`} strokeWidth={3} />
                             ) : (
-                              <X size={22} className="text-rose-400 mx-auto" />
+                              <X size={20} className="text-slate-200 mx-auto" strokeWidth={2} />
                             )}
                           </td>
                         );
@@ -91,14 +91,14 @@ export default function PricingPageClient() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-slate-400 text-center">
-              מחירים מבוססים על תמחור רשמי של כל ספק (2025/2026). Fireberry: $35–$45/user. הכוורת: ₪135/user. Monday Pro: $24/user (מינימום 3).
+            <p className="mt-6 text-[11px] text-slate-400 text-center leading-relaxed">
+              מחירים מבוססים על תמחור רשמי של כל ספק (2025/2026). Fireberry: $35–$45/למשתמש. הכוורת: ₪135/למשתמש. Monday Pro: $24/למשתמש (מינימום 3).
               <br />
-              <strong className="text-indigo-600">MISRAD AI כוללת עד 5 משתמשים בחבילת "הכל כלול"</strong> — מתחרים גובים per user בלבד.
+              <strong className="text-slate-900">MISRAD AI כוללת עד 5 משתמשים בחבילת "הכל כלול"</strong> — מתחרים גובים לפי משתמש בלבד.
               <br />
-              <span className="text-slate-500">"מותאם לשבת" = בחירה אידיאולוגית של המפתח. לא מתאים? יש Monday/Fireberry/הכוורת (פתוח 24/7).</span>
+              <span className="text-slate-400">"מותאם לשבת" = בחירה אידיאולוגית של המפתח.</span>
               <br />
-              <strong className="text-slate-600">כל המחירים של MISRAD AI כוללים מע&quot;מ.</strong>
+              <strong className="text-slate-900">כל המחירים כוללים מע"מ.</strong>
             </p>
           </div>
         </section>
