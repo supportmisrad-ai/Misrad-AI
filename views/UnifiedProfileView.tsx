@@ -6,7 +6,7 @@ import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { HoldButton } from '../components/HoldButton';
-import { LeadStatus, Status, type Lead, type Task, type TimeEntry } from '../types';
+import { LeadStatus, Status, type Lead, type Task, type TimeEntry, type LeaveRequest } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
 import { extractData, extractError } from '@/lib/shared/api-types';
@@ -57,26 +57,24 @@ function coerceStringArray(value: unknown): string[] {
   return value.map((v) => String(v)).filter(Boolean);
 }
 
-type LeaveRequestStatus = 'approved' | 'rejected' | 'pending' | string;
-type LeaveRequest = {
-  id: string;
-  start_date: string;
-  end_date: string | null;
-  status: LeaveRequestStatus;
-  reason: string | null;
-  metadata: { isUrgent?: boolean } | null;
-};
 
 function coerceLeaveRequest(value: unknown): LeaveRequest {
   const obj = asObject(value) ?? {};
   const meta = asObject(obj.metadata);
   return {
     id: String(obj.id ?? ''),
-    start_date: String(obj.start_date ?? ''),
-    end_date: obj.end_date == null ? null : String(obj.end_date),
-    status: String(obj.status ?? 'pending'),
-    reason: obj.reason == null ? null : String(obj.reason),
-    metadata: meta ? { ...(typeof meta.isUrgent === 'boolean' ? { isUrgent: meta.isUrgent } : {}) } : null,
+    employeeId: String(obj.user_id ?? obj.userId ?? obj.employeeId ?? ''),
+    startDate: String(obj.start_date ?? obj.startDate ?? ''),
+    endDate: obj.end_date == null && obj.endDate == null ? '' : String(obj.end_date ?? obj.endDate ?? ''),
+    leaveType: String(obj.type ?? obj.leaveType ?? 'vacation') as LeaveRequest['leaveType'],
+    status: (obj.status ?? 'pending') as LeaveRequest['status'],
+    reason: obj.reason == null ? undefined : String(obj.reason),
+    metadata: meta ? { isUrgent: typeof meta.isUrgent === 'boolean' ? meta.isUrgent : undefined } : undefined,
+    tenantId: obj.tenantId ? String(obj.tenantId) : undefined,
+    organizationId: obj.organizationId ? String(obj.organizationId) : undefined,
+    daysRequested: Number(obj.daysRequested ?? 0),
+    createdAt: obj.createdAt ? String(obj.createdAt) : '',
+    updatedAt: obj.updatedAt ? String(obj.updatedAt) : '',
   };
 }
 
@@ -923,10 +921,10 @@ export const MeView: React.FC<{
                                                       <div className="flex items-center gap-2 flex-wrap">
                                                           <CalendarDays size={16} className="text-blue-600" />
                                                           <span className="text-sm font-bold text-gray-900">
-                                                              {new Date(req.start_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
-                                                              {req.end_date && req.end_date !== req.start_date && ` - ${new Date(req.end_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`}
+                                                              {new Date(req.startDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
+                                                              {req.endDate && req.endDate !== req.startDate && ` - ${new Date(req.endDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`}
                                                           </span>
-                                                          {req.metadata?.isUrgent && (
+                                                          {Boolean(req.metadata?.isUrgent) && (
                                                               <span className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1">
                                                                   <CircleAlert size={12} />
                                                                   דחוף

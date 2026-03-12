@@ -89,6 +89,7 @@ export interface LeaveRequest {
   type: string;
   status: 'pending' | 'approved' | 'rejected';
   reason?: string;
+  metadata?: { isUrgent?: boolean };
   createdAt?: string;
 }
 

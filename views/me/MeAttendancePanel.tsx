@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Timer, MapPin, MapPinned, SquareActivity, CalendarDays, CircleAlert } from 'lucide-react';
 import { HoldButton } from '@/components/HoldButton';
+import type { LeaveRequest } from '@/types';
 
 interface TimeEntry {
     id: string;
@@ -16,14 +17,6 @@ interface TimeEntry {
     endLng?: number;
 }
 
-interface LeaveRequest {
-    id: string;
-    start_date: string;
-    end_date: string | null;
-    status: string;
-    reason: string | null;
-    metadata: { isUrgent?: boolean } | null;
-}
 
 interface MeAttendancePanelProps {
     activeShift: { startTime: string } | null;
@@ -265,10 +258,10 @@ export const MeAttendancePanel: React.FC<MeAttendancePanelProps> = ({
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <CalendarDays size={16} className="text-blue-600" />
                                                         <span className="text-sm font-bold text-gray-900">
-                                                            {new Date(req.start_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
-                                                            {req.end_date && req.end_date !== req.start_date && ` - ${new Date(req.end_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`}
+                                                            {req.startDate ? new Date(req.startDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) : ''}
+                                                            {req.endDate && req.endDate !== req.startDate && ` - ${new Date(req.endDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`}
                                                         </span>
-                                                        {req.metadata?.isUrgent && (
+                                                        {Boolean(req.metadata?.isUrgent) && (
                                                             <span className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1">
                                                                 <CircleAlert size={12} />
                                                                 דחוף
