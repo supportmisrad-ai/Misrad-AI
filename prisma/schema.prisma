@@ -5670,6 +5670,9 @@ model BookingLink {
   /// האם נדרש אישור ידני
   requireApproval   Boolean  @default(false) @map("require_approval")
   
+  /// מספר תורים מקסימלי בחלון זמן
+  maxBookingsPerSlot Int     @default(1) @map("max_bookings_per_slot")
+  
   /// סוג מיקום
   locationType      String   @default("zoom") @map("location_type")
   /// פרטי מיקום (כתובת/טלפון)
