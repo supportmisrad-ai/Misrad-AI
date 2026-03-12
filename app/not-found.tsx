@@ -81,23 +81,23 @@ export default function NotFound() {
         <div className="mt-12 pt-8 border-t border-gray-200">
           <p className="text-gray-600 mb-4 font-medium">אולי חיפשת את אחד מהמודולים שלנו?</p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/app/nexus" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
               Nexus OS
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/app/social" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
               Social
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/app/client" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
               Client OS
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/app/finance" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
               Finance OS
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/app/operations" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
+            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
               Operations OS
             </Link>
           </div>

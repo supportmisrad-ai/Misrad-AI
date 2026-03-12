@@ -126,7 +126,7 @@
     "google-auth-library": "^10.5.0",
     "googleapis": "^169.0.0",
     "lucide-react": "^0.577.0",
-    "next": "16.0.10",
+    "next": "16.1.5",
     "prisma": "^5.22.0",
     "qrcode": "^1.5.4",
     "react": "19.2.1",
@@ -164,7 +164,7 @@
     "electron-builder": "^24.13.3",
     "esbuild": "^0.25.0",
     "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "16.1.5",
     "html-docx-js": "^0.3.1",
     "html-to-docx": "^1.8.0",
     "marked": "^17.0.1",
@@ -182,7 +182,10 @@
       "minimatch": "^10.2.1"
     },
     "bn.js": "^5.2.3",
-    "serialize-javascript": "7.0.3"
+    "serialize-javascript": "7.0.3",
+    "archiver-utils": {
+      "glob": "^10.3.10"
+    }
   },
   "main": "electron/main.js",
   "build": {

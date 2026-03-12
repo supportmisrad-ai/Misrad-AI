@@ -260,7 +260,7 @@ export async function getBotLeadsAnalytics(): Promise<{
       throw new Error('Unauthorized');
     }
 
-    const [stats] = await prisma.$queryRaw<[]> `
+    const [stats] = await prisma.$queryRaw<[{ total_leads: number; new_leads: number; qualified_leads: number; converted_leads: number; avg_lead_score: number }]> `
       SELECT 
         COUNT(*)::int as total_leads,
         COUNT(CASE WHEN status = 'new' THEN 1 END)::int as new_leads,
@@ -270,7 +270,7 @@ export async function getBotLeadsAnalytics(): Promise<{
       FROM bot_leads_extended
     `;
 
-    const [convoStats] = await prisma.$queryRaw<[]> `
+    const [convoStats] = await prisma.$queryRaw<[{ total_conversations: number }]> `
       SELECT COUNT(*)::int as total_conversations
       FROM bot_conversations_extended
     `;
@@ -306,7 +306,7 @@ export async function getBotLeadCampaigns(): Promise<string[]> {
       ORDER BY campaign
     `;
 
-    return campaigns.map((c) => c.campaign).filter(Boolean);
+    return campaigns.map((c: { campaign: string }) => c.campaign).filter(Boolean);
   } catch (error) {
     logger.error('bot-leads', 'Failed to get campaigns', error);
     return [];
