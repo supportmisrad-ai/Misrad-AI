@@ -649,7 +649,7 @@ export default function SystemSalesPipelineClient({
           <button
             type="button"
             onClick={handleCopyLeadFormLink}
-            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
+            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all whitespace-nowrap ${
               leadFormCopied
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                 : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
@@ -682,9 +682,9 @@ export default function SystemSalesPipelineClient({
             <button
             type="button"
             onClick={() => setShowNewLeadModal(true)}
-            className="bg-slate-900 hover:bg-slate-800 text-white px-2 md:px-4 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-1 md:gap-2 whitespace-nowrap"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-1.5 md:gap-2 whitespace-nowrap"
           >
-            <UserPlus size={14} className="md:size-16" /> <span className="hidden sm:inline">ליד חדש</span><span className="sm:hidden">חדש</span>
+            <UserPlus size={16} /> ליד חדש
           </button>
         </div>
       </div>
@@ -732,16 +732,16 @@ export default function SystemSalesPipelineClient({
         )}
       </div>}
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="flex flex-col md:flex-row gap-2 md:items-center">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="חיפוש..."
-            className="w-full md:w-[320px] bg-white border border-slate-200 rounded-full px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-bold shadow-sm"
+            className="flex-1 min-w-[120px] md:w-[320px] bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-bold shadow-sm"
           />
 
-          <div className="w-full md:w-[220px]">
+          <div className="w-[140px] md:w-[220px]">
             <CustomSelect
               value={statusFilter}
               onChange={(val) => {
@@ -758,7 +758,7 @@ export default function SystemSalesPipelineClient({
             />
           </div>
 
-          <div className="w-full md:w-[240px]">
+          <div className="w-[140px] md:w-[240px]">
             <CustomSelect
               value={sortKey}
               onChange={(val) => {
@@ -787,7 +787,7 @@ export default function SystemSalesPipelineClient({
           <button
             type="button"
             onClick={() => setTodayOnly((v) => !v)}
-            className={`w-full md:w-auto px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors inline-flex items-center gap-1.5 md:gap-2 justify-center ${
+            className={`px-2.5 py-1.5 rounded-full text-xs font-black border shadow-sm transition-colors inline-flex items-center gap-1.5 whitespace-nowrap ${
               todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200'
             }`}
           >
