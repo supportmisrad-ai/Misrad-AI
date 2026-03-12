@@ -646,20 +646,18 @@ export default function SystemSalesPipelineClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={handleCopyLeadFormLink}
-              className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
-                leadFormCopied
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                  : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
-              }`}
-            >
-              {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
-              {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handleCopyLeadFormLink}
+            className={`inline-flex items-center gap-1.5 border px-3 md:px-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-black shadow-sm transition-all ${
+              leadFormCopied
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
+            {leadFormCopied ? 'הועתק!' : 'קישור לטופס'}
+          </button>
           {isAdmin && (
             <button
               type="button"
