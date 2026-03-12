@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Link2, Check } from 'lucide-react';
+import { UserPlus, Link2, Check, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { useToast } from '@/components/system/contexts/ToastContext';
@@ -646,6 +646,32 @@ export default function SystemSalesPipelineClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Icons - moved to top */}
+          <div className="flex items-center bg-slate-100 rounded-xl p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('board')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'board' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+              title="לוח קנבן"
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${
+                viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+              title="רשימה"
+            >
+              <ListIcon size={18} />
+            </button>
+          </div>
+
+          <div className="w-px h-6 bg-slate-200 mx-1" />
+
           <button
             type="button"
             onClick={handleCopyLeadFormLink}
@@ -732,7 +758,7 @@ export default function SystemSalesPipelineClient({
         )}
       </div>}
 
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
         <div className="flex flex-wrap items-center gap-2">
           <input
             value={query}
@@ -794,30 +820,9 @@ export default function SystemSalesPipelineClient({
             לטיפול היום
           </button>
         </div>
-
-        <div className="flex gap-1.5 md:gap-2">
-          <button
-            type="button"
-            onClick={() => setViewMode('board')}
-            className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors ${
-              viewMode === 'board' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-800 border-slate-200'
-            }`}
-          >
-            לוח
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-black border shadow-sm transition-colors ${
-              viewMode === 'list' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-800 border-slate-200'
-            }`}
-          >
-            רשימה
-          </button>
-        </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 h-[calc(100vh-280px)] md:h-auto">
         {viewMode === 'board' ? (
           <PipelineBoard
             leads={visibleLeads}

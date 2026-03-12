@@ -4,7 +4,7 @@ import {
     Zap, Calendar, BarChart2, Plus, 
     ArrowRight, ChevronRight, SquareActivity, 
     TrendingUp, Shield, Star, Phone, Video,
-    User, Gauge
+    User, Gauge, Link2, Check
 } from 'lucide-react';
 import { UserProfile, CalendarEvent, Lead } from '../types';
 
@@ -19,6 +19,15 @@ interface MobileFrontWingProps {
 }
 
 const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickAction, onNavigate, onLeadClick, nextMeeting, velocityScore = 100 }) => {
+    const [linkCopied, setLinkCopied] = React.useState(false);
+    
+    const handleCopyLink = () => {
+        const url = typeof window !== 'undefined' ? `${window.location.origin}/lead/${user.organizationId || 'default'}` : '#';
+        void navigator.clipboard.writeText(url).then(() => {
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+        });
+    };
     
     // --- Systemic Logic (Real-time Calculations) ---
     
@@ -123,6 +132,13 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                     >
                         <Plus size={18} />
                         הוספת ליד
+                    </button>
+                    <button 
+                        onClick={handleCopyLink}
+                        className="w-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 py-3.5 rounded-xl font-bold text-sm backdrop-blur-md flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-emerald-500/30"
+                    >
+                        {linkCopied ? <Check size={18} /> : <Link2 size={18} />}
+                        {linkCopied ? 'הועתק!' : 'קישור לטופס'}
                     </button>
                 </div>
 
