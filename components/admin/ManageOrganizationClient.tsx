@@ -100,7 +100,7 @@ type OrganizationData = {
 
 const PLANS = [
   { value: '', label: 'ללא חבילה (ניסיון בלבד)', price: '₪0', seats: 1 },
-  { value: 'solo', label: '🎯 מודול בודד', price: '₪149', seats: 1 },
+  { value: 'solo', label: '🎯 נקסוס בלבד', price: '₪149', seats: 1 },
   { value: 'the_closer', label: '💼 מכירות', price: '₪249', seats: 3 },
   { value: 'the_authority', label: '🎨 שיווק ומיתוג', price: '₪349', seats: 5 },
   { value: 'the_operator', label: '🔧 תפעול ושטח', price: '₪349', seats: 5 },
@@ -772,11 +772,11 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             <div>
                               <div className="font-bold text-sm text-red-900">⚠️ שגיאה: יותר מדי מודולים</div>
                               <div className="text-xs text-red-700 mt-1">
-                                חבילת "מודול בודד" (149₪) מוגבלת למודול אחד בלבד.
+                                חבילת "נקסוס בלבד" (149₪) מוגבלת למודול אחד בלבד.
                                 <br />
                                 <strong>כרגע פעילים {activeModules} מודולים</strong> - זה לא תקין!
                                 <br />
-                                בחר מודול אחד בלבד או שדרג לחבילה אחרת.
+                                נקסוס בלבד או שדרג לחבילה אחרת.
                               </div>
                             </div>
                           </div>
@@ -787,7 +787,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                           <div className="flex items-center gap-2">
                             <CircleCheckBig className="w-4 h-4 text-green-600" />
-                            <span className="text-xs font-bold text-green-800">✓ חבילת מודול בודד מוגדרת נכון</span>
+                            <span className="text-xs font-bold text-green-800">✓ נקסוס בלבד מוגדר נכון</span>
                           </div>
                         </div>
                       );
