@@ -199,7 +199,7 @@ function streamTextResponse(text: string): Response {
   });
 }
 
-function streamClaudeResponse(params: {
+function streamOpenAIResponse(params: {
   apiKey: string;
   systemInstruction: string;
   prompt: string;
@@ -216,31 +216,24 @@ function streamClaudeResponse(params: {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        const anthropic = new Anthropic({ apiKey: params.apiKey });
+        const openai = new OpenAI({ apiKey: params.apiKey });
         
-        const messageStream = await anthropic.messages.stream({
-          model: 'claude-3-5-haiku-20250219',
+        const response = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: params.systemInstruction },
+            { role: 'user', content: params.prompt }
+          ],
           max_tokens: params.maxTokens ?? 400,
           temperature: params.temperature ?? 0.3,
-          system: params.systemInstruction,
-          messages: [{ role: 'user', content: params.prompt }],
+          stream: true,
         }, { signal: ac.signal });
 
-        let accumulated = '';
-
-        for await (const chunk of messageStream) {
-          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-            const text = chunk.delta.text;
-            if (params.postProcess) {
-              accumulated += text;
-            } else {
-              controller.enqueue(encoder.encode(text));
-            }
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            controller.enqueue(encoder.encode(content));
           }
-        }
-
-        if (params.postProcess && accumulated) {
-          controller.enqueue(encoder.encode(params.postProcess(accumulated)));
         }
 
         clearTimeout(timeout);
@@ -589,9 +582,9 @@ async function POSTHandler(req: Request) {
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return apiError('חסר ANTHROPIC_API_KEY', { status: 500 });
+      return apiError('חסר OPENAI_API_KEY', { status: 500 });
     }
 
     if (sales) {
@@ -673,7 +666,7 @@ async function POSTHandler(req: Request) {
         `- אם מוכן: "הירשם עכשיו|/login?mode=sign-up;;דבר עם מכירות|/contact;;שאלות נוספות|יש לי עוד שאלה"`,
       ].join('\n');
 
-      return streamClaudeResponse({
+      return streamOpenAIResponse({
         apiKey,
         systemInstruction,
         prompt,
@@ -777,7 +770,7 @@ async function POSTHandler(req: Request) {
 
     const prompt = `עמוד נוכחי: ${pathname}\nמודול: ${moduleKey || 'unknown'}\n\nHistory:\n${history || '(empty)'}\n\nUser message:\n${lastUser}`;
 
-    return streamClaudeResponse({
+    return streamOpenAIResponse({
       apiKey,
       systemInstruction,
       prompt,
