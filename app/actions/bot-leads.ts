@@ -8,6 +8,7 @@ import { logger } from '@/lib/server/logger';
 export interface BotLeadDTO {
   id: string;
   phone: string;
+  alternative_phone: string | null;
   name: string | null;
   first_name: string | null;
   last_name: string | null;
@@ -28,6 +29,7 @@ export interface BotLeadDTO {
   next_action_date: Date | null;
   pain_point: string | null;
   selected_plan: string | null;
+  plan_price: number | null;
   coupon_code: string | null;
   has_media: boolean;
   tags: string[];
