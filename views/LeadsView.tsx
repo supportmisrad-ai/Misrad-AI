@@ -109,11 +109,19 @@ export const LeadsView: React.FC = () => {
                         </button>
                         <button 
                             onClick={handleCopyLeadFormLink}
+<<<<<<< HEAD
                             className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2.5 sm:px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors whitespace-nowrap"
                             title="העתק לינק לטופס לידים ציבורי"
                         >
                             {copied ? <Check size={14} /> : <Copy size={14} />}
                             <span>{copied ? 'הועתק!' : 'לינק טופס'}</span>
+=======
+                            className="bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2 sm:px-3 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-colors"
+                            title="העתק לינק לטופס לידים ציבורי"
+                        >
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            <span className="hidden sm:inline">{copied ? 'הועתק!' : 'לינק טופס'}</span>
+>>>>>>> 1f55f08f (fix(LeadsView): compact buttons and KPI cards for mobile view)
                         </button>
                     </div>
                 </div>
