@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { Prisma } from '@prisma/client';
+import { Prisma, $Enums } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/server/logger';
 
@@ -108,7 +108,7 @@ export interface GetBotLeadsResult {
 }
 
 /**
- * Get bot leads with filtering and pagination
+ * Get bot leads with filtering and pagination using Prisma ORM
  */
 export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBotLeadsResult> {
   try {
@@ -131,11 +131,11 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
 
     const skip = (page - 1) * pageSize;
 
-    // Build where clause dynamically
-    const where: Prisma.BotLeadWhereInput = {};
+    // Build where clause dynamically using snake_case field names
+    const where: Prisma.BotLeadExtendedWhereInput = {};
 
     if (status && status !== 'all') {
-      where.status = status;
+      where.status = status as $Enums.BotLeadStatus;
     }
 
     if (priority && priority !== 'all') {
@@ -163,7 +163,7 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
 
     // Get leads with conversation count using Prisma ORM
     const [leads, total] = await Promise.all([
-      prisma.botLead.findMany({
+      prisma.botLeadExtended.findMany({
         where,
         skip,
         take: pageSize,
@@ -174,73 +174,22 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
           },
         },
       }),
-      prisma.botLead.count({ where }),
+      prisma.botLeadExtended.count({ where }),
     ]);
 
     // Transform to DTO with conversation count
-    const leadsWithCount: BotLeadDTO[] = leads.map((lead: { id: string; phone: string; alternativePhone: string | null; name: string | null; firstName: string | null; lastName: string | null; businessName: string | null; businessType: string | null; email: string | null; emailValidated: boolean | null; industry: string | null; subIndustry: string | null; orgSize: string | null; employeeCount: number | null; annualRevenue: string | null; yearsInBusiness: string | null; website: string | null; linkedinCompany: string | null; facebookPage: string | null; instagramHandle: string | null; address: string | null; city: string | null; region: string | null; country: string | null; zipCode: string | null; latitude: number | null; longitude: number | null; locationName: string | null; locationType: string | null; serviceArea: string | null; timezone: string | null; preferredLanguage: string | null; communicationPref: string | null; bestTimeToCall: string | null; source: string | null; medium: string | null; campaign: string | null; campaignId: string | null; referrerName: string | null; referrerCode: string | null; landingPage: string | null; utmSource: string | null; utmMedium: string | null; utmCampaign: string | null; couponCode: string | null; couponType: string | null; discountAmount: number | null; discountPercent: number | null; hasMedia: boolean | null; mediaType: string | null; imageUrl: string | null; buttonClicked: string | null; qrScanned: boolean | null; selectedPlan: string | null; planPrice: number | null; painPoint: string | null; painLevel: string | null; budgetRange: string | null; urgencyLevel: string | null; status: string; priority: string | null; leadScore: number | null; leadQuality: string | null; stage: string | null; assignedTo: string | null; nextAction: string | null; nextActionDate: Date | null; firstContactDate: Date | null; lastActivityDate: Date | null; demoScheduledDate: Date | null; trialStartDate: Date | null; closedDate: Date | null; tags: string[]; notes: string | null; customFields: Prisma.JsonValue | null; createdAt: Date; updatedAt: Date; lastInteraction: Date; _count: { conversations: number }; organizationId: string | null }) => ({
-        ...lead,
-        conversation_count: lead._count.conversations,
-        // Map snake_case fields
-        alternative_phone: lead.alternativePhone,
-        first_name: lead.firstName,
-        last_name: lead.lastName,
-        business_name: lead.businessName,
-        business_type: lead.businessType,
-        email_validated: lead.emailValidated,
-        sub_industry: lead.subIndustry,
-        org_size: lead.orgSize,
-        employee_count: lead.employeeCount,
-        annual_revenue: lead.annualRevenue,
-        years_in_business: lead.yearsInBusiness,
-        linkedin_company: lead.linkedinCompany,
-        facebook_page: lead.facebookPage,
-        instagram_handle: lead.instagramHandle,
-        zip_code: lead.zipCode,
-        location_name: lead.locationName,
-        location_type: lead.locationType,
-        service_area: lead.serviceArea,
-        preferred_language: lead.preferredLanguage,
-        communication_pref: lead.communicationPref,
-        best_time_to_call: lead.bestTimeToCall,
-        campaign_id: lead.campaignId,
-        referrer_name: lead.referrerName,
-        referrer_code: lead.referrerCode,
-        landing_page: lead.landingPage,
-        utm_source: lead.utmSource,
-        utm_medium: lead.utmMedium,
-        utm_campaign: lead.utmCampaign,
-        coupon_code: lead.couponCode,
-        coupon_type: lead.couponType,
-        discount_amount: lead.discountAmount,
-        discount_percent: lead.discountPercent,
-        has_media: lead.hasMedia,
-        media_type: lead.mediaType,
-        image_url: lead.imageUrl,
-        button_clicked: lead.buttonClicked,
-        qr_scanned: lead.qrScanned,
-        selected_plan: lead.selectedPlan,
-        plan_price: lead.planPrice,
-        pain_point: lead.painPoint,
-        pain_level: lead.painLevel,
-        budget_range: lead.budgetRange,
-        urgency_level: lead.urgencyLevel,
-        lead_score: lead.leadScore,
-        lead_quality: lead.leadQuality,
-        assigned_to: lead.assignedTo,
-        next_action: lead.nextAction,
-        next_action_date: lead.nextActionDate,
-        first_contact_date: lead.firstContactDate,
-        last_activity_date: lead.lastActivityDate,
-        demo_scheduled_date: lead.demoScheduledDate,
-        trial_start_date: lead.trialStartDate,
-        closed_date: lead.closedDate,
-        custom_fields: lead.customFields,
-        created_at: lead.createdAt,
-        updated_at: lead.updatedAt,
-        last_interaction: lead.lastInteraction,
-        organization_id: lead.organizationId,
-      })),
+    const leadsWithCount: BotLeadDTO[] = leads.map((lead: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _count, ...leadData } = lead;
+      return {
+        ...leadData,
+        latitude: lead.latitude ? parseFloat(lead.latitude.toString()) : null,
+        longitude: lead.longitude ? parseFloat(lead.longitude.toString()) : null,
+        discount_amount: lead.discount_amount ? parseFloat(lead.discount_amount.toString()) : null,
+        plan_price: lead.plan_price ? parseFloat(lead.plan_price.toString()) : null,
+        conversation_count: _count?.conversations ?? 0,
+      } as BotLeadDTO;
+    });
 
     return {
       leads: leadsWithCount,
@@ -273,25 +222,40 @@ export async function getBotLeadById(leadId: string): Promise<{
       throw new Error('Unauthorized');
     }
 
-    const lead = await prisma.$queryRaw<BotLeadDTO[]>`
-      SELECT 
-        l.*,
-        COUNT(c.id)::int as conversation_count
-      FROM bot_leads_extended l
-      LEFT JOIN bot_conversations_extended c ON c.lead_id = l.id
-      WHERE l.id = ${leadId}
-      GROUP BY l.id
-    `;
+    // Use Prisma ORM instead of raw SQL
+    const lead = await prisma.botLeadExtended.findUnique({
+      where: { id: leadId },
+      include: {
+        _count: {
+          select: { conversations: true },
+        },
+      },
+    });
 
-    const conversations = await prisma.$queryRaw<[]> `
-      SELECT id, direction, message, rule_id, variables, created_at
-      FROM bot_conversations_extended
-      WHERE lead_id = ${leadId}
-      ORDER BY created_at DESC
-    `;
+    const conversations = await prisma.botConversation.findMany({
+      where: { lead_id: leadId },
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        direction: true,
+        message: true,
+        rule_id: true,
+        variables: true,
+        created_at: true,
+      },
+    });
 
     return {
-      lead: lead[0] || null,
+      lead: lead
+        ? {
+            ...lead,
+            latitude: lead.latitude ? parseFloat(lead.latitude.toString()) : null,
+            longitude: lead.longitude ? parseFloat(lead.longitude.toString()) : null,
+            discount_amount: lead.discount_amount ? parseFloat(lead.discount_amount.toString()) : null,
+            plan_price: lead.plan_price ? parseFloat(lead.plan_price.toString()) : null,
+            conversation_count: lead._count?.conversations ?? 0,
+          }
+        : null,
       conversations: conversations || [],
     };
   } catch (error) {
@@ -303,21 +267,20 @@ export async function getBotLeadById(leadId: string): Promise<{
 /**
  * Update lead status
  */
-export async function updateBotLeadStatus(
-  leadId: string,
-  status: string
-): Promise<void> {
+export async function updateBotLeadStatus(leadId: string, status: string): Promise<void> {
   try {
     const { userId } = await auth();
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    await prisma.$executeRaw `
-      UPDATE bot_leads_extended
-      SET status = ${status}, updated_at = NOW()
-      WHERE id = ${leadId}
-    `;
+    await prisma.botLeadExtended.update({
+      where: { id: leadId },
+      data: {
+        status: status as $Enums.BotLeadStatus,
+        updated_at: new Date(),
+      },
+    });
   } catch (error) {
     logger.error('bot-leads', `Failed to update lead ${leadId} status`, error);
     throw new Error('Failed to update lead status');
@@ -327,21 +290,20 @@ export async function updateBotLeadStatus(
 /**
  * Update lead assignment
  */
-export async function updateBotLeadAssignment(
-  leadId: string,
-  assignedTo: string | null
-): Promise<void> {
+export async function updateBotLeadAssignment(leadId: string, assignedTo: string | null): Promise<void> {
   try {
     const { userId } = await auth();
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    await prisma.$executeRaw `
-      UPDATE bot_leads_extended
-      SET assigned_to = ${assignedTo}, updated_at = NOW()
-      WHERE id = ${leadId}
-    `;
+    await prisma.botLeadExtended.update({
+      where: { id: leadId },
+      data: {
+        assigned_to: assignedTo,
+        updated_at: new Date(),
+      },
+    });
   } catch (error) {
     logger.error('bot-leads', `Failed to assign lead ${leadId}`, error);
     throw new Error('Failed to assign lead');
@@ -365,28 +327,32 @@ export async function getBotLeadsAnalytics(): Promise<{
       throw new Error('Unauthorized');
     }
 
-    const [stats] = await prisma.$queryRaw<[{ total_leads: number; new_leads: number; qualified_leads: number; converted_leads: number; avg_lead_score: number }]> `
-      SELECT 
-        COUNT(*)::int as total_leads,
-        COUNT(CASE WHEN status = 'new' THEN 1 END)::int as new_leads,
-        COUNT(CASE WHEN status IN ('qualified', 'demo_scheduled', 'demo_completed') THEN 1 END)::int as qualified_leads,
-        COUNT(CASE WHEN status = 'customer' THEN 1 END)::int as converted_leads,
-        COALESCE(AVG(lead_score), 0)::float as avg_lead_score
-      FROM bot_leads_extended
-    `;
-
-    const [convoStats] = await prisma.$queryRaw<[{ total_conversations: number }]> `
-      SELECT COUNT(*)::int as total_conversations
-      FROM bot_conversations_extended
-    `;
+    // Use Prisma ORM aggregation instead of raw SQL
+    const [totalLeads, newLeads, qualifiedLeads, convertedLeads, avgResult, totalConversations] =
+      await Promise.all([
+        prisma.botLeadExtended.count(),
+        prisma.botLeadExtended.count({ where: { status: 'new' } }),
+        prisma.botLeadExtended.count({
+          where: {
+            status: {
+              in: ['qualified', 'demo_booked', 'trial'] as $Enums.BotLeadStatus[],
+            },
+          },
+        }),
+        prisma.botLeadExtended.count({ where: { status: 'customer' } }),
+        prisma.botLeadExtended.aggregate({
+          _avg: { lead_score: true },
+        }),
+        prisma.botConversation.count(),
+      ]);
 
     return {
-      totalLeads: stats?.total_leads || 0,
-      newLeads: stats?.new_leads || 0,
-      qualifiedLeads: stats?.qualified_leads || 0,
-      convertedLeads: stats?.converted_leads || 0,
-      totalConversations: convoStats?.total_conversations || 0,
-      avgLeadScore: Math.round(stats?.avg_lead_score || 0),
+      totalLeads,
+      newLeads,
+      qualifiedLeads,
+      convertedLeads,
+      totalConversations,
+      avgLeadScore: Math.round(avgResult?._avg?.lead_score ?? 0),
     };
   } catch (error) {
     logger.error('bot-leads', 'Failed to get analytics', error);
@@ -404,14 +370,14 @@ export async function getBotLeadCampaigns(): Promise<string[]> {
       throw new Error('Unauthorized');
     }
 
-    const campaigns = await prisma.$queryRaw<[{ campaign: string }]> `
-      SELECT DISTINCT campaign
-      FROM bot_leads_extended
-      WHERE campaign IS NOT NULL
-      ORDER BY campaign
-    `;
+    const campaigns = await prisma.botLeadExtended.findMany({
+      where: { campaign: { not: null } },
+      distinct: ['campaign'],
+      select: { campaign: true },
+      orderBy: { campaign: 'asc' },
+    });
 
-    return campaigns.map((c: { campaign: string }) => c.campaign).filter(Boolean);
+    return campaigns.map((c: { campaign: string | null }) => c.campaign).filter((c): c is string => Boolean(c));
   } catch (error) {
     logger.error('bot-leads', 'Failed to get campaigns', error);
     return [];

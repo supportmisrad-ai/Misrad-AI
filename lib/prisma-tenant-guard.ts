@@ -1080,6 +1080,10 @@ export function installPrismaTenantGuard(
     'ai_provider_keys',
     'ai_model_aliases',
     'ai_usage_logs',
+    'ai_tower_audit_logs',
+    'ai_insights',
+    'ai_actions',
+    'ai_rules',
     // Prisma model names (params.model uses PascalCase model name, not DB table name)
     'CoreSystemSettings',
     ...(options?.excludedModels ?? []),
