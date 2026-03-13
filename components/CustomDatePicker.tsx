@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, isJewishHoliday, getJewishHolidayName, isShabbat } from '../lib/hebrew-calendar';
+import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, getHebrewYearLetters, isJewishHoliday, getJewishHolidayName, isShabbat } from '../lib/hebrew-calendar';
 
 interface CustomDatePickerProps {
   value: string;
@@ -314,7 +314,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                         <div className="flex flex-col items-center gap-1">
                         <span className="text-base font-bold text-gray-900">
                                 {showHebrewCalendar
-                              ? `${getHebrewMonthName(viewDate)} ${getHebrewYear(viewDate)}`
+                              ? `${getHebrewMonthName(viewDate)} ${getHebrewYearLetters(viewDate)}`
                               : `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`
                             }
                         </span>
@@ -322,7 +322,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                                 <span className="text-xs text-purple-600 font-medium">
                                     {showHebrewCalendar 
                                       ? `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`
-                                      : `${getHebrewMonthName(viewDate)} ${getHebrewYear(viewDate)}`
+                                      : `${getHebrewMonthName(viewDate)} ${getHebrewYearLetters(viewDate)}`
                                     }
                                 </span>
                             )}

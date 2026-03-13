@@ -898,13 +898,13 @@ export const TeamView: React.FC = () => {
 
           {activeTab === 'invitations' && (
             <div className="h-full overflow-y-auto pb-4 md:pb-10">
-              <EmployeeInvitationsPanel addToast={addToast} />
-            </div>
-          )}
-
-          {activeTab === 'events' && (
-            <div className="h-full overflow-y-auto pb-4 md:pb-10">
-              <TeamEventsPanel addToast={addToast} currentUser={currentUser} users={allUsers || users} />
+              <EmployeeInvitationsPanel 
+                addToast={addToast} 
+                roleDefinitions={availableRoles.length > 0 ? availableRoles : roleDefinitions}
+                departments={departments}
+                isGlobalAdmin={isGlobalAdmin}
+                myDepartment={myDepartment}
+              />
             </div>
           )}
 

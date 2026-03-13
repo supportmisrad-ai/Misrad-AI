@@ -14,7 +14,7 @@ import { usePathname } from 'next/navigation';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CircleCheckBig } from 'lucide-react';
+import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CircleCheckBig, Lock } from 'lucide-react';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 interface EmployeeInvitation {
@@ -42,9 +42,24 @@ interface EmployeeInvitation {
 
 interface EmployeeInvitationsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+    roleDefinitions: RoleDefinition[];
+    departments: string[];
+    isGlobalAdmin: boolean;
+    myDepartment?: string;
 }
 
-export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> = ({ addToast }) => {
+interface RoleDefinition {
+    name: string;
+    permissions?: string[];
+}
+
+export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> = ({ 
+    addToast, 
+    roleDefinitions, 
+    departments, 
+    isGlobalAdmin, 
+    myDepartment 
+}) => {
     const pathname = usePathname();
     const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const [invitations, setInvitations] = useState<EmployeeInvitation[]>([]);
@@ -481,22 +496,28 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">מחלקה *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.department}
-                                            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none transition-all"
-                                            placeholder="מכירות, שיווק, וכו'"
-                                        />
+                                        {isGlobalAdmin ? (
+                                            <CustomSelect
+                                                value={formData.department}
+                                                onChange={(val) => setFormData({ ...formData, department: val })}
+                                                options={departments.map(d => ({ value: d, label: d }))}
+                                                placeholder="בחר מחלקה"
+                                                className="w-full"
+                                            />
+                                        ) : (
+                                            <div className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 text-sm font-bold flex items-center gap-2 cursor-not-allowed">
+                                                <Lock size={12} /> {myDepartment || 'ללא מחלקה'}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">תפקיד *</label>
-                                        <input
-                                            type="text"
+                                        <CustomSelect
                                             value={formData.role}
-                                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none transition-all"
-                                            placeholder="איש מכירות, מנהל שיווק, וכו'"
+                                            onChange={(val) => setFormData({ ...formData, role: val })}
+                                            options={roleDefinitions.map(def => ({ value: def.name, label: def.name }))}
+                                            placeholder="בחר תפקיד"
+                                            className="w-full"
                                         />
                                     </div>
                                 </div>
