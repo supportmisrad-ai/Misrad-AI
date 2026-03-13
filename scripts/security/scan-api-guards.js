@@ -21,6 +21,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/invitations/complete/[token]/route.ts',
   'app/api/webhooks/morning-app/route.ts', // Webhook protected by signature verification
   'app/api/email/unsubscribe/route.ts', // Public: HMAC token verified, no auth required
+  'app/api/email/track/route.ts', // Public: email open tracking pixel, no auth required (returns 1x1 gif)
   'app/api/contact/route.ts', // Public: rate-limited, no auth required — contact form
   'app/api/landing/testimonials/route.ts', // Public: landing page data, no auth required
   'app/api/landing/faq/route.ts', // Public: landing page data, no auth required
