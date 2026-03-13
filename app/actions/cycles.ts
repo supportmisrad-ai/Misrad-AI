@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
-import { watchtower } from '@/lib/ai/watchtower-engine';
+import { eventBus } from '@/lib/events/event-bus';
 
 // Helper to get organization from session
 async function getCurrentOrganizationId(): Promise<string | null> {
@@ -376,14 +376,17 @@ export async function completeTask(taskId: string, clientId: string) {
     // 🏛️ AI Tower: Emit event for Watchtower processing (fire-and-forget)
     const organizationId = await getCurrentOrganizationId();
     if (organizationId) {
-      watchtower.emit({
-        type: 'TASK_COMPLETED',
-        payload: {
+      eventBus.emitSimple(
+        'TASK_COMPLETED',
+        {
           taskId,
           userId,
           organizationId,
         },
-      }).catch(() => {
+        organizationId,
+        userId,
+        'cycles.ts:completeTask'
+      ).catch(() => {
         // Fail silently - don't block user flow for AI processing
       });
     }
