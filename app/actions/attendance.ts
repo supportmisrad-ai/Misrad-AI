@@ -136,7 +136,7 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
     {
       entryId: String(entry.id),
       userId: String(dbUser.id),
-      userName: resolved.user.name || dbUser.email || 'Unknown',
+      userName: ('name' in resolved.user ? resolved.user.name : null) || dbUser.email || 'Unknown',
       location: location.lat !== 0 ? {
         lat: location.lat,
         lng: location.lng,
