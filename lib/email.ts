@@ -42,6 +42,7 @@ export {
 export {
     sendDay2CheckinEmail,
     sendDay7CheckinEmail,
+    sendDay30StatsEmail,
     sendDay45FeedbackEmail,
 } from './emails/follow-ups';
 

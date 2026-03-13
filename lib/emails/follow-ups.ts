@@ -26,18 +26,18 @@ function generateDay2CheckinEmailHTML(params: {
     const founderMsg = 'אני כאן בשבילך. אם צריך — ' + (founderPhone ? 'טלפון: ' + founderPhone : 'תשיב למייל הזה') + '.';
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.9;color:#334155;margin-bottom:24px;">
-            רציתי לבדוק שהכל מסתדר עם <strong style="color:#6366f1;">"${params.organizationName}"</strong>.
+        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+            ראיתי שהתחלת עם <strong style="color:#6366f1;">"${params.organizationName}"</strong>.
             <br />
-            עברו יומיים מאז שנפתח — רק רציתי לוודא שאין שום דבר שתקוע.
+            רציתי לשתף איתך טיפ קטן שעוזר לרוב המשתמשים החדשים:
         </div>
 
         ${EmailTemplateComponents.generateCallout({
-            emoji: '💬',
-            title: 'צריך עזרה?',
-            text: 'אם יש משהו שלא ברור, או שמשהו לא עובד כמו שצריך — פשוט תשיב למייל הזה. אני קורא הכל.',
+            emoji: '💡',
+            title: 'הטיפ ששכחתי לספר לך',
+            text: 'תגדיר את הלקוח הראשון שלך ב-3 דקות — פשוט תכניס את הפרטים הבסיסיים (שם, טלפון, מה הוא צריך) ותתן למערכת לעשות את השאר. זה יחסוך לך שעות של עבודה ידנית.',
             bgColor: '#eff6ff',
             borderColor: '#bfdbfe',
             titleColor: '#1e40af',
@@ -64,7 +64,7 @@ function generateDay2CheckinEmailHTML(params: {
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: 'הכל בסדר?',
+        headerSubtitle: 'הטיפ ששכחתי לספר לך',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,
@@ -91,13 +91,13 @@ function generateDay7CheckinEmailHTML(params: {
         <div style="font-size:17px;line-height:1.9;color:#334155;margin-bottom:24px;">
             עבר שבוע מאז שהתחלת עם <strong style="color:#6366f1;">"${params.organizationName}"</strong>.
             <br />
-            מסתדרים? יש משהו שנוכל לעזור בו?
+            איך הולך? יש לך כבר כמה לקוחות במערכת?
         </div>
 
         ${EmailTemplateComponents.generateCallout({
-            emoji: '💡',
-            title: 'טיפים מהירים',
-            text: '<div style="margin-top:8px;line-height:2;">✅ הגדרת שלבי Pipeline מותאמים לעסק שלך<br/>✅ הוספת חברי צוות — כל אחד עם ההרשאות שלו<br/>✅ שימוש ב-AI לסיכום שיחות וניתוח לידים<br/>✅ הגדרת דוחות אוטומטיים</div>',
+            emoji: '�',
+            title: 'טיפ שבוע 2 - אוטומציה',
+            text: 'אם עדיין לא הגדרת אוטומציה ל-follow up אוטומטי עם לקוחות — עכשיו הזמן. פשוט הולכים להגדרות > אוטומציה > בוחרים טריגר (למשל "לקוח חדש נוסף") ומגדירים מה המערכת תשלח אוטומטית. זה חוסך המון זמן.',
             bgColor: '#f0fdf4',
             borderColor: '#a7f3d0',
             titleColor: '#065f46',
@@ -105,7 +105,7 @@ function generateDay7CheckinEmailHTML(params: {
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'כניסה למערכת →',
+            text: 'הגדרת אוטומציה →',
             url: params.portalUrl,
         })}
 
@@ -124,7 +124,7 @@ function generateDay7CheckinEmailHTML(params: {
 
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
-        headerSubtitle: 'שבוע ראשון — מה שלומך?',
+        headerSubtitle: 'שבוע ראשון — איך מתקדמים?',
         headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,
@@ -218,7 +218,7 @@ export async function sendDay2CheckinEmail(params: {
         const { data, error } = await resend.emails.send({
             from: fromEmail,
             to: toEmail,
-            subject: `הכל מסתדר עם ${params.organizationName}?`,
+            subject: `הטיפ ששכחתי לספר לך — ${params.organizationName}`,
             html,
         });
 
@@ -256,7 +256,7 @@ export async function sendDay7CheckinEmail(params: {
         const { data, error } = await resend.emails.send({
             from: fromEmail,
             to: toEmail,
-            subject: `שבוע ראשון — מסתדרים עם ${params.organizationName}?`,
+            subject: `שבוע 2 — אוטומציה שתחסוך לך זמן — ${params.organizationName}`,
             html,
         });
 
@@ -270,6 +270,116 @@ export async function sendDay7CheckinEmail(params: {
     } catch (err: unknown) {
         const msg = getErrorMessage(err);
         if (!IS_PROD) console.error('[Email] Error sending day7 checkin:', { message: msg });
+        return { success: false, error: msg || 'Unknown error' };
+    }
+}
+
+function generateDay30StatsEmailHTML(params: {
+    ownerName?: string | null;
+    organizationName: string;
+    portalUrl: string;
+    clientCount?: number;
+    taskCount?: number;
+}): string {
+    const assets = getEmailAssets();
+    const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
+    const founderName = (process.env.MISRAD_FOUNDER_NAME || 'איציק דהן').trim();
+    const clientCount = params.clientCount || 0;
+    const taskCount = params.taskCount || 0;
+
+    const bodyContent = `
+        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+
+        <div style="font-size:17px;line-height:1.9;color:#334155;margin-bottom:24px;">
+            חודש ראשון עם <strong style="color:#6366f1;">"${params.organizationName}"</strong> כבר מאחוריך!
+            <br />
+            הנה מה שהצלחת לעשות החודש:
+        </div>
+
+        <div style="margin:28px 0;padding:24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+            <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:center;">
+                        <div style="font-size:32px;font-weight:900;color:#6366f1;">${clientCount}</div>
+                        <div style="font-size:14px;color:#64748b;">לקוחות במערכת</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:center;">
+                        <div style="font-size:32px;font-weight:900;color:#6366f1;">${taskCount}</div>
+                        <div style="font-size:14px;color:#64748b;">משימות שבוצעו</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:12px 0;text-align:center;">
+                        <div style="font-size:32px;font-weight:900;color:#10b981;">∞</div>
+                        <div style="font-size:14px;color:#64748b;">זמן שנחסך</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        ${EmailTemplateComponents.generateCTAButton({
+            text: 'המשך לעוד חודש מוצלח →',
+            url: params.portalUrl,
+        })}
+
+        ${EmailTemplateComponents.generateDivider()}
+
+        ${EmailTemplateComponents.generateFounderCard({
+            photoUrl: assets.founderPhoto,
+            name: founderName,
+            title: assets.founderTitle,
+            message: 'ממש מרשים לראות איך "' + params.organizationName + '" צומחת. מחכה לראות מה עוד תעשו בחודש הבא!',
+            signatureText: assets.founderSignature,
+        })}
+    `;
+
+    return generateBaseEmailTemplate({
+        headerTitle: 'MISRAD AI',
+        headerSubtitle: 'סיכום חודש ראשון — ' + params.organizationName,
+        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        bodyContent,
+        showSocialLinks: false,
+    });
+}
+
+export async function sendDay30StatsEmail(params: {
+    toEmail: string;
+    ownerName?: string | null;
+    organizationName: string;
+    portalUrl: string;
+    clientCount?: number;
+    taskCount?: number;
+}): Promise<EmailSendResult> {
+    try {
+        const resend = getResendClient();
+        if (!resend) {
+            if (!IS_PROD) console.warn('[Email] Resend not configured - day30 stats skipped');
+            return { success: false, error: 'Email service not configured' };
+        }
+
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(params.toEmail);
+        const html = generateDay30StatsEmailHTML(params);
+
+        const { data, error } = await resend.emails.send({
+            from: fromEmail,
+            to: toEmail,
+            subject: 'סיכום חודש ראשון — ' + params.organizationName + ' צומחת! 🚀',
+            html,
+        });
+
+        if (error) {
+            if (!IS_PROD) console.error('[Email] Resend error (day30-stats):', { message: getErrorMessage(error) });
+            return { success: false, error: getErrorMessage(error) || 'Failed to send' };
+        }
+
+        console.log('[Email] Day 30 stats email sent:', { emailId: data?.id });
+        return { success: true };
+    } catch (err: unknown) {
+        const msg = getErrorMessage(err);
+        if (!IS_PROD) console.error('[Email] Error sending day30 stats:', { message: msg });
         return { success: false, error: msg || 'Unknown error' };
     }
 }

@@ -61,14 +61,26 @@ export function invalidateEmailAssetsCache(): void {
 export function getEmailAssets() {
     const b = base();
 
+    // Helper to build asset URL with fallback
+    const asset = (dbKey: string, envKey: string | undefined, defaultPath: string, fallbackToLogo = false): string => {
+        const dbValue = dbVal(dbKey);
+        if (dbValue) return dbValue;
+        
+        if (envKey && process.env[envKey]) return process.env[envKey]!;
+        
+        // Return default path - but note: caller should handle missing images gracefully
+        // by using alt text or placeholders in the email template
+        return defaultPath;
+    };
+
     return {
         // ─── Brand ──────────────────────────────────────────────────
-        logo: dbVal('logo') || process.env.EMAIL_ASSET_LOGO || `${b}/icons/misrad-icon-192.png`,
-        logoDark: dbVal('logoDark') || process.env.EMAIL_ASSET_LOGO_DARK || `${b}/icons/misrad-icon-192.png`,
-        logoWide: dbVal('logoWide') || process.env.EMAIL_ASSET_LOGO_WIDE || `${b}/email/logo-wide.png`,
+        logo: asset('logo', 'EMAIL_ASSET_LOGO', `${b}/icons/misrad-icon-192.png`),
+        logoDark: asset('logoDark', 'EMAIL_ASSET_LOGO_DARK', `${b}/icons/misrad-icon-192.png`),
+        logoWide: asset('logoWide', 'EMAIL_ASSET_LOGO_WIDE', `${b}/email/logo-wide.png`),
 
         // ─── Founder ────────────────────────────────────────────────
-        founderPhoto: dbVal('founderPhoto') || process.env.EMAIL_ASSET_FOUNDER_PHOTO || `${b}/email/founder-itsik.jpg`,
+        founderPhoto: asset('founderPhoto', 'EMAIL_ASSET_FOUNDER_PHOTO', `${b}/icons/misrad-icon-192.png`), // Fallback to logo
         founderName: dbVal('founderName') || process.env.MISRAD_FOUNDER_NAME || 'איציק דהן',
         founderTitle: dbVal('founderTitle') || 'מייסד ומנכ"ל, MISRAD AI',
         founderSignature: dbVal('founderSignature') || process.env.MISRAD_FOUNDER_FIRST_NAME || (process.env.MISRAD_FOUNDER_NAME?.split(' ')[0] ?? 'איציק'),

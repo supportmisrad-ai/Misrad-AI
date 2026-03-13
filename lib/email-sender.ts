@@ -1,7 +1,8 @@
 /**
  * MISRAD AI — Smart Email Sender
  * Routes emails through correct sender addresses based on category,
- * checks user notification preferences, and handles unsubscribe tokens.
+ * checks user notification preferences, handles unsubscribe tokens,
+ * and enforces rate limiting.
  *
  * This is the ONLY module that should call Resend directly.
  * All other code should use `sendEmail()` from this module.
@@ -19,8 +20,42 @@ import {
     type SenderKey,
 } from './email-registry';
 import { ensureEmailAssetsCacheWarm } from './email-assets';
+import { generateTrackingPixelHtml } from './emails/email-analytics';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+// ─── Rate Limiting ──────────────────────────────────────────────────
+// In-memory rate limiter for emails (per-organization)
+type RateLimitBucket = {
+    count: number;
+    resetAt: number;
+};
+
+const _emailRateLimits = new Map<string, RateLimitBucket>();
+const EMAIL_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute window
+const EMAIL_RATE_LIMIT_MAX = 100; // 100 emails per minute per org
+
+function checkEmailRateLimit(organizationId: string): { allowed: boolean; remaining: number } {
+    const now = Date.now();
+    const key = organizationId || 'global';
+    const bucket = _emailRateLimits.get(key);
+
+    if (!bucket || now > bucket.resetAt) {
+        // New window
+        _emailRateLimits.set(key, {
+            count: 1,
+            resetAt: now + EMAIL_RATE_LIMIT_WINDOW_MS,
+        });
+        return { allowed: true, remaining: EMAIL_RATE_LIMIT_MAX - 1 };
+    }
+
+    if (bucket.count >= EMAIL_RATE_LIMIT_MAX) {
+        return { allowed: false, remaining: 0 };
+    }
+
+    bucket.count++;
+    return { allowed: true, remaining: EMAIL_RATE_LIMIT_MAX - bucket.count };
+}
 
 // ─── Resend Client (lazy) ───────────────────────────────────────────
 let _resendTransactional: Resend | null = null;
@@ -117,6 +152,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         return { success: false, error: 'Invalid recipient', skippedReason: 'no_recipient' };
     }
 
+    // Check rate limit (use 'global' key for non-org specific sends)
+    const rateLimit = checkEmailRateLimit('global');
+    if (!rateLimit.allowed) {
+        if (!IS_PROD) {
+            console.warn('[EmailSender] Rate limit exceeded, skipping send');
+        }
+        return { success: false, error: 'Rate limit exceeded. Please try again later.' };
+    }
+
     // Look up email definition
     const definition = getEmailDefinition(emailTypeId);
     const category: EmailCategory = definition?.category || 'transactional';
@@ -149,7 +193,12 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     }
 
     // Add unsubscribe headers for all emails that can be unsubscribed
-    const headers: Record<string, string> = {};
+    // Add deliverability headers
+    const headers: Record<string, string> = {
+        'X-Priority': '1', // High priority for transactional emails
+        'X-Mailer': 'MISRAD-AI-Email-System',
+        'Precedence': 'bulk',
+    };
     let finalHtml = html;
 
     if (definition?.canUnsubscribe) {

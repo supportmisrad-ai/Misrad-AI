@@ -319,12 +319,7 @@ export default function OrganizationsTab() {
       form.append('file', resizedFile);
       form.append('bucket', 'attachments');
       form.append('folder', 'org-logos');
-      const targetSlug = organizations.find((o) => o.id === orgId)?.slug;
-      if (targetSlug) {
-        form.append('orgSlug', String(targetSlug));
-      } else {
-        form.append('orgSlug', String(orgId));
-      }
+      form.append('organizationId', orgId);
 
       const uploadRes = await fetch('/api/storage/upload', {
         method: 'POST',

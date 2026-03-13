@@ -78,9 +78,7 @@ export default function ClientOnboardingPortal() {
       form.append('file', resizedFile);
       form.append('bucket', 'attachments');
       form.append('folder', `client-avatars/${activeClient.id}`);
-      if (routeInfo.orgSlug) {
-        form.append('orgSlug', String(routeInfo.orgSlug));
-      }
+      form.append('organizationId', activeClient.organizationId);
 
       const uploadRes = await fetch('/api/storage/upload', {
         method: 'POST',

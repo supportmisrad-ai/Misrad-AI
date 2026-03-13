@@ -41,17 +41,17 @@ function generateTrialExpiryWarningEmailHTML(params: {
         : `${params.daysRemaining} ימים`;
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
-            מסתיימת <strong style="color:#0f172a;">${urgencyText}</strong>.
+            רציתי לתת לך heads up — תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+            מסתיימת ${urgencyText}.
         </div>
 
         ${EmailTemplateComponents.generateCallout({
             emoji: isLastDay ? '📌' : isUrgent ? '⏳' : '📋',
-            title: `נותרו ${dayLabel} בלבד`,
-            text: 'לאחר סיום הניסיון הגישה למערכת תושהה. כל הנתונים שלך נשמרים ויחזרו מיד לאחר חידוש.',
+            title: `נותרו ${dayLabel} לבדוק הכל`,
+            text: 'אחרי זה המערכת תמשיך לשמור את כל הנתונים שלך, אבל הגישה תושהה עד שתחליט לחזור. בלי לחץ — הדלת פתוחה תמיד.',
             bgColor: calloutBg,
             borderColor: calloutBorder,
             titleColor: calloutTitle,
@@ -59,7 +59,7 @@ function generateTrialExpiryWarningEmailHTML(params: {
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'מעבר לתוכנית בתשלום →',
+            text: 'בחירת תוכנית →',
             url: params.portalUrl,
         })}
 
@@ -69,7 +69,7 @@ function generateTrialExpiryWarningEmailHTML(params: {
             photoUrl: assets.founderPhoto,
             name: assets.founderName,
             title: assets.founderTitle,
-            message: 'אם יש משהו שמפריע לך או שצריך עזרה עם ההחלטה — תשיב למייל הזה ונסדר את זה יחד.',
+            message: 'אם יש שאלות על התוכניות או שמשהו לא ברור — פשוט תשיב למייל הזה. לא נעלים כאן, אני קורא ומגיב.',
             signatureText: assets.founderSignature,
         })}
     `;
