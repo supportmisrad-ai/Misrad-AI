@@ -33,7 +33,9 @@ export const useAdmin = (
 ) => {
     // Default enabled modules for the demo organization
     const [organization, setOrganization] = useState<OrganizationProfile>({ 
+        id: initialOrganization?.id ?? '',
         name: initialOrganization?.name ?? 'Misrad', 
+        slug: initialOrganization?.slug ?? 'misrad',
         logo: initialOrganization?.logo ?? '', 
         primaryColor: initialOrganization?.primaryColor ?? '#000000',
         enabledModules: initialOrganization?.enabledModules ?? ['crm', 'ai'],
