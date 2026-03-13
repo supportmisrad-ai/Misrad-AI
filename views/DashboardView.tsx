@@ -152,23 +152,6 @@ function coerceOwnerDashboardKpis(value: unknown): OwnerDashboardKpis | undefine
     };
 }
 
-function coerceOwnerDashboardData(value: unknown): OwnerDashboardData | null {
-    const obj = asObject(value);
-    if (!obj) return null;
-
-    const nextActionsRaw = obj.nextActions;
-    const nextActions = Array.isArray(nextActionsRaw)
-        ? nextActionsRaw.map(coerceOwnerDashboardAction).filter((v): v is OwnerDashboardAction => Boolean(v))
-        : undefined;
-
-    const kpis = coerceOwnerDashboardKpis(obj.kpis);
-
-    return {
-        ...(kpis ? { kpis } : {}),
-        ...(nextActions ? { nextActions } : {}),
-    };
-}
-
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
 export const DashboardView: React.FC<{
