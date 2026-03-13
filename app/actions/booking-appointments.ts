@@ -125,7 +125,7 @@ export async function createBookingAppointment(
             providerName: appointment.provider?.name,
             startTime: appointment.startTime,
             endTime: appointment.endTime,
-            value: appointment.service?.price || 0,
+            value: appointment.service?.priceAmount || 0,
           },
           organizationId,
           appointment.providerId || 'system',
