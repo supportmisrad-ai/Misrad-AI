@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { Select } from '@/components/ui/select';
 import { Plus, Trash2, ToggleLeft, ToggleRight, Copy, Tag, Users, Calendar, Percent, DollarSign, AlertCircle, CheckCircle2, Loader2, Lock, Layers } from 'lucide-react';
 import { createCoupon, listCoupons, updateCouponStatus, deleteCoupon } from '@/app/actions/billing-actions';
 
@@ -239,14 +240,13 @@ export default function CouponsAdminClient() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1">סוג הנחה</label>
-              <select
+              <Select
                 value={newDiscountType}
                 onChange={e => setNewDiscountType(e.target.value as 'PERCENT' | 'FIXED_AMOUNT')}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900"
               >
-                <option value="PERCENT">אחוז הנחה (%)</option>
+                <option value="PERCENT">אחוזים (%)</option>
                 <option value="FIXED_AMOUNT">סכום קבוע (₪)</option>
-              </select>
+              </Select>
             </div>
             {newDiscountType === 'PERCENT' ? (
               <div>

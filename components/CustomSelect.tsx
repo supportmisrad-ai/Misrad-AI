@@ -180,28 +180,28 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           disabled={disabled}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          className={`w-full h-11 flex items-center justify-between px-4 bg-white/95 backdrop-blur-sm border rounded-2xl text-sm font-semibold transition-all outline-none duration-250 group ${
+          className={`w-full h-12 flex items-center justify-between px-4 bg-white border-2 rounded-2xl text-base font-bold transition-all outline-none duration-200 group ${
             isOpen 
-              ? 'border-slate-900 ring-[3px] ring-slate-900/8 shadow-lg z-20 relative bg-white' 
-              : 'border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300 hover:bg-white'
+              ? 'border-sky-500 ring-4 ring-sky-100 z-20 relative bg-white' 
+              : 'border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-md hover:bg-slate-50/50'
           } ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
         >
           <div className="flex items-center gap-2.5 truncate">
-            {icon && <span className={`transition-colors duration-200 ${isOpen ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>{icon}</span>}
+            {icon && <span className={`transition-colors duration-200 ${isOpen ? 'text-sky-500' : 'text-slate-400 group-hover:text-slate-600'}`}>{icon}</span>}
             
             {selectedOption ? (
-              <span className="text-slate-900 font-bold flex items-center gap-2 truncate">
+              <span className="text-slate-800 font-bold flex items-center gap-2 truncate">
                  {selectedOption.icon && <span className="opacity-80 scale-90">{selectedOption.icon}</span>}
                  {selectedOption.label}
               </span>
             ) : (
-              <span className="text-slate-400 font-medium">{placeholder}</span>
+              <span className="text-slate-400 font-bold">{placeholder}</span>
             )}
           </div>
           <ChevronDown 
-              size={15} 
+              size={18} 
               strokeWidth={2.5}
-              className={`flex-shrink-0 transition-all duration-300 ease-out ${isOpen ? 'rotate-180 text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`} 
+              className={`flex-shrink-0 transition-all duration-300 ease-out ${isOpen ? 'rotate-180 text-sky-500' : 'text-slate-400 group-hover:text-slate-600'}`} 
           />
         </button>
       </div>
@@ -233,7 +233,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     zIndex: 9999,
                     transformOrigin: position.showAbove ? 'bottom center' : 'top center'
                 }}
-                className={`bg-white/98 backdrop-blur-xl rounded-2xl shadow-[0_16px_64px_-16px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar p-1.5 ${position.showAbove ? '-translate-y-full' : ''}`}
+                className={`bg-white rounded-2xl shadow-[0_16px_64px_-16px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar p-1.5 ${position.showAbove ? '-translate-y-full' : ''}`}
                 role="listbox"
             >
                 <div className="space-y-0.5">
@@ -251,10 +251,10 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                         onMouseEnter={() => setHighlightedIndex(index)}
                         className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm rounded-xl transition-all duration-150 group/item ${
                             isSelected 
-                            ? 'bg-slate-900 text-white font-bold shadow-[0_2px_12px_-2px_rgba(0,0,0,0.3)]' 
+                            ? 'bg-slate-900 text-white font-bold shadow-lg' 
                             : isHighlighted
-                            ? 'bg-slate-100 text-slate-900 font-semibold'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
+                            ? 'bg-slate-100 text-slate-900 font-bold'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold'
                         }`}
                         >
                         <div className="flex items-center gap-2.5 truncate">

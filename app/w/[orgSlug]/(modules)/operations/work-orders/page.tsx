@@ -172,7 +172,6 @@ export default async function OperationsWorkOrdersPage({
                   id="status"
                   name="status"
                   defaultValue={statusParam ? String(statusParam) : 'OPEN'}
-                  className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all"
                 >
                   <option value="OPEN">פתוחות</option>
                   <option value="ALL">כל הקריאות</option>
@@ -190,7 +189,6 @@ export default async function OperationsWorkOrdersPage({
                   id="projectId"
                   name="projectId"
                   defaultValue={projectId ? String(projectId) : ''}
-                  className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all"
                 >
                   <option value="">כל הפרויקטים</option>
                   {projectOptions.map((p) => (
@@ -209,7 +207,6 @@ export default async function OperationsWorkOrdersPage({
                   id="departmentId"
                   name="departmentId"
                   defaultValue={departmentId ? String(departmentId) : ''}
-                  className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all"
                 >
                   <option value="">כל המחלקות</option>
                   {departments.map((d) => (
@@ -228,7 +225,6 @@ export default async function OperationsWorkOrdersPage({
                   id="onlyMine"
                   name="onlyMine"
                   defaultValue={onlyMine ? '1' : '0'}
-                  className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all"
                 >
                   <option value="0">הכל</option>
                   <option value="1">רק שלי</option>

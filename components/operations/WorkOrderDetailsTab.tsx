@@ -163,7 +163,7 @@ export default function WorkOrderDetailsTab({
             <Select
               name="technicianId"
               defaultValue={w.assignedTechnicianId ? String(w.assignedTechnicianId) : ''}
-              className="h-14 rounded-2xl border-2 border-slate-100 bg-white/80 px-4 text-base font-black text-slate-800 shadow-sm transition-all focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
+              className="h-14 text-base font-black"
             >
               <option value="">לא משויך - זמין לכולם</option>
               {technicianOptions.map((t) => (

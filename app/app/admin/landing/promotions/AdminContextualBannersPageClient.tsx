@@ -29,6 +29,8 @@ const EMPTY_BANNER: Omit<ContextualBanner, 'id'> = {
   endDate: null,
 };
 
+import { Select } from '@/components/ui/select';
+
 const BANNER_THEMES = [
   { label: 'כחול (ברירת מחדל)', bg: 'bg-blue-50', text: 'text-blue-900' },
   { label: 'ירוק (חיובי)', bg: 'bg-emerald-50', text: 'text-emerald-900' },
@@ -174,11 +176,17 @@ export default function AdminContextualBannersPageClient() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 block mb-1">סגנון צבע</label>
-                  <select value={`${banner.bgColor}|${banner.textColor}`} onChange={e => { const [bg, text] = e.target.value.split('|'); updateBanner(banner.id, { bgColor: bg, textColor: text }); }} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none">
+                  <Select 
+                    value={`${banner.bgColor}|${banner.textColor}`} 
+                    onChange={e => { 
+                      const [bg, text] = e.target.value.split('|'); 
+                      updateBanner(banner.id, { bgColor: bg, textColor: text }); 
+                    }}
+                  >
                     {BANNER_THEMES.map(t => (
                       <option key={t.bg} value={`${t.bg}|${t.text}`}>{t.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 

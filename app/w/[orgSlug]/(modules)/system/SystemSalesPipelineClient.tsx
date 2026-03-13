@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Link2, Check, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Select } from '@/components/ui/select';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { useToast } from '@/components/system/contexts/ToastContext';
@@ -791,24 +792,27 @@ export default function SystemSalesPipelineClient({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <CustomSelect
+          <Select
             value={statusFilter}
-            onChange={(val) => {
+            onChange={(e) => {
+              const val = e.target.value;
               if (val === 'all') {
                 setStatusFilter('all');
                 return;
               }
-              setStatusFilter(val);
+              setStatusFilter(val as PipelineStage);
             }}
-            options={[
-              { value: 'all', label: 'כל הסטטוסים' },
-              ...stagesForUi.map((s) => ({ value: String(s.key), label: String(s.label) })),
-            ]}
-          />
+          >
+            <option value="all">כל הסטטוסים</option>
+            {stagesForUi.map((s) => (
+              <option key={s.key} value={String(s.key)}>{String(s.label)}</option>
+            ))}
+          </Select>
 
-          <CustomSelect
+          <Select
             value={sortKey}
-            onChange={(val) => {
+            onChange={(e) => {
+              const val = e.target.value;
               if (
                 val === 'created_desc' ||
                 val === 'created_asc' ||
@@ -820,15 +824,14 @@ export default function SystemSalesPipelineClient({
                 setSortKey(val);
               }
             }}
-            options={[
-              { value: 'created_desc', label: 'חדש ביותר' },
-              { value: 'created_asc', label: 'ישן ביותר' },
-              { value: 'value_desc', label: 'שווי גבוה' },
-              { value: 'value_asc', label: 'שווי נמוך' },
-              { value: 'name_asc', label: 'שם (א-ת)' },
-              { value: 'name_desc', label: 'שם (ת-א)' },
-            ]}
-          />
+          >
+            <option value="created_desc">חדש ביותר</option>
+            <option value="created_asc">ישן ביותר</option>
+            <option value="value_desc">שווי גבוה</option>
+            <option value="value_asc">שווי נמוך</option>
+            <option value="name_asc">שם (א-ת)</option>
+            <option value="name_desc">שם (ת-א)</option>
+          </Select>
         </div>
       </div>
 

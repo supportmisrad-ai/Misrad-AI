@@ -134,7 +134,7 @@ export default async function OperationsNewWorkOrderPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="priority" className={labelCls}>דחיפות</label>
-                <Select id="priority" name="priority" defaultValue="NORMAL" className={selectCls}>
+                <Select id="priority" name="priority" defaultValue="NORMAL">
                   <option value="NORMAL">רגיל</option>
                   <option value="HIGH">גבוה</option>
                   <option value="URGENT">דחוף</option>
@@ -144,7 +144,7 @@ export default async function OperationsNewWorkOrderPage({
 
               <div>
                 <label htmlFor="categoryId" className={labelCls}>קטגוריה</label>
-                <Select id="categoryId" name="categoryId" defaultValue="" className={selectCls}>
+                <Select id="categoryId" name="categoryId" defaultValue="">
                   <option value="">ללא קטגוריה</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}{c.maxResponseMinutes ? ` (SLA: ${c.maxResponseMinutes} דק׳)` : ''}</option>
@@ -170,7 +170,7 @@ export default async function OperationsNewWorkOrderPage({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="buildingId" className={labelCls}>מבנה</label>
-                <Select id="buildingId" name="buildingId" defaultValue="" className={selectCls}>
+                <Select id="buildingId" name="buildingId" defaultValue="">
                   <option value="">ללא מבנה</option>
                   {buildings.map((b) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
@@ -219,7 +219,7 @@ export default async function OperationsNewWorkOrderPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="projectId" className={labelCls}>פרויקט</label>
-                <Select id="projectId" name="projectId" defaultValue={initialProjectId ? String(initialProjectId) : ''} className={selectCls}>
+                <Select id="projectId" name="projectId" defaultValue={initialProjectId ? String(initialProjectId) : ''}>
                   <option value="">ללא פרויקט</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.title}</option>
@@ -229,7 +229,7 @@ export default async function OperationsNewWorkOrderPage({
 
               <div>
                 <label htmlFor="departmentId" className={labelCls}>מחלקה</label>
-                <Select id="departmentId" name="departmentId" defaultValue="" className={selectCls}>
+                <Select id="departmentId" name="departmentId" defaultValue="">
                   <option value="">ללא מחלקה</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>

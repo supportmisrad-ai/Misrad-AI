@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useTransition } from 'react';
+import { Select } from '@/components/ui/select';
 import {
   FileInput, Plus, Trash2, Layout, ToggleLeft, ToggleRight, X,
   Copy, Check, Share2, ExternalLink,
@@ -221,13 +222,13 @@ const FormsView: React.FC<FormsViewProps> = ({
             <div className="space-y-3">
               <input type="text" placeholder="שם הטופס *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50" />
               <input type="text" placeholder="תיאור (אופציונלי)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50" />
-              <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} disabled={isPending} className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none disabled:bg-slate-50">
+              <Select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} disabled={isPending} className="h-12">
                 <option value="ONBOARDING">אונבורדינג</option>
                 <option value="FEEDBACK">פידבק</option>
                 <option value="STRATEGY">אסטרטגיה</option>
                 <option value="INTAKE">קליטה</option>
                 <option value="SURVEY">סקר</option>
-              </select>
+              </Select>
               {modalError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
                   {modalError}

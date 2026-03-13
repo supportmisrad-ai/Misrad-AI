@@ -4,6 +4,7 @@ import { Loader2, Pencil } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { Select } from '@/components/ui/select';
 import { updateOperationsWorkOrder } from '@/app/actions/operations';
 import { useOpsToast } from '@/components/operations/OperationsToastProvider';
 
@@ -112,17 +113,16 @@ export default function WorkOrderEditButton({
 
               <div>
                 <label className="text-xs font-bold text-slate-500 mb-1 block">עדיפות</label>
-                <select
+                <Select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                  className="h-10"
                 >
-                  {PRIORITY_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  <option value="NORMAL">רגיל</option>
+                  <option value="HIGH">גבוה</option>
+                  <option value="URGENT">דחוף</option>
+                  <option value="CRITICAL">קריטי</option>
+                </Select>
               </div>
             </div>
 

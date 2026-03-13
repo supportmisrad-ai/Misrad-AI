@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BotLeadDTO, GetBotLeadsParams, getBotLeads, updateBotLeadStatus, updateBotLeadAssignment } from '@/app/actions/bot-leads';
 import { formatDistanceToNow, format } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { Select } from '@/components/ui/select';
 
 interface BotLeadsClientProps {
   initialLeads: BotLeadDTO[];
@@ -141,36 +142,36 @@ export function BotLeadsClient({ initialLeads, initialTotal, campaigns }: BotLea
             onChange={(e) => setSearch(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
           />
-          <select
+          <Select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+            className="h-10 text-sm"
           >
             <option value="all">כל הסטטוסים</option>
             {Object.entries(statusLabels).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={filters.priority}
             onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+            className="h-10 text-sm"
           >
             <option value="all">כל העדיפויות</option>
             {Object.entries(priorityLabels).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={filters.campaign}
             onChange={(e) => setFilters({ ...filters, campaign: e.target.value })}
-            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+            className="h-10 text-sm"
           >
             <option value="all">כל הקמפיינים</option>
             {campaigns.map((campaign) => (
               <option key={campaign} value={campaign}>{campaign}</option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 

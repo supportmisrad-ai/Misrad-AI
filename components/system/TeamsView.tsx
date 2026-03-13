@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useTransition } from 'react';
+import React, { useState, useCallback, useTransition, useMemo } from 'react';
+import { Select } from '@/components/ui/select';
 import {
   Users, Plus, Trash2, UserPlus, Target, ChevronDown, ChevronUp,
   Phone, Mail, Crown, Crosshair, Shield, Zap, X
@@ -236,7 +237,7 @@ const TeamsView: React.FC<TeamsViewProps> = ({
                 <button
                   onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
                   type="button"
-                  className="w-full flex items-center gap-4 p-5 text-right hover:bg-slate-50/50 transition-colors"
+                  className="w-full flex items-center gap-4 p-5 text-right hover:bg-slate-50 transition-colors"
                 >
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg text-white shrink-0" style={{ backgroundColor: team.color }}>
                     {team.name.charAt(0)}
@@ -244,7 +245,7 @@ const TeamsView: React.FC<TeamsViewProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="font-black text-slate-800">{team.name}</span>
-                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{team.members.length} חברים</span>
+                      <span className="text-[10px] text-slate-500 font-bold mt-0.5">צוותים פעילים</span>
                     </div>
                     {team.description && <p className="text-xs text-slate-400 truncate">{team.description}</p>}
                     {leader && <p className="text-[10px] text-indigo-500 font-bold mt-0.5">מנהל: {leader.name}</p>}
@@ -255,7 +256,7 @@ const TeamsView: React.FC<TeamsViewProps> = ({
                         <Target size={12} />
                         <span>₪{team.target_monthly.toLocaleString()}</span>
                       </div>
-                      <p className="text-[9px] text-slate-400">יעד חודשי</p>
+                      <p className="text-[9px] text-slate-500">יעד חודשי</p>
                     </div>
                   </div>
                   {isExpanded ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
@@ -291,12 +292,12 @@ const TeamsView: React.FC<TeamsViewProps> = ({
                           <input type="text" placeholder="שם *" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <input type="email" placeholder="אימייל" value={newMemberEmail} onChange={(e) => setNewMemberEmail(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <input type="tel" placeholder="טלפון" value={newMemberPhone} onChange={(e) => setNewMemberPhone(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-                          <select value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                          <Select value={newMemberRole} onChange={(e) => setNewMemberRole(e.target.value)} className="h-10 text-sm">
                             <option value="MEMBER">חבר צוות</option>
                             <option value="LEADER">מנהל צוות</option>
                             <option value="CLOSER">סוגר</option>
                             <option value="SDR">SDR</option>
-                          </select>
+                          </Select>
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => handleAddMember(team.id)} disabled={!newMemberName.trim() || isPending} type="button" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
