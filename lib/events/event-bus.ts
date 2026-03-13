@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -298,16 +299,16 @@ class EventBus {
    */
   private async persistEvent(event: AppEvent): Promise<void> {
     try {
-      await prisma.aIEvent.create({
+      await prisma.ai_events.create({
         data: {
           id: event.id,
           type: event.type,
           timestamp: event.timestamp,
-          organizationId: event.organizationId,
-          userId: event.userId,
-          payload: JSON.stringify(event.payload),
+          organization_id: event.organizationId,
+          user_id: event.userId,
+          payload: event.payload as any,
           processed: false,
-          metadata: JSON.stringify(event.metadata),
+          metadata: event.metadata as any,
         },
       });
     } catch (error) {
@@ -330,9 +331,9 @@ class EventBus {
     const { limit = 50, types, since } = options;
 
     try {
-      const events = await prisma.aIEvent.findMany({
+      const events = await prisma.ai_events.findMany({
         where: {
-          organizationId,
+          organization_id: organizationId,
           ...(types ? { type: { in: types } } : {}),
           ...(since ? { timestamp: { gte: since } } : {}),
         },
@@ -340,11 +341,13 @@ class EventBus {
         take: limit,
       });
 
-      return events.map((e: { id: string; type: EventType; timestamp: Date; organizationId: string; userId: string; payload: string; metadata: string; processed: boolean }) => ({
+      return events.map((e: any) => ({
         ...e,
-        payload: JSON.parse(e.payload),
-        metadata: JSON.parse(e.metadata),
-      })) as AppEvent[];
+        organizationId: e.organization_id,
+        userId: e.user_id,
+        payload: e.payload as Record<string, unknown>,
+        metadata: e.metadata as unknown,
+      })) as unknown as AppEvent[];
     } catch (error) {
       console.error('[EventBus] Failed to fetch events:', error);
       return [];
@@ -356,9 +359,9 @@ class EventBus {
    */
   async markAsProcessed(eventIds: string[]): Promise<void> {
     try {
-      await prisma.aIEvent.updateMany({
+      await prisma.ai_events.updateMany({
         where: { id: { in: eventIds } },
-        data: { processed: true },
+        data: { processed: true, processed_at: new Date() },
       });
     } catch (error) {
       console.error('[EventBus] Failed to mark events as processed:', error);

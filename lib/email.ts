@@ -48,3 +48,7 @@ export {
 export {
     sendNewLeadNotificationEmail,
 } from './emails/leads';
+
+export {
+    sendBookingReminderEmail,
+} from './emails/booking-reminders';

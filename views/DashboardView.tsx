@@ -3,16 +3,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Check, Flame, Clock, Users, User, Image, SquareCheck, Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useData } from '../context/DataContext';
 import { useAuth as useClerkAuth } from '@clerk/nextjs';
-import { useNexusNavigation } from '@/lib/os/nexus-routing';
+import { useNexusNavigation, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { isCeoRole } from '@/lib/constants/roles';
 import { DashboardOnboarding, DashboardOwnerPanel, DashboardQuickActions, DashboardKPIWidgets, DashboardFocusTasks } from './dashboard';
 import { AIAttentionCard } from '@/components/ai/AIAttentionCard';
 import { 
   coerceOwnerDashboardData,
   type OnboardingStep,
-  type OwnerDashboardData 
+  type OwnerDashboardData,
+  type LucideIcon,
+  type ModuleId
 } from './dashboard/dashboard-utils';
 import { 
   useDashboardUsers,
@@ -22,7 +26,9 @@ import {
   useTourPrompt,
   useShiftTimer 
 } from './dashboard/dashboard-hooks';
-import type { User as UserType, Status, Priority, LeadStatus } from '../types';
+import { Status, Priority, LeadStatus, User as UserType } from '../types';
+import { listNexusUsers } from '@/app/actions/nexus';
+import { upsertMyProfile } from '@/app/actions/profiles';
 import { usePathname } from 'next/navigation';
 
 type OwnerDashboardAction = {
@@ -46,12 +52,6 @@ function isLockedFinance(value: OwnerDashboardKpis['finance']): value is { locke
     const obj = asObject(value);
     return Boolean(obj && obj.locked === true);
 }
-
-type OwnerDashboardData = {
-    kpis?: OwnerDashboardKpis;
-    nextActions?: OwnerDashboardAction[];
-    [key: string]: unknown;
-};
 
 function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;

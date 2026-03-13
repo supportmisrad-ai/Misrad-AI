@@ -4,6 +4,9 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ModuleId } from '../../types';
 
+// Re-export types for use in DashboardView
+export type { LucideIcon, ModuleId };
+
 // Types
 export type OwnerDashboardAction = {
   id: string;

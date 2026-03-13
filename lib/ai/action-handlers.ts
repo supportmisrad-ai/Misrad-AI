@@ -39,7 +39,7 @@ export async function sendWhatsAppMessage(
     // שליפת פרטי הלקוח
     const client = await prisma.clientClient.findUnique({
       where: { id: params.clientId },
-      select: { phone: true, name: true, email: true },
+      select: { phone: true, fullName: true, email: true },
     });
 
     if (!client?.phone) {
@@ -51,7 +51,7 @@ export async function sendWhatsAppMessage(
     console.log('[AI Tower] Sending WhatsApp:', {
       to: client.phone,
       template: params.template,
-      clientName: client.name,
+      clientName: client.fullName,
     });
 
     // רישום בלוג
@@ -64,18 +64,18 @@ export async function sendWhatsAppMessage(
     });
 
     // עדכון סטטוס התובנה
-    await prisma.aIInsight.update({
+    await prisma.ai_insights.update({
       where: { id: insightId },
       data: { 
         status: 'resolved',
-        resolvedAt: new Date(),
-        resolvedBy: access.userId,
+        resolved_at: new Date(),
+        resolved_by: access.userId,
       },
     });
 
     return {
       success: true,
-      message: `הודעת WhatsApp נשלחה ל-${client.name || client.phone}`,
+      message: `הודעת WhatsApp נשלחה ל-${client.fullName || client.phone}`,
       data: { 
         recipient: client.phone,
         template: params.template,
@@ -119,10 +119,8 @@ export async function createInvoiceFromInsight(
       where: { id: params.clientId },
       select: { 
         id: true, 
-        name: true, 
+        fullName: true, 
         email: true,
-        billingAddress: true,
-        taxId: true,
       },
     });
 
@@ -133,15 +131,9 @@ export async function createInvoiceFromInsight(
     // חישוב סכום אוטומטי אם נדרש
     let finalAmount = params.amount;
     if (params.autoFill && !finalAmount && params.projectId) {
-      // שליפת סכום מהפרויקט
-      const project = await prisma.cycle.findUnique({
-        where: { id: params.projectId },
-        select: { 
-          id: true,
-          // TODO: Add value/price field to cycle model
-        },
-      });
-      // finalAmount = project?.value || 0;
+      // TODO: שליפת סכום מהפרויקט/צ'אט הרלוונטי
+      // כרגע משתמשים בסכום שנשלח
+      console.log('[AI Tower] Auto-fill requested for project:', params.projectId);
       finalAmount = 0; // Placeholder
     }
 
@@ -153,23 +145,22 @@ export async function createInvoiceFromInsight(
     // כרגע מדמה
     console.log('[AI Tower] Creating invoice:', {
       clientId: client.id,
-      clientName: client.name,
+      clientName: client.fullName,
       amount: finalAmount,
-      description: params.description || `חשבונית עבור ${client.name}`,
+      description: params.description || `חשבונית עבור ${client.fullName}`,
     });
 
     // יצירת רשומת חשבונית ב-DB
-    const invoice = await prisma.invoice.create({
+    const invoice = await prisma.billing_invoices.create({
       data: {
-        organizationId: access.organizationId!,
-        clientId: client.id,
+        organization_id: access.organizationId!,
+        morning_invoice_id: `INV-${Date.now()}`,
+        invoice_number: `INV-${Date.now()}`,
         amount: finalAmount,
         currency: 'ILS',
         status: 'draft',
-        description: params.description || `חשבונית עבור ${client.name}`,
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 ימים
-        createdBy: access.userId,
-        // TODO: Add more invoice fields
+        description: params.description || `חשבונית עבור ${client.fullName}`,
+        due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 ימים
       },
     });
 
@@ -183,12 +174,12 @@ export async function createInvoiceFromInsight(
     });
 
     // עדכון סטטוס התובנה
-    await prisma.aIInsight.update({
+    await prisma.ai_insights.update({
       where: { id: insightId },
       data: { 
         status: 'resolved',
-        resolvedAt: new Date(),
-        resolvedBy: access.userId,
+        resolved_at: new Date(),
+        resolved_by: access.userId,
       },
     });
 
@@ -197,7 +188,7 @@ export async function createInvoiceFromInsight(
       message: `חשבונית על סך ${finalAmount}₪ נוצרה בהצלחה`,
       data: { 
         invoiceId: invoice.id,
-        clientName: client.name,
+        clientName: client.fullName,
         amount: finalAmount,
         status: 'draft',
       },
@@ -262,7 +253,7 @@ export async function reassignTasks(
     // רישום בלוג
     await watchtower.executeAction(insightId, 'REASSIGN_TASKS', {
       fromUserId: params.fromUserId,
-      taskIds: overdueTasks.map(t => t.id),
+      taskIds: overdueTasks.map((t: { id: string }) => t.id),
       reassignedBy: access.userId,
     });
 
@@ -271,7 +262,7 @@ export async function reassignTasks(
       message: `${overdueTasks.length} משימות marked לחלוקה מחדש`,
       data: { 
         taskCount: overdueTasks.length,
-        tasks: overdueTasks.map(t => ({ id: t.id, title: t.title })),
+        tasks: overdueTasks.map((t: { id: string; title: string }) => ({ id: t.id, title: t.title })),
       },
     };
 
@@ -307,7 +298,7 @@ export async function sendPaymentReminder(
 
     const client = await prisma.clientClient.findUnique({
       where: { id: params.clientId },
-      select: { phone: true, name: true, email: true },
+      select: { phone: true, fullName: true, email: true },
     });
 
     if (!client) {
@@ -318,7 +309,7 @@ export async function sendPaymentReminder(
     const channel = client.phone ? 'whatsapp' : 'email';
 
     console.log('[AI Tower] Sending payment reminder:', {
-      to: client.name,
+      to: client.fullName,
       channel,
       amount: params.amount,
       daysOverdue: params.daysOverdue,
@@ -337,7 +328,7 @@ export async function sendPaymentReminder(
 
     return {
       success: true,
-      message: `תזכורת תשלום נשלחה ל-${client.name}`,
+      message: `תזכורת תשלום נשלחה ל-${client.fullName}`,
       data: { channel, amount: params.amount },
     };
 
@@ -372,7 +363,7 @@ export async function sendWinBackOffer(
 
     const client = await prisma.clientClient.findUnique({
       where: { id: params.clientId },
-      select: { phone: true, name: true, email: true },
+      select: { phone: true, fullName: true, email: true },
     });
 
     if (!client) {
@@ -383,7 +374,7 @@ export async function sendWinBackOffer(
     offerValidUntil.setDate(offerValidUntil.getDate() + params.offerValidDays);
 
     console.log('[AI Tower] Sending win-back offer:', {
-      to: client.name,
+      to: client.fullName,
       discount: params.discountPercent,
       validUntil: offerValidUntil,
     });
@@ -397,7 +388,7 @@ export async function sendWinBackOffer(
 
     return {
       success: true,
-      message: `הצעת חזרה עם ${params.discountPercent}% הנחה נשלחה ל-${client.name}`,
+      message: `הצעת חזרה עם ${params.discountPercent}% הנחה נשלחה ל-${client.fullName}`,
       data: { 
         discount: params.discountPercent,
         validUntil: offerValidUntil.toISOString(),

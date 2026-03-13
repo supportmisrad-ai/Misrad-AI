@@ -148,11 +148,11 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         return { success: false, error: 'Email service not configured', skippedReason: 'no_client' };
     }
 
-    // Add unsubscribe headers for marketing emails
+    // Add unsubscribe headers for all emails that can be unsubscribed
     const headers: Record<string, string> = {};
     let finalHtml = html;
 
-    if (definition?.canUnsubscribe && category === 'marketing') {
+    if (definition?.canUnsubscribe) {
         const unsubUrl = buildUnsubscribeUrl(to, definition.preferenceKey);
         headers['List-Unsubscribe'] = `<${unsubUrl}>`;
         headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
@@ -246,9 +246,16 @@ function resolveFromAddress(category: EmailCategory, registryAddress: string): s
  * Looks for the closing </table> before </body> and inserts before it.
  */
 function injectUnsubscribeFooter(html: string, unsubUrl: string): string {
+    const manageUrl = unsubUrl.replace('/api/email/unsubscribe?', '/me/notifications?');
+
     const footer = `
         <tr>
-            <td style="padding:16px 40px;text-align:center;border-top:1px solid #e2e8f0;">
+            <td style="padding:24px 40px 16px;text-align:center;border-top:1px solid #e2e8f0;">
+                <div style="margin-bottom:12px;">
+                    <a href="${manageUrl}" style="color:#64748b;font-size:12px;text-decoration:none;font-weight:600;">
+                        ניהול העדפות התראות →
+                    </a>
+                </div>
                 <a href="${unsubUrl}" class="unsubscribe-link" style="color:#94a3b8;font-size:11px;text-decoration:underline;">
                     ביטול הרשמה מרשימת תפוצה זו
                 </a>
@@ -260,7 +267,13 @@ function injectUnsubscribeFooter(html: string, unsubUrl: string): string {
     const lastTableIdx = html.lastIndexOf('</table>');
     if (lastTableIdx === -1) {
         // Fallback: append before </body>
-        return html.replace('</body>', `<div style="text-align:center;padding:16px;"><a href="${unsubUrl}" class="unsubscribe-link" style="color:#94a3b8;font-size:11px;text-decoration:underline;">ביטול הרשמה מרשימת תפוצה זו</a></div></body>`);
+        const fallbackFooter = `<div style="text-align:center;padding:16px;">
+            <div style="margin-bottom:8px;">
+                <a href="${manageUrl}" style="color:#64748b;font-size:12px;text-decoration:none;font-weight:600;">ניהול העדפות התראות →</a>
+            </div>
+            <a href="${unsubUrl}" class="unsubscribe-link" style="color:#94a3b8;font-size:11px;text-decoration:underline;">ביטול הרשמה מרשימת תפוצה זו</a>
+        </div>`;
+        return html.replace('</body>', `${fallbackFooter}</body>`);
     }
 
     return html.slice(0, lastTableIdx) + footer + html.slice(lastTableIdx);

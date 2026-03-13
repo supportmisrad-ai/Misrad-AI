@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useTasks } from '../hooks/useTasks';
-import type { Task } from '../types';
+import type { Task, User } from '../types';
 
 // Re-export types for convenience
 export type { Task };
@@ -86,7 +86,7 @@ const TasksContext = createContext<TasksContextValue | undefined>(undefined);
 
 interface TasksProviderProps {
   children: ReactNode;
-  currentUser: { id: string } & Record<string, unknown>;
+  currentUser: User;
   addNotification: (notification: unknown) => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   initialTasks?: Task[];
@@ -103,7 +103,7 @@ export function TasksProvider({
   const taskManager = useTasks(currentUser, addNotification, addToast, initialTasks);
   
   // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo(() => taskManager, [taskManager]);
+  const value = useMemo(() => taskManager as unknown as TasksContextValue, [taskManager]);
   
   return (
     <TasksContext.Provider value={value}>

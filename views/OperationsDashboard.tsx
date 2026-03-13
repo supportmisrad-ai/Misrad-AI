@@ -58,12 +58,12 @@ export function OperationsDashboard({
     ];
   }, [inventory?.critical, inventory?.low, inventory?.ok, inventory?.total]);
 
-  const hasUrgent = (woStats?.slaBreach ?? 0) > 0 || (woStats?.priorityCritical ?? 0) > 0 || (woStats?.priorityUrgent ?? 0) > 0;
+  const hasUrgent = (woStats?.slaBreach ?? 0) > 0;
   const aiMessage = hasUrgent 
     ? 'זיהוי AI: ישנן קריאות דחופות הדורשות טיפול מיידי למניעת חריגת SLA' 
     : 'זיהוי AI: המערכת פועלת כסדרה. כל המשימות בטיפול.';
 
-  const isEmpty = !recentWorkOrders.length && !recentProjects.length && (woStats?.total ?? 0) === 0;
+  const isEmpty = !recentWorkOrders.length && !recentProjects.length && (woStats?.active ?? 0) === 0;
 
   return (
     <div className="mx-auto w-full max-w-6xl relative">
@@ -140,10 +140,10 @@ export function OperationsDashboard({
       {/* ──── Work Order Stats Cards ──── */}
       <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'קריאות פתוחות', value: woStats?.open ?? 0, color: 'text-slate-900', href: `${base}/work-orders` },
-          { label: 'בטיפול', value: woStats?.inProgress ?? 0, color: 'text-amber-500', href: `${base}/work-orders` },
+          { label: 'קריאות פתוחות', value: woStats?.active ?? 0, color: 'text-slate-900', href: `${base}/work-orders` },
           { label: 'הושלמו היום', value: woStats?.doneToday ?? 0, color: 'text-emerald-500', href: `${base}/work-orders` },
-          { label: 'סה״כ קריאות', value: woStats?.total ?? 0, color: 'text-slate-900', href: `${base}/work-orders?status=ALL` },
+          { label: 'חריגות SLA', value: woStats?.slaBreach ?? 0, color: 'text-red-500', href: `${base}/work-orders` },
+          { label: 'ממתינות לשיוך', value: woStats?.unassigned ?? 0, color: 'text-amber-500', href: `${base}/work-orders` },
         ].map((card, idx) => (
           <Link 
             key={idx}
@@ -157,33 +157,9 @@ export function OperationsDashboard({
         ))}
       </div>
 
-      {/* ──── Closure Stats ──── */}
-      {woStats && (woStats.doneThisWeek > 0 || woStats.doneThisMonth > 0 || woStats.avgResolutionMinutes !== null) ? (
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-5">
-            <div className="text-2xl font-extrabold text-emerald-700">{woStats.doneThisWeek}</div>
-            <div className="text-xs font-medium text-emerald-600 mt-1">הושלמו השבוע</div>
-          </div>
-          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-5">
-            <div className="text-2xl font-extrabold text-emerald-700">{woStats.doneThisMonth}</div>
-            <div className="text-xs font-medium text-emerald-600 mt-1">הושלמו החודש</div>
-          </div>
-          <div className="rounded-2xl border border-sky-200/60 bg-sky-50/50 p-5">
-            <div className="text-2xl font-extrabold text-sky-700">
-              {woStats.avgResolutionMinutes !== null
-                ? woStats.avgResolutionMinutes >= 60
-                  ? `${Math.round(woStats.avgResolutionMinutes / 60)} שעות`
-                  : `${woStats.avgResolutionMinutes} דק׳`
-                : '—'}
-            </div>
-            <div className="text-xs font-medium text-sky-600 mt-1">ממוצע זמן טיפול</div>
-          </div>
-        </div>
-      ) : null}
-
       {/* ──── Alerts Row ──── */}
       {hasUrgent ? (
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           {(woStats?.slaBreach ?? 0) > 0 ? (
             <Link href={`${base}/work-orders`} className="relative group overflow-hidden rounded-2xl border-2 border-red-500 bg-red-600 p-6 shadow-xl shadow-red-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/30 transition-colors" />
@@ -208,39 +184,15 @@ export function OperationsDashboard({
               </div>
             </Link>
           ) : null}
-          {((woStats?.priorityCritical ?? 0) + (woStats?.priorityUrgent ?? 0)) > 0 ? (
-            <Link href={`${base}/work-orders`} className="relative group overflow-hidden rounded-2xl border-2 border-rose-600 bg-rose-600 p-6 shadow-xl shadow-rose-600/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-white/30 transition-colors" />
-              <div className="relative flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center text-white font-black text-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">{(woStats?.priorityCritical ?? 0) + (woStats?.priorityUrgent ?? 0)}</div>
-                <div>
-                  <div className="text-sm font-black text-white uppercase tracking-widest">דחיפות גבוהה</div>
-                  <div className="text-xs text-rose-100 font-bold mt-0.5">{woStats?.priorityCritical ?? 0} קריטי, {woStats?.priorityUrgent ?? 0} דחוף</div>
-                </div>
-              </div>
-            </Link>
-          ) : null}
         </div>
       ) : null}
 
       {/* ──── Charts ──── */}
-      {woStats && (woStats.total > 0 || (inventory && inventory.total > 0)) ? (
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {woStats.total > 0 ? (
-            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
-              <WorkOrderStatusChart stats={woStats} />
-            </section>
-          ) : null}
-          {woStats.total > 0 ? (
-            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
-              <WorkOrderPriorityChart stats={woStats} />
-            </section>
-          ) : null}
-          {inventory && inventory.total > 0 ? (
-            <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
-              <InventoryPieChart inventory={inventory} />
-            </section>
-          ) : null}
+      {inventory && inventory.total > 0 ? (
+        <div className="mb-6">
+          <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <InventoryPieChart inventory={inventory} />
+          </section>
         </div>
       ) : null}
 

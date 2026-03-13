@@ -368,7 +368,7 @@ export function generateBaseEmailTemplate(options: {
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#eef2f7;direction:rtl;-webkit-font-smoothing:antialiased;">
     <table role="presentation" style="width:100%;border-collapse:collapse;background-color:#eef2f7;" cellpadding="0" cellspacing="0">
     <tr>
-      <td align="center" style="padding:20px 12px;">
+      <td align="center" style="padding:20px 4px;">
         <table role="presentation" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;box-shadow:0 4px 24px rgba(15,23,42,0.08);overflow:hidden;" cellpadding="0" cellspacing="0">
           ${generateEmailHeader({
             title: options.headerTitle,

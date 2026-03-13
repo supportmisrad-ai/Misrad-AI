@@ -121,16 +121,16 @@ async function logAccessAttempt(
     const userAgent = headersList.get('user-agent') || 'unknown';
     const ip = headersList.get('x-forwarded-for') || 'unknown';
 
-    const log = await prisma.aITowerAuditLog.create({
+    const log = await prisma.ai_tower_audit_logs.create({
       data: {
-        userId,
+        user_id: userId,
         email,
-        organizationId,
+        organization_id: organizationId,
         action,
         reason,
-        userAgent,
+        user_agent: userAgent,
         ip,
-        metadata: metadata ? JSON.stringify(metadata) : null,
+        metadata: metadata ? (metadata as any) : undefined,
         timestamp: new Date(),
       },
     });
@@ -226,9 +226,14 @@ export async function checkAITowerAccess(): Promise<AITowerAccessCheck> {
       where: { id: organizationId },
       select: {
         id: true,
-        plan: true,
-        modules: true,
-        status: true,
+        subscription_plan: true,
+        has_nexus: true,
+        has_social: true,
+        has_system: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+        subscription_status: true,
       },
     });
 
@@ -257,15 +262,25 @@ export async function checkAITowerAccess(): Promise<AITowerAccessCheck> {
     }
 
     // 5. בדיקה האם הארגון פעיל
-    if (organization.status !== 'active') {
+    if (organization.subscription_status !== 'active') {
       const auditId = await logAccessAttempt(
         userId,
         email,
         organizationId,
         'DENIED',
         'Organization not active',
-        { status: organization.status, role }
+        { status: organization.subscription_status, role }
       );
+
+      // Compute modules from has_* fields
+      const modules = [
+        organization.has_nexus && 'nexus',
+        organization.has_social && 'social',
+        organization.has_system && 'system',
+        organization.has_finance && 'finance',
+        organization.has_client && 'client',
+        organization.has_operations && 'operations',
+      ].filter(Boolean) as string[];
 
       return {
         granted: false,
@@ -275,15 +290,23 @@ export async function checkAITowerAccess(): Promise<AITowerAccessCheck> {
         userId,
         email,
         role,
-        planModules: organization.modules || [],
-        reason: `הארגון לא פעיל (סטטוס: ${organization.status})`,
+        planModules: modules,
+        reason: `הארגון לא פעיל (סטטוס: ${organization.subscription_status})`,
         auditLogId: auditId,
       };
     }
 
     // 6. בדיקת חבילה - 3+ מודולים
-    const moduleCount = (organization.modules || []).length;
-    const planName = organization.plan || '';
+    const modules = [
+      organization.has_nexus && 'nexus',
+      organization.has_social && 'social',
+      organization.has_system && 'system',
+      organization.has_finance && 'finance',
+      organization.has_client && 'client',
+      organization.has_operations && 'operations',
+    ].filter(Boolean) as string[];
+    const moduleCount = modules.length;
+    const planName = organization.subscription_plan || '';
 
     const hasEligiblePlan = AI_TOWER_ELIGIBLE_PLANS.includes(planName);
     const hasEnoughModules = moduleCount >= MIN_MODULES_REQUIRED;
@@ -311,7 +334,7 @@ export async function checkAITowerAccess(): Promise<AITowerAccessCheck> {
         userId,
         email,
         role,
-        planModules: organization.modules || [],
+        planModules: modules,
         reason: `החבילה לא כוללת AI Tower (נדרשים ${MIN_MODULES_REQUIRED}+ מודולים, יש ${moduleCount})`,
         auditLogId: auditId,
       };
@@ -345,7 +368,7 @@ export async function checkAITowerAccess(): Promise<AITowerAccessCheck> {
       userId,
       email,
       role,
-      planModules: organization.modules || [],
+      planModules: modules,
       auditLogId: auditId,
     };
 

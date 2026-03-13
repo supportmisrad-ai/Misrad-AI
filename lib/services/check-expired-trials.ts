@@ -81,7 +81,7 @@ export async function sendTrialExpiryWarnings() {
                   equals: daysRemaining,
                 },
                 created_at: {
-                  gte: new Date(now.getTime() - 12 * 60 * 60 * 1000), // Within last 12 hours
+                  gte: new Date(now.getTime() - 26 * 60 * 60 * 1000), // Within last 26 hours (prevents double-send when cron runs twice daily)
                 },
               },
             });
