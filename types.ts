@@ -30,7 +30,9 @@ export interface RoleDefinition {
 }
 
 export interface OrganizationProfile {
+    id: string; // Organization UUID
     name: string;
+    slug: string | null; // Organization slug
     logo: string; // Base64 or URL
     primaryColor: string; // Hex for accent
     enabledModules: ModuleId[]; // NEW: Controls global visibility per tenant
