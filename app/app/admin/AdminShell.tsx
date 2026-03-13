@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, Megaphone, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, Megaphone, Palette, PlayCircle, Handshake, Link2, Mail, Image as ImageIcon, GraduationCap, ExternalLink, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -238,18 +238,18 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     content: [
       { href: '/app/admin/global/promotions', label: 'מבצעים', icon: Zap },
       { href: '/app/admin/landing/promotions', label: 'באנרים תקופתיים', icon: Megaphone },
-      { href: '/app/admin/landing/pricing', label: 'תמחור', icon: Globe },
-      { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Globe },
-      { href: '/app/admin/landing/content', label: 'תוכן נחיתה', icon: Globe },
-      { href: '/app/admin/landing/videos', label: 'סרטונים', icon: Globe },
-      { href: '/app/admin/landing/partners', label: 'שותפים', icon: Globe },
-      { href: '/app/admin/landing/payment-links', label: 'קישורי תשלום', icon: Globe },
-      { href: '/app/admin/global/emails', label: 'רישום מיילים', icon: Globe },
-      { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: Globe },
-      { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: Globe },
-      { href: '/app/admin/global/kb-videos', label: 'סרטוני מאגר ידע', icon: Globe },
-      { href: '/app/admin/global/links', label: 'מרכז קישורים', icon: Globe },
-      { href: '/app/admin/global/work-listings', label: 'דרושים', icon: Globe },
+      { href: '/app/admin/landing/pricing', label: 'תמחור', icon: DollarSign },
+      { href: '/app/admin/landing/branding', label: 'מיתוג', icon: Palette },
+      { href: '/app/admin/landing/content', label: 'תוכן נחיתה', icon: LayoutGrid },
+      { href: '/app/admin/landing/videos', label: 'סרטונים', icon: PlayCircle },
+      { href: '/app/admin/landing/partners', label: 'שותפים', icon: Handshake },
+      { href: '/app/admin/landing/payment-links', label: 'קישורי תשלום', icon: Link2 },
+      { href: '/app/admin/global/emails', label: 'רישום מיילים', icon: Mail },
+      { href: '/app/admin/global/email-assets', label: 'תמונות מיילים', icon: ImageIcon },
+      { href: '/app/admin/global/help-videos', label: 'סרטוני הדרכה', icon: PlayCircle },
+      { href: '/app/admin/global/kb-videos', label: 'סרטוני מאגר ידע', icon: GraduationCap },
+      { href: '/app/admin/global/links', label: 'מרכז קישורים', icon: ExternalLink },
+      { href: '/app/admin/global/work-listings', label: 'דרושים', icon: Briefcase },
     ],
     infra: [
       { href: '/app/admin/dashboard/platform', label: 'מבט על מערכת', icon: LayoutGrid },

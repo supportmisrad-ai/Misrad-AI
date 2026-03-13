@@ -556,7 +556,18 @@ const ClientView: React.FC = () => {
                finally { setIsInsightLoading(false); }
            }} />}
            {activeTab === 'stakeholders' && <ClientStakeholdersTab client={client} />}
-           {activeTab === 'tasks' && <ClientTasksTab client={client} assignedForms={assignedForms} onAssignForm={() => setShowAssignForm(true)} activeSequences={[]} scheduledAutomations={[]} />}
+           {activeTab === 'tasks' && (
+             <ClientTasksTab 
+               client={client} 
+               assignedForms={assignedForms} 
+               onAssignForm={() => setShowAssignForm(true)} 
+               onAddAutomation={() => {
+                 window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת אוטומציה ללקוח — הפיצ׳ר בפיתוח.', type: 'info' } }));
+               }}
+               activeSequences={[]} 
+               scheduledAutomations={[]} 
+             />
+           )}
            {activeTab === 'journey' && <ClientJourneyTab journeyData={journeyData} />}
            {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {
                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ההערה נשמרה בהצלחה.', type: 'success' } }));

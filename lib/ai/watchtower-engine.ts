@@ -141,7 +141,7 @@ const RULES: AIRule[] = [
   // ═════════════════════════════════════════════════════════════════
   {
     id: 'rule-invoice-opportunity-001',
-    name: 'Invoice Opportunity',
+    name: 'הזדמנות להוצאת חשבונית',
     description: 'הצע להוצאת חשבונית לאחר סיום פרויקט',
     eventTypes: ['PROJECT_COMPLETED', 'CYCLE_COMPLETED'],
     severity: 'medium',
@@ -174,7 +174,7 @@ const RULES: AIRule[] = [
         severity: 'medium',
         status: 'active',
         ruleId: 'rule-invoice-opportunity-001',
-        ruleName: 'Invoice Opportunity',
+        ruleName: 'הזדמנות להוצאת חשבונית',
         relatedEventIds: [ctx.event.id],
         entityId: payload.clientId,
         entityType: 'client',
@@ -199,7 +199,7 @@ const RULES: AIRule[] = [
   // ═════════════════════════════════════════════════════════════════
   {
     id: 'rule-employee-overload-001',
-    name: 'Employee Overload Alert',
+    name: 'התראת עומס יתר על עובד',
     description: 'התראה כאשר עובד נכנס למשמרת עם יותר מדי משימות בפיגור',
     eventTypes: ['ATTENDANCE_PUNCH_IN'],
     severity: 'high',
@@ -242,12 +242,12 @@ const RULES: AIRule[] = [
       return {
         id: `insight-${Date.now()}`,
         organizationId: ctx.organizationId,
-        title: '🔥 עומס יתר על עובד',
+        title: '🔥 התראת עומס יתר',
         description: `${payload.userName} נכנס למשמרת עם 5+ משימות בפיגור. ייתכן שיש צורך בהקצאת משאבים נוספים.`,
         severity: 'high',
         status: 'active',
         ruleId: 'rule-employee-overload-001',
-        ruleName: 'Employee Overload Alert',
+        ruleName: 'התראת עומס יתר על עובד',
         relatedEventIds: [ctx.event.id],
         entityId: payload.userId,
         entityType: 'user',
@@ -271,7 +271,7 @@ const RULES: AIRule[] = [
   // ═════════════════════════════════════════════════════════════════
   {
     id: 'rule-late-payment-001',
-    name: 'Late Payment Follow-up',
+    name: 'תזכורת תשלום באיחור',
     description: 'תזכורת ללקוח עם חשבונית באיחור 7+ ימים',
     eventTypes: ['INVOICE_OVERDUE'],
     severity: 'high',
@@ -298,12 +298,12 @@ const RULES: AIRule[] = [
       return {
         id: `insight-${Date.now()}`,
         organizationId: ctx.organizationId,
-        title: '⏰ תזכורת תשלום דחוף',
+        title: '⏰ תזכורת תשלום באיחור',
         description: `לקוח ${payload.clientName} חייב ${payload.amount} ${payload.currency} כבר ${payload.daysOverdue} ימים. ניסיון תשלום ${payload.totalAttempts}.`,
         severity: 'critical',
         status: 'active',
         ruleId: 'rule-late-payment-001',
-        ruleName: 'Late Payment Follow-up',
+        ruleName: 'תזכורת תשלום באיחור',
         relatedEventIds: [ctx.event.id],
         entityId: payload.clientId,
         entityType: 'client',

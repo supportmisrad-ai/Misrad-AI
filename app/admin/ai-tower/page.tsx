@@ -10,9 +10,18 @@ import {
 } from '@/lib/ai/ai-tower-guard';
 import { watchtower } from '@/lib/ai/watchtower-engine';
 import { Suspense } from 'react';
+import { 
+  ShieldCheck, 
+  Lock, 
+  BarChart3, 
+  BrainCircuit, 
+  Zap, 
+  Users, 
+  Bell 
+} from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
-// AI Tower - Command Center (מוגן ב-Guard מלא)
+// מגדל שמירה AI - מרכז הבקרה
 // ═══════════════════════════════════════════════════════════════════
 
 export default async function AITowerCommandCenterPage() {
@@ -25,29 +34,39 @@ export default async function AITowerCommandCenterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans" dir="rtl">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">
-                🏛️ מגדל שמירה <span className="text-amber-400">AI</span>
-              </h1>
-              <p className="mt-1 text-sm text-slate-400">
-                מרכז הבקרה החכם • {access.role} • {access.planModules?.length || 0} מודולים
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                  מגדל שמירה <span className="text-blue-600">AI</span>
+                </h1>
+                <p className="text-xs font-medium text-slate-500">
+                  {access.role} • {access.planModules?.length || 0} מודולים פעילים
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400 ring-1 ring-inset ring-amber-500/20">
-                {access.level === 'SUPER_ADMIN' ? 'מנהל מערכת' : 
-                 access.level === 'ORG_ADMIN' ? 'מנהל ארגון' :
-                 access.level === 'ORG_MANAGER' ? 'מנהל' : 'עובד'}
-              </span>
-              {hasPermission(access, 'view_sensitive_data') && (
-                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                  🔐 מידע רגיש
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">רמת גישה</span>
+                <span className="text-sm font-bold text-slate-700">
+                  {access.level === 'SUPER_ADMIN' ? 'מנהל מערכת על' : 
+                   access.level === 'ORG_ADMIN' ? 'מנכ״ל / אדמין' :
+                   access.level === 'ORG_MANAGER' ? 'מנהל צוות' : 'עובד'}
                 </span>
+              </div>
+              <div className="h-8 w-px bg-slate-200 hidden md:block mx-2" />
+              {hasPermission(access, 'view_sensitive_data') && (
+                <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                  <Lock size={12} />
+                  מידע רגיש מאובטח
+                </div>
               )}
             </div>
           </div>
@@ -58,56 +77,67 @@ export default async function AITowerCommandCenterPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats Overview - רק למי שיש הרשאה */}
         {hasPermission(access, 'view_all_insights') && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="אירועים היום" value="0" icon="📊" color="blue" />
-            <StatCard title="תובנות פעילות" value="0" icon="💡" color="amber" />
-            <StatCard title="פעולות אוטומטיות" value="0" icon="⚡" color="emerald" />
-            <StatCard title="לקוחות במעקב" value="0" icon="👥" color="purple" />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard title="אירועים היום" value="0" icon={<BarChart3 size={20} />} color="blue" />
+            <StatCard title="תובנות פעילות" value="0" icon={<BrainCircuit size={20} />} color="amber" />
+            <StatCard title="פעולות אוטומטיות" value="0" icon={<Zap size={20} />} color="emerald" />
+            <StatCard title="לקוחות במעקב" value="0" icon={<Users size={20} />} color="purple" />
           </div>
         )}
 
         {/* Action Cards Section */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">תובנות חכמות</h2>
-            <span className="text-xs text-slate-500">
-              מוצגות: {access.permissions.length} הרשאות
-            </span>
+        <div className="mt-12">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Bell className="text-blue-600" size={20} />
+              <h2 className="text-xl font-bold text-slate-900">תובנות שדורשות פעולה</h2>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+              <ShieldCheck size={14} />
+              אבטחה היררכית פעילה
+            </div>
           </div>
           <Suspense fallback={<ActionCardsSkeleton />}>
             <ActionCardsList access={access} />
           </Suspense>
         </div>
 
-        {/* Permissions Info */}
-        <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-          <h3 className="text-sm font-semibold text-slate-300 mb-2">🔒 הרשאות שלך:</h3>
-          <div className="flex flex-wrap gap-2">
-            {access.permissions.map((perm) => (
-              <span 
-                key={perm}
-                className="inline-flex items-center rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-400"
-              >
-                {translatePermission(perm)}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Audit Log */}
-        {hasPermission(access, 'view_sensitive_data') && (
-          <div className="mt-8">
-            <h2 className="mb-4 text-lg font-semibold text-white">לוג אבטחה אחרון</h2>
-            <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50">
-              <div className="p-6 text-center text-slate-400">
-                <p>Audit ID: {access.auditLogId || 'N/A'}</p>
-                <p className="mt-2 text-sm text-slate-500">
-                  כל גישה נרשמת ונבדקת
-                </p>
-              </div>
+        {/* Permissions & Audit Info */}
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="text-slate-400" size={18} />
+              <h3 className="font-bold text-slate-800 text-sm">הרשאות הגישה שלך:</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {access.permissions.map((perm) => (
+                <span 
+                  key={perm}
+                  className="inline-flex items-center rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600"
+                >
+                  {translatePermission(perm)}
+                </span>
+              ))}
             </div>
           </div>
-        )}
+
+          {hasPermission(access, 'view_sensitive_data') && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck className="text-emerald-500" size={18} />
+                <h3 className="font-bold text-slate-800 text-sm">ניטור ואבטחה (Audit Log):</h3>
+              </div>
+              <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="text-xs font-bold text-slate-500">מזהה פעולה:</div>
+                <div className="text-xs font-mono font-bold text-slate-700">{access.auditLogId || 'N/A'}</div>
+              </div>
+              <p className="mt-3 text-[10px] text-slate-400 font-medium leading-relaxed">
+                כל פעולה במגדל השמירה מתועדת ונשמרת ביומן האבטחה של הארגון. 
+                הגישה שלך מנוטרת לצרכי אבטחת מידע ובקרת איכות.
+              </p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
@@ -138,24 +168,33 @@ function translatePermission(perm: AITowerPermission): string {
 function StatCard({ title, value, icon, color }: { 
   title: string; 
   value: string; 
-  icon: string; 
+  icon: React.ReactNode; 
   color: 'blue' | 'amber' | 'emerald' | 'purple' 
 }) {
   const colors = {
-    blue: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 ring-amber-500/20',
-    emerald: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
-    purple: 'bg-purple-500/10 text-purple-400 ring-purple-500/20',
+    blue: 'bg-blue-600 text-white shadow-blue-100',
+    amber: 'bg-amber-500 text-white shadow-amber-100',
+    emerald: 'bg-emerald-600 text-white shadow-emerald-100',
+    purple: 'bg-purple-600 text-white shadow-purple-100',
+  };
+
+  const bgColors = {
+    blue: 'bg-blue-50/50 border-blue-100',
+    amber: 'bg-amber-50/50 border-amber-100',
+    emerald: 'bg-emerald-50/50 border-emerald-100',
+    purple: 'bg-purple-50/50 border-purple-100',
   };
 
   return (
-    <div className={`rounded-xl border border-slate-800 bg-slate-900/50 p-6 ring-1 ring-inset ${colors[color]}`}>
+    <div className={`rounded-2xl border p-6 transition hover:shadow-md ${bgColors[color]}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-white">{value}</p>
+          <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-1">{title}</p>
+          <p className="text-3xl font-black text-slate-900">{value}</p>
         </div>
-        <span className="text-2xl">{icon}</span>
+        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-lg ${colors[color]}`}>
+          {icon}
+        </div>
       </div>
     </div>
   );
@@ -189,66 +228,73 @@ async function ActionCardsList({ access }: { access: AITowerAccessCheck }) {
 
   if (visibleInsights.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800">
-          <span className="text-2xl">🎯</span>
+      <div className="rounded-[2rem] border-2 border-dashed border-slate-200 bg-white p-12 text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
+          <BrainCircuit size={32} />
         </div>
-        <h3 className="text-lg font-medium text-white">אין תובנות פעילות</h3>
-        <p className="mt-1 text-sm text-slate-400">
-          המערכת עוקבת אחרי האירועים. ברגע שיתגלו דפוסים רלוונטיים,
-          תובנות יופיעו כאן בהתאם להרשאות שלך.
+        <h3 className="text-xl font-bold text-slate-900">אין תובנות פעילות כרגע</h3>
+        <p className="mt-2 text-slate-500 max-w-sm mx-auto font-medium leading-relaxed">
+          מגדל השמירה עוקב אחרי האירועים בארגון. ברגע שיתגלו דפוסים רלוונטיים עבורך,
+          תובנות ופעולות יופיעו כאן.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {visibleInsights.map((insight) => (
         <div
           key={insight.id}
-          className={`rounded-xl border p-4 ${
-            insight.severity === 'critical'
-              ? 'border-red-500/30 bg-red-500/5'
-              : insight.severity === 'high'
-              ? 'border-orange-500/30 bg-orange-500/5'
-              : insight.severity === 'medium'
-              ? 'border-amber-500/30 bg-amber-500/5'
-              : 'border-blue-500/30 bg-blue-500/5'
+          className={`rounded-2xl border p-6 bg-white shadow-sm transition hover:shadow-md ${
+            insight.severity === 'critical' ? 'border-red-200' : 
+            insight.severity === 'high' ? 'border-orange-200' : 
+            insight.severity === 'medium' ? 'border-amber-200' : 'border-blue-200'
           }`}
         >
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+              insight.severity === 'critical' ? 'bg-red-600 text-white shadow-red-100' : 
+              insight.severity === 'high' ? 'bg-orange-500 text-white shadow-orange-100' : 
+              insight.severity === 'medium' ? 'bg-amber-500 text-white shadow-amber-100' : 'bg-blue-600 text-white shadow-blue-100'
+            }`}>
+              {insight.entityType === 'client' ? <Users size={28} /> : 
+               insight.entityType === 'invoice' ? <BarChart3 size={28} /> :
+               insight.entityType === 'user' ? <Users size={28} /> : <Zap size={28} />}
+            </div>
+            
             <div className="flex-1">
-              <h3 className="font-semibold text-white">{insight.title}</h3>
-              <p className="mt-1 text-sm text-slate-300">{insight.description}</p>
-              
+              <div className="flex items-center gap-3 mb-1">
+                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                  insight.severity === 'critical' ? 'bg-red-50 text-red-700' : 
+                  insight.severity === 'high' ? 'bg-orange-50 text-orange-700' : 
+                  insight.severity === 'medium' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                }`}>
+                  {insight.severity === 'critical' ? 'קריטי' : 
+                   insight.severity === 'high' ? 'דחוף' : 
+                   insight.severity === 'medium' ? 'בינוני' : 'מידע'}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {new Date(insight.createdAt || Date.now()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 leading-tight">{insight.title}</h3>
+              <p className="mt-1 text-sm font-medium text-slate-500 leading-relaxed">{insight.description}</p>
+            </div>
+            
+            <div className="shrink-0 w-full md:w-auto">
               {insight.suggestedAction && hasPermission(access, 'execute_actions') && (
-                <button className="mt-3 inline-flex items-center rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20">
+                <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm shadow-xl shadow-slate-200 hover:bg-slate-800 transition">
                   {insight.suggestedAction.label}
                 </button>
               )}
               
               {!hasPermission(access, 'execute_actions') && insight.suggestedAction && (
-                <p className="mt-2 text-xs text-slate-500">
-                  נדרש אישור מנהל לביצוע פעולה זו
+                <p className="text-[10px] font-bold text-slate-400 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 text-center">
+                  נדרש אישור מנהל לביצוע פעולה
                 </p>
               )}
             </div>
-            <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${
-                insight.severity === 'critical'
-                  ? 'bg-red-500/20 text-red-400'
-                  : insight.severity === 'high'
-                  ? 'bg-orange-500/20 text-orange-400'
-                  : insight.severity === 'medium'
-                  ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-blue-500/20 text-blue-400'
-              }`}
-            >
-              {insight.severity === 'critical' ? 'קריטי' : 
-               insight.severity === 'high' ? 'דחוף' : 
-               insight.severity === 'medium' ? 'בינוני' : 'מידע'}
-            </span>
           </div>
         </div>
       ))}
@@ -258,9 +304,9 @@ async function ActionCardsList({ access }: { access: AITowerAccessCheck }) {
 
 function ActionCardsSkeleton() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-24 animate-pulse rounded-xl bg-slate-800" />
+        <div key={i} className="h-32 animate-pulse rounded-2xl bg-white border border-slate-200" />
       ))}
     </div>
   );

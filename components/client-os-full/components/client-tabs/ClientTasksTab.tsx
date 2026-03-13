@@ -7,6 +7,7 @@ interface ClientTasksTabProps {
   client: Client;
   assignedForms: AssignedForm[];
   onAssignForm: () => void;
+  onAddAutomation: () => void;
   activeSequences: AutomationSequence[];
   scheduledAutomations: ScheduledAutomation[];
 }
@@ -15,6 +16,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({
   client, 
   assignedForms, 
   onAssignForm, 
+  onAddAutomation,
   activeSequences, 
   scheduledAutomations 
 }) => {
@@ -163,7 +165,10 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({
                                 </div>
                             </div>
 
-                            <button className="w-full py-2.5 mt-2 bg-white text-nexus-primary rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+                            <button 
+                                onClick={onAddAutomation}
+                                className="w-full py-2.5 mt-2 bg-white text-nexus-primary rounded-xl text-xs font-bold hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
+                            >
                                 <Plus size={14} /> הוסף אוטומציה חדשה
                             </button>
                         </div>

@@ -33,8 +33,8 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
   return (
     <div className="space-y-8 animate-slide-up">
         {isCreateOpen && (
-            <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+                <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden my-auto">
                     <div className="p-5 flex items-center justify-between border-b border-gray-100">
                         <div className="font-bold text-gray-900 flex items-center gap-2">
                             <Briefcase size={18} className="text-nexus-primary" /> פרויקט חדש

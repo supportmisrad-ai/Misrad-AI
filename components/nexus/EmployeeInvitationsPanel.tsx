@@ -14,7 +14,7 @@ import { usePathname } from 'next/navigation';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CircleCheckBig, Lock } from 'lucide-react';
+import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CircleCheckBig, Lock, Shield, LayoutGrid } from 'lucide-react';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 interface EmployeeInvitation {
@@ -75,6 +75,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
         employeePhone: '',
         department: '',
         role: '',
+        permissions: [] as string[],
+        modules: [] as string[],
         paymentType: 'monthly' as 'hourly' | 'monthly',
         hourlyRate: '',
         monthlySalary: '',
@@ -134,6 +136,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                     employeePhone: formData.employeePhone.trim() || null,
                     department: formData.department.trim(),
                     role: formData.role.trim(),
+                    permissions: formData.permissions,
+                    modules: formData.modules,
                     paymentType: formData.paymentType || null,
                     hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
                     monthlySalary: formData.monthlySalary ? parseFloat(formData.monthlySalary) : null,
@@ -160,6 +164,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                 employeePhone: '',
                 department: '',
                 role: '',
+                permissions: [],
+                modules: [],
                 paymentType: 'monthly',
                 hourlyRate: '',
                 monthlySalary: '',
@@ -519,6 +525,66 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                                             placeholder="בחר תפקיד"
                                             className="w-full"
                                         />
+                                    </div>
+                                </div>
+
+                                {/* Permissions & Modules */}
+                                <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                        <Shield size={16} />
+                                        הרשאות ומודולים (אופציונלי)
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-indigo-700 uppercase mb-2">הרשאות</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['view_clients', 'edit_clients', 'view_finance', 'edit_finance', 'view_tasks', 'edit_tasks', 'view_team', 'edit_team', 'admin'].map((permission) => (
+                                                    <button
+                                                        key={permission}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const current = formData.permissions;
+                                                            const updated = current.includes(permission)
+                                                                ? current.filter(p => p !== permission)
+                                                                : [...current, permission];
+                                                            setFormData({ ...formData, permissions: updated });
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            formData.permissions.includes(permission)
+                                                                ? 'bg-indigo-600 text-white'
+                                                                : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300'
+                                                        }`}
+                                                    >
+                                                        {permission.replace(/_/g, ' ')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-indigo-700 uppercase mb-2">מודולים</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['crm', 'tasks', 'finance', 'inventory', 'calendar', 'documents', 'reports'].map((module) => (
+                                                    <button
+                                                        key={module}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const current = formData.modules;
+                                                            const updated = current.includes(module)
+                                                                ? current.filter(m => m !== module)
+                                                                : [...current, module];
+                                                            setFormData({ ...formData, modules: updated });
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                            formData.modules.includes(module)
+                                                                ? 'bg-indigo-600 text-white'
+                                                                : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300'
+                                                        }`}
+                                                    >
+                                                        {module === 'crm' ? 'CRM' : module}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

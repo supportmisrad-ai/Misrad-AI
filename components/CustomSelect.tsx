@@ -180,28 +180,28 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           disabled={disabled}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          className={`w-full h-12 flex items-center justify-between px-4 bg-white border-2 rounded-2xl text-base font-bold transition-all outline-none duration-200 group ${
+          className={`w-full h-11 flex items-center justify-between px-4 bg-white border border-slate-200 rounded-xl text-sm font-bold transition-all outline-none duration-200 group ${
             isOpen 
-              ? 'border-sky-500 ring-4 ring-sky-100 z-20 relative bg-white' 
-              : 'border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-md hover:bg-slate-50/50'
+              ? 'border-indigo-500 ring-4 ring-indigo-50 z-20 relative bg-white' 
+              : 'shadow-sm hover:border-slate-300 hover:shadow-md hover:bg-white'
           } ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
         >
           <div className="flex items-center gap-2.5 truncate">
-            {icon && <span className={`transition-colors duration-200 ${isOpen ? 'text-sky-500' : 'text-slate-400 group-hover:text-slate-600'}`}>{icon}</span>}
+            {icon && <span className={`transition-colors duration-200 ${isOpen ? 'text-indigo-500' : 'text-slate-400 group-hover:text-slate-600'}`}>{icon}</span>}
             
             {selectedOption ? (
-              <span className="text-slate-800 font-bold flex items-center gap-2 truncate">
-                 {selectedOption.icon && <span className="opacity-80 scale-90">{selectedOption.icon}</span>}
+              <span className="text-slate-700 font-bold flex items-center gap-2 truncate">
+                 {selectedOption.icon && <span className="opacity-90 scale-90">{selectedOption.icon}</span>}
                  {selectedOption.label}
               </span>
             ) : (
-              <span className="text-slate-400 font-bold">{placeholder}</span>
+              <span className="text-slate-400 font-medium">{placeholder}</span>
             )}
           </div>
           <ChevronDown 
-              size={18} 
+              size={16} 
               strokeWidth={2.5}
-              className={`flex-shrink-0 transition-all duration-300 ease-out ${isOpen ? 'rotate-180 text-sky-500' : 'text-slate-400 group-hover:text-slate-600'}`} 
+              className={`flex-shrink-0 transition-all duration-300 ease-out ${isOpen ? 'rotate-180 text-indigo-500' : 'text-slate-400 group-hover:text-slate-600'}`} 
           />
         </button>
       </div>
@@ -214,17 +214,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
                     exit={{ opacity: 0 }} 
-                    className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-[9998]"
+                    className="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-[9998]"
                     onClick={() => setIsOpen(false)}
                 />
             )}
             <motion.div
                 key="dropdown"
                 ref={dropdownRef}
-                initial={{ opacity: 0, y: position.showAbove ? 6 : -6, scale: 0.97 }}
+                initial={{ opacity: 0, y: position.showAbove ? 4 : -4, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: position.showAbove ? 6 : -6, scale: 0.97 }}
-                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ opacity: 0, y: position.showAbove ? 4 : -4, scale: 0.98 }}
+                transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
                 style={{
                     position: 'fixed', 
                     top: position.top,
@@ -233,7 +233,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     zIndex: 9999,
                     transformOrigin: position.showAbove ? 'bottom center' : 'top center'
                 }}
-                className={`bg-white rounded-2xl shadow-[0_16px_64px_-16px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.04)] overflow-hidden max-h-[280px] overflow-y-auto custom-scrollbar p-1.5 ${position.showAbove ? '-translate-y-full' : ''}`}
+                className={`bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.05)] overflow-hidden max-h-[300px] overflow-y-auto custom-scrollbar p-1 ${position.showAbove ? '-translate-y-full' : ''}`}
                 role="listbox"
             >
                 <div className="space-y-0.5">
@@ -249,31 +249,25 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                         aria-selected={isSelected}
                         onClick={() => { onChange(option.value); setIsOpen(false); }}
                         onMouseEnter={() => setHighlightedIndex(index)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm rounded-xl transition-all duration-150 group/item ${
+                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-100 group/item ${
                             isSelected 
-                            ? 'bg-slate-900 text-white font-bold shadow-lg' 
+                            ? 'bg-indigo-600 text-white font-bold' 
                             : isHighlighted
-                            ? 'bg-slate-100 text-slate-900 font-bold'
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold'
+                            ? 'bg-slate-50 text-indigo-600 font-bold'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600'
                         }`}
                         >
                         <div className="flex items-center gap-2.5 truncate">
                             {option.icon && (
-                                <span className={`scale-90 transition-all duration-150 group-hover/item:scale-100 ${isSelected ? 'opacity-100 text-white' : 'opacity-70 text-slate-400 group-hover/item:text-slate-600 group-hover/item:opacity-100'}`}>
+                                <span className={`scale-90 transition-all duration-100 ${isSelected ? 'opacity-100 text-white' : 'opacity-70 text-slate-400 group-hover/item:text-indigo-500 group-hover/item:opacity-100'}`}>
                                     {option.icon}
                                 </span>
                             )}
-                            <span className="truncate">{option.label}</span>
+                            <span className={isSelected ? 'font-bold' : 'font-medium'}>{option.label}</span>
                         </div>
                         
                         {isSelected && (
-                            <motion.div 
-                                initial={{ scale: 0, opacity: 0 }} 
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                            >
-                                <Check size={14} className="text-white flex-shrink-0" strokeWidth={3} />
-                            </motion.div>
+                            <Check size={14} className="text-white flex-shrink-0" strokeWidth={3} />
                         )}
                         </button>
                     );

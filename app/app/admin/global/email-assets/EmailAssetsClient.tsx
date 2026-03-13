@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { RefreshCw, Save, Image, Trash2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { RefreshCw, Save, Image, Trash2, ExternalLink, ChevronDown, ChevronUp, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useData } from '@/context/DataContext';
-import { adminGetEmailAssets, adminUpdateEmailAssets } from '@/app/actions/admin-email-assets';
+import { adminGetEmailAssets, adminUpdateEmailAssets, adminUploadEmailAsset } from '@/app/actions/admin-email-assets';
 import { EMAIL_ASSET_LABELS } from '@/lib/email-asset-labels';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
@@ -28,7 +28,11 @@ export default function EmailAssetsClient() {
   const [editState, setEditState] = useState<AssetsState>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeUploadKeyRef = useRef<string | null>(null);
 
   const defaults = useMemo(() => ({} as Record<string, string>), []);
 
@@ -111,6 +115,43 @@ export default function EmailAssetsClient() {
     setCollapsedCategories((prev) => ({ ...prev, [cat]: !prev[cat] }));
   };
 
+  const handleUploadClick = (key: string) => {
+    activeUploadKeyRef.current = key;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const key = activeUploadKeyRef.current;
+    if (!file || !key) return;
+
+    setUploadingKey(key);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('key', key);
+
+      const res = await adminUploadEmailAsset(formData);
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בהעלאת קובץ', 'error');
+        return;
+      }
+
+      if (res.data?.url) {
+        handleChange(key, res.data.url);
+        // Update dbOverrides as well since the action already saved it to DB
+        setDbOverrides(prev => ({ ...prev, [key]: res.data!.url }));
+        addToast('הקובץ הועלה ועודכן בהצלחה', 'success');
+      }
+    } catch (err) {
+      addToast(getErrorMessage(err) || 'שגיאה בהעלאת קובץ', 'error');
+    } finally {
+      setUploadingKey(null);
+      activeUploadKeyRef.current = null;
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const hasChanges = useMemo(() => {
     const cleanedEdit: AssetsState = {};
     for (const [k, v] of Object.entries(editState)) {
@@ -130,6 +171,14 @@ export default function EmailAssetsClient() {
 
   return (
     <div className="space-y-6">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/*"
+      />
+
       {/* Header Card */}
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-5 md:p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -203,6 +252,7 @@ export default function EmailAssetsClient() {
                   const defaultValue = (defaults as Record<string, string>)[key] || '';
                   const hasOverride = Boolean(currentValue.trim());
                   const isImg = isImageKey(key);
+                  const isUploading = uploadingKey === key;
 
                   return (
                     <div key={key} className="border border-slate-100 rounded-2xl p-4 space-y-2 hover:border-slate-300 transition-colors">
@@ -215,11 +265,24 @@ export default function EmailAssetsClient() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
+                          {isImg && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUploadClick(key)}
+                              disabled={loading || saving || isUploading}
+                              className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                              title="העלאת קובץ"
+                            >
+                              {isUploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                            </Button>
+                          )}
                           {hasOverride && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleClear(key)}
+                              disabled={isUploading}
                               className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
                               title="מחק ערך — חזור לברירת מחדל"
                             >
@@ -244,7 +307,7 @@ export default function EmailAssetsClient() {
                         value={currentValue}
                         onChange={(e) => handleChange(key, e.target.value)}
                         placeholder={defaultValue}
-                        disabled={loading || saving}
+                        disabled={loading || saving || isUploading}
                         className={`text-xs ${hasOverride ? 'border-slate-300 bg-slate-50/30' : ''}`}
                         dir="ltr"
                       />
@@ -257,11 +320,11 @@ export default function EmailAssetsClient() {
 
                       {/* Image preview */}
                       {isImg && (currentValue.trim() || defaultValue) && (
-                        <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2">
+                        <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-2 relative group">
                           <img
                             src={currentValue.trim() || defaultValue}
                             alt={meta?.label || key}
-                            className="max-h-24 max-w-full object-contain mx-auto rounded-lg"
+                            className="max-h-24 max-w-full object-contain mx-auto rounded-lg transition-transform group-hover:scale-105"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}

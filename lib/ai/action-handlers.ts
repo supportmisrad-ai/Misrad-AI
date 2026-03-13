@@ -43,15 +43,15 @@ export async function sendWhatsAppMessage(
     });
 
     if (!client?.phone) {
-      return { success: false, message: 'לקוח ללא מספר טלפון' };
+      return { success: false, message: 'ללקוח אין מספר טלפון מוגדר' };
     }
 
     // TODO: חיבור ל-WhatsApp API (Meta Business API או Twilio)
     // כרגע מדמה את הפעולה
-    console.log('[AI Tower] Sending WhatsApp:', {
-      to: client.phone,
-      template: params.template,
-      clientName: client.fullName,
+    console.log('[מגדל שמירה] שליחת WhatsApp:', {
+      אל: client.phone,
+      תבנית: params.template,
+      שם_לקוח: client.fullName,
     });
 
     // רישום בלוג
@@ -75,7 +75,7 @@ export async function sendWhatsAppMessage(
 
     return {
       success: true,
-      message: `הודעת WhatsApp נשלחה ל-${client.fullName || client.phone}`,
+      message: `הודעת WhatsApp נשלחה בהצלחה ל-${client.fullName || client.phone}`,
       data: { 
         recipient: client.phone,
         template: params.template,
@@ -84,11 +84,11 @@ export async function sendWhatsAppMessage(
     };
 
   } catch (error) {
-    console.error('[AI Tower] WhatsApp action failed:', error);
+    console.error('[מגדל שמירה] פעולת WhatsApp נכשלה:', error);
     return {
       success: false,
-      message: 'שגיאה בשליחת הודעה',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'שגיאה בשליחת ההודעה',
+      error: error instanceof Error ? error.message : 'שגיאה לא ידועה',
     };
   }
 }
@@ -111,7 +111,7 @@ export async function createInvoiceFromInsight(
     // 🛡️ אבטחה - דורש הרשאה כספית
     const access = await requireAITowerAccess();
     if (!hasPermission(access, 'view_financial_insights')) {
-      return { success: false, message: 'אין הרשאה לפעולות כספיות' };
+      return { success: false, message: 'אין לך הרשאה לביצוע פעולות כספיות' };
     }
 
     // שליפת פרטי הלקוח
@@ -125,25 +125,24 @@ export async function createInvoiceFromInsight(
     });
 
     if (!client) {
-      return { success: false, message: 'לקוח לא נמצא' };
+      return { success: false, message: 'הלקוח לא נמצא במערכת' };
     }
 
     // חישוב סכום אוטומטי אם נדרש
     let finalAmount = params.amount;
     if (params.autoFill && !finalAmount && params.projectId) {
       // TODO: שליפת סכום מהפרויקט/צ'אט הרלוונטי
-      // כרגע משתמשים בסכום שנשלח
-      console.log('[AI Tower] Auto-fill requested for project:', params.projectId);
+      console.log('[מגדל שמירה] בקשת מילוי אוטומטי עבור פרויקט:', params.projectId);
       finalAmount = 0; // Placeholder
     }
 
     if (!finalAmount || finalAmount <= 0) {
-      return { success: false, message: 'לא נמצא סכום לחשבונית' };
+      return { success: false, message: 'לא נמצא סכום תקין ליצירת חשבונית' };
     }
 
     // TODO: יצירת חשבונית אמיתית דרך billing-actions
     // כרגע מדמה
-    console.log('[AI Tower] Creating invoice:', {
+    console.log('[מגדל שמירה] יצירת חשבונית:', {
       clientId: client.id,
       clientName: client.fullName,
       amount: finalAmount,
@@ -185,7 +184,7 @@ export async function createInvoiceFromInsight(
 
     return {
       success: true,
-      message: `חשבונית על סך ${finalAmount}₪ נוצרה בהצלחה`,
+      message: `חשבונית טיוטה על סך ${finalAmount}₪ נוצרה בהצלחה עבור ${client.fullName}`,
       data: { 
         invoiceId: invoice.id,
         clientName: client.fullName,
@@ -195,11 +194,11 @@ export async function createInvoiceFromInsight(
     };
 
   } catch (error) {
-    console.error('[AI Tower] Create invoice action failed:', error);
+    console.error('[מגדל שמירה] יצירת חשבונית נכשלה:', error);
     return {
       success: false,
-      message: 'שגיאה ביצירת חשבונית',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'שגיאה ביצירת החשבונית',
+      error: error instanceof Error ? error.message : 'שגיאה לא ידועה',
     };
   }
 }
@@ -245,9 +244,9 @@ export async function reassignTasks(
     }
 
     // TODO: חלוקה אוטומטית או ידנית
-    console.log('[AI Tower] Reassigning tasks:', {
-      fromUser: params.fromUserId,
-      taskCount: overdueTasks.length,
+    console.log('[מגדל שמירה] חלוקת משימות מחדש:', {
+      מ: params.fromUserId,
+      כמות: overdueTasks.length,
     });
 
     // רישום בלוג
@@ -259,7 +258,7 @@ export async function reassignTasks(
 
     return {
       success: true,
-      message: `${overdueTasks.length} משימות marked לחלוקה מחדש`,
+      message: `${overdueTasks.length} משימות הועברו לטיפול מחדש`,
       data: { 
         taskCount: overdueTasks.length,
         tasks: overdueTasks.map((t: { id: string; title: string }) => ({ id: t.id, title: t.title })),
@@ -267,11 +266,11 @@ export async function reassignTasks(
     };
 
   } catch (error) {
-    console.error('[AI Tower] Reassign tasks failed:', error);
+    console.error('[מגדל שמירה] חלוקת משימות נכשלה:', error);
     return {
       success: false,
       message: 'שגיאה בחלוקת משימות',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'שגיאה לא ידועה',
     };
   }
 }
@@ -293,7 +292,7 @@ export async function sendPaymentReminder(
     // 🛡️ אבטחה
     const access = await requireAITowerAccess();
     if (!hasPermission(access, 'execute_actions')) {
-      return { success: false, message: 'אין הרשאה' };
+      return { success: false, message: 'אין לך הרשאה לביצוע פעולה זו' };
     }
 
     const client = await prisma.clientClient.findUnique({
@@ -302,17 +301,17 @@ export async function sendPaymentReminder(
     });
 
     if (!client) {
-      return { success: false, message: 'לקוח לא נמצא' };
+      return { success: false, message: 'הלקוח לא נמצא במערכת' };
     }
 
     // בחירת ערוץ (WhatsApp או Email)
     const channel = client.phone ? 'whatsapp' : 'email';
 
-    console.log('[AI Tower] Sending payment reminder:', {
-      to: client.fullName,
-      channel,
-      amount: params.amount,
-      daysOverdue: params.daysOverdue,
+    console.log('[מגדל שמירה] שליחת תזכורת תשלום:', {
+      אל: client.fullName,
+      ערוץ: channel,
+      סכום: params.amount,
+      ימי_איחור: params.daysOverdue,
     });
 
     // TODO: שליחה בפועל
@@ -328,16 +327,16 @@ export async function sendPaymentReminder(
 
     return {
       success: true,
-      message: `תזכורת תשלום נשלחה ל-${client.fullName}`,
+      message: `תזכורת תשלום נשלחה בהצלחה ל-${client.fullName}`,
       data: { channel, amount: params.amount },
     };
 
   } catch (error) {
-    console.error('[AI Tower] Payment reminder failed:', error);
+    console.error('[מגדל שמירה] תזכורת תשלום נכשלה:', error);
     return {
       success: false,
-      message: 'שגיאה בשליחת תזכורת',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'שגיאה בשליחת תזכורת תשלום',
+      error: error instanceof Error ? error.message : 'שגיאה לא ידועה',
     };
   }
 }
@@ -358,7 +357,7 @@ export async function sendWinBackOffer(
     // 🛡️ אבטחה
     const access = await requireAITowerAccess();
     if (!hasPermission(access, 'execute_actions')) {
-      return { success: false, message: 'אין הרשאה' };
+      return { success: false, message: 'אין לך הרשאה לביצוע פעולה זו' };
     }
 
     const client = await prisma.clientClient.findUnique({
@@ -367,16 +366,16 @@ export async function sendWinBackOffer(
     });
 
     if (!client) {
-      return { success: false, message: 'לקוח לא נמצא' };
+      return { success: false, message: 'הלקוח לא נמצא במערכת' };
     }
 
     const offerValidUntil = new Date();
     offerValidUntil.setDate(offerValidUntil.getDate() + params.offerValidDays);
 
-    console.log('[AI Tower] Sending win-back offer:', {
-      to: client.fullName,
-      discount: params.discountPercent,
-      validUntil: offerValidUntil,
+    console.log('[מגדל שמירה] שליחת הצעת חזרה:', {
+      אל: client.fullName,
+      הנחה: params.discountPercent,
+      בתוקף_עד: offerValidUntil,
     });
 
     await watchtower.executeAction(insightId, 'SEND_WIN_BACK_OFFER', {
@@ -388,7 +387,7 @@ export async function sendWinBackOffer(
 
     return {
       success: true,
-      message: `הצעת חזרה עם ${params.discountPercent}% הנחה נשלחה ל-${client.fullName}`,
+      message: `הצעת חזרה עם ${params.discountPercent}% הנחה נשלחה בהצלחה ל-${client.fullName}`,
       data: { 
         discount: params.discountPercent,
         validUntil: offerValidUntil.toISOString(),
@@ -396,11 +395,11 @@ export async function sendWinBackOffer(
     };
 
   } catch (error) {
-    console.error('[AI Tower] Win-back offer failed:', error);
+    console.error('[מגדל שמירה] הצעת חזרה נכשלה:', error);
     return {
       success: false,
-      message: 'שגיאה בשליחת הצעה',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'שגיאה בשליחת הצעת חזרה',
+      error: error instanceof Error ? error.message : 'שגיאה לא ידועה',
     };
   }
 }

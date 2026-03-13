@@ -180,6 +180,8 @@ async function POSTHandler(request: NextRequest) {
             employeePhone,
             department,
             role,
+            permissions,
+            modules,
             paymentType,
             hourlyRate,
             monthlySalary,
@@ -307,7 +309,10 @@ async function POSTHandler(request: NextRequest) {
             expires_at: expiresAt.toISOString(),
             is_used: false,
             is_active: true,
-            metadata: {}
+            metadata: {
+                permissions: Array.isArray(permissions) ? permissions : [],
+                modules: Array.isArray(modules) ? modules : []
+            }
         };
 
         let invitation: Prisma.NexusEmployeeInvitationLinkGetPayload<Prisma.NexusEmployeeInvitationLinkDefaultArgs>;

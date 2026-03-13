@@ -2492,14 +2492,14 @@ model OperationsCallMessage {
 }
 
 model OperationsVehicle {
-  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
+  id             String                                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String                                  @map("organization_id") @db.Uuid
   name           String
-  plateNumber    String?  @map("plate_number")
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plateNumber    String?                                 @map("plate_number")
+  active         Boolean                                 @default(true)
+  createdAt      DateTime                                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization                            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assignments    OperationsTechnicianVehicleAssignment[]
 
   @@index([organizationId], map: "idx_operations_vehicles_org")
@@ -2508,14 +2508,14 @@ model OperationsVehicle {
 }
 
 model OperationsTechnicianVehicleAssignment {
-  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  technicianId   String   @map("technician_id") @db.Uuid
-  vehicleId      String   @map("vehicle_id") @db.Uuid
-  active         Boolean  @default(true)
-  assignedAt     DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
-  endedAt        DateTime? @map("ended_at") @db.Timestamptz(6)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  technicianId   String            @map("technician_id") @db.Uuid
+  vehicleId      String            @map("vehicle_id") @db.Uuid
+  active         Boolean           @default(true)
+  assignedAt     DateTime          @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  endedAt        DateTime?         @map("ended_at") @db.Timestamptz(6)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   vehicle        OperationsVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([organizationId], map: "idx_operations_technician_vehicle_assignments_org")
@@ -2784,139 +2784,141 @@ model MisradSupportTicket {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model Organization {
-  id                               String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                             String
-  slug                             String?
-  logo                             String?
-  owner_id                         String                             @db.Uuid
-  partnerId                        String?                            @map("partner_id") @db.Uuid
-  client_id                        String?                            @map("client_id") @db.Uuid
-  has_nexus                        Boolean?                           @default(false)
-  has_social                       Boolean?                           @default(false)
-  has_system                       Boolean?                           @default(false)
-  has_finance                      Boolean?                           @default(false)
-  has_client                       Boolean?                           @default(false)
-  seats_allowed                    Int?
-  active_users_count               Int?                               @default(0)
-  subscription_plan                String?                            @db.VarChar(50)
-  subscription_status              String?                            @default("trial") @db.VarChar(20)
-  trial_start_date                 DateTime?                          @db.Timestamptz(6)
-  trial_days                       Int?                               @default(7)
-  subscription_start_date          DateTime?                          @db.Timestamptz(6)
-  created_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
-  updated_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
-  ai_credits_balance_cents         BigInt                             @default(0)
-  has_operations                   Boolean                            @default(false)
-  is_shabbat_protected             Boolean                            @default(true)
-  billing_cycle                    String?
-  billing_email                    String?
-  payment_method_id                String?
-  next_billing_date                DateTime?                          @db.Date
-  mrr                              Decimal?                           @default(0) @db.Decimal(10, 2)
-  arr                              Decimal?                           @default(0) @db.Decimal(10, 2)
-  discount_percent                 Int?                               @default(0)
-  trial_extended_days              Int?                               @default(0)
-  trial_end_date                   DateTime?                          @db.Date
-  last_payment_date                DateTime?                          @db.Timestamptz(6)
-  last_payment_amount              Decimal?                           @db.Decimal(10, 2)
-  balance                          Decimal                            @default(0) @db.Decimal(10, 2)
-  tax_id                           String?
-  cancellation_date                DateTime?                          @db.Timestamptz(6)
-  cancellation_reason              String?
-  is_medical_exempt                Boolean                            @default(false)
-  deleted_at                       DateTime?                          @db.Timestamptz(6)
-  coupon_seats_cap                 Int?
-  coupon_allowed_modules           String[]                           @default([])
-  social_plan                      String?                            @default("solo") @db.VarChar(20)
-  ai_images_last_reset             DateTime?                          @default(now()) @db.Timestamptz(6)
-  ai_images_used_this_month        Int                                @default(0)
-  trial_reset_count                Int?                               @default(0)
-  ai_embeddings                    ai_embeddings[]
-  ai_feature_settings              ai_feature_settings[]
-  ai_model_aliases                 ai_model_aliases[]
-  ai_provider_keys                 ai_provider_keys[]
-  ai_usage_logs                    ai_usage_logs[]
-  attendanceMonthlyReports         AttendanceMonthlyReport[]
-  attendanceSalaryConfig           AttendanceSalaryConfig?
-  billing_events                   billing_events[]
-  billing_invoices                 billing_invoices[]
-  botLeads                         BotLead[]
-  charges                          charges[]
-  clientApprovals                  ClientApproval[]
-  clientClients                    ClientClient[]
-  clientCycles                     ClientCycle[]
-  clientDocumentFiles              ClientDocumentFile[]
-  clientDocuments                  ClientDocument[]
-  clientFeedbacks                  ClientFeedback[]
-  clientInternalNotes              ClientInternalNote[]
-  clientPortalContents             ClientPortalContent[]
-  clientPortalInvites              ClientPortalInvite[]
-  clientPortalUsers                ClientPortalUser[]
-  clientProfiles                   ClientProfile[]
-  clientServiceTiers               ClientServiceTier[]
-  clientSessions                   ClientSession[]
-  clientSharedFiles                ClientSharedFile[]
-  clientTasks                      ClientTask[]
-  connectMarketplaceListings       ConnectMarketplaceListing[]
-  coupon_redemptions               coupon_redemptions[]
-  customerAccounts                 CustomerAccount[]
-  customerRatings                  CustomerRating[]
-  finance_whatsapp_reminder_events finance_whatsapp_reminder_events[]
-  nexusClients                     NexusClient[]
-  nexusEmployeeInvitationLinks     NexusEmployeeInvitationLink[]
-  nexusEventAttendance             NexusEventAttendance[]
-  nexusLeaveRequests               NexusLeaveRequest[]
-  nexusTasks                       NexusTask[]
-  nexusTeamEvents                  NexusTeamEvent[]
-  nexusTenant                      NexusTenant?                       @relation("NexusTenantOrganization")
-  nexusTimeEntries                 NexusTimeEntry[]
-  operationsBuildings              OperationsBuilding[]
-  operationsCallCategories         OperationsCallCategory[]
-  operationsCallMessages           OperationsCallMessage[]
-  operationsContractorTokens       OperationsContractorToken[]
-  operationsDepartments            OperationsDepartment[]
-  operationsInventory              OperationsInventory[]
-  operationsItems                  OperationsItem[]
-  operationsProjects               OperationsProject[]
-  operationsPurchaseOrders         OperationsPurchaseOrder[]
-  operationsSuppliers              OperationsSupplier[]
-  operationsWorkOrders             OperationsWorkOrder[]
-  operationsVehicles               OperationsVehicle[]
+  id                                     String                                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                   String
+  slug                                   String?
+  logo                                   String?
+  owner_id                               String                                  @db.Uuid
+  partnerId                              String?                                 @map("partner_id") @db.Uuid
+  client_id                              String?                                 @map("client_id") @db.Uuid
+  has_nexus                              Boolean?                                @default(false)
+  has_social                             Boolean?                                @default(false)
+  has_system                             Boolean?                                @default(false)
+  has_finance                            Boolean?                                @default(false)
+  has_client                             Boolean?                                @default(false)
+  seats_allowed                          Int?
+  active_users_count                     Int?                                    @default(0)
+  subscription_plan                      String?                                 @db.VarChar(50)
+  subscription_status                    String?                                 @default("trial") @db.VarChar(20)
+  trial_start_date                       DateTime?                               @db.Timestamptz(6)
+  trial_days                             Int?                                    @default(7)
+  subscription_start_date                DateTime?                               @db.Timestamptz(6)
+  created_at                             DateTime?                               @default(now()) @db.Timestamptz(6)
+  updated_at                             DateTime?                               @default(now()) @db.Timestamptz(6)
+  ai_credits_balance_cents               BigInt                                  @default(0)
+  has_operations                         Boolean                                 @default(false)
+  is_shabbat_protected                   Boolean                                 @default(true)
+  billing_cycle                          String?
+  billing_email                          String?
+  payment_method_id                      String?
+  next_billing_date                      DateTime?                               @db.Date
+  mrr                                    Decimal?                                @default(0) @db.Decimal(10, 2)
+  arr                                    Decimal?                                @default(0) @db.Decimal(10, 2)
+  discount_percent                       Int?                                    @default(0)
+  trial_extended_days                    Int?                                    @default(0)
+  trial_end_date                         DateTime?                               @db.Date
+  last_payment_date                      DateTime?                               @db.Timestamptz(6)
+  last_payment_amount                    Decimal?                                @db.Decimal(10, 2)
+  balance                                Decimal                                 @default(0) @db.Decimal(10, 2)
+  tax_id                                 String?
+  cancellation_date                      DateTime?                               @db.Timestamptz(6)
+  cancellation_reason                    String?
+  is_medical_exempt                      Boolean                                 @default(false)
+  deleted_at                             DateTime?                               @db.Timestamptz(6)
+  coupon_seats_cap                       Int?
+  coupon_allowed_modules                 String[]                                @default([])
+  social_plan                            String?                                 @default("solo") @db.VarChar(20)
+  ai_images_last_reset                   DateTime?                               @default(now()) @db.Timestamptz(6)
+  ai_images_used_this_month              Int                                     @default(0)
+  trial_reset_count                      Int?                                    @default(0)
+  ai_embeddings                          ai_embeddings[]
+  ai_feature_settings                    ai_feature_settings[]
+  ai_model_aliases                       ai_model_aliases[]
+  ai_provider_keys                       ai_provider_keys[]
+  ai_usage_logs                          ai_usage_logs[]
+  attendanceMonthlyReports               AttendanceMonthlyReport[]
+  attendanceSalaryConfig                 AttendanceSalaryConfig?
+  billing_events                         billing_events[]
+  billing_invoices                       billing_invoices[]
+  botLeads                               BotLead[]
+  charges                                charges[]
+  clientApprovals                        ClientApproval[]
+  clientClients                          ClientClient[]
+  clientCycles                           ClientCycle[]
+  clientDocumentFiles                    ClientDocumentFile[]
+  clientDocuments                        ClientDocument[]
+  clientFeedbacks                        ClientFeedback[]
+  clientInternalNotes                    ClientInternalNote[]
+  clientPortalContents                   ClientPortalContent[]
+  clientPortalInvites                    ClientPortalInvite[]
+  clientPortalUsers                      ClientPortalUser[]
+  clientProfiles                         ClientProfile[]
+  clientServiceTiers                     ClientServiceTier[]
+  clientSessions                         ClientSession[]
+  clientSharedFiles                      ClientSharedFile[]
+  clientTasks                            ClientTask[]
+  connectMarketplaceListings             ConnectMarketplaceListing[]
+  coupon_redemptions                     coupon_redemptions[]
+  customerAccounts                       CustomerAccount[]
+  customerRatings                        CustomerRating[]
+  finance_whatsapp_reminder_events       finance_whatsapp_reminder_events[]
+  nexusClients                           NexusClient[]
+  nexusEmployeeInvitationLinks           NexusEmployeeInvitationLink[]
+  nexusEventAttendance                   NexusEventAttendance[]
+  nexusLeaveRequests                     NexusLeaveRequest[]
+  nexusTasks                             NexusTask[]
+  nexusTeamEvents                        NexusTeamEvent[]
+  nexusTenant                            NexusTenant?                            @relation("NexusTenantOrganization")
+  nexusTimeEntries                       NexusTimeEntry[]
+  operationsBuildings                    OperationsBuilding[]
+  operationsCallCategories               OperationsCallCategory[]
+  operationsCallMessages                 OperationsCallMessage[]
+  operationsContractorTokens             OperationsContractorToken[]
+  operationsDepartments                  OperationsDepartment[]
+  operationsInventory                    OperationsInventory[]
+  operationsItems                        OperationsItem[]
+  operationsProjects                     OperationsProject[]
+  operationsPurchaseOrders               OperationsPurchaseOrder[]
+  operationsSuppliers                    OperationsSupplier[]
+  operationsWorkOrders                   OperationsWorkOrder[]
+  operationsVehicles                     OperationsVehicle[]
   operationsTechnicianVehicleAssignments OperationsTechnicianVehicleAssignment[]
-  organization_settings            organization_settings?
-  organizationUsers                OrganizationUser[]
-  business_client                  BusinessClient?                    @relation("BusinessClientOrganizations", fields: [client_id], references: [id])
-  owner                            OrganizationUser                   @relation("OrganizationOwner", fields: [owner_id], references: [id], onUpdate: NoAction, map: "organizations_owner_id_fkey")
-  partner                          Partner?                           @relation(fields: [partnerId], references: [id])
-  profiles                         Profile[]
-  socialMediaClients               SocialMediaClient[]
-  storageDeletionLogs              StorageDeletionLog[]
-  storageFiles                     StorageFile[]
-  subscription_items               subscription_items[]
-  subscription_orders              subscription_orders[]
-  subscriptions                    subscriptions[]
-  system_calendar_events           SystemCalendarEvent[]
-  system_call_analyses             SystemCallAnalysis[]
-  system_invoices                  SystemInvoice[]
-  system_lead_activities           SystemLeadActivity[]
-  systemLeadCustomFieldDefinitions SystemLeadCustomFieldDefinition[]
-  system_lead_handovers            SystemLeadHandover[]
-  systemLeads                      SystemLead[]
-  systemPipelineStages             SystemPipelineStage[]
-  system_portal_approvals          SystemPortalApproval[]
-  system_portal_tasks              SystemPortalTask[]
-  system_support_tickets           SystemSupportTicket[]
-  teamMembers                      TeamMember[]
-  workListings                     WorkListing[]
+  organization_settings                  organization_settings?
+  organizationUsers                      OrganizationUser[]
+  business_client                        BusinessClient?                         @relation("BusinessClientOrganizations", fields: [client_id], references: [id])
+  owner                                  OrganizationUser                        @relation("OrganizationOwner", fields: [owner_id], references: [id], onUpdate: NoAction, map: "organizations_owner_id_fkey")
+  partner                                Partner?                                @relation(fields: [partnerId], references: [id])
+  profiles                               Profile[]
+  socialMediaClients                     SocialMediaClient[]
+  storageDeletionLogs                    StorageDeletionLog[]
+  storageFiles                           StorageFile[]
+  subscription_items                     subscription_items[]
+  subscription_orders                    subscription_orders[]
+  subscriptions                          subscriptions[]
+  system_calendar_events                 SystemCalendarEvent[]
+  system_call_analyses                   SystemCallAnalysis[]
+  system_invoices                        SystemInvoice[]
+  system_lead_activities                 SystemLeadActivity[]
+  systemLeadCustomFieldDefinitions       SystemLeadCustomFieldDefinition[]
+  system_lead_handovers                  SystemLeadHandover[]
+  systemLeads                            SystemLead[]
+  systemPipelineStages                   SystemPipelineStage[]
+  system_portal_approvals                SystemPortalApproval[]
+  system_portal_tasks                    SystemPortalTask[]
+  system_support_tickets                 SystemSupportTicket[]
+  teamMembers                            TeamMember[]
+  workListings                           WorkListing[]
 
   // קשרי Booking System
-  bookingProviders    BookingProvider[]
-  bookingServices     BookingService[]
-  bookingLinks        BookingLink[]
-  bookingAppointments BookingAppointment[]
-  bookingPayments     BookingPayment[]
-  bookingWaitlist     BookingWaitlist[]
-  bookingCalendarSyncs BookingCalendarSync[]
+  bookingProviders            BookingProvider[]
+  bookingServices             BookingService[]
+  bookingLinks                BookingLink[]
+  bookingAppointments         BookingAppointment[]
+  bookingPayments             BookingPayment[]
+  bookingWaitlist             BookingWaitlist[]
+  bookingCalendarSyncs        BookingCalendarSync[]
+  operations_locations        operations_locations[]
+  operations_work_order_types operations_work_order_types[]
 
   @@index([owner_id])
   @@index([partnerId])
@@ -5498,37 +5500,37 @@ enum BookingWaitlistUrgency {
 
 /// נותני שירות (יומנים) - המשתמשים שמקבלים תורים
 model BookingProvider {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  userId            String?  @map("user_id") @db.Uuid
-  
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  userId         String? @map("user_id") @db.Uuid
+
   /// שם תצוגה של נותן השירות
-  name              String
+  name   String
   /// מייל לשליחת אישורים
-  email             String
+  email  String
   /// טלפון לתזכורות SMS
-  phone             String?
+  phone  String?
   /// תמונת פרופיל
-  avatar            String?
-  
+  avatar String?
+
   /// האם פעיל
-  isActive          Boolean  @default(true) @map("is_active")
+  isActive             Boolean @default(true) @map("is_active")
   /// זמן מנוחה בין תורים (דקות)
-  bufferMinutes     Int      @default(15) @map("buffer_minutes")
+  bufferMinutes        Int     @default(15) @map("buffer_minutes")
   /// מקסימום תורים ביום
-  maxDailyAppointments Int   @default(8) @map("max_daily_appointments")
-  
+  maxDailyAppointments Int     @default(8) @map("max_daily_appointments")
+
   /// קשרים
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  services          BookingProviderService[]
-  availabilities    BookingAvailability[]
-  appointments      BookingAppointment[]
-  links             BookingLink[]
-  calendarSyncs     BookingCalendarSync[]
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  services       BookingProviderService[]
+  availabilities BookingAvailability[]
+  appointments   BookingAppointment[]
+  links          BookingLink[]
+  calendarSyncs  BookingCalendarSync[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@index([userId])
   @@map("booking_providers")
@@ -5536,64 +5538,64 @@ model BookingProvider {
 
 /// סוגי תורים (שירותים)
 model BookingService {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+
   /// שם השירות (למשל: "ייעוץ ראשוני")
-  name              String
+  name        String
   /// תיאור שמוצג למשתמש
-  description       String?
+  description String?
   /// צבע ביומן
-  color             String   @default("#6366f1")
-  
+  color       String  @default("#6366f1")
+
   /// משך הפגישה בדקות
-  durationMinutes   Int      @map("duration_minutes")
+  durationMinutes    Int      @map("duration_minutes")
   /// זמן מנוחה נוסף אחרי הפגישה
-  bufferAfterMinutes Int     @default(0) @map("buffer_after_minutes")
+  bufferAfterMinutes Int      @default(0) @map("buffer_after_minutes")
   /// מחיר
-  priceAmount       Decimal? @map("price_amount") @db.Decimal(10, 2)
+  priceAmount        Decimal? @map("price_amount") @db.Decimal(10, 2)
   /// מטבע
-  currency          String   @default("ILS")
-  
+  currency           String   @default("ILS")
+
   /// האם נדרש תשלום מראש
-  requiresPayment   Boolean  @default(false) @map("requires_payment")
+  requiresPayment  Boolean @default(false) @map("requires_payment")
   /// האם נדרש אישור ידני
-  requiresApproval  Boolean  @default(false) @map("requires_approval")
+  requiresApproval Boolean @default(false) @map("requires_approval")
   /// האם נדרשת סיבת פגישה
-  requiresReason    Boolean  @default(false) @map("requires_reason")
-  
+  requiresReason   Boolean @default(false) @map("requires_reason")
+
   /// האם השירות פעיל
-  isActive          Boolean  @default(true) @map("is_active")
-  
+  isActive Boolean @default(true) @map("is_active")
+
   /// קשרים
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  providers         BookingProviderService[]
-  links             BookingLinkService[]
-  appointments      BookingAppointment[]
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  providers    BookingProviderService[]
+  links        BookingLinkService[]
+  appointments BookingAppointment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@map("booking_services")
 }
 
 /// קשר many-to-many בין Providers ל-Services
 model BookingProviderService {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  providerId        String   @map("provider_id") @db.Uuid
-  serviceId         String   @map("service_id") @db.Uuid
-  
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  providerId String @map("provider_id") @db.Uuid
+  serviceId  String @map("service_id") @db.Uuid
+
   /// משך מותאם אישית (null = ברירת מחדל של השירות)
-  customDuration    Int?     @map("custom_duration")
+  customDuration Int?     @map("custom_duration")
   /// מחיר מותאם אישית
-  customPrice       Decimal? @map("custom_price") @db.Decimal(10, 2)
+  customPrice    Decimal? @map("custom_price") @db.Decimal(10, 2)
   /// האם פעיל
-  isActive          Boolean  @default(true) @map("is_active")
-  
-  provider          BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  service           BookingService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+  isActive       Boolean  @default(true) @map("is_active")
+
+  provider BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  service  BookingService  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@unique([providerId, serviceId])
   @@index([providerId])
   @@index([serviceId])
@@ -5602,34 +5604,34 @@ model BookingProviderService {
 
 /// חלונות זמן פנויים
 model BookingAvailability {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  providerId        String   @map("provider_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  providerId     String @map("provider_id") @db.Uuid
+
   /// weekly (חוזר), override (חד פעמי), blocked (חסום)
-  type              String
+  type         String
   /// יום בשבוע (0=ראשון, 6=שבת) - לסוג weekly
-  dayOfWeek         Int?     @map("day_of_week")
+  dayOfWeek    Int?      @map("day_of_week")
   /// תאריך ספציפי - לסוג override/blocked
-  specificDate      DateTime? @map("specific_date") @db.Date
-  
+  specificDate DateTime? @map("specific_date") @db.Date
+
   /// שעת התחלה (HH:MM)
-  startTime         String   @map("start_time")
+  startTime String @map("start_time")
   /// שעת סיום (HH:MM)
-  endTime           String   @map("end_time")
+  endTime   String @map("end_time")
   /// אזור זמן
-  timezone          String   @default("Asia/Jerusalem")
-  
+  timezone  String @default("Asia/Jerusalem")
+
   /// האם זמין (false = חסום)
-  isAvailable       Boolean  @default(true) @map("is_available")
+  isAvailable Boolean @default(true) @map("is_available")
   /// סיבת החסימה (לתצוגה)
-  reason            String?
-  
-  provider          BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  reason      String?
+
+  provider BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@index([providerId])
   @@index([dayOfWeek])
@@ -5639,63 +5641,63 @@ model BookingAvailability {
 
 /// לינקים ציבוריים לקביעת תור
 model BookingLink {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  providerId        String   @map("provider_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  providerId     String @map("provider_id") @db.Uuid
+
   /// מזהה URL-friendly (למשל: "consultation-30min")
-  slug              String   @unique
+  slug        String  @unique
   /// כותרת שמוצגת בדף
-  title             String
+  title       String
   /// תיאור
-  description       String?
-  
+  description String?
+
   /// ימים זמינים בשבוע (מערך של 0-6)
-  availableDays     Int[]    @map("available_days")
+  availableDays      Int[]  @map("available_days")
   /// שעת התחלה לקביעה (למשל: "09:00")
-  availableStartTime String   @default("09:00") @map("available_start_time")
+  availableStartTime String @default("09:00") @map("available_start_time")
   /// שעת סיום לקביעה (למשל: "17:00")
-  availableEndTime   String   @default("17:00") @map("available_end_time")
+  availableEndTime   String @default("17:00") @map("available_end_time")
   /// מינימום שעות מראש לקביעה
-  minNoticeHours    Int      @default(24) @map("min_notice_hours")
+  minNoticeHours     Int    @default(24) @map("min_notice_hours")
   /// עד כמה ימים קדימה ניתן לקבוע
-  maxBookingDays    Int      @default(30) @map("max_booking_days")
-  
+  maxBookingDays     Int    @default(30) @map("max_booking_days")
+
   /// האם מותר לבטל
-  allowCancellations Boolean @default(false) @map("allow_cancellations")
+  allowCancellations        Boolean @default(false) @map("allow_cancellations")
   /// עד כמה שעות לפני ניתן לבטל
-  cancellationDeadlineHours Int @default(48) @map("cancellation_deadline_hours")
-  
+  cancellationDeadlineHours Int     @default(48) @map("cancellation_deadline_hours")
+
   /// האם נדרש תשלום
-  requirePayment    Boolean  @default(false) @map("require_payment")
+  requirePayment Boolean  @default(false) @map("require_payment")
   /// סכום לתשלום
-  paymentAmount     Decimal? @map("payment_amount") @db.Decimal(10, 2)
-  
+  paymentAmount  Decimal? @map("payment_amount") @db.Decimal(10, 2)
+
   /// האם נדרש אישור ידני
-  requireApproval   Boolean  @default(false) @map("require_approval")
-  
+  requireApproval Boolean @default(false) @map("require_approval")
+
   /// מספר תורים מקסימלי בחלון זמן
-  maxBookingsPerSlot Int     @default(1) @map("max_bookings_per_slot")
-  
+  maxBookingsPerSlot Int @default(1) @map("max_bookings_per_slot")
+
   /// סוג מיקום
-  locationType      String   @default("zoom") @map("location_type")
+  locationType    String  @default("zoom") @map("location_type")
   /// פרטי מיקום (כתובת/טלפון)
-  locationDetails   String?  @map("location_details")
-  
+  locationDetails String? @map("location_details")
+
   /// האם הלינק פעיל
-  isActive          Boolean  @default(true) @map("is_active")
-  
+  isActive Boolean @default(true) @map("is_active")
+
   /// קשרים
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  provider          BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  services          BookingLinkService[]
-  appointments      BookingAppointment[]
-  verifications     BookingVerification[]
-  waitlist          BookingWaitlist[]
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  organization  Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider      BookingProvider       @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  services      BookingLinkService[]
+  appointments  BookingAppointment[]
+  verifications BookingVerification[]
+  waitlist      BookingWaitlist[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@index([providerId])
   @@index([slug])
@@ -5704,13 +5706,13 @@ model BookingLink {
 
 /// קשר many-to-many בין Links ל-Services
 model BookingLinkService {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  linkId            String   @map("link_id") @db.Uuid
-  serviceId         String   @map("service_id") @db.Uuid
-  
-  link              BookingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
-  service           BookingService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  linkId    String @map("link_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+
+  link    BookingLink    @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  service BookingService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@unique([linkId, serviceId])
   @@index([linkId])
   @@index([serviceId])
@@ -5719,57 +5721,57 @@ model BookingLinkService {
 
 /// התורים שנקבעו
 model BookingAppointment {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  linkId            String   @map("link_id") @db.Uuid
-  providerId        String   @map("provider_id") @db.Uuid
-  serviceId         String   @map("service_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  linkId         String @map("link_id") @db.Uuid
+  providerId     String @map("provider_id") @db.Uuid
+  serviceId      String @map("service_id") @db.Uuid
+
   /// פרטי המזמין
-  customerName      String   @map("customer_name")
-  customerEmail     String   @map("customer_email")
-  customerPhone     String?  @map("customer_phone")
-  customerCompany   String?  @map("customer_company")
-  customerReason    String?  @map("customer_reason")
-  
+  customerName    String  @map("customer_name")
+  customerEmail   String  @map("customer_email")
+  customerPhone   String? @map("customer_phone")
+  customerCompany String? @map("customer_company")
+  customerReason  String? @map("customer_reason")
+
   /// זמני הפגישה
-  startTime         DateTime @map("start_time") @db.Timestamptz(6)
-  endTime           DateTime @map("end_time") @db.Timestamptz(6)
-  timezone          String   @default("Asia/Jerusalem")
-  
+  startTime DateTime @map("start_time") @db.Timestamptz(6)
+  endTime   DateTime @map("end_time") @db.Timestamptz(6)
+  timezone  String   @default("Asia/Jerusalem")
+
   /// סוג מיקום ופרטים
-  locationType      String   @map("location_type")
-  locationDetails   String?  @map("location_details")
+  locationType    String  @map("location_type")
+  locationDetails String? @map("location_details")
   /// לינק לפגישה (זום/מיט)
-  meetingUrl        String?  @map("meeting_url")
-  
+  meetingUrl      String? @map("meeting_url")
+
   /// סטטוס
-  status            String   @default("confirmed") @map("status")
+  status     String    @default("confirmed") @map("status")
   /// מי אישר (אם נדרש אישור)
-  approvedBy        String?  @map("approved_by") @db.Uuid
-  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(6)
-  
+  approvedBy String?   @map("approved_by") @db.Uuid
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
+
   /// פרטי ביטול
-  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6)
-  cancelledBy       String?   @map("cancelled_by")
-  cancellationReason String?  @map("cancellation_reason")
-  
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledBy        String?   @map("cancelled_by")
+  cancellationReason String?   @map("cancellation_reason")
+
   /// הערות אדמין
-  adminNotes        String?  @map("admin_notes")
+  adminNotes String?  @map("admin_notes")
   /// האם הגיע לפגישה
-  attended          Boolean?
-  
+  attended   Boolean?
+
   /// קשרים
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  link              BookingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
-  provider          BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  service           BookingService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  payment           BookingPayment?
-  reminders         BookingReminder[]
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  link         BookingLink       @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  provider     BookingProvider   @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  service      BookingService    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  payment      BookingPayment?
+  reminders    BookingReminder[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@index([providerId])
   @@index([linkId])
@@ -5782,36 +5784,36 @@ model BookingAppointment {
 
 /// תשלומים
 model BookingPayment {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  appointmentId     String   @unique @map("appointment_id") @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId  String @unique @map("appointment_id") @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+
   /// סכום ומטבע
-  amount            Decimal  @db.Decimal(10, 2)
-  currency          String   @default("ILS")
-  
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("ILS")
+
   /// סטטוס
-  status            String   @default("pending") @map("status")
-  
+  status String @default("pending") @map("status")
+
   /// קישור למערכת התשלומים הקיימת
-  chargeId          String?  @map("charge_id") @db.Uuid
-  invoiceId         String?  @map("invoice_id") @db.Uuid
-  
+  chargeId  String? @map("charge_id") @db.Uuid
+  invoiceId String? @map("invoice_id") @db.Uuid
+
   /// ספק תשלום
-  provider          String   @default("morning") @map("provider")
+  provider      String    @default("morning") @map("provider")
   /// מזהה עסקה חיצוני
-  transactionId     String?  @map("transaction_id")
+  transactionId String?   @map("transaction_id")
   /// קבלה
-  receiptUrl        String?  @map("receipt_url")
+  receiptUrl    String?   @map("receipt_url")
   /// זמן תשלום
-  paidAt            DateTime? @map("paid_at") @db.Timestamptz(6)
-  
-  appointment       BookingAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+
+  appointment  BookingAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([appointmentId])
   @@index([organizationId])
   @@index([status])
@@ -5820,27 +5822,27 @@ model BookingPayment {
 
 /// תזכורות
 model BookingReminder {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  appointmentId     String   @map("appointment_id") @db.Uuid
-  
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  appointmentId String @map("appointment_id") @db.Uuid
+
   /// מתי לשלוח
-  scheduledFor      DateTime @map("scheduled_for") @db.Timestamptz(6)
+  scheduledFor DateTime @map("scheduled_for") @db.Timestamptz(6)
   /// סוג (email/sms/whatsapp)
-  type              String   @map("type")
+  type         String   @map("type")
   /// תבנית הודעה
-  template          String   @map("template")
-  
+  template     String   @map("template")
+
   /// סטטוס
-  status            String   @default("pending") @map("status")
+  status String    @default("pending") @map("status")
   /// זמן שליחה בפועל
-  sentAt            DateTime? @map("sent_at") @db.Timestamptz(6)
+  sentAt DateTime? @map("sent_at") @db.Timestamptz(6)
   /// שגיאה אם נכשל
-  error             String?
-  
-  appointment       BookingAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  
+  error  String?
+
+  appointment BookingAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
   @@index([appointmentId])
   @@index([scheduledFor])
   @@index([status])
@@ -5849,28 +5851,28 @@ model BookingReminder {
 
 /// אימות OTP לפני הצגת זמנים
 model BookingVerification {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  linkId            String   @map("link_id") @db.Uuid
-  
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  linkId String @map("link_id") @db.Uuid
+
   /// פרטי המשתמש
-  phone             String
-  email             String
-  
+  phone String
+  email String
+
   /// קוד OTP
-  otpCode           String   @map("otp_code")
+  otpCode    String    @map("otp_code")
   /// תפוגת הקוד
-  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
   /// זמן אימות
-  verifiedAt        DateTime? @map("verified_at") @db.Timestamptz(6)
+  verifiedAt DateTime? @map("verified_at") @db.Timestamptz(6)
   /// מספר ניסיונות
-  attempts          Int      @default(0)
+  attempts   Int       @default(0)
   /// האם אומת
-  isVerified        Boolean  @default(false) @map("is_verified")
-  
-  link              BookingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  
+  isVerified Boolean   @default(false) @map("is_verified")
+
+  link BookingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
   @@index([linkId])
   @@index([phone])
   @@index([isVerified])
@@ -5879,38 +5881,38 @@ model BookingVerification {
 
 /// רשימת המתנה
 model BookingWaitlist {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  linkId            String   @map("link_id") @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  linkId         String @map("link_id") @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+
   /// פרטי הממתין
-  customerName      String   @map("customer_name")
-  customerEmail     String   @map("customer_email")
-  customerPhone     String   @map("customer_phone")
-  
+  customerName  String @map("customer_name")
+  customerEmail String @map("customer_email")
+  customerPhone String @map("customer_phone")
+
   /// העדפות
-  preferredDays     Int[]    @map("preferred_days")
-  preferredTimes    String[] @map("preferred_times")
+  preferredDays  Int[]    @map("preferred_days")
+  preferredTimes String[] @map("preferred_times")
   /// דחיפות
-  urgency           String   @default("normal") @map("urgency")
-  
+  urgency        String   @default("normal") @map("urgency")
+
   /// סטטוס
-  status            String   @default("active") @map("status")
+  status   String @default("active") @map("status")
   /// מיקום בתור
-  position          Int
-  
+  position Int
+
   /// קשר לתור שנוצר
   convertedToAppointmentId String? @map("converted_to_appointment_id") @db.Uuid
-  
+
   /// תפוגה
-  expiresAt         DateTime? @map("expires_at") @db.Timestamptz(6)
-  
-  link              BookingLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+
+  link         BookingLink  @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([linkId, status])
   @@index([position])
   @@map("booking_waitlist")
@@ -5918,33 +5920,33 @@ model BookingWaitlist {
 
 /// סנכרון יומן חיצוני
 model BookingCalendarSync {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  providerId        String   @map("provider_id") @db.Uuid
-  
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  providerId     String @map("provider_id") @db.Uuid
+
   /// ספק (google/outlook/apple)
-  provider          String   @map("provider")
+  provider       String    @map("provider")
   /// טוקן גישה
-  accessToken       String   @map("access_token")
-  refreshToken      String?  @map("refresh_token")
-  tokenExpiresAt    DateTime? @map("token_expires_at") @db.Timestamptz(6)
-  
+  accessToken    String    @map("access_token")
+  refreshToken   String?   @map("refresh_token")
+  tokenExpiresAt DateTime? @map("token_expires_at") @db.Timestamptz(6)
+
   /// כיוון הסנכרון
-  syncDirection     String   @default("bidirectional") @map("sync_direction")
+  syncDirection String  @default("bidirectional") @map("sync_direction")
   /// מזהה יומן
-  calendarId        String?  @map("calendar_id")
-  
+  calendarId    String? @map("calendar_id")
+
   /// זמן סנכרון אחרון
-  lastSyncedAt      DateTime? @map("last_synced_at") @db.Timestamptz(6)
+  lastSyncedAt DateTime? @map("last_synced_at") @db.Timestamptz(6)
   /// האם פעיל
-  isActive          Boolean  @default(true) @map("is_active")
-  
-  providerRef       BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  
+  isActive     Boolean   @default(true) @map("is_active")
+
+  providerRef  BookingProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@index([organizationId])
   @@index([providerId])
   @@map("booking_calendar_syncs")
@@ -5952,29 +5954,29 @@ model BookingCalendarSync {
 
 /// מטמון תאריכים עבריים
 model BookingHebrewDateCache {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
   /// תאריך לועזי
-  gregorianDate     DateTime @unique @map("gregorian_date") @db.Date
+  gregorianDate  DateTime @unique @map("gregorian_date") @db.Date
   /// תאריך עברי מלא
-  hebrewDate        String   @map("hebrew_date")
+  hebrewDate     String   @map("hebrew_date")
   /// תאריך עברי מקוצר
-  hebrewShort       String   @map("hebrew_short")
+  hebrewShort    String   @map("hebrew_short")
   /// פרשת השבוע
-  parasha           String?
+  parasha        String?
   /// האם חג
-  isHoliday         Boolean  @default(false) @map("is_holiday")
+  isHoliday      Boolean  @default(false) @map("is_holiday")
   /// שם החג
-  holidayName       String?  @map("holiday_name")
+  holidayName    String?  @map("holiday_name")
   /// האם שבת
-  isShabbat         Boolean  @default(false) @map("is_shabbat")
+  isShabbat      Boolean  @default(false) @map("is_shabbat")
   /// זמני כניסת שבת
-  candleLighting    String?  @map("candle_lighting")
+  candleLighting String?  @map("candle_lighting")
   /// זמני יציאת שבת
-  havdalah          String?  @map("havdalah")
-  
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  
+  havdalah       String?  @map("havdalah")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
   @@index([gregorianDate])
   @@index([isHoliday])
   @@index([isShabbat])
@@ -6099,4 +6101,49 @@ model ai_rules {
   @@index([organization_id, is_active])
   @@index([event_types])
   @@map("ai_rules")
+}
+
+/// לוג כניסות תמיכה לתצוגת לקוח
+model SupportAccessLog {
+  id               String   @id @default(cuid())
+  adminUserId      String   @map("admin_user_id")
+  adminEmail       String   @map("admin_email")
+  targetClientId   String   @map("target_client_id")
+  targetClientName String   @map("target_client_name")
+  reason           String?
+  ipAddress        String?  @map("ip_address")
+  userAgent        String?  @map("user_agent")
+  accessedAt       DateTime @default(now()) @map("accessed_at") @db.Timestamptz(6)
+
+  @@index([adminUserId])
+  @@index([targetClientId])
+  @@index([accessedAt])
+  @@map("support_access_logs")
+}
+
+// Operations module tables (added 2026-03-13)
+model operations_locations {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, name], map: "uq_operations_locations_org_name")
+  @@index([organization_id], map: "idx_operations_locations_org_id")
+}
+
+model operations_work_order_types {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String
+  description     String?
+  color           String   @default("#3b82f6")
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, name], map: "uq_operations_work_order_types_org_name")
+  @@index([organization_id], map: "idx_operations_work_order_types_org_id")
 }

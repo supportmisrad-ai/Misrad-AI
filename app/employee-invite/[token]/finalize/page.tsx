@@ -200,7 +200,11 @@ export default async function EmployeeInviteFinalizePage({
     }
   }
 
-  // Upsert into nexus_users (employee directory). Some schemas might have tenant scoping columns.
+  // Extract permissions and modules from invitation metadata
+  const metadata = inviteObj.metadata ? (inviteObj.metadata as Record<string, unknown>) : {};
+  const invitedPermissions = Array.isArray(metadata?.permissions) ? metadata.permissions as string[] : [];
+  const invitedModules = Array.isArray(metadata?.modules) ? metadata.modules as string[] : [];
+
   const invitedEmail = inviteEmail ? inviteEmail : email.trim().toLowerCase();
 
   const baseNexusUserPayload: Record<string, unknown> = {
@@ -219,8 +223,18 @@ export default async function EmployeeInviteFinalizePage({
 
   const existing = await prisma.nexusUser.findFirst({
     where: { organizationId, email: invitedEmail },
-    select: { id: true },
+    select: { id: true, uiPreferences: true },
   });
+
+  // Build uiPreferences with invited permissions and modules
+  const baseUiPreferences = existing?.uiPreferences && typeof existing.uiPreferences === 'object' 
+    ? existing.uiPreferences as Record<string, unknown> 
+    : {};
+  const uiPreferences = {
+    ...baseUiPreferences,
+    invitedPermissions: invitedPermissions.length > 0 ? invitedPermissions : undefined,
+    invitedModules: invitedModules.length > 0 ? invitedModules : undefined,
+  };
 
   const nexusPayload: Prisma.NexusUserUncheckedCreateInput & Prisma.NexusUserUncheckedUpdateInput = {
     organizationId,
@@ -235,6 +249,7 @@ export default async function EmployeeInviteFinalizePage({
     commissionPct: getNumber(inviteObj.commission_pct),
     managerId: getString(inviteObj.created_by),
     isSuperAdmin: false,
+    uiPreferences,
     updatedAt: new Date(),
   };
 
