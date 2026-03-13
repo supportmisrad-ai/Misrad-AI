@@ -1,22 +1,28 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X, Check, Flame, Clock, Users, User, Image, SquareCheck, Sparkles } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Users, User, Target, Zap, X, Check, Flame, Rocket, Image, SquareCheck, Sparkles, type LucideIcon } from 'lucide-react';
-import { Status, Priority, LeadStatus, User as UserType, type ModuleId } from '../types';
 import { useAuth as useClerkAuth } from '@clerk/nextjs';
-import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
-import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
-import { upsertMyProfile } from '@/app/actions/profiles';
+import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { isCeoRole } from '@/lib/constants/roles';
 import { DashboardOnboarding, DashboardOwnerPanel, DashboardQuickActions, DashboardKPIWidgets, DashboardFocusTasks } from './dashboard';
-import type { OnboardingStep } from './dashboard';
-import { listNexusUsers } from '@/app/actions/nexus';
 import { AIAttentionCard } from '@/components/ai/AIAttentionCard';
-// DashboardTasksClient removed from Nexus dashboard (tasks have a dedicated screen)
+import { 
+  coerceOwnerDashboardData,
+  type OnboardingStep,
+  type OwnerDashboardData 
+} from './dashboard/dashboard-utils';
+import { 
+  useDashboardUsers,
+  useOwnerDashboard,
+  useOnboarding,
+  useBillingItems,
+  useTourPrompt,
+  useShiftTimer 
+} from './dashboard/dashboard-hooks';
+import type { User as UserType, Status, Priority, LeadStatus } from '../types';
 import { usePathname } from 'next/navigation';
 
 type OwnerDashboardAction = {

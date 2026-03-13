@@ -1,0 +1,154 @@
+// ═══════════════════════════════════════════════════════════════════
+// AI Tower - Prisma Schema Additions
+// טבלאות לאבטחה ולוגים של מערכת ה-AI
+// ═══════════════════════════════════════════════════════════════════
+
+/// לוג גישה ל-AI Tower - כל ניסיון גישה נרשם
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection.
+model AITowerAuditLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @db.Uuid
+  email           String
+  organization_id String?   @db.Uuid
+  action          String    // GRANTED, DENIED, EXECUTE, VIEW
+  reason          String    // הסבר לפעולה
+  user_agent      String?
+  ip              String?
+  metadata        Json?     // מידע נוסף (תפקיד, חבילה, הרשאות)
+  timestamp       DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id, timestamp])
+  @@index([organization_id, timestamp])
+  @@index([action, timestamp])
+  @@index([ip])
+  @@map("ai_tower_audit_logs")
+}
+
+/// אירועים שהמערכת מנתחת
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection.
+model AIEvent {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type            String    // TASK_COMPLETED, INVOICE_OVERDUE, etc.
+  timestamp       DateTime  @default(now()) @db.Timestamptz(6)
+  organization_id String    @db.Uuid
+  user_id         String    @db.Uuid
+  payload         Json      // נתוני האירוע
+  metadata        Json?     // מידע נוסף (source, version, etc.)
+  processed       Boolean   @default(false)
+  processed_at    DateTime?
+  
+  @@index([organization_id, timestamp])
+  @@index([type, processed])
+  @@index([organization_id, type, timestamp])
+  @@map("ai_events")
+}
+
+/// תובנות חכמות שנוצרו ע"י ה-AI
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection.
+model AIInsight {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String    @db.Uuid
+  title           String
+  description     String
+  severity        String    // critical, high, medium, low, info
+  status          String    @default("active") // active, resolved, dismissed, pending_action
+  
+  // מקור התובנה
+  rule_id         String
+  rule_name       String
+  related_event_ids String[] @db.Uuid
+  
+  // קשר לישות
+  entity_id       String?   @db.Uuid
+  entity_type     String?   // client, user, task, project, invoice, booking
+  
+  // פעולה מומלצת
+  suggested_action_type   String?
+  suggested_action_label  String?
+  suggested_action_params Json?
+  requires_approval       Boolean   @default(true)
+  
+  // מטה-דאטה
+  metadata        Json?
+  
+  // זמנים
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at      DateTime?
+  resolved_at     DateTime?
+  resolved_by     String?   @db.Uuid
+  
+  // מי יכול לראות (הרשאות)
+  visible_to_roles String[]  @default([])
+  
+  @@index([organization_id, status])
+  @@index([organization_id, severity, created_at])
+  @@index([entity_id, entity_type])
+  @@index([rule_id, created_at])
+  @@index([status, expires_at])
+  @@map("ai_insights")
+}
+
+/// לוג פעולות AI
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection.
+model AIActionLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  insight_id      String    @db.Uuid
+  user_id         String    @db.Uuid
+  
+  action_type     String    // SEND_WHATSAPP, CREATE_INVOICE, etc.
+  action_params   Json?
+  
+  status          String    @default("pending") // pending, completed, failed, cancelled
+  result          Json?     // תוצאת הפעולה
+  error           String?   // שגיאה אם נכשל
+  
+  // אישורים
+  approved_by     String?   @db.Uuid
+  approved_at     DateTime?
+  
+  // זמנים
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  executed_at     DateTime?
+  
+  @@index([insight_id])
+  @@index([user_id, created_at])
+  @@index([status, created_at])
+  @@map("ai_action_logs")
+}
+
+/// הגדרות חוקי AI לארגון
+/// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection.
+model AIRule {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?   @db.Uuid // null = global rule
+  
+  rule_key        String    // מזהה ייחודי של החוק
+  name            String
+  description     String
+  
+  event_types     String[]  // אילו אירועים מפעילים
+  
+  // תנאים (JSON של הלוגיקה)
+  conditions      Json
+  
+  // פעולה
+  action_type     String
+  action_params   Json?
+  
+  // הגדרות
+  is_active       Boolean   @default(true)
+  priority        Int       @default(100)
+  cooldown_minutes Int      @default(60)
+  severity        String    @default("medium") // critical, high, medium, low
+  
+  // מי יכול לראות תובנות מחוק זה
+  visible_to_roles String[]  @default(["מנכ״ל", "אדמין", "סמנכ״ל", "מנהל"])
+  
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(6)
+  
+  @@unique([organization_id, rule_key])
+  @@index([organization_id, is_active])
+  @@index([event_types])
+  @@map("ai_rules")
+}

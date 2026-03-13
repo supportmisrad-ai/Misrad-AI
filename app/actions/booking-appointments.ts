@@ -13,6 +13,7 @@ import type { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
+import { eventBus } from '@/lib/events/event-bus';
 import type {
   BookingAppointment,
   CreateBookingAppointmentDTO,
@@ -110,6 +111,28 @@ export async function createBookingAppointment(
         });
 
         revalidatePath('/admin/booking/appointments');
+        
+        // 🏛️ AI Tower: Emit BOOKING_CREATED event (fire-and-forget)
+        eventBus.emitSimple(
+          'BOOKING_CREATED',
+          {
+            appointmentId: appointment.id,
+            clientId: appointment.customerEmail,
+            clientName: appointment.customerName,
+            serviceId: appointment.serviceId,
+            serviceName: appointment.service?.name,
+            providerId: appointment.providerId,
+            providerName: appointment.provider?.name,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+            value: appointment.service?.price || 0,
+          },
+          organizationId,
+          appointment.providerId || 'system',
+          'booking-appointments.ts:createBookingAppointment'
+        ).catch(() => {
+          // Fail silently - don't block booking creation
+        });
         
         return {
           success: true,

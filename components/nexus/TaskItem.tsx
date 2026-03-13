@@ -1,9 +1,9 @@
+'use client';
 
-import React from 'react';
-import { Task, User, Status } from '../../types';
+import React, { memo } from 'react';
+import { Task, User } from '../../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS as DEFAULT_STATUS_COLORS } from '../../constants';
 import { CircleCheckBig, Circle, CircleAlert, SignalHigh, SignalMedium, SignalLow, CalendarDays, User as UserIcon, Clock, Play, Pause, Mic, Target, MoreHorizontal } from 'lucide-react';
-import { useData } from '../../context/DataContext';
 import { Skeleton } from '@/components/ui/skeletons';
 import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -13,6 +13,7 @@ interface TaskItemProps {
   users: User[];
   onClick?: () => void;
   toggleTimer?: (taskId: string) => void | Promise<void>;
+  workflowStages?: { id: string; name: string; color: string }[];
 }
 
 const PriorityIcon = ({ priority, className }: { priority: string, className?: string }) => {
@@ -62,9 +63,7 @@ const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
   }
 };
 
-export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick, toggleTimer: toggleTimerProp }) => {
-  const { toggleTimer: contextToggleTimer, workflowStages } = useData();
-  const toggleTimer = toggleTimerProp || contextToggleTimer;
+export const TaskItem: React.FC<TaskItemProps> = memo(({ task, users, onClick, toggleTimer, workflowStages = [] }) => {
   const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
   const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
   const isExplicitlyUnassigned = task.assigneeId === null;
@@ -285,4 +284,4 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick, toggle
       </div>
     </div>
   );
-};
+});

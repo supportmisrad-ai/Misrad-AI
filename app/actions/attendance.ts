@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import prisma, { executeRawOrgScopedSql, queryRawOrgScopedSql } from '@/lib/prisma';
+import { eventBus } from '@/lib/events/event-bus';
 
 import { asObject } from '@/lib/shared/unknown';
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
@@ -128,6 +129,29 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
   };
 
   revalidatePath('/', 'layout');
+  
+  // 🏛️ AI Tower: Emit ATTENDANCE_PUNCH_IN event (fire-and-forget)
+  eventBus.emitSimple(
+    'ATTENDANCE_PUNCH_IN',
+    {
+      entryId: String(entry.id),
+      userId: String(dbUser.id),
+      userName: resolved.user.name || dbUser.email || 'Unknown',
+      location: location.lat !== 0 ? {
+        lat: location.lat,
+        lng: location.lng,
+        accuracy: location.accuracy || 0,
+      } : undefined,
+      isLate: false, // TODO: Calculate based on scheduled start
+      minutesLate: 0,
+    },
+    String(workspace.id),
+    String(dbUser.id),
+    'attendance.ts:punchIn'
+  ).catch(() => {
+    // Fail silently - don't block attendance
+  });
+  
   return {
     success: true,
     activeShift: { id: String(entry.id), startTime: String(entry.startTime) },

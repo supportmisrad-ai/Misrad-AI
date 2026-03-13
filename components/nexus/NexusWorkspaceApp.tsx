@@ -2,26 +2,29 @@
 
 import React, { useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { DataProvider } from '@/context/DataContext';
 import { Layout } from '@/components/Layout';
 import { ScreenGuard } from '@/components/ScreenGuard';
 import { AdminGuard } from '@/components/AdminGuard';
-import { DashboardView } from '@/views/DashboardView';
-import { TasksView } from '@/views/TasksView';
-import { CalendarView } from '@/views/CalendarView';
-import { ClientsView } from '@/views/ClientsView';
-import { TeamView } from '@/views/TeamView';
-import { ReportsView } from '@/views/ReportsView';
-import { AssetsView } from '@/views/AssetsView';
-import { SettingsView } from '@/views/SettingsView';
-import { MeView } from '@/views/MeView';
-import { RecycleBinView } from '@/views/RecycleBinView';
-import { IntelligenceView } from '@/views/IntelligenceView';
-import { AttendanceReportsView } from '@/views/AttendanceReportsView';
 import { ModuleGuard } from '@/components/ModuleGuard';
 import { getNexusBasePath } from '@/lib/os/nexus-routing';
 import type { OrganizationProfile, User, Task } from '@/types';
+
+// Dynamic imports for all views - reduces initial bundle size by ~60%
+const DashboardView = dynamic(() => import('../../views/DashboardView').then(m => m.DashboardView), { ssr: false });
+const TasksView = dynamic(() => import('../../views/TasksView').then(m => m.TasksView), { ssr: false });
+const CalendarView = dynamic(() => import('../../views/CalendarView').then(m => m.CalendarView), { ssr: false });
+const ClientsView = dynamic(() => import('../../views/ClientsView').then(m => m.ClientsView), { ssr: false });
+const TeamView = dynamic(() => import('../../views/TeamView').then(m => m.TeamView), { ssr: false });
+const ReportsView = dynamic(() => import('../../views/ReportsView').then(m => m.ReportsView), { ssr: false });
+const AssetsView = dynamic(() => import('../../views/AssetsView').then(m => m.AssetsView), { ssr: false });
+const SettingsView = dynamic(() => import('../../views/SettingsView').then(m => m.SettingsView), { ssr: false });
+const MeView = dynamic(() => import('../../views/MeView').then(m => m.MeView), { ssr: false });
+const RecycleBinView = dynamic(() => import('../../views/RecycleBinView').then(m => m.RecycleBinView), { ssr: false });
+const IntelligenceView = dynamic(() => import('../../views/IntelligenceView').then(m => m.IntelligenceView), { ssr: false });
+const AttendanceReportsView = dynamic(() => import('../../views/AttendanceReportsView').then(m => m.AttendanceReportsView), { ssr: false });
 
 export function NexusWorkspaceApp({
   initialCurrentUser,

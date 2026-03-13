@@ -89,13 +89,14 @@ export async function updateOrganizationSettings(
         suppressReporting: true,
       },
       async () => {
+        const logoToSave = data.logo === undefined ? undefined : (data.logo || null);
+
         return await prisma.organization.update({
           where: { id: organizationId },
           data: {
-            ...(data.name && { name: data.name.trim() }),
-            ...(data.slug && { slug: data.slug.trim() }),
-            ...(data.logo !== undefined && { logo: data.logo || null }),
-            updated_at: new Date(),
+            name: data.name?.trim(),
+            slug: data.slug?.trim(),
+            ...(logoToSave !== undefined && { logo: logoToSave }),
           },
         });
       }

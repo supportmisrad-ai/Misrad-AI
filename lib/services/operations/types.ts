@@ -21,18 +21,10 @@ export type OperationsDashboardData = {
     total: number;
   };
   workOrderStats: {
-    open: number;
-    inProgress: number;
+    active: number;
     doneToday: number;
-    doneThisWeek: number;
-    doneThisMonth: number;
-    avgResolutionMinutes: number | null;
-    total: number;
     slaBreach: number;
     unassigned: number;
-    priorityHigh: number;
-    priorityUrgent: number;
-    priorityCritical: number;
   };
   recentWorkOrders: Array<{
     id: string;

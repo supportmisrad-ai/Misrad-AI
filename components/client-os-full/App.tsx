@@ -2,28 +2,31 @@
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Layout from './components/ui/Layout';
-import Dashboard from './components/Dashboard';
-import ClientView from './components/ClientView';
-import MeetingIntelligence from './components/MeetingIntelligence';
-import MeetingAnalyzer from './components/MeetingAnalyzer';
-import FeedbackLoop from './components/FeedbackLoop';
-import LoginScreen from './components/LoginScreen';
-import { FormsManager } from './components/FormsManager';
-import WorkflowBuilder from './components/WorkflowBuilder';
-import NexusCommand from './components/NexusCommand';
-import NexusComposer from './components/NexusComposer';
-import ClientPortal from './components/ClientPortal';
-import CyclesManager from './components/CyclesManager';
-import { GlobalProcessor } from './components/GlobalProcessor';
-import { EmailCenter } from './components/EmailCenter';
-import { ToastManager } from './components/ui/ToastManager';
 import { ClientProvider } from './context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { DataProvider } from '@/context/DataContext';
-import { MeView } from '@/views/MeView';
-import Settings from './components/Settings';
 import type { OrganizationProfile, User } from '@/types';
+
+// Dynamic imports for all views - reduces initial bundle size
+const Dashboard = dynamic(() => import('./components/Dashboard'), { ssr: false });
+const ClientView = dynamic(() => import('./components/ClientView'), { ssr: false });
+const MeetingIntelligence = dynamic(() => import('./components/MeetingIntelligence'), { ssr: false });
+const MeetingAnalyzer = dynamic(() => import('./components/MeetingAnalyzer'), { ssr: false });
+const FeedbackLoop = dynamic(() => import('./components/FeedbackLoop'), { ssr: false });
+const LoginScreen = dynamic(() => import('./components/LoginScreen'), { ssr: false });
+const FormsManager = dynamic(() => import('./components/FormsManager').then(m => ({ default: m.FormsManager })), { ssr: false });
+const WorkflowBuilder = dynamic(() => import('./components/WorkflowBuilder'), { ssr: false });
+const NexusCommand = dynamic(() => import('./components/NexusCommand'), { ssr: false });
+const NexusComposer = dynamic(() => import('./components/NexusComposer'), { ssr: false });
+const ClientPortal = dynamic(() => import('./components/ClientPortal'), { ssr: false });
+const CyclesManager = dynamic(() => import('./components/CyclesManager'), { ssr: false });
+const GlobalProcessor = dynamic(() => import('./components/GlobalProcessor').then(m => ({ default: m.GlobalProcessor })), { ssr: false });
+const EmailCenter = dynamic(() => import('./components/EmailCenter').then(m => ({ default: m.EmailCenter })), { ssr: false });
+const ToastManager = dynamic(() => import('./components/ui/ToastManager').then(m => ({ default: m.ToastManager })), { ssr: false });
+const MeView = dynamic(() => import('@/views/MeView').then(m => ({ default: m.MeView })), { ssr: false });
+const Settings = dynamic(() => import('./components/Settings'), { ssr: false });
 
 export default function App({
   userData,

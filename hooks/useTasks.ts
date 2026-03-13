@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Notification, Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
 import { DEFAULT_WORKFLOW } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -796,7 +796,8 @@ export const useTasks = (
         setTasks(Array.isArray(next) ? next : []);
     }, []);
 
-    return {
+    // Memoize the entire return object to prevent unnecessary re-renders
+    return useMemo(() => ({
         tasks, trashTasks, workflowStages, templates, 
         openedTaskId, isCreateTaskOpen, createTaskDefaults, taskToComplete, lastDeletedTask,
         calendarEvents, isCalendarConnected, isConnectingCalendar,
@@ -805,5 +806,14 @@ export const useTasks = (
         confirmCompleteTask, cancelCompleteTask, addMessage, updateMessage, deleteMessage, addGuestMessage, approveTaskByGuest,
         addVoiceTask, addTemplate, removeTemplate, applyTemplate, deleteWorkflowStage, connectGoogleCalendar,
         openCreateTask, closeCreateTask, openTask, closeTask, undoDelete, setWorkflowStages
-    };
+    }), [
+        tasks, trashTasks, workflowStages, templates, 
+        openedTaskId, isCreateTaskOpen, createTaskDefaults, taskToComplete, lastDeletedTask,
+        calendarEvents, isCalendarConnected, isConnectingCalendar,
+        replaceTasks,
+        addTask, updateTask, deleteTask, restoreTask, permanentlyDeleteTask, toggleTimer, snoozeTask,
+        confirmCompleteTask, cancelCompleteTask, addMessage, updateMessage, deleteMessage, addGuestMessage, approveTaskByGuest,
+        addVoiceTask, addTemplate, removeTemplate, applyTemplate, deleteWorkflowStage, connectGoogleCalendar,
+        openCreateTask, closeCreateTask, openTask, closeTask, undoDelete
+    ]);
 };

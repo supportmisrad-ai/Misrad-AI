@@ -380,34 +380,38 @@ export const MeView: React.FC<{
     setCurrentTime(new Date());
   }, []);
 
-  // Stats Calculation
-  const myTasks = (tasks as Task[]).filter((t) => t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id);
-  const completedTasks = myTasks.filter((t) => t.status === Status.DONE).length;
-  const activeTasksCount = myTasks.filter((t) => t.status !== Status.DONE && t.status !== Status.CANCELED).length;
-  const monthlyEfficiency = myTasks.length ? Math.round((completedTasks / myTasks.length) * 100) : null;
+  // Stats Calculation - Memoized for performance
+  const { myTasks, completedTasks, activeTasksCount, monthlyEfficiency } = useMemo(() => {
+    const filtered = (tasks as Task[]).filter((t) => t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id);
+    const completed = filtered.filter((t) => t.status === Status.DONE).length;
+    const active = filtered.filter((t) => t.status !== Status.DONE && t.status !== Status.CANCELED).length;
+    const efficiency = filtered.length ? Math.round((completed / filtered.length) * 100) : null;
+    return { myTasks: filtered, completedTasks: completed, activeTasksCount: active, monthlyEfficiency: efficiency };
+  }, [tasks, currentUser.id]);
 
-  // Personal Time Entries
-  const myHistory = timeEntries
+  // Personal Time Entries - Memoized
+  const myHistory = useMemo(() => {
+    return timeEntries
       .filter((entry: TimeEntry) => entry.userId === currentUser.id)
       .sort((a: TimeEntry, b: TimeEntry) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+  }, [timeEntries, currentUser.id]);
 
-  // --- Daily Stats Calculation ---
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todaysEntries = timeEntries.filter((e: TimeEntry) => e.userId === currentUser.id && e.date === todayStr);
-  
-  // Sum finished shifts
-  const finishedMinutes = todaysEntries.reduce((acc: number, curr: TimeEntry) => acc + (curr.durationMinutes || 0), 0);
-  
-  // Add active shift duration
-  const activeShiftDuration = activeShift ? (currentTime.getTime() - new Date(activeShift.startTime).getTime()) / 60000 : 0;
-  const totalTodayMinutes = Math.floor(finishedMinutes + activeShiftDuration);
-  const hours = Math.floor(totalTodayMinutes / 60);
-  const minutes = Math.floor(totalTodayMinutes % 60);
-  const totalTodayLabel = hours > 0 
-    ? `${hours}ש׳ ${minutes > 0 ? `${minutes}דק׳` : ''}`.trim()
-    : minutes > 0 
-    ? `${minutes}דק׳`
-    : '0דק׳';
+  // --- Daily Stats Calculation - Memoized ---
+  const { todaysEntries, finishedMinutes, totalTodayMinutes, totalTodayLabel } = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const entries = timeEntries.filter((e: TimeEntry) => e.userId === currentUser.id && e.date === todayStr);
+    const finished = entries.reduce((acc: number, curr: TimeEntry) => acc + (curr.durationMinutes || 0), 0);
+    const activeDuration = activeShift ? (currentTime.getTime() - new Date(activeShift.startTime).getTime()) / 60000 : 0;
+    const total = Math.floor(finished + activeDuration);
+    const hours = Math.floor(total / 60);
+    const minutes = Math.floor(total % 60);
+    const label = hours > 0 
+      ? `${hours}ש׳ ${minutes > 0 ? `${minutes}דק׳` : ''}`.trim()
+      : minutes > 0 
+      ? `${minutes}דק׳`
+      : '0דק׳';
+    return { todaysEntries: entries, finishedMinutes: finished, totalTodayMinutes: total, totalTodayLabel: label };
+  }, [timeEntries, currentUser.id, activeShift, currentTime]);
 
   // Last SquareActivity Label
   const lastEntry = myHistory[0];
@@ -415,17 +419,20 @@ export const MeView: React.FC<{
       ? (lastEntry.endTime ? `יציאה ב-${new Date(lastEntry.endTime).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}` : `כניסה ב-${new Date(lastEntry.startTime).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}`)
       : '--:--';
 
-  // --- Gamification / Incentives Calculation ---
+  // --- Gamification / Incentives Calculation - Memoized ---
   // 1. Task Bonus
   const bonusPerTask = currentUser.bonusPerTask || 0;
-  const taskBonusTotal = completedTasks * bonusPerTask;
+  const taskBonusTotal = useMemo(() => completedTasks * bonusPerTask, [completedTasks, bonusPerTask]);
 
   // 2. Sales Commission
   const commissionPct = currentUser.commissionPct || 0;
-  const salesRevenue = (leads as Lead[])
+  const { salesRevenue, commissionTotal } = useMemo(() => {
+    const revenue = (leads as Lead[])
       .filter((l) => l.status === LeadStatus.WON)
       .reduce((sum: number, l) => sum + (typeof l.value === 'number' ? l.value : 0), 0);
-  const commissionTotal = currentUser.role.includes('מכירות') ? (salesRevenue * (commissionPct / 100)) : 0;
+    const commission = currentUser.role.includes('מכירות') ? (revenue * (commissionPct / 100)) : 0;
+    return { salesRevenue: revenue, commissionTotal: commission };
+  }, [leads, commissionPct, currentUser.role]);
 
   // 3. Accumulated Rewards (Manager Approved)
   const oneOffBonuses = currentUser.accumulatedBonus || 0;

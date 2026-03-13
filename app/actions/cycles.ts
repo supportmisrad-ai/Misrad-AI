@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { WatchtowerEngine } from '@/lib/ai/watchtower-engine';
 
 // Helper to get organization from session
 async function getCurrentOrganizationId(): Promise<string | null> {
@@ -371,6 +372,21 @@ export async function completeTask(taskId: string, clientId: string) {
         completedBy: userId,
       },
     });
+
+    // 🏛️ AI Tower: Emit event for Watchtower processing (fire-and-forget)
+    const organizationId = await getCurrentOrganizationId();
+    if (organizationId) {
+      WatchtowerEngine.emit({
+        type: 'TASK_COMPLETED',
+        payload: {
+          taskId,
+          userId,
+          organizationId,
+        },
+      }).catch(() => {
+        // Fail silently - don't block user flow for AI processing
+      });
+    }
 
     return { success: true, data: completion };
   } catch (error) {

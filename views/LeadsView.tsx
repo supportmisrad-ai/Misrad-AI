@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { LeadStatus, Lead } from '../types';
 import { motion } from 'framer-motion';
@@ -24,10 +24,24 @@ export const LeadsView: React.FC = () => {
         });
     };
 
-    // KPI Calculations
-    const totalRevenue = leads.reduce((sum: number, lead: Lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
-    const potentialRevenue = leads.reduce((sum: number, lead: Lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0);
-    const winRate = leads.filter((l: Lead) => l.status === LeadStatus.WON).length / (leads.filter((l: Lead) => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1) * 100;
+    // KPI Calculations - Memoized for performance
+    const totalRevenue = useMemo(() => 
+        leads.reduce((sum: number, lead: Lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0),
+    [leads]);
+    
+    const potentialRevenue = useMemo(() => 
+        leads.reduce((sum: number, lead: Lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0),
+    [leads]);
+    
+    const winRate = useMemo(() => {
+        const won = leads.filter((l: Lead) => l.status === LeadStatus.WON).length;
+        const decided = leads.filter((l: Lead) => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1;
+        return (won / decided) * 100;
+    }, [leads]);
+    
+    const newLeadsCount = useMemo(() => 
+        leads.filter((l: Lead) => l.status === LeadStatus.NEW).length,
+    [leads]);
     
     const KANBAN_COLUMNS = [
         { id: LeadStatus.NEW, label: 'ליד נפתח', color: 'bg-blue-50 text-blue-700' },
@@ -141,7 +155,7 @@ export const LeadsView: React.FC = () => {
                          <div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
                             <Users size={12} className="text-orange-600 sm:size-14" /> חדשים
                         </div>
-                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{(leads as Lead[]).filter((l: Lead) => l.status === LeadStatus.NEW).length}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-gray-900">{newLeadsCount}</div>
                     </div>
                 </div>
             </div>

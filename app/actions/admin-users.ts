@@ -84,7 +84,7 @@ export async function getAdminUsersPage(params?: {
         });
         const limitRaw = parsed.success ? parsed.data.limit : 25;
         const offsetRaw = parsed.success ? parsed.data.offset : 0;
-        const limit = Math.max(1, Math.min(200, Math.floor(Number(limitRaw ?? 25))));
+        const limit = Math.max(1, Math.min(100, Math.floor(Number(limitRaw ?? 25))));
         const offset = Math.max(0, Math.floor(Number(offsetRaw ?? 0)));
         const search = parsed.success ? parsed.data.search : undefined;
 
@@ -100,21 +100,40 @@ export async function getAdminUsersPage(params?: {
 
         const overrideOpts = { suppressReporting: true, reason: 'admin_users_page_list_all', source: 'admin-users-page', mode: 'global_admin' as const, isSuperAdmin: true };
 
-        const total = await prisma.organizationUser.count(
-          withPrismaTenantIsolationOverride({ where }, overrideOpts)
-        );
+        const [total, rows] = await Promise.all([
+          prisma.organizationUser.count(
+            withPrismaTenantIsolationOverride({ where }, overrideOpts)
+          ),
+          prisma.organizationUser.findMany(
+            withPrismaTenantIsolationOverride({
+              where,
+              orderBy: { created_at: 'desc' as const },
+              skip: offset,
+              take: limit,
+              select: { 
+                id: true, 
+                full_name: true, 
+                email: true, 
+                role: true, 
+                created_at: true, 
+                updated_at: true, 
+                organization_id: true, 
+                clerk_user_id: true 
+              },
+            }, overrideOpts)
+          )
+        ]);
 
-        const rows = await prisma.organizationUser.findMany(
-          withPrismaTenantIsolationOverride({
-            where,
-            orderBy: { created_at: 'desc' as const },
-            skip: offset,
-            take: limit,
-            select: { id: true, full_name: true, email: true, role: true, created_at: true, updated_at: true, organization_id: true, clerk_user_id: true },
-          }, overrideOpts)
-        );
-
-        const items = (rows || []).map((m) => {
+        const items = (rows || []).map((m: {
+          id: string;
+          full_name: string | null;
+          email: string | null;
+          role: string | null;
+          created_at: Date | null;
+          updated_at: Date | null;
+          organization_id: string | null;
+          clerk_user_id: string | null;
+        }) => {
           const last = m.updated_at ?? m.created_at;
           const isPending = String(m.clerk_user_id || '').startsWith('pending_');
           return {
