@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useData } from '@/context/DataContext';
 
 type Message = {
   id: string;
@@ -74,6 +75,7 @@ export default function WorkOrderChat({
   updateMessageAction: UpdateAction;
   deleteMessageAction: DeleteAction;
 }) {
+  const { organization } = useData();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -161,7 +163,7 @@ export default function WorkOrderChat({
       formData.append('file', file);
       formData.append('bucket', 'attachments');
       formData.append('folder', 'operations');
-      formData.append('orgSlug', orgSlug);
+      formData.append('organizationId', organization?.id || '');
 
       const response = await fetch('/api/storage/upload', { method: 'POST', body: formData });
       const data = await response.json();

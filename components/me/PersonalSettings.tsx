@@ -12,11 +12,11 @@ interface PersonalSettingsProps {
 }
 
 export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) => {
-    const { currentUser, updateUser, addToast } = useData();
+    const { currentUser, updateUser, addToast, organization } = useData();
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pathname = usePathname();
-    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
+    const orgId = organization?.id;
 
     const [isSaving, setIsSaving] = useState(false);
     const [form, setForm] = useState({
@@ -47,8 +47,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 formData.append('file', resizedFile);
                 formData.append('bucket', 'attachments');
                 formData.append('folder', 'avatars');
-                if (orgSlug) {
-                    formData.append('orgSlug', String(orgSlug));
+                if (orgId) {
+                    formData.append('organizationId', String(orgId));
                 }
 
                 const response = await fetch('/api/storage/upload', {
@@ -68,9 +68,9 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     throw new Error('שגיאה בהעלאת תמונה (חסר URL).');
                 }
 
-                if (orgSlug) {
+                if (orgId) {
                     const res = await upsertMyProfile({
-                        orgSlug,
+                        orgSlug: organization?.slug || '',
                         updates: {
                             avatarUrl: storageRef || displayUrl,
                             uiPreferences: { profileCompleted: true },
@@ -135,9 +135,9 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         // Clean phone number (remove spaces, dashes, parentheses)
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
-        if (orgSlug) {
+        if (orgId) {
             const res = await upsertMyProfile({
-                orgSlug,
+                orgSlug: organization?.slug || '',
                 updates: {
                     fullName: String(form.name || '').trim() || null,
                     phone: cleanedPhone || null,

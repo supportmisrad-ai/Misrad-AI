@@ -62,7 +62,7 @@ const renderLinkedText = (text: string) => {
 };
 
 export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab }) => {
-    const { currentUser, users, addMessage, updateMessage, deleteMessage } = useData();
+    const { currentUser, users, organization, addMessage, updateMessage, deleteMessage } = useData();
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [messageText, setMessageText] = useState('');
@@ -275,7 +275,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                     uploadForm.append('file', new File([audioBlob], `voice-${Date.now()}.webm`, { type: 'audio/webm' }));
                     uploadForm.append('bucket', 'attachments');
                     uploadForm.append('folder', 'tasks');
-                    if (orgSlug) uploadForm.append('orgSlug', String(orgSlug));
+                    if (organization?.id) uploadForm.append('organizationId', String(organization.id));
                     if (currentUser?.id) uploadForm.append('userId', String(currentUser.id));
 
                     const transcribeForm = new FormData();
