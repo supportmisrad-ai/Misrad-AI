@@ -227,10 +227,12 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       conversionRate: Math.min(revenueMetrics.conversionRate / 30 * 30, 30), // Max 30 points
       avgDealSize: Math.min(revenueMetrics.avgDealSize / 20000 * 20, 20), // Max 20 points
       leadVolume: Math.min(filteredLeads.length / 50 * 25, 25), // Max 25 points
-      recentActivity: filteredLeads.filter(l => {
-        const daysSince = (new Date().getTime() - l.lastContact.getTime()) / (1000 * 60 * 60 * 24);
-        return daysSince <= 7;
-      }).length / filteredLeads.length * 25 // Max 25 points
+      recentActivity: filteredLeads.length > 0 
+      ? filteredLeads.filter(l => {
+          const daysSince = (new Date().getTime() - l.lastContact.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSince <= 7;
+        }).length / filteredLeads.length * 25
+      : 0 // Max 25 points
     };
     
     score = factors.conversionRate + factors.avgDealSize + factors.leadVolume + factors.recentActivity;

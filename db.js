@@ -165,8 +165,7 @@ async function main() {
         }
       }
       
-      const acceptFlag = acceptLoss ? ' --accept-data-loss' : '';
-      success = await runPrismaCommand(`db push${acceptFlag}`, 'db push to PROD');
+      success = await runPrismaCommand('migrate deploy', 'migrate deploy to PROD');
       break;
       
     case 'seed':
