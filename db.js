@@ -31,6 +31,12 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+/**
+ * ⚠️ חוק חשוב ל-Windows:
+ * העברת DATABASE_URL בין תהליכים דרך execSync נכשלת עם תווים מיוחדים (&, %, @).
+ * לכן, לפרודקשן חייבים להריץ מיגרציות בתוך התהליך (in-process) עם Prisma Client.
+ */
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -73,7 +79,7 @@ function loadEnv(envFile) {
   }
   
   const content = fs.readFileSync(envPath, 'utf8');
-  const lines = content.split('\n');
+  const lines = content.split(/\r?\n/);  // תמיכה ב-Windows ו-Unix line endings
   
   for (const line of lines) {
     const match = line.match(/^([^#=]+)=(.*)$/);
@@ -107,14 +113,97 @@ async function runPrismaCommand(command, description) {
 
 async function confirmProdDanger() {
   logHeader('⚠️  אזהרת סכנה - PRODUCTION DATABASE');
-  log('אתה עומד לשנות את מסד הנתונים של הפרודקשן!', 'red');
+  log('אתה עומד להריץ מיגרציות על מסד הנתונים של הפרודקשן!', 'red');
   log('פעולה זו עלולה:', 'yellow');
-  log('  • למחוק נתונים קיימים', 'yellow');
-  log('  • לשבור תכונות במערכת', 'yellow');
-  log('  • להשפיע על משתמשים פעילים\n', 'yellow');
+  log('  • לשנות מבנה טבלאות', 'yellow');
+  log('  • להשפיע על משתמשים פעילים', 'yellow');
+  log('  • לשבור תכונות אם המיגרציה לא נבדקה\n', 'yellow');
   
   const answer = await ask('האם אתה בטוח? הקלד "YES" כדי להמשיך: ');
   return answer === 'YES';
+}
+
+/**
+ * הרצת מיגרציות לפרודקשן בתוך התהליך (in-process)
+ * חובה ב-Windows עקב בעיות עם תווים מיוחדים ב-DATABASE_URL
+ */
+async function runProdMigrationsInProcess() {
+  log('\n🚀 מריץ מיגרציות בתוך התהליך (Windows fix)...\n', 'magenta');
+  
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  try {
+    // מצא את כל המיגרציות שלא הורצו
+    const migrationsDir = path.join(process.cwd(), 'prisma', 'migrations');
+    const migrations = fs.readdirSync(migrationsDir)
+      .filter(f => fs.statSync(path.join(migrationsDir, f)).isDirectory())
+      .sort();
+    
+    // בדוק אילו מיגרציות כבר הורצו
+    let appliedMigrations = [];
+    try {
+      const result = await prisma.$queryRaw`
+        SELECT migration_name FROM _prisma_migrations ORDER BY finished_at
+      `;
+      appliedMigrations = result.map(r => r.migration_name);
+    } catch (e) {
+      // טבלת המיגרציות לא קיימת - מניחים שאף מיגרציה לא הורצה
+      log('  ⚠️  טבלת _prisma_migrations לא נמצאה - מניחים שזה DB חדש', 'yellow');
+    }
+    
+    // הרץ רק מיגרציות שלא הורצו
+    for (const migration of migrations) {
+      if (appliedMigrations.includes(migration)) {
+        log(`  ⏭️  ${migration} - כבר הורצה`, 'blue');
+        continue;
+      }
+      
+      const migrationPath = path.join(migrationsDir, migration, 'migration.sql');
+      if (!fs.existsSync(migrationPath)) {
+        log(`  ⚠️  ${migration} - אין קובץ migration.sql`, 'yellow');
+        continue;
+      }
+      
+      log(`  🔄 מריץ ${migration}...`, 'cyan');
+      
+      const sql = fs.readFileSync(migrationPath, 'utf8');
+      
+      // פצל לפקודות נפרדות
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      for (const statement of statements) {
+        if (statement.trim()) {
+          await prisma.$executeRawUnsafe(statement);
+        }
+      }
+      
+      // עדכן את טבלת המיגרציות
+      await prisma.$executeRaw`
+        INSERT INTO _prisma_migrations (id, checksum, migration_name, started_at, finished_at, logs)
+        VALUES (
+          gen_random_uuid(),
+          'manual-in-process',
+          ${migration},
+          NOW(),
+          NOW(),
+          'Applied via in-process script'
+        )
+      `;
+      
+      log(`  ✅ ${migration} - הושלמה`, 'green');
+    }
+    
+    return true;
+  } catch (error) {
+    log(`\n❌ שגיאה במיגרציה: ${error.message}`, 'red');
+    return false;
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 async function main() {
@@ -154,7 +243,7 @@ async function main() {
       break;
       
     case 'prod':
-      logHeader('דחיפת סכמה ל-PROD');
+      logHeader('מיגרציות ל-PROD (in-process)');
       loadEnv('.env.prod_backup');
       
       if (!force) {
@@ -165,7 +254,8 @@ async function main() {
         }
       }
       
-      success = await runPrismaCommand('migrate deploy', 'migrate deploy to PROD');
+      // ⚠️ חובה להריץ בתוך התהליך ב-Windows (ראה הערה בראש הקובץ)
+      success = await runProdMigrationsInProcess();
       break;
       
     case 'seed':
