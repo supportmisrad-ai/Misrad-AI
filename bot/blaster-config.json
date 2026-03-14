@@ -2,7 +2,7 @@
   "name": "MISRAD AI Bot",
   "version": "2.0.0",
   "api": {
-    "url": "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE",
+    "url": "https://script.google.com/macros/s/AKfycbxaYfqlidnLrgmP1-SkFGwvlDfAKNLiyJAIHRQ1rjdLfCE-eeBXuHu0rc02zP-YlFXT/exec",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"
