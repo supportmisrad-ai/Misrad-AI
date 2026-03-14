@@ -37,6 +37,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/oauth/connect/route.ts', // Public: OAuth initiator — CSRF protected via encrypted state
   'app/api/oauth/facebook/callback/route.ts', // Public: OAuth callback from Facebook — state encryption + requireOrganizationId in saveClientToken
   'app/api/oauth/linkedin/callback/route.ts', // Public: OAuth callback from LinkedIn — state encryption + requireOrganizationId in saveClientToken
+  'app/api/referral/route.ts', // Public: saves partner referral code to cookie — no auth, no sensitive data
 ]);
 
 const CANDIDATE_APPROVED = new Set([
