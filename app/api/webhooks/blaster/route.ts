@@ -113,6 +113,92 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Handle referral tracking
+    const referredBy = String(body.referred_by ?? body.referredBy ?? body.referrer ?? '').trim().toUpperCase();
+    if (referredBy && type === 'signup') {
+      try {
+        // Find partner by referral code
+        const partner = await prisma.partner.findFirst({
+          where: { referralCode: referredBy },
+          select: { id: true },
+        });
+        
+        if (partner?.id) {
+          // Create/update referral record
+          await prisma.botReferral.upsert({
+            where: { referral_code: `ref_${lead.id}_${partner.id}` },
+            create: {
+              referral_code: `ref_${lead.id}_${partner.id}`,
+              referrer_id: partner.id,
+              referred_id: lead.id,
+              commission_rate: 10, // 10% default
+              total_earned: 0,
+            },
+            update: {},
+          });
+          
+          // Update SystemPartner stats
+          await prisma.systemPartner.update({
+            where: { id: partner.id },
+            data: { 
+              referrals: { increment: 1 },
+              lastActive: new Date().toISOString(),
+            },
+          }).catch(() => {}); // Ignore if not found
+          
+          console.log(`[blaster-webhook] Referral tracked: ${referredBy} -> lead ${lead.id}`);
+        }
+      } catch (refErr) {
+        console.error('[blaster-webhook] Referral tracking failed (ignored):', refErr);
+      }
+    }
+
+    // Handle partner signup
+    if (type === 'partner_signup') {
+      const partnerName = name || 'Unknown Partner';
+      const partnerEmail = email || null;
+      const partnerPhone = phone;
+      
+      try {
+        // Generate referral code from name
+        const slug = partnerName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase();
+        const referralCode = `${slug || 'REF'}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        
+        // Create partner
+        const newPartner = await prisma.partner.create({
+          data: {
+            name: partnerName,
+            email: partnerEmail,
+            phone: partnerPhone,
+            referralCode,
+          },
+          select: { id: true, referralCode: true },
+        });
+        
+        // Create SystemPartner for tracking
+        await prisma.systemPartner.create({
+          data: {
+            id: newPartner.id,
+            name: partnerName,
+            type: 'affiliate',
+            referrals: 0,
+            revenue: 0,
+            commissionRate: 10,
+            unpaidCommission: 0,
+            lastActive: new Date().toISOString(),
+            avatar: '',
+            status: 'active',
+          },
+        }).catch(() => {}); // Ignore duplicate
+        
+        console.log(`[blaster-webhook] Partner created: ${partnerName} (${newPartner.referralCode})`);
+        
+        return json({ ok: true, partnerId: newPartner.id, referralCode: newPartner.referralCode, type });
+      } catch (partnerErr) {
+        console.error('[blaster-webhook] Partner creation failed:', partnerErr);
+      }
+    }
+
     return json({ ok: true, leadId: lead.id, type });
   } catch (err: unknown) {
     const errorMessage = getErrorMessage(err);

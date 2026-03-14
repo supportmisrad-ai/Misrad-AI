@@ -193,6 +193,7 @@ async function upsertProfileForClerkUser(params: {
   pendingSeats?: number;
   sendWelcomeEmail?: boolean;
   _resolvedClerkUser?: { id: string } | null;
+  partnerRef?: string | null; // Referral code from partner link
 }): Promise<{ profileId: string; organizationId: string; organizationSlug?: string | null; role?: string | null }> {
   const clerkUserId = String(params.clerkUserId || '').trim();
   if (!clerkUserId) throw new Error('Missing clerkUserId');
@@ -435,6 +436,24 @@ async function upsertProfileForClerkUser(params: {
     : null;
   const hasModule = (k: OSModuleKey): boolean => Boolean(planModules && planModules.includes(k));
 
+  // Resolve partner from referral code (if provided)
+  let partnerId: string | null = null;
+  const partnerRefCode = params.partnerRef ? String(params.partnerRef).trim().toUpperCase() : null;
+  if (partnerRefCode) {
+    try {
+      const partner = await prisma.partner.findFirst({
+        where: { referralCode: partnerRefCode },
+        select: { id: true },
+      });
+      if (partner?.id) {
+        partnerId = partner.id;
+        logger.info('upsertProfileForClerkUser', `Linked to partner: ${partnerRefCode} -> ${partner.id}`);
+      }
+    } catch (e) {
+      logger.error('upsertProfileForClerkUser', 'Failed to resolve partner (ignored)', e);
+    }
+  }
+
   const now = new Date();
   const emailLower = params.email ? String(params.email).trim().toLowerCase() : null;
   const fullName = params.fullName ? String(params.fullName) : null;
@@ -496,6 +515,8 @@ async function upsertProfileForClerkUser(params: {
           name: orgName,
           slug: slugBase || null,
           owner_id: socialUser.id,
+          partnerId: partnerId, // Link to referring partner
+          discount_percent: partnerId ? 50 : 0, // Auto 50% discount for partner referrals
           has_nexus: pendingPlan ? hasModule('nexus') : false,
           has_system: pendingPlan ? hasModule('system') : false,
           has_social: pendingPlan ? hasModule('social') : false,
@@ -868,6 +889,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
         let pendingPlan: PackageType | undefined = undefined;
         let pendingSoloModule: string | undefined = undefined;
         let pendingSeats: number | undefined = undefined;
+        let partnerRef: string | undefined = undefined;
         try {
           const jar = await cookies();
           const cookieVal = jar.get('pending_plan')?.value;
@@ -885,6 +907,10 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
             if (Number.isFinite(n) && n > 0) {
               pendingSeats = Math.floor(n);
             }
+          }
+          const partnerRefCookie = jar.get('partner_ref')?.value;
+          if (partnerRefCookie) {
+            partnerRef = String(partnerRefCookie).trim().toUpperCase() || undefined;
           }
         } catch {
           pendingPlan = undefined;
@@ -908,14 +934,16 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
           pendingSeats,
           sendWelcomeEmail: true,
           _resolvedClerkUser: user,
+          partnerRef: partnerRef ?? null,
         });
 
-        if (pendingPlan) {
+        if (pendingPlan || partnerRef) {
           try {
             const jar = await cookies();
             jar.delete('pending_plan');
             jar.delete('pending_seats');
             jar.delete('pending_module');
+            jar.delete('partner_ref');
           } catch {
             // ignore
           }

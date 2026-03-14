@@ -44,6 +44,10 @@
     {
       "path": "/api/cron/storage-cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/partner-reports",
+      "schedule": "0 7 1 * *"
     }
   ],
   "functions": {

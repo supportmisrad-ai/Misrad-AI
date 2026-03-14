@@ -13,6 +13,7 @@ async function getCurrentOrganizationKey(): Promise<{
   organizationKey: string;
   subscriptionPlan: string | null;
   orgCreatedAt: Date | null;
+  discountPercent: number;
   customerAccount: { companyName: string | null; phone: string | null; email: string | null } | null;
 }> {
   const clerkUserId = await getCurrentUserId();
@@ -68,7 +69,7 @@ async function getCurrentOrganizationKey(): Promise<{
           where: isUuid
             ? { OR: [{ slug: keyVal }, { id: keyVal }] }
             : { slug: keyVal },
-          select: { id: true, slug: true, subscription_plan: true, created_at: true },
+          select: { id: true, slug: true, subscription_plan: true, created_at: true, discount_percent: true },
         }),
         getCustomerAccountForCurrentOrganization({ orgSlug: keyVal })
           .catch(() => ({ success: false as const, data: null, error: 'lookup failed' })),
@@ -82,6 +83,7 @@ async function getCurrentOrganizationKey(): Promise<{
           organizationKey: orgKey,
           subscriptionPlan: orgByKey.subscription_plan ?? null,
           orgCreatedAt: orgByKey.created_at ?? null,
+          discountPercent: orgByKey.discount_percent ?? 0,
           customerAccount,
         };
       }
@@ -104,7 +106,7 @@ async function getCurrentOrganizationKey(): Promise<{
   const [org, accountRes] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: String(organizationId) },
-      select: { id: true, slug: true, subscription_plan: true, created_at: true },
+      select: { id: true, slug: true, subscription_plan: true, created_at: true, discount_percent: true },
     }),
     getCustomerAccountForCurrentOrganization({ orgSlug: String(organizationId) })
       .catch(() => ({ success: false as const, data: null, error: 'lookup failed' })),
@@ -119,6 +121,7 @@ async function getCurrentOrganizationKey(): Promise<{
     organizationKey,
     subscriptionPlan: org?.subscription_plan ?? null,
     orgCreatedAt: org?.created_at ?? null,
+    discountPercent: org?.discount_percent ?? 0,
     customerAccount,
   };
 }
@@ -128,7 +131,7 @@ export default async function WorkspaceOnboardingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { organizationKey, subscriptionPlan, orgCreatedAt, customerAccount } = await getCurrentOrganizationKey();
+  const { organizationKey, subscriptionPlan, orgCreatedAt, discountPercent, customerAccount } = await getCurrentOrganizationKey();
 
   const existing = customerAccount;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());
@@ -164,6 +167,7 @@ export default async function WorkspaceOnboardingPage({
       planKey={planKey}
       seats={seats}
       soloModuleKey={moduleKey}
+      discountPercent={discountPercent}
     />
   );
 }

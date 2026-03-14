@@ -19,3 +19,4 @@ export { sendTrialExpiryWarningEmail, sendTrialExpiredEmail } from './trial';
 export { sendContactFormReceivedEmail, sendContactFormAdminNotification } from './contact';
 export { sendAdminNewSignupNotification, sendAdminPaymentReceivedNotification } from './admin-notifications';
 export { sendDay2CheckinEmail, sendDay7CheckinEmail, sendDay45FeedbackEmail } from './follow-ups';
+export { sendPartnerMonthlyReportEmail } from './partner-reports';

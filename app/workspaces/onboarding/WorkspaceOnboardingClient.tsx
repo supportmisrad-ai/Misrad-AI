@@ -97,6 +97,7 @@ export default function WorkspaceOnboardingClient(props: {
   planKey: string | null;
   seats: number | null;
   soloModuleKey: string | null;
+  discountPercent?: number;
 }) {
   const router = useRouter();
 
@@ -157,6 +158,9 @@ export default function WorkspaceOnboardingClient(props: {
     if (!Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, key)) return null;
     return { key, ...BILLING_PACKAGES[key] };
   }, [activePlanKey]);
+
+  // Partner referral discount (takes precedence over global promo)
+  const effectiveDiscount = props.discountPercent || activePromo?.discountPercent || 0;
 
   const activeSoloModule = selectedSoloModule || props.soloModuleKey;
 
@@ -404,8 +408,8 @@ export default function WorkspaceOnboardingClient(props: {
                 const pkg = BILLING_PACKAGES[key];
                 const isSelected = selectedPlan === key;
                 const isPopular = key === 'the_empire';
-                const displayPrice = activePromo?.discountPercent
-                  ? Math.round(pkg.monthlyPrice * (1 - activePromo.discountPercent / 100))
+                const displayPrice = effectiveDiscount
+                  ? Math.round(pkg.monthlyPrice * (1 - effectiveDiscount / 100))
                   : pkg.monthlyPrice;
 
                 return (
@@ -457,13 +461,16 @@ export default function WorkspaceOnboardingClient(props: {
                       </div>
 
                       <div className="text-left shrink-0">
-                        {activePromo?.discountPercent && displayPrice < pkg.monthlyPrice ? (
+                        {effectiveDiscount && displayPrice < pkg.monthlyPrice ? (
                           <div className="text-[10px] text-slate-400 line-through">{pkg.monthlyPrice}₪</div>
                         ) : null}
                         <div className={`text-lg font-black ${
-                          activePromo?.discountPercent ? 'text-emerald-600' : 'text-slate-900'
+                          effectiveDiscount ? 'text-emerald-600' : 'text-slate-900'
                         }`}>{displayPrice}₪</div>
                         <div className="text-[10px] text-slate-400 font-bold">לחודש</div>
+                        {effectiveDiscount ? (
+                          <div className="text-[10px] text-emerald-600 font-bold">הנחת שותף {effectiveDiscount}%</div>
+                        ) : null}
                       </div>
 
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${

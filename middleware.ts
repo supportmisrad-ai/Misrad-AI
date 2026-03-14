@@ -344,6 +344,21 @@ export default clerkMiddleware(
     await auth.protect({ unauthenticatedUrl });
   }
 
+  // Partner referral tracking: save ?ref=CODE to cookie
+  const refParam = req.nextUrl.searchParams.get('ref');
+  if (refParam && refParam.trim().length >= 2) {
+    const refCode = refParam.trim().toUpperCase();
+    const response = NextResponse.next();
+    response.cookies.set('partner_ref', refCode, {
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return response;
+  }
+
   return NextResponse.next();
 },
 {

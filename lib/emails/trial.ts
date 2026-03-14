@@ -44,7 +44,7 @@ function generateTrialExpiryWarningEmailHTML(params: {
         <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            רציתי לתת לך heads up — תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+            רציתי לתת לך תזכורת — תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
             מסתיימת ${urgencyText}.
         </div>
 

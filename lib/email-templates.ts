@@ -115,9 +115,11 @@ function generateEmailHeader(options: {
 function generateEmailFooter(options?: {
   showSocialLinks?: boolean;
   additionalInfo?: string;
+  unsubscribeUrl?: string;
 }): string {
   const currentYear = new Date().getFullYear();
   const showSocial = options?.showSocialLinks === true;
+  const unsubscribeLink = options?.unsubscribeUrl || `${getBaseUrl()}/api/email/unsubscribe`;
 
   return `
     <tr>
@@ -147,6 +149,12 @@ function generateEmailFooter(options?: {
           <span style="color:rgba(255,255,255,0.25);margin:0 8px;">·</span>
           <a href="${BRAND_LINKS.whatsapp}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:12px;font-weight:600;">WhatsApp</a>
         </div>
+        
+        <!-- Unsubscribe / Preferences Link -->
+        <div style="margin-bottom: 12px;">
+          <a href="${unsubscribeLink}" style="color:rgba(255,255,255,0.5);text-decoration:underline;font-size:11px;font-weight:500;">הסרה מרשימת תפוצה / עדכון העדפות</a>
+        </div>
+        
         <div style="color:rgba(255,255,255,0.35);font-size:11px;line-height:1.6;">
           © ${currentYear} MISRAD AI · כל הזכויות שמורות
           <br />
