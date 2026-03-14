@@ -1,19 +1,78 @@
 // Google Apps Script for WAAM-It Blaster + MISRAD AI Integration
-// Version 1.3 - Working with forward to MISRAD AI
+// Version 1.4 - Auto-setup sheets with headers
 // 
 // DEPLOYMENT INSTRUCTIONS:
 // 1. Open Google Apps Script (script.google.com)
 // 2. Create new project
 // 3. Paste this entire code
-// 4. Deploy as Web App (Execute as Me, Allow Anyone)
-// 5. Copy the deployment URL
-// 6. Update BotApi.json in Blaster with the new URL
+// 4. Run setupSheets() ONCE to create sheets and headers
+// 5. Deploy as Web App (Execute as Me, Allow Anyone)
+// 6. Copy the deployment URL
+// 7. Update BotApi.json in Blaster with the new URL
 
 const CONFIG = {
   MISRAD_AI_WEBHOOK: "https://misrad-ai.com/api/webhooks/blaster",
   MISRAD_AI_SECRET: "YOUR_SECRET_HERE", // <-- UPDATE THIS after generating
   LOG_TO_SHEET: true
 };
+
+// Sheet configurations with headers
+const SHEETS_CONFIG = {
+  "Variable_Log": {
+    headers: ["Contact", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Message", "Rule_ID", "Timestamp"]
+  },
+  "Lead_Log": {
+    headers: ["Phone", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Status", "Source", "Timestamp"]
+  },
+  "Conversation_Log": {
+    headers: ["Phone", "Message", "Direction", "Timestamp", "Rule_ID"]
+  },
+  "Errors": {
+    headers: ["Timestamp", "Error_Data"]
+  }
+};
+
+// SETUP FUNCTION - Run this ONCE to create all sheets with headers
+function setupSheets() {
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  console.log("Starting setup...");
+  
+  for (let sheetName in SHEETS_CONFIG) {
+    let sheet = ss.getSheetByName(sheetName);
+    
+    if (!sheet) {
+      // Create new sheet
+      sheet = ss.insertSheet(sheetName);
+      console.log("Created sheet: " + sheetName);
+    } else {
+      console.log("Sheet exists: " + sheetName);
+    }
+    
+    // Check if headers already exist
+    let firstRow = sheet.getRange(1, 1, 1, SHEETS_CONFIG[sheetName].headers.length).getValues()[0];
+    let hasHeaders = firstRow.some(cell => cell !== "");
+    
+    if (!hasHeaders) {
+      // Add headers
+      sheet.getRange(1, 1, 1, SHEETS_CONFIG[sheetName].headers.length)
+        .setValues([SHEETS_CONFIG[sheetName].headers])
+        .setFontWeight("bold")
+        .setBackground("#f0f0f0");
+      console.log("Added headers to: " + sheetName);
+    } else {
+      console.log("Headers already exist in: " + sheetName);
+    }
+    
+    // Freeze header row
+    sheet.setFrozenRows(1);
+  }
+  
+  console.log("Setup complete! ✅");
+  console.log("Sheets created: " + Object.keys(SHEETS_CONFIG).join(", "));
+  
+  return "Setup complete! Sheets: " + Object.keys(SHEETS_CONFIG).join(", ");
+}
 
 // doGet - Handles GET requests from Blaster (reading data)
 function doGet(e) {
