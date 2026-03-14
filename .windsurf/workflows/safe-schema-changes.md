@@ -78,8 +78,10 @@ SELECT COUNT(*) FROM nexus_users;
 ### שלב 8: רק אחרי בדיקה - deploy לפרודקשן
 ```bash
 # turbo
-npx prisma migrate deploy --schema prisma/schema.prisma
+node db.js prod --force
 ```
+
+**הערה ל-Windows:** אין להריץ `npx prisma migrate deploy` ישירות עקב בעיות עם תווים מיוחדים ב-DATABASE_URL. השתמש תמיד ב-`node db.js prod`.
 
 ---
 
