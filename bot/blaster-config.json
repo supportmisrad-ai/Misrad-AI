@@ -1,0 +1,56 @@
+{
+  "name": "MISRAD AI Bot",
+  "version": "2.0.0",
+  "api": {
+    "url": "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "webhook": {
+    "url": "https://misrad-ai.com/api/webhooks/blaster",
+    "secret": "YOUR_BLASTER_WEBHOOK_SECRET_HERE",
+    "header": "x-webhook-secret"
+  },
+  "sheets": {
+    "variables": "Variable_Log",
+    "leads": "Lead_Log", 
+    "conversations": "Conversation_Log",
+    "errors": "Errors"
+  },
+  "rules": {
+    "rules_5": "bot/Rules_5.rules",
+    "rules_6": "bot/Rules_6.rules"
+  },
+  "variables": {
+    "contact": "{{contact}}",
+    "name": "{{name}}",
+    "business": "{{business}}",
+    "email": "{{email}}",
+    "industry": "{{industry}}",
+    "org_size": "{{org_size}}",
+    "pain_point": "{{pain_point}}",
+    "selected_plan": "{{selected_plan}}",
+    "rule_id": "{{rule_id}}",
+    "timestamp": "{{timestamp}}"
+  },
+  "webhook_types": {
+    "lead": "ליד חדש",
+    "signup": "הרשמה הושלמה",
+    "demo": "בקשת הדגמה",
+    "support": "פניית תמיכה",
+    "campaign_start": "תחילת קמפיין",
+    "customer_interest": "עניין לקוח",
+    "customer_source": "מקור לקוח",
+    "affiliate_interest": "עניין שותף",
+    "partner_signup": "הרשמת שותף",
+    "signup_click": "קליק הרשמה"
+  },
+  "notes": [
+    "1. החלף YOUR_GOOGLE_APPS_SCRIPT_URL_HERE ב-URL מ-Google Apps Script",
+    "2. החלף YOUR_BLASTER_WEBHOOK_SECRET_HERE בערך מ-BLASTER_WEBHOOK_SECRET",
+    "3. ודא שגיליונות Google Sheets קיימים עם הכותרות הנכונות",
+    "4. ראה את BLASTER_SETUP_GUIDE.md להוראות מלאות"
+  ]
+}
