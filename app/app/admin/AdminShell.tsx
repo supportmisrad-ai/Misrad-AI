@@ -140,8 +140,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     setCommandPaletteOpen,
     openSupport,
     leads,
+    organization,
   } = useData();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const orgSlug = organization?.slug || 'default';
 
   const normalizedRole = String(currentUser?.role || '').trim().toLowerCase();
   const isAuditServiceRole =
@@ -235,7 +238,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/finance/control', label: 'Finance', icon: DollarSign },
       { href: '/app/admin/client/control', label: 'Client', icon: Users },
       { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
-      { href: '/admin/booking?org=default', label: 'בוקינג', icon: Calendar },
+      { href: `/admin/booking?org=${orgSlug}`, label: 'בוקינג', icon: Calendar },
     ],
     content: [
       { href: '/app/admin/global/promotions', label: 'מבצעים', icon: Zap },
@@ -276,7 +279,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/analytics/ai', label: 'אנליטיקס AI', icon: BrainCircuit },
       { href: '/app/admin/analytics/customers', label: 'אנליטיקס לקוחות', icon: Users },
     ],
-  }), []);
+  }), [orgSlug]);
 
   const navItems = useMemo<AdminNavItem[]>(() => {
     return areaNavMap[adminArea] || [];
