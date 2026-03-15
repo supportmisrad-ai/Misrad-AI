@@ -157,13 +157,24 @@ export default function EmailAssetsClient() {
     for (const [k, v] of Object.entries(editState)) {
       if (v.trim()) cleanedEdit[k] = v.trim();
     }
+  
+    // Check if keys are different
     const dbKeys = Object.keys(dbOverrides).sort();
     const editKeys = Object.keys(cleanedEdit).sort();
+  
     if (dbKeys.length !== editKeys.length) return true;
-    for (let i = 0; i < dbKeys.length; i++) {
-      if (dbKeys[i] !== editKeys[i]) return true;
-      if (dbOverrides[dbKeys[i]] !== cleanedEdit[editKeys[i]]) return true;
+  
+    // Check each key's value
+    for (const key of editKeys) {
+      if (!dbOverrides.hasOwnProperty(key)) return true; // New key added
+      if (dbOverrides[key] !== cleanedEdit[key]) return true; // Value changed
     }
+  
+    // Check if any key was removed
+    for (const key of dbKeys) {
+      if (!cleanedEdit.hasOwnProperty(key)) return true; // Key removed
+    }
+  
     return false;
   }, [editState, dbOverrides]);
 

@@ -209,11 +209,11 @@ import { revalidatePath } from 'next/cache';
 
 export function invalidateBookingCache(type: keyof typeof CACHE_TAGS) {
   // Revalidate booking pages
-  revalidatePath('/admin/booking', 'layout');
+  revalidatePath('/app/admin/booking', 'layout');
 }
 
 export function invalidateAllBookingCache() {
-  revalidatePath('/admin/booking', 'layout');
+  revalidatePath('/app/admin/booking', 'layout');
   revalidatePath('/booking', 'layout');
 }
 

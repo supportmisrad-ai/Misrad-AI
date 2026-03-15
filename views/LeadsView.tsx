@@ -163,8 +163,8 @@ export const LeadsView: React.FC = () => {
             </div>
 
             {/* Kanban Board */}
-            <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
-                <div className="flex h-full min-w-max gap-4 px-1">
+            <div className="flex-1 overflow-x-auto overflow-y-auto pb-4 min-h-0">
+                <div className="flex h-[calc(100vh-280px)] sm:h-full min-w-max gap-4 px-1">
                     {KANBAN_COLUMNS.map(col => {
                         const colLeads = (leads as Lead[]).filter((l: Lead) => l.status === col.id);
                         return (
@@ -257,22 +257,24 @@ export const LeadsView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Date Selection Modal for Mobile */}
-            <AnimatePresence>
+            {/* Date Selection Modal - Optimized for Performance */}
+            <AnimatePresence mode="wait">
                 {selectedLeadForDate && (
                     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            transition={{ duration: 0.15 }}
+                            className="absolute inset-0 bg-black/50"
                             onClick={() => setSelectedLeadForDate(null)}
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden p-6"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: 'easeOut' }}
+                            className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden p-5"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-2">

@@ -81,41 +81,41 @@ export function BookingAdminPanel({ orgSlug, initialData, children }: BookingAdm
       id: 'calendar',
       label: 'יומן',
       icon: Calendar,
-      path: `/admin/booking?org=${orgSlug}&tab=calendar`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=calendar`,
     },
     {
       id: 'appointments',
       label: 'תורים',
       icon: Clock,
       count: initialData?.todayAppointments,
-      path: `/admin/booking?org=${orgSlug}&tab=appointments`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=appointments`,
     },
     {
       id: 'providers',
       label: 'נותני שירות',
       icon: Users,
       count: initialData?.providersCount,
-      path: `/admin/booking?org=${orgSlug}&tab=providers`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=providers`,
     },
     {
       id: 'services',
       label: 'שירותים',
       icon: Settings,
       count: initialData?.servicesCount,
-      path: `/admin/booking?org=${orgSlug}&tab=services`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=services`,
     },
     {
       id: 'links',
       label: 'לינקים',
       icon: LinkIcon,
       count: initialData?.linksCount,
-      path: `/admin/booking?org=${orgSlug}&tab=links`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=links`,
     },
     {
       id: 'settings',
       label: 'הגדרות',
       icon: Settings,
-      path: `/admin/booking?org=${orgSlug}&tab=settings`,
+      path: `/app/admin/booking?org=${orgSlug}&tab=settings`,
     },
   ], [initialData, orgSlug]);
 
@@ -174,7 +174,7 @@ export function BookingAdminPanel({ orgSlug, initialData, children }: BookingAdm
 
               {/* New Appointment */}
               <Link
-                href={`/admin/booking?org=${orgSlug}&action=new`}
+                href={`/app/admin/booking?org=${orgSlug}&action=new`}
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />

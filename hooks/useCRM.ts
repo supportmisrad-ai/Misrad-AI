@@ -5,6 +5,9 @@ import { Asset, Client, Invoice, Lead, LeadStatus, Notification, Tenant, Toast, 
 import { DEFAULT_PRODUCTS } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
+const LEADS_STORAGE_KEY = 'misrad_leads_v1';
+const TRASH_LEADS_STORAGE_KEY = 'misrad_trash_leads_v1';
+
 type ToastKind = Toast['type'];
 type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
 
@@ -36,7 +39,36 @@ export const useCRM = (
     applyTemplate: (templateId: string, clientId?: string, clientName?: string) => void // NEW DEPENDENCY
 ) => {
     const [clients, setClients] = useState<Client[]>([]);
-    const [leads, setLeads] = useState<Lead[]>([]);
+    const [leads, setLeads] = useState<Lead[]>(() => {
+        // Load from localStorage on initial render
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem(LEADS_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch {
+                // ignore
+            }
+        }
+        return [];
+    });
+    const [trashLeads, setTrashLeads] = useState<Lead[]>(() => {
+        // Load from localStorage on initial render
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem(TRASH_LEADS_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch {
+                // ignore
+            }
+        }
+        return [];
+    });
     const [assets, setAssets] = useState<Asset[]>([]);
     const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -104,7 +136,27 @@ export const useCRM = (
 
     // Trash Bins
     const [trashClients, setTrashClients] = useState<Client[]>([]);
-    const [trashLeads, setTrashLeads] = useState<Lead[]>([]);
+    // Persist leads to localStorage whenever they change
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+            } catch {
+                // ignore
+            }
+        }
+    }, [leads]);
+
+    // Persist trash leads to localStorage whenever they change
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem(TRASH_LEADS_STORAGE_KEY, JSON.stringify(trashLeads));
+            } catch {
+                // ignore
+            }
+        }
+    }, [trashLeads]);
     const [trashAssets, setTrashAssets] = useState<Asset[]>([]);
     
     // External Integration State

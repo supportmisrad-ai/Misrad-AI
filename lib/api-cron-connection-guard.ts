@@ -34,7 +34,7 @@ export type CronConnectionOptions = {
 const DEFAULT_OPTIONS: Required<CronConnectionOptions> = {
   critical: false,
   lockDuration: 300,
-  maxConcurrent: 3,
+  maxConcurrent: 6,
   skipIfRedisDown: true,
 };
 
