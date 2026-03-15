@@ -158,6 +158,7 @@ type _SocialMediaInvoiceDelegate = PrismaClient extends { socialMediaInvoice: in
     : never;
 
 type PrismaClientWithAliases = PrismaClient & {
+  user: PrismaClient['nexusUser'];
   organization: PrismaClient['organization'];
   organizationUser: PrismaClient['organizationUser'];
   teamMember: PrismaClient['teamMember'];
@@ -184,6 +185,7 @@ type PrismaClientWithAliases = PrismaClient & {
 const _basePrismaClient = _client;
 
 export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, {
+  user: _basePrismaClient.nexusUser,
   organization: _basePrismaClient.organization,
   organizationUser: _basePrismaClient.organizationUser,
   teamMember: _basePrismaClient.teamMember,
