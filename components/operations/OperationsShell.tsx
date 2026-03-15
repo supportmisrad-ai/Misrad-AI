@@ -277,17 +277,17 @@ export default function OperationsShell({
           currentDate={currentDate || ' '}
           mobileBrand={{
             name: moduleTitle,
-            logoUrl: initialOrganization?.logo || null,
+            logoUrl: workspace.logoUrl || null,
             fallbackIcon: <OSModuleSquircleIcon moduleKey="operations" boxSize={32} iconSize={16} className="shadow-none" />,
             badgeModuleKey: 'operations',
           }}
-          onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
-          onOpenSupportAction={() => setIsHelpModalOpen(true)}
+          onOpenCommandPaletteAction={() => {}}
+          onOpenSupportAction={() => {}}
           actionsSlot={<ModuleHelpVideos moduleKey="operations" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={notificationsSlot}
+          notificationsSlot={null}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
-          profileHref={joinPath(basePath, `/me`)}
+          profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
           className="bg-transparent pt-[env(safe-area-inset-top,20px)] md:pt-0"
         />
