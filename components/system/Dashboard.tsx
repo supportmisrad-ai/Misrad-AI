@@ -61,6 +61,9 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
   const stats: DashboardStats = {
     totalValue: leads.reduce((sum, lead) => lead.status !== 'lost' ? sum + lead.value : sum, 0),
     totalLeads: leads.length,
+    newLeads: leads.filter(l => l.status === 'incoming').length,
+    inProgress: leads.filter(l => !['incoming', 'won', 'lost', 'churned'].includes(l.status)).length,
+    wonLeads: leads.filter(l => l.status === 'won').length,
     conversionRate: Math.round((leads.filter(l => l.status === 'won').length / leads.length) * 100) || 0,
     leadsNeedingAttention: leads.filter(l => {
         const diffTime = Math.abs(new Date().getTime() - new Date(l.lastContact).getTime());
@@ -137,28 +140,26 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
-              <div className="flex justify-between items-start z-10">
-                  <div className="p-2 bg-slate-50 text-slate-800 rounded-lg border border-slate-100"><DollarSign size={18} /></div>
-                  <span className="text-emerald-700 text-[10px] font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">+12%</span>
-              </div>
-              <div className="z-10">
-                  <div className="text-2xl font-black font-mono tracking-tight text-slate-900 tabular-nums">₪{stats.totalValue.toLocaleString()}</div>
-                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">שווי צנרת</div>
-              </div>
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">סה"כ לידים</div>
+          <div className="text-3xl font-black text-slate-900">{stats.totalLeads}</div>
+        </div>
+        <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm border-r-4 border-r-indigo-500">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">לידים חדשים</div>
+          <div className="text-3xl font-black text-slate-900">{stats.newLeads}</div>
+        </div>
+        <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm border-r-4 border-r-amber-500">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">בתהליך</div>
+          <div className="text-3xl font-black text-slate-900">{stats.inProgress}</div>
+        </div>
+        <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm border-r-4 border-r-emerald-500">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">עסקאות שנסגרו</div>
+          <div className="text-3xl font-black text-slate-900">{stats.wonLeads}</div>
+        </div>
+      </div>
 
-          <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
-              <div className="flex justify-between items-start z-10">
-                  <div className="p-2 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-100"><Layers size={18} /></div>
-              </div>
-              <div className="z-10">
-                  <div className="text-2xl font-black font-mono tracking-tight text-slate-900 tabular-nums">{stats.totalLeads}</div>
-                  <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">לידים</div>
-              </div>
-          </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           <div className="ui-card p-5 flex flex-col justify-between h-36 relative overflow-hidden group hover:shadow-md transition-all border border-slate-100">
               <div className="flex justify-between items-start z-10">
                   <div className="p-2 bg-slate-50 text-slate-800 rounded-lg border border-slate-100"><Target size={18} /></div>

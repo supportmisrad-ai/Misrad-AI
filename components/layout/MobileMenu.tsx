@@ -147,7 +147,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   <div className="grid grid-cols-1 gap-4">
                     <button 
                       onClick={() => { setShowMorningBrief(true); setIsMobileMenuOpen(false); }} 
-                      className="relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-md shadow-orange-200/50 group"
+                      className="relative flex items-center justify-center gap-3 px-6 py-4 rounded-3xl transition-all duration-200 bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-md shadow-orange-200/50 group"
                       aria-label="תדריך בוקר"
                     >
                       <Sun size={24} strokeWidth={2} />
@@ -189,7 +189,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                         className="flex flex-col items-center gap-2 group"
                         aria-label={finalLabel}
                       >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${itemStyle} ${isActiveItem ? 'shadow-slate-800/30' : 'shadow-gray-200/50'}`}>
+                        <div className={`w-14 h-14 rounded-3xl flex items-center justify-center transition-all duration-200 shadow-md ${itemStyle} ${isActiveItem ? 'shadow-slate-800/30' : 'shadow-gray-200/50'}`}>
                           <item.icon size={22} strokeWidth={2} />
                         </div>
                         <span className={`text-[10px] font-medium text-center leading-tight transition-colors ${isActiveItem ? 'text-black font-bold' : 'text-gray-500'}`}>{finalLabel}</span>

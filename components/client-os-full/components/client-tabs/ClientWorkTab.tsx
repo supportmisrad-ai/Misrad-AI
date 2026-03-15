@@ -51,34 +51,34 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
 
                     <div className="p-6 space-y-4">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">כותרת</label>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">שם הפרויקט</label>
                             <input
                                 value={newProject.title}
                                 onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 font-bold outline-none focus:border-nexus-primary"
-                                placeholder="שם הפרויקט..."
+                                placeholder="למשל: קמפיין פסח 2026"
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">תיאור</label>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">תיאור קצר</label>
                             <textarea
                                 value={newProject.description}
                                 onChange={(e) => setNewProject((p) => ({ ...p, description: e.target.value }))}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-nexus-primary min-h-[110px]"
-                                placeholder="מה הפרויקט כולל?"
+                                placeholder="מה המטרה של הפרויקט?"
                             />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">סוג</label>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">סוג עבודה</label>
                                 <CustomSelect
                                     value={newProject.type}
                                     onChange={(val) => setNewProject((p) => ({ ...p, type: val as 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV' }))}
                                     options={[
                                         { value: 'CAMPAIGN', label: 'קמפיין' },
-                                        { value: 'REPORT', label: 'דו״ח' },
+                                        { value: 'REPORT', label: 'דו"ח' },
                                         { value: 'DESIGN', label: 'עיצוב' },
                                         { value: 'STRATEGY', label: 'אסטרטגיה' },
                                         { value: 'DEV', label: 'פיתוח' },
@@ -86,12 +86,12 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">תמונה (URL)</label>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">תמונה (אופציונלי)</label>
                                 <input
                                     value={newProject.thumbnailUrl}
                                     onChange={(e) => setNewProject((p) => ({ ...p, thumbnailUrl: e.target.value }))}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-nexus-primary"
-                                    placeholder="https://..."
+                                    placeholder="קישור לתמונה..."
                                 />
                             </div>
                         </div>
@@ -206,7 +206,7 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
         {/* Assets List */}
         <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FolderOpen size={18} className="text-nexus-accent"/> קבצים
+                <FolderOpen size={18} className="text-nexus-accent"/> כספת מסמכים וקבצים
             </h3>
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 {client.assets?.map((asset, idx) => (

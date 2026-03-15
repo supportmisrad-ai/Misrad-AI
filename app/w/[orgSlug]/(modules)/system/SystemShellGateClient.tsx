@@ -454,7 +454,7 @@ function SystemShellGateClientCore({
                               setIsPlusFanOpen(false);
                               dispatchSystemEvent('system:new-lead');
                             }}
-                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
+                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black shadow-lg shadow-slate-900/20 active:scale-95 transition-all"
                           >
                             ליד חדש
                           </button>
@@ -464,30 +464,20 @@ function SystemShellGateClientCore({
                               setIsPlusFanOpen(false);
                               dispatchSystemEvent('system:calendar:new-meeting');
                             }}
-                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black shadow-sm active:scale-95 transition-all"
                           >
                             פגישה חדשה
                           </button>
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsPlusFanOpen(false);
-                              dispatchSystemEvent('system:calendar:new-meeting');
-                            }}
-                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
-                          >
-                            פגישה חדשה
-                          </button>
+                        <div className="mt-3 grid grid-cols-1">
                           <button
                             type="button"
                             onClick={() => {
                               setIsPlusFanOpen(false);
                               dispatchVoiceCommandEvent();
                             }}
-                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black inline-flex items-center justify-center gap-2"
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black inline-flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all"
                           >
                             <Mic size={18} />
                             פקודה קולית

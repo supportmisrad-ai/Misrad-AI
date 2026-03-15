@@ -226,6 +226,9 @@ export interface ContentItem {
 export interface DashboardStats {
   totalValue: number;
   totalLeads: number;
+  newLeads: number;
+  inProgress: number;
+  wonLeads: number;
   conversionRate: number;
   leadsNeedingAttention: number;
 }

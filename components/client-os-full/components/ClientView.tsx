@@ -33,7 +33,7 @@ const ClientView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'LIST' | 'DETAIL'>('LIST');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pulse' | 'strategy' | 'tasks' | 'journey' | 'meetings' | 'work' | 'feedback' | 'transform' | 'stakeholders' | 'portal'>('strategy');
+  const [activeTab, setActiveTab] = useState<'pulse' | 'strategy' | 'tasks' | 'journey' | 'meetings' | 'work' | 'feedback' | 'transform' | 'stakeholders' | 'portal'>('pulse');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
@@ -519,34 +519,48 @@ const ClientView: React.FC = () => {
 
       {/* COMPREHENSIVE TABS NAVIGATION */}
       <div className="flex gap-2 border-b border-gray-200/60 overflow-x-auto no-scrollbar scroll-smooth">
-           {[
-               { id: 'strategy', icon: Target, label: 'אסטרטגיה & ROI' },
-               { id: 'portal', icon: Globe, label: 'ניהול פורטל' },
-               { id: 'pulse', icon: SquareActivity, label: 'בריאות התיק' },
-               { id: 'stakeholders', icon: Users, label: 'אנשי קשר' },
-               { id: 'tasks', icon: ListTodo, label: 'משימות' },
-               { id: 'journey', icon: Map, label: 'תהליך' },
-               { id: 'meetings', icon: Calendar, label: 'פגישות' },
-               { id: 'work', icon: BriefcaseIcon, label: 'עבודות' },
-               { id: 'transform', icon: Split, label: 'לפני / אחרי' },
-               { id: 'feedback', icon: MessageCircleHeart, label: 'משובים' }
-           ].map((tab) => (
-             <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id as 'transform' | 'meetings' | 'tasks' | 'journey' | 'stakeholders' | 'pulse' | 'strategy' | 'work' | 'feedback' | 'portal')} 
-                className={`px-6 py-4 text-sm font-bold transition-all relative rounded-t-xl flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? 'text-nexus-primary bg-white shadow-sm ring-1 ring-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
-             >
-                <tab.icon size={16} /> {tab.label}
-             </button>
-           ))}
+        {[
+          { id: 'pulse', icon: SquareActivity, label: 'מצב התיק' },
+          { id: 'tasks', icon: ListTodo, label: 'משימות וביצוע' },
+          { id: 'meetings', icon: Calendar, label: 'סיכומי פגישות' },
+          { id: 'work', icon: BriefcaseIcon, label: 'תוצרים וקבצים' },
+          { id: 'strategy', icon: Target, label: 'שורת הרווח' },
+          { id: 'portal', icon: Globe, label: 'ניהול פורטל' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() =>
+              setActiveTab(
+                tab.id as
+                  | 'transform'
+                  | 'meetings'
+                  | 'tasks'
+                  | 'journey'
+                  | 'stakeholders'
+                  | 'pulse'
+                  | 'strategy'
+                  | 'work'
+                  | 'feedback'
+                  | 'portal'
+              )
+            }
+            className={`px-6 py-4 text-sm font-bold transition-all relative rounded-t-xl flex items-center gap-2 whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'text-nexus-primary bg-white shadow-sm ring-1 ring-gray-200'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <tab.icon size={16} /> {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar">
-           {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
+        {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת הצעת צמיחה — הפיצ׳ר בפיתוח.', type: 'info' } }));
            }} />}
-           {activeTab === 'portal' && <PortalManagementTab client={client} />}
-           {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
+        {activeTab === 'portal' && <PortalManagementTab client={client} />}
+        {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
                if (isInsightLoading || !client) return;
                setIsInsightLoading(true);
                try {
@@ -555,8 +569,7 @@ const ClientView: React.FC = () => {
                } catch { setAiInsight({ insight: 'לא הצלחנו לייצר תובנה כרגע.', action: 'נסה שוב מאוחר יותר' }); }
                finally { setIsInsightLoading(false); }
            }} />}
-           {activeTab === 'stakeholders' && <ClientStakeholdersTab client={client} />}
-           {activeTab === 'tasks' && (
+        {activeTab === 'tasks' && (
              <ClientTasksTab 
                client={client} 
                assignedForms={assignedForms} 
@@ -568,8 +581,7 @@ const ClientView: React.FC = () => {
                scheduledAutomations={[]} 
              />
            )}
-           {activeTab === 'journey' && <ClientJourneyTab journeyData={journeyData} />}
-           {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {
+        {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {
                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ההערה נשמרה בהצלחה.', type: 'success' } }));
            }} onToggleTask={(meetingId, type, taskId) => {
                setClientMeetings(prev => prev.map(m => {
@@ -581,9 +593,14 @@ const ClientView: React.FC = () => {
                  return { ...m, aiAnalysis: { ...m.aiAnalysis, [key]: tasks } };
                }));
            }} />}
-           {activeTab === 'work' && <ClientWorkTab client={client} />}
-           {activeTab === 'transform' && <ClientTransformTab client={client} />}
-           {activeTab === 'feedback' && <ClientFeedbackTab feedback={clientFeedback} />}
+        {activeTab === 'work' && (
+          <div className="space-y-12">
+            <ClientWorkTab client={client} />
+            <div className="border-t border-gray-100 pt-12">
+              <ClientTransformTab client={client} />
+            </div>
+          </div>
+        )}
       </div>
       {orgSlug ? (
         <SmartImportClientsDialog

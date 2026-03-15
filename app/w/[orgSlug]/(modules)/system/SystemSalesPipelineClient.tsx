@@ -257,16 +257,23 @@ export default function SystemSalesPipelineClient({
     const missing = new Set<string>();
     leads.forEach((l) => {
       const k = String(l.status || '').trim();
-      if (k && !stageKeys.has(k)) missing.add(k);
+      if (k && !stageKeys.has(k)) {
+        missing.add(k);
+      }
     });
+
+    // בודק אם 'incoming' חסר למרות שהוא שלב חובה ללידים חדשים
+    if (!stageKeys.has('incoming') && !missing.has('incoming')) {
+      missing.add('incoming');
+    }
 
     const synthesized = Array.from(missing).map((k, idx) => ({
       id: k,
       key: k,
-      label: k,
+      label: k === 'incoming' ? 'נכנס' : k,
       color: 'border-slate-200',
       accent: 'bg-slate-300',
-      order: 10000 + idx,
+      order: k === 'incoming' ? -1 : 10000 + idx,
       isActive: true,
     }));
 
@@ -340,6 +347,11 @@ export default function SystemSalesPipelineClient({
   };
 
   const handleDeleteStage = async (id: string) => {
+    const stage = (pipelineStages || []).find((s) => String(s.id) === id);
+    if (stage?.key === 'incoming') {
+      addToast('לא ניתן למחוק את שלב הלידים הנכנסים', 'error');
+      return;
+    }
     setStageError(null);
     setIsStagesSaving(true);
     try {
@@ -638,7 +650,7 @@ export default function SystemSalesPipelineClient({
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="min-w-0">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">מכירות</div>
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">מערכת לידים</div>
             <div className="text-xl md:text-3xl font-black text-slate-900 truncate flex items-center gap-2">
               לידים
               {!isAdmin && (
@@ -772,68 +784,70 @@ export default function SystemSalesPipelineClient({
         )}
       </div>}
 
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="flex gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="חיפוש..."
-            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold shadow-sm focus:border-slate-900 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={() => setTodayOnly((v) => !v)}
-            className={`px-3 py-2 rounded-xl text-xs font-black border shadow-sm transition-colors whitespace-nowrap ${
-              todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200'
-            }`}
-          >
-            היום
-          </button>
-        </div>
+        <div className="grid grid-cols-1 md:flex md:flex-row gap-2 mb-4">
+          <div className="flex-1 flex gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="חיפוש..."
+              className="flex-1 bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold shadow-sm focus:border-slate-900 transition-all outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setTodayOnly((v) => !v)}
+              className={`px-5 py-2.5 rounded-2xl text-sm font-black border shadow-sm transition-all whitespace-nowrap ${
+                todayOnly ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              היום
+            </button>
+          </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={statusFilter}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === 'all') {
-                setStatusFilter('all');
-                return;
-              }
-              setStatusFilter(val as PipelineStage);
-            }}
-          >
-            <option value="all">כל הסטטוסים</option>
-            {stagesForUi.map((s) => (
-              <option key={s.key} value={String(s.key)}>{String(s.label)}</option>
-            ))}
-          </Select>
+          <div className="grid grid-cols-2 md:flex md:flex-row gap-2">
+            <Select
+              value={statusFilter}
+              className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'all') {
+                  setStatusFilter('all');
+                  return;
+                }
+                setStatusFilter(val as PipelineStage);
+              }}
+            >
+              <option value="all">כל הסטטוסים</option>
+              {stagesForUi.map((s) => (
+                <option key={s.key} value={String(s.key)}>{String(s.label)}</option>
+              ))}
+            </Select>
 
-          <Select
-            value={sortKey}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (
-                val === 'created_desc' ||
-                val === 'created_asc' ||
-                val === 'value_desc' ||
-                val === 'value_asc' ||
-                val === 'name_asc' ||
-                val === 'name_desc'
-              ) {
-                setSortKey(val);
-              }
-            }}
-          >
-            <option value="created_desc">חדש ביותר</option>
-            <option value="created_asc">ישן ביותר</option>
-            <option value="value_desc">שווי גבוה</option>
-            <option value="value_asc">שווי נמוך</option>
-            <option value="name_asc">שם (א-ת)</option>
-            <option value="name_desc">שם (ת-א)</option>
-          </Select>
+            <Select
+              value={sortKey}
+              className="md:w-48 h-full min-h-[44px] rounded-2xl font-bold text-sm border-slate-200"
+              onChange={(e) => {
+                const val = e.target.value;
+                if (
+                  val === 'created_desc' ||
+                  val === 'created_asc' ||
+                  val === 'value_desc' ||
+                  val === 'value_asc' ||
+                  val === 'name_asc' ||
+                  val === 'name_desc'
+                ) {
+                  setSortKey(val);
+                }
+              }}
+            >
+              <option value="created_desc">חדש ביותר</option>
+              <option value="created_asc">ישן ביותר</option>
+              <option value="value_desc">שווי גבוה</option>
+              <option value="value_asc">שווי נמוך</option>
+              <option value="name_asc">שם (א-ת)</option>
+              <option value="name_desc">שם (ת-א)</option>
+            </Select>
+          </div>
         </div>
-      </div>
 
       <div className="h-[calc(100vh-280px)] md:h-auto md:flex-1 md:min-h-0">
         {viewMode === 'board' ? (

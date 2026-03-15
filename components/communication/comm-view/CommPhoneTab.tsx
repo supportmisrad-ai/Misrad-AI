@@ -170,9 +170,9 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/30">
-      <div className="w-full flex justify-center px-4 pt-6 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))]">
-        <div className="w-full max-w-sm bg-white p-6 md:p-8 rounded-[3rem] shadow-2xl border border-slate-200">
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-50/30 overflow-hidden">
+      <div className="flex-1 w-full flex flex-col justify-center items-center px-4 py-4 md:p-8">
+        <div className="w-full max-w-sm bg-white p-6 md:p-8 rounded-[3rem] shadow-2xl border border-slate-200 flex flex-col shrink-0">
         {showUploadRecording ? (
           <div className="mb-5 flex justify-center">
             <label
@@ -222,12 +222,12 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'].map((d) => (
             <button
               key={d}
               onClick={() => onSetDialNumber((prev) => prev + d)}
-              className="h-16 rounded-full bg-slate-50 shadow-sm border border-slate-100 text-2xl font-bold text-slate-700 hover:bg-white hover:border-rose-200 hover:text-primary active:scale-95 transition-all flex items-center justify-center"
+              className="h-14 md:h-16 rounded-full bg-slate-50 shadow-sm border border-slate-100 text-xl md:text-2xl font-bold text-slate-700 hover:bg-white hover:border-rose-200 hover:text-primary active:scale-95 transition-all flex items-center justify-center"
             >
               {d}
             </button>
@@ -238,11 +238,11 @@ const CommPhoneTab: React.FC<CommPhoneTabProps> = ({
           <button
             onClick={() => onCall()}
             disabled={!dialNumber}
-            className={`w-20 h-20 rounded-full flex items-center justify-center shadow-xl text-white transition-all transform hover:scale-105 active:scale-95 ${
+            className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-xl text-white transition-all transform hover:scale-105 active:scale-95 ${
               dialNumber ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200' : 'bg-slate-200 cursor-not-allowed'
             }`}
           >
-            <Phone size={32} fill="currentColor" />
+            <Phone size={28} className="md:w-8 md:h-8" fill="currentColor" />
           </button>
         </div>
       </div>

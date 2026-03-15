@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Client } from '../../types';
-import { Dna, Microscope, Sparkles, Zap, SquareActivity } from 'lucide-react';
+import { Activity, Brain, Sparkles, Zap, SquareActivity, AlertCircle } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -14,32 +14,32 @@ interface ClientPulseTabProps {
 
 export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsight, isInsightLoading, onGenerateInsight }) => {
   
-  const getDnaData = (c: Client) => {
-      const roiScore = Math.min(100, (c.roiHistory.length * 25)); // Mock calc
+    const getSummaryData = (c: Client) => {
+      const valueScore = Math.min(100, (c.roiHistory.length * 25)); // חישוב פשוט של ערך
       return [
           { subject: 'יחסים', A: c.healthBreakdown.sentiment, fullMark: 100 },
-          { subject: 'כסף (ROI)', A: roiScore || 40, fullMark: 100 },
-          { subject: 'רווח', A: c.healthBreakdown.financial, fullMark: 100 },
+          { subject: 'תועלת', A: valueScore || 40, fullMark: 100 },
+          { subject: 'רווחיות', A: c.healthBreakdown.financial, fullMark: 100 },
           { subject: 'מעורבות', A: c.healthBreakdown.engagement, fullMark: 100 },
-          { subject: 'חזון', A: c.healthScore > 80 ? 90 : 50, fullMark: 100 },
+          { subject: 'שביעות רצון', A: c.healthScore > 80 ? 90 : 50, fullMark: 100 },
       ];
-  };
+    };
 
   return (
     <div className="space-y-8 animate-slide-up">
         
-        <div className="flex justify-between items-end mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-4">
             <div>
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                    <Dna size={20} className="text-nexus-accent"/> מה המצב שלהם?
+                    <Activity size={20} className="text-nexus-accent"/> איך התיק מרגיש?
                 </h3>
-                <p className="text-sm text-gray-500">בדיקה מקיפה של כל המדדים החשובים.</p>
+                <p className="text-sm text-gray-500">סקירה מהירה של המדדים החשובים בניהול הלקוח.</p>
             </div>
             <button 
                 onClick={onGenerateInsight}
-                className="flex items-center gap-2 px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-colors shadow-lg shadow-nexus-primary/20"
+                className="flex items-center gap-2 px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-colors shadow-lg shadow-nexus-primary/20 whitespace-nowrap"
             >
-                <Microscope size={16} /> בדוק לעומק
+                <Brain size={16} /> ניתוח חכם (AI)
             </button>
         </div>
 
@@ -48,10 +48,10 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
             {/* Left: The Radar Chart */}
             <div className="glass-card p-6 rounded-2xl flex flex-col items-center justify-center relative min-h-[400px] bg-white/90">
                 <div className="absolute top-4 left-4 text-xs font-bold bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                    ציון: {client.healthScore}
+                    ציון כללי: {client.healthScore}
                 </div>
                 <ResponsiveContainer width="100%" height={350}>
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={getDnaData(client)}>
+                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={getSummaryData(client)}>
                         <PolarGrid stroke="#e5e7eb" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 12, fontWeight: 'bold' }} />
                         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
@@ -78,7 +78,7 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                     <div className="absolute top-0 right-0 w-32 h-32 bg-nexus-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                     <div className="flex justify-between items-start mb-4 relative z-10">
                         <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                            <Sparkles size={16} className="text-nexus-accent" /> מה ה-AI חושב?
+                            <Sparkles size={16} className="text-nexus-accent" /> תובנות AI למנהל
                         </h4>
                         {isInsightLoading && <Skeleton className="w-4 h-4 rounded-full" />}
                     </div>
@@ -113,27 +113,27 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
 
                 {/* Weak Spots & Repair Plan */}
                 <div className="flex-1 bg-white border border-gray-200 rounded-2xl p-6">
-                    <h4 className="font-bold text-gray-900 text-sm mb-4">איפה כואב להם?</h4>
+                    <h4 className="font-bold text-gray-900 text-sm mb-4">נקודות לשיפור ושימור</h4>
                     <div className="space-y-3">
-                        {getDnaData(client).sort((a,b) => a.A - b.A).slice(0, 2).map((item, idx) => (
+                        {getSummaryData(client).sort((a,b) => a.A - b.A).slice(0, 2).map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-red-50/50 border border-red-100">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 font-bold text-xs shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 font-bold text-xs shadow-sm border border-red-100">
                                         {item.A}
                                     </div>
                                     <div>
                                         <span className="text-sm font-bold text-gray-800 block">{item.subject}</span>
-                                        <span className="text-[10px] text-red-600">ציון נמוך</span>
+                                        <span className="text-[10px] text-red-600">דורש תשומת לב</span>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => {
                                         onGenerateInsight();
-                                        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: `מנתח את הנושא "${item.subject}" ומחפש המלצות לשיפור...`, type: 'info' } }));
+                                        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: `מנתח פתרונות לשיפור מדד "${item.subject}"...`, type: 'info' } }));
                                     }}
                                     className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-bold text-gray-600 hover:text-nexus-primary hover:border-nexus-primary transition-colors"
                                 >
-                                    איך מתקנים?
+                                    מה עושים?
                                 </button>
                             </div>
                         ))}

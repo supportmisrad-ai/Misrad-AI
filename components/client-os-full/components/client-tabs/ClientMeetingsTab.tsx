@@ -26,7 +26,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
   return (
     <div className="space-y-6 animate-slide-up">
         <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-4">
-            <Calendar size={20} className="text-nexus-primary"/> הקלטות וניתוחים
+            <Calendar size={20} className="text-nexus-primary"/> היסטוריית פגישות וסיכומים
         </h3>
         <div className="space-y-4">
             {meetings.length > 0 ? meetings.map(meeting => (
@@ -82,7 +82,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                                     )}
 
                                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Brain size={12}/> תקציר מנהלים</h5>
+                                        <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Brain size={12}/> עיקרי הדברים (AI)</h5>
                                         <p className="text-sm text-gray-700 leading-relaxed">{meeting.aiAnalysis.summary}</p>
                                     </div>
 
@@ -111,11 +111,11 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-white p-3 rounded-xl border border-gray-200 text-center">
                                             <span className="block text-2xl font-bold text-nexus-primary">{meeting.aiAnalysis.rating?.professionalism || '-'}</span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase">מקצועיות</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase">רמת ביצוע</span>
                                         </div>
                                         <div className="bg-white p-3 rounded-xl border border-gray-200 text-center">
                                             <span className="block text-2xl font-bold text-nexus-accent">{meeting.aiAnalysis.rating?.warmth || '-'}</span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase">חמימות</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase">שביעות רצון</span>
                                         </div>
                                     </div>
                                     
@@ -219,7 +219,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                             {/* Bottom: Manual Notes Section */}
                             <div className="p-6 bg-gray-50 border-t border-gray-200">
                                 <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                    <Edit2 size={14} className="text-nexus-accent"/> הערות צוות (ידני)
+                                    <Edit2 size={14} className="text-nexus-accent"/> הערות אישיות (ידני)
                                 </h5>
                                 <div className="relative">
                                     <textarea
