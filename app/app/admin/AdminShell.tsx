@@ -383,17 +383,18 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                       analytics: { active: 'bg-amber-600 text-white border-amber-600', inactive: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' },
                     };
                     const colors = areaColors[area];
+                    // Get first nav item for each area as the main link
+                    const areaFirstHref = areaNavMap[area][0]?.href || '/app/admin';
                     return (
-                      <button
+                      <Link
                         key={area}
-                        type="button"
-                        onClick={() => switchAdminArea(area)}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border shadow-sm ${
+                        href={areaFirstHref}
+                        className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border shadow-sm text-center ${
                           adminArea === area ? colors.active : colors.inactive
                         }`}
                       >
                         {getAdminAreaLabel(area)}
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
@@ -619,20 +620,23 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                     <div className="px-2 pt-2">
                       <div className="text-xs font-black text-slate-500">סביבת עבודה</div>
                       <div className="grid grid-cols-3 gap-1.5 mt-2">
-                        {ADMIN_AREAS.map((area) => (
-                          <button
-                            key={area}
-                            type="button"
-                            onClick={() => { switchAdminArea(area); setIsMobileNavOpen(false); }}
-                            className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border ${
-                              adminArea === area
-                                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                            }`}
-                          >
-                            {getAdminAreaLabel(area)}
-                          </button>
-                        ))}
+                        {ADMIN_AREAS.map((area) => {
+                          const areaFirstHref = areaNavMap[area][0]?.href || '/app/admin';
+                          return (
+                            <Link
+                              key={area}
+                              href={areaFirstHref}
+                              onClick={() => setIsMobileNavOpen(false)}
+                              className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border text-center ${
+                                adminArea === area
+                                  ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {getAdminAreaLabel(area)}
+                            </Link>
+                          );
+                        })}
                       </div>
                       <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
                     </div>

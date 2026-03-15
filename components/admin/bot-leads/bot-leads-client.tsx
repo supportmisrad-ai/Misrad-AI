@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { BotLeadDTO, GetBotLeadsParams, getBotLeads, updateBotLeadStatus, updateBotLeadAssignment } from '@/app/actions/bot-leads';
 import { formatDistanceToNow, format } from 'date-fns';
 import { he } from 'date-fns/locale';
-import { Select } from '@/components/ui/select';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
+import { Search, Filter, MoreHorizontal, ChevronDown, CheckCircle2, User, Phone, Mail, Building2, Star, Clock, Tags, Users } from 'lucide-react';
 
 interface BotLeadsClientProps {
   initialLeads: BotLeadDTO[];
@@ -86,144 +87,174 @@ export function BotLeadsClient({ initialLeads, initialTotal, campaigns }: BotLea
     setExpandedRows(newExpanded);
   };
 
+  const handleUpdateNextAction = async (leadId: string, date: string) => {
+    try {
+      // Here we would call a server action to update next_action_date
+      // For now, updating local state
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, next_action_date: date ? new Date(date) : null } : l));
+    } catch (error) {
+      console.error('Failed to update next action date:', error);
+    }
+  };
+
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-8 bg-[#f8fafc] min-h-screen font-sans" dir="rtl">
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>לידים מהבוט</h1>
-        <p style={{ color: '#6b7280' }}>ניהול לידים מבלאסטר וואטסאפ ({total.toLocaleString()} לידים)</p>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>סה"כ לידים</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{total.toLocaleString()}</div>
-        </div>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>חדשים היום</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb' }}>
-            {leads.filter(l => new Date().toDateString() === new Date(l.created_at).toDateString()).length}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">לידים מהבוט</h1>
           </div>
+          <p className="text-slate-500 font-bold mr-12">ניהול חכם של לידים מבלאסטר וואטסאפ • {total.toLocaleString()} סה"כ</p>
         </div>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>ממתינים</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#eab308' }}>
-            {leads.filter(l => l.status === 'new').length}
-          </div>
-        </div>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>ציון ממוצע</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-            {leads.length > 0 ? Math.round(leads.reduce((acc, l) => acc + (l.lead_score || 0), 0) / leads.length) : 0}
-          </div>
-        </div>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>עם מדיה</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#9333ea' }}>
-            {leads.filter(l => l.has_media).length}
-          </div>
-        </div>
-        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: '12px', color: '#6b7280' }}>לקוחות</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>
-            {leads.filter(l => l.status === 'customer').length}
-          </div>
+        
+        <div className="flex items-center gap-3">
+           {/* Quick Stats Summary */}
+           <div className="hidden lg:flex items-center gap-6 px-6 py-3 bg-white rounded-3xl border border-slate-200 shadow-sm">
+              <div className="text-center">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">חדשים היום</div>
+                <div className="text-lg font-black text-blue-600">
+                  {leads.filter(l => new Date().toDateString() === new Date(l.created_at).toDateString()).length}
+                </div>
+              </div>
+              <div className="w-px h-8 bg-slate-100" />
+              <div className="text-center">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ממתינים</div>
+                <div className="text-lg font-black text-amber-500">
+                  {leads.filter(l => l.status === 'new').length}
+                </div>
+              </div>
+           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          <input
-            type="text"
-            placeholder="חיפוש לפי שם, טלפון, אימייל..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-          />
-          <Select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="h-10 text-sm"
-          >
-            <option value="all">כל הסטטוסים</option>
-            {Object.entries(statusLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </Select>
-          <Select
-            value={filters.priority}
-            onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-            className="h-10 text-sm"
-          >
-            <option value="all">כל העדיפויות</option>
-            {Object.entries(priorityLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </Select>
-          <Select
-            value={filters.campaign}
-            onChange={(e) => setFilters({ ...filters, campaign: e.target.value })}
-            className="h-10 text-sm"
-          >
-            <option value="all">כל הקמפיינים</option>
-            {campaigns.map((campaign) => (
-              <option key={campaign} value={campaign}>{campaign}</option>
-            ))}
-          </Select>
+      {/* Modern Filters Bar */}
+      <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1 group">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="חיפוש חופשי (שם, טלפון, אימייל...)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl pr-11 pl-4 py-3 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+            />
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Status Select */}
+            <div className="relative min-w-[160px]">
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer transition-all pr-4 pl-10"
+              >
+                <option value="all">כל הסטטוסים</option>
+                {Object.entries(statusLabels).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* Priority Select */}
+            <div className="relative min-w-[140px]">
+              <select
+                value={filters.priority}
+                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer transition-all pr-4 pl-10"
+              >
+                <option value="all">כל העדיפויות</option>
+                {Object.entries(priorityLabels).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+
+            {/* Campaign Select */}
+            <div className="relative min-w-[180px]">
+              <select
+                value={filters.campaign}
+                onChange={(e) => setFilters({ ...filters, campaign: e.target.value })}
+                className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 outline-none cursor-pointer transition-all pr-4 pl-10"
+              >
+                <option value="all">כל הקמפיינים</option>
+                {campaigns.map((campaign) => (
+                  <option key={campaign} value={campaign}>{campaign}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {/* Main Table Container */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: '#f3f4f6' }}>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}></th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>ליד</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>פרטי קשר</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>חברה</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>סטטוס</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>מקור</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>מכירות</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>ציון</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>נוצר</th>
-                <th style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>פעולות</th>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="p-5 w-12 text-right"></th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">ליד</th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">סטטוס</th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">טיפול הבא</th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">מקור וקמפיין</th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">ציון</th>
+                <th className="p-5 text-right text-[11px] font-black text-slate-400 uppercase tracking-widest">נוצר</th>
+                <th className="p-5 text-center text-[11px] font-black text-slate-400 uppercase tracking-widest">פעולות</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {leads.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ padding: '48px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '18px', fontWeight: 500 }}>אין לידים להצגה</div>
-                    <div style={{ color: '#6b7280', marginTop: '8px' }}>הלידים יופיעו כאן כשהבוט יתחיל לשלוח נתונים</div>
+                  <td colSpan={8} className="p-20 text-center">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2.5rem] bg-slate-50 mb-4">
+                      <Users className="w-10 h-10 text-slate-200" />
+                    </div>
+                    <div className="text-xl font-black text-slate-900">אין לידים להצגה</div>
+                    <p className="text-slate-400 font-bold mt-1">הלידים יופיעו כאן כשהבוט יתחיל לשלוח נתונים</p>
                   </td>
                 </tr>
               ) : (
                 leads.map((lead) => (
-                  <>
-                    <tr key={lead.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: '12px' }}>
+                  <React.Fragment key={lead.id}>
+                    <tr className="hover:bg-blue-50/30 transition-colors group">
+                      <td className="p-5">
                         <button
                           onClick={() => toggleRowExpansion(lead.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${expandedRows.has(lead.id) ? 'bg-blue-600 text-white shadow-md shadow-blue-200 rotate-180' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
                         >
-                          {expandedRows.has(lead.id) ? '▲' : '▼'}
+                          <ChevronDown className="w-4 h-4" />
                         </button>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: '18px' }}>👤</span>
+                      <td className="p-5">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-slate-100 border border-slate-200 flex items-center justify-center shadow-sm">
+                              <span className="text-lg font-black text-blue-600">{String(lead.name || lead.first_name || 'ל').charAt(0)}</span>
+                            </div>
+                            {lead.has_media && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full border-2 border-white shadow-sm" title="כולל מדיה" />
+                            )}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 500 }}>{lead.name || lead.first_name || 'ליד ללא שם'}</div>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>{lead.phone}</div>
-                            <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                              {lead.priority && (
-                                <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: '#dbeafe' }}>
+                            <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                              {lead.name || lead.first_name || 'ליד ללא שם'}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs font-bold text-slate-400 tracking-tight">{lead.phone}</span>
+                              {lead.priority && lead.priority !== 'medium' && (
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full border ${
+                                  lead.priority === 'urgent' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                  lead.priority === 'high' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                  'bg-slate-50 text-slate-500 border-slate-100'
+                                }`}>
                                   {priorityLabels[lead.priority]}
                                 </span>
                               )}
@@ -231,292 +262,253 @@ export function BotLeadsClient({ initialLeads, initialTotal, campaigns }: BotLea
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        {lead.email && <div>📧 {lead.email}</div>}
-                        {lead.alternative_phone && <div style={{ color: '#6b7280' }}>📞 {lead.alternative_phone}</div>}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        {lead.business_name && <div style={{ fontWeight: 500 }}>🏢 {lead.business_name}</div>}
-                        {lead.industry && <div style={{ color: '#6b7280' }}>{lead.industry}</div>}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ 
-                          padding: '4px 8px', 
-                          borderRadius: '4px', 
-                          fontSize: '12px',
-                          background: lead.status === 'new' ? '#dbeafe' : 
-                                    lead.status === 'customer' ? '#dcfce7' :
-                                    lead.status === 'lost' ? '#fee2e2' : '#f3f4f6'
-                        }}>
+                      <td className="p-5">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-black border transition-all ${
+                          lead.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100 shadow-sm shadow-blue-50' : 
+                          lead.status === 'customer' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm shadow-emerald-50' :
+                          lead.status === 'lost' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                          'bg-white text-slate-700 border-slate-200'
+                        }`}>
+                          {lead.status === 'new' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
                           {statusLabels[lead.status] || lead.status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        <div>{lead.source || 'לא ידוע'}</div>
-                        {lead.campaign && <div style={{ color: '#6b7280', fontSize: '12px' }}>{lead.campaign}</div>}
+                      <td className="p-5 min-w-[200px]">
+                        <CustomDatePicker
+                          showHebrewDate
+                          value={lead.next_action_date ? new Date(lead.next_action_date).toISOString().split('T')[0] : ''}
+                          onChange={(date) => handleUpdateNextAction(lead.id, date)}
+                          placeholder="קבע טיפול הבא"
+                          className="!h-9"
+                        />
                       </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        {lead.selected_plan && <div style={{ fontWeight: 500 }}>{lead.selected_plan}</div>}
-                        {lead.plan_price && <div style={{ color: '#16a34a' }}>₪{lead.plan_price}</div>}
-                        {lead.coupon_code && <div style={{ fontSize: '12px' }}>🏷️ {lead.coupon_code}</div>}
+                      <td className="p-5">
+                        <div className="text-[13px] font-black text-slate-700">{lead.source || 'לא ידוע'}</div>
+                        {lead.campaign && (
+                          <div className="text-[10px] font-bold text-slate-400 mt-0.5 line-clamp-1 max-w-[150px]">{lead.campaign}</div>
+                        )}
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ fontWeight: 'bold', color: (lead.lead_score || 0) > 70 ? '#eab308' : '#374151' }}>
-                          ⭐ {lead.lead_score || 0}
-                        </span>
+                      <td className="p-5 text-center">
+                        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-2xl font-black text-sm border ${
+                          (lead.lead_score || 0) > 80 ? 'bg-amber-50 text-amber-600 border-amber-100 shadow-sm shadow-amber-50' :
+                          (lead.lead_score || 0) > 50 ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                          'bg-slate-50 text-slate-400 border-slate-100'
+                        }`}>
+                          {lead.lead_score || 0}
+                        </div>
                       </td>
-                      <td style={{ padding: '12px', fontSize: '14px' }}>
-                        <div>{formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: he })}</div>
+                      <td className="p-5">
+                        <div className="text-[11px] font-black text-slate-700">
+                          {format(new Date(lead.created_at), 'dd/MM/yy', { locale: he })}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-400 mt-0.5">
+                          {format(new Date(lead.created_at), 'HH:mm')}
+                        </div>
                       </td>
-                      <td style={{ padding: '12px' }}>
-                        <button
-                          onClick={() => router.push(`/admin/bot-leads/${lead.id}`)}
-                          style={{ 
-                            padding: '6px 12px', 
-                            background: '#3b82f6', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          פרטים
-                        </button>
+                      <td className="p-5">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => router.push(`/admin/bot-leads/${lead.id}`)}
+                            className="h-10 px-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-200 transition-all active:scale-[0.98]"
+                          >
+                            פרטים מלאים
+                          </button>
+                          <button className="w-10 h-10 flex items-center justify-center rounded-2xl border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
 
-                    {/* EXPANDED ROW - ALL 70+ FIELDS */}
+                    {/* EXPANDED ROW - MODERNIZED GRID */}
                     {expandedRows.has(lead.id) && (
-                      <tr style={{ background: '#f9fafb' }}>
-                        <td colSpan={10} style={{ padding: '24px' }}>
-                          <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', borderBottom: '2px solid #3b82f6', paddingBottom: '8px' }}>
-                            כל הפרטים ({Object.keys(lead).length} שדות)
-                          </h3>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', fontSize: '13px' }}>
-                            {/* Column 1: Basic Info (20 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#2563eb', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                פרטי בסיס
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>ID:</span> <code style={{ fontSize: '11px' }}>{lead.id}</code></div>
-                                <div><span style={{ color: '#6b7280' }}>שם מלא:</span> {lead.name}</div>
-                                <div><span style={{ color: '#6b7280' }}>שם פרטי:</span> {lead.first_name || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>שם משפחה:</span> {lead.last_name || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>טלפון:</span> {lead.phone}</div>
-                                <div><span style={{ color: '#6b7280' }}>טלפון נוסף:</span> {lead.alternative_phone || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אימייל:</span> {lead.email || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אימייל מאומת:</span> {lead.email_validated ? '✅' : '❌'}</div>
-                                <div><span style={{ color: '#6b7280' }}>שפה:</span> {lead.preferred_language || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תקשורת מועדפת:</span> {lead.communication_pref || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>זמן מועדף:</span> {lead.best_time_to_call || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>טיים זון:</span> {lead.timezone || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>ID ארגון:</span> {lead.organization_id || '-'}</div>
+                      <tr className="bg-slate-50/80 border-b border-slate-100">
+                        <td colSpan={8} className="p-8">
+                          <div className="max-w-[1400px] mx-auto">
+                            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
+                              <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600 rounded-[1.25rem] shadow-lg shadow-blue-200">
+                                  <Building2 className="w-5 h-5 text-white" />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900">סקירת ליד מורחבת</h3>
+                              </div>
+                              <div className="flex gap-3">
+                                <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 hover:bg-slate-50 transition-all">הורד PDF</button>
+                                <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-600 hover:bg-slate-50 transition-all">ייצא ל-CRM</button>
                               </div>
                             </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                              {/* Column 1: Basic Info */}
+                              <div className="space-y-6">
+                                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">פרטי בסיס</h4>
+                                <div className="space-y-4">
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <User className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">שם מלא</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{lead.name || '-'}</div>
+                                  </div>
+                                  
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">טלפון ישיר</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5" dir="ltr">{lead.phone}</div>
+                                  </div>
 
-                            {/* Column 2: Company Info (20 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#2563eb', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                פרטי חברה
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>שם עסק:</span> {lead.business_name || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>סוג עסק:</span> {lead.business_type || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תעשייה:</span> {lead.industry || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תת-תעשייה:</span> {lead.sub_industry || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>גודל ארגון:</span> {lead.org_size || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>מספר עובדים:</span> {lead.employee_count || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>הכנסה שנתית:</span> {lead.annual_revenue || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>שנים בעסקים:</span> {lead.years_in_business || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אתר אינטרנט:</span> {lead.website ? <a href={lead.website} target="_blank" style={{ color: '#3b82f6' }}>קישור ↗</a> : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>לינקדאין:</span> {lead.linkedin_company || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>פייסבוק:</span> {lead.facebook_page || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אינסטגרם:</span> {lead.instagram_handle || '-'}</div>
-                              </div>
-                            </div>
-
-                            {/* Column 3: Location (15 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#2563eb', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                מיקום
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>כתובת:</span> {lead.address || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>עיר:</span> {lead.city || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אזור:</span> {lead.region || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>מדינה:</span> {lead.country || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>מיקוד:</span> {lead.zip_code || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קו רוחב:</span> {lead.latitude || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קו אורך:</span> {lead.longitude || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>שם מיקום:</span> {lead.location_name || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>סוג מיקום:</span> {lead.location_type || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אזור שירות:</span> {lead.service_area || '-'}</div>
-                              </div>
-                            </div>
-
-                            {/* Column 4: Source & Tracking (20 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#2563eb', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                מקור ומעקב
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>מקור:</span> {lead.source || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>מדיום:</span> {lead.medium || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קמפיין:</span> {lead.campaign || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קמפיין ID:</span> {lead.campaign_id || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>שם מפנה:</span> {lead.referrer_name || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קוד מפנה:</span> {lead.referrer_code || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>UTM Source:</span> {lead.utm_source || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>UTM Medium:</span> {lead.utm_medium || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>UTM Campaign:</span> {lead.utm_campaign || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>דף נחיתה:</span> {lead.landing_page || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>כפתור נלחץ:</span> {lead.button_clicked || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>QR נסרק:</span> {lead.qr_scanned ? '✅' : '❌'}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Second Row: Sales, Coupons, Media, Dates */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', fontSize: '13px', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
-                            {/* Sales & Product (15 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#16a34a', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                מוצר ומכירות
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>תוכנית נבחרת:</span> {lead.selected_plan || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>מחיר תוכנית:</span> {lead.plan_price ? `₪${lead.plan_price}` : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>נקודת כאב:</span> {lead.pain_point || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>רמת כאב:</span> {lead.pain_level || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>טווח תקציב:</span> {lead.budget_range || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>רמת דחיפות:</span> {lead.urgency_level || '-'}</div>
-                              </div>
-                            </div>
-
-                            {/* Coupons (5 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#16a34a', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                קופונים והנחות
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>קוד קופון:</span> {lead.coupon_code || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>סוג קופון:</span> {lead.coupon_type || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>סכום הנחה:</span> {lead.discount_amount ? `₪${lead.discount_amount}` : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>אחוז הנחה:</span> {lead.discount_percent ? `${lead.discount_percent}%` : '-'}</div>
-                              </div>
-                            </div>
-
-                            {/* Media (5 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#9333ea', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                מדיה וקבצים
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>יש מדיה:</span> {lead.has_media ? '✅ כן' : '❌ לא'}</div>
-                                <div><span style={{ color: '#6b7280' }}>סוג מדיה:</span> {lead.media_type || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>כתובת תמונה:</span> {lead.image_url ? <a href={lead.image_url} target="_blank" style={{ color: '#3b82f6' }}>צפה ↗</a> : '-'}</div>
-                              </div>
-                            </div>
-
-                            {/* Dates (12 fields) */}
-                            <div>
-                              <h4 style={{ fontWeight: 'bold', color: '#ea580c', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                תאריכים
-                              </h4>
-                              <div style={{ display: 'grid', gap: '6px' }}>
-                                <div><span style={{ color: '#6b7280' }}>נוצר:</span> {format(new Date(lead.created_at), 'dd/MM/yyyy HH:mm')}</div>
-                                <div><span style={{ color: '#6b7280' }}>עודכן:</span> {format(new Date(lead.updated_at), 'dd/MM/yyyy HH:mm')}</div>
-                                <div><span style={{ color: '#6b7280' }}>אינטראקציה אחרונה:</span> {lead.last_interaction ? format(new Date(lead.last_interaction), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>קשר ראשון:</span> {lead.first_contact_date ? format(new Date(lead.first_contact_date), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>פעילות אחרונה:</span> {lead.last_activity_date ? format(new Date(lead.last_activity_date), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>דמו מתוזמן:</span> {lead.demo_scheduled_date ? format(new Date(lead.demo_scheduled_date), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תחילת ניסיון:</span> {lead.trial_start_date ? format(new Date(lead.trial_start_date), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תאריך סגירה:</span> {lead.closed_date ? format(new Date(lead.closed_date), 'dd/MM/yyyy') : '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>פעולה הבאה:</span> {lead.next_action || '-'}</div>
-                                <div><span style={{ color: '#6b7280' }}>תאריך פעולה הבאה:</span> {lead.next_action_date ? format(new Date(lead.next_action_date), 'dd/MM/yyyy') : '-'}</div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Third Row: Status, Notes, Tags */}
-                          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-                              <div style={{ fontSize: '13px' }}>
-                                <h4 style={{ fontWeight: 'bold', color: '#dc2626', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                  סטטוס ושיוך
-                                </h4>
-                                <div style={{ display: 'grid', gap: '6px' }}>
-                                  <div><span style={{ color: '#6b7280' }}>סטטוס:</span> {lead.status}</div>
-                                  <div><span style={{ color: '#6b7280' }}>עדיפות:</span> {lead.priority || '-'}</div>
-                                  <div><span style={{ color: '#6b7280' }}>שלב:</span> {lead.stage || '-'}</div>
-                                  <div><span style={{ color: '#6b7280' }}>איכות:</span> {lead.lead_quality || '-'}</div>
-                                  <div><span style={{ color: '#6b7280' }}>ציון:</span> {lead.lead_score || 0}</div>
-                                  <div><span style={{ color: '#6b7280' }}>משויך ל:</span> {lead.assigned_to || 'לא משויך'}</div>
-                                  <div><span style={{ color: '#6b7280' }}>כמות שיחות:</span> {lead.conversation_count || 0}</div>
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">אימייל</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5 truncate">{lead.email || '-'}</div>
+                                  </div>
                                 </div>
                               </div>
 
-                              <div style={{ fontSize: '13px' }}>
-                                <h4 style={{ fontWeight: 'bold', color: '#dc2626', marginBottom: '12px', borderBottom: '1px solid #d1d5db', paddingBottom: '4px' }}>
-                                  הערות ותגיות
-                                </h4>
-                                {lead.tags.length > 0 && (
-                                  <div style={{ marginBottom: '12px' }}>
-                                    <span style={{ color: '#6b7280' }}>תגיות: </span>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                                      {lead.tags.map((tag, idx) => (
-                                        <span key={idx} style={{ background: '#dbeafe', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>{tag}</span>
-                                      ))}
+                              {/* Column 2: Company & Industry */}
+                              <div className="space-y-6">
+                                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-[0.2em] mb-4">חברה ותעשייה</h4>
+                                <div className="space-y-4">
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-purple-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">שם העסק</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{lead.business_name || '-'}</div>
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-purple-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Star className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">תעשייה</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{lead.industry || '-'}</div>
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-purple-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">גודל ארגון</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{lead.org_size || '-'}</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Column 3: Intent & Sales */}
+                              <div className="space-y-6">
+                                <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-4">מכירות ומוצר</h4>
+                                <div className="space-y-4">
+                                  <div className="group bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 shadow-sm hover:border-emerald-200 transition-all">
+                                    <div className="text-[10px] font-black text-emerald-600 uppercase mb-1">תוכנית נבחרת</div>
+                                    <div className="text-sm font-black text-slate-900">{lead.selected_plan || '-'}</div>
+                                    {lead.plan_price && <div className="text-xs font-black text-emerald-600 mt-1">₪{lead.plan_price} לחודש</div>}
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-all">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase mb-1">נקודת כאב</div>
+                                    <p className="text-xs font-bold text-slate-600 leading-relaxed line-clamp-3">{lead.pain_point || 'לא צוין'}</p>
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-all">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase mb-1">תקציב</div>
+                                    <div className="text-sm font-black text-slate-900">{lead.budget_range || '-'}</div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Column 4: Dates & Tracking */}
+                              <div className="space-y-6">
+                                <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-4">זמנים ומעקב</h4>
+                                <div className="space-y-4">
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">נוצר לראשונה</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{format(new Date(lead.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">אינטראקציה אחרונה</span>
+                                    </div>
+                                    <div className="text-sm font-black text-slate-900 pr-6.5">{lead.last_interaction ? format(new Date(lead.last_interaction), 'dd/MM/yyyy') : '-'}</div>
+                                  </div>
+
+                                  <div className="group bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-200 transition-all">
+                                    <div className="flex items-center gap-3 mb-1">
+                                      <Tags className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-[10px] font-black text-slate-400 uppercase">תגיות</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5 mt-2 pr-6.5">
+                                      {lead.tags.length > 0 ? lead.tags.map((tag, idx) => (
+                                        <span key={idx} className="text-[9px] font-black px-2 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-100">{tag}</span>
+                                      )) : '-'}
                                     </div>
                                   </div>
-                                )}
-                                {lead.notes && (
-                                  <div style={{ marginBottom: '12px' }}>
-                                    <span style={{ color: '#6b7280' }}>הערות: </span>
-                                    <p style={{ marginTop: '4px', background: '#f3f4f6', padding: '12px', borderRadius: '4px', whiteSpace: 'pre-wrap' }}>{lead.notes}</p>
-                                  </div>
-                                )}
-                                {lead.custom_fields && (
-                                  <div>
-                                    <span style={{ color: '#6b7280' }}>שדות מותאמים: </span>
-                                    <pre style={{ marginTop: '4px', background: '#f3f4f6', padding: '8px', borderRadius: '4px', fontSize: '11px', overflow: 'auto' }}>
-                                      {JSON.stringify(lead.custom_fields, null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Action Buttons */}
-                          <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px' }}>
-                            <button
-                              onClick={() => router.push(`/admin/bot-leads/${lead.id}`)}
-                              style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                            >
-                              ערוך ליד
-                            </button>
-                            <button
-                              style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                            >
-                              שלח הודעה
-                            </button>
-                            <button
-                              style={{ padding: '8px 16px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                            >
-                              שנה סטטוס
-                            </button>
+                            {/* Notes Section */}
+                            {lead.notes && (
+                              <div className="mt-8 bg-blue-50/30 p-6 rounded-[2rem] border border-blue-100">
+                                <div className="text-[10px] font-black text-blue-600 uppercase mb-3">הערות ומידע נוסף</div>
+                                <p className="text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-wrap">{lead.notes}</p>
+                              </div>
+                            )}
+
+                            {/* Action Buttons Footer */}
+                            <div className="mt-8 pt-6 border-t border-slate-200 flex items-center gap-3">
+                              <button
+                                onClick={() => router.push(`/admin/bot-leads/${lead.id}`)}
+                                className="px-8 py-3.5 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98]"
+                              >
+                                עריכת ליד מלאה
+                              </button>
+                              <button className="px-8 py-3.5 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-700 hover:bg-slate-50 transition-all">
+                                שלח וואטסאפ מהיר
+                              </button>
+                              <button className="mr-auto h-12 w-12 flex items-center justify-center bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-100 transition-all" title="מחק ליד">
+                                <Tags className="w-5 h-5 rotate-45" />
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination Footer */}
+        <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex items-center justify-between">
+          <div className="text-xs font-bold text-slate-400">מציג {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)} מתוך {total.toLocaleString()} לידים</div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 disabled:opacity-50 transition-all"
+            >
+              הקודם
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 disabled:opacity-50 transition-all"
+            >
+              הבא
+            </button>
+          </div>
         </div>
       </div>
     </div>

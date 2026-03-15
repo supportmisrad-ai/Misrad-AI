@@ -7,7 +7,7 @@ import { Lead, SquareActivity, Task } from './types';
 import { useBackButtonClose } from '@/hooks/useBackButtonClose';
 import { STAGES } from './constants';
 import { CustomSelect } from '@/components/CustomSelect';
-import { X, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Phone, Mail, User, Calendar as CalendarIcon, Clock, Edit2, X, ArrowLeft, ArrowRight, Plus } from 'lucide-react';
 import LogCallModal from './LogCallModal';
 import { useToast } from './contexts/ToastContext';
 import { useAuth } from './contexts/AuthContext';
@@ -23,6 +23,7 @@ import {
   LeadModalTransferDialog,
   LeadModalActionBar,
 } from './lead-modal';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 import {
   asObject,
   getErrorMessage,
@@ -301,7 +302,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   const loadShareRequests = async () => {
     const orgSlug = orgSlugFromPathname(pathname);
     if (!orgSlug) {
-      addToast('לא ניתן לטעון בקשות (orgSlug חסר)', 'error');
+      addToast('לא ניתן לשמור סיכום שיחה (orgSlug חסר)', 'error');
       return;
     }
 
@@ -493,7 +494,6 @@ const LeadModal: React.FC<LeadModalProps> = ({
       const audioBucket = String(uploadRes.bucket || '').trim();
       const audioSignedUrl = String(uploadRes.signedUrl || '').trim();
 
-      // Use the storage path to transcribe (avoids Vercel's 4.5MB body limit)
       const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -727,246 +727,255 @@ const LeadModal: React.FC<LeadModalProps> = ({
           <div className="flex-1 min-h-0 overflow-hidden">
             <div className="h-full overflow-y-auto">
               <div className="p-4 md:p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <div className="text-[11px] font-black text-slate-500">שם</div>
-                  <input
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    onBlur={() => void handleSaveBasics({ name: draftName })}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-[11px] font-black text-slate-500">אחראי</div>
-                  <CustomSelect
-                    value={draftAssignedAgentId}
-                    onChange={(v) => {
-                      setDraftAssignedAgentId(v);
-                      void handleSaveBasics({ assignedAgentId: v ? v : null });
-                    }}
-                    placeholder="לא משויך"
-                    options={(assignees || []).map((a) => ({ value: a.id, label: a.name }))}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-[11px] font-black text-slate-500">טלפון</div>
-                  <input
-                    value={draftPhone}
-                    onChange={(e) => setDraftPhone(e.target.value)}
-                    onBlur={() => void handleSaveBasics({ phone: draftPhone })}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                    dir="ltr"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-[11px] font-black text-slate-500">אימייל</div>
-                  <input
-                    value={draftEmail}
-                    onChange={(e) => setDraftEmail(e.target.value)}
-                    onBlur={() => void handleSaveBasics({ email: draftEmail.trim() ? draftEmail.trim() : null })}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div className="text-sm font-black text-slate-900">טיפול הבא</div>
-                  {followUpTone !== 'none' ? (
-                    <div
-                      className={`text-[11px] font-black px-2.5 py-1 rounded-full border ${
-                        followUpTone === 'overdue'
-                          ? 'border-red-200 bg-red-50 text-red-700'
-                          : followUpTone === 'today'
-                            ? 'border-orange-200 bg-orange-50 text-orange-700'
-                            : 'border-slate-200 bg-white text-slate-700'
-                      }`}
-                    >
-                      {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mr-1">שם הלקוח</div>
+                    <div className="relative group">
+                      <User className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                      <input
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        onBlur={() => void handleSaveBasics({ name: draftName })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pr-11 pl-4 py-3 text-sm font-black focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                      />
                     </div>
-                  ) : null}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mr-1">אחראי טיפול</div>
+                    <CustomSelect
+                      value={draftAssignedAgentId}
+                      onChange={(v) => {
+                        setDraftAssignedAgentId(v);
+                        void handleSaveBasics({ assignedAgentId: v ? v : null });
+                      }}
+                      placeholder="לא משויך"
+                      options={(assignees || []).map((a) => ({ value: a.id, label: a.name }))}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mr-1">טלפון ליצירת קשר</div>
+                    <div className="relative group">
+                      <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                      <input
+                        value={draftPhone}
+                        onChange={(e) => setDraftPhone(e.target.value)}
+                        onBlur={() => void handleSaveBasics({ phone: draftPhone })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pr-11 pl-4 py-3 text-sm font-black focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest mr-1">כתובת אימייל</div>
+                    <div className="relative group">
+                      <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+                      <input
+                        value={draftEmail}
+                        onChange={(e) => setDraftEmail(e.target.value)}
+                        onBlur={() => void handleSaveBasics({ email: draftEmail.trim() ? draftEmail.trim() : null })}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl pr-11 pl-4 py-3 text-sm font-black focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {!lead.nextActionDate && hasSuggestedFollowUp ? (
-                  <div className="mb-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-black text-indigo-900">הצעת תזכורת</div>
-                        <div className="mt-1 text-sm font-black text-slate-900">
-                          {formatDateTimeShort(suggestedFollowUpDate as Date)}
+                <div className="bg-blue-50/50 border border-blue-100 rounded-[2rem] p-6 shadow-sm shadow-blue-50">
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
+                        <CalendarIcon size={14} className="text-white" />
+                      </div>
+                      <div className="text-sm font-black text-slate-900 tracking-tight">תיאום טיפול הבא</div>
+                    </div>
+                    {followUpTone !== 'none' ? (
+                      <div
+                        className={`text-[10px] font-black px-3 py-1 rounded-full border shadow-sm ${
+                          followUpTone === 'overdue'
+                            ? 'border-rose-200 bg-rose-50 text-rose-700'
+                            : followUpTone === 'today'
+                              ? 'border-amber-200 bg-amber-50 text-amber-700'
+                              : 'border-blue-200 bg-white text-blue-700'
+                        }`}
+                      >
+                        {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mr-1">תאריך יעד</div>
+                      <CustomDatePicker
+                        showHebrewDate
+                        value={followUpInput ? followUpInput.split('T')[0] : ''}
+                        onChange={(date) => {
+                          const timePart = followUpInput.includes('T') ? followUpInput.split('T')[1] : '10:00';
+                          setFollowUpInput(`${date}T${timePart}`);
+                        }}
+                        placeholder="קבע תאריך"
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mr-1">שעה מתוכננת</div>
+                      <div className="relative group">
+                        <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 group-focus-within:text-blue-600 transition-colors" />
+                        <input
+                          type="time"
+                          value={followUpInput.includes('T') ? followUpInput.split('T')[1].slice(0, 5) : '10:00'}
+                          onChange={(e) => {
+                            const datePart = followUpInput.includes('T') ? followUpInput.split('T')[0] : new Date().toISOString().split('T')[0];
+                            setFollowUpInput(`${datePart}T${e.target.value}`);
+                          }}
+                          className="w-full bg-white border border-blue-100 rounded-2xl pr-11 pl-4 py-2.5 text-sm font-black focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-blue-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-1.5">
+                    <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mr-1">הערה לביצוע (משימה)</div>
+                    <div className="relative group">
+                      <Edit2 className="absolute right-4 top-4 w-4 h-4 text-blue-300 group-focus-within:text-blue-500 transition-colors" />
+                      <textarea
+                        value={followUpNote}
+                        onChange={(e) => setFollowUpNote(e.target.value)}
+                        placeholder="מה צריך לעשות בטיפול הבא?"
+                        className="w-full bg-white border border-blue-100 rounded-2xl pr-11 pl-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all min-h-[80px] resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleSaveFollowUp}
+                    className="w-full mt-4 py-3.5 bg-blue-600 text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98]"
+                  >
+                    שמור תזכורת ומשימה
+                  </button>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+                  <div className="p-4 border-b border-slate-200 bg-slate-50">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-900 shrink-0">משימות קשורות</div>
+                        <button
+                          type="button"
+                          onClick={() => void loadNexusTasksForLead()}
+                          className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+                        >
+                          רענן
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 space-y-2">
+                    {isLoadingNexusTasks ? (
+                      <div className="text-sm font-bold text-slate-500">טוען...</div>
+                    ) : nexusTasks.length ? (
+                      nexusTasks.slice(0, 8).map((t) => (
+                        <div key={t.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-black text-slate-900 truncate">{t.title}</div>
+                            <div className="text-[11px] font-bold text-slate-500 mt-1">
+                              {t.dueDate ? t.dueDate.toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ללא תאריך'}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                            {t.status || 'todo'}
+                          </div>
                         </div>
-                        {String(lead.nextActionDateRationale || '').trim() ? (
-                          <div className="mt-1 text-xs font-bold text-indigo-900/80">
-                            {String(lead.nextActionDateRationale)}
+                      ))
+                    ) : (
+                      <div className="text-sm font-bold text-slate-500">אין עדיין משימות לליד הזה.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+                  <div className="p-4 border-b border-slate-200 bg-slate-50">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-900 shrink-0">תיעוד</div>
+                        {onStatusChange ? (
+                          <div className="min-w-[140px] max-w-[200px]">
+                            <CustomSelect
+                              value={lead.status}
+                              onChange={(val) => onStatusChange(lead.id, val as Lead['status'])}
+                              options={stagesForSelect.map((s) => ({ value: String(s.id), label: String(s.label) }))}
+                            />
                           </div>
                         ) : null}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!onUpdateLead || !suggestedFollowUpDate) return;
-                          setFollowUpInput(toLocalDateTimeInputValue(suggestedFollowUpDate));
-                          onUpdateLead({
-                            leadId: lead.id,
-                            nextActionDate: suggestedFollowUpDate,
-                            nextActionNote: followUpNote.trim() ? followUpNote : null,
-                          });
-                        }}
-                        className="shrink-0 px-4 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-black"
-                      >
-                        קבע
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-black text-slate-500">תאריך ושעה</div>
-                    <input
-                      type="datetime-local"
-                      value={followUpInput}
-                      onChange={(e) => setFollowUpInput(e.target.value)}
-                      onBlur={handleSaveFollowUp}
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-black text-slate-500">הערה (אופציונלי)</div>
-                    <input
-                      value={followUpNote}
-                      onChange={(e) => setFollowUpNote(e.target.value)}
-                      onBlur={handleSaveFollowUp}
-                      placeholder="מה צריך לעשות?"
-                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
-                <div className="p-4 border-b border-slate-200 bg-slate-50">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-black text-slate-900">משימות (Nexus)</div>
-                    <button
-                      type="button"
-                      onClick={() => void loadNexusTasksForLead()}
-                      disabled={isLoadingNexusTasks}
-                      className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
-                    >
-                      רענן
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-2">
-                  {isLoadingNexusTasks ? (
-                    <div className="text-sm font-bold text-slate-500">טוען...</div>
-                  ) : nexusTasks.length ? (
-                    nexusTasks.slice(0, 8).map((t) => (
-                      <div key={t.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-black text-slate-900 truncate">{t.title}</div>
-                          <div className="text-[11px] font-bold text-slate-500 mt-1">
-                            {t.dueDate ? t.dueDate.toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ללא תאריך'}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
-                          {t.status || 'todo'}
-                        </div>
+                      <div className="flex flex-wrap gap-2">
+                        {[{ id: 'note', label: 'פתק' }, { id: 'call', label: 'שיחה' }, { id: 'task', label: 'משימה' }, { id: 'email', label: 'מייל' }].map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-black border transition-colors ${
+                              composerTab === tab.id ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-sm font-bold text-slate-500">אין עדיין משימות לליד הזה.</div>
-                  )}
-                </div>
-              </div>
+                    </div>
 
-              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
-                <div className="p-4 border-b border-slate-200 bg-slate-50">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-black text-slate-900 shrink-0">תיעוד</div>
-                      {onStatusChange ? (
-                        <div className="min-w-[140px] max-w-[200px]">
-                          <CustomSelect
-                            value={lead.status}
-                            onChange={(val) => onStatusChange(lead.id, val as Lead['status'])}
-                            options={stagesForSelect.map((s) => ({ value: String(s.id), label: String(s.label) }))}
+                    <form onSubmit={handleSubmitActivity} className="mt-3">
+                      <div className="relative">
+                        <textarea
+                          className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:outline-none h-24 resize-none"
+                          placeholder="כתוב פעילות..."
+                          value={noteContent}
+                          onChange={(e) => setNoteContent(e.target.value)}
+                        />
+                        <button
+                          type="submit"
+                          className="absolute bottom-3 left-3 p-2 bg-slate-900 text-white rounded-xl shadow"
+                        >
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    {activities
+                      .slice()
+                      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                      .map((act) => (
+                        <div key={act.id} className="border border-slate-200 rounded-2xl p-3">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="text-xs font-black text-slate-700">{act.type}</div>
+                            <div className="text-[11px] font-bold text-slate-400">{new Date(act.timestamp).toLocaleString('he-IL')}</div>
+                          </div>
+                          <div className="text-sm text-slate-700 whitespace-pre-wrap">{act.content}</div>
+                          <LeadModalCallAnalysis
+                            SquareActivity={act}
+                            createdAiTaskKeys={createdAiTaskKeys}
+                            creatingAiTaskKey={creatingAiTaskKey}
+                            onCreateTask={handleCreateAiTask}
                           />
                         </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {[{ id: 'note', label: 'פתק' }, { id: 'call', label: 'שיחה' }, { id: 'task', label: 'משימה' }, { id: 'email', label: 'מייל' }].map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')}
-                          className={`px-3 py-1.5 rounded-full text-xs font-black border transition-colors ${
-                            composerTab === tab.id ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
                       ))}
-                    </div>
+
+                    {activities.length === 0 ? (
+                      <div className="text-sm font-bold text-slate-500">אין עדיין תיעוד לליד.</div>
+                    ) : null}
                   </div>
-
-                  <form onSubmit={handleSubmitActivity} className="mt-3">
-                    <div className="relative">
-                      <textarea
-                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:outline-none h-24 resize-none"
-                        placeholder="כתוב פעילות..."
-                        value={noteContent}
-                        onChange={(e) => setNoteContent(e.target.value)}
-                      />
-                      <button
-                        type="submit"
-                        className="absolute bottom-3 left-3 p-2 bg-slate-900 text-white rounded-xl shadow"
-                      >
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  {activities
-                    .slice()
-                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                    .map((act) => (
-                      <div key={act.id} className="border border-slate-200 rounded-2xl p-3">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="text-xs font-black text-slate-700">{act.type}</div>
-                          <div className="text-[11px] font-bold text-slate-400">{new Date(act.timestamp).toLocaleString('he-IL')}</div>
-                        </div>
-                        <div className="text-sm text-slate-700 whitespace-pre-wrap">{act.content}</div>
-                        <LeadModalCallAnalysis
-                          SquareActivity={act}
-                          createdAiTaskKeys={createdAiTaskKeys}
-                          creatingAiTaskKey={creatingAiTaskKey}
-                          onCreateTask={handleCreateAiTask}
-                        />
-                      </div>
-                    ))}
-
-                  {activities.length === 0 ? (
-                    <div className="text-sm font-bold text-slate-500">אין עדיין תיעוד לליד.</div>
-                  ) : null}
                 </div>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {connectShareMode === 'lead' ? (

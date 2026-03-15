@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, Calendar as CalendarIcon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, getHebrewYearLetters, isJewishHoliday, getJewishHolidayName, isShabbat } from '../lib/hebrew-calendar';
+import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, getHebrewYearLetters, isJewishHoliday, getJewishHolidayName, isShabbat, getHebrewDayOfMonthLetters } from '../lib/hebrew-calendar';
 
 interface CustomDatePickerProps {
   value: string;
@@ -204,21 +204,21 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
           disabled={!!isDisabled}
           className={`w-9 h-9 flex flex-col items-center justify-center text-sm font-medium rounded-xl transition-all relative
             ${isSelected 
-              ? 'bg-black text-white shadow-lg z-10 font-bold ring-2 ring-gray-200' 
+              ? 'bg-blue-600 text-white shadow-lg z-10 font-bold ring-2 ring-blue-100' 
               : isDisabled
               ? 'text-gray-300 cursor-not-allowed opacity-50'
               : isHoliday || isShabbatDay
-              ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold'
-              : 'hover:bg-gray-100 text-gray-700 hover:font-bold'
+              ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold'
+              : 'hover:bg-blue-50 text-gray-700 hover:text-blue-600 hover:font-bold'
             }
-            ${!isSelected && isToday && !isDisabled ? 'text-black font-bold bg-gray-50 ring-1 ring-gray-200' : ''}
+            ${!isSelected && isToday && !isDisabled ? 'text-blue-600 font-bold bg-blue-50 ring-1 ring-blue-100' : ''}
           `}
           title={showHebrewDate ? formatHebrewDate(date, { includeYear: true }) + (holidayName ? ` - ${holidayName}` : '') : (holidayName ? holidayName : undefined)}
         >
-          <span>{day}</span>
+          <span className="leading-none">{day}</span>
           {showHebrewDate && !isDisabled && (
-            <span className={`text-[8px] font-bold leading-none mt-0.5 ${isHoliday || isShabbatDay ? 'text-yellow-600' : 'text-purple-600'}`}>
-              {getHebrewDay(date)}
+            <span className={`text-[9px] font-black leading-none mt-0.5 ${isHoliday || isShabbatDay ? 'text-amber-600' : 'text-blue-400 opacity-80'}`}>
+              {getHebrewDayOfMonthLetters(date)}
             </span>
           )}
         </button>
@@ -252,18 +252,18 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
         <div className={`relative ${className}`} ref={containerRef}>
             <div 
                 onClick={toggleOpen}
-            className={`w-full h-11 flex items-center justify-between px-4 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium transition-all outline-none duration-200 cursor-pointer group hover:border-gray-300 ${
-                    isOpen ? 'ring-2 ring-black border-black shadow-sm' : ''
-                } ${value ? 'border-gray-200' : ''}`}
+            className={`w-full h-11 flex items-center justify-between px-4 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold transition-all outline-none duration-200 cursor-pointer group hover:border-blue-300 hover:bg-white ${
+                    isOpen ? 'ring-2 ring-blue-500 border-blue-500 bg-white shadow-sm' : ''
+                } ${value ? 'border-slate-200' : ''}`}
             >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                    <CalendarIcon size={18} className={`transition-colors shrink-0 ${value ? 'text-black' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                    <div className="flex flex-col items-end flex-1 min-w-0 overflow-hidden">
-                        <span className={`text-right whitespace-nowrap w-full ${value ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>
+                    <CalendarIcon size={16} className={`transition-colors shrink-0 ${value ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-500'}`} />
+                    <div className="flex flex-col items-start flex-1 min-w-0 overflow-hidden">
+                        <span className={`text-right whitespace-nowrap w-full ${value ? 'text-slate-900 font-black' : 'text-slate-400 font-bold'}`}>
                             {displayValue || placeholder}
                         </span>
                     {value && showHebrewDate && hebrewDisplayValue && (
-                            <span className="text-[10px] text-purple-600 font-medium leading-tight">
+                            <span className="text-[10px] text-blue-500 font-black leading-tight">
                             {hebrewDisplayValue}
                         </span>
                     )}
@@ -273,7 +273,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onChange(''); }}
-                        className="p-0.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                        className="p-1 hover:bg-rose-50 rounded-full text-slate-300 hover:text-rose-500 transition-colors"
                         aria-label="נקה תאריך"
                     >
                         <X size={14} />
@@ -301,25 +301,25 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                     } : {
                         position: 'fixed', top: position?.placement === 'bottom' ? position.top : undefined, bottom: position?.placement === 'top' ? (typeof window !== 'undefined' ? window.innerHeight - (position?.top || 0) - 8 : undefined) : undefined, left: position?.left, zIndex: 9999,
                     }}
-                    className={`bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 w-[320px] overflow-hidden ${isMobile ? 'translate-x-[-50%] translate-y-[-50%] m-0' : ''}`}
+                    className={`bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 w-[320px] overflow-hidden ${isMobile ? 'translate-x-[-50%] translate-y-[-50%] m-0' : ''}`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex items-center justify-between mb-5">
                         <button 
                             onClick={(e) => { e.stopPropagation(); changeMonth(1); }} 
-                            className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors"
                         >
                             <ChevronRight size={18} />
                         </button>
-                        <div className="flex flex-col items-center gap-1">
-                        <span className="text-base font-bold text-gray-900">
+                        <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-base font-black text-slate-900">
                                 {showHebrewCalendar
                               ? `${getHebrewMonthName(viewDate)} ${getHebrewYearLetters(viewDate)}`
                               : `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`
                             }
                         </span>
                             {showHebrewDate && (
-                                <span className="text-xs text-purple-600 font-medium">
+                                <span className="text-[10px] text-blue-500 font-black uppercase tracking-tight">
                                     {showHebrewCalendar 
                                       ? `${MONTH_NAMES[viewDate.getMonth()]} ${viewDate.getFullYear()}`
                                       : `${getHebrewMonthName(viewDate)} ${getHebrewYearLetters(viewDate)}`
@@ -329,39 +329,39 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                         </div>
                         <button 
                             onClick={(e) => { e.stopPropagation(); changeMonth(-1); }} 
-                            className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors"
                         >
                             <ChevronLeft size={18} />
                         </button>
                     </div>
                     {showHebrewDate && (
-                        <div className="flex items-center justify-center mb-3">
+                        <div className="flex items-center justify-center mb-4">
                             <button
                                 onClick={(e) => { e.stopPropagation(); setShowHebrewCalendar(!showHebrewCalendar); }}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                                className="px-4 py-1.5 text-[10px] font-black rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors border border-blue-100"
                             >
-                                {showHebrewCalendar ? 'לוח גרגוריאני' : 'לוח עברי'}
+                                {showHebrewCalendar ? 'לוח לועזי' : 'לוח עברי'}
                             </button>
                         </div>
                     )}
-                    <div className="grid grid-cols-7 mb-3 text-center gap-1">
+                    <div className="grid grid-cols-7 mb-2 text-center gap-1">
                         {DAY_NAMES.map(d => (
-                            <div key={d} className="text-xs font-bold text-gray-500 py-1">
+                            <div key={d} className="text-[10px] font-black text-slate-400 py-1">
                                 {d}
                             </div>
                         ))}
                     </div>
-                    <div className="grid grid-cols-7 gap-2 justify-items-center">{renderCalendar()}</div>
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div className="grid grid-cols-7 gap-1.5 justify-items-center">{renderCalendar()}</div>
+                    <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
                         <button
                             onClick={(e) => { e.stopPropagation(); onChange(''); setIsOpen(false); }}
-                            className="text-sm text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                            className="text-xs text-slate-400 hover:text-rose-500 font-bold transition-colors"
                         >
                             ניקוי
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); const today = new Date().toISOString().split('T')[0]; onChange(today); setIsOpen(false); }}
-                            className="text-sm text-black hover:text-gray-700 font-bold transition-colors"
+                            className="px-4 py-1.5 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl font-black transition-colors"
                         >
                             היום
                         </button>

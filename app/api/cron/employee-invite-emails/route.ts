@@ -103,5 +103,5 @@ async function processQueue(req: NextRequest) {
   });
 }
 
-export const GET = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 3 })));
-export const POST = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 3 })));
+export const GET = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 6 })));
+export const POST = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 6 })));

@@ -133,8 +133,8 @@ async function GETHandler(_request: NextRequest) {
   }
 }
 
-export const GET = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 3 }));
-export const POST = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 3 }));
+export const GET = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 6 }));
+export const POST = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 6 }));
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

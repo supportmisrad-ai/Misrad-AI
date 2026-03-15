@@ -386,7 +386,7 @@ export function useSiteAnalytics() {
   const sessionIdRef = useRef<string | null>(null);
 
   const flushPageView = useCallback(() => {
-    if (!pageviewIdRef.current || !queueRef.current) return;
+    if (!pageviewIdRef.current || !queueRef.current || !sessionIdRef.current) return;
     
     const timeOnPage = Date.now() - pageEnteredRef.current;
     queueRef.current.sendBeacon({

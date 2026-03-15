@@ -209,6 +209,20 @@ export function getHebrewDay(date: Date): string {
 }
 
 /**
+ * Get Hebrew day of month in letters (e.g., "א׳", "ט״ו")
+ */
+export function getHebrewDayOfMonthLetters(date: Date): string {
+  try {
+    const hDate = gregorianToHebrew(date);
+    const dayNum = hDate.getDate();
+    return gematriya(dayNum);
+  } catch (error) {
+    console.error('[Hebrew Calendar] Error getting day letters:', error);
+    return '';
+  }
+}
+
+/**
  * Get Hebrew day name (abbreviated)
  */
 export function getHebrewDayName(date: Date, abbreviated: boolean = true): string {
