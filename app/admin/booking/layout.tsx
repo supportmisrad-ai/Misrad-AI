@@ -15,8 +15,8 @@ export default async function BookingAdminLayout({
 
   // Get the user from our database to check email
   const { prisma } = await import('@/lib/prisma');
-  const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
+  const user = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: userId },
     select: { email: true }
   });
 
