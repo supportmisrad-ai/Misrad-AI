@@ -566,10 +566,9 @@ export default function SocialFrame({
                       );
                     })}
                   </div>
-                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
-                    </div>
-                  </div>
+                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
                 </div>
+              </div>
             </motion.div>
           </>
         ) : null}
