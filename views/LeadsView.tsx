@@ -2,9 +2,10 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { LeadStatus, Lead } from '../types';
-import { motion } from 'framer-motion';
-import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CircleCheckBig, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag, Copy, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, Users, DollarSign, Phone, Mail, User, Clock, CircleCheckBig, MoreHorizontal, Plus, Search, RefreshCw, ShoppingBag, Copy, Check, X, Calendar as CalendarIcon } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { CustomDatePicker } from '@/components/CustomDatePicker';
 
 export const LeadsView: React.FC = () => {
     const { leads, updateLead, addLead, products, convertLeadToClient } = useData();
@@ -12,6 +13,7 @@ export const LeadsView: React.FC = () => {
     const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [selectedLeadForDate, setSelectedLeadForDate] = useState<Lead | null>(null);
 
     const handleCopyLeadFormLink = () => {
         if (!orgSlug) return;
@@ -193,43 +195,49 @@ export const LeadsView: React.FC = () => {
                                                 {...(typeof window !== 'undefined' && window.innerWidth >= 768 && { whileHover: { y: -2 } })}
                                                 className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-blue-300 transition-all group"
                                             >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="font-bold text-sm text-gray-900">{lead.name}</h4>
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h4 className="font-bold text-sm text-gray-900 truncate">{lead.name}</h4>
                                                     <button className="text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <MoreHorizontal size={14} />
                                                     </button>
                                                 </div>
                                                 
                                                 {lead.company && (
-                                                    <p className="text-xs text-gray-500 mb-2">{lead.company}</p>
+                                                    <p className="text-[11px] text-gray-500 mb-1 truncate">{lead.company}</p>
                                                 )}
 
                                                 {lead.interestedIn && (
-                                                    <div className="flex items-center gap-1 mb-3">
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? String((product as Record<string, unknown>)?.color ?? '').replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
+                                                    <div className="flex items-center gap-1 mb-2">
+                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? String((product as Record<string, unknown>)?.color ?? '').replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
                                                             <ShoppingBag size={10} /> {lead.interestedIn}
                                                         </span>
                                                     </div>
                                                 )}
 
-                                                <div className="flex items-center gap-3 mb-3">
+                                                <div className="flex items-center gap-2 mb-2">
                                                     {lead.phone && (
-                                                        <a href={`tel:${lead.phone}`} className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100">
-                                                            <Phone size={12} />
+                                                        <a href={`tel:${lead.phone}`} className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
+                                                            <Phone size={10} />
                                                         </a>
                                                     )}
                                                     {lead.email && (
-                                                        <a href={`mailto:${lead.email}`} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
-                                                            <Mail size={12} />
+                                                        <a href={`mailto:${lead.email}`} className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                                                            <Mail size={10} />
                                                         </a>
                                                     )}
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                                                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedLeadForDate(lead);
+                                                        }}
+                                                        className="flex items-center gap-1 text-[10px] text-blue-600 font-bold hover:bg-blue-50 px-1.5 py-0.5 rounded-md transition-colors"
+                                                    >
                                                         <Clock size={10} />
                                                         {new Date(lead.lastContact).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
-                                                    </div>
+                                                    </button>
                                                     <div className="font-bold text-xs text-gray-700">
                                                         {formatCurrency(lead.value)}
                                                     </div>
@@ -248,6 +256,91 @@ export const LeadsView: React.FC = () => {
                     })}
                 </div>
             </div>
+
+            {/* Date Selection Modal for Mobile */}
+            <AnimatePresence>
+                {selectedLeadForDate && (
+                    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setSelectedLeadForDate(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden p-6"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                        <CalendarIcon size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-gray-900">עדכון מועד יצירת קשר</h3>
+                                        <p className="text-xs text-gray-500 font-bold">{selectedLeadForDate.name}</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setSelectedLeadForDate(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 px-1">
+                                        תאריך ושעה
+                                    </label>
+                                    <CustomDatePicker
+                                        showHebrewDate
+                                        value={selectedLeadForDate.lastContact.split('T')[0]}
+                                        onChange={(newDate) => {
+                                            if (newDate) {
+                                                const currentFullDate = new Date(selectedLeadForDate.lastContact);
+                                                const [year, month, day] = newDate.split('-').map(Number);
+                                                currentFullDate.setFullYear(year, month - 1, day);
+                                                updateLead(selectedLeadForDate.id, { lastContact: currentFullDate.toISOString() });
+                                                setSelectedLeadForDate(null);
+                                            }
+                                        }}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div className="pt-2">
+                                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <Clock size={16} className="text-gray-400" />
+                                        <input 
+                                            type="time" 
+                                            defaultValue={new Date(selectedLeadForDate.lastContact).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                            className="bg-transparent border-none p-0 text-sm font-bold focus:ring-0 w-full"
+                                            onChange={(e) => {
+                                                const [hours, minutes] = e.target.value.split(':').map(Number);
+                                                const currentFullDate = new Date(selectedLeadForDate.lastContact);
+                                                currentFullDate.setHours(hours, minutes);
+                                                updateLead(selectedLeadForDate.id, { lastContact: currentFullDate.toISOString() });
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setSelectedLeadForDate(null)}
+                                className="w-full mt-6 py-3 bg-black text-white rounded-2xl font-black text-sm shadow-xl active:scale-[0.98] transition-all"
+                            >
+                                סיום
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

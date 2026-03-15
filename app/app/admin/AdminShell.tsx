@@ -46,7 +46,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/finance')) return 'product';
   if (p.startsWith('/app/admin/client/control')) return 'product';
   if (p.startsWith('/app/admin/operations')) return 'product';
-  if (p.startsWith('/admin/booking')) return 'product';
+  if (p.startsWith('/app/admin/booking')) return 'product';
 
   // content
   if (p.startsWith('/app/admin/landing')) return 'content';
