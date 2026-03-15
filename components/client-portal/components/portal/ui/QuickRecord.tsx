@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic2, Square, Play, Trash2, Send, Loader2, Brain } from 'lucide-react';
-import { getClientOsOrgId } from '../../lib/getOrgId';
+import { getClientOsOrgId } from '../../../lib/getOrgId';
 
 interface QuickRecordProps {
   clientId: string;
