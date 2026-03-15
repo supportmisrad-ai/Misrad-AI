@@ -1,5 +1,6 @@
-// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
+'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { Briefcase } from 'lucide-react';
 
@@ -17,7 +18,7 @@ function formatDate(dateIso: string): string {
   }
 }
 
-export default function OperationsProjectsPageClient({
+function OperationsProjectsPageClient({
   orgSlug,
   initialProjects,
   initialClientOptions,

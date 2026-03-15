@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const envPath = '.env.prod_backup';
 const content = fs.readFileSync(envPath, 'utf8');
-const lines = content.split('\n');
+const lines = content.split(/\r?\n/);
 
 console.log('Current DATABASE_URL line:');
 for (const line of lines) {

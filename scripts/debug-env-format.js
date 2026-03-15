@@ -8,7 +8,7 @@ function inspectEnvFile(filepath) {
     return;
   }
   const content = fs.readFileSync(filepath, 'utf8');
-  const lines = content.split('\n');
+  const lines = content.split(/\r?\n/);
   lines.forEach(line => {
     if (line.includes('DATABASE_URL') || line.includes('DIRECT_URL')) {
       const parts = line.split('=');

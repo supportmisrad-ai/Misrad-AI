@@ -15,7 +15,8 @@ function loadEnvFile(filepath) {
   }
   
   const content = fs.readFileSync(fullPath, 'utf8');
-  const lines = content.split('\n');
+  // תמיכה בשני סוגי סיומות שורות: Windows (\r\n) ו-Unix (\n)
+  const lines = content.split(/\r?\n/);
   const env = {};
   
   for (const line of lines) {
