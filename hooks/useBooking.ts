@@ -143,7 +143,7 @@ export function useUpsertService(orgSlug: string) {
 /**
  * Fetch all links
  */
-export function useBookingLinks(orgSlug: string) {
+export function useBookingLinks(orgSlug: string, initialData?: { links: BookingLink[] }) {
   return useQuery({
     queryKey: KEYS.links(orgSlug),
     queryFn: async () => {
@@ -151,6 +151,7 @@ export function useBookingLinks(orgSlug: string) {
       if (!res.ok) throw new Error('Failed to fetch links');
       return res.json() as Promise<{ links: BookingLink[] }>;
     },
+    initialData,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });

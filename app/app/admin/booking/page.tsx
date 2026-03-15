@@ -50,16 +50,27 @@ export default async function BookingAdminPage({ searchParams }: PageProps) {
     const orgSlug = organization.slug || organization.id;
     const organizationId = organization.id;
 
-    // Prefetch all data for instant navigation
-    console.log('[Booking] Fetching data for org:', organizationId);
-    const data = await prefetchBookingData(organizationId);
-    console.log('[Booking] Data fetched successfully');
+    // Prefetch data for instant navigation
+    const [data, initialLinks] = await Promise.all([
+      prefetchBookingData(organizationId),
+      // Fetch links for instant render
+      prisma.bookingLink.findMany({
+        where: { organizationId, isActive: true },
+        include: {
+          services: { include: { service: true } },
+          provider: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const linksData = { links: initialLinks };
 
     // Render appropriate content based on tab
     const renderContent = () => {
       switch (tab) {
         case 'links':
-          return <LinksPageClient orgSlug={orgSlug} />;
+          return <LinksPageClient orgSlug={orgSlug} initialLinks={linksData as any} />;
         case 'calendar':
         case 'appointments':
         case 'providers':

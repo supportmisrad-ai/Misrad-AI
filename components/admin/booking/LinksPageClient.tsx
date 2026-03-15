@@ -22,12 +22,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import type { BookingLink } from '@/types/booking';
+
 interface LinksPageClientProps {
   orgSlug: string;
+  initialLinks?: { links: BookingLink[] };
 }
 
-export function LinksPageClient({ orgSlug }: LinksPageClientProps) {
-  const { data, isLoading, error } = useBookingLinks(orgSlug);
+export function LinksPageClient({ orgSlug, initialLinks }: LinksPageClientProps) {
+  const { data, isLoading, error } = useBookingLinks(orgSlug, initialLinks);
   const upsertLink = useUpsertLink(orgSlug);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
