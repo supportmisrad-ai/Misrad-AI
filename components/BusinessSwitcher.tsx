@@ -107,6 +107,20 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     const dropdownRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
+    // Get current workspace slug from window location - defined early to avoid hoisting issues
+    const getCurrentSubdomain = () => {
+        if (typeof window === 'undefined') return null;
+        const path = window.location.pathname;
+        
+        // Extract orgSlug from /w/[orgSlug]/... path
+        const pathParts = path.split('/').filter(Boolean);
+        if (pathParts[0] === 'w' && pathParts[1]) {
+            return decodeURIComponent(pathParts[1]);
+        }
+        
+        return null;
+    };
+
     // Fetch accessible businesses
     useEffect(() => {
         if (typeof document === 'undefined') return;
@@ -191,21 +205,18 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     useEffect(() => {
         async function loadWorkspaces() {
             try {
-                const res = await fetch('/api/workspaces');
-                const data = await res.json();
-                const workspaces = (data.workspaces || []) as WorkspaceItem[];
+                setIsLoading(true);
+                const res = await fetch('/api/workspaces', { credentials: 'include' });
+                if (!res.ok) throw new Error('Failed to load workspaces');
+                const workspaces = await res.json() as Array<{ id: string; slug: string | null; name: string; logo?: string | null }>;
+
+                // Debug: Check for duplicates in API response
+                const slugs = workspaces.map(w => w.slug);
+                const duplicateSlugs = slugs.filter((slug, index) => slugs.indexOf(slug) !== index);
+                console.log('[BusinessSwitcher] Received workspaces:', workspaces);
+                console.log('[BusinessSwitcher] All slugs:', slugs);
+                console.log('[BusinessSwitcher] Current subdomain:', getCurrentSubdomain());
                 
-                // DEBUG LOGGING - ROOT CAUSE INVESTIGATION
-                console.log('[BusinessSwitcher] Received workspaces:', workspaces.map(w => ({ id: w.id, slug: w.slug, name: w.name })));
-                console.log('[BusinessSwitcher] Current URL Subdomain:', getCurrentSubdomain());
-                
-                // Check for duplicates in the data itself
-                const slugCounts = workspaces.reduce((acc, w) => {
-                    acc[w.slug] = (acc[w.slug] || 0) + 1;
-                    return acc;
-                }, {} as Record<string, number>);
-                
-                const duplicateSlugs = Object.entries(slugCounts).filter(([_, count]) => count > 1);
                 if (duplicateSlugs.length > 0) {
                     console.error('[BusinessSwitcher] DETECTED DUPLICATE SLUGS IN API DATA:', duplicateSlugs);
                 }
@@ -224,7 +235,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             }
         }
         loadWorkspaces();
-    }, [getCurrentSubdomain()]);
+    }, []);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -289,20 +300,6 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             return () => document.removeEventListener('mousedown', handleClickOutside);
         }
     }, [isOpen]);
-
-    // Get current workspace slug from window location
-    const getCurrentSubdomain = () => {
-        if (typeof window === 'undefined') return null;
-        const path = window.location.pathname;
-        
-        // Extract orgSlug from /w/[orgSlug]/... path
-        const pathParts = path.split('/').filter(Boolean);
-        if (pathParts[0] === 'w' && pathParts[1]) {
-            return decodeURIComponent(pathParts[1]);
-        }
-        
-        return null;
-    };
 
     const handleSwitchBusiness = (tenant: Tenant) => {
         if (tenant.subdomain) {

@@ -1,0 +1,2734 @@
+{
+  "summary": {
+    "totalFiles": 299,
+    "totalTables": 158,
+    "categories": [
+      {
+        "name": "Admin Panel",
+        "count": 0
+      },
+      {
+        "name": "Client Portal",
+        "count": 2
+      },
+      {
+        "name": "Nexus (Team)",
+        "count": 9
+      },
+      {
+        "name": "Social Media",
+        "count": 0
+      },
+      {
+        "name": "Operations",
+        "count": 0
+      },
+      {
+        "name": "System",
+        "count": 0
+      },
+      {
+        "name": "Finance/Billing",
+        "count": 15
+      },
+      {
+        "name": "Attendance",
+        "count": 12
+      },
+      {
+        "name": "Landing/Public",
+        "count": 0
+      },
+      {
+        "name": "Auth",
+        "count": 0
+      },
+      {
+        "name": "API Routes",
+        "count": 0
+      },
+      {
+        "name": "Other",
+        "count": 261
+      }
+    ]
+  },
+  "tables": [
+    "activityLog",
+    "ai_embeddings",
+    "ai_events",
+    "ai_feature_settings",
+    "ai_insights",
+    "ai_model_aliases",
+    "ai_provider_keys",
+    "ai_tower_audit_logs",
+    "ai_usage_logs",
+    "appUpdate",
+    "attendanceMonthlyReport",
+    "attendanceSalaryConfig",
+    "billing_events",
+    "billing_invoices",
+    "bookingAppointment",
+    "bookingAvailability",
+    "bookingHebrewDateCache",
+    "bookingLink",
+    "bookingLinkService",
+    "bookingPayment",
+    "bookingProvider",
+    "bookingProviderService",
+    "bookingReminder",
+    "bookingService",
+    "botConversation",
+    "botLead",
+    "botLeadExtended",
+    "botReferral",
+    "businessClient",
+    "businessClientContact",
+    "campaignPost",
+    "charges",
+    "clientClient",
+    "clientCycle",
+    "clientFeedback",
+    "clientPortalContent",
+    "clientPortalUser",
+    "clientSession",
+    "clientSocialToken",
+    "clientTask",
+    "clients",
+    "coreSystemSettings",
+    "coupon_redemptions",
+    "coupons",
+    "customerAccount",
+    "customerRating",
+    "cycleAsset",
+    "cycleClient",
+    "cycleTask",
+    "cycleTaskCompletion",
+    "devicePairingToken",
+    "emailAnalytics",
+    "globalPromotion",
+    "globalSystemMetric",
+    "global_settings",
+    "help_videos",
+    "impersonationAuditLog",
+    "impersonationSession",
+    "integrationCredential",
+    "integrationStatus",
+    "integration_idempotency_keys",
+    "landing_faq",
+    "landing_testimonials",
+    "misradActivityLog",
+    "misradAiLiabilityRisk",
+    "misradAiTask",
+    "misradCalendarSyncLog",
+    "misradClient",
+    "misradClientAction",
+    "misradClientAsset",
+    "misradClientDeliverable",
+    "misradCycleTask",
+    "misradFeatureRequest",
+    "misradFieldAgent",
+    "misradFieldTeam",
+    "misradFormTemplate",
+    "misradIntegration",
+    "misradInvoice",
+    "misradMeeting",
+    "misradMeetingAnalysisResult",
+    "misradMessage",
+    "misradNotification",
+    "misradPermission",
+    "misradRole",
+    "misradSalesTeam",
+    "misradSalesTeamMember",
+    "misradSupportTicket",
+    "navigationMenu",
+    "nexusBillingItem",
+    "nexusClient",
+    "nexusEmployeeInvitationLink",
+    "nexusEventAttendance",
+    "nexusLeaveRequest",
+    "nexusOnboardingSettings",
+    "nexusTask",
+    "nexusTeamEvent",
+    "nexusTenant",
+    "nexusTimeEntry",
+    "nexusUser",
+    "oAuthToken",
+    "operationsBuilding",
+    "operationsCallCategory",
+    "operationsCallMessage",
+    "operationsDepartment",
+    "operationsInventory",
+    "operationsItem",
+    "operationsProject",
+    "operationsPurchaseOrder",
+    "operationsSupplier",
+    "operationsWorkOrder",
+    "organization",
+    "organizationUser",
+    "organization_settings",
+    "organization_signup_invitations",
+    "partner",
+    "partnerLinkUsage",
+    "profile",
+    "siteAnalyticsEvent",
+    "siteAnalyticsPageView",
+    "siteAnalyticsSession",
+    "socialMediaCampaign",
+    "socialMediaClientPlatform",
+    "socialMediaClientRequest",
+    "socialMediaConversation",
+    "socialMediaFeedback",
+    "socialMediaIdea",
+    "socialMediaInvoice",
+    "socialMediaManagerRequest",
+    "socialMediaMessage",
+    "socialMediaPaymentOrder",
+    "socialMediaPostPlatform",
+    "socialMediaPublishedPost",
+    "socialMediaSiteContent",
+    "socialMediaSyncLog",
+    "socialMediaTask",
+    "socialPost",
+    "storageDeletionLog",
+    "storageFile",
+    "strategic_content",
+    "subscription_items",
+    "subscription_orders",
+    "subscription_payment_configs",
+    "subscriptions",
+    "supportAccessLog",
+    "systemBackup",
+    "systemCalendarEvent",
+    "systemInvoice",
+    "systemLead",
+    "systemLeadActivity",
+    "systemLeadCustomFieldDefinition",
+    "systemPartner",
+    "systemPipelineStage",
+    "systemTask",
+    "system_invitation_links",
+    "system_settings",
+    "teamMember",
+    "userUpdateView",
+    "webhookConfig"
+  ],
+  "tableFields": {
+    "socialPost": [
+      "id",
+      "clientId"
+    ],
+    "clients": [
+      "organization_id"
+    ],
+    "clientClient": [
+      "id",
+      "organizationId"
+    ],
+    "coreSystemSettings": [
+      "value",
+      "key"
+    ],
+    "coupons": [
+      "id"
+    ],
+    "systemLead": [
+      "id"
+    ],
+    "organization": [
+      "id"
+    ],
+    "nexusUser": [
+      "id",
+      "organizationId"
+    ],
+    "nexusTeamEvent": [
+      "id",
+      "organizationId"
+    ],
+    "nexusLeaveRequest": [
+      "id",
+      "organizationId"
+    ]
+  },
+  "files": [
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-analytics-ai.ts",
+      "tables": [
+        "ai_usage_logs",
+        "organizationUser",
+        "organization",
+        "siteAnalyticsSession"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-analytics.ts",
+      "tables": [
+        "siteAnalyticsSession",
+        "siteAnalyticsPageView",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-clients.ts",
+      "tables": [
+        "organization_signup_invitations",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-cockpit.ts",
+      "tables": [
+        "globalSystemMetric",
+        "nexusUser",
+        "organizationUser",
+        "socialPost",
+        "clients",
+        "clientClient",
+        "socialMediaFeedback",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-godview.ts",
+      "tables": [
+        "organization",
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-landing-marketing.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-maintenance.ts",
+      "tables": [
+        "systemBackup",
+        "socialMediaSyncLog",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-navigation.ts",
+      "tables": [
+        "navigationMenu"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-notifications.ts",
+      "tables": [
+        "nexusUser",
+        "clientClient",
+        "clients",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-org-details.ts",
+      "tables": [
+        "organization",
+        "organizationUser",
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-organizations.ts",
+      "tables": [
+        "organization",
+        "organizationUser",
+        "organization_signup_invitations",
+        "clientClient",
+        "businessClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-payments.ts",
+      "tables": [
+        "socialMediaSyncLog",
+        "socialMediaPaymentOrder",
+        "socialMediaInvoice",
+        "subscription_orders",
+        "clients"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-social.ts",
+      "tables": [
+        "organization",
+        "nexusTenant",
+        "organizationUser",
+        "oAuthToken",
+        "webhookConfig",
+        "userUpdateView",
+        "teamMember",
+        "nexusUser",
+        "system_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin-users.ts",
+      "tables": [
+        "organizationUser",
+        "nexusUser",
+        "socialMediaSyncLog"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\admin.ts",
+      "tables": [
+        "clientClient",
+        "globalSystemMetric",
+        "integrationStatus",
+        "socialMediaSyncLog",
+        "impersonationSession"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\ai-chat-sessions.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": [
+        "saveChatMessage"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\app-billing.ts",
+      "tables": [
+        "billing_events",
+        "billing_invoices"
+      ],
+      "actions": [
+        "getOrganizationBillingStatusAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\attendance-reports.ts",
+      "tables": [
+        "attendanceSalaryConfig",
+        "organizationUser",
+        "nexusUser",
+        "attendanceMonthlyReport"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\attendance.ts",
+      "tables": [
+        "nexusTimeEntry"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\auth.ts",
+      "tables": [
+        "organizationUser",
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\billing-actions.ts",
+      "tables": [
+        "organizationUser",
+        "organization",
+        "teamMember",
+        "coupons",
+        "coupon_redemptions",
+        "businessClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\booking-appointments.ts",
+      "tables": [
+        "bookingAppointment",
+        "bookingLink"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\booking-links.ts",
+      "tables": [
+        "bookingLink",
+        "bookingLinkService"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\booking-manual.ts",
+      "tables": [
+        "bookingAppointment",
+        "bookingPayment"
+      ],
+      "actions": [
+        "quickAppointmentAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\booking-providers.ts",
+      "tables": [
+        "bookingProvider",
+        "bookingService",
+        "bookingProviderService"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\booking-services.ts",
+      "tables": [
+        "bookingService"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\bot-leads.ts",
+      "tables": [
+        "botLeadExtended",
+        "botConversation"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\business-client-auth.ts",
+      "tables": [
+        "businessClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\business-client-billing.ts",
+      "tables": [
+        "businessClient",
+        "billing_invoices"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\business-clients.ts",
+      "tables": [
+        "businessClient",
+        "businessClientContact",
+        "organization",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\campaigns.ts",
+      "tables": [
+        "clients",
+        "socialMediaCampaign",
+        "campaignPost"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-clients.ts",
+      "tables": [
+        "clientClient",
+        "nexusClient",
+        "organization",
+        "clients"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-clinic.ts",
+      "tables": [
+        "clientClient",
+        "clientTask",
+        "clientSession",
+        "clientPortalContent",
+        "clientFeedback"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-import.ts",
+      "tables": [
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-portal-clinic.ts",
+      "tables": [
+        "clientClient"
+      ],
+      "actions": [
+        "getClientOSTasks"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-portal.ts",
+      "tables": [
+        "organization",
+        "organizationUser",
+        "teamMember",
+        "clientPortalUser",
+        "misradClient",
+        "misradClientDeliverable",
+        "misradClientAction",
+        "misradCycleTask",
+        "misradMessage"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\client-tokens.ts",
+      "tables": [
+        "clientSocialToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\clients.ts",
+      "tables": [
+        "clientClient",
+        "system_invitation_links",
+        "nexusClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\connect-marketplace.ts",
+      "tables": [
+        "systemLead",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\conversations.ts",
+      "tables": [
+        "socialMediaConversation",
+        "socialMediaMessage"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\customer-accounts.ts",
+      "tables": [
+        "customerAccount",
+        "organization",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\cycles.ts",
+      "tables": [
+        "clientCycle",
+        "cycleClient",
+        "cycleTask",
+        "cycleTaskCompletion",
+        "cycleAsset"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\debug-supabase.ts",
+      "tables": [
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\global-promotion.ts",
+      "tables": [
+        "globalPromotion"
+      ],
+      "actions": [
+        "getActiveGlobalPromotion",
+        "getAllPromotions",
+        "deleteGlobalPromotion"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\help-videos.ts",
+      "tables": [
+        "help_videos"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\ideas.ts",
+      "tables": [
+        "clients",
+        "socialMediaIdea"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\impersonation.ts",
+      "tables": [
+        "impersonationAuditLog",
+        "clientClient",
+        "impersonationSession",
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\integrations.ts",
+      "tables": [
+        "organization",
+        "integrationCredential",
+        "integrationStatus",
+        "oAuthToken",
+        "socialMediaSyncLog",
+        "webhookConfig"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\manage-organization.ts",
+      "tables": [
+        "organization",
+        "organizationUser",
+        "businessClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\marketing-strategy.ts",
+      "tables": [
+        "clients"
+      ],
+      "actions": [
+        "createMarketingStrategyAction",
+        "getMarketingStrategyAction",
+        "getClientStrategiesAction",
+        "analyzeAudienceAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\my-billing.ts",
+      "tables": [
+        "organization",
+        "billing_invoices"
+      ],
+      "actions": [
+        "getMyBillingData"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\notification-preferences.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\ops\\support-audit.ts",
+      "tables": [
+        "supportAccessLog"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\partner-portal.ts",
+      "tables": [
+        "partner",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\payments.ts",
+      "tables": [
+        "clients",
+        "socialMediaPaymentOrder",
+        "clientClient",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\posts.ts",
+      "tables": [
+        "clientClient",
+        "clients",
+        "socialPost",
+        "organization",
+        "socialMediaPostPlatform"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\profiles.ts",
+      "tables": [
+        "profile",
+        "organizationUser",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\projects-import.ts",
+      "tables": [
+        "operationsProject",
+        "clients"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\rating.ts",
+      "tables": [
+        "organizationUser",
+        "customerRating"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\requests.ts",
+      "tables": [
+        "clients",
+        "socialMediaClientRequest",
+        "socialMediaManagerRequest"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\site-content.ts",
+      "tables": [
+        "organizationUser",
+        "socialMediaSiteContent"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\social-users.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": [
+        "getOrCreateOrganizationUserAction",
+        "getOrCreateSocialSupabaseUserAction",
+        "getOrganizationUserRoleFromSupabaseAction",
+        "getSocialUserRoleFromSupabaseAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\subscription-orders-admin.ts",
+      "tables": [
+        "organization",
+        "subscriptions",
+        "subscription_items",
+        "charges",
+        "billing_events",
+        "socialMediaSyncLog",
+        "subscription_orders"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\subscription-orders.ts",
+      "tables": [
+        "organizationUser",
+        "organization",
+        "teamMember",
+        "partner",
+        "subscription_orders",
+        "subscription_payment_configs"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\subscription-payment-configs.ts",
+      "tables": [
+        "subscription_payment_configs"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-field-teams.ts",
+      "tables": [
+        "misradFieldTeam",
+        "misradFieldAgent"
+      ],
+      "actions": [
+        "getFieldTeamsAction",
+        "createFieldTeamAction",
+        "addFieldAgentAction",
+        "deleteFieldTeamAction",
+        "deleteFieldAgentAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-forms.ts",
+      "tables": [
+        "misradFormTemplate"
+      ],
+      "actions": [
+        "getSystemFormsAction",
+        "createSystemFormAction",
+        "toggleFormActiveAction",
+        "deleteSystemFormAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-lead-capture-settings.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-leads-import.ts",
+      "tables": [
+        "systemLeadCustomFieldDefinition"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-leads.ts",
+      "tables": [
+        "clients",
+        "systemCalendarEvent",
+        "organizationUser",
+        "systemLead",
+        "organization",
+        "systemLeadActivity",
+        "profile",
+        "nexusClient",
+        "clientClient",
+        "operationsProject",
+        "systemInvoice"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-sales-teams.ts",
+      "tables": [
+        "misradSalesTeam",
+        "misradSalesTeamMember"
+      ],
+      "actions": [
+        "getSalesTeamsAction",
+        "createSalesTeamAction",
+        "addTeamMemberAction",
+        "deleteTeamMemberAction",
+        "deleteSalesTeamAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\system-tasks.ts",
+      "tables": [
+        "profile",
+        "systemTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\tasks-import.ts",
+      "tables": [
+        "nexusTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\tasks.ts",
+      "tables": [
+        "socialMediaTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\team.ts",
+      "tables": [
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\trial.ts",
+      "tables": [
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\updates.ts",
+      "tables": [
+        "organizationUser",
+        "appUpdate",
+        "userUpdateView"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\users.ts",
+      "tables": [
+        "organization",
+        "organizationUser",
+        "profile",
+        "nexusEmployeeInvitationLink",
+        "partner"
+      ],
+      "actions": [
+        "getOrCreateSupabaseUserAction",
+        "ensureProfileForClerkUserInOrganizationAction",
+        "getOrCreateSupabaseUserFromClerkWebhookAction",
+        "provisionCurrentUserWorkspaceAction",
+        "getUserRoleFromSupabaseAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\work-listings.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\actions\\workspace-branding.ts",
+      "tables": [
+        "organizationUser",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\credits\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\feature-settings\\route.ts",
+      "tables": [
+        "ai_feature_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\ingest-history\\route.ts",
+      "tables": [
+        "organization",
+        "systemLead",
+        "nexusClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\model-aliases\\route.ts",
+      "tables": [
+        "ai_model_aliases"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\provider-keys\\route.ts",
+      "tables": [
+        "ai_provider_keys"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\ai\\saas-health\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\bot\\conversations\\route.ts",
+      "tables": [
+        "botConversation"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\bot\\route.ts",
+      "tables": [
+        "botLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\organizations\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\partners\\route.ts",
+      "tables": [
+        "partner",
+        "systemPartner",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\admin\\push\\register\\route.ts",
+      "tables": [
+        "system_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\ai\\analyze\\route.ts",
+      "tables": [
+        "organizationUser",
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\ai\\assistant\\route.ts",
+      "tables": [
+        "help_videos"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\ai\\chat\\route.ts",
+      "tables": [
+        "help_videos",
+        "systemLead",
+        "misradMeetingAnalysisResult"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\ai\\feedback\\route.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\ai\\vision\\identify\\route.ts",
+      "tables": [
+        "organization",
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\analytics\\track\\route.ts",
+      "tables": [
+        "siteAnalyticsSession",
+        "siteAnalyticsPageView",
+        "siteAnalyticsEvent"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\announcements\\route.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\attendance-report-pdf\\[reportId]\\route.ts",
+      "tables": [
+        "attendanceMonthlyReport"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\auth\\device-login\\route.ts",
+      "tables": [
+        "devicePairingToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\booking\\appointments\\route.ts",
+      "tables": [
+        "bookingAppointment"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\booking\\customer-history\\route.ts",
+      "tables": [
+        "bookingAppointment"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\booking\\links\\route.ts",
+      "tables": [
+        "bookingLink"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\booking\\providers\\route.ts",
+      "tables": [
+        "bookingProvider"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\booking\\services\\route.ts",
+      "tables": [
+        "bookingService"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\branding\\logo\\route.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\client-os\\meetings\\process\\route.ts",
+      "tables": [
+        "misradClient",
+        "clientClient",
+        "misradMeeting"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\clients\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusClient",
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\ai-credits-renewal\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\ai-monthly-digest\\route.ts",
+      "tables": [
+        "organization",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\attendance-monthly-reports\\route.ts",
+      "tables": [
+        "organization",
+        "attendanceSalaryConfig",
+        "organizationUser",
+        "nexusUser",
+        "attendanceMonthlyReport"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\booking-reminders\\route.ts",
+      "tables": [
+        "bookingReminder",
+        "bookingAppointment"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\onboarding-followups\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\partner-reports\\route.ts",
+      "tables": [
+        "partner",
+        "systemPartner"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\publish-scheduled\\route.ts",
+      "tables": [
+        "socialPost"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\refresh-tokens\\route.ts",
+      "tables": [
+        "clientSocialToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\cron\\storage-cleanup\\route.ts",
+      "tables": [
+        "storageFile",
+        "storageDeletionLog",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\debug\\db-health\\route.ts",
+      "tables": [
+        "landing_testimonials",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\e2e\\lead-won-chain\\route.ts",
+      "tables": [
+        "organization",
+        "systemLead",
+        "operationsProject",
+        "systemInvoice"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\e2e\\prisma-tenant-guard\\route.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\e2e\\rls-check\\route.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\e2e\\x-org-id-spoof-system-leads\\route.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\email\\unsubscribe\\route.ts",
+      "tables": [
+        "profile",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\employees\\invitations\\route.ts",
+      "tables": [
+        "nexusUser",
+        "organization",
+        "nexusEmployeeInvitationLink"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\employees\\invitations\\[id]\\deactivate\\route.ts",
+      "tables": [
+        "nexusUser",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\employees\\invite\\route.ts",
+      "tables": [
+        "nexusEmployeeInvitationLink"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\employees\\invite\\[token]\\complete\\route.ts",
+      "tables": [
+        "nexusEmployeeInvitationLink",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\employees\\invite\\[token]\\route.ts",
+      "tables": [
+        "nexusEmployeeInvitationLink"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\events\\[id]\\attendance\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusTeamEvent",
+        "nexusEventAttendance"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\events\\[id]\\attendance\\[userId]\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusTeamEvent",
+        "nexusEventAttendance"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\features\\route.ts",
+      "tables": [
+        "misradFeatureRequest"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\features\\[id]\\route.ts",
+      "tables": [
+        "misradFeatureRequest"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\health\\db\\schema\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusTeamEvent",
+        "nexusLeaveRequest",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\health\\db\\test-write\\route.ts",
+      "tables": [
+        "nexusClient",
+        "nexusTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\calendar\\sync\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\drive\\files\\route.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\google\\revoke\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\google\\status\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\green-invoice\\connect\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\green-invoice\\create\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration",
+        "organizationUser",
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\green-invoice\\create-document\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\green-invoice\\list\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\green-invoice\\status\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\onboard-client\\route.ts",
+      "tables": [
+        "integration_idempotency_keys",
+        "nexusClient",
+        "system_invitation_links",
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\status\\route.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\zoom\\callback\\route.ts",
+      "tables": [
+        "profile",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\integrations\\zoom\\disconnect\\route.ts",
+      "tables": [
+        "profile",
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\invitations\\complete\\[token]\\route.ts",
+      "tables": [
+        "system_invitation_links",
+        "nexusClient",
+        "nexusUser",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\invitations\\create\\route.ts",
+      "tables": [
+        "nexusUser",
+        "system_invitation_links"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\invitations\\route.ts",
+      "tables": [
+        "nexusUser",
+        "system_invitation_links"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\invitations\\token\\[token]\\route.ts",
+      "tables": [
+        "system_invitation_links"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\invitations\\[id]\\deactivate\\route.ts",
+      "tables": [
+        "nexusUser",
+        "system_invitation_links"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\kiosk\\pairing\\admin-create\\route.ts",
+      "tables": [
+        "devicePairingToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\kiosk\\pairing\\approve\\route.ts",
+      "tables": [
+        "devicePairingToken",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\kiosk\\pairing\\create\\route.ts",
+      "tables": [
+        "devicePairingToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\kiosk\\pairing\\status\\route.ts",
+      "tables": [
+        "devicePairingToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\landing\\faq\\route.ts",
+      "tables": [
+        "landing_faq"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\landing\\settings\\route.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\landing\\testimonials\\route.ts",
+      "tables": [
+        "landing_testimonials"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\lead-capture\\route.ts",
+      "tables": [
+        "organization",
+        "organization_settings",
+        "systemLead",
+        "systemLeadActivity",
+        "systemPipelineStage",
+        "nexusUser",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\legal\\consent\\route.ts",
+      "tables": [
+        "socialMediaSiteContent",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\nexus\\migrate\\route.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\nexus\\onboarding\\apply\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\os\\module-icons\\route.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\os\\rooms\\route.ts",
+      "tables": [
+        "organization",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\partners\\dashboard\\route.ts",
+      "tables": [
+        "partner",
+        "partnerLinkUsage"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\permissions\\route.ts",
+      "tables": [
+        "misradPermission"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\public\\leads\\route.ts",
+      "tables": [
+        "organization",
+        "systemLead",
+        "systemLeadActivity"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\reports\\generate-pdf\\route.ts",
+      "tables": [
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\roles\\route.ts",
+      "tables": [
+        "misradRole"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\roles\\[id]\\route.ts",
+      "tables": [
+        "misradRole"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\storage\\upload\\route.ts",
+      "tables": [
+        "organizationUser",
+        "organization",
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\strategic-content\\route.ts",
+      "tables": [
+        "strategic_content"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\support\\route.ts",
+      "tables": [
+        "misradSupportTicket"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\support\\[id]\\events\\route.ts",
+      "tables": [
+        "misradSupportTicket"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\support\\[id]\\route.ts",
+      "tables": [
+        "misradSupportTicket"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\ai-history\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\automations\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\departments\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\flags\\route.ts",
+      "tables": [
+        "system_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\maintenance\\route.ts",
+      "tables": [
+        "system_settings",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\system\\products\\route.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\team-events\\route.ts",
+      "tables": [
+        "nexusUser",
+        "misradNotification"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\team-events\\[id]\\attendance\\route.ts",
+      "tables": [
+        "nexusUser",
+        "nexusEventAttendance"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\team-events\\[id]\\attendance\\[userId]\\route.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\team-events\\[id]\\route.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\trial\\reset\\route.ts",
+      "tables": [
+        "profile",
+        "organization",
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\user\\last-location\\route.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\user\\organization-info\\route.ts",
+      "tables": [
+        "profile",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\voice\\command\\route.ts",
+      "tables": [
+        "misradInvoice",
+        "systemLead",
+        "systemLeadActivity",
+        "nexusTask",
+        "clients",
+        "operationsProject",
+        "operationsWorkOrder",
+        "misradClient",
+        "misradActivityLog"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\webhooks\\blaster\\route.ts",
+      "tables": [
+        "botLead",
+        "botConversation",
+        "partner",
+        "botReferral",
+        "systemPartner"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\webhooks\\make\\route.ts",
+      "tables": [
+        "organizationUser",
+        "webhookConfig",
+        "organization",
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\webhooks\\morning-app\\route.ts",
+      "tables": [
+        "billing_events",
+        "billing_invoices",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\webhooks\\zapier\\route.ts",
+      "tables": [
+        "organizationUser",
+        "webhookConfig",
+        "organization",
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\route.ts",
+      "tables": [
+        "organizationUser",
+        "organization",
+        "teamMember",
+        "customerAccount"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\access\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\ai-credits\\route.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\ai-dna\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\e2e\\tenant-guard-probe\\route.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\me-insights\\route.ts",
+      "tables": [
+        "systemLead",
+        "ai_embeddings",
+        "misradMeetingAnalysisResult"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\operations\\work-orders\\suggest-technician\\route.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\owner-dashboard\\route.ts",
+      "tables": [
+        "nexusTask",
+        "systemLead",
+        "socialPost"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\system\\ai-sales-context\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\system\\call-analyzer\\live\\insight\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\system\\call-analyzer\\suggest\\route.ts",
+      "tables": [
+        "organization_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\api\\workspaces\\[orgSlug]\\system\\partners\\route.ts",
+      "tables": [
+        "partner"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\app\\w\\[orgSlug]\\(modules)\\client\\(app)\\ClientAppLayoutShell.tsx",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\ai\\action-handlers.ts",
+      "tables": [
+        "clientClient",
+        "ai_insights",
+        "billing_invoices",
+        "cycleTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\ai\\ai-tower-guard.ts",
+      "tables": [
+        "ai_tower_audit_logs",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\ai\\watchtower-engine.ts",
+      "tables": [
+        "ai_insights"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\api-shabbat-guard.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\auth.ts",
+      "tables": [
+        "misradRole",
+        "nexusTenant",
+        "organizationUser",
+        "nexusTask",
+        "profile",
+        "nexusUser",
+        "nexusClient",
+        "misradClientAsset"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\billing\\image-quota.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\billing\\seat-enforcement.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\billing\\sync.ts",
+      "tables": [
+        "organization",
+        "subscription_items",
+        "billing_events"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\booking\\availability-engine.ts",
+      "tables": [
+        "bookingAvailability",
+        "bookingAppointment",
+        "bookingProvider",
+        "bookingHebrewDateCache"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\booking\\cache.ts",
+      "tables": [
+        "bookingProvider",
+        "bookingService",
+        "bookingLink",
+        "bookingAppointment",
+        "bookingAvailability"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\booking\\morning-integration.ts",
+      "tables": [
+        "bookingAppointment",
+        "bookingPayment"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\booking\\nexus-integration.ts",
+      "tables": [
+        "bookingAppointment",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\cache.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\db.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\emails\\email-analytics.ts",
+      "tables": [
+        "emailAnalytics"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\events\\event-bus.ts",
+      "tables": [
+        "ai_events"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\integrations\\google-calendar.ts",
+      "tables": [
+        "misradIntegration",
+        "misradCalendarSyncLog"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\integrations\\google-drive.ts",
+      "tables": [
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\integrations\\green-invoice.ts",
+      "tables": [
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\integrations\\zoom.ts",
+      "tables": [
+        "misradIntegration"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\prisma.ts",
+      "tables": [
+        "nexusUser",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\clientOsClients.ts",
+      "tables": [
+        "misradClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\emailAssetsStore.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\featureFlags.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\globalDownloadLinks.ts",
+      "tables": [
+        "global_settings",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\orgSlug.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\systemEmailSettings.ts",
+      "tables": [
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\web-push.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace-access\\actor.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace-access\\entitlements.ts",
+      "tables": [
+        "organization",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace-access\\membership.ts",
+      "tables": [
+        "teamMember"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace-access\\org-resolve.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace-access\\trial.ts",
+      "tables": [
+        "teamMember",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspace.ts",
+      "tables": [
+        "organizationUser",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\server\\workspaceUser.ts",
+      "tables": [
+        "profile",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\ai\\admin-ai-brain-export.ts",
+      "tables": [
+        "organization",
+        "organization_settings",
+        "ai_feature_settings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\ai\\AIService.ts",
+      "tables": [
+        "organizationUser",
+        "ai_feature_settings",
+        "ai_model_aliases",
+        "ai_provider_keys",
+        "organization",
+        "ai_usage_logs"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\ai\\cross-module-aggregator.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\ai\\save-provider-key.ts",
+      "tables": [
+        "ai_provider_keys"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\app-billing.ts",
+      "tables": [
+        "organization",
+        "billing_invoices",
+        "billing_events"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\auth\\clerk-webhook.ts",
+      "tables": [
+        "profile",
+        "organizationUser"
+      ],
+      "actions": [
+        "ensureProfileForClerkUserInOrganizationAction",
+        "getOrCreateSupabaseUserFromClerkWebhookAction"
+      ]
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\check-expired-trials.ts",
+      "tables": [
+        "organization",
+        "billing_events"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\client-clinic\\create-clinic-session.ts",
+      "tables": [
+        "clientSession"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\client-os\\meetings\\analyze-and-store-meeting.ts",
+      "tables": [
+        "misradMeeting",
+        "misradMeetingAnalysisResult",
+        "misradAiTask",
+        "misradAiLiabilityRisk"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\finance-service.ts",
+      "tables": [
+        "nexusUser",
+        "misradInvoice"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\integrations\\google-tokens.ts",
+      "tables": [
+        "oAuthToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\monthly-billing-run.ts",
+      "tables": [
+        "organization",
+        "billing_invoices"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-billing-service.ts",
+      "tables": [
+        "nexusBillingItem",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-onboarding-service.ts",
+      "tables": [
+        "nexusOnboardingSettings",
+        "coreSystemSettings"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-presence-service.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-profiles-service.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-service.ts",
+      "tables": [
+        "nexusTask",
+        "systemLead",
+        "socialPost"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-tasks-service.ts",
+      "tables": [
+        "nexusTask"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-time-entries-service.ts",
+      "tables": [
+        "nexusTimeEntry"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\nexus-users-service.ts",
+      "tables": [
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\buildings.ts",
+      "tables": [
+        "operationsBuilding"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\call-messages.ts",
+      "tables": [
+        "operationsCallMessage"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\categories.ts",
+      "tables": [
+        "operationsCallCategory"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\clients.ts",
+      "tables": [
+        "nexusClient",
+        "misradClient",
+        "clientClient"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\contractors.ts",
+      "tables": [
+        "operationsWorkOrder",
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\dashboard.ts",
+      "tables": [
+        "operationsProject",
+        "operationsInventory",
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\departments.ts",
+      "tables": [
+        "operationsDepartment"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\projects.ts",
+      "tables": [
+        "nexusClient",
+        "misradClient",
+        "clientClient",
+        "operationsProject"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\purchase-orders.ts",
+      "tables": [
+        "operationsPurchaseOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock\\inventory.ts",
+      "tables": [
+        "operationsInventory"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock\\items.ts",
+      "tables": [
+        "operationsItem",
+        "operationsInventory"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock\\options.ts",
+      "tables": [
+        "operationsInventory"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock\\transfers.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock\\work-orders.ts",
+      "tables": [
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\stock.ts",
+      "tables": [
+        "operationsItem",
+        "operationsInventory",
+        "operationsWorkOrder",
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\suppliers.ts",
+      "tables": [
+        "operationsSupplier"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\technicians.ts",
+      "tables": [
+        "profile",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\assignment.ts",
+      "tables": [
+        "profile",
+        "nexusUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\attachments.ts",
+      "tables": [
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\checkins.ts",
+      "tables": [
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\create.ts",
+      "tables": [
+        "operationsProject",
+        "operationsCallCategory",
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\get-by-id.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\list.ts",
+      "tables": [
+        "profile"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\signatures.ts",
+      "tables": [
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders\\status.ts",
+      "tables": [
+        "operationsWorkOrder"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\operations\\work-orders.ts",
+      "tables": [
+        "operationsWorkOrder",
+        "profile",
+        "operationsProject"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\site-content.ts",
+      "tables": [
+        "socialMediaSiteContent"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\social-service.ts",
+      "tables": [
+        "navigationMenu",
+        "socialPost",
+        "activityLog",
+        "socialMediaTask",
+        "socialMediaConversation",
+        "socialMediaClientRequest",
+        "socialMediaManagerRequest",
+        "socialMediaIdea",
+        "socialMediaClientPlatform"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\social-users.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\system\\leads-service.ts",
+      "tables": [
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\system\\notifications.ts",
+      "tables": [
+        "nexusUser",
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\services\\system\\pipeline-stages.ts",
+      "tables": [
+        "systemPipelineStage",
+        "systemLead"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\social-oauth\\save-token.ts",
+      "tables": [
+        "clientSocialToken"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\social-publishing\\index.ts",
+      "tables": [
+        "clientSocialToken",
+        "socialMediaPublishedPost"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\supabase.ts",
+      "tables": [
+        "organization"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\userHelper.ts",
+      "tables": [
+        "organizationUser"
+      ],
+      "actions": []
+    },
+    {
+      "path": "c:\\Projects\\Misrad-AI\\lib\\utils.ts",
+      "tables": [
+        "system_invitation_links"
+      ],
+      "actions": []
+    }
+  ]
+}
