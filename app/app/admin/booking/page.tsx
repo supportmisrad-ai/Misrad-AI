@@ -4,7 +4,15 @@ import { prefetchBookingData } from '@/lib/booking/cache';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { redirect } from 'next/navigation';
 import { LinksPageClient } from '@/components/admin/booking/LinksPageClient';
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
+
+type PrismaLinkWithRelations = Prisma.BookingLinkGetPayload<{
+  include: {
+    services: { include: { service: true } };
+    provider: true;
+  };
+}>;
 
 interface PageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -70,7 +78,7 @@ export default async function BookingAdminPage({ searchParams }: PageProps) {
     const renderContent = () => {
       switch (tab) {
         case 'links':
-          return <LinksPageClient orgSlug={orgSlug} initialLinks={linksData as any} />;
+          return <LinksPageClient orgSlug={orgSlug} initialLinks={linksData} />;
         case 'calendar':
         case 'appointments':
         case 'providers':

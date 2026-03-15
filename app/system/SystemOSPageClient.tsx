@@ -37,17 +37,17 @@ export default function SystemOSLandingPage() {
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight px-2">
-              מערכת ניהול לידים<br/>
+              מכונת המכירות שלך<br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A21D3C] via-[#881337] to-[#A21D3C]">
-                ומכירות חכמה
+                לא נרדמת אף פעם
               </span>
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-3 sm:mb-4 max-w-2xl mx-auto leading-relaxed px-2">
-              <strong className="text-slate-900">{getModuleLabelHe('system')} עוזרת למנהלי המכירות שלך לנהל לידים, לעקוב אחר מכירות, ולסגור עסקאות.</strong>
+              <strong className="text-slate-900">{getModuleLabelHe('system')} סוגרת לך את הפינות שבהן הולך לאיבוד כסף: רדיפה אחרי לידים, חיזוי סגירות וסיכום שיחות.</strong>
             </p>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              כל עובד מקבל את הכלים שהוא צריך כדי לנהל את הלידים שלו. <span className="text-[#A21D3C] font-medium">פשוט, ישיר, עובד.</span>
+              כל ליד מקבל ציון סגירה ב-AI. אתה יודע בדיוק למי להתקשר עכשיו. <span className="text-[#A21D3C] font-medium">בלי ניחושים. רק כסף.</span>
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
@@ -55,7 +55,7 @@ export default function SystemOSLandingPage() {
                 onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#A21D3C] hover:bg-[#881337] text-white rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחילו לסגור עכשיו <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => router.push('/login')}
@@ -68,7 +68,7 @@ export default function SystemOSLandingPage() {
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 rounded-full font-bold transition-all text-sm sm:text-base flex items-center justify-center gap-2 hover:border-indigo-300 hover:scale-105"
               >
                 <Play size={18} className="text-indigo-600" />
-                צפייה במערכת
+                תראו איך זה עובד
               </button>
             </div>
           </div>
@@ -85,10 +85,10 @@ export default function SystemOSLandingPage() {
             className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 text-center shadow-sm"
           >
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight px-2">
-              לידים נופלים בין הכיסאות? זה לא חייב לקרות.
+              העובדים שלך הולכים הביתה ב-17:00.
             </h3>
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-[#A21D3C] mb-4 sm:mb-6 leading-tight px-2">
-              כשיש לך מערכת שמתעדכנת על כל ליד - אף אחד לא נשכח.
+              מכונת המכירות שלך ממשיכה לרדוף אחרי לידים בזמן שאתה ישן.
             </h3>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl mx-auto px-2">
               <span className="text-[#A21D3C] font-bold">{getModuleLabelHe('system')}</span> - לא עוד אקסל מסובך. כל מנהל מכירות רואה בדיוק איפה כל ליד עומד, מה השלב הבא, ומה צריך לעשות עכשיו.
@@ -106,9 +106,9 @@ export default function SystemOSLandingPage() {
                 <Target size={24} className="sm:w-8 sm:h-8 text-[#A21D3C]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">Pipeline מכירות שלם - מליד ועד סגירה</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">רדיפה אוטומטית - מליד ועד סגירה</h2>
                 <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-4 leading-relaxed">
-                  <strong className="text-slate-900">{getModuleLabelHe('system')}</strong> מתמקדת בניהול לידים ומכירות. כל מנהל מכירות רואה את ה-Pipeline שלו בצורה ויזואלית - איפה כל ליד עומד, מה צריך לעשות, וכמה כסף על השולחן.
+                  <strong className="text-slate-900">{getModuleLabelHe('system')}</strong> היא מכונת כסף. היא לא רק שומרת טלפונים, היא מנתחת סיכויי סגירה ואומרת לך למי להתקשר עכשיו כדי שלא תצא פראייר.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">

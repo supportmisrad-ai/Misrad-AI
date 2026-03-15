@@ -155,10 +155,10 @@ const TaskCardInner: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTi
           delete element._touchStartY;
           delete element._touchStartTime;
       }}
-      className={`group bg-white/70 backdrop-blur-lg p-4 rounded-[1.5rem] border shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all cursor-pointer relative ${
-          task.isTimerRunning ? 'border-green-400 ring-2 ring-green-100' : 
-          isPendingApproval ? 'border-orange-300 ring-2 ring-orange-50 bg-orange-50/30' :
-          'border-white/60 hover:border-white/80'
+      className={`group zen-card p-5 border-none shadow-none hover:shadow-luxury transition-all cursor-pointer relative overflow-hidden ${
+          task.isTimerRunning ? 'ring-2 ring-green-400/50 bg-white' : 
+          isPendingApproval ? 'ring-2 ring-orange-300/50 bg-orange-50/20' :
+          'hover:bg-white'
       }`}
     >
       {/* Pending Approval Overlay */}
@@ -204,7 +204,7 @@ const TaskCardInner: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTi
         )}
       </div>
 
-      <h3 className="text-base font-bold text-gray-900 mb-3 leading-snug group-hover:text-blue-600 transition-colors relative z-10">{task.title}</h3>
+      <h3 className="text-base font-bold text-gray-900 mb-3 leading-snug transition-colors relative z-10">{task.title}</h3>
 
       {linkedClient && (
           <div className="flex items-center gap-1.5 mb-3 text-[10px] font-bold text-gray-500 bg-gray-50/50 px-2 py-1 rounded-md border border-gray-100 w-fit">
@@ -218,7 +218,7 @@ const TaskCardInner: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTi
           ))}
       </div>
 
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100/50 relative z-10">
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100/50 relative z-10 opacity-40 group-hover:opacity-100 transition-opacity duration-500">
         <div className="flex items-center gap-3">
             {(task.timeSpent > 0 || task.isTimerRunning) && (
                 <div className={`text-[10px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md ${task.isTimerRunning ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-50'}`}>

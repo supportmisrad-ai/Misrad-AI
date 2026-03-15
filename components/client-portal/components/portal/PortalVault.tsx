@@ -9,6 +9,7 @@ import {
   Image,
   FileText,
   Download,
+  Paperclip,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { ClientAction, ClientAsset } from '../../types';
@@ -66,20 +67,43 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                 </div>
 
                 {action.type === 'UPLOAD' && (
-                  <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
-                    {isUploading === action.id ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Skeleton className="w-6 h-6 rounded-full bg-nexus-accent/20" />
-                        <span className="text-xs font-bold text-slate-400">מעלה ומאבטח...</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1">
-                        <Upload size={24} className="text-slate-300 group-hover/upload:text-nexus-accent transition-colors" />
-                        <span className="text-xs font-bold text-slate-400 group-hover/upload:text-slate-600">לחץ להעלאת מסמך</span>
+                  <div className="space-y-4">
+                    {(action as any).file_url && (
+                      <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-white rounded-lg text-blue-600 shadow-sm">
+                            <Paperclip size={16} />
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-blue-900">קובץ מצורף מהמלווה:</div>
+                            <div className="text-xs text-blue-700">{(action as any).file_name || 'לחץ להורדה'}</div>
+                          </div>
+                        </div>
+                        <a
+                          href={(action as any).file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700 transition-all uppercase tracking-tighter"
+                        >
+                          הורד קובץ
+                        </a>
                       </div>
                     )}
-                    <input type="file" className="hidden" onChange={() => onUpload(action.id, action.title)} />
-                  </label>
+                    <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
+                      {isUploading === action.id ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Skeleton className="w-6 h-6 rounded-full bg-nexus-accent/20" />
+                          <span className="text-xs font-bold text-slate-400">מעלה ומאבטח...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <Upload size={24} className="text-slate-300 group-hover/upload:text-nexus-accent transition-colors" />
+                          <span className="text-xs font-bold text-slate-400 group-hover/upload:text-slate-600">לחץ להעלאת מסמך</span>
+                        </div>
+                      )}
+                      <input type="file" className="hidden" onChange={() => onUpload(action.id, action.title)} />
+                    </label>
+                  </div>
                 )}
 
                 {action.type === 'FORM' && (

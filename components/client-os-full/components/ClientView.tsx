@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
+import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord, ServicePlan } from '../types';
 import { generateClientInsight } from '../services/geminiService';
 import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe, FileUp } from 'lucide-react';
 import SmartImportClientsDialog from '@/components/client-os-full/SmartImportClientsDialog';
@@ -21,6 +21,7 @@ import { PortalManagementTab } from './client-tabs/PortalManagementTab';
 import { useNexus } from '../context/ClientContext';
 import { createClinicClient } from '@/app/actions/client-clinic';
 import { getClientOSFeedbacks } from '@/app/actions/client-portal-clinic';
+import { getClientServicePlans, createDefaultServicePlanForClient } from '@/app/actions/client-service-plans';
 import { FeedbackItem } from '../types';
 import { getClientOsOrgId } from '../lib/getOrgId';
 
@@ -62,6 +63,7 @@ const ClientView: React.FC = () => {
 
   const client = clients.find(c => c.id === selectedClientId);
   const [clientMeetings, setClientMeetings] = useState<Meeting[]>([]);
+  const [servicePlans, setServicePlans] = useState<ServicePlan[]>([]);
 
   // Sync data
   const [journeyData, setJourneyData] = useState<JourneyStage[]>([]);
@@ -103,9 +105,23 @@ const ClientView: React.FC = () => {
       setOpportunities(JSON.parse(JSON.stringify(client.opportunities || [])));
       setClientMeetings(contextMeetings.filter(m => m.clientId === client.id));
 
-      // Load feedback for the selected client
+      // Load service plans for the selected client
       const currentOrgId = getClientOsOrgId();
       if (currentOrgId) {
+        void getClientServicePlans(currentOrgId, client.id).then(async (plans) => {
+          if (plans.length === 0) {
+            // Auto-create a default plan if none exist
+            const defaultPlan = await createDefaultServicePlanForClient({
+              orgId: currentOrgId,
+              clientId: client.id,
+              businessType: client.industry || 'עסקים'
+            });
+            setServicePlans([defaultPlan as unknown as ServicePlan]);
+          } else {
+            setServicePlans(plans as unknown as ServicePlan[]);
+          }
+        }).catch(() => setServicePlans([]));
+        
         void getClientOSFeedbacks(currentOrgId).then((feedbacks) => {
           setClientFeedback((feedbacks as FeedbackItem[]).filter(f => f.clientId === client.id));
         }).catch(() => setClientFeedback([]));
@@ -581,18 +597,19 @@ const ClientView: React.FC = () => {
                scheduledAutomations={[]} 
              />
            )}
-        {activeTab === 'meetings' && <ClientMeetingsTab meetings={clientMeetings} expandedMeetingId={expandedMeetingId} onToggleExpand={setExpandedMeetingId} meetingNotes={meetingNotes} onNoteChange={(id, val) => setMeetingNotes({...meetingNotes, [id]: val})} onSaveNote={() => {
-               window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'ההערה נשמרה בהצלחה.', type: 'success' } }));
-           }} onToggleTask={(meetingId, type, taskId) => {
-               setClientMeetings(prev => prev.map(m => {
-                 if (String(m.id) !== String(meetingId) || !m.aiAnalysis) return m;
-                 const key = type === 'agency' ? 'agencyTasks' : 'clientTasks';
-                 const tasks = m.aiAnalysis[key].map(t =>
-                   t.id === taskId ? { ...t, status: (t.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED') as 'PENDING' | 'COMPLETED' } : t
-                 );
-                 return { ...m, aiAnalysis: { ...m.aiAnalysis, [key]: tasks } };
-               }));
-           }} />}
+        {activeTab === 'meetings' && <ClientMeetingsTab 
+                meetings={clientMeetings} 
+                servicePlans={servicePlans}
+                expandedMeetingId={expandedMeetingId}
+                onToggleExpand={setExpandedMeetingId}
+                meetingNotes={meetingNotes}
+                onNoteChange={(id, val) => setMeetingNotes(prev => ({ ...prev, [id]: val }))}
+                onSaveNote={(id) => {
+                    console.log('Saving note for meeting', id, meetingNotes[id]);
+                    window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הערה נשמרה בהצלחה', type: 'success' } }));
+                }}
+                onToggleTask={(mid, type, tid) => console.log('Toggle task', mid, type, tid)}
+            />}
         {activeTab === 'work' && client && (
           <div className="space-y-12">
             <ClientWorkTab client={client} />

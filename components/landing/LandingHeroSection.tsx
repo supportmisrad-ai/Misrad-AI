@@ -23,21 +23,21 @@ export function LandingHeroSection() {
                   <Sparkles size={12} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
                   MISRAD AI
                 </span>
-                <span className="text-[10px] sm:text-xs md:text-sm font-bold text-indigo-700 leading-none">מערכת ניהול משולבת</span>
+                <span className="text-[10px] sm:text-xs md:text-sm font-bold text-indigo-700 leading-none">מערכת AI שעובדת אצלך</span>
               </div>
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight text-center lg:text-right">
-              <span className="text-slate-900">תהיו המנכ״ל האמיתי</span>
-              <span className="block mt-2 text-slate-900">של העסק שלכם.</span>
+              <span className="text-slate-900">תפסיקו "להתעסק" בעסק,</span>
+              <span className="block mt-2 text-slate-900">תתחילו להנהיג אותו.</span>
               <span className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 via-purple-700 to-rose-700 drop-shadow-sm">
-                תעבדו על העסק, לא בתוך העסק.
+                ה-AI סוגר את הטכני. עכשיו תורך להחליט.
               </span>
             </h1>
 
             <p className="mt-5 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed text-center lg:text-right mx-auto lg:mx-0">
-              מערכת ניהול שעושה את העבודה הכבדה. לקוחות, משימות, תשלומים
-              <span className="font-semibold text-slate-700"> — הכל זורם אוטומטית.</span>
+              בינה ניהולית שמשחררת אותך מהעבודה השחורה ומציפה לך רק את ההחלטות שבאמת מכניסות כסף.
+              <span className="font-semibold text-slate-700"> — אפס בריחה לטבלאות. רק מנהיגות.</span>
             </p>
 
             {/* Real Benefits */}

@@ -90,61 +90,54 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {/* 1. Time Clock Widget */}
-            <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${isActive ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
+            <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 transition-all duration-700 min-h-[240px] group ${isActive ? 'bg-black text-white' : 'zen-card border-none shadow-none hover:shadow-luxury'}`}>
                 {isActive && (
-                    <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-green-500/20 rounded-full blur-[80px] animate-pulse"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent animate-pulse"></div>
                 )}
-                <div className="relative z-10 flex flex-col justify-between h-full min-h-[240px]">
+                <div className="relative z-10 flex flex-col justify-between h-full">
                     <div className="flex justify-between items-start">
-                        <div className={`p-3.5 rounded-2xl ${isActive ? 'bg-white/10 text-green-400' : 'bg-white text-gray-900 shadow-sm'}`}>
-                            <Clock size={28} />
+                        <div className={`p-3 rounded-2xl transition-all duration-500 ${isActive ? 'bg-white/10 text-green-400' : 'bg-white/50 text-slate-400 group-hover:bg-white group-hover:text-slate-900 group-hover:shadow-sm'}`}>
+                            <Clock size={24} />
                         </div>
-                        {isActive && <span className="bg-green-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full animate-pulse shadow-lg shadow-green-500/40 border border-white/20">משמרת פעילה</span>}
+                        {isActive && <span className="text-[10px] font-black tracking-widest uppercase opacity-50">Shift Active</span>}
                     </div>
-                    <div className="mt-6 text-center">
-                        {isActive ? (
-                            <>
-                                <div className="text-6xl font-mono font-bold tracking-tighter tabular-nums leading-none mb-1 drop-shadow-lg">{elapsedFormatted}</div>
-                                <div className="flex justify-center mt-6"><HoldButton isActive={true} onComplete={clockOut} label="יציאה" size="small" /></div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="text-4xl font-bold tracking-tight text-gray-300 mb-6">00:00:00</div>
-                                <div className="flex justify-center"><HoldButton isActive={false} onComplete={clockIn} label="כניסה" size="small" /></div>
-                            </>
-                        )}
+                    <div className="text-center">
+                        <div className={`font-mono font-bold tracking-tighter tabular-nums transition-all duration-700 ${isActive ? 'text-6xl drop-shadow-2xl' : 'text-4xl text-slate-300 group-hover:text-slate-900'}`}>{elapsedFormatted}</div>
+                        <div className="mt-6 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                            <HoldButton isActive={isActive} onComplete={isActive ? clockOut : clockIn} label={isActive ? "יציאה" : "כניסה"} size="small" />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* 2. Business Health / Personal Targets */}
-            <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] flex flex-col justify-between h-full min-h-[240px] relative group overflow-hidden hover:shadow-2xl hover:bg-white/80 transition-all duration-500">
+            <div className="zen-card p-8 border-none shadow-none hover:shadow-luxury flex flex-col justify-between h-full min-h-[240px] relative group overflow-hidden transition-all duration-700">
                 {canViewFinancials ? (
                     <>
                         <div className="flex items-center justify-between mb-4 z-10 relative">
                             <div className="flex items-center gap-4">
-                                <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm border border-blue-100 group-hover:scale-110 transition-transform"><TrendingUp size={28} /></div>
-                                <div><h3 className="font-black text-gray-900 text-lg uppercase tracking-tight">הכנסות</h3><p className="text-xs text-blue-600 font-bold flex items-center gap-1 animate-pulse"><RefreshCw size={10} /> Live Insights</p></div>
+                                <div className="p-3 bg-slate-50 text-slate-400 rounded-2xl transition-all duration-500 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:scale-110"><TrendingUp size={24} /></div>
+                                <div><h3 className="font-black text-gray-900 text-lg uppercase tracking-tight opacity-0 group-hover:opacity-100 transition-opacity duration-500">כסף שנכנס</h3></div>
                             </div>
-                            <button onClick={onEditGoals} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" aria-label="ערוך יעדים חודשיים"><Edit2 size={18} /></button>
+                            <button onClick={onEditGoals} className="p-2 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all opacity-0 group-hover:opacity-100" aria-label="ערוך יעדים חודשיים"><Edit2 size={18} /></button>
                         </div>
                         <div className="relative z-10">
-                            <div className="flex items-end justify-between mb-6">
+                            <div className="flex items-end justify-between">
                                 <div>
-                                    <div className="text-5xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalRevenue)}</div>
-                                    <div className={`text-sm font-black flex items-center gap-1 mt-2 ${growth >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                                        <div className={`p-1 rounded-full ${growth >= 0 ? 'bg-emerald-100' : 'bg-rose-100'}`}>
-                                            {growth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                                        </div>
-                                        {Math.abs(Math.round(growth))}% צמיחה מהחודש שעבר
+                                    <div className="text-5xl font-black text-slate-900 tracking-tighter tabular-nums">{formatCurrency(totalRevenue)}</div>
+                                    <div className={`text-xs font-bold flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 ${growth >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                                        {growth >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                        {Math.abs(Math.round(growth))}% צמיחה
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">יעד חודשי</div>
-                                    <div className="text-sm font-black text-slate-700 bg-slate-100/80 px-3 py-1.5 rounded-xl inline-block shadow-inner">{formatCurrency(revenueGoal)}</div>
+                                <div className="text-right opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                    <div className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">היעד שלך</div>
+                                    <div className="text-xs font-black text-slate-700 bg-slate-100/80 px-2 py-1 rounded-lg inline-block">{formatCurrency(revenueGoal)}</div>
                                 </div>
                             </div>
-                            <div className="-mx-4 -mb-4 opacity-40 group-hover:opacity-100 transition-opacity"><TrendChart data={revenueHistory} color="text-blue-500" /></div>
+                            <div className="absolute -bottom-8 -left-8 -right-8 h-24 opacity-10 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none">
+                                <TrendChart data={revenueHistory} color="text-blue-500" />
+                            </div>
                         </div>
                     </>
                 ) : (
@@ -172,28 +165,28 @@ export const DashboardKPIWidgets: React.FC<DashboardKPIWidgetsProps> = ({
 
             {/* 3. Team Widget */}
             {teamEnabled && (
-            <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.05)] flex flex-col h-full min-h-[240px] hidden lg:flex hover:shadow-2xl hover:bg-white/80 transition-all duration-500">
+            <div className="zen-card p-8 border-none shadow-none hover:shadow-luxury flex flex-col h-full min-h-[240px] hidden lg:flex transition-all duration-700 group">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
-                        <div className="p-3.5 bg-purple-50 text-purple-600 rounded-2xl shadow-sm"><Users size={28} /></div>
-                        <div><h3 className="font-bold text-gray-900 text-lg">הצוות</h3><p className="text-sm text-gray-500">{Math.round(completionRate)}% מהמשימות</p></div>
+                        <div className="p-3 bg-slate-50 text-slate-400 rounded-2xl transition-all duration-500 group-hover:bg-purple-50 group-hover:text-purple-600 group-hover:scale-110"><Users size={24} /></div>
+                        <div><h3 className="font-bold text-gray-900 text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">סידור עבודה</h3><p className="text-sm text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500">{Math.round(completionRate)}% בוצעו</p></div>
                     </div>
-                    <button onClick={onNavigateTeam} className="text-gray-300 hover:text-black transition-colors p-2 hover:bg-gray-100 rounded-xl" aria-label="עבור לצוות"><ArrowRight size={24} /></button>
+                    <button onClick={onNavigateTeam} className="text-gray-300 hover:text-black transition-colors p-2 hover:bg-gray-100 rounded-xl opacity-0 group-hover:opacity-100" aria-label="עבור לצוות"><ArrowRight size={20} /></button>
                 </div>
                 <div className="flex-1 flex flex-col justify-center">
-                    <div className="mb-6">
-                        <div className="flex justify-between text-xs font-bold mb-2"><span className="text-gray-500 uppercase tracking-wider">סטטוס חודשי</span><span className="text-gray-900">{completedTasksCount} / {totalTasksCount}</span></div>
-                        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden shadow-inner">
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${taskProgress}%` }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full shadow-lg" />
+                    <div className="mb-6 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+                        <div className="flex justify-between text-[10px] font-bold mb-2"><span className="text-gray-500 uppercase tracking-wider">סטטוס</span><span className="text-gray-900">{completedTasksCount} / {totalTasksCount}</span></div>
+                        <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${taskProgress}%` }} transition={{ duration: 1.5, ease: "easeOut" }} className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full shadow-lg" />
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="flex -space-x-3 space-x-reverse">
+                        <div className="flex -space-x-2 space-x-reverse opacity-40 group-hover:opacity-100 transition-opacity duration-500">
                             {users.filter((u) => u.online).slice(0, 3).map((u) => (
-                                <img key={u.id} src={u.avatar} className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-green-400 shadow-md object-cover" />
+                                <img key={u.id} src={u.avatar} className="w-8 h-8 rounded-full border-2 border-white ring-1 ring-slate-100 object-cover" />
                             ))}
                         </div>
-                        {users.filter((u) => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter((u) => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
+                        {users.filter((u) => u.online).length > 0 ? <span className="text-[10px] text-green-700 font-bold bg-green-50 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">{users.filter((u) => u.online).length} אונליין</span> : null}
                     </div>
                 </div>
             </div>

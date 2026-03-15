@@ -1108,6 +1108,7 @@ model MisradClient {
   roiRecords                       MisradRoiRecord[]
   stakeholders                     MisradStakeholder[]
   successGoals                     MisradSuccessGoal[]
+  servicePlans                     MisradServicePlan[]
 
   @@index([organizationId])
   @@index([organizationId, created_at])
@@ -1130,6 +1131,8 @@ model MisradClientAction {
   isBlocking         Boolean
   lastReminderSent   String?
   lastReminderSentAt DateTime?                @map("last_reminder_sent_at") @db.Timestamptz(6)
+  file_url           String?
+  file_name          String?
   created_at         DateTime                 @default(now())
   updated_at         DateTime                 @updatedAt
   client             MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
@@ -1531,6 +1534,10 @@ model MisradMeeting {
   analysis        MisradMeetingAnalysisResult?
   files           MisradMeetingFile[]
   client          MisradClient                 @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  phase           MisradServicePhase?          @relation(fields: [phase_id], references: [id])
+  phase_id        String?                      @db.Uuid
+  template        MisradMeetingTemplate?       @relation(fields: [template_id], references: [id])
+  template_id     String?                      @db.Uuid
 
   @@index([organization_id])
   @@index([organization_id, created_at])
@@ -1607,6 +1614,70 @@ model MisradMessage {
   @@index([read_status])
   @@index([related_project_id])
   @@map("misrad_messages")
+}
+
+model MisradServicePlan {
+  id              String               @id @default(uuid()) @db.Uuid
+  organization_id String               @db.Uuid
+  client_id       String               @db.Uuid
+  title           String
+  description     String?
+  status          MisradServiceStatus  @default(ACTIVE)
+  startedAt       DateTime             @default(now())
+  endedAt         DateTime?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+  client          MisradClient         @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  phases          MisradServicePhase[]
+
+  @@index([organization_id])
+  @@index([client_id])
+  @@map("misrad_service_plans")
+}
+
+model MisradServicePhase {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organization_id String                 @db.Uuid
+  plan_id         String                 @db.Uuid
+  title           String
+  description     String?
+  order           Int                    @default(0)
+  status          MisradServiceStatus    @default(PENDING)
+  created_at      DateTime               @default(now())
+  updated_at      DateTime               @updatedAt
+  plan            MisradServicePlan      @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  meetings        MisradMeeting[]
+  templates       MisradMeetingTemplate[]
+
+  @@index([organization_id])
+  @@index([plan_id])
+  @@map("misrad_service_phases")
+}
+
+model MisradMeetingTemplate {
+  id              String              @id @default(uuid()) @db.Uuid
+  organization_id String              @db.Uuid
+  phase_id        String?             @db.Uuid
+  title           String
+  description     String?
+  agenda          String[]
+  successCriteria String[]            @map("success_criteria")
+  aiPromptHint    String?             @map("ai_prompt_hint")
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  phase           MisradServicePhase? @relation(fields: [phase_id], references: [id])
+  meetings        MisradMeeting[]
+
+  @@index([organization_id])
+  @@index([phase_id])
+  @@map("misrad_meeting_templates")
+}
+
+enum MisradServiceStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 model MisradMessageAttachment {

@@ -683,6 +683,8 @@ export async function createSystemLead(
         },
       });
 
+      revalidatePath(`/w/${orgSlug}/system`, 'page');
+      revalidatePath(`/w/${orgSlug}/system/leads`, 'page');
       revalidatePath('/', 'layout');
       const dto = toDto(row);
 

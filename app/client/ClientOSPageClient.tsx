@@ -41,23 +41,23 @@ export default function ClientOSPage() {
             </div>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight px-2">
-              הכלי האישי שלך<br/>
+              הכלי שעובד בשבילך<br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A]">
-                לנהל לקוחות
+                מול הלקוחות
               </span>
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              מערכת לניהול לקוחות עם <strong className="text-[#C5A572]">פורטל לקוח</strong>, <strong className="text-[#C5A572]">ניהול קבוצות</strong>, ומעקב מתאמנים. <strong className="text-[#C5A572]">אינטגרציה מלאה עם Zoom ו-Google Meet</strong> - יצירת לינק פגישה אוטומטית.
+              סוגרים פינות מול הלקוחות: <strong className="text-[#C5A572]">פורטל לקוח בשירות עצמי</strong>, שקיפות מלאה ופגישות שנוצרות לבד. ה-AI אומר לך בדיוק מי הלקוח שצריך תשומת לב עכשיו.
             </p>
 
             {/* Core Features Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-w-3xl mx-auto px-2">
               {[
-                { text: 'פורטל לקוח', icon: Globe, desc: 'לקוחות נכנסים לראות מידע, משימות וקבצים' },
-                { text: 'ניהול קבוצות', icon: Users, desc: 'ארגון לקוחות בקבוצות וצוותי עבודה' },
-                { text: 'ניהול פגישות', icon: CalendarDays, desc: 'תזמון פגישות, מעקב וניתוח אינטליגנטי של פגישות' },
-                { text: 'ניהול משימות', icon: CircleUser, desc: 'מעקב אחר משימות, תהליכים ותיעוד עבודה' },
+                { text: 'פורטל לקוח', icon: Globe, desc: 'הלקוחות רואים הכל לבד, בלי לשאול אותך' },
+                { text: 'סידור קבוצות', icon: Users, desc: 'ארגון לקוחות לפי פרויקטים וסוגי שירות' },
+                { text: 'יומן עבודה', icon: CalendarDays, desc: 'פגישות שנוצרות אוטומטית וסיכומי AI' },
+                { text: 'סגירת פינות', icon: CircleUser, desc: 'המערכת מתריעה כשללקוח חסר משהו או כשהוא מחכה לך' },
               ].map((item, i) => (
                 <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 hover:border-[#C5A572]/30 hover:bg-slate-50 transition-all text-right shadow-sm">
                   <div className="flex items-start gap-2">
@@ -94,14 +94,14 @@ export default function ClientOSPage() {
                 onClick={() => router.push('/login?mode=sign-up&redirect=/workspaces/onboarding')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#C5A572]/30 hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחילו לעבוד עכשיו <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => setIsVideoModalOpen(true)}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 rounded-full font-bold transition-all text-sm sm:text-base flex items-center justify-center gap-2 hover:border-indigo-300 hover:scale-105"
               >
                 <Play size={18} className="text-indigo-600" />
-                צפייה במערכת
+                תראו איך זה עובד
               </button>
             </div>
           </div>
@@ -118,10 +118,10 @@ export default function ClientOSPage() {
             className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 text-center shadow-sm"
           >
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight px-2">
-              כלי שלא נוח לך לעבוד איתו - הוא יקשה עליך.
+              נמאס לך להיות הגננת של הלקוחות?
             </h3>
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-[#C5A572] mb-4 sm:mb-6 leading-tight px-2">
-              כלי שאתה לומד איתו בשנייה ומדבר בשפה הפשוטה שלך - הוא חלק ממך.
+              תן להם פורטל שסוגר פינות לבד - והשקט יחזור אליך.
             </h3>
             <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl mx-auto px-2">
               <span className="text-[#C5A572] font-bold">{getModuleLabelHe('client')}</span> - לא עוד כלי מסובך. כלי שאתה מבין מיד. כלי שעובד בשבילך, לא נגדך.
@@ -139,9 +139,9 @@ export default function ClientOSPage() {
                 <Target size={24} className="sm:w-8 sm:h-8 text-[#C5A572]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">משימות אישיות - כל עובד רואה רק את שלו</h2>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">הסוף ל"מה הסטטוס" - שקיפות מלאה</h2>
                 <p className="text-sm sm:text-base md:text-lg text-slate-600 mb-4 leading-relaxed">
-                  <strong className="text-slate-900">{getModuleLabelHe('client')}</strong> מתמקדת בביצוע (Execution). כל עובד רואה רק את המשימות שלו, משימות Follow Up פשוטות לביצוע מיידי.
+                  <strong className="text-slate-900">{getModuleLabelHe('client')}</strong> עוברת מרדיפה אחרי לקוחות לעבודה תכליתית. כל לקוח רואה מה נעשה ומה חסר, בלי לשלוח לך הודעה בוואטסאפ ב-11 בלילה.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-6">
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">

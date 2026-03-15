@@ -4,25 +4,41 @@ import { Type } from '@google/genai';
 import { AIService } from '@/lib/services/ai/AIService';
 import { asObject } from '@/lib/shared/unknown';
 
-export async function analyzeMeetingTranscript(transcript: string): Promise<unknown> {
+export async function analyzeMeetingTranscript(transcript: string, options?: { 
+  agenda?: string[]; 
+  successCriteria?: string[]; 
+  aiPromptHint?: string | null;
+}): Promise<unknown> {
   const startTime = Date.now();
   
   try {
     console.log('[analyzeMeetingTranscript] Starting analysis', {
       transcriptLength: transcript.length,
-      transcriptPreview: transcript.substring(0, 200),
+      hasAgenda: !!options?.agenda?.length,
+      hasCriteria: !!options?.successCriteria?.length,
     });
 
+    const contextInstructions = options ? `
+      SPECIFIC MEETING CONTEXT:
+      ${options.agenda?.length ? `- AGENDA TO CHECK: ${options.agenda.join(', ')}` : ''}
+      ${options.successCriteria?.length ? `- SUCCESS CRITERIA: ${options.successCriteria.join(', ')}` : ''}
+      ${options.aiPromptHint ? `- ADDITIONAL HINT: ${options.aiPromptHint}` : ''}
+
+      In your analysis, specifically verify if the agenda items were covered and if the success criteria were met.
+    ` : '';
+
     const systemPrompt = `
-      You are the Nexus Meeting Analyzer, specialized in B2B Account Management.
+      You are the Nexus Meeting Analyzer, specialized in B2B Account Management and Professional Coaching.
 
       CONTEXT:
-      - "Speaker 0" is the AGENCY (Us/Manager).
+      - "Speaker 0" is the AGENCY (Us/Manager/Coach).
       - "Speaker 1" (and others) is the CLIENT.
 
       YOUR MISSION:
       Analyze the transcript and separate responsibilities strictly based on who is speaking.
-      Deeply analyze subtext, hidden intents, and cultural nuances.
+      Deeply analyze subtext, hidden intents, and cultural nuances (Israeli "Dugri" style).
+      
+      ${contextInstructions}
 
       EXTRACT THE FOLLOWING IN HEBREW:
       1. AGENCY TASKS (Ops): Actionable items for Speaker 0.

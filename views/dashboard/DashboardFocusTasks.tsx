@@ -61,7 +61,7 @@ export const DashboardFocusTasks: React.FC<DashboardFocusTasksProps> = ({
                         </div>
                         <h3 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">השולחן נקי, מצוין!</h3>
                         <p className="text-slate-500 text-lg max-w-md mx-auto leading-relaxed font-medium">
-                            סיימת את כל משימות המיקוד להיום. ה-AI מציע לך לקחת רגע של נחת, או לרענן משימות חדשות מהמאגר.
+                            סיימת לסגור את כל הפינות להיום. ה-AI מציע לך לקחת רגע של נחת, או לרענן משימות חדשות.
                         </p>
                         <button 
                             onClick={onNavigateTasks}

@@ -15,7 +15,7 @@ export const CTAButtons = () => {
           href="/login?mode=sign-up&redirect=/workspaces/onboarding"
           className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-slate-900 to-slate-700 text-white font-black shadow-[0_18px_45px_-18px_rgba(15,23,42,0.65)] ring-1 ring-slate-900/10 hover:shadow-[0_24px_60px_-20px_rgba(15,23,42,0.75)] hover:scale-[1.03] active:scale-[0.99] transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/15"
         >
-          התחילו ניסיון חינם - 7 ימים
+          התחילו לעבוד - 7 ימים חינם
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
         </Link>
         <button
@@ -24,7 +24,7 @@ export const CTAButtons = () => {
         >
           <span className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-purple-500/0 to-indigo-500/0 group-hover:from-indigo-500/5 group-hover:via-purple-500/10 group-hover:to-indigo-500/5 transition-all duration-500" />
           <Play size={18} className="relative text-indigo-600 group-hover:text-purple-600 group-hover:scale-110 transition-all duration-300" />
-          <span className="relative">צפייה במערכת</span>
+          <span className="relative">תראו איך זה עובד</span>
         </button>
       </div>
 

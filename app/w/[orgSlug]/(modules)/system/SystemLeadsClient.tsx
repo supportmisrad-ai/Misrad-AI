@@ -87,9 +87,14 @@ export default function SystemLeadsClient({
       console.log('[SystemLeadsClient] Calling createSystemLead...');
       const created = await createSystemLead(orgSlug, input);
       console.log('[SystemLeadsClient] createSystemLead returned:', created);
+      
+      // Update local state immediately for fast UI feedback
       setLeads(prev => [created, ...prev]);
       setShowNewLeadModal(false);
       setMessage('הליד נוצר בהצלחה');
+
+      // Force refresh data from server to ensure sync with DB and revalidation
+      await refreshLeads();
     } catch (e: unknown) {
       console.error('[SystemLeadsClient] Error in createSystemLead:', e);
       const errMsg = getErrorMessage(e);

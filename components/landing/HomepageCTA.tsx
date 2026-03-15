@@ -16,14 +16,14 @@ export function HomepageCTA() {
         </div>
 
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight">
-          מוכנים להפסיק לנהל
+          מוכנים שהעסק
           <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400">
-            על פתקים?
+            יתחיל לעבוד אצלכם?
           </span>
         </h2>
 
         <p className="mt-4 sm:mt-6 text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          7 דקות כדי להתחיל. 7 ימים לגלות שאתם לא חוזרים אחורה.
+          7 דקות הקמה. 7 ימים לראות תוצאות בשטח.
         </p>
 
         <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -31,7 +31,7 @@ export function HomepageCTA() {
             href="/login?mode=sign-up&redirect=/workspaces/onboarding"
             className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-white text-slate-900 font-black shadow-[0_18px_45px_-18px_rgba(255,255,255,0.35)] hover:shadow-[0_24px_60px_-20px_rgba(255,255,255,0.45)] hover:scale-[1.03] active:scale-[0.99] transition-all w-full sm:w-auto"
           >
-            התחילו בחינם עכשיו
+            התחילו עכשיו
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           </Link>
           <Link

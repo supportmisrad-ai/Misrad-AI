@@ -91,6 +91,37 @@ export interface EngagementMetrics {
   silentChurnDetected: boolean;
 }
 
+export interface ServicePlan {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  startedAt: string;
+  endedAt?: string;
+  clientId: string;
+  phases: ServicePhase[];
+}
+
+export interface ServicePhase {
+  id: string;
+  planId: string;
+  title: string;
+  description?: string;
+  order: number;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  meetings: Meeting[];
+  templates: MeetingTemplate[];
+}
+
+export interface MeetingTemplate {
+  id: string;
+  phaseId?: string;
+  title: string;
+  description?: string;
+  agenda: string[];
+  successCriteria: string[];
+}
+
 export interface ClientAction {
   id: string;
   title: string;
@@ -339,6 +370,7 @@ export interface Client {
   handoffData?: ClientHandoff;
   roiHistory: ROIRecord[];
   referralStatus: 'UNLOCKED' | 'LOCKED' | 'REDEEMED';
+  servicePlans: ServicePlan[];
   assets: ClientAsset[];
   deliverables: ClientDeliverable[];
   transformations: ClientTransformation[];
@@ -362,6 +394,8 @@ export interface MeetingFile {
 export interface Meeting {
   id: string;
   clientId: string;
+  phaseId?: string;
+  templateId?: string;
   date: string;
   title: string;
   location: 'ZOOM' | 'FRONTAL' | 'PHONE';

@@ -1,11 +1,13 @@
 
-import React from 'react';
-import { Meeting } from '../../types';
-import { Calendar, Video, Users, ChevronUp, ChevronDown, Brain, ShieldAlert, CirclePlay, FileText, Download, ListTodo, Check, Edit2, Save, FolderOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { Meeting, ServicePlan } from '../../types';
+import { Calendar, Video, Users, ChevronUp, ChevronDown, Brain, ShieldAlert, CirclePlay, FileText, Download, ListTodo, Check, Edit2, Save, FolderOpen, Layout } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
+import { ServiceTimeline } from '../ui/ServiceTimeline';
 
 interface ClientMeetingsTabProps {
   meetings: Meeting[];
+  servicePlans?: ServicePlan[];
   expandedMeetingId: string | null;
   onToggleExpand: (id: string) => void;
   meetingNotes: Record<string, string>;
@@ -16,6 +18,7 @@ interface ClientMeetingsTabProps {
 
 export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({ 
   meetings, 
+  servicePlans = [],
   expandedMeetingId, 
   onToggleExpand, 
   meetingNotes, 
@@ -23,13 +26,38 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
   onSaveNote, 
   onToggleTask 
 }) => {
+  const [viewMode, setViewMode] = useState<'timeline' | 'list'>(servicePlans.length > 0 ? 'timeline' : 'list');
+
   return (
     <div className="space-y-6 animate-slide-up">
-        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-4">
-            <Calendar size={20} className="text-nexus-primary"/> היסטוריית פגישות וסיכומים
-        </h3>
-        <div className="space-y-4">
-            {meetings.length > 0 ? meetings.map(meeting => (
+        <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Calendar size={20} className="text-nexus-primary"/> היסטוריית פגישות וסיכומים
+            </h3>
+            
+            {servicePlans.length > 0 && (
+                <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                    <button 
+                        onClick={() => setViewMode('timeline')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'timeline' ? 'bg-white text-nexus-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Layout size={14} /> ציר זמן
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white text-nexus-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <ListTodo size={14} /> רשימה
+                    </button>
+                </div>
+            )}
+        </div>
+
+        {viewMode === 'timeline' && servicePlans.length > 0 ? (
+            <ServiceTimeline plans={servicePlans} onSelectMeeting={onToggleExpand} />
+        ) : (
+            <div className="space-y-4">
+                {meetings.length > 0 ? meetings.map(meeting => (
                 <div 
                     key={meeting.id} 
                     className={`bg-white border rounded-xl transition-all overflow-hidden ${expandedMeetingId === meeting.id ? 'border-nexus-primary shadow-lg ring-1 ring-nexus-primary/20' : 'border-gray-200 hover:border-nexus-primary/30'}`}

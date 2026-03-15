@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Client } from '../../types';
 import { Activity, Brain, Sparkles, Zap, SquareActivity, AlertCircle } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { Skeleton } from '@/components/ui/skeletons';
+import { QuickRecord } from '../ui/QuickRecord';
 
 interface ClientPulseTabProps {
   client: Client;
@@ -33,14 +33,11 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                 <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                     <Activity size={20} className="text-nexus-accent"/> איך התיק מרגיש?
                 </h3>
-                <p className="text-sm text-gray-500">סקירה מהירה של המדדים החשובים בניהול הלקוח.</p>
+                <p className="text-sm text-gray-500">סקירת בריאות, סנטימנט וביצועים בזמן אמת</p>
             </div>
-            <button 
-                onClick={onGenerateInsight}
-                className="flex items-center gap-2 px-4 py-2 bg-nexus-primary text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-colors shadow-lg shadow-nexus-primary/20 whitespace-nowrap"
-            >
-                <Brain size={16} /> ניתוח חכם (AI)
-            </button>
+            <div className="w-full md:w-auto">
+                <QuickRecord clientId={client.id} />
+            </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

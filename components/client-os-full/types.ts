@@ -352,6 +352,8 @@ export interface MeetingFile {
 export interface Meeting {
   id: string;
   clientId: string;
+  phaseId?: string;
+  templateId?: string;
   date: string;
   title: string;
   location: 'ZOOM' | 'FRONTAL' | 'PHONE';
@@ -394,17 +396,55 @@ export interface MeetingAnalysisResult {
   objections: string[];
   compliments: string[];
   decisions: string[];
+  intents: string[];
+  stories: string[];
+  slang: string[];
+  rating: {
+    professionalism: number;
+    warmth: number;
+    clarity: number;
+    relationshipWarmth?: number;
+    relationshipNote?: string;
+  };
   agencyTasks: AITask[];
   clientTasks: AITask[];
   liabilityRisks: AILiabilityRisk[];
-  intents?: string[];
-  stories?: string[];
-  slang?: string[];
-  rating?: {
-      professionalism: number;
-      warmth: number;
-      clarity: number;
-  };
+  commitments?: {
+    who: string;
+    what: string;
+    due: string;
+  }[];
+}
+
+export interface ServicePlan {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  startedAt: string;
+  endedAt?: string;
+  clientId: string;
+  phases: ServicePhase[];
+}
+
+export interface ServicePhase {
+  id: string;
+  planId: string;
+  title: string;
+  description?: string;
+  order: number;
+  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  meetings: Meeting[];
+  templates: MeetingTemplate[];
+}
+
+export interface MeetingTemplate {
+  id: string;
+  phaseId?: string;
+  title: string;
+  description?: string;
+  agenda: string[];
+  successCriteria: string[];
 }
 
 export type FieldType = 'TEXT' | 'TEXTAREA' | 'SELECT' | 'UPLOAD' | 'DATE' | 'CHECKBOX' | 'RADIO';

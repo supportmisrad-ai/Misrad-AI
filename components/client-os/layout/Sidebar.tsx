@@ -68,8 +68,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                 <Target size={24} strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">
-                <h1 className="text-xl font-black text-gray-900 leading-none tracking-tight">Client</h1>
-                <span className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase mt-1">Standalone</span>
+                <h1 className="text-xl font-black text-gray-900 leading-none tracking-tight">תיקי לקוחות</h1>
+                <span className="text-[10px] font-black text-slate-400 tracking-[0.25em] uppercase mt-1.5 ml-0.5">MISRAD AI</span>
             </div>
          </div>
       </div>
@@ -163,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-900 truncate leading-tight">{user.name || 'משתמש'}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' || user.role === 'super_admin' ? 'מנהל מערכת' : 'חבר צוות'}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' || user.role === 'super_admin' ? 'הבוס' : 'חבר צוות'}</p>
             </div>
             <SignOutButton>
                 <button className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full" title="התנתק">

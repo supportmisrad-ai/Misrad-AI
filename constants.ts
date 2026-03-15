@@ -26,7 +26,7 @@ export const SYSTEM_SCREENS: ScreenDefinition[] = [
     { id: 'calendar', label: 'אירועים', category: 'main' },
     { id: 'clients', label: 'לקוחות', category: 'main' },
     { id: 'operations', label: 'תפעול', category: 'main' },
-    { id: 'team', label: 'ניהול צוות', category: 'main' },
+    { id: 'team', label: 'סידור עבודה וצוות', category: 'main' },
     { id: 'reports', label: 'דוחות ומדדים', category: 'main' },
     { id: 'assets', label: 'נכסים וכספת', category: 'main' },
     { id: 'brain', label: 'Nexus AI', category: 'main' },
@@ -45,19 +45,19 @@ export const SYSTEM_SCREENS: ScreenDefinition[] = [
     { id: 'settings_departments', label: 'מחלקות', category: 'settings' },
     { id: 'settings_roles', label: 'תפקידים והרשאות', category: 'settings' },
     { id: 'settings_data', label: 'גיבוי ושחזור', category: 'settings' },
-    { id: 'settings_ai_dna', label: 'DNA עסקי ל-AI', category: 'settings' },
+    { id: 'settings_ai_dna', label: 'DNA של העסק (AI)', category: 'settings' },
 ];
 
 // USERS, TASKS, CLIENTS, TENANTS, LEADS, ASSETS, TEMPLATES, CONTENT_ITEMS removed
 // All data now comes from Supabase database. No mock data for production.
 
 export const PERMISSIONS_LIST: { id: PermissionId; label: string; desc: string }[] = [
-    { id: 'view_financials', label: 'צפייה בפיננסים', desc: 'גישה לכל החשבוניות, חיובים, הכנסות ויעדים' },
-    { id: 'manage_team', label: 'ניהול צוות', desc: 'הוספה והסרה של משתמשים, דוחות נוכחות' },
+    { id: 'view_financials', label: 'גבייה וכסף', desc: 'גישה לכל החשבוניות, חיובים, הכנסות ורווחיות' },
+    { id: 'manage_team', label: 'סידור עבודה וצוות', desc: 'הוספה והסרה של משתמשים, דוחות נוכחות' },
     { id: 'manage_system', label: 'הגדרות מערכת', desc: 'עריכת תהליכים, תפקידים ואינטגרציות (Admin)' },
     { id: 'delete_data', label: 'מחיקת מידע', desc: 'מחיקה לצמיתות של משימות, לקוחות וקבצים' },
     { id: 'view_intelligence', label: 'גישה ל-AI', desc: 'שימוש בניתוחי Nexus Brain מתקדמים' },
-    { id: 'view_crm', label: 'גישה ל-CRM', desc: 'צפייה וניהול לקוחות ולידים' },
+    { id: 'view_crm', label: 'מכונות מכירה (CRM)', desc: 'רדיפה אחרי לידים וסגירת עסקאות' },
     { id: 'view_assets', label: 'גישה לנכסים', desc: 'צפייה בקבצים, סיסמאות וארכיון מסמכים' },
 ];
 

@@ -83,8 +83,10 @@ export async function analyzeAndStoreMeeting(params: {
   transcript: string;
   recordingUrl?: string | null;
   attendees?: string[];
+  phaseId?: string | null;
+  templateId?: string | null;
 }): Promise<{ meetingId: string; analysis: unknown }> {
-  const { orgId, clientId, title, location, transcript, attendees, recordingUrl } = params;
+  const { orgId, clientId, title, location, transcript, attendees, recordingUrl, phaseId, templateId } = params;
   if (!orgId) throw new Error('orgId is required');
   if (!clientId) throw new Error('clientId is required');
   if (!title) throw new Error('title is required');
@@ -93,6 +95,23 @@ export async function analyzeAndStoreMeeting(params: {
   const now = new Date();
   const meetingDateLabel = now.toLocaleDateString('he-IL');
   const meetingDateAt = toUtcDateOnly(now);
+
+  // Load template context if available
+  let agenda: string[] | undefined;
+  let successCriteria: string[] | undefined;
+  let aiPromptHint: string | null | undefined;
+
+  if (templateId) {
+    const template = await prisma.misradMeetingTemplate.findUnique({
+      where: { id: templateId },
+      select: { agenda: true, successCriteria: true, aiPromptHint: true }
+    });
+    if (template) {
+      agenda = template.agenda;
+      successCriteria = template.successCriteria;
+      aiPromptHint = template.aiPromptHint;
+    }
+  }
 
   async function createMeetingWithData(data: Record<string, unknown>): Promise<{ id: string }> {
     return await prisma.misradMeeting.create({
@@ -106,6 +125,8 @@ export async function analyzeAndStoreMeeting(params: {
     meeting = await createMeetingWithData({
       organization_id: orgId,
       client_id: clientId,
+      phase_id: phaseId ?? null,
+      template_id: templateId ?? null,
       date: meetingDateLabel,
       dateAt: meetingDateAt,
       meetingAt: now,
@@ -121,6 +142,8 @@ export async function analyzeAndStoreMeeting(params: {
     meeting = await createMeetingWithData({
       organization_id: orgId,
       client_id: clientId,
+      phase_id: phaseId ?? null,
+      template_id: templateId ?? null,
       date: meetingDateLabel,
       title,
       location,
@@ -143,9 +166,14 @@ export async function analyzeAndStoreMeeting(params: {
         clientId,
         orgId,
         meetingId: meeting.id,
+        hasTemplate: !!templateId,
       });
       
-      analysis = await analyzeMeetingTranscript(transcript);
+      analysis = await analyzeMeetingTranscript(transcript, {
+        agenda,
+        successCriteria,
+        aiPromptHint
+      });
       
       console.log('[analyzeAndStoreMeeting] Analysis succeeded', {
         attempt: retryCount + 1,

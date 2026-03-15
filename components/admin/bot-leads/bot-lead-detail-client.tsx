@@ -29,6 +29,21 @@ import { CustomDatePicker } from '@/components/CustomDatePicker';
 import { formatDistanceToNow, format } from 'date-fns';
 import { he } from 'date-fns/locale';
 
+const statusLabels: Record<string, string> = {
+  new: 'חדש',
+  contacted: 'נוצר קשר',
+  qualified: 'מועמד',
+  demo_scheduled: 'דמו מתוזמן',
+  demo_completed: 'דמו הושלם',
+  proposal_sent: 'הצעת מחיר נשלחה',
+  negotiation: 'במשא ומתן',
+  trial: 'בתקופת ניסיון',
+  customer: 'לקוח',
+  churned: 'נטש',
+  lost: 'אבוד',
+  unsubscribed: 'הסיר הרשמה',
+};
+
 interface BotLeadDetailClientProps {
   lead: BotLeadDTO;
   conversations: Array<{

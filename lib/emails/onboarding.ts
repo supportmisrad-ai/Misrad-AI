@@ -21,24 +21,24 @@ function generateOrganizationWelcomeEmailHTML(params: {
 
     const bodyContent = `
         ${EmailTemplateComponents.generateFeatureBanner({
-            emoji: '🎉',
-            title: `"${params.organizationName}" מוכן לפעולה!`,
-            subtitle: 'הארגון שלך ב-MISRAD AI הוקם בהצלחה',
+            emoji: '🚀',
+            title: `"${params.organizationName}" התחיל לעבוד!`,
+            subtitle: 'הכלי שלך ב-MISRAD AI מוכן לסגור פינות',
             gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
         })}
 
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            הארגון <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${params.organizationName}"</strong> מוכן לפעולה.
+            העסק <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${params.organizationName}"</strong> מחובר.
             <br />
-            הנה 3 צעדים קצרים להתחלה מושלמת:
+            הנה 3 צעדים שיגרמו למערכת לעבוד בשבילך:
         </div>
 
         ${EmailTemplateComponents.generateSteps([
-            { title: 'השלמת פרופיל', desc: 'שם העסק, לוגו ופרטי התקשרות' },
-            { title: 'הוספת חברי צוות', desc: 'הזמנו עובדים והגדירו הרשאות' },
-            { title: 'התחילו לעבוד', desc: 'AI ילמד את הדפוסים שלכם ויתאים את עצמו' },
+            { title: 'פרטי עסק', desc: 'שם ולוגו כדי שהלקוחות יראו מותג חזק' },
+            { title: 'חברי צוות', desc: 'צרף את העובדים ותפסיק להיות גננת' },
+            { title: 'התחילו לעבוד', desc: 'ה-AI כבר מתחיל ללמוד איך לסגור לך פינות' },
         ])}
 
         ${EmailTemplateComponents.generateCTAButton({
@@ -81,7 +81,7 @@ function generateFirstCustomerEmailHTML(params: {
             photoUrl: assets.founderPhoto,
             name: assets.founderName,
             title: assets.founderTitle,
-            message: 'ראיתי שנרשמת ורציתי לפנות אליך אישית.<br />אני מאמין שאנחנו בונים משהו מיוחד, והדעת שלך חשובה לנו מאוד.<br /><br />אם משהו לא ברור, נתקע או צריך עזרה — אני קרוב כמו הודעה הזאת.',
+            message: 'ראיתי שנרשמת ורציתי לבדוק איך העסק שלך הולך להשתנות.<br />אני מאמין בערך ובישירות, ובניתי את MISRAD AI כדי לחסוך לך את העבודה המלוכלכת.<br /><br />אם משהו תקוע או לא "תכלס" מספיק — אני פה.',
             signatureText: assets.founderSignature,
         })}
 
@@ -125,9 +125,9 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
         <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
         <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            ראיתי שנרשמת ל-MISRAD ב-24 השעות האחרונות, אבל לא ראיתי מנוי פעיל.
+            ראיתי שנרשמת ל-MISRAD, אבל המערכת עדיין לא עובדת בשבילך.
             <br /><br />
-            <strong style="color:#6366f1;">רציתי לשאול אם משהו נתקע בדרך, ואם אני יכול לעזור?</strong>
+            <strong style="color:#6366f1;">רציתי לשאול אם משהו בדרך לא היה מספיק "תכלס"?</strong>
         </div>
 
         ${EmailTemplateComponents.generateCTAButton({
@@ -224,20 +224,20 @@ function generateMisradWelcomeEmailHTML(params: {
         <table role="presentation" style="width:100%;margin:24px 0;border-collapse:separate;border-spacing:0 10px;" cellpadding="0" cellspacing="0">
             <tr>
                 <td style="background:#f0fdf4;border-radius:12px;padding:16px 18px;border-right:4px solid #10b981;">
-                    <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:3px;">ניהול לידים ולקוחות</div>
-                    <div style="font-size:12px;color:#047857;line-height:1.5;">כל הפניות, השיחות וההיסטוריה במקום אחד</div>
+                    <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:3px;">מכונות מכירה (CRM)</div>
+                    <div style="font-size:12px;color:#047857;line-height:1.5;">ה-AI רודף אחרי לידים וסוגר עסקאות במקומך</div>
                 </td>
             </tr>
             <tr>
                 <td style="background:#eff6ff;border-radius:12px;padding:16px 18px;border-right:4px solid #6366f1;">
-                    <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:3px;">AI חכם לסיכום שיחות</div>
-                    <div style="font-size:12px;color:#1e3a5f;line-height:1.5;">תמלול ועיבוד אוטומטי של שיחות עם לקוחות</div>
+                    <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:3px;">סידור עבודה וצוות</div>
+                    <div style="font-size:12px;color:#1e3a5f;line-height:1.5;">הסוף ל"גננות" - דעו בדיוק מי עושה מה ומתי</div>
                 </td>
             </tr>
             <tr>
                 <td style="background:#faf5ff;border-radius:12px;padding:16px 18px;border-right:4px solid #8b5cf6;">
-                    <div style="font-size:13px;font-weight:800;color:#5b21b6;margin-bottom:3px;">דוחות ותובנות בזמן אמת</div>
-                    <div style="font-size:12px;color:#6b21a8;line-height:1.5;">עקוב אחר ביצועי הצוות ותחזיות מכירה</div>
+                    <div style="font-size:13px;font-weight:800;color:#5b21b6;margin-bottom:3px;">גבייה וכסף</div>
+                    <div style="font-size:12px;color:#6b21a8;line-height:1.5;">הכסף ירדוף אחריך, לא להפך. תזכורות אוטומטיות בוואטסאפ.</div>
                 </td>
             </tr>
         </table>

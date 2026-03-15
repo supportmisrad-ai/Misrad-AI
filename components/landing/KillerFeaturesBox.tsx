@@ -6,29 +6,29 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
   const items = [
     {
       icon: Mic,
-      title: 'קלט קולי',
-      desc: "חוסך הקלדה - לחץ על המיקרופון ותגיד מה אתה צריך. המערכת תבין ותבצע.",
+      title: 'פקודות קוליות',
+      desc: "הידיים תפוסות? פשוט תגיד מה לעשות. המערכת מבינה עברית ומבצעת מיד.",
       color: 'bg-rose-600',
       bg: 'bg-rose-50',
     },
     {
       icon: Bot,
-      title: 'תמיכת AI',
-      desc: 'עזרה בעברית בכל שעה. הבוט מסביר לך איך להשתמש במערכת בשפה ברורה.',
+      title: 'עובד AI צמוד',
+      desc: 'ה-AI סוגר לך פינות: שולח וואטסאפ ללידים, מזכיר ללקוחות לשלם ומעלה פוסטים.',
       color: 'bg-indigo-600',
       bg: 'bg-indigo-50',
     },
     {
       icon: Tablet,
-      title: 'טאבלט משותף',
-      desc: 'עובדים בלי סמארטפון? טאבלט אחד בכניסה הופך לשעון נוכחות לכל הצוות.',
+      title: 'מצב שטח (Kiosk)',
+      desc: 'טאבלט בכניסה לעסק שהופך לכלי דיווח מהיר לעובדים בלי סיבוכים.',
       color: 'bg-emerald-600',
       bg: 'bg-emerald-50',
     },
     {
       icon: Star,
-      title: 'מותאם לשומרי שבת',
-      desc: 'המערכת מכבדת את השבת ומתאימת את עצמה לשמירת שבת וחגים.',
+      title: 'הגנת שבת',
+      desc: 'המערכת ננעלת הרמטית בשבת וחגים. העסק נח, וגם אתה. זה ה-V.I.P האמיתי.',
       color: 'bg-purple-600',
       bg: 'bg-purple-50',
     },
@@ -41,8 +41,8 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
     },
     {
       icon: FileSpreadsheet,
-      title: 'ייבוא חכם מאקסל',
-      desc: 'מעלים קובץ — ה-AI ממפה עמודות, בודק כפילויות ומייבא.',
+      title: 'ייבוא חכם (Excel)',
+      desc: 'מעלים קובץ לקוחות — ה-AI מזהה הכל ומכניס למערכת בלי טעויות.',
       color: 'bg-teal-600',
       bg: 'bg-teal-50',
     },
@@ -59,10 +59,10 @@ export default function KillerFeaturesBox({ id }: { id?: string }) {
       <div className="max-w-7xl mx-auto px-6 relative">
         <div className="text-center">
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
-            מעבר לתוכנה רגילה
+            כלים שעובדים בשבילך
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto">
-            תכונות שנבנו לפתור בעיות אמיתיות של עסקים בשטח.
+            בלי מטאפורות. בלי סיבוכים. יכולות שסוגרות לך פינות בעסק.
           </p>
         </div>
 

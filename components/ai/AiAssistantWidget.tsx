@@ -64,17 +64,17 @@ function isSalesPathname(pathname: string): boolean {
 
 // Quick Actions לפי סוג
 const SALES_QUICK_ACTIONS = [
-  'מה התוכניות הזמינות?',
-  'כמה עולה המערכת?',
-  'איך מתחילים?',
-  'יש תקופת ניסיון?'
+  'בוס, הנה 3 דברים שסגרתי לך הבוקר',
+  'כמה לידים נכנסו בלילה?',
+  'יש פרויקטים שמעכבים אותי?',
+  'מי הלקוח הכי רווחי שלי?'
 ];
 
 const SUPPORT_QUICK_ACTIONS = [
-  'איך מוסיפים לקוח חדש?',
-  'איך משנים סטטוס עסקה?',
-  'איך מייצאים דוח?',
-  'איך משתמשים בעוזר הקולי?'
+  'איך אני מוסיף לקוח וגובה ממנו עכשיו?',
+  'תראה לי מי מהצוות לא עובד',
+  'תפיק לי דוח רווח והפסד',
+  'תזמן לי פוסט לערב חג'
 ];
 
 // Knowledge Base
@@ -238,11 +238,6 @@ export function AiAssistantWidget() {
         quickActions = (isSales ? SALES_QUICK_ACTIONS : SUPPORT_QUICK_ACTIONS).slice(0, 3);
       }
       
-      // אם אין כפתורים, השתמש בברירת מחדל
-      if (quickActions.length === 0) {
-        quickActions = (isSales ? SALES_QUICK_ACTIONS : SUPPORT_QUICK_ACTIONS).slice(0, 3);
-      }
-      
       const assistantMsg: ChatMessage = { 
         id: makeId('assistant'), 
         role: 'assistant', 
@@ -314,7 +309,7 @@ export function AiAssistantWidget() {
                 className="absolute bottom-full mb-3 right-0 w-max max-w-[220px] hidden md:block"
               >
                 <div className="bg-slate-900 text-white px-6 py-4 rounded-2xl rounded-br-sm shadow-2xl border border-slate-700/50">
-                  <p className="text-[15px] font-bold text-right leading-snug">💬 איך אפשר לעזור?</p>
+                  <p className="text-[15px] font-bold text-right leading-snug">בוס, הנה 3 דברים שסגרתי לך הבוקר ⚡</p>
                   <div className="absolute -bottom-2 right-5 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-slate-900" />
                 </div>
               </motion.button>
@@ -551,12 +546,12 @@ export function AiAssistantWidget() {
                           <Sparkles size={28} className="sm:w-9 sm:h-9 text-slate-600" />
                         </div>
                         <h3 className="text-base sm:text-[17px] font-bold text-slate-900 mb-2">
-                          {isSales ? 'שלום! איך אפשר לעזור?' : 'העוזר החכם שלך כאן'}
+                          {isSales ? 'בוא נראה איך העסק שלך מתחיל לעבוד' : 'בוס, אני כאן. מה עושים?'}
                         </h3>
                         <p className="text-[13px] sm:text-[14px] text-slate-600 mb-4 sm:mb-6 leading-relaxed">
                           {isSales 
-                            ? 'שאל אותי על תוכניות, מחירים או תהליך ההצטרפות'
-                            : 'שאל אותי כל שאלה על השימוש במערכת'}
+                            ? 'שאל אותי כמה כסף נחסוך לך או איך המערכת סוגרת לך פינות'
+                            : 'אני יכול להוציא חשבונית, לבדוק עומס בצוות או לתזמן פוסטים. רק תגיד.'}
                         </p>
                         
                         {/* Quick Start Actions */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNexus } from '../context/ClientContext';
-import { JourneyStage, AssignedForm, SuccessGoal, ClientAction } from '../types';
+import { JourneyStage, AssignedForm, SuccessGoal, ClientAction, ServicePlan } from '../types';
 import { generateTestimonial, generateProgressSummary } from '../services/geminiService';
 import { PortalSidebar } from './portal/PortalSidebar';
 import { PortalDashboard } from './portal/PortalDashboard';
@@ -11,6 +11,8 @@ import { PortalFinance } from './portal/PortalFinance';
 import { PortalConcierge } from './portal/PortalConcierge';
 import { PortalModals } from './portal/PortalModals';
 import { PortalFormFiller } from './portal/PortalFormFiller';
+import { getClientServicePlans } from '@/app/actions/client-service-plans';
+import { getClientOsOrgId } from '../lib/getOrgId';
 
 interface ClientPortalProps {
   clientId?: string;
@@ -54,8 +56,20 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
   const [isAnalyzingMetrics, setIsAnalyzingMetrics] = useState(false);
 
   const [activeFormToFill, setActiveFormToFill] = useState<AssignedForm | null>(null);
+  const [servicePlans, setServicePlans] = useState<ServicePlan[]>([]);
 
   const [isPaying, setIsPaying] = useState(false);
+
+  useEffect(() => {
+    if (client?.id) {
+      const orgId = getClientOsOrgId();
+      if (orgId) {
+        void getClientServicePlans(orgId, client.id).then((plans) => {
+          setServicePlans(plans as unknown as ServicePlan[]);
+        }).catch(() => setServicePlans([]));
+      }
+    }
+  }, [client?.id]);
 
   const journey = client?.journey || [];
   const pendingTasks = client?.pendingActions ? client.pendingActions.filter((a) => a.status !== 'COMPLETED') : [];
@@ -269,7 +283,7 @@ export default function ClientPortal({ clientId }: ClientPortalProps) {
           />
         );
       case 'journey':
-        return <PortalJourney journey={journey} />;
+        return <PortalJourney journey={journey} servicePlans={servicePlans} />;
       case 'metrics':
         return (
           <PortalMetrics

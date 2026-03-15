@@ -89,7 +89,7 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
           fallbackIcon,
           badgeModuleKey: 'system',
         }}
-        brandSubtitle={roomName || 'System'}
+        brandSubtitle={roomName || 'MISRAD AI'}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">

@@ -42,7 +42,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
             </div>
             <div className="flex flex-col justify-center overflow-hidden">
                 <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 leading-none tracking-tight font-sans truncate">{brandName}</h1>
-                <span className="text-[10px] md:text-[11px] font-black text-slate-400 tracking-[0.25em] uppercase mt-1.5 ml-0.5">Nexus system</span>
+                <span className="text-[10px] md:text-[11px] font-black text-slate-400 tracking-[0.25em] uppercase mt-1.5 ml-0.5">MISRAD AI</span>
             </div>
          </div>
          {mobile && onClose && (
@@ -111,7 +111,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' ? 'הבוס' : 'סוכן'}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' ? 'הבוס' : 'חבר צוות'}</p>
             </div>
             <button onClick={logout} className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-full" aria-label="התנתק מהמערכת">
                 <LogOut size={18} />

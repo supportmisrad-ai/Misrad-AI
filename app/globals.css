@@ -560,6 +560,65 @@ input[type=range]:active::-webkit-slider-thumb {
   border-width: 0;
 }
 
+/* --- כיתת אמן למינימליזם בוטה ויוקרה (Premium Zen) --- */
+
+.zen-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 40px;
+  box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.02);
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.zen-card:hover {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.03);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.zen-modal {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(32px) saturate(150%);
+  -webkit-backdrop-filter: blur(32px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 30px 100px -20px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes materialization {
+  0% { opacity: 0; filter: blur(20px); transform: scale(0.98) translateY(10px); }
+  100% { opacity: 1; filter: blur(0); transform: scale(1) translateY(0); }
+}
+
+.premium-ceremony {
+  animation: materialization 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ai-task-glow {
+  position: relative;
+}
+
+.ai-task-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, rgba(197, 165, 114, 0.4), rgba(55, 48, 163, 0.2));
+  border-radius: 42px;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.ai-task-glow:hover::after {
+  opacity: 1;
+}
+
+.text-premium-shuttle {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
 /* --- 7. אנימציות (Keyframes) --- */
 
 @keyframes blob {

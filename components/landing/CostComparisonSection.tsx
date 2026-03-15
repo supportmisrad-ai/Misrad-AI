@@ -29,10 +29,10 @@ export function CostComparisonSection() {
         {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
-            כמה עולה לקנות הכל בנפרד?
+            למה לשלם על מותגים?
           </h2>
           <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            במקום לשלם ל-6 תוכנות שונות שלא מדברות אחת עם השנייה, קבל הכל במקום אחד.
+            במקום לממן מערכות שלא מדברות אחת עם השנייה, קבל הכל מחובר במחיר אחד הוגן.
           </p>
         </div>
 
@@ -92,8 +92,8 @@ export function CostComparisonSection() {
               <Check size={20} strokeWidth={3} />
             </div>
             <div className="text-right">
-              <div className="font-black text-slate-900">חיסכון של עד ₪760 בחודש</div>
-              <div className="text-xs text-slate-500 mt-0.5">+ המערכות מדברות ביניהן = אפס טעויות אנוש</div>
+              <div className="font-black text-slate-900">חוסכים ₪760 בכל חודש</div>
+              <div className="text-xs text-slate-500 mt-0.5">ומקבלים מערכת שסוגרת פינות במקום לייצר עבודה</div>
             </div>
           </div>
         </div>

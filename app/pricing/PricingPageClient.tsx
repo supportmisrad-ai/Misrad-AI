@@ -39,8 +39,8 @@ export default function PricingPageClient() {
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center">
               <div className="text-xs font-black text-slate-500">השוואה הוגנת</div>
-              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">מה מייחד את MISRAD?</h2>
-              <p className="mt-2 text-sm text-slate-500">מול מתחרים ישראליים ובינלאומיים — בשקיפות מלאה</p>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">למה לשלם על מותגים?</h2>
+              <p className="mt-2 text-sm text-slate-500">כשעסק ישראלי צריך תכלס תוצאות — בלי עמלות מנופחות</p>
             </div>
 
             <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-x-auto">
@@ -59,13 +59,13 @@ export default function PricingPageClient() {
                     { label: 'מחיר ל-5 משתמשים (חבילת הכל כלול)', ours: '₪499', fireberry: '₪640–820', kaveret: '₪675', monday: '₪220–440' },
                     { label: 'משתמשים כלולים (חבילת הכל כלול)', ours: '5', fireberry: '0 (לפי משתמש)', kaveret: '0 (לפי משתמש)', monday: '0 (לפי משתמש)' },
                     { label: 'מינימום משתמשים נדרש', ours: '1', fireberry: '1', kaveret: '1', monday: '3' },
-                    { label: '6 מודולים (מכירות+שיווק+תפעול+...)', ours: true, fireberry: false, kaveret: false, monday: false },
-                    { label: 'Finance מובנה (במתנה)', ours: true, fireberry: false, kaveret: false, monday: false },
-                    { label: 'שליטה קולית בעברית', ours: true, fireberry: false, kaveret: false, monday: false },
-                    { label: 'טופס לידים ציבורי (לינק לשיתוף)', ours: true, fireberry: false, kaveret: false, monday: false },
-                    { label: 'ייבוא חכם מאקסל (AI)', ours: true, fireberry: 'בסיסי', kaveret: 'בסיסי', monday: 'בסיסי' },
-                    { label: 'מצב Kiosk לעובדים', ours: true, fireberry: false, kaveret: false, monday: false },
-                    { label: 'מותאם לשבת', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: '6 כלים שסוגרים פינות (מכירות+שיווק+...)', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'גבייה וכסף (במתנה)', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'פקודות קוליות בעברית', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'טופס לידים (לינק לשיתוף)', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'ייבוא חכם (AI)', ours: true, fireberry: 'בסיסי', kaveret: 'בסיסי', monday: 'בסיסי' },
+                    { label: 'מצב שטח (Kiosk) לעובדים', ours: true, fireberry: false, kaveret: false, monday: false },
+                    { label: 'הגנת שבת הרמטית', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'לוח שנה עברי', ours: true, fireberry: false, kaveret: false, monday: false },
                     { label: 'עברית מלאה', ours: true, fireberry: true, kaveret: true, monday: true },
                     { label: 'אפליקציית מובייל', ours: 'מערכת מותאמת (ללא התקנה)', fireberry: true, kaveret: true, monday: true },
@@ -92,13 +92,13 @@ export default function PricingPageClient() {
               </table>
             </div>
             <p className="mt-6 text-[11px] text-slate-400 text-center leading-relaxed">
-              מחירים מבוססים על תמחור רשמי של כל ספק (2025/2026). Fireberry: $35–$45/למשתמש. הכוורת: ₪135/למשתמש. Monday Pro: $24/למשתמש (מינימום 3).
+              מחירים מבוססים על מחירי שוק רשמיים (2025/2026). 
               <br />
-              <strong className="text-slate-900">MISRAD AI כוללת עד 5 משתמשים בחבילת "הכל כלול"</strong> — מתחרים גובים לפי משתמש בלבד.
+              <strong className="text-slate-900">ב-MISRAD AI אתם לא משלמים לפי משתמש</strong> — עד 5 משתמשים כלולים בחבילה אחת.
               <br />
-              <span className="text-slate-400">"מותאם לשבת" = בחירה אידיאולוגית של המפתח.</span>
+              <span className="text-slate-400">"הגנת שבת" = המערכת ננעלת כדי שתוכלו לנוח באמת.</span>
               <br />
-              <strong className="text-slate-900">כל המחירים כוללים מע"מ.</strong>
+              <strong className="text-slate-900">תכלס תוצאות. בלי אותיות קטנות.</strong>
             </p>
           </div>
         </section>

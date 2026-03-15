@@ -22,11 +22,19 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import type { Prisma } from '@prisma/client';
 import type { BookingLink } from '@/types/booking';
+
+type PrismaLinkWithRelations = Prisma.BookingLinkGetPayload<{
+  include: {
+    services: { include: { service: true } };
+    provider: true;
+  };
+}>;
 
 interface LinksPageClientProps {
   orgSlug: string;
-  initialLinks?: { links: BookingLink[] };
+  initialLinks?: { links: PrismaLinkWithRelations[] };
 }
 
 export function LinksPageClient({ orgSlug, initialLinks }: LinksPageClientProps) {

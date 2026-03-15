@@ -193,6 +193,9 @@ type PrismaClientWithAliases = PrismaClient & {
   storageDeletionLog: PrismaClient['storageDeletionLog'];
   impersonationSession: PrismaClient['impersonationSession'];
   impersonationAuditLog: PrismaClient['impersonationAuditLog'];
+  misradServicePlan: PrismaClient['misradServicePlan'];
+  misradServicePhase: PrismaClient['misradServicePhase'];
+  misradMeetingTemplate: PrismaClient['misradMeetingTemplate'];
 };
 
 const _basePrismaClient = _client;
@@ -220,6 +223,9 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   storageDeletionLog: _basePrismaClient.storageDeletionLog,
   impersonationSession: _basePrismaClient.impersonationSession,
   impersonationAuditLog: _basePrismaClient.impersonationAuditLog,
+  misradServicePlan: _basePrismaClient.misradServicePlan,
+  misradServicePhase: _basePrismaClient.misradServicePhase,
+  misradMeetingTemplate: _basePrismaClient.misradMeetingTemplate,
 });
 
 // ═══════════════════════════════════════════════════════════════════
