@@ -1,0 +1,5813 @@
+{
+  "summary": {
+    "schemaModels": 253,
+    "prodTables": 1,
+    "missingTables": 253,
+    "missingColumns": 0
+  },
+  "missingTables": [
+    {
+      "model": "ActivityLog",
+      "table": "activity_logs"
+    },
+    {
+      "model": "ai_embeddings",
+      "table": "ai_embeddings"
+    },
+    {
+      "model": "ai_feature_settings",
+      "table": "ai_feature_settings"
+    },
+    {
+      "model": "ai_model_aliases",
+      "table": "ai_model_aliases"
+    },
+    {
+      "model": "ai_provider_keys",
+      "table": "ai_provider_keys"
+    },
+    {
+      "model": "ai_usage_logs",
+      "table": "ai_usage_logs"
+    },
+    {
+      "model": "AppUpdate",
+      "table": "app_updates"
+    },
+    {
+      "model": "billing_events",
+      "table": "billing_events"
+    },
+    {
+      "model": "billing_invoices",
+      "table": "billing_invoices"
+    },
+    {
+      "model": "business_metrics",
+      "table": "business_metrics"
+    },
+    {
+      "model": "charges",
+      "table": "charges"
+    },
+    {
+      "model": "client_dna",
+      "table": "client_dna"
+    },
+    {
+      "model": "ClientApproval",
+      "table": "client_approvals"
+    },
+    {
+      "model": "ClientClient",
+      "table": "client_clients"
+    },
+    {
+      "model": "ClientDocument",
+      "table": "client_documents"
+    },
+    {
+      "model": "ClientDocumentFile",
+      "table": "client_document_files"
+    },
+    {
+      "model": "ClientFeedback",
+      "table": "client_feedbacks"
+    },
+    {
+      "model": "ClientInternalNote",
+      "table": "client_internal_notes"
+    },
+    {
+      "model": "ClientPortalContent",
+      "table": "client_portal_content"
+    },
+    {
+      "model": "ClientPortalInvite",
+      "table": "client_portal_invites"
+    },
+    {
+      "model": "ClientPortalUser",
+      "table": "client_portal_users"
+    },
+    {
+      "model": "ClientProfile",
+      "table": "client_profiles"
+    },
+    {
+      "model": "clients",
+      "table": "clients"
+    },
+    {
+      "model": "ClientServiceTier",
+      "table": "client_service_tiers"
+    },
+    {
+      "model": "ClientSession",
+      "table": "client_sessions"
+    },
+    {
+      "model": "ClientSharedFile",
+      "table": "client_shared_files"
+    },
+    {
+      "model": "ClientTask",
+      "table": "client_tasks"
+    },
+    {
+      "model": "ConnectMarketplaceListing",
+      "table": "connect_marketplace_listings"
+    },
+    {
+      "model": "CoreSystemSettings",
+      "table": "core_system_settings"
+    },
+    {
+      "model": "coupon_redemptions",
+      "table": "coupon_redemptions"
+    },
+    {
+      "model": "coupons",
+      "table": "coupons"
+    },
+    {
+      "model": "CustomerAccount",
+      "table": "customer_accounts"
+    },
+    {
+      "model": "DevicePairingToken",
+      "table": "device_pairing_tokens"
+    },
+    {
+      "model": "finance_whatsapp_reminder_events",
+      "table": "finance_whatsapp_reminder_events"
+    },
+    {
+      "model": "global_settings",
+      "table": "global_settings"
+    },
+    {
+      "model": "GlobalSystemMetric",
+      "table": "global_system_metrics"
+    },
+    {
+      "model": "help_videos",
+      "table": "help_videos"
+    },
+    {
+      "model": "ImpersonationSession",
+      "table": "impersonation_sessions"
+    },
+    {
+      "model": "ImpersonationAuditLog",
+      "table": "impersonation_audit_logs"
+    },
+    {
+      "model": "integration_idempotency_keys",
+      "table": "integration_idempotency_keys"
+    },
+    {
+      "model": "IntegrationCredential",
+      "table": "integration_credentials"
+    },
+    {
+      "model": "IntegrationStatus",
+      "table": "integration_status"
+    },
+    {
+      "model": "landing_faq",
+      "table": "landing_faq"
+    },
+    {
+      "model": "landing_testimonials",
+      "table": "landing_testimonials"
+    },
+    {
+      "model": "MisradActivityLog",
+      "table": "misrad_activity_logs"
+    },
+    {
+      "model": "MisradAiLiabilityRisk",
+      "table": "misrad_ai_liability_risks"
+    },
+    {
+      "model": "MisradAiTask",
+      "table": "misrad_ai_tasks"
+    },
+    {
+      "model": "MisradAssignedForm",
+      "table": "misrad_assigned_forms"
+    },
+    {
+      "model": "MisradClient",
+      "table": "misrad_clients"
+    },
+    {
+      "model": "MisradClientAction",
+      "table": "misrad_client_actions"
+    },
+    {
+      "model": "MisradClientAgreement",
+      "table": "misrad_client_agreements"
+    },
+    {
+      "model": "MisradClientAsset",
+      "table": "misrad_client_assets"
+    },
+    {
+      "model": "MisradClientDeliverable",
+      "table": "misrad_client_deliverables"
+    },
+    {
+      "model": "MisradClientHandoff",
+      "table": "misrad_client_handoffs"
+    },
+    {
+      "model": "MisradClientTransformation",
+      "table": "misrad_client_transformations"
+    },
+    {
+      "model": "MisradCycle",
+      "table": "misrad_cycles"
+    },
+    {
+      "model": "MisradCycleAsset",
+      "table": "misrad_cycle_assets"
+    },
+    {
+      "model": "MisradCycleTask",
+      "table": "misrad_cycle_tasks"
+    },
+    {
+      "model": "MisradEmail",
+      "table": "misrad_emails"
+    },
+    {
+      "model": "MisradFeedbackItem",
+      "table": "misrad_feedback_items"
+    },
+    {
+      "model": "MisradFormField",
+      "table": "misrad_form_fields"
+    },
+    {
+      "model": "MisradFormResponse",
+      "table": "misrad_form_responses"
+    },
+    {
+      "model": "MisradFormStep",
+      "table": "misrad_form_steps"
+    },
+    {
+      "model": "MisradFormTemplate",
+      "table": "misrad_form_templates"
+    },
+    {
+      "model": "MisradGroupEvent",
+      "table": "misrad_group_events"
+    },
+    {
+      "model": "MisradInvoice",
+      "table": "misrad_invoices"
+    },
+    {
+      "model": "MisradJourneyStage",
+      "table": "misrad_journey_stages"
+    },
+    {
+      "model": "MisradMeeting",
+      "table": "misrad_meetings"
+    },
+    {
+      "model": "MisradMeetingAnalysisResult",
+      "table": "misrad_meeting_analysis_results"
+    },
+    {
+      "model": "MisradMeetingFile",
+      "table": "misrad_meeting_files"
+    },
+    {
+      "model": "MisradMessage",
+      "table": "misrad_messages"
+    },
+    {
+      "model": "MisradMessageAttachment",
+      "table": "misrad_message_attachments"
+    },
+    {
+      "model": "MisradMetricHistory",
+      "table": "misrad_metric_history"
+    },
+    {
+      "model": "MisradMilestone",
+      "table": "misrad_milestones"
+    },
+    {
+      "model": "MisradModuleSettings",
+      "table": "misrad_module_settings"
+    },
+    {
+      "model": "MisradNotification",
+      "table": "misrad_notifications"
+    },
+    {
+      "model": "MisradOpportunity",
+      "table": "misrad_opportunities"
+    },
+    {
+      "model": "MisradRoiRecord",
+      "table": "misrad_roi_records"
+    },
+    {
+      "model": "MisradStakeholder",
+      "table": "misrad_stakeholders"
+    },
+    {
+      "model": "MisradSuccessGoal",
+      "table": "misrad_success_goals"
+    },
+    {
+      "model": "MisradWorkflowBlueprint",
+      "table": "misrad_workflow_blueprints"
+    },
+    {
+      "model": "MisradWorkflowItem",
+      "table": "misrad_workflow_items"
+    },
+    {
+      "model": "MisradWorkflowStage",
+      "table": "misrad_workflow_stages"
+    },
+    {
+      "model": "NavigationMenu",
+      "table": "navigation_menu"
+    },
+    {
+      "model": "NexusBillingItem",
+      "table": "nexus_billing_items"
+    },
+    {
+      "model": "NexusEmployeeInvitationLink",
+      "table": "nexus_employee_invitation_links"
+    },
+    {
+      "model": "NexusEventAttendance",
+      "table": "nexus_event_attendance"
+    },
+    {
+      "model": "NexusLeaveRequest",
+      "table": "nexus_leave_requests"
+    },
+    {
+      "model": "NexusOnboardingSettings",
+      "table": "nexus_onboarding_settings"
+    },
+    {
+      "model": "NexusTeamEvent",
+      "table": "nexus_team_events"
+    },
+    {
+      "model": "NexusClient",
+      "table": "nexus_clients"
+    },
+    {
+      "model": "NexusTask",
+      "table": "nexus_tasks"
+    },
+    {
+      "model": "NexusTenant",
+      "table": "nexus_tenants"
+    },
+    {
+      "model": "NexusTimeEntry",
+      "table": "nexus_time_entries"
+    },
+    {
+      "model": "AttendanceMonthlyReport",
+      "table": "attendance_monthly_reports"
+    },
+    {
+      "model": "AttendanceSalaryConfig",
+      "table": "attendance_salary_configs"
+    },
+    {
+      "model": "NexusUser",
+      "table": "nexus_users"
+    },
+    {
+      "model": "OAuthToken",
+      "table": "oauth_tokens"
+    },
+    {
+      "model": "OperationsInventory",
+      "table": "operations_inventory"
+    },
+    {
+      "model": "OperationsItem",
+      "table": "operations_items"
+    },
+    {
+      "model": "OperationsProject",
+      "table": "operations_projects"
+    },
+    {
+      "model": "OperationsSupplier",
+      "table": "operations_suppliers"
+    },
+    {
+      "model": "OperationsPurchaseOrder",
+      "table": "operations_purchase_orders"
+    },
+    {
+      "model": "OperationsPurchaseOrderItem",
+      "table": "operations_purchase_order_items"
+    },
+    {
+      "model": "OperationsContractorToken",
+      "table": "operations_contractor_tokens"
+    },
+    {
+      "model": "OperationsWorkOrder",
+      "table": "operations_work_orders"
+    },
+    {
+      "model": "OperationsWorkOrderCheckin",
+      "table": "operations_work_order_checkins"
+    },
+    {
+      "model": "OperationsBuilding",
+      "table": "operations_buildings"
+    },
+    {
+      "model": "OperationsCallCategory",
+      "table": "operations_call_categories"
+    },
+    {
+      "model": "OperationsDepartment",
+      "table": "operations_departments"
+    },
+    {
+      "model": "OperationsCallMessage",
+      "table": "operations_call_messages"
+    },
+    {
+      "model": "OperationsVehicle",
+      "table": "operations_vehicles"
+    },
+    {
+      "model": "OperationsTechnicianVehicleAssignment",
+      "table": "operations_technician_vehicle_assignments"
+    },
+    {
+      "model": "organization_settings",
+      "table": "organization_settings"
+    },
+    {
+      "model": "organization_signup_invitations",
+      "table": "organization_signup_invitations"
+    },
+    {
+      "model": "OrganizationUser",
+      "table": "organization_users"
+    },
+    {
+      "model": "Partner",
+      "table": "partners"
+    },
+    {
+      "model": "PartnerLinkUsage",
+      "table": "partner_link_usage"
+    },
+    {
+      "model": "platform_credentials",
+      "table": "platform_credentials"
+    },
+    {
+      "model": "platform_quotas",
+      "table": "platform_quotas"
+    },
+    {
+      "model": "Profile",
+      "table": "profiles"
+    },
+    {
+      "model": "MisradCalendarSyncLog",
+      "table": "misrad_calendar_sync_log"
+    },
+    {
+      "model": "MisradFeatureRequest",
+      "table": "misrad_feature_requests"
+    },
+    {
+      "model": "MisradIntegration",
+      "table": "misrad_integrations"
+    },
+    {
+      "model": "MisradPermission",
+      "table": "misrad_permissions"
+    },
+    {
+      "model": "MisradRole",
+      "table": "misrad_roles"
+    },
+    {
+      "model": "MisradSupportTicket",
+      "table": "misrad_support_tickets"
+    },
+    {
+      "model": "Organization",
+      "table": "organizations"
+    },
+    {
+      "model": "SocialMediaAgencyConfig",
+      "table": "socialmedia_agency_configs"
+    },
+    {
+      "model": "SocialMediaAiOpportunity",
+      "table": "socialmedia_ai_opportunities"
+    },
+    {
+      "model": "SocialMediaAutomationRule",
+      "table": "socialmedia_automation_rules"
+    },
+    {
+      "model": "SocialMediaBusinessMetric",
+      "table": "socialmedia_business_metrics"
+    },
+    {
+      "model": "SocialMediaCalendarEvent",
+      "table": "socialmedia_calendar_events"
+    },
+    {
+      "model": "ClientSocialToken",
+      "table": "client_social_tokens"
+    },
+    {
+      "model": "SocialMediaPublishedPost",
+      "table": "socialmedia_published_posts"
+    },
+    {
+      "model": "CampaignPost",
+      "table": "campaign_posts"
+    },
+    {
+      "model": "SocialMediaCampaign",
+      "table": "socialmedia_campaigns"
+    },
+    {
+      "model": "SocialMediaClient",
+      "table": "socialmedia_clients"
+    },
+    {
+      "model": "SocialMediaClientDna",
+      "table": "socialmedia_client_dna"
+    },
+    {
+      "model": "SocialMediaClientPlatform",
+      "table": "socialmedia_client_platforms"
+    },
+    {
+      "model": "SocialMediaClientRequest",
+      "table": "socialmedia_client_requests"
+    },
+    {
+      "model": "SocialMediaConversation",
+      "table": "socialmedia_conversations"
+    },
+    {
+      "model": "SocialMediaDriveFile",
+      "table": "socialmedia_drive_files"
+    },
+    {
+      "model": "SocialMediaFeedback",
+      "table": "socialmedia_feedback"
+    },
+    {
+      "model": "SocialMediaIdea",
+      "table": "socialmedia_ideas"
+    },
+    {
+      "model": "SocialMediaInvoice",
+      "table": "socialmedia_invoices"
+    },
+    {
+      "model": "SocialMediaManagerRequest",
+      "table": "socialmedia_manager_requests"
+    },
+    {
+      "model": "SocialMediaMessage",
+      "table": "socialmedia_messages"
+    },
+    {
+      "model": "SocialMediaPaymentOrder",
+      "table": "socialmedia_payment_orders"
+    },
+    {
+      "model": "SocialMediaPlatformCredential",
+      "table": "socialmedia_platform_credentials"
+    },
+    {
+      "model": "SocialMediaPlatformQuota",
+      "table": "socialmedia_platform_quotas"
+    },
+    {
+      "model": "SocialMediaPostComment",
+      "table": "socialmedia_post_comments"
+    },
+    {
+      "model": "SocialMediaPostPlatform",
+      "table": "socialmedia_post_platforms"
+    },
+    {
+      "model": "SocialMediaPostVariation",
+      "table": "socialmedia_post_variations"
+    },
+    {
+      "model": "SocialMediaSheetsSyncConfig",
+      "table": "socialmedia_sheets_sync_configs"
+    },
+    {
+      "model": "SocialMediaSiteContent",
+      "table": "socialmedia_site_content"
+    },
+    {
+      "model": "SocialMediaSyncLog",
+      "table": "socialmedia_sync_logs"
+    },
+    {
+      "model": "SocialMediaTask",
+      "table": "socialmedia_tasks"
+    },
+    {
+      "model": "SocialPost",
+      "table": "socialmedia_posts"
+    },
+    {
+      "model": "strategic_content",
+      "table": "strategic_content"
+    },
+    {
+      "model": "subscription_items",
+      "table": "subscription_items"
+    },
+    {
+      "model": "subscription_orders",
+      "table": "subscription_orders"
+    },
+    {
+      "model": "subscription_payment_configs",
+      "table": "subscription_payment_configs"
+    },
+    {
+      "model": "subscriptions",
+      "table": "subscriptions"
+    },
+    {
+      "model": "support_ticket_events",
+      "table": "support_ticket_events"
+    },
+    {
+      "model": "system_invitation_links",
+      "table": "system_invitation_links"
+    },
+    {
+      "model": "system_settings",
+      "table": "system_settings"
+    },
+    {
+      "model": "SystemAsset",
+      "table": "system_assets"
+    },
+    {
+      "model": "SystemAutomation",
+      "table": "system_automations"
+    },
+    {
+      "model": "SystemBackup",
+      "table": "system_backups"
+    },
+    {
+      "model": "SystemCalendarEvent",
+      "table": "system_calendar_events"
+    },
+    {
+      "model": "SystemCallAnalysis",
+      "table": "system_call_analyses"
+    },
+    {
+      "model": "SystemCampaign",
+      "table": "system_campaigns"
+    },
+    {
+      "model": "SystemContentItem",
+      "table": "system_content_items"
+    },
+    {
+      "model": "SystemFieldAgent",
+      "table": "system_field_agents"
+    },
+    {
+      "model": "SystemForm",
+      "table": "system_forms"
+    },
+    {
+      "model": "SystemInvoice",
+      "table": "system_invoices"
+    },
+    {
+      "model": "SystemLead",
+      "table": "system_leads"
+    },
+    {
+      "model": "SystemLeadActivity",
+      "table": "system_lead_activities"
+    },
+    {
+      "model": "SystemLeadCustomFieldDefinition",
+      "table": "system_lead_custom_field_definitions"
+    },
+    {
+      "model": "SystemLeadHandover",
+      "table": "system_lead_handovers"
+    },
+    {
+      "model": "SystemPartner",
+      "table": "system_partners"
+    },
+    {
+      "model": "SystemPipelineStage",
+      "table": "system_pipeline_stages"
+    },
+    {
+      "model": "SystemPortalApproval",
+      "table": "system_portal_approvals"
+    },
+    {
+      "model": "SystemPortalTask",
+      "table": "system_portal_tasks"
+    },
+    {
+      "model": "SystemStudent",
+      "table": "system_students"
+    },
+    {
+      "model": "SystemSupportTicket",
+      "table": "system_support_tickets"
+    },
+    {
+      "model": "SystemTask",
+      "table": "system_tasks"
+    },
+    {
+      "model": "SystemWebhookLog",
+      "table": "system_webhook_logs"
+    },
+    {
+      "model": "TeamComment",
+      "table": "team_comments"
+    },
+    {
+      "model": "TeamMember",
+      "table": "team_members"
+    },
+    {
+      "model": "TeamMemberClient",
+      "table": "team_member_clients"
+    },
+    {
+      "model": "UserUpdateView",
+      "table": "user_update_views"
+    },
+    {
+      "model": "WebhookConfig",
+      "table": "webhook_configs"
+    },
+    {
+      "model": "WebPushSubscription",
+      "table": "web_push_subscriptions"
+    },
+    {
+      "model": "WorkListing",
+      "table": "work_listings"
+    },
+    {
+      "model": "BusinessClient",
+      "table": "business_clients"
+    },
+    {
+      "model": "GlobalPromotion",
+      "table": "global_promotion"
+    },
+    {
+      "model": "BusinessClientContact",
+      "table": "business_client_contacts"
+    },
+    {
+      "model": "Notification",
+      "table": "notification"
+    },
+    {
+      "model": "MisradSalesTeam",
+      "table": "misrad_sales_teams"
+    },
+    {
+      "model": "MisradSalesTeamMember",
+      "table": "misrad_sales_team_members"
+    },
+    {
+      "model": "MisradFieldTeam",
+      "table": "misrad_field_teams"
+    },
+    {
+      "model": "MisradFieldAgent",
+      "table": "misrad_field_agents"
+    },
+    {
+      "model": "MisradFieldVisit",
+      "table": "misrad_field_visits"
+    },
+    {
+      "model": "BotLead",
+      "table": "bot_leads"
+    },
+    {
+      "model": "BotConversation",
+      "table": "bot_conversations"
+    },
+    {
+      "model": "SiteAnalyticsSession",
+      "table": "site_analytics_sessions"
+    },
+    {
+      "model": "SiteAnalyticsPageView",
+      "table": "site_analytics_page_views"
+    },
+    {
+      "model": "SiteAnalyticsEvent",
+      "table": "site_analytics_events"
+    },
+    {
+      "model": "CustomerRating",
+      "table": "customer_ratings"
+    },
+    {
+      "model": "EmailSentLog",
+      "table": "email_sent_logs"
+    },
+    {
+      "model": "notifications",
+      "table": "notifications"
+    },
+    {
+      "model": "ClientMarketingStrategy",
+      "table": "client_marketing_strategy"
+    },
+    {
+      "model": "StorageFile",
+      "table": "storage_files"
+    },
+    {
+      "model": "StorageDeletionLog",
+      "table": "storage_deletion_log"
+    },
+    {
+      "model": "ClientCycle",
+      "table": "client_cycles"
+    },
+    {
+      "model": "CycleClient",
+      "table": "cycle_clients"
+    },
+    {
+      "model": "CycleTask",
+      "table": "cycle_tasks"
+    },
+    {
+      "model": "CycleTaskCompletion",
+      "table": "cycle_task_completions"
+    },
+    {
+      "model": "CycleAsset",
+      "table": "cycle_assets"
+    },
+    {
+      "model": "BotLeadExtended",
+      "table": "bot_leads_extended"
+    },
+    {
+      "model": "BotConversationExtended",
+      "table": "bot_conversations_extended"
+    },
+    {
+      "model": "BotOutgoingMessage",
+      "table": "bot_outgoing_messages"
+    },
+    {
+      "model": "BotMedia",
+      "table": "bot_media"
+    },
+    {
+      "model": "BotCampaign",
+      "table": "bot_campaigns"
+    },
+    {
+      "model": "BotLottery",
+      "table": "bot_lotteries"
+    },
+    {
+      "model": "BotReferral",
+      "table": "bot_referrals"
+    },
+    {
+      "model": "BotCoupon",
+      "table": "bot_coupons"
+    },
+    {
+      "model": "BotAnalytics",
+      "table": "bot_analytics"
+    },
+    {
+      "model": "BotSurvey",
+      "table": "bot_surveys"
+    },
+    {
+      "model": "BotSurveyResponse",
+      "table": "bot_survey_responses"
+    },
+    {
+      "model": "BookingProvider",
+      "table": "booking_providers"
+    },
+    {
+      "model": "BookingService",
+      "table": "booking_services"
+    },
+    {
+      "model": "BookingProviderService",
+      "table": "booking_provider_services"
+    },
+    {
+      "model": "BookingAvailability",
+      "table": "booking_availabilities"
+    },
+    {
+      "model": "BookingLink",
+      "table": "booking_links"
+    },
+    {
+      "model": "BookingLinkService",
+      "table": "booking_link_services"
+    },
+    {
+      "model": "BookingAppointment",
+      "table": "booking_appointments"
+    },
+    {
+      "model": "BookingPayment",
+      "table": "booking_payments"
+    },
+    {
+      "model": "BookingReminder",
+      "table": "booking_reminders"
+    },
+    {
+      "model": "BookingVerification",
+      "table": "booking_verifications"
+    },
+    {
+      "model": "BookingWaitlist",
+      "table": "booking_waitlist"
+    },
+    {
+      "model": "BookingCalendarSync",
+      "table": "booking_calendar_syncs"
+    },
+    {
+      "model": "BookingHebrewDateCache",
+      "table": "booking_hebrew_date_cache"
+    },
+    {
+      "model": "ai_tower_audit_logs",
+      "table": "ai_tower_audit_logs"
+    },
+    {
+      "model": "ai_events",
+      "table": "ai_events"
+    },
+    {
+      "model": "ai_insights",
+      "table": "ai_insights"
+    },
+    {
+      "model": "ai_action_logs",
+      "table": "ai_action_logs"
+    },
+    {
+      "model": "ai_rules",
+      "table": "ai_rules"
+    },
+    {
+      "model": "SupportAccessLog",
+      "table": "support_access_logs"
+    },
+    {
+      "model": "operations_locations",
+      "table": "operations_locations"
+    },
+    {
+      "model": "operations_work_order_types",
+      "table": "operations_work_order_types"
+    }
+  ],
+  "missingColumns": [],
+  "prodTables": [
+    "Script executed successfully."
+  ],
+  "schemaModels": {
+    "ActivityLog": {
+      "tableName": "activity_logs",
+      "fields": [
+        "id",
+        "team_member_id",
+        "action",
+        "target_id",
+        "target_type",
+        "created_at",
+        "user_id",
+        "social_team_members"
+      ]
+    },
+    "ai_embeddings": {
+      "tableName": "ai_embeddings",
+      "fields": [
+        "id",
+        "organization_id",
+        "module_id",
+        "user_id",
+        "is_public_in_org",
+        "doc_key",
+        "chunk_index",
+        "content",
+        "embedding",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "organizations"
+      ]
+    },
+    "ai_feature_settings": {
+      "tableName": "ai_feature_settings",
+      "fields": [
+        "id",
+        "organization_id",
+        "feature_key",
+        "enabled",
+        "primary_provider",
+        "primary_model",
+        "fallback_provider",
+        "fallback_model",
+        "reserve_cost_cents",
+        "timeout_ms",
+        "created_at",
+        "updated_at",
+        "backup_provider",
+        "backup_model",
+        "base_prompt",
+        "organizations"
+      ]
+    },
+    "ai_model_aliases": {
+      "tableName": "ai_model_aliases",
+      "fields": [
+        "id",
+        "provider",
+        "model",
+        "organization_id",
+        "display_name",
+        "created_at",
+        "updated_at",
+        "organizations"
+      ]
+    },
+    "ai_provider_keys": {
+      "tableName": "ai_provider_keys",
+      "fields": [
+        "id",
+        "provider",
+        "organization_id",
+        "api_key",
+        "enabled",
+        "created_at",
+        "updated_at",
+        "organizations"
+      ]
+    },
+    "ai_usage_logs": {
+      "tableName": "ai_usage_logs",
+      "fields": [
+        "id",
+        "created_at",
+        "organization_id",
+        "user_id",
+        "feature_key",
+        "task_kind",
+        "provider",
+        "model",
+        "model_display_name",
+        "charged_cents",
+        "latency_ms",
+        "status",
+        "error_message",
+        "meta",
+        "organizations"
+      ]
+    },
+    "AppUpdate": {
+      "tableName": "app_updates",
+      "fields": [
+        "id",
+        "version",
+        "title",
+        "description",
+        "category",
+        "priority",
+        "is_published",
+        "published_at",
+        "created_at",
+        "updated_at",
+        "userUpdateViews"
+      ]
+    },
+    "billing_events": {
+      "tableName": "billing_events",
+      "fields": [
+        "id",
+        "organization_id",
+        "subscription_id",
+        "event_type",
+        "occurred_at",
+        "actor_clerk_user_id",
+        "payload",
+        "created_at",
+        "organizations",
+        "subscriptions"
+      ]
+    },
+    "billing_invoices": {
+      "tableName": "billing_invoices",
+      "fields": [
+        "id",
+        "organization_id",
+        "morning_invoice_id",
+        "invoice_number",
+        "amount",
+        "currency",
+        "status",
+        "invoice_url",
+        "pdf_url",
+        "payment_url",
+        "description",
+        "email_sent",
+        "paid_at",
+        "due_date",
+        "created_at",
+        "updated_at",
+        "organizations"
+      ]
+    },
+    "business_metrics": {
+      "tableName": "business_metrics",
+      "fields": [
+        "id",
+        "client_id",
+        "time_spent_minutes",
+        "expected_hours",
+        "punctuality_score",
+        "responsiveness_score",
+        "revision_count",
+        "last_ai_business_audit",
+        "days_overdue",
+        "created_at",
+        "updated_at",
+        "clients"
+      ]
+    },
+    "charges": {
+      "tableName": "charges",
+      "fields": [
+        "id",
+        "organization_id",
+        "subscription_id",
+        "provider",
+        "status",
+        "amount",
+        "currency",
+        "external_id",
+        "created_at",
+        "updated_at",
+        "metadata",
+        "organizations",
+        "subscriptions"
+      ]
+    },
+    "client_dna": {
+      "tableName": "client_dna",
+      "fields": [
+        "id",
+        "client_id",
+        "brand_summary",
+        "voice_formal",
+        "voice_funny",
+        "voice_length",
+        "vocabulary_loved",
+        "vocabulary_forbidden",
+        "color_primary",
+        "color_secondary",
+        "strategy",
+        "created_at",
+        "updated_at",
+        "clients"
+      ]
+    },
+    "ClientApproval": {
+      "tableName": "client_approvals",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "subjectType",
+        "subjectId",
+        "documentId",
+        "status",
+        "requestedByType",
+        "requestedById",
+        "approvedByPortalUserId",
+        "approvedAt",
+        "comment",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "document",
+        "organization"
+      ]
+    },
+    "ClientClient": {
+      "tableName": "client_clients",
+      "fields": [
+        "id",
+        "organizationId",
+        "fullName",
+        "phone",
+        "email",
+        "notes",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "companyName",
+        "avatar",
+        "package",
+        "status",
+        "contactPerson",
+        "joinedAt",
+        "assetsFolderUrl",
+        "source",
+        "approvals",
+        "organization",
+        "documentFiles",
+        "documents",
+        "feedbacks",
+        "internalNotes",
+        "portalContent",
+        "portalInvites",
+        "portalUsers",
+        "profile",
+        "serviceTier",
+        "sessions",
+        "sharedFiles",
+        "tasks",
+        "socialClients",
+        "financeClients"
+      ]
+    },
+    "ClientDocument": {
+      "tableName": "client_documents",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "title",
+        "description",
+        "category",
+        "status",
+        "isVisibleToClient",
+        "metadata",
+        "createdByType",
+        "createdById",
+        "createdAt",
+        "updatedAt",
+        "approvals",
+        "files",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientDocumentFile": {
+      "tableName": "client_document_files",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "documentId",
+        "storageBucket",
+        "storagePath",
+        "fileName",
+        "mimeType",
+        "sizeBytes",
+        "uploadedByType",
+        "uploadedById",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "document",
+        "organization"
+      ]
+    },
+    "ClientFeedback": {
+      "tableName": "client_feedbacks",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "rating",
+        "comment",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientInternalNote": {
+      "tableName": "client_internal_notes",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "body",
+        "createdBy",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientPortalContent": {
+      "tableName": "client_portal_content",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "kind",
+        "title",
+        "body",
+        "data",
+        "isPublished",
+        "publishedAt",
+        "createdBy",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientPortalInvite": {
+      "tableName": "client_portal_invites",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "email",
+        "tokenHash",
+        "expiresAt",
+        "usedAt",
+        "createdBy",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientPortalUser": {
+      "tableName": "client_portal_users",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "clerkUserId",
+        "email",
+        "fullName",
+        "status",
+        "lastLoginAt",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientProfile": {
+      "tableName": "client_profiles",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "status",
+        "classification",
+        "preferences",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "clients": {
+      "tableName": "clients",
+      "fields": [
+        "id",
+        "organization_id",
+        "user_id",
+        "name",
+        "company_name",
+        "business_id",
+        "phone",
+        "email",
+        "avatar",
+        "brand_voice",
+        "posting_rhythm",
+        "status",
+        "onboarding_status",
+        "invitation_token",
+        "portal_token",
+        "color",
+        "plan",
+        "monthly_fee",
+        "next_payment_date",
+        "next_payment_amount",
+        "payment_status",
+        "auto_reminders_enabled",
+        "saved_card_thumbnail",
+        "internal_notes",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "deleted_by",
+        "client_client_id",
+        "business_metrics",
+        "client_dna",
+        "clientClient",
+        "cycleClients",
+        "cycleTaskCompletions",
+        "platform_credentials",
+        "platform_quotas"
+      ]
+    },
+    "ClientServiceTier": {
+      "tableName": "client_service_tiers",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "tierKey",
+        "label",
+        "metadata",
+        "startsAt",
+        "endsAt",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientSession": {
+      "tableName": "client_sessions",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "startAt",
+        "endAt",
+        "status",
+        "sessionType",
+        "location",
+        "summary",
+        "createdBy",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientSharedFile": {
+      "tableName": "client_shared_files",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "title",
+        "description",
+        "storageBucket",
+        "storagePath",
+        "mimeType",
+        "sizeBytes",
+        "isVisibleToClient",
+        "uploadedByType",
+        "uploadedById",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ClientTask": {
+      "tableName": "client_tasks",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "dueAt",
+        "assignedTo",
+        "createdBy",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "client",
+        "organization"
+      ]
+    },
+    "ConnectMarketplaceListing": {
+      "tableName": "connect_marketplace_listings",
+      "fields": [
+        "id",
+        "sourceOrgId",
+        "sourceOrgSlug",
+        "sourceUserId",
+        "leadId",
+        "targetGeo",
+        "category",
+        "price",
+        "publicDescription",
+        "status",
+        "token",
+        "interestedName",
+        "interestedPhone",
+        "interestedAt",
+        "approvedAt",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organization"
+      ]
+    },
+    "CoreSystemSettings": {
+      "tableName": "core_system_settings",
+      "fields": [
+        "id",
+        "key",
+        "value",
+        "maintenance_mode",
+        "ai_enabled",
+        "banner_message",
+        "updated_at",
+        "created_at"
+      ]
+    },
+    "coupon_redemptions": {
+      "tableName": "coupon_redemptions",
+      "fields": [
+        "id",
+        "coupon_id",
+        "organization_id",
+        "order_id",
+        "clerk_user_id",
+        "redeemed_at",
+        "amount_before",
+        "discount_amount",
+        "amount_after",
+        "created_at",
+        "updated_at",
+        "coupons",
+        "orders",
+        "organizations"
+      ]
+    },
+    "coupons": {
+      "tableName": "coupons",
+      "fields": [
+        "id",
+        "code_hash",
+        "code_last4",
+        "name",
+        "status",
+        "discount_type",
+        "discount_percent",
+        "discount_amount",
+        "min_order_amount",
+        "starts_at",
+        "ends_at",
+        "max_redemptions_total",
+        "created_at",
+        "updated_at",
+        "max_users",
+        "allowed_modules",
+        "coupon_redemptions",
+        "subscription_orders"
+      ]
+    },
+    "CustomerAccount": {
+      "tableName": "customer_accounts",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "company_name",
+        "phone",
+        "email",
+        "created_at",
+        "updated_at",
+        "organization",
+        "misradClients",
+        "systemLeads"
+      ]
+    },
+    "DevicePairingToken": {
+      "tableName": "device_pairing_tokens",
+      "fields": [
+        "id",
+        "code",
+        "token",
+        "deviceNonce",
+        "status",
+        "expiresAt",
+        "organizationId",
+        "creatorClerkUserId",
+        "used",
+        "approvedByUserId",
+        "approvedForUserId",
+        "approvedForClerkId",
+        "signInToken",
+        "approvedAt",
+        "consumedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "finance_whatsapp_reminder_events": {
+      "tableName": "finance_whatsapp_reminder_events",
+      "fields": [
+        "id",
+        "organization_id",
+        "invoice_id",
+        "client_id",
+        "mode",
+        "status",
+        "manual_method",
+        "to_phone",
+        "message",
+        "provider",
+        "provider_message_id",
+        "error",
+        "created_by_user_id",
+        "created_at",
+        "misrad_clients",
+        "misrad_invoices",
+        "organizations"
+      ]
+    },
+    "global_settings": {
+      "tableName": "global_settings",
+      "fields": [
+        "id",
+        "windows_download_url",
+        "android_download_url",
+        "created_at",
+        "updated_at",
+        "admin_android_download_url"
+      ]
+    },
+    "GlobalSystemMetric": {
+      "tableName": "global_system_metrics",
+      "fields": [
+        "id",
+        "total_mrr",
+        "active_subscriptions",
+        "overdue_invoices_count",
+        "api_health_score",
+        "gemini_token_usage",
+        "new_clients_this_month",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "help_videos": {
+      "tableName": "help_videos",
+      "fields": [
+        "id",
+        "module_key",
+        "title",
+        "video_url",
+        "order",
+        "created_at",
+        "updated_at",
+        "route_prefix",
+        "duration"
+      ]
+    },
+    "ImpersonationSession": {
+      "tableName": "impersonation_sessions",
+      "fields": [
+        "id",
+        "admin_user_id",
+        "client_id",
+        "token",
+        "expires_at",
+        "created_at",
+        "status",
+        "auditLogs"
+      ]
+    },
+    "ImpersonationAuditLog": {
+      "tableName": "impersonation_audit_logs",
+      "fields": [
+        "id",
+        "session_id",
+        "admin_user_id",
+        "client_id",
+        "organization_id",
+        "ip_address",
+        "user_agent",
+        "created_at",
+        "session"
+      ]
+    },
+    "integration_idempotency_keys": {
+      "tableName": "integration_idempotency_keys",
+      "fields": [
+        "id",
+        "organizationId",
+        "integration",
+        "idempotencyKey",
+        "requestHash",
+        "responseStatus",
+        "responseBody",
+        "clientId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "IntegrationCredential": {
+      "tableName": "integration_credentials",
+      "fields": [
+        "id",
+        "user_id",
+        "integration_name",
+        "credential_type",
+        "encrypted_data",
+        "metadata",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "IntegrationStatus": {
+      "tableName": "integration_status",
+      "fields": [
+        "id",
+        "name",
+        "is_connected",
+        "api_key",
+        "last_sync",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "landing_faq": {
+      "tableName": "landing_faq",
+      "fields": [
+        "id",
+        "question",
+        "answer",
+        "video_url",
+        "cover_image_url",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "landing_testimonials": {
+      "tableName": "landing_testimonials",
+      "fields": [
+        "id",
+        "name",
+        "role",
+        "company",
+        "content",
+        "rating",
+        "image_url",
+        "video_url",
+        "cover_image_url",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "MisradActivityLog": {
+      "tableName": "misrad_activity_logs",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "type",
+        "description",
+        "date",
+        "dateAt",
+        "isRisk",
+        "created_at",
+        "client"
+      ]
+    },
+    "MisradAiLiabilityRisk": {
+      "tableName": "misrad_ai_liability_risks",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "analysis_id",
+        "quote",
+        "context",
+        "riskLevel",
+        "created_at",
+        "analysis"
+      ]
+    },
+    "MisradAiTask": {
+      "tableName": "misrad_ai_tasks",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "analysis_id",
+        "bucket",
+        "task",
+        "deadline",
+        "deadlineAt",
+        "priority",
+        "status",
+        "created_at",
+        "updated_at",
+        "analysis"
+      ]
+    },
+    "MisradAssignedForm": {
+      "tableName": "misrad_assigned_forms",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "templateId",
+        "title",
+        "status",
+        "progress",
+        "dateSent",
+        "dateSentAt",
+        "lastActivity",
+        "lastActivityAt",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClient": {
+      "tableName": "misrad_clients",
+      "fields": [
+        "id",
+        "organizationId",
+        "customerAccountId",
+        "name",
+        "industry",
+        "employeeCount",
+        "logoInitials",
+        "healthScore",
+        "healthStatus",
+        "status",
+        "type",
+        "tags",
+        "monthlyRetainer",
+        "profitMargin",
+        "lifetimeValue",
+        "hoursLogged",
+        "internalHourlyRate",
+        "directExpenses",
+        "profitabilityVerdict",
+        "lastContact",
+        "lastContactAt",
+        "nextRenewal",
+        "nextRenewalAt",
+        "mainContact",
+        "mainContactRole",
+        "strengths",
+        "weaknesses",
+        "sentimentTrend",
+        "referralStatus",
+        "cancellationDate",
+        "cancellationDateAt",
+        "cancellationReason",
+        "cancellationNote",
+        "cycleId",
+        "healthBreakdown",
+        "engagementMetrics",
+        "created_at",
+        "updated_at",
+        "clientClientId",
+        "finance_whatsapp_reminder_events",
+        "activityLogs",
+        "assignedForms",
+        "actions",
+        "agreements",
+        "assets",
+        "deliverables",
+        "handoff",
+        "transformations",
+        "clientClient",
+        "customerAccount",
+        "cycle",
+        "emails",
+        "feedbackItems",
+        "formResponses",
+        "invoices",
+        "journeyStages",
+        "meetingAnalysisResults",
+        "meetingFiles",
+        "meetings",
+        "metricHistory",
+        "milestones",
+        "notifications",
+        "opportunities",
+        "roiRecords",
+        "stakeholders",
+        "successGoals"
+      ]
+    },
+    "MisradClientAction": {
+      "tableName": "misrad_client_actions",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "description",
+        "type",
+        "status",
+        "dueDate",
+        "dueDateAt",
+        "isBlocking",
+        "lastReminderSent",
+        "lastReminderSentAt",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClientAgreement": {
+      "tableName": "misrad_client_agreements",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "type",
+        "signedDate",
+        "signedDateAt",
+        "expiryDate",
+        "expiryDateAt",
+        "status",
+        "fileUrl",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClientAsset": {
+      "tableName": "misrad_client_assets",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "name",
+        "type",
+        "url",
+        "category",
+        "uploadedBy",
+        "date",
+        "dateAt",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClientDeliverable": {
+      "tableName": "misrad_client_deliverables",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "description",
+        "type",
+        "thumbnailUrl",
+        "status",
+        "date",
+        "dateAt",
+        "tags",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClientHandoff": {
+      "tableName": "misrad_client_handoffs",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "salesRep",
+        "handoffDate",
+        "handoffDateAt",
+        "keyPromises",
+        "mainPainPoint",
+        "successDefinition30Days",
+        "notes",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradClientTransformation": {
+      "tableName": "misrad_client_transformations",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "metrics",
+        "isPublished",
+        "before",
+        "after",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradCycle": {
+      "tableName": "misrad_cycles",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "description",
+        "startDate",
+        "startDateAt",
+        "endDate",
+        "endDateAt",
+        "status",
+        "groupLinks",
+        "created_at",
+        "updated_at",
+        "clients",
+        "sharedAssets",
+        "sharedTasks",
+        "groupEvents"
+      ]
+    },
+    "MisradCycleAsset": {
+      "tableName": "misrad_cycle_assets",
+      "fields": [
+        "id",
+        "organization_id",
+        "cycle_id",
+        "name",
+        "type",
+        "url",
+        "category",
+        "uploadedBy",
+        "date",
+        "dateAt",
+        "created_at",
+        "cycle"
+      ]
+    },
+    "MisradCycleTask": {
+      "tableName": "misrad_cycle_tasks",
+      "fields": [
+        "id",
+        "organization_id",
+        "cycle_id",
+        "title",
+        "description",
+        "type",
+        "status",
+        "dueDate",
+        "dueDateAt",
+        "isBlocking",
+        "lastReminderSent",
+        "lastReminderSentAt",
+        "created_at",
+        "updated_at",
+        "cycle"
+      ]
+    },
+    "MisradEmail": {
+      "tableName": "misrad_emails",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "sender",
+        "senderEmail",
+        "subject",
+        "snippet",
+        "body",
+        "timestamp",
+        "timestampAt",
+        "isRead",
+        "tags",
+        "avatarUrl",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradFeedbackItem": {
+      "tableName": "misrad_feedback_items",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "clientName",
+        "score",
+        "comment",
+        "date",
+        "dateAt",
+        "keywords",
+        "sentiment",
+        "source",
+        "created_at",
+        "client"
+      ]
+    },
+    "MisradFormField": {
+      "tableName": "misrad_form_fields",
+      "fields": [
+        "id",
+        "organization_id",
+        "step_id",
+        "label",
+        "type",
+        "required",
+        "options",
+        "placeholder",
+        "helperText",
+        "created_at",
+        "updated_at",
+        "step"
+      ]
+    },
+    "MisradFormResponse": {
+      "tableName": "misrad_form_responses",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "template_id",
+        "assigned_form_id",
+        "status",
+        "progress",
+        "answers",
+        "submitted_at",
+        "created_at",
+        "updated_at",
+        "client",
+        "template"
+      ]
+    },
+    "MisradFormStep": {
+      "tableName": "misrad_form_steps",
+      "fields": [
+        "id",
+        "organization_id",
+        "template_id",
+        "title",
+        "description",
+        "created_at",
+        "updated_at",
+        "fields",
+        "template"
+      ]
+    },
+    "MisradFormTemplate": {
+      "tableName": "misrad_form_templates",
+      "fields": [
+        "id",
+        "organization_id",
+        "title",
+        "description",
+        "isActive",
+        "category",
+        "created_at",
+        "updated_at",
+        "responses",
+        "steps"
+      ]
+    },
+    "MisradGroupEvent": {
+      "tableName": "misrad_group_events",
+      "fields": [
+        "id",
+        "organization_id",
+        "cycle_id",
+        "title",
+        "type",
+        "date",
+        "dateAt",
+        "targetSegment",
+        "attendeesCount",
+        "link",
+        "status",
+        "attendees",
+        "created_at",
+        "updated_at",
+        "cycle"
+      ]
+    },
+    "MisradInvoice": {
+      "tableName": "misrad_invoices",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "number",
+        "amount",
+        "date",
+        "dueDate",
+        "dateAt",
+        "dueDateAt",
+        "status",
+        "downloadUrl",
+        "draftDescription",
+        "created_at",
+        "updated_at",
+        "finance_whatsapp_reminder_events",
+        "client"
+      ]
+    },
+    "MisradJourneyStage": {
+      "tableName": "misrad_journey_stages",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "name",
+        "status",
+        "date",
+        "dateAt",
+        "completionPercentage",
+        "created_at",
+        "updated_at",
+        "client",
+        "milestones"
+      ]
+    },
+    "MisradMeeting": {
+      "tableName": "misrad_meetings",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "date",
+        "dateAt",
+        "meetingAt",
+        "title",
+        "location",
+        "attendees",
+        "transcript",
+        "summary",
+        "recordingUrl",
+        "manualNotes",
+        "created_at",
+        "updated_at",
+        "analysis",
+        "files",
+        "client"
+      ]
+    },
+    "MisradMeetingAnalysisResult": {
+      "tableName": "misrad_meeting_analysis_results",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "meeting_id",
+        "summary",
+        "sentimentScore",
+        "frictionKeywords",
+        "objections",
+        "compliments",
+        "decisions",
+        "intents",
+        "stories",
+        "slang",
+        "rating",
+        "created_at",
+        "updated_at",
+        "liabilityRisks",
+        "aiTasks",
+        "client",
+        "meeting"
+      ]
+    },
+    "MisradMeetingFile": {
+      "tableName": "misrad_meeting_files",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "meeting_id",
+        "name",
+        "url",
+        "type",
+        "created_at",
+        "client",
+        "meeting"
+      ]
+    },
+    "MisradMessage": {
+      "tableName": "misrad_messages",
+      "fields": [
+        "id",
+        "organization_id",
+        "sender_id",
+        "recipient_id",
+        "subject",
+        "body",
+        "read_status",
+        "related_project_id",
+        "created_at",
+        "updated_at",
+        "attachments"
+      ]
+    },
+    "MisradMessageAttachment": {
+      "tableName": "misrad_message_attachments",
+      "fields": [
+        "id",
+        "organization_id",
+        "message_id",
+        "name",
+        "url",
+        "mimeType",
+        "sizeBytes",
+        "created_at",
+        "message"
+      ]
+    },
+    "MisradMetricHistory": {
+      "tableName": "misrad_metric_history",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "goal_id",
+        "date",
+        "dateAt",
+        "value",
+        "created_at",
+        "client",
+        "goal"
+      ]
+    },
+    "MisradMilestone": {
+      "tableName": "misrad_milestones",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "stage_id",
+        "label",
+        "isCompleted",
+        "required",
+        "created_at",
+        "updated_at",
+        "client",
+        "stage"
+      ]
+    },
+    "MisradModuleSettings": {
+      "tableName": "misrad_module_settings",
+      "fields": [
+        "id",
+        "organization_id",
+        "cycles",
+        "intelligence",
+        "portals",
+        "workflows",
+        "feedback",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "MisradNotification": {
+      "tableName": "misrad_notifications",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "type",
+        "title",
+        "message",
+        "timestamp",
+        "timestampAt",
+        "isRead",
+        "link",
+        "created_at",
+        "updated_at",
+        "recipient_id",
+        "client"
+      ]
+    },
+    "MisradOpportunity": {
+      "tableName": "misrad_opportunities",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "value",
+        "matchScore",
+        "status",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradRoiRecord": {
+      "tableName": "misrad_roi_records",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "date",
+        "dateAt",
+        "value",
+        "description",
+        "category",
+        "created_at",
+        "client"
+      ]
+    },
+    "MisradStakeholder": {
+      "tableName": "misrad_stakeholders",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "name",
+        "jobTitle",
+        "nexusRole",
+        "influence",
+        "sentiment",
+        "lastContact",
+        "lastContactAt",
+        "email",
+        "avatarUrl",
+        "notes",
+        "created_at",
+        "updated_at",
+        "client"
+      ]
+    },
+    "MisradSuccessGoal": {
+      "tableName": "misrad_success_goals",
+      "fields": [
+        "id",
+        "organization_id",
+        "client_id",
+        "title",
+        "metricCurrent",
+        "metricTarget",
+        "unit",
+        "deadline",
+        "deadlineAt",
+        "status",
+        "lastUpdated",
+        "lastUpdatedAt",
+        "aiForecast",
+        "created_at",
+        "updated_at",
+        "history",
+        "client"
+      ]
+    },
+    "MisradWorkflowBlueprint": {
+      "tableName": "misrad_workflow_blueprints",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "description",
+        "totalDuration",
+        "tags",
+        "created_at",
+        "updated_at",
+        "stages"
+      ]
+    },
+    "MisradWorkflowItem": {
+      "tableName": "misrad_workflow_items",
+      "fields": [
+        "id",
+        "organization_id",
+        "stage_id",
+        "type",
+        "title",
+        "description",
+        "isAutomated",
+        "assetLink",
+        "created_at",
+        "updated_at",
+        "stage"
+      ]
+    },
+    "MisradWorkflowStage": {
+      "tableName": "misrad_workflow_stages",
+      "fields": [
+        "id",
+        "organization_id",
+        "blueprint_id",
+        "title",
+        "duration",
+        "created_at",
+        "updated_at",
+        "items",
+        "blueprint"
+      ]
+    },
+    "NavigationMenu": {
+      "tableName": "navigation_menu",
+      "fields": [
+        "id",
+        "label",
+        "icon",
+        "view",
+        "section",
+        "order",
+        "is_visible",
+        "requires_client",
+        "requires_role",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "NexusBillingItem": {
+      "tableName": "nexus_billing_items",
+      "fields": [
+        "id",
+        "organization_id",
+        "item_key",
+        "title",
+        "cadence",
+        "amount",
+        "currency",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "NexusEmployeeInvitationLink": {
+      "tableName": "nexus_employee_invitation_links",
+      "fields": [
+        "id",
+        "organizationId",
+        "token",
+        "created_by",
+        "department",
+        "role",
+        "employee_email",
+        "employee_name",
+        "employee_phone",
+        "payment_type",
+        "hourly_rate",
+        "monthly_salary",
+        "commission_pct",
+        "start_date",
+        "notes",
+        "created_at",
+        "expires_at",
+        "used_at",
+        "is_used",
+        "is_active",
+        "metadata",
+        "updated_at",
+        "organization"
+      ]
+    },
+    "NexusEventAttendance": {
+      "tableName": "nexus_event_attendance",
+      "fields": [
+        "id",
+        "organizationId",
+        "event_id",
+        "user_id",
+        "status",
+        "rsvp_at",
+        "attended_at",
+        "notes",
+        "created_at",
+        "updated_at",
+        "organization"
+      ]
+    },
+    "NexusLeaveRequest": {
+      "tableName": "nexus_leave_requests",
+      "fields": [
+        "id",
+        "organizationId",
+        "tenant_id",
+        "employee_id",
+        "leave_type",
+        "start_date",
+        "end_date",
+        "days_requested",
+        "reason",
+        "status",
+        "requested_by",
+        "approved_by",
+        "approved_at",
+        "rejection_reason",
+        "notification_sent",
+        "employee_notified",
+        "metadata",
+        "created_at",
+        "updated_at",
+        "organization"
+      ]
+    },
+    "NexusOnboardingSettings": {
+      "tableName": "nexus_onboarding_settings",
+      "fields": [
+        "organization_id",
+        "template_key",
+        "selected_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "NexusTeamEvent": {
+      "tableName": "nexus_team_events",
+      "fields": [
+        "id",
+        "organizationId",
+        "tenant_id",
+        "title",
+        "description",
+        "event_type",
+        "start_date",
+        "end_date",
+        "all_day",
+        "location",
+        "organizer_id",
+        "required_attendees",
+        "optional_attendees",
+        "status",
+        "requires_approval",
+        "approved_by",
+        "approved_at",
+        "notification_sent",
+        "reminder_sent",
+        "reminder_days_before",
+        "metadata",
+        "created_at",
+        "created_by",
+        "updated_at",
+        "organization"
+      ]
+    },
+    "NexusClient": {
+      "tableName": "nexus_clients",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "companyName",
+        "avatar",
+        "package",
+        "status",
+        "contactPerson",
+        "email",
+        "phone",
+        "joinedAt",
+        "assetsFolderUrl",
+        "source",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "NexusTask": {
+      "tableName": "nexus_tasks",
+      "fields": [
+        "id",
+        "organizationId",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "assigneeIds",
+        "assigneeId",
+        "creatorId",
+        "tags",
+        "createdAt",
+        "dueDate",
+        "dueTime",
+        "timeSpent",
+        "estimatedTime",
+        "approvalStatus",
+        "isTimerRunning",
+        "messages",
+        "clientId",
+        "isPrivate",
+        "audioUrl",
+        "snoozeCount",
+        "isFocus",
+        "completionDetails",
+        "department",
+        "updatedAt",
+        "shareToken",
+        "module",
+        "organization"
+      ]
+    },
+    "NexusTenant": {
+      "tableName": "nexus_tenants",
+      "fields": [
+        "id",
+        "name",
+        "ownerEmail",
+        "subdomain",
+        "plan",
+        "status",
+        "joinedAt",
+        "mrr",
+        "usersCount",
+        "logo",
+        "modules",
+        "region",
+        "version",
+        "allowedEmails",
+        "requireApproval",
+        "phone",
+        "maxUsers",
+        "defaultLanguage",
+        "activationDate",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "organizationId",
+        "organization"
+      ]
+    },
+    "NexusTimeEntry": {
+      "tableName": "nexus_time_entries",
+      "fields": [
+        "id",
+        "organizationId",
+        "userId",
+        "startTime",
+        "endTime",
+        "startLat",
+        "startLng",
+        "startAccuracy",
+        "startCity",
+        "endLat",
+        "endLng",
+        "endAccuracy",
+        "endCity",
+        "date",
+        "durationMinutes",
+        "voidReason",
+        "voidedBy",
+        "voidedAt",
+        "createdAt",
+        "updatedAt",
+        "note",
+        "organization"
+      ]
+    },
+    "AttendanceMonthlyReport": {
+      "tableName": "attendance_monthly_reports",
+      "fields": [
+        "id",
+        "organizationId",
+        "userId",
+        "year",
+        "month",
+        "employeeName",
+        "employeeNumber",
+        "department",
+        "standardDailyHours",
+        "totalPresenceDays",
+        "totalStandardDays",
+        "totalPresenceMinutes",
+        "totalStandardMinutes",
+        "totalBreakMinutes",
+        "paidBreakMinutes",
+        "totalPayableMinutes",
+        "regularMinutes",
+        "overtime100Minutes",
+        "overtime125Minutes",
+        "overtime150Minutes",
+        "overtime175Minutes",
+        "overtime200Minutes",
+        "absenceMinutes",
+        "dailyBreakdown",
+        "events",
+        "pdfUrl",
+        "sentAt",
+        "sentViaEmail",
+        "sentViaPush",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "AttendanceSalaryConfig": {
+      "tableName": "attendance_salary_configs",
+      "fields": [
+        "id",
+        "organizationId",
+        "standardDailyHours",
+        "breakMinutesPerDay",
+        "paidBreak",
+        "overtime125After",
+        "overtime150After",
+        "overtime175After",
+        "overtime200After",
+        "weeklyOvertimeEnabled",
+        "weeklyStandardHours",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "NexusUser": {
+      "tableName": "nexus_users",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "role",
+        "department",
+        "avatar",
+        "online",
+        "lastSeenAt",
+        "capacity",
+        "email",
+        "phone",
+        "location",
+        "bio",
+        "paymentType",
+        "hourlyRate",
+        "monthlySalary",
+        "commissionPct",
+        "bonusPerTask",
+        "accumulatedBonus",
+        "streakDays",
+        "weeklyScore",
+        "pendingReward",
+        "targets",
+        "notificationPreferences",
+        "twoFactorEnabled",
+        "isSuperAdmin",
+        "billingInfo",
+        "createdAt",
+        "updatedAt",
+        "managerId",
+        "roleId",
+        "managed_department",
+        "uiPreferences"
+      ]
+    },
+    "OAuthToken": {
+      "tableName": "oauth_tokens",
+      "fields": [
+        "id",
+        "user_id",
+        "integration_name",
+        "access_token",
+        "refresh_token",
+        "token_type",
+        "expires_at",
+        "scope",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "OperationsInventory": {
+      "tableName": "operations_inventory",
+      "fields": [
+        "id",
+        "organizationId",
+        "itemId",
+        "onHand",
+        "minLevel",
+        "updatedAt",
+        "createdAt",
+        "item",
+        "organization"
+      ]
+    },
+    "OperationsItem": {
+      "tableName": "operations_items",
+      "fields": [
+        "id",
+        "organizationId",
+        "supplierId",
+        "sku",
+        "name",
+        "unit",
+        "cost",
+        "imageUrl",
+        "imageVector",
+        "createdAt",
+        "updatedAt",
+        "inventory",
+        "organization",
+        "supplier",
+        "purchaseOrderItems"
+      ]
+    },
+    "OperationsProject": {
+      "tableName": "operations_projects",
+      "fields": [
+        "id",
+        "organizationId",
+        "canonicalClientId",
+        "title",
+        "status",
+        "installationAddress",
+        "addressNormalized",
+        "source",
+        "sourceRefId",
+        "createdAt",
+        "updatedAt",
+        "organization",
+        "workOrders"
+      ]
+    },
+    "OperationsSupplier": {
+      "tableName": "operations_suppliers",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "contactName",
+        "phone",
+        "email",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "items",
+        "purchaseOrders",
+        "organization"
+      ]
+    },
+    "OperationsPurchaseOrder": {
+      "tableName": "operations_purchase_orders",
+      "fields": [
+        "id",
+        "organizationId",
+        "supplierId",
+        "poNumber",
+        "status",
+        "notes",
+        "totalAmount",
+        "currency",
+        "expectedDelivery",
+        "sentAt",
+        "receivedAt",
+        "createdBy",
+        "createdAt",
+        "updatedAt",
+        "lineItems",
+        "organization",
+        "supplier"
+      ]
+    },
+    "OperationsPurchaseOrderItem": {
+      "tableName": "operations_purchase_order_items",
+      "fields": [
+        "id",
+        "purchaseOrderId",
+        "itemId",
+        "description",
+        "quantity",
+        "unitPrice",
+        "totalPrice",
+        "receivedQty",
+        "createdAt",
+        "item",
+        "purchaseOrder"
+      ]
+    },
+    "OperationsContractorToken": {
+      "tableName": "operations_contractor_tokens",
+      "fields": [
+        "id",
+        "organizationId",
+        "tokenHash",
+        "contractorLabel",
+        "expiresAt",
+        "revokedAt",
+        "createdAt",
+        "organization"
+      ]
+    },
+    "OperationsWorkOrder": {
+      "tableName": "operations_work_orders",
+      "fields": [
+        "id",
+        "organizationId",
+        "projectId",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "createdByType",
+        "createdByRef",
+        "installationAddress",
+        "addressNormalized",
+        "scheduledStart",
+        "scheduledEnd",
+        "createdAt",
+        "updatedAt",
+        "assignedTechnicianId",
+        "installationLat",
+        "installationLng",
+        "stockSourceHolderId",
+        "completionSignatureUrl",
+        "categoryId",
+        "departmentId",
+        "buildingId",
+        "floor",
+        "unit",
+        "reporterName",
+        "reporterPhone",
+        "slaDeadline",
+        "completedAt",
+        "transferredFromId",
+        "transferApprovedById",
+        "aiSummary",
+        "callMessages",
+        "building",
+        "category",
+        "department",
+        "organization",
+        "project"
+      ]
+    },
+    "OperationsWorkOrderCheckin": {
+      "tableName": "operations_work_order_checkins",
+      "fields": [
+        "id",
+        "organizationId",
+        "workOrderId",
+        "lat",
+        "lng",
+        "accuracy",
+        "createdByType",
+        "createdByRef",
+        "createdAt"
+      ]
+    },
+    "OperationsBuilding": {
+      "tableName": "operations_buildings",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "address",
+        "floors",
+        "notes",
+        "createdAt",
+        "updatedAt",
+        "organization",
+        "workOrders"
+      ]
+    },
+    "OperationsCallCategory": {
+      "tableName": "operations_call_categories",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "color",
+        "icon",
+        "maxResponseMinutes",
+        "sortOrder",
+        "isActive",
+        "createdAt",
+        "organization",
+        "workOrders"
+      ]
+    },
+    "OperationsDepartment": {
+      "tableName": "operations_departments",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "slug",
+        "icon",
+        "color",
+        "isActive",
+        "createdAt",
+        "organization",
+        "workOrders"
+      ]
+    },
+    "OperationsCallMessage": {
+      "tableName": "operations_call_messages",
+      "fields": [
+        "id",
+        "organizationId",
+        "workOrderId",
+        "authorId",
+        "authorName",
+        "content",
+        "attachmentUrl",
+        "attachmentType",
+        "mentions",
+        "createdAt",
+        "organization",
+        "workOrder"
+      ]
+    },
+    "OperationsVehicle": {
+      "tableName": "operations_vehicles",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "plateNumber",
+        "active",
+        "createdAt",
+        "updatedAt",
+        "organization",
+        "assignments"
+      ]
+    },
+    "OperationsTechnicianVehicleAssignment": {
+      "tableName": "operations_technician_vehicle_assignments",
+      "fields": [
+        "id",
+        "organizationId",
+        "technicianId",
+        "vehicleId",
+        "active",
+        "assignedAt",
+        "endedAt",
+        "organization",
+        "vehicle"
+      ]
+    },
+    "organization_settings": {
+      "tableName": "organization_settings",
+      "fields": [
+        "organization_id",
+        "ai_dna",
+        "created_at",
+        "updated_at",
+        "ai_quota_cents",
+        "ai_sales_context",
+        "organizations"
+      ]
+    },
+    "organization_signup_invitations": {
+      "tableName": "organization_signup_invitations",
+      "fields": [
+        "id",
+        "token",
+        "owner_email",
+        "organization_name",
+        "desired_slug",
+        "is_used",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "used_at",
+        "expires_at",
+        "used_by_user_id",
+        "used_by_clerk_user_id",
+        "organization_id",
+        "metadata"
+      ]
+    },
+    "OrganizationUser": {
+      "tableName": "organization_users",
+      "fields": [
+        "id",
+        "clerk_user_id",
+        "email",
+        "full_name",
+        "avatar_url",
+        "terms_accepted_at",
+        "privacy_accepted_at",
+        "terms_accepted_version",
+        "privacy_accepted_version",
+        "created_at",
+        "updated_at",
+        "organization_id",
+        "role",
+        "allowed_modules",
+        "last_location_org",
+        "last_module",
+        "business_client_contacts",
+        "customerRatings",
+        "Organization",
+        "owned_organizations"
+      ]
+    },
+    "Partner": {
+      "tableName": "partners",
+      "fields": [
+        "id",
+        "name",
+        "email",
+        "phone",
+        "referralCode",
+        "createdAt",
+        "updatedAt",
+        "organizations"
+      ]
+    },
+    "PartnerLinkUsage": {
+      "tableName": "partner_link_usage",
+      "fields": [
+        "id",
+        "partnerId",
+        "visitorPhone",
+        "visitorIp",
+        "userAgent",
+        "referrer",
+        "createdAt",
+        "converted",
+        "convertedAt",
+        "commission"
+      ]
+    },
+    "platform_credentials": {
+      "tableName": "platform_credentials",
+      "fields": [
+        "id",
+        "client_id",
+        "platform",
+        "username",
+        "notes",
+        "created_at",
+        "updated_at",
+        "clients"
+      ]
+    },
+    "platform_quotas": {
+      "tableName": "platform_quotas",
+      "fields": [
+        "id",
+        "client_id",
+        "platform",
+        "monthly_limit",
+        "current_usage",
+        "created_at",
+        "updated_at",
+        "clients"
+      ]
+    },
+    "Profile": {
+      "tableName": "profiles",
+      "fields": [
+        "id",
+        "organizationId",
+        "clerkUserId",
+        "email",
+        "fullName",
+        "avatarUrl",
+        "phone",
+        "location",
+        "bio",
+        "notificationPreferences",
+        "twoFactorEnabled",
+        "uiPreferences",
+        "socialProfile",
+        "billingInfo",
+        "createdAt",
+        "updatedAt",
+        "role",
+        "organization"
+      ]
+    },
+    "MisradCalendarSyncLog": {
+      "tableName": "misrad_calendar_sync_log",
+      "fields": [
+        "id",
+        "integration_id",
+        "event_id",
+        "action",
+        "direction",
+        "status",
+        "error_message",
+        "metadata",
+        "created_at"
+      ]
+    },
+    "MisradFeatureRequest": {
+      "tableName": "misrad_feature_requests",
+      "fields": [
+        "id",
+        "user_id",
+        "tenant_id",
+        "title",
+        "description",
+        "type",
+        "priority",
+        "status",
+        "votes",
+        "assigned_to",
+        "reviewed_by",
+        "created_at",
+        "updated_at",
+        "reviewed_at",
+        "completed_at",
+        "metadata",
+        "admin_notes",
+        "rejection_reason"
+      ]
+    },
+    "MisradIntegration": {
+      "tableName": "misrad_integrations",
+      "fields": [
+        "id",
+        "user_id",
+        "tenant_id",
+        "service_type",
+        "access_token",
+        "refresh_token",
+        "token_type",
+        "expires_at",
+        "scope",
+        "metadata",
+        "is_active",
+        "last_synced_at",
+        "sync_error",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "MisradPermission": {
+      "tableName": "misrad_permissions",
+      "fields": [
+        "id",
+        "label",
+        "description",
+        "category",
+        "created_at"
+      ]
+    },
+    "MisradRole": {
+      "tableName": "misrad_roles",
+      "fields": [
+        "id",
+        "name",
+        "description",
+        "is_system",
+        "permissions",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "MisradSupportTicket": {
+      "tableName": "misrad_support_tickets",
+      "fields": [
+        "id",
+        "user_id",
+        "tenant_id",
+        "category",
+        "subject",
+        "message",
+        "ticket_number",
+        "status",
+        "priority",
+        "assigned_to",
+        "resolved_by",
+        "last_updated_by",
+        "created_at",
+        "updated_at",
+        "resolved_at",
+        "closed_at",
+        "read_at",
+        "handled_at",
+        "sla_deadline",
+        "first_response_at",
+        "resolution_time_minutes",
+        "metadata",
+        "admin_response",
+        "resolution_notes"
+      ]
+    },
+    "Organization": {
+      "tableName": "organizations",
+      "fields": [
+        "id",
+        "name",
+        "slug",
+        "logo",
+        "owner_id",
+        "partnerId",
+        "client_id",
+        "has_nexus",
+        "has_social",
+        "has_system",
+        "has_finance",
+        "has_client",
+        "seats_allowed",
+        "active_users_count",
+        "subscription_plan",
+        "subscription_status",
+        "trial_start_date",
+        "trial_days",
+        "subscription_start_date",
+        "created_at",
+        "updated_at",
+        "ai_credits_balance_cents",
+        "has_operations",
+        "is_shabbat_protected",
+        "billing_cycle",
+        "billing_email",
+        "payment_method_id",
+        "next_billing_date",
+        "mrr",
+        "arr",
+        "discount_percent",
+        "trial_extended_days",
+        "trial_end_date",
+        "last_payment_date",
+        "last_payment_amount",
+        "balance",
+        "tax_id",
+        "cancellation_date",
+        "cancellation_reason",
+        "is_medical_exempt",
+        "deleted_at",
+        "coupon_seats_cap",
+        "coupon_allowed_modules",
+        "social_plan",
+        "ai_images_last_reset",
+        "ai_images_used_this_month",
+        "trial_reset_count",
+        "ai_embeddings",
+        "ai_feature_settings",
+        "ai_model_aliases",
+        "ai_provider_keys",
+        "ai_usage_logs",
+        "attendanceMonthlyReports",
+        "attendanceSalaryConfig",
+        "billing_events",
+        "billing_invoices",
+        "botLeads",
+        "charges",
+        "clientApprovals",
+        "clientClients",
+        "clientCycles",
+        "clientDocumentFiles",
+        "clientDocuments",
+        "clientFeedbacks",
+        "clientInternalNotes",
+        "clientPortalContents",
+        "clientPortalInvites",
+        "clientPortalUsers",
+        "clientProfiles",
+        "clientServiceTiers",
+        "clientSessions",
+        "clientSharedFiles",
+        "clientTasks",
+        "connectMarketplaceListings",
+        "coupon_redemptions",
+        "customerAccounts",
+        "customerRatings",
+        "finance_whatsapp_reminder_events",
+        "nexusClients",
+        "nexusEmployeeInvitationLinks",
+        "nexusEventAttendance",
+        "nexusLeaveRequests",
+        "nexusTasks",
+        "nexusTeamEvents",
+        "nexusTenant",
+        "nexusTimeEntries",
+        "operationsBuildings",
+        "operationsCallCategories",
+        "operationsCallMessages",
+        "operationsContractorTokens",
+        "operationsDepartments",
+        "operationsInventory",
+        "operationsItems",
+        "operationsProjects",
+        "operationsPurchaseOrders",
+        "operationsSuppliers",
+        "operationsWorkOrders",
+        "operationsVehicles",
+        "operationsTechnicianVehicleAssignments",
+        "organization_settings",
+        "organizationUsers",
+        "business_client",
+        "owner",
+        "partner",
+        "profiles",
+        "socialMediaClients",
+        "storageDeletionLogs",
+        "storageFiles",
+        "subscription_items",
+        "subscription_orders",
+        "subscriptions",
+        "system_calendar_events",
+        "system_call_analyses",
+        "system_invoices",
+        "system_lead_activities",
+        "systemLeadCustomFieldDefinitions",
+        "system_lead_handovers",
+        "systemLeads",
+        "systemPipelineStages",
+        "system_portal_approvals",
+        "system_portal_tasks",
+        "system_support_tickets",
+        "teamMembers",
+        "workListings",
+        "bookingProviders",
+        "bookingServices",
+        "bookingLinks",
+        "bookingAppointments",
+        "bookingPayments",
+        "bookingWaitlist",
+        "bookingCalendarSyncs",
+        "operations_locations",
+        "operations_work_order_types"
+      ]
+    },
+    "SocialMediaAgencyConfig": {
+      "tableName": "socialmedia_agency_configs",
+      "fields": [
+        "id",
+        "label",
+        "is_enabled",
+        "base_price",
+        "category",
+        "description",
+        "is_recurring",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaAiOpportunity": {
+      "tableName": "socialmedia_ai_opportunities",
+      "fields": [
+        "id",
+        "client_id",
+        "title",
+        "description",
+        "type",
+        "draft_content",
+        "media_url",
+        "created_at"
+      ]
+    },
+    "SocialMediaAutomationRule": {
+      "tableName": "socialmedia_automation_rules",
+      "fields": [
+        "id",
+        "client_id",
+        "type",
+        "trigger_days",
+        "is_enabled",
+        "title",
+        "description",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaBusinessMetric": {
+      "tableName": "socialmedia_business_metrics",
+      "fields": [
+        "id",
+        "client_id",
+        "time_spent_minutes",
+        "expected_hours",
+        "punctuality_score",
+        "responsiveness_score",
+        "revision_count",
+        "last_ai_business_audit",
+        "days_overdue",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaCalendarEvent": {
+      "tableName": "socialmedia_calendar_events",
+      "fields": [
+        "id",
+        "user_id",
+        "client_id",
+        "google_event_id",
+        "title",
+        "description",
+        "start_time",
+        "end_time",
+        "calendar_id",
+        "is_all_day",
+        "location",
+        "attendees",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "ClientSocialToken": {
+      "tableName": "client_social_tokens",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "platform",
+        "accessToken",
+        "refreshToken",
+        "tokenType",
+        "expiresAt",
+        "scope",
+        "platformUserId",
+        "platformPageId",
+        "platformPageName",
+        "platformAccountType",
+        "metadata",
+        "lastRefreshedAt",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SocialMediaPublishedPost": {
+      "tableName": "socialmedia_published_posts",
+      "fields": [
+        "id",
+        "organizationId",
+        "postId",
+        "clientId",
+        "platform",
+        "platformPostId",
+        "platformPostUrl",
+        "publishedAt",
+        "engagementData",
+        "lastSyncedAt",
+        "publishStatus",
+        "errorMessage",
+        "createdAt",
+        "updatedAt",
+        "post"
+      ]
+    },
+    "CampaignPost": {
+      "tableName": "campaign_posts",
+      "fields": [
+        "id",
+        "campaignId",
+        "postId",
+        "orderIndex",
+        "createdAt",
+        "campaign",
+        "post"
+      ]
+    },
+    "SocialMediaCampaign": {
+      "tableName": "socialmedia_campaigns",
+      "fields": [
+        "id",
+        "client_id",
+        "name",
+        "status",
+        "objective",
+        "budget",
+        "spent",
+        "roas",
+        "impressions",
+        "clicks",
+        "created_at",
+        "updated_at",
+        "description",
+        "end_date",
+        "organizationId",
+        "start_date",
+        "posts"
+      ]
+    },
+    "SocialMediaClient": {
+      "tableName": "socialmedia_clients",
+      "fields": [
+        "id",
+        "user_id",
+        "name",
+        "company_name",
+        "business_id",
+        "phone",
+        "email",
+        "avatar",
+        "brand_voice",
+        "posting_rhythm",
+        "status",
+        "onboarding_status",
+        "invitation_token",
+        "portal_token",
+        "color",
+        "plan",
+        "monthly_fee",
+        "next_payment_date",
+        "next_payment_amount",
+        "payment_status",
+        "auto_reminders_enabled",
+        "saved_card_thumbnail",
+        "internal_notes",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "deleted_by",
+        "organization_id",
+        "Organization"
+      ]
+    },
+    "SocialMediaClientDna": {
+      "tableName": "socialmedia_client_dna",
+      "fields": [
+        "id",
+        "client_id",
+        "brand_summary",
+        "voice_formal",
+        "voice_funny",
+        "voice_length",
+        "vocabulary_loved",
+        "vocabulary_forbidden",
+        "color_primary",
+        "color_secondary",
+        "target_audience",
+        "pain_points",
+        "unique_value",
+        "competitors",
+        "main_goal",
+        "ai_strategy_summary",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaClientPlatform": {
+      "tableName": "socialmedia_client_platforms",
+      "fields": [
+        "client_id",
+        "platform"
+      ]
+    },
+    "SocialMediaClientRequest": {
+      "tableName": "socialmedia_client_requests",
+      "fields": [
+        "id",
+        "organizationId",
+        "client_id",
+        "type",
+        "content",
+        "media_url",
+        "status",
+        "manager_comment",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaConversation": {
+      "tableName": "socialmedia_conversations",
+      "fields": [
+        "id",
+        "organizationId",
+        "client_id",
+        "platform",
+        "user_name",
+        "user_avatar",
+        "last_message",
+        "unread_count",
+        "created_at",
+        "updated_at",
+        "messages"
+      ]
+    },
+    "SocialMediaDriveFile": {
+      "tableName": "socialmedia_drive_files",
+      "fields": [
+        "id",
+        "user_id",
+        "client_id",
+        "google_file_id",
+        "name",
+        "mime_type",
+        "size_bytes",
+        "folder_path",
+        "web_view_link",
+        "thumbnail_link",
+        "synced_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaFeedback": {
+      "tableName": "socialmedia_feedback",
+      "fields": [
+        "id",
+        "user_id",
+        "client_id",
+        "type",
+        "title",
+        "message",
+        "status",
+        "priority",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaIdea": {
+      "tableName": "socialmedia_ideas",
+      "fields": [
+        "id",
+        "organizationId",
+        "client_id",
+        "text",
+        "created_at"
+      ]
+    },
+    "SocialMediaInvoice": {
+      "tableName": "socialmedia_invoices",
+      "fields": [
+        "id",
+        "client_id",
+        "invoice_number",
+        "amount",
+        "date",
+        "status",
+        "download_url",
+        "created_at"
+      ]
+    },
+    "SocialMediaManagerRequest": {
+      "tableName": "socialmedia_manager_requests",
+      "fields": [
+        "id",
+        "organizationId",
+        "client_id",
+        "title",
+        "description",
+        "status",
+        "type",
+        "feedback_from_client",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaMessage": {
+      "tableName": "socialmedia_messages",
+      "fields": [
+        "id",
+        "organizationId",
+        "conversation_id",
+        "sender",
+        "text",
+        "is_me",
+        "created_at",
+        "social_conversations"
+      ]
+    },
+    "SocialMediaPaymentOrder": {
+      "tableName": "socialmedia_payment_orders",
+      "fields": [
+        "id",
+        "client_id",
+        "amount",
+        "description",
+        "status",
+        "installments_allowed",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaPlatformCredential": {
+      "tableName": "socialmedia_platform_credentials",
+      "fields": [
+        "id",
+        "client_id",
+        "platform",
+        "username",
+        "notes",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaPlatformQuota": {
+      "tableName": "socialmedia_platform_quotas",
+      "fields": [
+        "id",
+        "client_id",
+        "platform",
+        "monthly_limit",
+        "current_usage",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaPostComment": {
+      "tableName": "socialmedia_post_comments",
+      "fields": [
+        "id",
+        "organizationId",
+        "post_id",
+        "team_member_id",
+        "text",
+        "created_at",
+        "social_posts",
+        "social_team_members"
+      ]
+    },
+    "SocialMediaPostPlatform": {
+      "tableName": "socialmedia_post_platforms",
+      "fields": [
+        "organizationId",
+        "post_id",
+        "platform",
+        "social_posts"
+      ]
+    },
+    "SocialMediaPostVariation": {
+      "tableName": "socialmedia_post_variations",
+      "fields": [
+        "id",
+        "organizationId",
+        "post_id",
+        "type",
+        "content",
+        "image_suggestion",
+        "created_at",
+        "social_posts"
+      ]
+    },
+    "SocialMediaSheetsSyncConfig": {
+      "tableName": "socialmedia_sheets_sync_configs",
+      "fields": [
+        "id",
+        "user_id",
+        "spreadsheet_id",
+        "sheet_name",
+        "sync_type",
+        "range",
+        "is_active",
+        "last_synced_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialMediaSiteContent": {
+      "tableName": "socialmedia_site_content",
+      "fields": [
+        "id",
+        "page",
+        "section",
+        "key",
+        "content",
+        "updated_at",
+        "updated_by",
+        "created_at"
+      ]
+    },
+    "SocialMediaSyncLog": {
+      "tableName": "socialmedia_sync_logs",
+      "fields": [
+        "id",
+        "user_id",
+        "integration_name",
+        "sync_type",
+        "status",
+        "items_synced",
+        "error_message",
+        "started_at",
+        "completed_at",
+        "metadata"
+      ]
+    },
+    "SocialMediaTask": {
+      "tableName": "socialmedia_tasks",
+      "fields": [
+        "id",
+        "organizationId",
+        "client_id",
+        "assigned_to",
+        "title",
+        "description",
+        "due_date",
+        "priority",
+        "status",
+        "type",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SocialPost": {
+      "tableName": "socialmedia_posts",
+      "fields": [
+        "id",
+        "organizationId",
+        "clientId",
+        "content",
+        "media_url",
+        "status",
+        "scheduled_at",
+        "published_at",
+        "is_late",
+        "created_by",
+        "createdAt",
+        "updatedAt",
+        "deleted_at",
+        "deleted_by",
+        "campaignPosts",
+        "postComments",
+        "postPlatforms",
+        "postVariations",
+        "publishedPosts"
+      ]
+    },
+    "strategic_content": {
+      "tableName": "strategic_content",
+      "fields": [
+        "id",
+        "category",
+        "title",
+        "content",
+        "module_id"
+      ]
+    },
+    "subscription_items": {
+      "tableName": "subscription_items",
+      "fields": [
+        "id",
+        "subscription_id",
+        "organization_id",
+        "kind",
+        "module_key",
+        "quantity",
+        "status",
+        "unit_amount",
+        "currency",
+        "start_at",
+        "end_at",
+        "created_at",
+        "updated_at",
+        "metadata",
+        "organizations",
+        "subscriptions"
+      ]
+    },
+    "subscription_orders": {
+      "tableName": "subscription_orders",
+      "fields": [
+        "id",
+        "clerk_user_id",
+        "social_user_id",
+        "organization_id",
+        "package_type",
+        "plan_key",
+        "billing_cycle",
+        "amount",
+        "amount_before_discount",
+        "coupon_discount",
+        "currency",
+        "status",
+        "payment_method",
+        "customer_name",
+        "customer_email",
+        "customer_phone",
+        "bit_reference",
+        "bit_payment_link",
+        "bit_qr_url",
+        "created_at",
+        "updated_at",
+        "pending_verification_at",
+        "proof_image_url",
+        "proof_image_path",
+        "seats",
+        "coupon_id",
+        "coupon_redemptions",
+        "coupon",
+        "organizations"
+      ]
+    },
+    "subscription_payment_configs": {
+      "tableName": "subscription_payment_configs",
+      "fields": [
+        "package_type",
+        "title",
+        "qr_image_url",
+        "instructions_text",
+        "created_at",
+        "updated_at",
+        "payment_method",
+        "external_payment_url"
+      ]
+    },
+    "subscriptions": {
+      "tableName": "subscriptions",
+      "fields": [
+        "id",
+        "organization_id",
+        "status",
+        "billing_cycle",
+        "current_period_start",
+        "current_period_end",
+        "created_at",
+        "updated_at",
+        "metadata",
+        "billing_events",
+        "charges",
+        "subscription_items",
+        "organizations"
+      ]
+    },
+    "support_ticket_events": {
+      "tableName": "support_ticket_events",
+      "fields": [
+        "id",
+        "ticket_id",
+        "tenant_id",
+        "actor_id",
+        "action",
+        "content",
+        "metadata",
+        "created_at"
+      ]
+    },
+    "system_invitation_links": {
+      "tableName": "system_invitation_links",
+      "fields": [
+        "id",
+        "token",
+        "client_id",
+        "created_by",
+        "created_at",
+        "expires_at",
+        "used_at",
+        "is_used",
+        "is_active",
+        "ceo_name",
+        "ceo_email",
+        "ceo_phone",
+        "company_name",
+        "company_logo",
+        "company_address",
+        "company_website",
+        "additional_notes",
+        "source",
+        "metadata",
+        "updated_at"
+      ]
+    },
+    "system_settings": {
+      "tableName": "system_settings",
+      "fields": [
+        "id",
+        "tenant_id",
+        "system_flags",
+        "maintenance_mode",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SystemAsset": {
+      "tableName": "system_assets",
+      "fields": [
+        "id",
+        "title",
+        "description",
+        "category",
+        "type",
+        "value",
+        "isSecure",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemAutomation": {
+      "tableName": "system_automations",
+      "fields": [
+        "id",
+        "name",
+        "enabled",
+        "triggerType",
+        "triggerStatus",
+        "actionType",
+        "taskTitle",
+        "taskDueDays",
+        "taskPriority",
+        "noteText",
+        "runs",
+        "lastRun",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemBackup": {
+      "tableName": "system_backups",
+      "fields": [
+        "id",
+        "status",
+        "size",
+        "created_at",
+        "completed_at",
+        "error_message"
+      ]
+    },
+    "SystemCalendarEvent": {
+      "tableName": "system_calendar_events",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "title",
+        "leadName",
+        "leadCompany",
+        "dayName",
+        "date",
+        "time",
+        "occursAt",
+        "type",
+        "location",
+        "participants",
+        "reminders",
+        "postMeeting",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemCallAnalysis": {
+      "tableName": "system_call_analyses",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "fileName",
+        "title",
+        "audioUrl",
+        "date",
+        "duration",
+        "summary",
+        "score",
+        "intent",
+        "userNotes",
+        "transcript",
+        "topics",
+        "feedback",
+        "createdAt",
+        "updatedAt",
+        "callAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemCampaign": {
+      "tableName": "system_campaigns",
+      "fields": [
+        "id",
+        "name",
+        "platform",
+        "status",
+        "budget",
+        "spent",
+        "leads",
+        "cpl",
+        "roas",
+        "impressions",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemContentItem": {
+      "tableName": "system_content_items",
+      "fields": [
+        "id",
+        "title",
+        "format",
+        "platform",
+        "status",
+        "assignee",
+        "views",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemFieldAgent": {
+      "tableName": "system_field_agents",
+      "fields": [
+        "id",
+        "userId",
+        "name",
+        "status",
+        "locationX",
+        "locationY",
+        "avatar",
+        "phone",
+        "area",
+        "currentTask",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemForm": {
+      "tableName": "system_forms",
+      "fields": [
+        "id",
+        "title",
+        "status",
+        "views",
+        "conversions",
+        "fields",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemInvoice": {
+      "tableName": "system_invoices",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "client",
+        "amount",
+        "date",
+        "status",
+        "item",
+        "refundReason",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemLead": {
+      "tableName": "system_leads",
+      "fields": [
+        "id",
+        "organizationId",
+        "customerAccountId",
+        "name",
+        "company",
+        "phone",
+        "email",
+        "source",
+        "status",
+        "value",
+        "lastContact",
+        "createdAt",
+        "isHot",
+        "score",
+        "address",
+        "locationX",
+        "locationY",
+        "assignedAgentId",
+        "subscriptionEndDate",
+        "productInterest",
+        "playbookStep",
+        "budgetHours",
+        "loggedHours",
+        "aiTags",
+        "closureProbability",
+        "closureRationale",
+        "recommendedAction",
+        "customFields",
+        "updatedAt",
+        "installationAddress",
+        "nextActionDate",
+        "nextActionDateSuggestion",
+        "nextActionNote",
+        "nextActionDateRationale",
+        "connectMarketplaceListings",
+        "calendarEvents",
+        "callAnalyses",
+        "invoices",
+        "activities",
+        "handover",
+        "customerAccount",
+        "organization",
+        "portalApprovals",
+        "portalTasks",
+        "supportTickets",
+        "workListings"
+      ]
+    },
+    "SystemLeadActivity": {
+      "tableName": "system_lead_activities",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "type",
+        "content",
+        "timestamp",
+        "direction",
+        "metadata",
+        "createdAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemLeadCustomFieldDefinition": {
+      "tableName": "system_lead_custom_field_definitions",
+      "fields": [
+        "id",
+        "organizationId",
+        "key",
+        "label",
+        "kind",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "SystemLeadHandover": {
+      "tableName": "system_lead_handovers",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "nonStandardPromises",
+        "biggestPain",
+        "expectations30Days",
+        "filledAt",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemPartner": {
+      "tableName": "system_partners",
+      "fields": [
+        "id",
+        "name",
+        "type",
+        "referrals",
+        "referralsThisMonth",
+        "lastMonthReset",
+        "revenue",
+        "commissionRate",
+        "unpaidCommission",
+        "totalEarned",
+        "lastActive",
+        "avatar",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemPipelineStage": {
+      "tableName": "system_pipeline_stages",
+      "fields": [
+        "id",
+        "organizationId",
+        "key",
+        "label",
+        "color",
+        "accent",
+        "order",
+        "isActive",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "SystemPortalApproval": {
+      "tableName": "system_portal_approvals",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "type",
+        "title",
+        "date",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemPortalTask": {
+      "tableName": "system_portal_tasks",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "title",
+        "type",
+        "status",
+        "formFields",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemStudent": {
+      "tableName": "system_students",
+      "fields": [
+        "id",
+        "name",
+        "company",
+        "avatar",
+        "progress",
+        "status",
+        "cohort",
+        "lastCheckIn",
+        "nextHotSeat",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemSupportTicket": {
+      "tableName": "system_support_tickets",
+      "fields": [
+        "id",
+        "organizationId",
+        "leadId",
+        "category",
+        "subject",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organizations"
+      ]
+    },
+    "SystemTask": {
+      "tableName": "system_tasks",
+      "fields": [
+        "id",
+        "title",
+        "description",
+        "assigneeId",
+        "dueDate",
+        "priority",
+        "status",
+        "tags",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SystemWebhookLog": {
+      "tableName": "system_webhook_logs",
+      "fields": [
+        "id",
+        "timestamp",
+        "channel",
+        "event",
+        "status"
+      ]
+    },
+    "TeamComment": {
+      "tableName": "team_comments",
+      "fields": [
+        "id",
+        "team_member_id",
+        "text",
+        "created_at",
+        "social_team_members"
+      ]
+    },
+    "TeamMember": {
+      "tableName": "team_members",
+      "fields": [
+        "id",
+        "user_id",
+        "name",
+        "role",
+        "member_type",
+        "avatar",
+        "active_tasks_count",
+        "capacity_score",
+        "hourly_rate",
+        "monthly_salary",
+        "created_at",
+        "updated_at",
+        "email",
+        "plan",
+        "trial_start_date",
+        "trial_days",
+        "subscription_status",
+        "subscription_start_date",
+        "organization_id",
+        "activityLogs",
+        "postComments",
+        "teamComments",
+        "teamMemberClients",
+        "Organization"
+      ]
+    },
+    "TeamMemberClient": {
+      "tableName": "team_member_clients",
+      "fields": [
+        "team_member_id",
+        "client_id",
+        "social_team_members"
+      ]
+    },
+    "UserUpdateView": {
+      "tableName": "user_update_views",
+      "fields": [
+        "id",
+        "user_id",
+        "update_id",
+        "viewed_at",
+        "social_app_updates"
+      ]
+    },
+    "WebhookConfig": {
+      "tableName": "webhook_configs",
+      "fields": [
+        "id",
+        "user_id",
+        "integration_name",
+        "webhook_url",
+        "secret_key",
+        "events",
+        "is_active",
+        "last_triggered_at",
+        "created_at",
+        "updated_at",
+        "organization_id"
+      ]
+    },
+    "WebPushSubscription": {
+      "tableName": "web_push_subscriptions",
+      "fields": [
+        "id",
+        "organizationId",
+        "clerkUserId",
+        "email",
+        "endpoint",
+        "p256dh",
+        "auth",
+        "expirationTime",
+        "userAgent",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkListing": {
+      "tableName": "work_listings",
+      "fields": [
+        "id",
+        "sourceOrgId",
+        "sourceOrgSlug",
+        "sourceUserId",
+        "leadId",
+        "channel",
+        "status",
+        "title",
+        "targetGeo",
+        "price",
+        "interestedName",
+        "interestedPhone",
+        "interestedAt",
+        "createdAt",
+        "updatedAt",
+        "lead",
+        "organization"
+      ]
+    },
+    "BusinessClient": {
+      "tableName": "business_clients",
+      "fields": [
+        "id",
+        "company_name",
+        "company_name_en",
+        "business_number",
+        "tax_id",
+        "legal_entity_type",
+        "primary_email",
+        "phone",
+        "website",
+        "address_street",
+        "address_city",
+        "address_state",
+        "address_postal_code",
+        "address_country",
+        "billing_email",
+        "billing_contact_name",
+        "billing_address_street",
+        "billing_address_city",
+        "billing_address_postal_code",
+        "industry",
+        "company_size",
+        "annual_revenue_range",
+        "lead_source",
+        "account_manager_id",
+        "sales_rep_id",
+        "status",
+        "lifecycle_stage",
+        "total_revenue_lifetime",
+        "mrr",
+        "arr",
+        "created_at",
+        "updated_at",
+        "first_purchase_date",
+        "last_purchase_date",
+        "notes",
+        "tags",
+        "custom_fields",
+        "deleted_at",
+        "contacts",
+        "organizations"
+      ]
+    },
+    "GlobalPromotion": {
+      "tableName": "global_promotion",
+      "fields": [
+        "id",
+        "title",
+        "subtitle",
+        "discount_percent",
+        "discount_amount_cents",
+        "badge_text",
+        "cta_text",
+        "urgency_message",
+        "starts_at",
+        "expires_at",
+        "is_active",
+        "display_on_signup",
+        "display_on_pricing",
+        "coupon_code",
+        "created_at",
+        "updated_at",
+        "created_by_clerk_id"
+      ]
+    },
+    "BusinessClientContact": {
+      "tableName": "business_client_contacts",
+      "fields": [
+        "id",
+        "client_id",
+        "user_id",
+        "role",
+        "title",
+        "department",
+        "is_primary",
+        "is_billing_contact",
+        "is_technical_contact",
+        "created_at",
+        "updated_at",
+        "client",
+        "user"
+      ]
+    },
+    "Notification": {
+      "tableName": "notification",
+      "fields": [
+        "id",
+        "user_id",
+        "title",
+        "message",
+        "type",
+        "is_read",
+        "target_type",
+        "target_id",
+        "created_at",
+        "read_at"
+      ]
+    },
+    "MisradSalesTeam": {
+      "tableName": "misrad_sales_teams",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "description",
+        "color",
+        "target_monthly",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "members"
+      ]
+    },
+    "MisradSalesTeamMember": {
+      "tableName": "misrad_sales_team_members",
+      "fields": [
+        "id",
+        "organization_id",
+        "team_id",
+        "user_id",
+        "name",
+        "email",
+        "phone",
+        "avatar",
+        "role",
+        "target_monthly",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "team"
+      ]
+    },
+    "MisradFieldTeam": {
+      "tableName": "misrad_field_teams",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "area",
+        "color",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "agents"
+      ]
+    },
+    "MisradFieldAgent": {
+      "tableName": "misrad_field_agents",
+      "fields": [
+        "id",
+        "organization_id",
+        "team_id",
+        "user_id",
+        "name",
+        "phone",
+        "avatar",
+        "area",
+        "status",
+        "lat",
+        "lng",
+        "last_location_at",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "team",
+        "visits"
+      ]
+    },
+    "MisradFieldVisit": {
+      "tableName": "misrad_field_visits",
+      "fields": [
+        "id",
+        "organization_id",
+        "agent_id",
+        "client_name",
+        "address",
+        "lat",
+        "lng",
+        "scheduled_at",
+        "started_at",
+        "completed_at",
+        "status",
+        "notes",
+        "created_at",
+        "updated_at",
+        "agent"
+      ]
+    },
+    "BotLead": {
+      "tableName": "bot_leads",
+      "fields": [
+        "id",
+        "phone",
+        "name",
+        "business_name",
+        "email",
+        "industry",
+        "org_size",
+        "pain_point",
+        "selected_plan",
+        "source",
+        "status",
+        "score",
+        "last_interaction",
+        "created_at",
+        "updated_at",
+        "organization_id",
+        "conversations",
+        "organization"
+      ]
+    },
+    "BotConversation": {
+      "tableName": "bot_conversations",
+      "fields": [
+        "id",
+        "lead_id",
+        "direction",
+        "message",
+        "rule_id",
+        "variables",
+        "created_at",
+        "lead"
+      ]
+    },
+    "SiteAnalyticsSession": {
+      "tableName": "site_analytics_sessions",
+      "fields": [
+        "id",
+        "visitor_id",
+        "referrer",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "device_type",
+        "browser",
+        "os",
+        "country",
+        "city",
+        "landing_page",
+        "signup_user_id",
+        "signed_up_at",
+        "total_pages",
+        "total_duration_ms",
+        "created_at",
+        "updated_at",
+        "events",
+        "page_views"
+      ]
+    },
+    "SiteAnalyticsPageView": {
+      "tableName": "site_analytics_page_views",
+      "fields": [
+        "id",
+        "session_id",
+        "path",
+        "title",
+        "referrer_page",
+        "time_on_page_ms",
+        "max_scroll_pct",
+        "entered_at",
+        "left_at",
+        "session"
+      ]
+    },
+    "SiteAnalyticsEvent": {
+      "tableName": "site_analytics_events",
+      "fields": [
+        "id",
+        "session_id",
+        "event_type",
+        "event_data",
+        "page_path",
+        "created_at",
+        "session"
+      ]
+    },
+    "CustomerRating": {
+      "tableName": "customer_ratings",
+      "fields": [
+        "id",
+        "organization_id",
+        "user_id",
+        "rating",
+        "feedback",
+        "google_clicked",
+        "source",
+        "created_at",
+        "organization",
+        "user"
+      ]
+    },
+    "EmailSentLog": {
+      "tableName": "email_sent_logs",
+      "fields": [
+        "id",
+        "email_type_id",
+        "recipient_email",
+        "organization_id",
+        "user_id",
+        "status",
+        "metadata",
+        "sent_at"
+      ]
+    },
+    "notifications": {
+      "tableName": "notifications",
+      "fields": [
+        "id",
+        "user_id",
+        "title",
+        "message",
+        "type",
+        "is_read",
+        "target_type",
+        "target_id",
+        "created_at",
+        "read_at"
+      ]
+    },
+    "ClientMarketingStrategy": {
+      "tableName": "client_marketing_strategy",
+      "fields": [
+        "id",
+        "clientId",
+        "organizationId",
+        "strategyData",
+        "profileData",
+        "createdAt",
+        "updatedAt",
+        "version",
+        "isActive",
+        "generatedBy"
+      ]
+    },
+    "StorageFile": {
+      "tableName": "storage_files",
+      "fields": [
+        "id",
+        "organizationId",
+        "bucket",
+        "path",
+        "fileName",
+        "mimeType",
+        "sizeBytes",
+        "uploadedBy",
+        "uploadedAt",
+        "lastAccessedAt",
+        "retentionDays",
+        "deleteScheduledAt",
+        "deletionNotifiedAt",
+        "isProtected",
+        "tags",
+        "metadata",
+        "createdAt",
+        "updatedAt",
+        "organization"
+      ]
+    },
+    "StorageDeletionLog": {
+      "tableName": "storage_deletion_log",
+      "fields": [
+        "id",
+        "organizationId",
+        "bucket",
+        "path",
+        "fileName",
+        "sizeBytes",
+        "deletedBy",
+        "deletedAt",
+        "reason",
+        "organization"
+      ]
+    },
+    "ClientCycle": {
+      "tableName": "client_cycles",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "description",
+        "startDate",
+        "endDate",
+        "whatsappGroupLink",
+        "slackChannelLink",
+        "createdAt",
+        "updatedAt",
+        "metadata",
+        "status",
+        "createdBy",
+        "organization",
+        "assets",
+        "clients",
+        "tasks"
+      ]
+    },
+    "CycleClient": {
+      "tableName": "cycle_clients",
+      "fields": [
+        "id",
+        "cycleId",
+        "clientId",
+        "joinedAt",
+        "client",
+        "cycle"
+      ]
+    },
+    "CycleTask": {
+      "tableName": "cycle_tasks",
+      "fields": [
+        "id",
+        "cycleId",
+        "title",
+        "description",
+        "dueDate",
+        "createdAt",
+        "updatedAt",
+        "assignedToAll",
+        "status",
+        "priority",
+        "createdBy",
+        "completions",
+        "cycle"
+      ]
+    },
+    "CycleTaskCompletion": {
+      "tableName": "cycle_task_completions",
+      "fields": [
+        "id",
+        "taskId",
+        "clientId",
+        "completedAt",
+        "completedBy",
+        "client",
+        "task"
+      ]
+    },
+    "CycleAsset": {
+      "tableName": "cycle_assets",
+      "fields": [
+        "id",
+        "cycleId",
+        "name",
+        "category",
+        "fileUrl",
+        "fileType",
+        "sizeBytes",
+        "uploadedAt",
+        "uploadedBy",
+        "cycle"
+      ]
+    },
+    "BotLeadExtended": {
+      "tableName": "bot_leads_extended",
+      "fields": [
+        "id",
+        "phone",
+        "name",
+        "first_name",
+        "last_name",
+        "business_name",
+        "business_type",
+        "email",
+        "email_validated",
+        "alternative_phone",
+        "industry",
+        "sub_industry",
+        "org_size",
+        "employee_count",
+        "annual_revenue",
+        "years_in_business",
+        "website",
+        "linkedin_company",
+        "facebook_page",
+        "instagram_handle",
+        "address",
+        "city",
+        "region",
+        "country",
+        "zip_code",
+        "latitude",
+        "longitude",
+        "location_name",
+        "location_type",
+        "service_area",
+        "timezone",
+        "preferred_language",
+        "communication_pref",
+        "best_time_to_call",
+        "source",
+        "medium",
+        "campaign",
+        "campaign_id",
+        "referrer_name",
+        "referrer_code",
+        "landing_page",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "coupon_code",
+        "coupon_type",
+        "discount_amount",
+        "discount_percent",
+        "has_media",
+        "media_type",
+        "image_url",
+        "button_clicked",
+        "qr_scanned",
+        "selected_plan",
+        "plan_price",
+        "pain_point",
+        "pain_level",
+        "budget_range",
+        "urgency_level",
+        "status",
+        "priority",
+        "lead_score",
+        "lead_quality",
+        "stage",
+        "assigned_to",
+        "next_action",
+        "next_action_date",
+        "first_contact_date",
+        "last_activity_date",
+        "demo_scheduled_date",
+        "trial_start_date",
+        "closed_date",
+        "tags",
+        "notes",
+        "custom_fields",
+        "created_at",
+        "updated_at",
+        "last_interaction",
+        "organization_id",
+        "conversations",
+        "media",
+        "outgoingMessages",
+        "surveyResponses"
+      ]
+    },
+    "BotConversationExtended": {
+      "tableName": "bot_conversations_extended",
+      "fields": [
+        "id",
+        "lead_id",
+        "direction",
+        "message",
+        "rule_id",
+        "variables",
+        "created_at",
+        "lead"
+      ]
+    },
+    "BotOutgoingMessage": {
+      "tableName": "bot_outgoing_messages",
+      "fields": [
+        "id",
+        "lead_id",
+        "phone",
+        "message",
+        "message_type",
+        "media_url",
+        "template_name",
+        "status",
+        "sent_at",
+        "delivered_at",
+        "read_at",
+        "scheduled_at",
+        "campaign_id",
+        "created_at",
+        "lead"
+      ]
+    },
+    "BotMedia": {
+      "tableName": "bot_media",
+      "fields": [
+        "id",
+        "lead_id",
+        "file_name",
+        "file_url",
+        "file_type",
+        "mime_type",
+        "file_size_bytes",
+        "caption",
+        "ai_analysis",
+        "created_at",
+        "lead"
+      ]
+    },
+    "BotCampaign": {
+      "tableName": "bot_campaigns",
+      "fields": [
+        "id",
+        "name",
+        "campaign_type",
+        "description",
+        "start_date",
+        "end_date",
+        "status",
+        "messages_sent",
+        "messages_delivered",
+        "messages_read",
+        "leads_generated",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "BotLottery": {
+      "tableName": "bot_lotteries",
+      "fields": [
+        "id",
+        "name",
+        "description",
+        "start_date",
+        "end_date",
+        "status",
+        "prize_count",
+        "prize_value",
+        "total_participants",
+        "winner_id",
+        "winner_name",
+        "created_at"
+      ]
+    },
+    "BotReferral": {
+      "tableName": "bot_referrals",
+      "fields": [
+        "id",
+        "referrer_id",
+        "referred_id",
+        "referral_code",
+        "referral_date",
+        "level",
+        "is_active",
+        "commission_rate",
+        "total_earned",
+        "created_at"
+      ]
+    },
+    "BotCoupon": {
+      "tableName": "bot_coupons",
+      "fields": [
+        "id",
+        "code",
+        "name",
+        "discount_type",
+        "discount_value",
+        "usage_limit",
+        "usage_count",
+        "start_date",
+        "expiry_date",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "BotAnalytics": {
+      "tableName": "bot_analytics",
+      "fields": [
+        "id",
+        "date",
+        "total_leads",
+        "new_leads",
+        "qualified_leads",
+        "deals_closed",
+        "revenue",
+        "conversion_rate",
+        "messages_sent",
+        "messages_read",
+        "calculated_at"
+      ]
+    },
+    "BotSurvey": {
+      "tableName": "bot_surveys",
+      "fields": [
+        "id",
+        "name",
+        "description",
+        "survey_type",
+        "questions",
+        "status",
+        "total_responses",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "BotSurveyResponse": {
+      "tableName": "bot_survey_responses",
+      "fields": [
+        "id",
+        "survey_id",
+        "lead_id",
+        "phone",
+        "answers",
+        "nps_score",
+        "csat_score",
+        "sentiment",
+        "completed_at",
+        "lead"
+      ]
+    },
+    "BookingProvider": {
+      "tableName": "booking_providers",
+      "fields": [
+        "id",
+        "organizationId",
+        "userId",
+        "name",
+        "email",
+        "phone",
+        "avatar",
+        "isActive",
+        "bufferMinutes",
+        "maxDailyAppointments",
+        "organization",
+        "services",
+        "availabilities",
+        "appointments",
+        "links",
+        "calendarSyncs",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingService": {
+      "tableName": "booking_services",
+      "fields": [
+        "id",
+        "organizationId",
+        "name",
+        "description",
+        "color",
+        "durationMinutes",
+        "bufferAfterMinutes",
+        "priceAmount",
+        "currency",
+        "requiresPayment",
+        "requiresApproval",
+        "requiresReason",
+        "isActive",
+        "organization",
+        "providers",
+        "links",
+        "appointments",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingProviderService": {
+      "tableName": "booking_provider_services",
+      "fields": [
+        "id",
+        "providerId",
+        "serviceId",
+        "customDuration",
+        "customPrice",
+        "isActive",
+        "provider",
+        "service"
+      ]
+    },
+    "BookingAvailability": {
+      "tableName": "booking_availabilities",
+      "fields": [
+        "id",
+        "organizationId",
+        "providerId",
+        "type",
+        "dayOfWeek",
+        "specificDate",
+        "startTime",
+        "endTime",
+        "timezone",
+        "isAvailable",
+        "reason",
+        "provider",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingLink": {
+      "tableName": "booking_links",
+      "fields": [
+        "id",
+        "organizationId",
+        "providerId",
+        "slug",
+        "title",
+        "description",
+        "availableDays",
+        "availableStartTime",
+        "availableEndTime",
+        "minNoticeHours",
+        "maxBookingDays",
+        "allowCancellations",
+        "cancellationDeadlineHours",
+        "requirePayment",
+        "paymentAmount",
+        "requireApproval",
+        "maxBookingsPerSlot",
+        "locationType",
+        "locationDetails",
+        "isActive",
+        "organization",
+        "provider",
+        "services",
+        "appointments",
+        "verifications",
+        "waitlist",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingLinkService": {
+      "tableName": "booking_link_services",
+      "fields": [
+        "id",
+        "linkId",
+        "serviceId",
+        "link",
+        "service"
+      ]
+    },
+    "BookingAppointment": {
+      "tableName": "booking_appointments",
+      "fields": [
+        "id",
+        "organizationId",
+        "linkId",
+        "providerId",
+        "serviceId",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "customerCompany",
+        "customerReason",
+        "startTime",
+        "endTime",
+        "timezone",
+        "locationType",
+        "locationDetails",
+        "meetingUrl",
+        "status",
+        "approvedBy",
+        "approvedAt",
+        "cancelledAt",
+        "cancelledBy",
+        "cancellationReason",
+        "adminNotes",
+        "attended",
+        "organization",
+        "link",
+        "provider",
+        "service",
+        "payment",
+        "reminders",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingPayment": {
+      "tableName": "booking_payments",
+      "fields": [
+        "id",
+        "appointmentId",
+        "organizationId",
+        "amount",
+        "currency",
+        "status",
+        "chargeId",
+        "invoiceId",
+        "provider",
+        "transactionId",
+        "receiptUrl",
+        "paidAt",
+        "appointment",
+        "organization",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingReminder": {
+      "tableName": "booking_reminders",
+      "fields": [
+        "id",
+        "appointmentId",
+        "scheduledFor",
+        "type",
+        "template",
+        "status",
+        "sentAt",
+        "error",
+        "appointment",
+        "createdAt"
+      ]
+    },
+    "BookingVerification": {
+      "tableName": "booking_verifications",
+      "fields": [
+        "id",
+        "linkId",
+        "phone",
+        "email",
+        "otpCode",
+        "expiresAt",
+        "verifiedAt",
+        "attempts",
+        "isVerified",
+        "link",
+        "createdAt"
+      ]
+    },
+    "BookingWaitlist": {
+      "tableName": "booking_waitlist",
+      "fields": [
+        "id",
+        "linkId",
+        "organizationId",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "preferredDays",
+        "preferredTimes",
+        "urgency",
+        "status",
+        "position",
+        "convertedToAppointmentId",
+        "expiresAt",
+        "link",
+        "organization",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingCalendarSync": {
+      "tableName": "booking_calendar_syncs",
+      "fields": [
+        "id",
+        "organizationId",
+        "providerId",
+        "provider",
+        "accessToken",
+        "refreshToken",
+        "tokenExpiresAt",
+        "syncDirection",
+        "calendarId",
+        "lastSyncedAt",
+        "isActive",
+        "providerRef",
+        "organization",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingHebrewDateCache": {
+      "tableName": "booking_hebrew_date_cache",
+      "fields": [
+        "id",
+        "gregorianDate",
+        "hebrewDate",
+        "hebrewShort",
+        "parasha",
+        "isHoliday",
+        "holidayName",
+        "isShabbat",
+        "candleLighting",
+        "havdalah",
+        "createdAt"
+      ]
+    },
+    "ai_tower_audit_logs": {
+      "tableName": "ai_tower_audit_logs",
+      "fields": [
+        "id",
+        "user_id",
+        "email",
+        "organization_id",
+        "action",
+        "reason",
+        "user_agent",
+        "ip",
+        "metadata",
+        "timestamp"
+      ]
+    },
+    "ai_events": {
+      "tableName": "ai_events",
+      "fields": [
+        "id",
+        "type",
+        "timestamp",
+        "organization_id",
+        "user_id",
+        "payload",
+        "metadata",
+        "processed",
+        "processed_at"
+      ]
+    },
+    "ai_insights": {
+      "tableName": "ai_insights",
+      "fields": [
+        "id",
+        "organization_id",
+        "title",
+        "description",
+        "severity",
+        "status",
+        "rule_id",
+        "rule_name",
+        "related_event_ids",
+        "entity_id",
+        "entity_type",
+        "suggested_action_type",
+        "suggested_action_label",
+        "suggested_action_params",
+        "requires_approval",
+        "metadata",
+        "created_at",
+        "expires_at",
+        "resolved_at",
+        "resolved_by",
+        "visible_to_roles"
+      ]
+    },
+    "ai_action_logs": {
+      "tableName": "ai_action_logs",
+      "fields": [
+        "id",
+        "insight_id",
+        "user_id",
+        "action_type",
+        "action_params",
+        "status",
+        "result",
+        "error",
+        "approved_by",
+        "approved_at",
+        "created_at",
+        "executed_at"
+      ]
+    },
+    "ai_rules": {
+      "tableName": "ai_rules",
+      "fields": [
+        "id",
+        "organization_id",
+        "rule_key",
+        "name",
+        "description",
+        "event_types",
+        "conditions",
+        "action_type",
+        "action_params",
+        "is_active",
+        "priority",
+        "cooldown_minutes",
+        "severity",
+        "visible_to_roles",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "SupportAccessLog": {
+      "tableName": "support_access_logs",
+      "fields": [
+        "id",
+        "adminUserId",
+        "adminEmail",
+        "targetClientId",
+        "targetClientName",
+        "reason",
+        "ipAddress",
+        "userAgent",
+        "accessedAt"
+      ]
+    },
+    "operations_locations": {
+      "tableName": "operations_locations",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "created_at",
+        "organization"
+      ]
+    },
+    "operations_work_order_types": {
+      "tableName": "operations_work_order_types",
+      "fields": [
+        "id",
+        "organization_id",
+        "name",
+        "description",
+        "color",
+        "created_at",
+        "organization"
+      ]
+    }
+  }
+}
