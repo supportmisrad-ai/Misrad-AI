@@ -614,14 +614,10 @@ export async function updateSystemLeadFollowUp(params: {
           return { ok: false, message: 'תאריך follow-up לא תקין' };
         }
 
-        const updated = await prisma.systemLead.updateMany({
-          where: { id: leadId, organizationId },
+        await prisma.systemLead.update({
+          where: { id: leadId },
           data: { nextActionDate, nextActionNote, nextActionDateSuggestion: null, nextActionDateRationale: null },
         });
-
-        if (!updated.count) {
-          return { ok: false, message: 'Lead not found' };
-        }
 
         const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
         if (!hydrated) return { ok: false, message: 'Lead not found' };
@@ -888,14 +884,10 @@ export async function updateSystemLead(params: {
 
         data.lastContact = new Date();
 
-        const updated = await prisma.systemLead.updateMany({
-          where: { id: leadId, organizationId },
+        await prisma.systemLead.update({
+          where: { id: leadId },
           data,
         });
-
-        if (!updated.count) {
-          return { ok: false, message: 'Lead not found' };
-        }
 
         const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
         if (!hydrated) return { ok: false, message: 'Lead not found' };
@@ -1037,20 +1029,16 @@ export async function createSystemLeadActivity(params: {
           },
         });
 
-        const touched = await prisma.systemLead.updateMany({
-          where: { id: leadId, organizationId },
+        await prisma.systemLead.update({
+          where: { id: leadId },
           data: { lastContact: now },
         });
-
-        if (!touched.count) {
-          return { ok: false, message: 'Lead not found' };
-        }
 
         if (!existing.nextActionDate && !existing.nextActionDateSuggestion) {
           const maybeFollowUp = parseFollowUpDateFromHebrew(content, now);
           if (maybeFollowUp) {
-            await prisma.systemLead.updateMany({
-              where: { id: leadId, organizationId },
+            await prisma.systemLead.update({
+              where: { id: leadId },
               data: {
                 nextActionDateSuggestion: maybeFollowUp.date,
                 nextActionDateRationale: maybeFollowUp.rationale,
@@ -1118,8 +1106,8 @@ async function upsertNexusClientByEmail(params: {
     });
 
     if (existing?.id) {
-      await prisma.nexusClient.updateMany({
-        where: { id: existing.id, organizationId },
+      await prisma.nexusClient.update({
+        where: { id: existing.id },
         data: {
           name: params.fullName,
           companyName: params.companyName || params.fullName,
@@ -1140,8 +1128,8 @@ async function upsertNexusClientByEmail(params: {
     });
 
     if (existing?.id) {
-      await prisma.nexusClient.updateMany({
-        where: { id: existing.id, organizationId },
+      await prisma.nexusClient.update({
+        where: { id: existing.id },
         data: {
           name: params.fullName,
           companyName: params.companyName || params.fullName,
@@ -1193,8 +1181,8 @@ async function upsertClientClientByEmail(params: {
   });
 
   if (existing?.id) {
-    const updated = await prisma.clientClient.updateMany({
-      where: { id: existing.id, organizationId },
+    await prisma.clientClient.update({
+      where: { id: existing.id },
       data: {
         fullName: params.fullName,
         phone: params.phone ?? null,
@@ -1202,10 +1190,6 @@ async function upsertClientClientByEmail(params: {
         metadata: params.metadata ?? {},
       },
     });
-
-    if (!updated.count) {
-      throw new Error('Failed to sync client (update failed)');
-    }
 
     return { clientId: existing.id };
   }
@@ -1255,17 +1239,13 @@ export async function updateSystemLeadStatus(params: {
       }
 
       if (status !== 'won') {
-        const updated = await prisma.systemLead.updateMany({
-          where: { id: leadId, organizationId },
+        await prisma.systemLead.update({
+          where: { id: leadId },
           data: {
             status,
             lastContact: new Date(),
           },
         });
-
-        if (!updated.count) {
-          throw new Error('Lead not found');
-        }
 
         const row = await prisma.systemLead.findFirst({
           where: { id: leadId, organizationId },
@@ -1324,18 +1304,14 @@ export async function updateSystemLeadStatus(params: {
         };
       }
 
-      const updated = await prisma.systemLead.updateMany({
-        where: { id: leadId, organizationId },
+      await prisma.systemLead.update({
+        where: { id: leadId },
         data: {
           status,
           lastContact: new Date(),
           installationAddress: nextInstallationAddress,
         },
       });
-
-      if (!updated.count) {
-        throw new Error('Lead not found');
-      }
 
       const row = await prisma.systemLead.findFirst({
         where: { id: leadId, organizationId },

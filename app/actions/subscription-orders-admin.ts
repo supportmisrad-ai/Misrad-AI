@@ -254,7 +254,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     };
 
     try {
-      await prisma.organization.updateMany({
+      await prisma.organization.update({
         where: { id: organizationId },
         data: orgUpdatePayloadBase,
       });
@@ -274,7 +274,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
           const { seats_allowed: _seatsAllowed, ...withoutSeatsAllowed } = orgUpdatePayloadBase as SocialOrganizationsUpdateManyData & {
             seats_allowed?: unknown;
           };
-          await prisma.organization.updateMany({
+          await prisma.organization.update({
             where: { id: organizationId },
             data: withoutSeatsAllowed as SocialOrganizationsUpdateManyData,
           });

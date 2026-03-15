@@ -297,8 +297,8 @@ export async function updateClinicClient(params: {
   if (updates.notes !== undefined) patch.notes = updates.notes;
   if (updates.metadata !== undefined) patch.metadata = toNullableJsonUpdateValue(updates.metadata);
 
-  await prisma.clientClient.updateMany({
-    where: { organizationId: workspace.id, id: clientId },
+  await prisma.clientClient.update({
+    where: { id: clientId },
     data: patch,
   });
 
@@ -421,8 +421,8 @@ export async function updateClinicTask(params: {
   if (updates.assignedTo !== undefined) patch.assignedTo = updates.assignedTo;
   if (updates.metadata !== undefined) patch.metadata = toNullableJsonUpdateValue(updates.metadata);
 
-  await prisma.clientTask.updateMany({
-    where: { organizationId: workspace.id, id: taskId },
+  await prisma.clientTask.update({
+    where: { id: taskId },
     data: patch,
   });
 

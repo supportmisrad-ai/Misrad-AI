@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, Megaphone, Palette, PlayCircle, Handshake, Link2, Mail, Image as ImageIcon, GraduationCap, ExternalLink, type LucideIcon } from 'lucide-react';
+import { LayoutGrid, Building2, Users, BrainCircuit, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, Shield, ShieldCheck, Settings, DollarSign, Briefcase, MoreHorizontal, UserPlus, Network, Lightbulb, Zap, MessageSquare, BarChart3, Megaphone, Palette, PlayCircle, Handshake, Link2, Mail, Image as ImageIcon, GraduationCap, ExternalLink, Calendar, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -46,6 +46,7 @@ function inferAdminAreaFromPathname(pathname: string): AdminArea | null {
   if (p.startsWith('/app/admin/finance')) return 'product';
   if (p.startsWith('/app/admin/client/control')) return 'product';
   if (p.startsWith('/app/admin/operations')) return 'product';
+  if (p.startsWith('/admin/booking')) return 'product';
 
   // content
   if (p.startsWith('/app/admin/landing')) return 'content';
@@ -234,6 +235,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/finance/control', label: 'Finance', icon: DollarSign },
       { href: '/app/admin/client/control', label: 'Client', icon: Users },
       { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
+      { href: '/admin/booking', label: 'בוקינג', icon: Calendar },
     ],
     content: [
       { href: '/app/admin/global/promotions', label: 'מבצעים', icon: Zap },

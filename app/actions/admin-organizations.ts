@@ -500,9 +500,9 @@ export async function createOrganization(input: {
           select: { id: true },
         });
 
-        await prisma.organizationUser.updateMany({
+        await prisma.organizationUser.update({
           where: { id: ownerUserId },
-          data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
+          data: { organization_id: createdOrg.id, updated_at: now },
         });
 
         const owner = await prisma.organizationUser.findFirst({
@@ -652,9 +652,9 @@ export async function createOrganizationOrInviteOwner(input: {
             select: { id: true },
           });
 
-          await prisma.organizationUser.updateMany({
+          await prisma.organizationUser.update({
             where: { id: String(existingOwner.id) },
-            data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
+            data: { organization_id: createdOrg.id, updated_at: now },
           });
 
           return createdOrg;
@@ -810,7 +810,7 @@ export async function updateOrganization(input: {
     if (input.subscription_status !== undefined) patch.subscription_status = input.subscription_status;
     if (input.subscription_plan !== undefined) patch.subscription_plan = input.subscription_plan;
 
-    await prisma.organization.updateMany({
+    await prisma.organization.update({
       where: { id: organizationId },
       data: patch,
     });
@@ -848,14 +848,14 @@ export async function setOrganizationOwner(input: {
         isSuperAdmin: true,
       },
       async () => {
-        await prisma.organization.updateMany({
+        await prisma.organization.update({
           where: { id: organizationId },
-          data: { owner_id: ownerUserId, updated_at: now } satisfies OrganizationUpdateManyData,
+          data: { owner_id: ownerUserId, updated_at: now },
         });
 
-        await prisma.organizationUser.updateMany({
+        await prisma.organizationUser.update({
           where: { id: ownerUserId },
-          data: { organization_id: organizationId, updated_at: now } satisfies UserUpdateManyData,
+          data: { organization_id: organizationId, updated_at: now },
         });
       }
     );
@@ -890,9 +890,9 @@ export async function setUserOrganization(input: {
         isSuperAdmin: true,
       },
       async () =>
-        await prisma.organizationUser.updateMany({
+        await prisma.organizationUser.update({
           where: { id: userId },
-          data: { organization_id: organizationId, updated_at: new Date() } satisfies UserUpdateManyData,
+          data: { organization_id: organizationId, updated_at: new Date() },
         })
     );
 

@@ -443,7 +443,7 @@ export async function syncGoogleDrive(clientId?: string) {
 
     // Update token if refreshed
     if (typeof newAccessToken === 'string' && newAccessToken && newAccessToken !== tokens.access_token) {
-      await prisma.oAuthToken.updateMany({
+      await prisma.oAuthToken.update({
         where: { id: tokens.id },
         data: { access_token: newAccessToken, updated_at: new Date() },
       });
@@ -607,7 +607,7 @@ export async function triggerWebhookEvent(params: {
 
       delivered += 1;
 
-      await prisma.webhookConfig.updateMany({
+      await prisma.webhookConfig.update({
         where: { id: String(obj.id || '') },
         data: { last_triggered_at: new Date(), updated_at: new Date() },
       });
@@ -651,7 +651,7 @@ export async function saveWebhookConfig(
     });
 
     if (existing?.id) {
-      await prisma.webhookConfig.updateMany({
+      await prisma.webhookConfig.update({
         where: { id: existing.id },
         data: {
           webhook_url: webhookUrl,
@@ -713,7 +713,7 @@ export async function saveMorningCredentials(apiKey: string) {
     });
 
     if (existing?.id) {
-      await prisma.integrationCredential.updateMany({
+      await prisma.integrationCredential.update({
         where: { id: existing.id },
         data: {
           credential_type: 'api_key',

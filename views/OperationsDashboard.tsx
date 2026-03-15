@@ -5,12 +5,12 @@ import { CustomSelect } from '@/components/CustomSelect';
 import Link from 'next/link';
 import { Plus, Package } from 'lucide-react';
 
-import type { OperationsDashboardData } from '@/app/actions/operations';
-import type { OperationsInventoryOption } from '@/app/actions/operations';
+import { OperationsDashboardData, OperationsInventoryOption, getOperationsClientOptions } from '@/app/actions/operations';
 import { WorkOrderStatusChart, WorkOrderPriorityChart, InventoryPieChart } from '@/components/operations/DashboardCharts';
 import { formatWorkOrderStatus, formatProjectStatus, slaLabel } from '@/lib/services/operations/format';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 import { FloatingAIInsight } from '@/components/operations/FloatingAIInsight';
+import { ProjectCreateModal } from '@/components/operations/ProjectCreateModal';
 
 export function OperationsDashboard({
   orgSlug,
@@ -34,6 +34,20 @@ export function OperationsDashboard({
   const [selectedItemId, setSelectedItemId] = useState(initialInventoryOptions?.length ? String(initialInventoryOptions[0].itemId) : '');
   const [showFlash, setShowFlash] = useState(!!flash);
   const [showAiInsight, setShowAiInsight] = useState(true);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [clientOptions, setClientOptions] = useState<{ value: string; label: string }[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+
+  useEffect(() => {
+    if (isProjectModalOpen && clientOptions.length === 0) {
+      setLoadingClients(true);
+      getOperationsClientOptions({ orgSlug }).then(res => {
+        if (res.success && res.data) {
+          setClientOptions(res.data.map(c => ({ value: c.id, label: c.label })));
+        }
+      }).finally(() => setLoadingClients(false));
+    }
+  }, [isProjectModalOpen, orgSlug, clientOptions.length]);
 
   useEffect(() => {
     if (!flash) return;
@@ -93,13 +107,20 @@ export function OperationsDashboard({
           <Plus size={20} strokeWidth={3} />
           קריאה חדשה
         </Link>
-        <Link
-          href={`${base}/projects/new`}
+        <button
+          onClick={() => setIsProjectModalOpen(true)}
           className="flex-1 md:flex-none inline-flex items-center justify-center gap-2.5 rounded-2xl px-8 py-4 text-base font-bold bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-200"
         >
           <Plus size={18} strokeWidth={2.5} />
           פרויקט חדש
-        </Link>
+        </button>
+
+        <ProjectCreateModal
+          isOpen={isProjectModalOpen}
+          onClose={() => setIsProjectModalOpen(false)}
+          orgSlug={orgSlug}
+          clientOptions={clientOptions}
+        />
 
         {/* Desktop AI Insight Pill */}
         <div className="hidden lg:flex flex-1 items-center justify-end">

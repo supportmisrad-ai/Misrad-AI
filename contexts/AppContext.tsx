@@ -247,6 +247,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [ideas, setIdeas] = useState<Idea[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.ideas : []));
   const [isLoadingData, setIsLoadingData] = useState(() => !(initialSocialData && hasInitialDataForOrg(initialSocialData)));
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [platformConfigs, setPlatformConfigs] = useState<AgencyServiceConfig[]>(DEFAULT_PLATFORM_CONFIGS);
+  const [marketplaceAddons, setMarketplaceAddons] = useState<AgencyServiceConfig[]>(MARKETPLACE_ADDONS);
   
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);

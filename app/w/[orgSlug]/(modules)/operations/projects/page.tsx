@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { Briefcase } from 'lucide-react';
 
-import { getOperationsProjectsData } from '@/app/actions/operations';
+import { getOperationsProjectsData, getOperationsClientOptions } from '@/app/actions/operations';
 import { formatProjectStatus } from '@/lib/services/operations/format';
 import ProjectsImportButton from '@/components/operations/ProjectsImportButton';
+import { ProjectCreateModal } from '@/components/operations/ProjectCreateModal';
 
 function formatDate(dateIso: string): string {
   try {
@@ -16,16 +17,18 @@ function formatDate(dateIso: string): string {
   }
 }
 
-export default async function OperationsProjectsPage({
-  params,
+export default function OperationsProjectsPageClient({
+  orgSlug,
+  initialProjects,
+  initialClientOptions,
 }: {
-  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  orgSlug: string;
+  initialProjects: any[];
+  initialClientOptions: { value: string; label: string }[];
 }) {
-  const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
-
-  const res = await getOperationsProjectsData({ orgSlug });
-  const projects = res.success ? res.data?.projects ?? [] : [];
+  const [isProjectModalOpen, setIsProjectModalOpen] = React.useState(false);
+  const projects = initialProjects;
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -39,12 +42,12 @@ export default async function OperationsProjectsPage({
 
               <div className="flex items-center gap-2">
                 <ProjectsImportButton orgSlug={orgSlug} />
-                <Link
-                  href={`${base}/projects/new`}
+                <button
+                  onClick={() => setIsProjectModalOpen(true)}
                   className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
                 >
                   פרויקט חדש
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -125,14 +128,41 @@ export default async function OperationsProjectsPage({
                 </tbody>
               </table>
             </div>
-
-            {!res.success ? (
-              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                {res.error || 'שגיאה בטעינת הפרויקטים'}
-              </div>
-            ) : null}
           </div>
       </section>
+
+      <ProjectCreateModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        orgSlug={orgSlug}
+        clientOptions={initialClientOptions}
+      />
     </div>
+  );
+}
+
+export default async function OperationsProjectsPage({
+  params,
+}: {
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+}) {
+  const { orgSlug } = await params;
+
+  const [res, clientOptionsRes] = await Promise.all([
+    getOperationsProjectsData({ orgSlug }),
+    getOperationsClientOptions({ orgSlug }),
+  ]);
+
+  const projects = res.success ? res.data?.projects ?? [] : [];
+  const clientOptions = clientOptionsRes.success 
+    ? (clientOptionsRes.data ?? []).map(c => ({ value: c.id, label: c.label }))
+    : [];
+
+  return (
+    <OperationsProjectsPageClient
+      orgSlug={orgSlug}
+      initialProjects={projects}
+      initialClientOptions={clientOptions}
+    />
   );
 }
