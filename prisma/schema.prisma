@@ -2850,7 +2850,7 @@ model MisradSupportTicket {
 model Organization {
   id                                     String                                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                                   String
-  slug                                   String?
+  slug                                   String?                                 @unique(map: "organizations_slug_key")
   logo                                   String?
   owner_id                               String                                  @db.Uuid
   partnerId                              String?                                 @map("partner_id") @db.Uuid

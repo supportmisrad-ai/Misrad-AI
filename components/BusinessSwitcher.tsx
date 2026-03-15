@@ -189,6 +189,44 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     };
 
     useEffect(() => {
+        async function loadWorkspaces() {
+            try {
+                const res = await fetch('/api/workspaces');
+                const data = await res.json();
+                const workspaces = (data.workspaces || []) as WorkspaceItem[];
+                
+                // DEBUG LOGGING - ROOT CAUSE INVESTIGATION
+                console.log('[BusinessSwitcher] Received workspaces:', workspaces.map(w => ({ id: w.id, slug: w.slug, name: w.name })));
+                console.log('[BusinessSwitcher] Current URL Subdomain:', getCurrentSubdomain());
+                
+                // Check for duplicates in the data itself
+                const slugCounts = workspaces.reduce((acc, w) => {
+                    acc[w.slug] = (acc[w.slug] || 0) + 1;
+                    return acc;
+                }, {} as Record<string, number>);
+                
+                const duplicateSlugs = Object.entries(slugCounts).filter(([_, count]) => count > 1);
+                if (duplicateSlugs.length > 0) {
+                    console.error('[BusinessSwitcher] DETECTED DUPLICATE SLUGS IN API DATA:', duplicateSlugs);
+                }
+
+                // Check which ones would be marked active
+                const activeItems = workspaces.filter(w => w.slug === getCurrentSubdomain());
+                console.log('[BusinessSwitcher] Workspaces matching current subdomain:', activeItems.map(w => w.name));
+                
+                if (activeItems.length > 1) {
+                    console.error('[BusinessSwitcher] CRITICAL: Multiple workspaces match the current subdomain!', activeItems);
+                }
+            } catch (err) {
+                console.error('[BusinessSwitcher] Failed to load workspaces:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadWorkspaces();
+    }, [getCurrentSubdomain()]);
+
+    useEffect(() => {
         if (!isOpen) return;
         const isStale = Date.now() - lastFetchAtRef.current > 2 * 60 * 1000;
         if (businesses.length === 0 || isStale) {
