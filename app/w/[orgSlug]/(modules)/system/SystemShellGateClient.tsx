@@ -449,14 +449,14 @@ function SystemShellGateClientCore({
                                   onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
                                   className="flex flex-col items-center gap-2 group"
                                 >
-                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                  <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
                                     isActiveItem
                                       ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
                                       : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                                   }`}>
                                     <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
                                   </div>
-                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-50'}`}>
                                     {item.label}
                                   </span>
                                 </button>

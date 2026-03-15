@@ -482,38 +482,12 @@ export default function SocialFrame({
               aria-modal="true"
               aria-label="תפריט"
             >
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      <OSModuleSquircleIcon moduleKey="social" boxSize={24} iconSize={12} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-slate-900 leading-tight">{moduleTitle}</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">תפריט פעולות</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full text-slate-400"
-                  >
-                    <Icons.X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-8">
-                  {/* Quick Switcher Section */}
-                  <div className="bg-slate-50/50 rounded-[2rem] p-4 border border-slate-100">
-                    <div className="flex flex-col gap-3">
-                      <BusinessSwitcher currentTenantName={initialOrganization?.name || moduleTitle} />
-                      <WorkspaceSwitcher className="w-full" />
-                    </div>
-                  </div>
-
-                  {/* Main Navigation Grid */}
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">ניווט מהיר</div>
-                    <div className="grid grid-cols-4 gap-y-6">
-                      {menuItems.filter(i => !i.isClientSection && !['settings','collection','agency-insights'].includes(i.id)).map((item) => {
+                <div className="space-y-6">
+                  {/* Quick Nav Section */}
+                  <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right">ניווט מהיר</div>
+                    <div className="grid grid-cols-4 gap-y-6 relative z-10">
+                      {menuItems.filter(i => !i.isClientSection && !['collection', 'agency-insights', 'machine', 'campaigns', 'analytics'].includes(i.id)).map((item) => {
                         const isActiveItem = currentView === item.view;
                         const IconComponent = iconMap[item.icon] || Icons.Home;
                         return (
@@ -601,8 +575,7 @@ export default function SocialFrame({
                     
                     <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
                       <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">מערכת</div>
-                      <div className="space-y-3">
-                        <MobileMenuAttendanceButton />
+                      <div className="grid grid-cols-1 gap-3">
                         <button 
                           onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
                           className="w-full flex items-center gap-3 p-1 group"
@@ -613,6 +586,15 @@ export default function SocialFrame({
                           <span className="text-[11px] font-bold text-slate-700">הגדרות</span>
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Modules Section */}
+                  <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+                  <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
+                    <div className="px-2">
+                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
                     </div>
                   </div>
                 </div>

@@ -445,7 +445,7 @@ export default function OperationsShell({
                   <button
                     type="button"
                     onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
-                    className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
+                    className={`flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
                       isActiveAction('/settings')
                         ? 'bg-[#0EA5E9] text-white shadow-lg shadow-[#0EA5E9]/30'
                         : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
@@ -459,10 +459,13 @@ export default function OperationsShell({
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3 px-2">מודולים</div>
+                  
                   <div className="space-y-3">
                     <MobileMenuAttendanceButton />
-                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                    <div className="px-2">
+                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+                    </div>
                   </div>
                 </div>
               </div>

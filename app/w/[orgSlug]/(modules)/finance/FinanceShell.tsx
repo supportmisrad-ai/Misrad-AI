@@ -392,7 +392,7 @@ export default function FinanceShell(props: {
                       <button
                         type="button"
                         onClick={() => { onNavigateAction(meItem.path); setIsMobileMenuOpen(false); }}
-                        className={`flex items-center justify-center gap-3 w-full max-w-xs px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
+                        className={`flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
                           isActiveItem
                             ? 'bg-[#059669] text-white shadow-lg shadow-[#059669]/30'
                             : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
@@ -407,9 +407,14 @@ export default function FinanceShell(props: {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
 
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3 px-2">מודולים</div>
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <div className="px-2">
+                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

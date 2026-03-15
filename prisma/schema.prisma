@@ -2650,6 +2650,24 @@ model Partner {
   @@map("partners")
 }
 
+model PartnerLinkUsage {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  partnerId    String   @map("partner_id") @db.Uuid
+  visitorPhone String?  @map("visitor_phone")
+  visitorIp    String?  @map("visitor_ip")
+  userAgent    String?  @map("user_agent")
+  referrer     String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  converted    Boolean  @default(false)
+  convertedAt  DateTime? @map("converted_at") @db.Timestamptz(6)
+  commission   Decimal? @default(0) @db.Decimal(10, 2)
+
+  @@index([partnerId])
+  @@index([createdAt])
+  @@index([converted])
+  @@map("partner_link_usage")
+}
+
 /// NOTE: Supabase RLS exists on this table but is bypassed by the Prisma service-role connection. Tenant isolation is enforced by the application-level tenant guard (lib/prisma-tenant-guard.ts).
 model platform_credentials {
   id         String    @id(map: "platform_credentials_pkey1") @default(dbgenerated("gen_random_uuid()")) @db.Uuid

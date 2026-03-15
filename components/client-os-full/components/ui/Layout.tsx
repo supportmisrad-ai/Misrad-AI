@@ -608,40 +608,43 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
             <div className="space-y-6">
-              <div className="grid grid-cols-3 gap-4">
-                {navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings'].includes(item.id)).map((item) => {
-                  const isActiveItem = item.id === activeView;
-                  const IconComponent = item.icon;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleDrawerNav(item.id)}
-                      className="flex flex-col items-center gap-2 group"
-                      aria-label={item.label}
-                      type="button"
-                    >
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                        isActiveItem
-                          ? 'bg-[#C5A572] text-white shadow-[#C5A572]/30'
-                          : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                      }`}>
-                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                      </div>
-                      <span className={`text-[10px] font-bold text-center leading-tight ${
-                        isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
-                      }`}>
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
+              {/* Quick Nav Grid */}
+              <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right px-2">ניווט מהיר</div>
+                <div className="grid grid-cols-3 gap-y-6">
+                  {navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings'].includes(item.id)).map((item) => {
+                    const isActiveItem = item.id === activeView;
+                    const IconComponent = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleDrawerNav(item.id)}
+                        className="flex flex-col items-center gap-2 group"
+                        aria-label={item.label}
+                        type="button"
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md ${
+                          isActiveItem
+                            ? 'bg-[#C5A572] text-white shadow-xl shadow-[#C5A572]/30 scale-105'
+                            : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+                        }`}>
+                          <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                        </div>
+                        <span className={`text-[10px] font-black text-center leading-tight ${
+                          isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
+                        }`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
-              <div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">פעולות</div>
-                <div className="grid grid-cols-3 gap-4">
+              {/* Actions Section */}
+              <div className="bg-gradient-to-br from-emerald-500/10 to-blue-500/5 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-5 px-2">פעולות</div>
+                <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => {
                       window.dispatchEvent(new CustomEvent('client-os:create-client'));
@@ -651,10 +654,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                     aria-label="לקוח חדש"
                     type="button"
                   >
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">
-                      <UserPlus size={22} strokeWidth={2} />
+                    <div className="w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-white text-emerald-600 border border-emerald-100 hover:bg-emerald-50 active:scale-95">
+                      <UserPlus size={22} strokeWidth={2.5} />
                     </div>
-                    <span className="text-[10px] font-bold text-center leading-tight text-slate-500">
+                    <span className="text-[10px] font-black text-center leading-tight text-slate-600">
                       לקוח חדש
                     </span>
                   </button>
@@ -667,56 +670,62 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                     aria-label="אירוע חדש"
                     type="button"
                   >
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
-                      <CalendarPlus size={22} strokeWidth={2} />
+                    <div className="w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 active:scale-95">
+                      <CalendarPlus size={22} strokeWidth={2.5} />
                     </div>
-                    <span className="text-[10px] font-bold text-center leading-tight text-slate-500">
+                    <span className="text-[10px] font-black text-center leading-tight text-slate-600">
                       אירוע חדש
                     </span>
                   </button>
                 </div>
               </div>
 
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
-              <div className="grid grid-cols-3 gap-4">
-                {(() => {
-                  const settingsItem = navItems.find((item) => item.id === 'settings');
-                  if (!settingsItem) return null;
-                  const isActiveItem = settingsItem.id === activeView;
-                  const IconComponent = settingsItem.icon;
-                  return (
-                    <button
-                      key={settingsItem.id}
-                      onClick={() => handleDrawerNav(settingsItem.id)}
-                      className="flex flex-col items-center gap-2 group"
-                      aria-label={settingsItem.label}
-                      type="button"
-                    >
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                        isActiveItem
-                          ? 'bg-purple-600 text-white shadow-purple-600/30'
-                          : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
-                      }`}>
-                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                      </div>
-                      <span className={`text-[10px] font-bold text-center leading-tight ${
-                        isActiveItem ? 'text-purple-700' : 'text-slate-500'
-                      }`}>
-                        {settingsItem.label}
-                      </span>
-                    </button>
-                  );
-                })()}
+              {/* System & Management */}
+              <div className="grid grid-cols-1 gap-4">
+                <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">מערכת</div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {(() => {
+                      const settingsItem = navItems.find((item) => item.id === 'settings');
+                      if (!settingsItem) return null;
+                      const isActiveItem = settingsItem.id === activeView;
+                      const IconComponent = settingsItem.icon;
+                      return (
+                        <button
+                          key={settingsItem.id}
+                          onClick={() => handleDrawerNav(settingsItem.id)}
+                          className="w-full flex items-center gap-3 p-1 group"
+                          aria-label={settingsItem.label}
+                          type="button"
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                            isActiveItem
+                              ? 'bg-[#C5A572] text-white shadow-[#C5A572]/30'
+                              : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+                          }`}>
+                            <IconComponent size={18} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          </div>
+                          <span className={`text-[11px] font-black ${
+                            isActiveItem ? 'text-[#C5A572]' : 'text-slate-700'
+                          }`}>
+                            {settingsItem.label}
+                          </span>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
 
               <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
 
               <div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3">מודולים</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
                 <div className="space-y-3">
                   <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                  <div className="px-2">
+                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                  </div>
                 </div>
               </div>
             </div>
