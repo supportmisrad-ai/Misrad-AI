@@ -615,7 +615,7 @@ export async function updateSystemLeadFollowUp(params: {
         }
 
         await prisma.systemLead.update({
-          where: { id: leadId },
+          where: { id: leadId, organizationId },
           data: { nextActionDate, nextActionNote, nextActionDateSuggestion: null, nextActionDateRationale: null },
         });
 
@@ -885,7 +885,7 @@ export async function updateSystemLead(params: {
         data.lastContact = new Date();
 
         await prisma.systemLead.update({
-          where: { id: leadId },
+          where: { id: leadId, organizationId },
           data,
         });
 
@@ -1030,7 +1030,7 @@ export async function createSystemLeadActivity(params: {
         });
 
         await prisma.systemLead.update({
-          where: { id: leadId },
+          where: { id: leadId, organizationId },
           data: { lastContact: now },
         });
 
@@ -1038,7 +1038,7 @@ export async function createSystemLeadActivity(params: {
           const maybeFollowUp = parseFollowUpDateFromHebrew(content, now);
           if (maybeFollowUp) {
             await prisma.systemLead.update({
-              where: { id: leadId },
+              where: { id: leadId, organizationId },
               data: {
                 nextActionDateSuggestion: maybeFollowUp.date,
                 nextActionDateRationale: maybeFollowUp.rationale,
@@ -1240,7 +1240,7 @@ export async function updateSystemLeadStatus(params: {
 
       if (status !== 'won') {
         await prisma.systemLead.update({
-          where: { id: leadId },
+          where: { id: leadId, organizationId },
           data: {
             status,
             lastContact: new Date(),
@@ -1305,7 +1305,7 @@ export async function updateSystemLeadStatus(params: {
       }
 
       await prisma.systemLead.update({
-        where: { id: leadId },
+        where: { id: leadId, organizationId },
         data: {
           status,
           lastContact: new Date(),
