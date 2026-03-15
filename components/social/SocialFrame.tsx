@@ -490,7 +490,6 @@ export default function SocialFrame({
             >
               {/* Handle Bar */}
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
-              
               <div className="space-y-6">
                 {/* Quick Nav Section */}
                 <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
@@ -507,9 +506,9 @@ export default function SocialFrame({
                               onClick={() => { onNavigateAction(getRouteForView(settingsItem.view)); setIsMobileMenuOpen(false); }}
                               className="flex flex-col items-center gap-2 col-span-2"
                             >
-                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
                                 currentView === settingsItem.view
-                                  ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
+                                  ? 'bg-slate-900 text-white shadow-slate-900/40 scale-105'
                                   : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
                               }`}>
                                 <Icons.Settings size={24} strokeWidth={2.5} />
@@ -525,9 +524,9 @@ export default function SocialFrame({
                               onClick={() => { onNavigateAction(getRouteForView(insightsItem.view)); setIsMobileMenuOpen(false); }}
                               className="flex flex-col items-center gap-2 col-span-2"
                             >
-                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
                                 currentView === insightsItem.view
-                                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200'
+                                  ? 'bg-indigo-600 text-white shadow-indigo-600/40 scale-105'
                                   : 'bg-white text-indigo-600 border border-indigo-50 shadow-sm'
                               }`}>
                                 <Icons.Sparkles size={24} strokeWidth={2.5} />
@@ -552,9 +551,9 @@ export default function SocialFrame({
                           onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
                           className="flex flex-col items-center gap-2"
                         >
-                          <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
+                          <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 shadow-md ${
                             isActiveItem
-                              ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
+                              ? 'bg-slate-900 text-white shadow-slate-900/30 scale-105'
                               : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
                           }`}>
                             <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
@@ -566,7 +565,39 @@ export default function SocialFrame({
                       );
                     })}
                   </div>
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
+                </div>
+
+                {/* Client Section (Glassmorphism) */}
+                <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/5 rounded-[2.5rem] p-6 border border-purple-100/50 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
+                  <div className="grid grid-cols-4 gap-y-6 relative z-10">
+                    {menuItems.filter(i => i.isClientSection || ['machine','campaigns','analytics'].includes(i.id)).map((item) => {
+                      const isActiveItem = currentView === item.view;
+                      const IconComponent = iconMap[item.icon] || Icons.Home;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (item.requiresClient && !activeClient) { openComingSoon(); return; }
+                            onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false);
+                          }}
+                          className="flex flex-col items-center gap-2"
+                        >
+                          <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 shadow-md ${
+                            isActiveItem
+                              ? 'bg-purple-600 text-white shadow-purple-600/30 scale-105'
+                              : 'bg-white/80 text-purple-700 border border-purple-100/50 backdrop-blur-md shadow-sm'
+                          }`}>
+                            <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          </div>
+                          <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-purple-900' : 'text-slate-500'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.div>

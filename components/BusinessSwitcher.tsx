@@ -218,32 +218,30 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 const res = await fetch('/api/workspaces', { credentials: 'include' });
                 if (!res.ok) throw new Error('Failed to load workspaces');
                 
-                // Handle both direct array and wrapped { workspaces: [...] } response
+                // Handle both direct array and wrapped { workspaces: [...] } or { success: true, data: { workspaces: [...] } } response
                 const rawData = await res.json();
-                const workspaces = Array.isArray(rawData) ? rawData : (rawData.workspaces || rawData.data || []);
+                const workspaces = Array.isArray(rawData) 
+                    ? rawData 
+                    : (rawData.workspaces || rawData.data?.workspaces || rawData.data || []);
                 
                 if (!Array.isArray(workspaces)) {
                     console.error('[BusinessSwitcher] API did not return an array:', rawData);
                     throw new Error('Invalid API response format');
                 }
 
-                // Debug: Check for duplicates in API response
+                // Debug: Check for duplicate slugs
                 const slugs = workspaces.map(w => w.slug);
                 const duplicateSlugs = slugs.filter((slug, index) => slugs.indexOf(slug) !== index);
-                console.log('[BusinessSwitcher] Received workspaces:', workspaces);
-                console.log('[BusinessSwitcher] All slugs:', slugs);
-                console.log('[BusinessSwitcher] Current subdomain:', getCurrentSubdomain());
                 
                 if (duplicateSlugs.length > 0) {
-                    console.error('[BusinessSwitcher] DETECTED DUPLICATE SLUGS IN API DATA:', duplicateSlugs);
+                    console.error('[BusinessSwitcher] DETECTED DUPLICATE SLUGS:', duplicateSlugs);
                 }
 
                 // Check which ones would be marked active
                 const activeItems = workspaces.filter(w => w.slug === getCurrentSubdomain());
-                console.log('[BusinessSwitcher] Workspaces matching current subdomain:', activeItems.map(w => w.name));
                 
                 if (activeItems.length > 1) {
-                    console.error('[BusinessSwitcher] CRITICAL: Multiple workspaces match the current subdomain!', activeItems);
+                    console.error('[BusinessSwitcher] CRITICAL: Multiple workspaces match current subdomain!', activeItems.map(w => w.name));
                 }
             } catch (err) {
                 console.error('[BusinessSwitcher] Failed to load workspaces:', err);
