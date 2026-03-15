@@ -626,7 +626,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
     const { publishToMultiplePlatforms } = await import('@/lib/social-publishing');
     
     let directPublishSuccess = false;
-    let publishErrors: string[] = [];
+    const publishErrors: string[] = [];
 
     try {
       const results = await publishToMultiplePlatforms(

@@ -176,9 +176,9 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                     const isActiveItem = isActive(item.path);
                     
                     // Specific logic for Settings and Brain to be in the grid
-                    let finalIcon = item.icon;
-                    let finalLabel = item.label;
-                    let isSpecial = item.path === '/settings' || item.path === '/brain';
+                    const finalIcon = item.icon;
+                    const finalLabel = item.label;
+                    const isSpecial = item.path === '/settings' || item.path === '/brain';
                     
                     const itemStyle = getMobileGridStyles(item.path, isActiveItem);
                     

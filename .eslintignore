@@ -1,0 +1,31 @@
+# Build outputs
+.next/
+dist/
+out/
+node_modules/
+
+# Prisma generated
+node_modules/@prisma/client/
+prisma/migrations/
+
+# Test outputs
+test-results/
+playwright-report/
+
+# Scripts with parsing issues (special characters)
+scripts/analyze-layout-error.js
+scripts/check-misrad-duplicates.cjs
+scripts/fix-desc.js
+scripts/fix-embedded-shared-unknown-imports.cjs
+
+# Large auto-generated or utility files
+*.min.js
+*.min.css
+public/sw.js
+android/app/src/main/assets/public/sw.js
+
+# Script files with require()
+db.js
+
+# Type definitions that conflict
+next-env.d.ts

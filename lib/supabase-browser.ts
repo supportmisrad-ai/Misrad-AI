@@ -14,11 +14,11 @@ export type SupabaseBrowserStorageClient = Pick<SupabaseClient, 'storage'>;
 // module copies, making globalThis slots truly shared within a browser tab.
 // ---------------------------------------------------------------------------
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __MISRAD_SUPABASE_CLIENT__: SupabaseClient | undefined;
-  // eslint-disable-next-line no-var
+   
   var __MISRAD_SUPABASE_TOKEN_PROVIDER__: ClerkTokenProvider | undefined;
-  // eslint-disable-next-line no-var
+   
   var __MISRAD_SUPABASE_STORAGE__: SupabaseBrowserStorageClient | undefined;
 }
 

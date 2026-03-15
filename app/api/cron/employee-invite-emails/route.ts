@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { sendEmployeeInvitationEmail } from '@/lib/email';
 import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 import { EmployeeInviteEmailJob, getEmployeeInviteEmailQueueKey } from '@/lib/server/employeeInviteEmailQueue';
@@ -102,5 +103,5 @@ async function processQueue(req: NextRequest) {
   });
 }
 
-export const GET = shabbatGuard(cronGuard(processQueue));
-export const POST = shabbatGuard(cronGuard(processQueue));
+export const GET = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 3 })));
+export const POST = shabbatGuard(cronGuard(cronConnectionGuard(processQueue, { critical: false, maxConcurrent: 3 })));

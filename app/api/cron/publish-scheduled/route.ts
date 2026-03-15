@@ -12,6 +12,7 @@ import { publishToMultiplePlatforms, type SocialPlatform } from '@/lib/social-pu
 import { logger } from '@/lib/server/logger';
 import { resolveStorageUrlsMaybeBatchedServiceRole } from '@/lib/services/operations/storage';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 
 async function GETHandler(_request: NextRequest) {
   try {
@@ -132,8 +133,8 @@ async function GETHandler(_request: NextRequest) {
   }
 }
 
-export const GET = cronGuard(GETHandler);
-export const POST = cronGuard(GETHandler);
+export const GET = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 3 }));
+export const POST = cronGuard(cronConnectionGuard(GETHandler, { critical: false, maxConcurrent: 3 }));
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

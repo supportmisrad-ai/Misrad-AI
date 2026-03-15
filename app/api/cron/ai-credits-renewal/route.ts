@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import prisma from '@/lib/prisma';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
 
@@ -84,4 +85,4 @@ async function POSTHandler(_request: NextRequest) {
   return NextResponse.json(results, { status: results.success ? 200 : 500 });
 }
 
-export const POST = cronGuard(POSTHandler);
+export const POST = cronGuard(cronConnectionGuard(POSTHandler, { critical: true, maxConcurrent: 2 }));

@@ -91,6 +91,26 @@ export default function FinanceShell(props: {
     router.push(`${basePath}/me`);
   }, [basePath, router, systemIdentity?.needsProfileCompletion]);
 
+  // Side-effects-only for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = useCallback((path: string) => {
+    setIsMobileMenuOpen(false);
+    setIsPlusMenuOpen(false);
+  }, []);
+
+  const onNavigateAction = useCallback((path: string) => {
+    const href = `${basePath}${path === '/' ? '' : path}`;
+    startTransition(() => router.push(href));
+    setIsMobileMenuOpen(false);
+    setIsPlusMenuOpen(false);
+  }, [basePath, router, startTransition]);
+
+  // Prefetch all nav routes on mount
+  useEffect(() => {
+    navItems.forEach((n) => {
+      router.prefetch(n.href);
+    });
+  }, [navItems, router]);
+
   const headerName = systemIdentity?.name || String(user?.name || user?.email || 'משתמש');
   const headerRole = systemIdentity?.role || null;
 
@@ -113,26 +133,6 @@ export default function FinanceShell(props: {
     const href = `${basePath}${path === '/' ? '' : path}`;
     return (nextPathname || '') === href || (nextPathname || '').startsWith(`${href}/`);
   };
-
-  // Side-effects-only for sidebar (Link handles actual navigation)
-  const onSidebarItemClick = useCallback((path: string) => {
-    setIsMobileMenuOpen(false);
-    setIsPlusMenuOpen(false);
-  }, []);
-
-  const onNavigateAction = useCallback((path: string) => {
-    const href = `${basePath}${path === '/' ? '' : path}`;
-    startTransition(() => router.push(href));
-    setIsMobileMenuOpen(false);
-    setIsPlusMenuOpen(false);
-  }, [basePath, router, startTransition]);
-
-  // Prefetch all nav routes on mount
-  useEffect(() => {
-    navItems.forEach((n) => {
-      router.prefetch(n.href);
-    });
-  }, [navItems, router]);
 
   const togglePlusMenu = () => {
     setIsMobileMenuOpen(false);

@@ -12,6 +12,7 @@ test.describe('prisma-database-url', () => {
     'MISRAD_PRISMA_CONNECTION_LIMIT',
     'MISRAD_PRISMA_POOL_TIMEOUT_SECONDS',
     'MISRAD_PRISMA_CONNECT_TIMEOUT_SECONDS',
+    'MISRAD_PRISMA_PREFER_DIRECT',
   ];
 
   test.beforeEach(() => {
@@ -106,5 +107,23 @@ test.describe('prisma-database-url', () => {
     process.env.DATABASE_URL = 'postgresql://user:pass@db.pooler.supabase.com:6543/postgres?connection_limit=50';
     const result = getEffectiveDatabaseUrlForPrisma()!;
     expect(result).toContain('connection_limit=50');
+  });
+
+  test('MISRAD_PRISMA_PREFER_DIRECT uses DIRECT_URL over pooler DATABASE_URL', async () => {
+    process.env.DATABASE_URL = 'postgresql://user:pass@db.pooler.supabase.com:6543/postgres';
+    process.env.DIRECT_URL = 'postgresql://user:pass@direct.supabase.com:5432/postgres';
+    process.env.MISRAD_PRISMA_PREFER_DIRECT = 'true';
+    const result = getEffectiveDatabaseUrlForPrisma()!;
+    expect(result).toBe('postgresql://user:pass@direct.supabase.com:5432/postgres');
+  });
+
+  test('MISRAD_PRISMA_PREFER_DIRECT falls back to DATABASE_URL if DIRECT_URL is pooler', async () => {
+    process.env.DATABASE_URL = 'postgresql://user:pass@db.pooler.supabase.com:6543/postgres';
+    process.env.DIRECT_URL = 'postgresql://user:pass@other.pooler.supabase.com:6543/postgres';
+    process.env.MISRAD_PRISMA_PREFER_DIRECT = 'true';
+    const result = getEffectiveDatabaseUrlForPrisma()!;
+    // Should use DATABASE_URL since DIRECT_URL is also a pooler
+    expect(result).toContain('db.pooler.supabase.com:6543');
+    expect(result).toContain('pgbouncer=true');
   });
 });

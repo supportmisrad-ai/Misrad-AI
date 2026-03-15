@@ -32,7 +32,7 @@ async function GETHandler(req: Request) {
     const orgIds = allPartners.flatMap((p) => p.organizations.map((o) => o.id));
 
     // Aggregate paid orders per partner
-    let orderAgg: Record<string, { count: number; revenue: number }> = {};
+    const orderAgg: Record<string, { count: number; revenue: number }> = {};
     if (orgIds.length) {
       const orders = await prisma.subscription_orders.groupBy({
         by: ['organization_id'],

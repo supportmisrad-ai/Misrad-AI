@@ -179,7 +179,7 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
 
     // Transform to DTO with conversation count
     const leadsWithCount: BotLeadDTO[] = leads.map((lead: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const { _count, ...leadData } = lead;
       return {
         ...leadData,

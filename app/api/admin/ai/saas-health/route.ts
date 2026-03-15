@@ -129,7 +129,7 @@ async function GETHandler(req: NextRequest) {
     const topPlanByRevenue = Object.entries(planRevenue).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
     // ── AI Engagement ──
-    let aiStats = { sessions: 0, avgRating: null as number | null, helpfulRate: null as number | null };
+    const aiStats = { sessions: 0, avgRating: null as number | null, helpfulRate: null as number | null };
     try {
       const aiRows = await queryRawAllowlisted<Array<Record<string, unknown>>>(prisma, {
         reason: 'saas_health_ai_engagement',

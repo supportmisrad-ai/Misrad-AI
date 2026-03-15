@@ -7,7 +7,7 @@ import { isSuperAdminEmail } from '@/lib/constants/roles';
  * Middleware wrapper for Beta Lockdown
  * Ensures only the Super Admin (Itsik) in the HQ organization can access the route.
  */
-export async function withBetaLockdown(req: NextRequest, handler: Function) {
+export async function withBetaLockdown(req: NextRequest, handler: (req: NextRequest) => Promise<NextResponse> | NextResponse) {
   const { sessionClaims } = await auth();
   const email = (sessionClaims as any)?.email || (sessionClaims as any)?.primary_email;
   

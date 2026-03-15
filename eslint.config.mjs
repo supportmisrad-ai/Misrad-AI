@@ -18,6 +18,14 @@ const eslintConfig = defineConfig([
     // Standalone Remotion video projects (not part of Next.js app):
     "remotion/**",
     "remotion-v2/**",
+    // Script files with parsing issues or require()
+    "scripts/analyze-layout-error.js",
+    "scripts/check-misrad-duplicates.cjs",
+    "scripts/fix-desc.js",
+    "scripts/fix-embedded-shared-unknown-imports.cjs",
+    "db.js",
+    "public/sw.js",
+    "android/app/src/main/assets/public/sw.js",
   ]),
 
   // Prisma-First (Tenant Isolation): soft-block new direct Supabase DB usage.

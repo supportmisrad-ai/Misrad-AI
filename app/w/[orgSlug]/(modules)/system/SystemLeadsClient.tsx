@@ -80,14 +80,18 @@ export default function SystemLeadsClient({
     isHot?: boolean;
     productInterest?: string;
   }) => {
+    console.log('[SystemLeadsClient] handleCreateLead called with:', input);
     setIsSaving(true);
     setMessage(null);
     try {
+      console.log('[SystemLeadsClient] Calling createSystemLead...');
       const created = await createSystemLead(orgSlug, input);
+      console.log('[SystemLeadsClient] createSystemLead returned:', created);
       setLeads(prev => [created, ...prev]);
       setShowNewLeadModal(false);
       setMessage('הליד נוצר בהצלחה');
     } catch (e: unknown) {
+      console.error('[SystemLeadsClient] Error in createSystemLead:', e);
       const errMsg = getErrorMessage(e);
       setMessage(errMsg || 'שגיאה ביצירת הליד');
       throw e;

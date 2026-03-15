@@ -284,7 +284,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     if (!text) return;
 
                     // Since we send all accumulated audio, the server returns the full transcript — replace, don't append
-                    let nextTranscript = text;
+                    const nextTranscript = text;
                     setLiveTranscriptText(text);
 
                     const now = Date.now();

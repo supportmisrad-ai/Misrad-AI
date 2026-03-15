@@ -151,7 +151,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── Client Module ──
-  let clientStats = { totalClients: 0, activeClients: 0, atRiskClients: 0, avgHealthScore: 0, recentMeetings: 0, overdueFollowups: 0 };
+  const clientStats = { totalClients: 0, activeClients: 0, atRiskClients: 0, avgHealthScore: 0, recentMeetings: 0, overdueFollowups: 0 };
   try {
     const clientRows = await queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
       organizationId,
@@ -182,7 +182,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── Finance Module ──
-  let financeStats = { revenueThisMonth: 0, recurringMonthly: 0, overdueInvoices: 0, overdueAmount: 0, weightedPipeline: 0, cashFlowProjection: 0 };
+  const financeStats = { revenueThisMonth: 0, recurringMonthly: 0, overdueInvoices: 0, overdueAmount: 0, weightedPipeline: 0, cashFlowProjection: 0 };
   try {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -217,7 +217,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── Operations Module ──
-  let opsStats = { openWorkOrders: 0, completedThisMonth: 0, avgCompletionDays: 0, slaBreaches: 0, slaComplianceRate: 100, inventoryTotal: 0, inventoryLow: 0, inventoryCritical: 0, topTechnicianName: null as string | null, topTechnicianCompleted: 0 };
+  const opsStats = { openWorkOrders: 0, completedThisMonth: 0, avgCompletionDays: 0, slaBreaches: 0, slaComplianceRate: 100, inventoryTotal: 0, inventoryLow: 0, inventoryCritical: 0, topTechnicianName: null as string | null, topTechnicianCompleted: 0 };
   try {
     const [opsRows, invRows, techRows] = await Promise.all([
       queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
@@ -287,7 +287,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── Team Module ──
-  let teamStats = { totalMembers: 0, activeMembers: 0, tasksCompletedThisMonth: 0, tasksOverdue: 0, avgTasksPerMember: 0 };
+  const teamStats = { totalMembers: 0, activeMembers: 0, tasksCompletedThisMonth: 0, tasksOverdue: 0, avgTasksPerMember: 0 };
   try {
     const memberCount = await prisma.organizationUser.count({
       where: { organization_id: organizationId },
@@ -316,7 +316,7 @@ export async function aggregateOrgSnapshot(organizationId: string): Promise<OrgS
   } catch { /* non-critical */ }
 
   // ── AI Usage ──
-  let aiStats = { totalSessions: 0, avgRating: null as number | null, helpfulRate: null as number | null, topSituationType: null as string | null };
+  const aiStats = { totalSessions: 0, avgRating: null as number | null, helpfulRate: null as number | null, topSituationType: null as string | null };
   try {
     const aiRows = await queryRawOrgScoped<Array<Record<string, unknown>>>(prisma, {
       organizationId,

@@ -5,6 +5,7 @@ import { TRUTH_ENFORCEMENT_SYSTEM_PREFIX, validateReportTruthfulness, labelDataF
 import { AIService } from '@/lib/services/ai/AIService';
 import { Type } from '@google/genai';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { asObject } from '@/lib/shared/unknown';
 import { sendEmail } from '@/lib/email-sender';
 import { generateAiMonthlyReportReadyEmailHTML } from '@/lib/email-generators';
@@ -349,4 +350,4 @@ async function POSTHandler(req: NextRequest) {
   }
 }
 
-export const POST = cronGuard(POSTHandler);
+export const POST = cronGuard(cronConnectionGuard(POSTHandler, { critical: false, maxConcurrent: 2 }));

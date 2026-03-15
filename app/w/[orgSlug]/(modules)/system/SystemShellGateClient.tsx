@@ -150,6 +150,23 @@ function SystemShellGateClientCore({
   }, [basePath, router]);
 
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
+
+  // Side-effects-only callback for sidebar (Link handles actual navigation)
+  const onSidebarItemClick = useCallback((path: string) => {
+    setIsMobileMenuOpen(false);
+    setIsPlusFanOpen(false);
+    setIsCalendarPlusOpen(false);
+  }, []);
+
+  // Full navigation callback for programmatic nav (MobileBottomNav, etc.)
+  const onNavigateAction = useCallback((path: string) => {
+    const href = `${basePath}${path === '/' ? '' : path}`;
+    startTransition(() => router.push(href));
+    setIsMobileMenuOpen(false);
+    setIsPlusFanOpen(false);
+    setIsCalendarPlusOpen(false);
+  }, [basePath, router, startTransition]);
+
   if (!shouldWrapWithShell) {
     return (
       <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser ?? null }}>
@@ -211,22 +228,6 @@ function SystemShellGateClientCore({
     }
     return currentPath === href || currentPath.startsWith(`${href}/`);
   };
-
-  // Side-effects-only callback for sidebar (Link handles actual navigation)
-  const onSidebarItemClick = useCallback((path: string) => {
-    setIsMobileMenuOpen(false);
-    setIsPlusFanOpen(false);
-    setIsCalendarPlusOpen(false);
-  }, []);
-
-  // Full navigation callback for programmatic nav (MobileBottomNav, etc.)
-  const onNavigateAction = useCallback((path: string) => {
-    const href = `${basePath}${path === '/' ? '' : path}`;
-    startTransition(() => router.push(href));
-    setIsMobileMenuOpen(false);
-    setIsPlusFanOpen(false);
-    setIsCalendarPlusOpen(false);
-  }, [basePath, router, startTransition]);
 
   const dispatchSystemEvent = (type: string) => {
     if (typeof window === 'undefined') return;

@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import prisma from '@/lib/prisma';
 import { sendPartnerMonthlyReportEmail } from '@/lib/emails/partner-reports';
 import { getBaseUrl } from '@/lib/utils';
@@ -141,7 +142,7 @@ async function POSTHandler(_request: NextRequest) {
   }
 }
 
-export const POST = cronGuard(POSTHandler);
+export const POST = cronGuard(cronConnectionGuard(POSTHandler, { critical: false, maxConcurrent: 3 }));
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

@@ -49,9 +49,17 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('[NewLeadModal] handleSubmit started');
     e.preventDefault();
-    if (isSaving) return;
-    if (!validatePhone(formData.phone)) return;
+    if (isSaving) {
+      console.log('[NewLeadModal] Already saving, returning');
+      return;
+    }
+    if (!validatePhone(formData.phone)) {
+      console.log('[NewLeadModal] Phone validation failed:', formData.phone);
+      setModalError('מספר טלפון לא תקין. יש להזין 05X-XXXXXXX');
+      return;
+    }
 
     const newLead: Lead = {
       id: `manual_${Date.now()}`,
@@ -65,14 +73,20 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
       score: 50
     };
 
+    console.log('[NewLeadModal] Calling onSave...');
     setIsSaving(true);
     setModalError(null);
     try {
       const result = onSave(newLead);
+      console.log('[NewLeadModal] onSave returned:', result);
       if (result && typeof (result as Promise<void>).then === 'function') {
         await result;
+        console.log('[NewLeadModal] onSave promise resolved');
+      } else {
+        console.log('[NewLeadModal] onSave returned void or non-promise');
       }
     } catch (err) {
+      console.error('[NewLeadModal] Error in onSave:', err);
       setModalError(err instanceof Error ? err.message : 'שגיאה בשמירת הליד');
     } finally {
       setIsSaving(false);

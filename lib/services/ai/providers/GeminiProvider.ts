@@ -261,7 +261,7 @@ export class GeminiProvider {
     try {
       if (useNanoBanana) {
         // Nano Banana (Gemini native image generation)
-        const config: any = {
+        const config: { responseModalities: string[]; imageConfig: { aspectRatio: string; imageSize?: string } } = {
           responseModalities: ['Image'],
           imageConfig: {
             aspectRatio: getAspectRatio(params.size),

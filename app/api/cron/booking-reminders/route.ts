@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/server/logger';
 import { sendBookingReminderEmail } from '@/lib/emails/booking-reminders';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
@@ -205,8 +206,8 @@ async function handler(_request: NextRequest) {
   }
 }
 
-export const GET = cronGuard(handler);
-export const POST = cronGuard(handler);
+export const GET = cronGuard(cronConnectionGuard(handler, { critical: false, maxConcurrent: 3 }));
+export const POST = cronGuard(cronConnectionGuard(handler, { critical: false, maxConcurrent: 3 }));
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

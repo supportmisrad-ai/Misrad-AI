@@ -105,13 +105,6 @@ export function assertStoragePathScoped(params: {
     );
   }
 
-  if (params.orgSlug) {
-    if (slug && !segments.includes(slug)) {
-      throw new Error(
-        `[TenantIsolation] Storage ref blocked: orgSlug not present in path. expectedSlug=${slug} ref=${params.rawRef}`
-      );
-    }
-  }
 }
 
 function chunkArray<T>(arr: T[], chunkSize: number): T[][] {

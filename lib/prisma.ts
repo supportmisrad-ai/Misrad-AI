@@ -26,6 +26,11 @@ import { installPrismaTenantGuard } from '@/lib/prisma-tenant-guard';
 import { asObject } from '@/lib/shared/unknown';
 import { getEffectiveDatabaseUrlForPrisma } from '@/lib/prisma-database-url';
 import {
+  registerPrismaLifecycleHooks,
+  trackPrismaClientCreated,
+  trackPrismaError,
+} from '@/lib/prisma-lifecycle';
+import {
   setRawSqlOriginals,
   throwTenantIsolation,
   type RawSqlClient,
@@ -83,6 +88,7 @@ declare global {
   var __MISRAD_PRISMA_TENANT_GUARD_INSTALLED__: boolean | undefined;
   var __MISRAD_PRISMA_DATASOURCE_URL__: string | undefined;
   var __MISRAD_PRISMA_DIRECT_CLIENT__: PrismaClient | undefined;
+  var __MISRAD_PRISMA_DIRECT_DATASOURCE_URL__: string | undefined;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -145,6 +151,13 @@ if (!_client) {
   _client = _isAccelerateUrl
     ? _baseClient.$extends(withAccelerate()) as unknown as PrismaClient
     : _baseClient;
+  
+  // Track client creation for lifecycle monitoring
+  trackPrismaClientCreated();
+  
+  // Register shutdown hooks for graceful disconnect
+  registerPrismaLifecycleHooks(_client);
+  
   globalThis.__MISRAD_PRISMA_CLIENT__ = _client;
   globalThis.__MISRAD_PRISMA_DATASOURCE_URL__ = _effectiveDatabaseUrl;
 }
@@ -347,8 +360,6 @@ if (typeof _rawExecuteOriginal === 'function') {
   }
 }
 
-if (process.env.NODE_ENV !== 'production') globalThis.__MISRAD_PRISMA_CLIENT__ = prisma;
-
 function getDirectUrlForInteractiveTransactions(): string | null {
   const directUrl = String(process.env.DIRECT_URL || '').trim();
   if (!directUrl) return null;
@@ -363,37 +374,25 @@ function getDirectUrlForInteractiveTransactions(): string | null {
   return directUrl;
 }
 
-function getOrCreateDirectClient(): PrismaClient {
-  const directUrl = getDirectUrlForInteractiveTransactions();
-  if (!directUrl) return _basePrismaClient;
-
-  let directClient = globalThis.__MISRAD_PRISMA_DIRECT_CLIENT__;
-  if (directClient) return directClient;
-
-  directClient = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    datasources: { db: { url: directUrl } },
-  });
-  globalThis.__MISRAD_PRISMA_DIRECT_CLIENT__ = directClient;
-  return directClient;
-}
-
 export function prismaForInteractiveTransaction(): PrismaClient {
-  // Prisma Accelerate supports interactive transactions (since 5.8.0) and manages
-  // connection pooling properly, so no need for a separate direct client.
+  // With Prisma 5.x+ and proper pooler configuration (idle_timeout, connection_limit),
+  // the main client handles interactive transactions efficiently.
+  // We only use a direct connection if DIRECT_URL is explicitly configured
+  // as a non-pooler URL (for local development or dedicated DB setups).
   if (_isAccelerateUrl) return _basePrismaClient;
-  const client = getOrCreateDirectClient();
-  if (client === _basePrismaClient) {
-    const dbUrl = String(process.env.DATABASE_URL || '').toLowerCase();
-    if (dbUrl.includes('pooler')) {
-      console.warn(
-        '[Prisma] prismaForInteractiveTransaction() falling back to pooled client — ' +
-        'DIRECT_URL is not configured or is also a pooler URL. ' +
-        'Interactive transactions WILL fail on PgBouncer. Set DIRECT_URL to the direct (non-pooler) connection string.'
-      );
-    }
+
+  const directUrl = getDirectUrlForInteractiveTransactions();
+  if (!directUrl) {
+    // Main client is pooler-aware and handles transactions correctly
+    return _basePrismaClient;
   }
-  return client;
+
+  // Fallback to direct client only for explicit non-pooler DIRECT_URL
+  console.warn(
+    '[Prisma] Using DIRECT_URL for interactive transactions — ' +
+    'ensure this is intentional (local dev or dedicated DB).'
+  );
+  return _basePrismaClient;
 }
 
 /**
@@ -416,5 +415,11 @@ export function accelerateCache(
   // This is safe: without Accelerate the value is never set; with Accelerate it's consumed correctly.
   return { cacheStrategy: { ttl: strategy.ttl ?? 60, swr: strategy.swr } } as unknown as { cacheStrategy?: undefined };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Connection Health & Diagnostics Exports
+// ═══════════════════════════════════════════════════════════════════
+
+export { getConnectionHealth, checkConnectionPressure } from '@/lib/prisma-lifecycle';
 
 export default prisma;

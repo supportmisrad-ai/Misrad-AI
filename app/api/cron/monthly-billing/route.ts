@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { runMonthlyBilling } from '@/lib/services/monthly-billing-run';
 
 async function POSTHandler(_request: NextRequest) {
@@ -23,7 +24,7 @@ async function POSTHandler(_request: NextRequest) {
   return NextResponse.json(result, { status });
 }
 
-export const POST = cronGuard(POSTHandler);
+export const POST = cronGuard(cronConnectionGuard(POSTHandler, { critical: true, maxConcurrent: 2 }));
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

@@ -4,6 +4,7 @@ import { getBaseUrl } from '@/lib/utils';
 import { sendDay2CheckinEmail, sendDay7CheckinEmail, sendDay45FeedbackEmail } from '@/lib/email';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
@@ -199,4 +200,4 @@ async function POSTHandler(req: NextRequest) {
   }
 }
 
-export const POST = shabbatGuard(cronGuard(POSTHandler));
+export const POST = shabbatGuard(cronGuard(cronConnectionGuard(POSTHandler, { critical: false, maxConcurrent: 3 })));

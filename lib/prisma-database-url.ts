@@ -14,6 +14,10 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
 
   const forcePoolerTransaction =
     String(process.env.MISRAD_PRISMA_FORCE_POOLER_TRANSACTION || '').trim().toLowerCase() === 'true';
+  
+  // ⚡ NEW: Prefer direct connection over pooler (solves "Can't reach database server" for pooler)
+  const preferDirectConnection =
+    String(process.env.MISRAD_PRISMA_PREFER_DIRECT || '').trim().toLowerCase() === 'true';
 
   const readPositiveIntEnv = (name: string): number | null => {
     const raw = String(process.env[name] || '').trim();
@@ -78,13 +82,18 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
     try {
       const u = new URL(upgraded);
       // PgBouncer connection_limit: how many connections Prisma opens to the pooler.
-      // For serverless each isolate keeps its own pool; 15 balances latency vs saturation.
+      // For serverless each isolate keeps its own pool; 3 is conservative to avoid
+      // exhausting Supabase pooler limits (typically 60-200 connections to PostgreSQL).
       // Override via MISRAD_PRISMA_POOL_CONNECTION_LIMIT.
       if (envPoolConnectionLimit !== null) u.searchParams.set('connection_limit', String(envPoolConnectionLimit));
-      else if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '15');
+      else if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '3');
+
+      // CRITICAL: idle_timeout ensures connections close after inactivity.
+      // Without this, connections accumulate forever in serverless environments.
+      if (!u.searchParams.has('idle_timeout')) u.searchParams.set('idle_timeout', '10');
 
       if (envPoolTimeoutSeconds !== null) u.searchParams.set('pool_timeout', String(envPoolTimeoutSeconds));
-      else if (!u.searchParams.has('pool_timeout')) u.searchParams.set('pool_timeout', '15');
+      else if (!u.searchParams.has('pool_timeout')) u.searchParams.set('pool_timeout', '10');
 
       if (envConnectTimeoutSeconds !== null) u.searchParams.set('connect_timeout', String(envConnectTimeoutSeconds));
       else if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '10');
@@ -96,6 +105,17 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
       return upgraded;
     }
   };
+
+  // ⚡ UPDATED: Support preferDirectConnection to bypass PgBouncer issues
+  // When MISRAD_PRISMA_PREFER_DIRECT=true, use DIRECT_URL if it's a non-pooler connection
+  if (preferDirectConnection && envDirectUrl) {
+    const directParsed = normalizeCandidate(envDirectUrl);
+    const isDirectPooler = directParsed && getPoolerMode(directParsed) !== 'none';
+    if (directParsed && !isDirectPooler) {
+      console.log('[Prisma] MISRAD_PRISMA_PREFER_DIRECT enabled - using DIRECT_URL (non-pooler connection)');
+      return directParsed;
+    }
+  }
 
   // Prisma runtime should always prefer DATABASE_URL. DIRECT_URL is reserved for CLI/migrations.
   const fromDatabaseUrl = normalizeCandidate(envDatabaseUrl);

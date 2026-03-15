@@ -111,7 +111,7 @@ export const AssetsView: React.FC = () => {
       if (formType === 'file' && !fileName) return;
 
       const finalValue = formType === 'file' ? fileName : formValue;
-      let tagsArray = formTags.split(',').map(t => t.trim()).filter(Boolean);
+      const tagsArray = formTags.split(',').map(t => t.trim()).filter(Boolean);
       
       // Auto-add client name tag if selected
       if (selectedClientId) {

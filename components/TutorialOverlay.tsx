@@ -294,7 +294,7 @@ export const TutorialOverlay: React.FC = () => {
         const finalTop = Math.max(safeGap, Math.min(top, windowHeight - finalHeight - safeGap));
         
         // On mobile, if tooltip is still too wide, force center positioning
-        let finalStyle: React.CSSProperties = {
+        const finalStyle: React.CSSProperties = {
             position: 'fixed',
             zIndex: 10002,
             maxHeight: `${finalHeight}px`,

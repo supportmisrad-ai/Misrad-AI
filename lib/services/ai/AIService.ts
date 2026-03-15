@@ -1036,7 +1036,7 @@ export class AIService {
           model: primaryModel,
           errorType: err instanceof Error ? err.constructor.name : typeof err,
           errorMessage: err instanceof Error ? err.message : String(err),
-          errorStatus: (err as any)?.status,
+          errorStatus: err && typeof err === 'object' && 'status' in err ? (err as { status?: number }).status : undefined,
         });
       }
 

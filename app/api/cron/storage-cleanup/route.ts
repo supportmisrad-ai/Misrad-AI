@@ -8,6 +8,7 @@ import {
   shouldNotifyBeforeDelete,
 } from '@/lib/storage/retention-policy';
 import { cronGuard } from '@/lib/api-cron-guard';
+import { cronConnectionGuard } from '@/lib/api-cron-connection-guard';
 import { sendStorageDeletionNotification } from '@/lib/email/storage-deletion-notification';
 
 export const runtime = 'nodejs';
@@ -241,4 +242,4 @@ async function POSTHandler(req: NextRequest) {
   return apiSuccess(summary);
 }
 
-export const POST = cronGuard(POSTHandler);
+export const POST = cronGuard(cronConnectionGuard(POSTHandler, { critical: false, maxConcurrent: 3 }));

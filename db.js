@@ -130,8 +130,8 @@ async function confirmProdDanger() {
 async function runDbPushInProcess() {
   log('\n🚀 מריץ db push בתוך התהליך (Windows fix)...\n', 'magenta');
   
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
+  // Use the singleton prisma client with proper connection limits
+  const prisma = require('./lib/prisma').default;
   
   try {
     // קרא את הסכמה והמירה ל-SQL
@@ -170,8 +170,8 @@ async function runDbPushInProcess() {
 async function runDevMigrationsInProcess() {
   log('\n🚀 מריץ מיגרציות בתוך התהליך (Windows fix)...\n', 'magenta');
   
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
+  // Use the singleton prisma client with proper connection limits
+  const prisma = require('./lib/prisma').default;
   
   try {
     // מצא את כל המיגרציות שלא הורצו
@@ -265,8 +265,8 @@ async function runDevMigrationsInProcess() {
 async function runProdMigrationsInProcess() {
   log('\n🚀 מריץ מיגרציות בתוך התהליך (Windows fix)...\n', 'magenta');
   
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
+  // Use the singleton prisma client with proper connection limits
+  const prisma = require('./lib/prisma').default;
   
   try {
     // מצא את כל המיגרציות שלא הורצו

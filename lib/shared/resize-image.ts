@@ -19,7 +19,7 @@ export async function resizeImageIfNeeded(
 
   // Load image into a canvas
   const img = await loadImage(file);
-  let { width, height } = img;
+  const { width, height } = img;
 
   // Output format — prefer WebP for best compression, fallback to JPEG
   const outputType = file.type === 'image/png' ? 'image/png' : 'image/webp';

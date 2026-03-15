@@ -192,7 +192,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
         const displayDueDate = dueDate ? new Date(dueDate).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) : '';
 
         let approvalStatus: Task['approvalStatus'] = undefined;
-        let messages = [];
+        const messages = [];
         
         const isManagerRole = currentUser.role.includes('מנכ') || currentUser.role.includes('סמנכ');
         
