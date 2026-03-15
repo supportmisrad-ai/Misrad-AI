@@ -487,7 +487,7 @@ export default function SocialFrame({
                   <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right">ניווט מהיר</div>
                     <div className="grid grid-cols-4 gap-y-6 relative z-10">
-                      {menuItems.filter(i => !i.isClientSection && !['collection', 'agency-insights', 'machine', 'campaigns', 'analytics'].includes(i.id)).map((item) => {
+                      {menuItems.filter(i => !i.isClientSection && !['machine', 'campaigns', 'analytics'].includes(i.id)).map((item) => {
                         const isActiveItem = currentView === item.view;
                         const IconComponent = iconMap[item.icon] || Icons.Home;
                         return (
@@ -545,35 +545,6 @@ export default function SocialFrame({
                               <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
                             </div>
                             <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-purple-900' : 'text-slate-500'}`}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* System & Management - Compact Grid */}
-                  <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100">
-                    <div className="grid grid-cols-3 gap-4">
-                      {menuItems.filter(i => ['collection', 'agency-insights', 'settings'].includes(i.id)).map((item) => {
-                        const isActiveItem = currentView === item.view;
-                        const IconComponent = iconMap[item.icon] || Icons.Home;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
-                              isActiveItem
-                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
-                                : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
-                            }`}>
-                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                            </div>
-                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
                               {item.label}
                             </span>
                           </button>

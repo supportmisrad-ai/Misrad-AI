@@ -1,5 +1,5 @@
 // Google Apps Script for WAAM-It Blaster + MISRAD AI Integration
-// Version 1.4 - Auto-setup sheets with headers
+// Version 1.5 - Added Message/Messages headers for Blaster compatibility
 // 
 // DEPLOYMENT INSTRUCTIONS:
 // 1. Open Google Apps Script (script.google.com)
@@ -9,6 +9,11 @@
 // 5. Deploy as Web App (Execute as Me, Allow Anyone)
 // 6. Copy the deployment URL
 // 7. Update BotApi.json in Blaster with the new URL
+// 
+// IMPORTANT FOR BLASTER:
+// If Blaster shows "Missing Headers: Message/Messages", 
+// make sure the sheet "MISRAD_AI_Leads" (or whatever name you use) 
+// has "Message" and "Messages" columns.
 
 const CONFIG = {
   MISRAD_AI_WEBHOOK: "https://misrad-ai.com/api/webhooks/blaster",
@@ -19,13 +24,16 @@ const CONFIG = {
 // Sheet configurations with headers
 const SHEETS_CONFIG = {
   "Variable_Log": {
-    headers: ["Contact", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Message", "Rule_ID", "Timestamp"]
+    headers: ["Contact", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Message", "Messages", "Rule_ID", "Timestamp"]
   },
   "Lead_Log": {
-    headers: ["Phone", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Status", "Source", "Timestamp"]
+    headers: ["Phone", "Name", "Business", "Email", "Industry", "Org_Size", "Pain_Point", "Selected_Plan", "Status", "Source", "Message", "Messages", "Timestamp"]
   },
   "Conversation_Log": {
-    headers: ["Phone", "Message", "Direction", "Timestamp", "Rule_ID"]
+    headers: ["Phone", "Message", "Messages", "Direction", "Timestamp", "Rule_ID"]
+  },
+  "MISRAD_AI_Leads": {
+    headers: ["Contact", "Message", "Messages", "Action", "Date", "Time", "Campaigns", "Files", "FirstName", "Timestamp"]
   },
   "Errors": {
     headers: ["Timestamp", "Error_Data"]
