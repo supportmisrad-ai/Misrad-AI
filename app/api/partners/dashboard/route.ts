@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { apiSuccess, apiError } from '@/lib/server/api-response';
-import { requireAuth } from '@/lib/server/auth-guard';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
     // Require authentication
-    const auth = await requireAuth();
-    if (!auth.ok) {
-      return apiError(auth.error, { status: auth.status });
+    const user = await getAuthenticatedUser();
+    if (!user?.id) {
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
