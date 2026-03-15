@@ -553,39 +553,32 @@ export default function SocialFrame({
                     </div>
                   </div>
 
-                  {/* System & Management */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">ניהול וגבייה</div>
-                      <div className="flex flex-wrap gap-3">
-                        {menuItems.filter(i => ['collection', 'agency-insights'].includes(i.id)).map((item) => (
+                  {/* System & Management - Compact Grid */}
+                  <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100">
+                    <div className="grid grid-cols-3 gap-4">
+                      {menuItems.filter(i => ['collection', 'agency-insights', 'settings'].includes(i.id)).map((item) => {
+                        const isActiveItem = currentView === item.view;
+                        const IconComponent = iconMap[item.icon] || Icons.Home;
+                        return (
                           <button
                             key={item.id}
+                            type="button"
                             onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
-                            className="flex items-center gap-2 p-1 group"
+                            className="flex flex-col items-center gap-2"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-600 shadow-sm group-active:scale-95 transition-transform">
-                              {React.createElement(iconMap[item.icon] || Icons.Home, { size: 18 })}
+                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
+                              isActiveItem
+                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
+                                : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
+                            }`}>
+                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
                             </div>
-                            <span className="text-[11px] font-bold text-slate-700">{item.label}</span>
+                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                              {item.label}
+                            </span>
                           </button>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
-                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">מערכת</div>
-                      <div className="grid grid-cols-1 gap-3">
-                        <button 
-                          onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
-                          className="w-full flex items-center gap-3 p-1 group"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-600 shadow-sm group-active:scale-95 transition-transform">
-                            <Icons.Settings size={18} />
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-700">הגדרות</span>
-                        </button>
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
 

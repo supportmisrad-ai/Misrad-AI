@@ -272,33 +272,29 @@ export default function OperationsShell({
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
-          title={orgTitle}
+          title={moduleTitle}
           subtitle={screenTitle}
           currentDate={currentDate || ' '}
           mobileBrand={{
-            name: orgTitle,
-            logoUrl: workspace.logoUrl || null,
+            name: moduleTitle,
+            logoUrl: initialOrganization?.logo || null,
             fallbackIcon: <OSModuleSquircleIcon moduleKey="operations" boxSize={32} iconSize={16} className="shadow-none" />,
             badgeModuleKey: 'operations',
           }}
-          onOpenCommandPaletteAction={undefined}
-          onOpenSupportAction={undefined}
+          onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
+          onOpenSupportAction={() => setIsHelpModalOpen(true)}
           actionsSlot={<ModuleHelpVideos moduleKey="operations" />}
           switcherSlot={<WorkspaceSwitcher />}
-          notificationsSlot={<GlobalNotificationsBell />}
+          notificationsSlot={notificationsSlot}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
-          onProfileClickAction={undefined}
-          profileHref={`${basePath}/me`}
+          profileHref={joinPath(basePath, `/me`)}
           userAvatarSlot={avatarSlot}
-          profileSlot={undefined}
-          className="bg-transparent"
+          className="bg-transparent pt-[env(safe-area-inset-top,20px)] md:pt-0"
         />
 
-        <OperationsToastProvider>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
-            <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
-          </div>
-        </OperationsToastProvider>
+        <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">
+          <div className="flex flex-col min-h-0 pb-36 md:pb-0">{children}</div>
+        </div>
       </main>
 
       <MobileBottomNav

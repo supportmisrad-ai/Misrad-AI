@@ -28,6 +28,10 @@ export default async function AdminLayout({
   const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;
   const canAccessAdmin = isSuperAdmin ? true : await hasAuditLogAccess();
 
+  if (!canAccessAdmin) {
+    redirect('/me');
+  }
+
   const initialCurrentUser = {
     id: '',
     name: clerk.fullName || clerk.username || clerk.primaryEmailAddress?.emailAddress || '',
@@ -58,20 +62,11 @@ export default async function AdminLayout({
 
   return (
     <DataProvider initialCurrentUser={initialCurrentUser}>
-      {canAccessAdmin ? (
-        <AdminBiometricGate>
-          <AdminPushSetup />
-          <AdminNativeUpdatePrompt />
-          <AdminShell>{children}</AdminShell>
-        </AdminBiometricGate>
-      ) : (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-          <div className="max-w-lg w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <div className="text-xl font-black text-slate-900">גישה נדחתה</div>
-            <div className="mt-3 text-sm font-bold text-slate-600">רק סופר אדמין יכול לגשת לאזור הזה.</div>
-          </div>
-        </div>
-      )}
+      <AdminBiometricGate>
+        <AdminPushSetup />
+        <AdminNativeUpdatePrompt />
+        <AdminShell>{children}</AdminShell>
+      </AdminBiometricGate>
     </DataProvider>
   );
 }

@@ -391,6 +391,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     };
   }, [activeView]);
 
+  const togglePlusMenu = () => {
+    setIsMobileMenuOpen(false);
+    setIsPlusMenuOpen(!isPlusMenuOpen);
+  };
+
   const openSupport = () => {
     setSupportError(null);
     setSupportTicketId(null);
@@ -528,7 +533,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         }
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#FBF9F6] relative overflow-hidden h-screen">
         <SharedHeader
           title={orgTitle}
           subtitle={headerSubtitle || headerTitle}
@@ -551,7 +556,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           onProfileClickAction={undefined}
           profileHref={`${basePath}/me`}
           userAvatarSlot={userAvatarSlot}
-          className="bg-transparent"
+          className="bg-transparent pt-[env(safe-area-inset-top,20px)] md:pt-0"
         />
 
         <main id="main-scroll-container" className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0">
@@ -592,146 +597,200 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             onClick: () => handleMobileNavClick('MENU'),
           },
         ]}
-        onPlusClickAction={plusConfig.onClick}
-        plusAriaLabel={plusConfig.ariaLabel}
+        onPlusClickAction={togglePlusMenu}
+        plusAriaLabel={isPlusMenuOpen ? 'סגור פעולות' : 'פעולה חדשה'}
+        plusActive={isPlusMenuOpen}
         plusGradient={getOSModule('client')?.gradient}
       />
 
+      <AnimatePresence>
+        {isPlusMenuOpen ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[45] backdrop-blur-md md:hidden"
+              onClick={() => setIsPlusMenuOpen(false)}
+            />
+            <div className="fixed bottom-28 left-0 right-0 z-[50] flex justify-center gap-4 sm:gap-6 md:hidden pointer-events-none px-4">
+              <motion.div
+                initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 30, opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.1 }}
+                className="flex flex-col items-center gap-2.5 pointer-events-auto"
+              >
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('client-os:create-client'));
+                    setIsPlusMenuOpen(false);
+                  }}
+                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white text-emerald-600 rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-emerald-100"
+                  aria-label="לקוח חדש"
+                >
+                  <UserPlus size={24} strokeWidth={2.5} />
+                </button>
+                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">לקוח חדש</span>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 30, opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.05 }}
+                className="flex flex-col items-center gap-2.5 pointer-events-auto"
+              >
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('client-os:create-event'));
+                    setIsPlusMenuOpen(false);
+                  }}
+                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white text-blue-600 rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-blue-100"
+                  aria-label="אירוע חדש"
+                >
+                  <CalendarPlus size={24} strokeWidth={2.5} />
+                </button>
+                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">אירוע חדש</span>
+              </motion.div>
+
+              <motion.div
+                initial={{ y: 30, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 30, opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                className="flex flex-col items-center gap-2.5 pointer-events-auto"
+              >
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('client-os:create-cycle'));
+                    setIsPlusMenuOpen(false);
+                  }}
+                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-white text-purple-600 rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all duration-200 border border-purple-100"
+                  aria-label="מחזור חדש"
+                >
+                  <Layers size={24} strokeWidth={2.5} />
+                </button>
+                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">מחזור חדש</span>
+              </motion.div>
+            </div>
+          </>
+        ) : null}
+      </AnimatePresence>
+
       {/* DRAWER */}
-      {isMobileMenuOpen ? (
-        <div className="md:hidden fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Full menu">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-            role="presentation"
-          />
-          <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
-            <div className="space-y-6">
-              {/* Quick Nav Grid */}
-              <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right px-2">ניווט מהיר</div>
-                <div className="grid grid-cols-3 gap-y-6">
-                  {navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings'].includes(item.id)).map((item) => {
-                    const isActiveItem = item.id === activeView;
-                    const IconComponent = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleDrawerNav(item.id)}
-                        className="flex flex-col items-center gap-2 group"
-                        aria-label={item.label}
-                        type="button"
-                      >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md ${
-                          isActiveItem
-                            ? 'bg-[#C5A572] text-white shadow-xl shadow-[#C5A572]/30 scale-105'
-                            : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
-                        }`}>
-                          <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
-                        </div>
-                        <span className={`text-[10px] font-black text-center leading-tight ${
-                          isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
-                        }`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Actions Section */}
-              <div className="bg-gradient-to-br from-emerald-500/10 to-blue-500/5 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-5 px-2">פעולות</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('client-os:create-client'));
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center gap-2 group"
-                    aria-label="לקוח חדש"
-                    type="button"
-                  >
-                    <div className="w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-white text-emerald-600 border border-emerald-100 hover:bg-emerald-50 active:scale-95">
-                      <UserPlus size={22} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[10px] font-black text-center leading-tight text-slate-600">
-                      לקוח חדש
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('client-os:create-event'));
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center gap-2 group"
-                    aria-label="אירוע חדש"
-                    type="button"
-                  >
-                    <div className="w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 active:scale-95">
-                      <CalendarPlus size={22} strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[10px] font-black text-center leading-tight text-slate-600">
-                      אירוע חדש
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* System & Management */}
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
-                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 text-right">מערכת</div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {(() => {
-                      const settingsItem = navItems.find((item) => item.id === 'settings');
-                      if (!settingsItem) return null;
-                      const isActiveItem = settingsItem.id === activeView;
-                      const IconComponent = settingsItem.icon;
+      <AnimatePresence>
+        {isMobileMenuOpen ? (
+          <div className="md:hidden fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Full menu">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.35 }}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 110 || info.velocity.y > 900;
+                if (shouldClose) setIsMobileMenuOpen(false);
+              }}
+              className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+            >
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+              <div className="space-y-6">
+                {/* Quick Nav Grid */}
+                <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right px-2">ניווט מהיר</div>
+                  <div className="grid grid-cols-3 gap-y-6">
+                    {navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings'].includes(item.id)).map((item) => {
+                      const isActiveItem = item.id === activeView;
+                      const IconComponent = item.icon;
                       return (
                         <button
-                          key={settingsItem.id}
-                          onClick={() => handleDrawerNav(settingsItem.id)}
-                          className="w-full flex items-center gap-3 p-1 group"
-                          aria-label={settingsItem.label}
+                          key={item.id}
+                          onClick={() => handleDrawerNav(item.id)}
+                          className="flex flex-col items-center gap-2 group"
+                          aria-label={item.label}
                           type="button"
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md ${
                             isActiveItem
-                              ? 'bg-[#C5A572] text-white shadow-[#C5A572]/30'
+                              ? 'bg-[#C5A572] text-white shadow-xl shadow-[#C5A572]/30 scale-105'
                               : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
                           }`}>
-                            <IconComponent size={18} strokeWidth={isActiveItem ? 2.5 : 2} />
+                            <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
                           </div>
-                          <span className={`text-[11px] font-black ${
-                            isActiveItem ? 'text-[#C5A572]' : 'text-slate-700'
+                          <span className={`text-[10px] font-black text-center leading-tight ${
+                            isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
                           }`}>
-                            {settingsItem.label}
+                            {item.label}
                           </span>
                         </button>
                       );
-                    })()}
+                    })}
+                  </div>
+                </div>
+
+                {/* System & Management */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-slate-50/80 rounded-[2rem] p-4 border border-slate-100 flex flex-col gap-4">
+                    <div className="grid grid-cols-1 gap-3">
+                      {(() => {
+                        const settingsItem = navItems.find((item) => item.id === 'settings');
+                        if (!settingsItem) return null;
+                        const isActiveItem = settingsItem.id === activeView;
+                        const IconComponent = settingsItem.icon;
+                        return (
+                          <button
+                            key={settingsItem.id}
+                            onClick={() => handleDrawerNav(settingsItem.id)}
+                            className="w-full flex items-center gap-3 p-1 group"
+                            aria-label={settingsItem.label}
+                            type="button"
+                          >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+                              isActiveItem
+                                ? 'bg-[#C5A572] text-white shadow-[#C5A572]/30'
+                                : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+                            }`}>
+                              <IconComponent size={18} strokeWidth={isActiveItem ? 2.5 : 2} />
+                            </div>
+                            <span className={`text-[11px] font-black ${
+                              isActiveItem ? 'text-[#C5A572]' : 'text-slate-700'
+                            }`}>
+                              {settingsItem.label}
+                            </span>
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <div className="px-2">
+                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-
-              <div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <div className="px-2">
-                    <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </AnimatePresence>
 
       <NotificationsPanel
         isOpen={isNotificationsOpen}

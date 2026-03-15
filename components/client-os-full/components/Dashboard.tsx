@@ -193,94 +193,86 @@ const Dashboard: React.FC = () => {
   const filteredFeed = feedFilter === 'ALL' ? smartFeed : smartFeed.filter(item => item.type === feedFilter);
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-slide-up pb-12 relative">
+    <div className="space-y-6 md:space-y-8 animate-slide-up pb-12 relative px-2 md:px-0">
       <DailyBriefing isOpen={showDailyBriefing} onClose={() => setShowDailyBriefing(false)} />
 
-      {showCreateEvent && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-nexus-primary/60 backdrop-blur-md animate-fade-in">
-              <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
-                  <div className="bg-nexus-primary p-6 text-white flex justify-between items-start shrink-0">
-                      <div><h3 className="text-xl font-display font-bold flex items-center gap-2"><Sparkles size={20} className="text-nexus-accent" /> הפקת אירוע קהילה</h3></div>
-                      <button onClick={() => setShowCreateEvent(false)}><X size={20}/></button>
-                  </div>
-                  <div className="p-8 flex-1 overflow-y-auto">
-                      {eventStep === 1 && (
-                          <div className="space-y-4">
-                              <label className="block text-xs font-bold text-gray-500 uppercase">שם האירוע</label>
-                              <input value={newEventData.title} onChange={(e) => setNewEventData({...newEventData, title: e.target.value})} className="w-full bg-gray-50 border p-3 rounded-xl" />
-                              <button onClick={() => setEventStep(2)} className="w-full py-3 bg-nexus-primary text-white rounded-xl">המשך</button>
-                          </div>
-                      )}
-                      {eventStep === 2 && (
-                          <div className="space-y-4">
-                              <h4 className="font-bold">בחר קהל יעד</h4>
-                              {allTags.map(tag => (
-                                  <button key={tag} onClick={() => setSelectedTag(tag)} className={`p-3 border rounded-xl w-full text-right ${selectedTag === tag ? 'bg-nexus-accent/10 border-nexus-accent' : ''}`}>#{tag}</button>
-                              ))}
-                              <button onClick={handleCreateEventSubmit} className="w-full py-3 bg-green-600 text-white rounded-xl">צור אירוע</button>
-                          </div>
-                      )}
-                  </div>
-              </div>
+      {/* Mobile-Optimized Quick Stats Header */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black text-slate-900 md:hidden">לוח בקרה</h2>
+          <button
+            onClick={() => setShowDailyBriefing(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#C5A572] text-white rounded-2xl shadow-lg shadow-[#C5A572]/20 active:scale-95 transition-all md:hidden"
+            type="button"
+          >
+            <Sun size={16} />
+            <span className="font-bold text-xs">עדכון בוקר</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full items-stretch sm:items-center justify-end pb-2">
+          <button
+            onClick={() => setShowDailyBriefing(true)}
+            className="hidden md:flex flex-none items-center justify-center gap-2 px-5 py-3 bg-[#C5A572] text-white rounded-2xl shadow-lg ring-1 ring-white/20 hover:opacity-95 transition-all"
+            type="button"
+          >
+            <Sun size={16} />
+            <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
+          </button>
+
+          <div className="bg-white rounded-[2rem] px-6 py-4 flex flex-col justify-center border border-slate-100 shadow-sm flex-1 md:flex-none">
+            <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1 text-right">MRR פעיל</span>
+            <span className="text-2xl font-mono font-black text-slate-900 text-right">₪{totalRevenue.toLocaleString()}</span>
           </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row gap-3 w-full items-stretch sm:items-center justify-end pb-2">
-        <button
-          onClick={() => setShowDailyBriefing(true)}
-          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-[color:var(--os-accent)] text-white rounded-2xl shadow-lg ring-1 ring-[color:var(--theme-border)] hover:opacity-95 transition-all"
-          type="button"
-        >
-          <Sun size={16} />
-          <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
-        </button>
-
-        <div className="ui-card px-6 py-3 flex-1 md:flex-none">
-          <span className="text-[10px] text-slate-500 uppercase font-bold block">MRR פעיל</span>
-          <span className="text-2xl font-mono font-black text-slate-900">₪{totalRevenue.toLocaleString()}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="ui-card p-7 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-signal-danger/10 via-transparent to-transparent" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-7 relative overflow-hidden border border-slate-100 shadow-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-500 uppercase">כסף בסיכון</span>
-              <TriangleAlert size={18} className="text-signal-danger" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">כסף בסיכון</span>
+              <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
+                <TriangleAlert size={16} className="text-red-500" />
+              </div>
             </div>
-            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">₪{revenueAtRisk.toLocaleString()}</div>
-            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
-              <div className="h-full bg-signal-danger" style={{ width: `${riskPercentage}%` }} />
+            <div className="mt-4 text-3xl md:text-4xl font-black text-slate-900 tracking-tight text-right">₪{revenueAtRisk.toLocaleString()}</div>
+            <div className="mt-5 w-full bg-slate-100 h-2 rounded-full overflow-hidden p-0.5">
+              <div className="h-full bg-red-500 rounded-full" style={{ width: `${riskPercentage}%` }} />
             </div>
           </div>
         </div>
 
-        <div className="ui-card p-7 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-signal-warning/10 via-transparent to-transparent" />
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-7 relative overflow-hidden border border-slate-100 shadow-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-500 uppercase">חשבוניות באיחור</span>
-              <FileText size={18} className="text-signal-warning" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">חשבוניות באיחור</span>
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                <FileText size={16} className="text-amber-500" />
+              </div>
             </div>
-            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{overdueInvoicesCount}</div>
-            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
-              <div className="h-full bg-signal-warning" style={{ width: `${Math.min(100, overdueInvoicesCount * 10)}%` }} />
+            <div className="mt-4 text-3xl md:text-4xl font-black text-slate-900 tracking-tight text-right">{overdueInvoicesCount}</div>
+            <div className="mt-5 w-full bg-slate-100 h-2 rounded-full overflow-hidden p-0.5">
+              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, overdueInvoicesCount * 10)}%` }} />
             </div>
           </div>
         </div>
 
-        <div className="ui-card p-7 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[color:var(--os-accent)]/12 via-transparent to-transparent" />
+        <div className="bg-white rounded-[2.5rem] p-6 md:p-7 relative overflow-hidden border border-slate-100 shadow-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 blur-3xl" />
           <div className="relative">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-500 uppercase">משימות פתוחות</span>
-              <SquareCheck size={18} className="text-[color:var(--os-accent)]" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">משימות פתוחות</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+                <SquareCheck size={16} className="text-blue-500" />
+              </div>
             </div>
-            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{openClientTasksCount + openAgencyTasksCount}</div>
-            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
+            <div className="mt-4 text-3xl md:text-4xl font-black text-slate-900 tracking-tight text-right">{openClientTasksCount + openAgencyTasksCount}</div>
+            <div className="mt-5 w-full bg-slate-100 h-2 rounded-full overflow-hidden p-0.5">
               <div
-                className="h-full bg-[color:var(--os-accent)]"
+                className="h-full bg-blue-500 rounded-full"
                 style={{ width: `${Math.min(100, (openClientTasksCount + openAgencyTasksCount) * 5)}%` }}
               />
             </div>

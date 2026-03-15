@@ -456,7 +456,7 @@ function SystemShellGateClientCore({
                                   }`}>
                                     <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
                                   </div>
-                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-50'}`}>
+                                  <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
                                     {item.label}
                                   </span>
                                 </button>
