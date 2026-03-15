@@ -331,94 +331,59 @@ export async function upsertMyProfile(params: {
     return await withWorkspaceTenantContext(
       params.orgSlug,
       async ({ organizationId }) => {
-        // Ensure profile exists — use direct DB lookup (not getMyProfile) to avoid redundant calls
-        let profileRow = await prisma.profile.findFirst({
-          where: {
-            organizationId: String(organizationId),
-            clerkUserId: String(clerkUserId),
-          },
-          select: { id: true, email: true, uiPreferences: true },
-        });
-
-        // Bootstrap profile if it doesn't exist yet
-        if (!profileRow) {
-          const boot = await bootstrapProfile({ orgSlug: params.orgSlug, clerkUserId });
-          if (!boot.success) {
-            return createErrorResponse(boot.error || 'Failed to create profile', boot.error || 'שגיאה ביצירת פרופיל');
-          }
-          const bootObj = asObject(boot.data) ?? {};
-          const bootProfile = bootObj.profile as ProfileRecord | undefined;
-          if (!bootProfile?.id) {
-            return createErrorResponse('Failed', 'שגיאה ביצירת פרופיל');
-          }
-          profileRow = { id: bootProfile.id, email: bootProfile.email, uiPreferences: bootProfile.ui_preferences ?? null };
-        }
-
-        const profileId = String(profileRow.id);
-
-        const patch: Record<string, unknown> = {};
-        if (typeof params.updates.fullName !== 'undefined') patch.fullName = params.updates.fullName;
-        if (typeof params.updates.role !== 'undefined') patch.role = params.updates.role;
-        if (typeof params.updates.avatarUrl !== 'undefined') patch.avatarUrl = params.updates.avatarUrl;
-        if (typeof params.updates.phone !== 'undefined') patch.phone = params.updates.phone;
-        if (typeof params.updates.location !== 'undefined') patch.location = params.updates.location;
-        if (typeof params.updates.bio !== 'undefined') patch.bio = params.updates.bio;
-        if (typeof params.updates.twoFactorEnabled !== 'undefined') patch.twoFactorEnabled = params.updates.twoFactorEnabled;
+        // Build update data
+        const updateData: Record<string, unknown> = {};
+        if (typeof params.updates.fullName !== 'undefined') updateData.fullName = params.updates.fullName;
+        if (typeof params.updates.role !== 'undefined') updateData.role = params.updates.role;
+        if (typeof params.updates.avatarUrl !== 'undefined') updateData.avatarUrl = params.updates.avatarUrl;
+        if (typeof params.updates.phone !== 'undefined') updateData.phone = params.updates.phone;
+        if (typeof params.updates.location !== 'undefined') updateData.location = params.updates.location;
+        if (typeof params.updates.bio !== 'undefined') updateData.bio = params.updates.bio;
+        if (typeof params.updates.twoFactorEnabled !== 'undefined') updateData.twoFactorEnabled = params.updates.twoFactorEnabled;
         if (typeof params.updates.notificationPreferences !== 'undefined')
-          patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
-        if (typeof params.updates.uiPreferences !== 'undefined') {
-          // Server-side merge for uiPreferences
-          const existingPrefs = profileRow.uiPreferences && typeof profileRow.uiPreferences === 'object' && !Array.isArray(profileRow.uiPreferences)
-            ? profileRow.uiPreferences as Record<string, unknown>
-            : {};
-          const incoming = params.updates.uiPreferences && typeof params.updates.uiPreferences === 'object' && !Array.isArray(params.updates.uiPreferences)
-            ? params.updates.uiPreferences as Record<string, unknown>
-            : {};
-          patch.uiPreferences = normalizeJson({ ...existingPrefs, ...incoming });
-        }
-        if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
-        if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
+          updateData.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
+        if (typeof params.updates.uiPreferences !== 'undefined')
+          updateData.uiPreferences = normalizeJson(params.updates.uiPreferences);
+        if (typeof params.updates.socialProfile !== 'undefined') updateData.socialProfile = normalizeJson(params.updates.socialProfile);
+        if (typeof params.updates.billingInfo !== 'undefined') updateData.billingInfo = normalizeJson(params.updates.billingInfo);
 
-        const updatedCount = await prisma.profile.updateMany({
+        // Single atomic upsert - handles both create and update
+        const profile = await prisma.profile.upsert({
           where: {
-            id: profileId,
+            organizationId_clerkUserId: {
+              organizationId: String(organizationId),
+              clerkUserId: String(clerkUserId),
+            },
+          },
+          update: updateData,
+          create: {
             organizationId: String(organizationId),
             clerkUserId: String(clerkUserId),
-          },
-          data: patch,
-        });
-        if (!updatedCount.count) {
-          return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
-        }
-
-        // Keep nexusUser.avatar in sync when avatar is changed
-        if (typeof params.updates.avatarUrl !== 'undefined') {
-          try {
-            const email = typeof profileRow.email === 'string' ? profileRow.email : null;
-            if (email) {
-              await prisma.nexusUser.updateMany({
-                where: { email, organizationId: String(organizationId) },
-                data: { avatar: params.updates.avatarUrl },
-              });
-            }
-          } catch {
-            // best-effort sync
-          }
-        }
-
-        const updated = await prisma.profile.findFirst({
-          where: {
-            id: profileId,
-            organizationId: String(organizationId),
-            clerkUserId: String(clerkUserId),
+            email: null, // Will be populated from Clerk on first load
+            fullName: params.updates.fullName ?? null,
+            role: params.updates.role ?? null,
+            avatarUrl: params.updates.avatarUrl ?? null,
+            phone: params.updates.phone ?? null,
+            location: params.updates.location ?? null,
+            bio: params.updates.bio ?? null,
+            notificationPreferences: normalizeJson(params.updates.notificationPreferences),
+            twoFactorEnabled: params.updates.twoFactorEnabled ?? false,
+            uiPreferences: normalizeJson(params.updates.uiPreferences),
+            socialProfile: normalizeJson(params.updates.socialProfile),
+            billingInfo: normalizeJson(params.updates.billingInfo),
           },
         });
-        if (!updated) {
-          return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
+
+        // Sync avatar to nexusUser if changed (best effort, don't fail if this errors)
+        if (typeof params.updates.avatarUrl !== 'undefined' && profile.email) {
+          prisma.nexusUser.updateMany({
+            where: { email: profile.email, organizationId: String(organizationId) },
+            data: { avatar: params.updates.avatarUrl },
+          }).catch(() => { /* ignore sync errors */ });
         }
 
         revalidatePath('/', 'layout');
-        return createSuccessResponse({ profile: toProfileRecord(updated) });
+        return createSuccessResponse({ profile: toProfileRecord(profile) });
       },
       { source: 'server_actions_profiles', reason: 'upsertMyProfile' }
     );

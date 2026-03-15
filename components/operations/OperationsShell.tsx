@@ -270,7 +270,7 @@ export default function OperationsShell({
         }
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative pt-[env(safe-area-inset-top,20px)] md:pt-0">
         <SharedHeader
           title={moduleTitle}
           subtitle={screenTitle}
@@ -289,7 +289,7 @@ export default function OperationsShell({
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
-          className="bg-transparent pt-[env(safe-area-inset-top,20px)] md:pt-0"
+          className="bg-transparent"
         />
 
         <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">

@@ -250,37 +250,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
-
   const loadOnceKeyRef = useRef<string | null>(null);
 
-  const initialDataAppliedRef = useRef(false);
-  useEffect(() => {
-    if (initialDataAppliedRef.current) return;
-    if (!initialSocialData) return;
-    if (!hasInitialDataForOrg(initialSocialData)) return;
-
-    initialDataAppliedRef.current = true;
-
-    if (Array.isArray(initialSocialData.clients)) {
-      setClients(initialSocialData.clients);
-      if (initialSocialData.clients.length > 0) {
-        setPinnedClientIds(initialSocialData.clients.slice(0, 2).map((c) => c.id));
-      }
-    }
-    if (Array.isArray(initialSocialData.team)) setTeam(initialSocialData.team);
-    if (Array.isArray(initialSocialData.posts)) setPosts(initialSocialData.posts);
-    if (Array.isArray(initialSocialData.tasks)) setTasks(initialSocialData.tasks);
-    if (Array.isArray(initialSocialData.conversations)) setConversations(initialSocialData.conversations);
-    if (Array.isArray(initialSocialData.clientRequests)) setClientRequests(initialSocialData.clientRequests);
-    if (Array.isArray(initialSocialData.managerRequests)) setManagerRequests(initialSocialData.managerRequests);
-    if (Array.isArray(initialSocialData.ideas)) setIdeas(initialSocialData.ideas);
-
-    setIsLoadingData(false);
-  }, [initialSocialData, effectiveOrgSlug]);
-  
-  const [platformConfigs, setPlatformConfigs] = useState<AgencyServiceConfig[]>(DEFAULT_PLATFORM_CONFIGS);
-  const [marketplaceAddons, setMarketplaceAddons] = useState<AgencyServiceConfig[]>(MARKETPLACE_ADDONS);
-  
   const [activeDraft, setActiveDraft] = useState<AIOpportunity | null>(null);
   const [activeClientId, setActiveClientId] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -289,6 +260,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       return localStorage.getItem(key) || null;
     } catch { return null; }
   });
+
   const [activeCheckout, setActiveCheckout] = useState<{ order: PaymentOrder; client: Client } | null>(null);
   const [editingTask, setEditingTask] = useState<SocialTask | null>(null);
   

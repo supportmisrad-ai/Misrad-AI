@@ -71,13 +71,19 @@ export default function SocialFrame({
     isCommandPaletteOpen,
     setIsCommandPaletteOpen,
     setIsNotificationCenterOpen,
+    isNotificationCenterOpen,
     setIsHelpModalOpen,
+    isHelpModalOpen,
     isSidebarOpen,
     setIsSidebarOpen,
     isAddClientModalOpen,
     setIsAddClientModalOpen,
     isCampaignWizardOpen,
     setIsCampaignWizardOpen,
+    isInviteModalOpen,
+    isPaymentModalOpen,
+    isTaskModalOpen,
+    isReportModalOpen,
   } = useSocialUI();
 
   const { activeClient } = useSocialData();
@@ -476,88 +482,90 @@ export default function SocialFrame({
                 const shouldClose = info.offset.y > 110 || info.velocity.y > 900;
                 if (shouldClose) setIsMobileMenuOpen(false);
               }}
-              className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+              className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50"
               style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
               role="dialog"
               aria-modal="true"
               aria-label="תפריט"
             >
-                <div className="space-y-6">
-                  {/* Quick Nav Section */}
-                  <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-5 text-right">ניווט מהיר</div>
-                    <div className="grid grid-cols-4 gap-y-6 relative z-10">
-                      {menuItems.filter(i => !i.isClientSection && !['machine', 'campaigns', 'analytics'].includes(i.id)).map((item) => {
-                        const isActiveItem = currentView === item.view;
-                        const IconComponent = iconMap[item.icon] || Icons.Home;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
-                              isActiveItem
-                                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
-                                : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
-                            }`}>
-                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                            </div>
-                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+              {/* Handle Bar */}
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+              
+              <div className="space-y-6">
+                {/* Quick Nav Section */}
+                <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
+                  <div className="grid grid-cols-4 gap-y-6 relative z-10">
+                    {/* Settings & AI - First row */}
+                    {(() => {
+                      const settingsItem = menuItems.find(i => i.id === 'settings');
+                      const insightsItem = menuItems.find(i => i.id === 'agency-insights');
+                      return (
+                        <>
+                          {settingsItem && (
+                            <button
+                              type="button"
+                              onClick={() => { onNavigateAction(getRouteForView(settingsItem.view)); setIsMobileMenuOpen(false); }}
+                              className="flex flex-col items-center gap-2 col-span-2"
+                            >
+                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                                currentView === settingsItem.view
+                                  ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
+                                  : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
+                              }`}>
+                                <Icons.Settings size={24} strokeWidth={2.5} />
+                              </div>
+                              <span className={`text-[10px] font-black text-center leading-tight ${currentView === settingsItem.view ? 'text-slate-900' : 'text-slate-500'}`}>
+                                {settingsItem.label}
+                              </span>
+                            </button>
+                          )}
+                          {insightsItem && (
+                            <button
+                              type="button"
+                              onClick={() => { onNavigateAction(getRouteForView(insightsItem.view)); setIsMobileMenuOpen(false); }}
+                              className="flex flex-col items-center gap-2 col-span-2"
+                            >
+                              <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                                currentView === insightsItem.view
+                                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-200'
+                                  : 'bg-white text-indigo-600 border border-indigo-50 shadow-sm'
+                              }`}>
+                                <Icons.Sparkles size={24} strokeWidth={2.5} />
+                              </div>
+                              <span className={`text-[10px] font-black text-center leading-tight ${currentView === insightsItem.view ? 'text-indigo-900' : 'text-slate-500'}`}>
+                                {insightsItem.label}
+                              </span>
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
 
-                  {/* Client Section (Glassmorphism) */}
-                  <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/5 rounded-[2.5rem] p-6 border border-purple-100/50 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
-                    <div className="flex items-center justify-between mb-5 relative z-10">
-                      <div className="text-[10px] font-black text-purple-600 uppercase tracking-wider">סביבת לקוח</div>
-                      <div className="px-3 py-1 bg-purple-600 text-white text-[9px] font-black rounded-full shadow-lg shadow-purple-200">
-                        {activeClient ? 'פעיל' : 'בחר לקוח'}
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-4 gap-y-6 relative z-10">
-                      {menuItems.filter(i => i.isClientSection || ['machine','campaigns','analytics'].includes(i.id)).map((item) => {
-                        const isActiveItem = currentView === item.view;
-                        const IconComponent = iconMap[item.icon] || Icons.Home;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              if (item.requiresClient && !activeClient) { openComingSoon(); return; }
-                              onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false);
-                            }}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
-                              isActiveItem
-                                ? 'bg-purple-600 text-white shadow-xl shadow-purple-200 scale-105'
-                                : 'bg-white/80 text-purple-700 border border-purple-100/50 backdrop-blur-md shadow-sm'
-                            }`}>
-                              <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                            </div>
-                            <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-purple-900' : 'text-slate-500'}`}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {/* Other items */}
+                    {menuItems.filter(i => !i.isClientSection && !['machine', 'campaigns', 'analytics', 'settings', 'agency-insights'].includes(i.id)).map((item) => {
+                      const isActiveItem = currentView === item.view;
+                      const IconComponent = iconMap[item.icon] || Icons.Home;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => { onNavigateAction(getRouteForView(item.view)); setIsMobileMenuOpen(false); }}
+                          className="flex flex-col items-center gap-2"
+                        >
+                          <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 ${
+                            isActiveItem
+                              ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 scale-105'
+                              : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
+                          }`}>
+                            <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          </div>
+                          <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-
-                  {/* Modules Section */}
-                  <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
-                    <div className="px-2">
                       <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug} currentModule="social" />
                     </div>
                   </div>
@@ -609,16 +617,16 @@ export default function SocialFrame({
       )}
 
       <ToastContainer />
-      <CommandPalette />
-      <NotificationCenter />
-      <AddClientModal />
-      <InviteClientModal />
-      <PaymentLinkModal />
-      <TaskModal />
-      <CampaignWizard />
-      <ReportModal />
-      <HelpModal />
-      <OnboardingTour isOpen={isTourActive} onClose={() => setIsTourActive(false)} />
+      {isCommandPaletteOpen && <CommandPalette />}
+      {isNotificationCenterOpen && <NotificationCenter />}
+      {isAddClientModalOpen && <AddClientModal />}
+      {isInviteModalOpen && <InviteClientModal />}
+      {isPaymentModalOpen && <PaymentLinkModal />}
+      {isTaskModalOpen && <TaskModal />}
+      {isCampaignWizardOpen && <CampaignWizard />}
+      {isReportModalOpen && <ReportModal />}
+      {isHelpModalOpen && <HelpModal />}
+      {isTourActive && <OnboardingTour isOpen={isTourActive} onClose={() => setIsTourActive(false)} />}
       <AnimatePresence>{isOnboardingMode ? <ClientOnboardingPortal /> : null}</AnimatePresence>
     </>
   );

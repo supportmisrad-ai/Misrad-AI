@@ -135,6 +135,32 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             const raw = await response.json().catch(() => ({}));
             const payload = extractData<{ workspaces?: WorkspaceItem[] }>(raw);
             const workspaces = payload?.workspaces || [];
+            
+            // DEBUG: Check for duplicates in API response
+            const seenIds = new Set<string>();
+            const duplicates: string[] = [];
+            for (const w of workspaces) {
+                if (seenIds.has(w.id)) {
+                    duplicates.push(w.id);
+                }
+                seenIds.add(w.id);
+            }
+            if (duplicates.length > 0) {
+                console.error('[BusinessSwitcher] Duplicate workspaces in API response:', duplicates);
+            }
+            // DEBUG: Check for duplicate slugs
+            const slugMap = new Map<string, string[]>();
+            for (const w of workspaces) {
+                const slug = w.slug || 'null';
+                if (!slugMap.has(slug)) slugMap.set(slug, []);
+                slugMap.get(slug)!.push(w.name);
+            }
+            for (const [slug, names] of slugMap) {
+                if (names.length > 1) {
+                    console.error(`[BusinessSwitcher] Duplicate slug "${slug}" with names:`, names);
+                }
+            }
+            
             const businesses: Tenant[] = workspaces.map((w: WorkspaceItem): Tenant => ({
                 id: w.id,
                 name: w.name,
@@ -274,7 +300,8 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         });
 
     const currentSubdomain = getCurrentSubdomain();
-    const currentBusiness = businesses.find(b => b.subdomain === currentSubdomain || b.id === currentTenantId);
+    // Use ONLY subdomain for current business - prevents mismatch when id prop is stale
+    const currentBusiness = businesses.find(b => b.subdomain === currentSubdomain);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
 
@@ -400,7 +427,9 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                     ) : (
                                         <div className="p-2">
                                             {filteredBusinesses.map((business) => {
-                                                const isActive = business.subdomain === currentSubdomain || business.id === currentTenantId;
+                                                // Use ONLY subdomain for active check - prevents duplicate selections
+                                                // when id and subdomain refer to different orgs
+                                                const isActive = business.subdomain === currentSubdomain;
                                                 return (
                                                     <div
                                                         key={business.id}

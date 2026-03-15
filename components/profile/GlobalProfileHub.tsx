@@ -183,7 +183,8 @@ function PrimaryButton({
 
 function ProfileBasics({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [profileId, setProfileId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -213,8 +214,10 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
     load();
   }, [orgSlug]);
 
-  const save = () => {
-    startTransition(async () => {
+  const save = async () => {
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
       await upsertMyProfile({
         orgSlug,
         updates: {
@@ -224,8 +227,12 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
           bio: bio || null,
         },
       });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
       await load();
-    });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -244,8 +251,15 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
         <div className="mt-4">
           <TextArea label="ביו" value={bio} onChange={setBio} placeholder="שורה-שתיים עליך" rows={4} />
         </div>
-        <div className="mt-4 flex gap-2">
-          <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving || !profileId} />
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex gap-2">
+            <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
+          </div>
+          {saveSuccess && (
+            <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+              ✅ הפרופיל נשמר בהצלחה
+            </div>
+          )}
         </div>
       </SectionCard>
 
@@ -256,7 +270,8 @@ function ProfileBasics({ orgSlug }: { orgSlug: string }) {
 
 function NotificationsSection({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [prefs, setPrefs] = useState<Record<string, boolean>>({});
 
   const load = async () => {
@@ -284,16 +299,22 @@ function NotificationsSection({ orgSlug }: { orgSlug: string }) {
     setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const save = () => {
-    startTransition(async () => {
+  const save = async () => {
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
       await upsertMyProfile({
         orgSlug,
         updates: {
           notificationPreferences: prefs,
         },
       });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
       await load();
-    });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) return <div className="text-slate-600">טוען…</div>;
@@ -322,8 +343,15 @@ function NotificationsSection({ orgSlug }: { orgSlug: string }) {
           </button>
         ))}
       </div>
-      <div className="mt-4 flex gap-2">
-        <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="flex gap-2">
+          <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
+        </div>
+        {saveSuccess && (
+          <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            ✅ ההעדפות נשמרו בהצלחה
+          </div>
+        )}
       </div>
     </SectionCard>
   );
@@ -401,7 +429,8 @@ function DownloadAppsSection() {
 
 function SecuritySection({ orgSlug }: { orgSlug: string }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   const load = async () => {
@@ -420,16 +449,22 @@ function SecuritySection({ orgSlug }: { orgSlug: string }) {
     load();
   }, [orgSlug]);
 
-  const save = () => {
-    startTransition(async () => {
+  const save = async () => {
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
       await upsertMyProfile({
         orgSlug,
         updates: {
           twoFactorEnabled,
         },
       });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
       await load();
-    });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) return <div className="text-slate-600">טוען…</div>;
@@ -449,8 +484,15 @@ function SecuritySection({ orgSlug }: { orgSlug: string }) {
           <div className={`w-5 h-5 rounded-full bg-white transition-transform ${twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
         </div>
       </button>
-      <div className="mt-4 flex gap-2">
-        <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
+      <div className="mt-4 flex flex-col gap-3">
+        <div className="flex gap-2">
+          <PrimaryButton label={isSaving ? 'שומר…' : 'שמור'} onClick={save} disabled={isSaving} />
+        </div>
+        {saveSuccess && (
+          <div className="px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            ✅ הגדרות האבטחה נשמרו בהצלחה
+          </div>
+        )}
       </div>
     </SectionCard>
   );

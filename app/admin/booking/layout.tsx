@@ -7,10 +7,20 @@ export default async function BookingAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { sessionClaims } = await auth();
-  const email = (sessionClaims as any)?.email || (sessionClaims as any)?.primary_email;
+  const { userId } = await auth();
+  
+  if (!userId) {
+    redirect('/login');
+  }
 
-  if (!isSuperAdminEmail(email)) {
+  // Get the user from our database to check email
+  const { prisma } = await import('@/lib/prisma');
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { email: true }
+  });
+
+  if (!user || !isSuperAdminEmail(user.email)) {
     redirect('/app'); // חסימת גישה למי שאינו סופר-אדמין
   }
 

@@ -140,7 +140,9 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
               className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50"
               style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
+              {/* Handle Bar */}
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+              
               <div className="space-y-6">
                 {/* Morning Brief - Full Width */}
                 {allowMorningBrief ? (
@@ -163,20 +165,68 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 {/* Separator */}
                 {allowMorningBrief ? <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div> : null}
 
-                {/* Primary Navigation Items (including Calendar) - Exclude settings and brain */}
+                {/* Grid 4 for settings and brain */}
+                <div className="grid grid-cols-4 gap-4">
+                  {filteredNavItems
+                    .filter(item => item.path === '/settings' || item.path === '/brain')
+                    .map((item) => {
+                    const isActiveItem = isActive(item.path);
+                    const isSettings = item.path === '/settings';
+                    
+                    return (
+                      <button 
+                        key={item.path}
+                        onClick={() => handleNavClick(item.path)} 
+                        className={`flex flex-col items-center gap-2 group ${isSettings ? 'col-span-2' : 'col-span-1'}`}
+                        aria-label={item.label}
+                      >
+                        <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                          isActiveItem 
+                            ? (isSettings ? 'bg-slate-900 text-white shadow-slate-900/20' : 'bg-purple-600 text-white shadow-purple-600/20')
+                            : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+                        }`}>
+                          <item.icon size={22} strokeWidth={2.5} />
+                        </div>
+                        <span className={`text-[10px] font-black text-center leading-tight transition-colors ${isActiveItem ? 'text-black' : 'text-slate-500'}`}>{item.label}</span>
+                      </button>
+                    )
+                  })}
+
+                  {/* Recycle Bin (Trash) */}
+                  {filteredNavItems.find(i => i.path === '/trash') && (() => {
+                    const item = filteredNavItems.find(i => i.path === '/trash')!;
+                    const isActiveItem = isActive(item.path);
+                    return (
+                      <button 
+                        onClick={() => handleNavClick(item.path)} 
+                        className="flex flex-col items-center gap-2 group col-span-1"
+                        aria-label={item.label}
+                      >
+                        <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                          isActiveItem 
+                            ? 'bg-red-600 text-white shadow-red-600/20' 
+                            : 'bg-white text-red-600 border border-red-50'
+                        }`}>
+                          <item.icon size={22} strokeWidth={2.5} />
+                        </div>
+                        <span className={`text-[10px] font-black text-center leading-tight transition-colors ${isActiveItem ? 'text-black' : 'text-slate-500'}`}>{item.label}</span>
+                      </button>
+                    );
+                  })()}
+                </div>
+
+                {/* Primary Navigation Items - 4 in a row */}
                 <div className="grid grid-cols-4 gap-4">
                   {filteredNavItems
                     .filter(item => {
                       if (item.path === '/' || item.path === '/tasks') return false;
                       if (item.path === '/calendar') return false;
-                      if (item.path === '/clients' && hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden') return false;
-                      if (item.path === '/settings') return false;
-                      if (item.path === '/brain') return false;
+                      if (item.path === '/clients' && hasCrm) return false;
+                      if (item.path === '/settings' || item.path === '/brain' || item.path === '/trash') return false;
                       return true;
                     })
                     .map((item) => {
                     const isActiveItem = isActive(item.path);
-                    const itemStyle = getMobileGridStyles(item.path, isActiveItem);
                     return (
                       <button 
                         key={item.path}
@@ -184,32 +234,14 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                         className="flex flex-col items-center gap-2 group"
                         aria-label={item.label}
                       >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${itemStyle} ${isActiveItem ? 'shadow-slate-800/30' : 'shadow-gray-200/50'}`}>
-                          <item.icon size={22} strokeWidth={2} />
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                          isActiveItem 
+                            ? 'bg-indigo-600 text-white shadow-indigo-600/20' 
+                            : 'bg-white text-slate-600 border border-slate-100 hover:bg-slate-50'
+                        }`}>
+                          <item.icon size={22} strokeWidth={2.5} />
                         </div>
-                        <span className={`text-[10px] font-medium text-center leading-tight transition-colors ${isActiveItem ? 'text-black font-bold' : 'text-gray-500'}`}>{item.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {filteredNavItems
-                    .filter(item => item.path === '/settings' || item.path === '/brain')
-                    .map((item) => {
-                    const isActiveItem = isActive(item.path);
-                    const itemStyle = getMobileGridStyles(item.path, isActiveItem);
-                    return (
-                      <button 
-                        key={item.path}
-                        onClick={() => handleNavClick(item.path)} 
-                        className="flex flex-col items-center gap-2 group"
-                        aria-label={item.label}
-                      >
-                        <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${itemStyle} ${isActiveItem ? 'shadow-slate-800/30' : 'shadow-gray-200/50'}`}>
-                          <item.icon size={22} strokeWidth={2} />
-                        </div>
-                        <span className={`text-[10px] font-medium text-center leading-tight transition-colors ${isActiveItem ? 'text-black font-bold' : 'text-gray-500'}`}>{item.label}</span>
+                        <span className={`text-[10px] font-black text-center leading-tight transition-colors ${isActiveItem ? 'text-black' : 'text-slate-500'}`}>{item.label}</span>
                       </button>
                     )
                   })}

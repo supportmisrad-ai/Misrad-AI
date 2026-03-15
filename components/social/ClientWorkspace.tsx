@@ -1,20 +1,22 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPost } from '@/types/social';
-import OverviewTab from './workspace/OverviewTab';
-import ContentTab from './workspace/ContentTab';
-import RequestsTab from './workspace/RequestsTab';
-import VaultTab from './workspace/VaultTab';
-import BankTab from './workspace/BankTab';
-import DNATab from './workspace/DNATab';
-import MessagesTab from './workspace/MessagesTab';
-import StrategyTab from './workspace/StrategyTab';
 import { ClientWorkspaceHeader } from './workspace/ClientWorkspaceHeader';
 import { ClientWorkspaceTabs } from './workspace/ClientWorkspaceTabs';
 import { useClientWorkspaceHandlers } from './workspace/useClientWorkspaceHandlers';
+
+// Lazy load all tabs - only load when needed
+const OverviewTab = dynamic(() => import('./workspace/OverviewTab'), { ssr: false });
+const ContentTab = dynamic(() => import('./workspace/ContentTab'), { ssr: false });
+const RequestsTab = dynamic(() => import('./workspace/RequestsTab'), { ssr: false });
+const VaultTab = dynamic(() => import('./workspace/VaultTab'), { ssr: false });
+const BankTab = dynamic(() => import('./workspace/BankTab'), { ssr: false });
+const DNATab = dynamic(() => import('./workspace/DNATab'), { ssr: false });
+const MessagesTab = dynamic(() => import('./workspace/MessagesTab'), { ssr: false });
+const StrategyTab = dynamic(() => import('./workspace/StrategyTab'), { ssr: false });
 
 export default function ClientWorkspace() {
   const { 

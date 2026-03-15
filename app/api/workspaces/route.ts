@@ -140,6 +140,29 @@ async function GETHandler() {
       }),
     ]);
 
+    // DEBUG: Check for duplicates
+    const seenIds = new Set<string>();
+    const duplicates: string[] = [];
+    for (const org of orgs) {
+      if (seenIds.has(org.id)) {
+        duplicates.push(org.id);
+      }
+      seenIds.add(org.id);
+    }
+    if (duplicates.length > 0) {
+      console.error(`[Workspaces API] Duplicate orgs found: ${duplicates.join(', ')}`);
+    }
+    // DEBUG: Check for duplicate slugs
+    const slugCounts: Record<string, number> = {};
+    for (const org of orgs) {
+      const slug = org.slug || 'null';
+      slugCounts[slug] = (slugCounts[slug] || 0) + 1;
+    }
+    const dupSlugs = Object.entries(slugCounts).filter(([_, count]) => count > 1);
+    if (dupSlugs.length > 0) {
+      console.error(`[Workspaces API] Duplicate slugs found:`, dupSlugs);
+    }
+
     const customerDetailsByOrg = new Map<string, { hasCompany: boolean; hasPhone: boolean }>();
     for (const ca of customerAccounts) {
       customerDetailsByOrg.set(ca.organizationId, {
