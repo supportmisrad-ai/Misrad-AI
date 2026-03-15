@@ -11,14 +11,13 @@ interface FormCustomSelectProps {
   required?: boolean;
   disabled?: boolean;
   id?: string;
-  className?: string;
 }
 
-export function FormCustomSelect({ name, defaultValue = '', options, placeholder, required, disabled, id, className }: FormCustomSelectProps) {
+export function FormCustomSelect({ name, defaultValue = '', options, placeholder, required, disabled, id }: FormCustomSelectProps) {
   const [value, setValue] = useState(defaultValue);
 
   return (
-    <div className={className}>
+    <>
       <input type="hidden" name={name} value={value} required={required} id={id} />
       <CustomSelect
         value={value}
@@ -27,6 +26,6 @@ export function FormCustomSelect({ name, defaultValue = '', options, placeholder
         placeholder={placeholder}
         disabled={disabled}
       />
-    </div>
+    </>
   );
 }

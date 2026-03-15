@@ -350,13 +350,9 @@ function SystemShellGateClientCore({
                   />
 
                   <div
-                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-8 min-h-0 touch-pan-y custom-scrollbar-hide`}
+                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-8 min-h-0 touch-pan-y`}
                     id="main-scroll-container"
-                    style={{ 
-                      WebkitOverflowScrolling: 'touch',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none'
-                    }}
+                    style={{ WebkitOverflowScrolling: 'touch' }}
                   >
                     {children}
                   </div>
@@ -390,101 +386,39 @@ function SystemShellGateClientCore({
                         aria-label="תפריט"
                       >
                         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+                        <div className="space-y-6">
                           <div className="grid grid-cols-4 gap-4">
-                            {/* Settings & AI - First row */}
                             {(() => {
-                              const settingsItem = NAV_GROUPS[2]?.items.find(i => i.id === 'settings');
-                              const analyticsItem = NAV_GROUPS[2]?.items.find(i => i.id === 'analytics');
-                              return (
-                                <>
-                                  {settingsItem && (
-                                    <button
-                                      key={settingsItem.id}
-                                      type="button"
-                                      onClick={() => { onNavigateAction(`/${settingsItem.id}`); setIsMobileMenuOpen(false); }}
-                                      className="flex flex-col items-center gap-2 col-span-2 group"
-                                    >
-                                      <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
-                                        isActiveAction(`/${settingsItem.id}`)
-                                          ? 'bg-slate-900 text-white shadow-slate-900/40 scale-105'
-                                          : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
-                                      }`}>
-                                        <settingsItem.icon size={24} strokeWidth={2.5} />
-                                      </div>
-                                      <span className={`text-[10px] font-black text-center leading-tight ${isActiveAction(`/${settingsItem.id}`) ? 'text-slate-900' : 'text-slate-500'}`}>
-                                        {settingsItem.label}
-                                      </span>
-                                    </button>
-                                  )}
-                                  {analyticsItem && (
-                                    <button
-                                      key={analyticsItem.id}
-                                      type="button"
-                                      onClick={() => { onNavigateAction(`/${analyticsItem.id}`); setIsMobileMenuOpen(false); }}
-                                      className="flex flex-col items-center gap-2 col-span-2 group"
-                                    >
-                                      <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
-                                        isActiveAction(`/${analyticsItem.id}`)
-                                          ? 'bg-indigo-600 text-white shadow-indigo-600/40 scale-105'
-                                          : 'bg-white text-indigo-600 border border-indigo-50 shadow-sm'
-                                      }`}>
-                                        <analyticsItem.icon size={24} strokeWidth={2.5} />
-                                      </div>
-                                      <span className={`text-[10px] font-black text-center leading-tight ${isActiveAction(`/${analyticsItem.id}`) ? 'text-indigo-900' : 'text-slate-500'}`}>
-                                        {analyticsItem.label}
-                                      </span>
-                                    </button>
-                                  )}
-                                </>
-                              );
+                              const items = [
+                                ...NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'dialer'].includes(item.id)) || [],
+                                ...NAV_GROUPS[1]?.items || [],
+                                ...NAV_GROUPS[2]?.items || []
+                              ];
+                              
+                              return items.map((item) => {
+                                const path = item.id === 'workspace' ? '/' : `/${item.id}`;
+                                const isActiveItem = isActiveAction(path);
+                                return (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => { onNavigateAction(path); setIsMobileMenuOpen(false); }}
+                                    className="flex flex-col items-center gap-2 group"
+                                  >
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                                      isActiveItem
+                                        ? 'bg-[#A21D3C] text-white shadow-[#A21D3C]/30'
+                                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                                    }`}>
+                                      <item.icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} className={isActiveItem ? 'text-white' : 'text-[#A21D3C]'} />
+                                    </div>
+                                    <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-[#A21D3C]' : 'text-slate-500'}`}>
+                                      {item.label}
+                                    </span>
+                                  </button>
+                                );
+                              });
                             })()}
-
-                            {/* Main items */}
-                            {NAV_GROUPS[0]?.items.filter((item) => !['workspace', 'sales_pipeline', 'dialer'].includes(item.id)).map((item) => {
-                              const path = item.id === 'workspace' ? '/' : `/${item.id}`;
-                              const isActiveItem = isActiveAction(path);
-                              return (
-                                <button
-                                  key={item.id}
-                                  type="button"
-                                  onClick={() => { onNavigateAction(path); setIsMobileMenuOpen(false); }}
-                                  className="flex flex-col items-center gap-2 group"
-                                >
-                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                                    isActiveItem
-                                      ? 'bg-slate-900 text-white shadow-slate-900/30 scale-105'
-                                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                                  }`}>
-                                    <item.icon size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                  </div>
-                                  <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                                    {item.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                            {NAV_GROUPS[1]?.items.map((item) => {
-                              const isActiveItem = isActiveAction(`/${item.id}`);
-                              return (
-                                <button
-                                  key={item.id}
-                                  type="button"
-                                  onClick={() => { onNavigateAction(`/${item.id}`); setIsMobileMenuOpen(false); }}
-                                  className="flex flex-col items-center gap-2 group"
-                                >
-                                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                                    isActiveItem
-                                      ? 'bg-slate-900 text-white shadow-slate-900/30 scale-105'
-                                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-                                  }`}>
-                                    <item.icon size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                                  </div>
-                                  <span className={`text-[10px] font-black text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
-                                    {item.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
                           </div>
 
                           <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />

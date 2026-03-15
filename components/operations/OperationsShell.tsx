@@ -270,7 +270,7 @@ export default function OperationsShell({
         }
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative pt-[env(safe-area-inset-top,20px)] md:pt-0">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
           title={moduleTitle}
           subtitle={screenTitle}
@@ -289,7 +289,7 @@ export default function OperationsShell({
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
           profileHref={`${basePath}/me`}
           userAvatarSlot={avatarSlot}
-          className="bg-transparent"
+          className="bg-transparent pt-[env(safe-area-inset-top,20px)] md:pt-0"
         />
 
         <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">
@@ -406,7 +406,7 @@ export default function OperationsShell({
               aria-modal="true"
               aria-label="תפריט"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
               <div className="space-y-6">
                 <div className="grid grid-cols-4 gap-4">
                   {navItems.filter(i => i.path !== '/settings' && i.path !== '/me' && i.path !== '/' && i.path !== '/work-orders' && i.path !== '/inventory').map((item) => {
@@ -423,7 +423,7 @@ export default function OperationsShell({
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
                           isActiveItem
                             ? 'bg-[#0EA5E9] text-white shadow-[#0EA5E9]/30'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                            : 'bg-white text-[#0EA5E9] border border-slate-200 hover:bg-slate-50'
                         }`}>
                           <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
                         </div>
@@ -433,23 +433,28 @@ export default function OperationsShell({
                       </button>
                     );
                   })}
-                </div>
-
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
-
-                <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
-                    className={`flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl transition-all duration-200 shadow-md ${
-                      isActiveAction('/settings')
-                        ? 'bg-[#0EA5E9] text-white shadow-lg shadow-[#0EA5E9]/30'
-                        : 'bg-slate-200 text-slate-800 hover:bg-slate-300 shadow-slate-300/50'
-                    }`}
-                  >
-                    <Settings size={24} strokeWidth={2} />
-                    <span className="text-sm font-bold">הגדרות ופיצ׳רים</span>
-                  </button>
+                  {(() => {
+                    const isActiveSettings = isActiveAction('/settings');
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => { onNavigateAction('/settings'); setIsMobileMenuOpen(false); }}
+                        className="flex flex-col items-center gap-2 group"
+                        aria-label="הגדרות"
+                      >
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md ${
+                          isActiveSettings
+                            ? 'bg-[#0EA5E9] text-white shadow-[#0EA5E9]/30'
+                            : 'bg-white text-[#0EA5E9] border border-slate-200 hover:bg-slate-50'
+                        }`}>
+                          <Settings size={22} strokeWidth={isActiveSettings ? 2.5 : 2} />
+                        </div>
+                        <span className={`text-[10px] font-bold text-center leading-tight ${isActiveSettings ? 'text-[#0EA5E9]' : 'text-slate-500'}`}>
+                          הגדרות
+                        </span>
+                      </button>
+                    );
+                  })()}
                 </div>
 
                 <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>

@@ -658,6 +658,92 @@ async function attachActivePlatforms(clients: Client[]): Promise<Client[]> {
   }
 }
 
+export async function getSocialCriticalData(params: {
+  orgSlug: string;
+  clerkUserId?: string | null;
+}): Promise<Pick<SocialInitialData, 'orgSlug' | 'clients' | 'posts' | 'counters'>> {
+  // Phase 1: Resolve workspace FIRST — single fast cached call
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  const organizationId = String(workspace?.id || '').trim();
+  if (!organizationId) {
+    throw new Error('Missing organizationId');
+  }
+
+  // Phase 2: Load ONLY critical data for initial render
+  // This is the minimal data needed for the dashboard to render
+  const [clientsResult, postsResult] = await Promise.all([
+    getClientsPage({ orgSlug: params.orgSlug, pageSize: 50 }), // Reduced from 200
+    getSocialPostsInternal({ organizationId }),
+  ]);
+
+  const clients = clientsResult.success ? clientsResult.data.clients : [];
+  const clientsWithPlatforms = await attachActivePlatforms(clients);
+  const posts = Array.isArray(postsResult) ? postsResult : [];
+
+  return {
+    orgSlug: params.orgSlug,
+    clients: clientsWithPlatforms,
+    posts,
+    counters: getSocialCounters(posts),
+  };
+}
+
+export const getSocialCriticalDataCached = cache(getSocialCriticalData);
+
+export async function getSocialDeferredData(params: {
+  orgSlug: string;
+  organizationId: string;
+}): Promise<Omit<SocialInitialData, 'orgSlug' | 'clients' | 'posts' | 'counters'>> {
+  // Load non-critical data in parallel
+  const [
+    teamResult,
+    activityResult,
+    tasks,
+    conversations,
+    clientRequests,
+    managerRequests,
+    ideas,
+  ] = await Promise.all([
+    getTeamMembers(params.orgSlug),
+    getSocialActivityInternal({ organizationId: params.organizationId, limit: 50 }),
+    getSocialTasksForOrg({ orgSlug: params.orgSlug, organizationId: params.organizationId }),
+    getSocialConversationsForOrg({ orgSlug: params.orgSlug, organizationId: params.organizationId }),
+    getSocialClientRequestsForOrg({ organizationId: params.organizationId }),
+    getSocialManagerRequestsForOrg({ organizationId: params.organizationId }),
+    getSocialIdeasForOrg({ organizationId: params.organizationId }),
+  ]);
+
+  // Phase 3: Resolve conversation avatars in parallel
+  const ttlSeconds = 60 * 60;
+  const conversationsArr = Array.isArray(conversations) ? conversations : [];
+  const resolvedConversationAvatars = await resolveStorageUrlsMaybeBatchedServiceRole(
+    conversationsArr.map((c) => c.userAvatar),
+    ttlSeconds,
+    { organizationId: params.organizationId }
+  );
+
+  const resolvedConversations = conversationsArr.map((c, idx) => {
+    const signed = resolvedConversationAvatars[idx] ?? null;
+    if (signed) return { ...c, userAvatar: signed };
+    if (typeof c.userAvatar === 'string' && c.userAvatar.startsWith('sb://')) {
+      return { ...c, userAvatar: '' };
+    }
+    return c;
+  });
+
+  return {
+    team: teamResult.success ? (teamResult.data ?? []) : [],
+    tasks: Array.isArray(tasks) ? tasks : [],
+    conversations: resolvedConversations,
+    clientRequests: Array.isArray(clientRequests) ? clientRequests : [],
+    managerRequests: Array.isArray(managerRequests) ? managerRequests : [],
+    ideas: Array.isArray(ideas) ? ideas : [],
+    SquareActivity: Array.isArray(activityResult) ? activityResult : [],
+  };
+}
+
+export const getSocialDeferredDataCached = cache(getSocialDeferredData);
+
 export async function getSocialInitialData(params: {
   orgSlug: string;
   clerkUserId?: string | null;
@@ -683,7 +769,7 @@ export async function getSocialInitialData(params: {
     managerRequests,
     ideas,
   ] = await Promise.all([
-    getClientsPage({ orgSlug: params.orgSlug, pageSize: 200 }),
+    getClientsPage({ orgSlug: params.orgSlug, pageSize: 50 }), // Reduced from 200 to 50
     getTeamMembers(params.orgSlug),
     getSocialPostsInternal({ organizationId }),
     getSocialActivityInternal({ organizationId, limit: 50 }),

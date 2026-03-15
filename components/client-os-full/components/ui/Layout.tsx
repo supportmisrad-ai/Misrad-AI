@@ -706,87 +706,56 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
               className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50"
               style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
             >
-              {/* Header Section: Settings & AI */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Settings Button */}
-                {navItems.find(i => i.id === 'settings') && (
-                  <button
-                    type="button"
-                    onClick={() => handleDrawerNav('settings')}
-                    className="flex flex-col items-center gap-2 group"
-                  >
-                    <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
-                      activeView === 'settings'
-                        ? 'bg-slate-900 text-white shadow-slate-900/40 scale-105'
-                        : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
-                    }`}>
-                      <Settings size={24} strokeWidth={2.5} />
-                    </div>
-                    <span className={`text-[10px] font-black text-center leading-tight ${activeView === 'settings' ? 'text-slate-900' : 'text-slate-500'}`}>
-                      הגדרות
-                    </span>
-                  </button>
-                )}
-                {/* Analyzer/AI Button */}
-                {navItems.find(i => i.id === 'analyzer') && (
-                  <button
-                    type="button"
-                    onClick={() => handleDrawerNav('analyzer')}
-                    className="flex flex-col items-center gap-2 group"
-                  >
-                    <div className={`w-full h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-lg ${
-                      activeView === 'analyzer'
-                        ? 'bg-indigo-600 text-white shadow-indigo-600/40 scale-105'
-                        : 'bg-white text-indigo-600 border border-indigo-50 shadow-sm'
-                    }`}>
-                      <Sparkles size={24} strokeWidth={2.5} />
-                    </div>
-                    <span className={`text-[10px] font-black text-center leading-tight ${activeView === 'analyzer' ? 'text-indigo-900' : 'text-slate-500'}`}>
-                      פיענוח
-                    </span>
-                  </button>
-                )}
-              </div>
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50" />
+              <div className="space-y-6">
+                <div className="grid grid-cols-4 gap-4">
+                  {(() => {
+                    const extraItems = [
+                      ...navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings'].includes(item.id)),
+                      { id: 'intelligence', icon: Cpu, label: 'פיענוח' },
+                      { id: 'analyzer', icon: Sparkles, label: 'ניתוח' },
+                      { id: 'settings', icon: Settings, label: 'הגדרות' },
+                    ].filter(item => featureFlags[item.id] !== false);
 
-              {/* Main Nav Grid */}
-              <div className="bg-slate-50/80 rounded-[2.5rem] p-6 border border-slate-100 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
-                <div className="grid grid-cols-4 gap-y-6 relative z-10">
-                  {navItems.filter((item) => !['dashboard', 'clients', 'intelligence', 'settings', 'analyzer'].includes(item.id)).map((item) => {
-                    const isActiveItem = item.id === activeView;
-                    const IconComponent = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleDrawerNav(item.id)}
-                        className="flex flex-col items-center gap-2 group"
-                        aria-label={item.label}
-                        type="button"
-                      >
-                        <div className={`w-14 h-14 rounded-[22px] flex items-center justify-center transition-all duration-300 shadow-md ${
-                          isActiveItem
-                            ? 'bg-slate-900 text-white shadow-slate-900/30 scale-105'
-                            : 'bg-white text-slate-600 border border-slate-100 shadow-sm'
-                        }`}>
-                          <IconComponent size={24} strokeWidth={isActiveItem ? 2.5 : 2} />
-                        </div>
-                        <span className={`text-[10px] font-black text-center leading-tight ${
-                          isActiveItem ? 'text-slate-900' : 'text-slate-500'
-                        }`}>
-                          {item.label}
-                        </span>
-                      </button>
-                    );
-                  })}
+                    return extraItems.map((item) => {
+                      const isActiveItem = activeView === item.id;
+                      const IconComponent = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleDrawerNav(item.id)}
+                          className="flex flex-col items-center gap-2 group"
+                          aria-label={item.label}
+                          type="button"
+                        >
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-md ${
+                            isActiveItem
+                              ? 'bg-[#C5A572] text-white shadow-xl shadow-[#C5A572]/30 scale-105'
+                              : 'bg-white text-[#C5A572] border border-slate-100 hover:bg-slate-50'
+                          }`}>
+                            <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                          </div>
+                          <span className={`text-[10px] font-black text-center leading-tight ${
+                            isActiveItem ? 'text-[#C5A572]' : 'text-slate-500'
+                          }`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
-              </div>
 
-              {/* Modules Section */}
-              <div>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-3 px-2">מודולים</div>
-                <div className="space-y-3">
-                  <MobileMenuAttendanceButton />
-                  <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent" />
+
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-right mb-4 px-2">מודולים</div>
+                  <div className="space-y-3">
+                    <MobileMenuAttendanceButton />
+                    <div className="px-2">
+                      <OSAppSwitcher mode="inlineGrid" compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>

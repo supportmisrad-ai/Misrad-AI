@@ -1,13 +1,11 @@
-'use client';
+// Removed force-dynamic: Next.js auto-detects dynamic from auth calls
 
-import React from 'react';
 import Link from 'next/link';
 import { Briefcase } from 'lucide-react';
 
-import { getOperationsProjectsData, getOperationsClientOptions } from '@/app/actions/operations';
+import { getOperationsProjectsData } from '@/app/actions/operations';
 import { formatProjectStatus } from '@/lib/services/operations/format';
 import ProjectsImportButton from '@/components/operations/ProjectsImportButton';
-import { ProjectCreateModal } from '@/components/operations/ProjectCreateModal';
 
 function formatDate(dateIso: string): string {
   try {
@@ -18,18 +16,16 @@ function formatDate(dateIso: string): string {
   }
 }
 
-function OperationsProjectsPageClient({
-  orgSlug,
-  initialProjects,
-  initialClientOptions,
+export default async function OperationsProjectsPage({
+  params,
 }: {
-  orgSlug: string;
-  initialProjects: any[];
-  initialClientOptions: { value: string; label: string }[];
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
+  const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
-  const [isProjectModalOpen, setIsProjectModalOpen] = React.useState(false);
-  const projects = initialProjects;
+
+  const res = await getOperationsProjectsData({ orgSlug });
+  const projects = res.success ? res.data?.projects ?? [] : [];
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -43,12 +39,12 @@ function OperationsProjectsPageClient({
 
               <div className="flex items-center gap-2">
                 <ProjectsImportButton orgSlug={orgSlug} />
-                <button
-                  onClick={() => setIsProjectModalOpen(true)}
+                <Link
+                  href={`${base}/projects/new`}
                   className="inline-flex items-center justify-center rounded-xl h-9 px-4 text-xs font-bold bg-sky-500 text-white hover:bg-sky-600 shadow-sm transition-all duration-150"
                 >
                   פרויקט חדש
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -129,41 +125,14 @@ function OperationsProjectsPageClient({
                 </tbody>
               </table>
             </div>
+
+            {!res.success ? (
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                {res.error || 'שגיאה בטעינת הפרויקטים'}
+              </div>
+            ) : null}
           </div>
       </section>
-
-      <ProjectCreateModal
-        isOpen={isProjectModalOpen}
-        onClose={() => setIsProjectModalOpen(false)}
-        orgSlug={orgSlug}
-        clientOptions={initialClientOptions}
-      />
     </div>
-  );
-}
-
-export default async function OperationsProjectsPage({
-  params,
-}: {
-  params: Promise<{ orgSlug: string }> | { orgSlug: string };
-}) {
-  const { orgSlug } = await params;
-
-  const [res, clientOptionsRes] = await Promise.all([
-    getOperationsProjectsData({ orgSlug }),
-    getOperationsClientOptions({ orgSlug }),
-  ]);
-
-  const projects = res.success ? res.data?.projects ?? [] : [];
-  const clientOptions = clientOptionsRes.success 
-    ? (clientOptionsRes.data ?? []).map(c => ({ value: c.id, label: c.label }))
-    : [];
-
-  return (
-    <OperationsProjectsPageClient
-      orgSlug={orgSlug}
-      initialProjects={projects}
-      initialClientOptions={clientOptions}
-    />
   );
 }

@@ -16,7 +16,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 type CacheEntry<T> = { value: T; expiresAt: number };
 const workspacesCache = new Map<string, CacheEntry<WorkspaceApiItem[]>>();
-const workspacesInFlight = new Map<string, Promise<WorkspaceApiItem[]>>();
+const workspacesInFlight = new Map<string, Promise<{ workspaces: WorkspaceApiItem[] }>>();
 const WORKSPACES_TTL_MS = 30_000;
 
 type WorkspaceApiItem = {
@@ -38,7 +38,8 @@ type WorkspaceApiItem = {
 async function GETHandler() {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    return apiError('אין הרשאה', { status: 401 });
+    // Return empty workspaces for unauthenticated users - consistent format
+    return apiSuccess({ workspaces: [] as WorkspaceApiItem[] }, { status: 401 });
   }
 
   const cached = workspacesCache.get(clerkUserId);
@@ -80,7 +81,7 @@ async function GETHandler() {
     // This prevents race conditions where user is created but organizationUser is not yet ready
     if (!socialUser?.id) {
       console.log(`[Workspaces API] No organizationUser found for clerkUserId=${clerkUserId.substring(0, 8)}..., returning empty workspaces`);
-      return [] as WorkspaceApiItem[];
+      return { workspaces: [] as WorkspaceApiItem[] };
     }
 
     // Always filter by the user's actual memberships — even super admins.
@@ -109,7 +110,7 @@ async function GETHandler() {
     const ids = Array.from(orgIds).filter(Boolean);
 
     if (ids.length === 0) {
-      return [] as WorkspaceApiItem[];
+      return { workspaces: [] as WorkspaceApiItem[] };
     }
 
     const [systemFlags, orgs, customerAccounts] = await Promise.all([
@@ -241,13 +242,15 @@ async function GETHandler() {
       },
     });
 
-    return resolved;
+    return { workspaces: resolved };
   }
   );
 
   workspacesInFlight.set(clerkUserId, loadPromise);
   try {
-    const workspaces = await loadPromise;
+    const result = await loadPromise;
+    // Handle both { workspaces: [...] } and legacy array formats
+    const workspaces = Array.isArray(result) ? result : (result.workspaces || []);
     workspacesCache.set(clerkUserId, { value: workspaces, expiresAt: Date.now() + WORKSPACES_TTL_MS });
     return apiSuccess({ workspaces });
   } catch (error: unknown) {

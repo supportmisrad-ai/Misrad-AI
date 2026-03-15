@@ -191,7 +191,7 @@ export function ClientOnlyClerkWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 2000);
+    const t = window.setTimeout(enable, 5000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
@@ -219,7 +219,7 @@ export function ClientOnlyClerkWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 2000);
+    const t = window.setTimeout(enable, 5000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
@@ -268,7 +268,7 @@ export function ClientOnlyGlobalWidgets() {
       };
     }
 
-    const t = window.setTimeout(enable, 2000);
+    const t = window.setTimeout(enable, 5000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);

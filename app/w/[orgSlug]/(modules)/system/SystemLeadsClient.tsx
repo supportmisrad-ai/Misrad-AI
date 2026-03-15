@@ -81,10 +81,16 @@ export default function SystemLeadsClient({
     productInterest?: string;
   }) => {
     setIsSaving(true);
+    setMessage(null);
     try {
       const created = await createSystemLead(orgSlug, input);
       setLeads(prev => [created, ...prev]);
       setShowNewLeadModal(false);
+      setMessage('הליד נוצר בהצלחה');
+    } catch (e: unknown) {
+      const errMsg = getErrorMessage(e);
+      setMessage(errMsg || 'שגיאה ביצירת הליד');
+      throw e;
     } finally {
       setIsSaving(false);
     }

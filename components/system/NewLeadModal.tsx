@@ -28,6 +28,7 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
   const [errors, setErrors] = useState<{phone?: string, email?: string}>({});
   const [touched, setTouched] = useState<{phone?: boolean, email?: boolean}>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const validatePhone = (phone: string) => {
       const phoneRegex = /^05\d-?\d{7}$/;
@@ -65,13 +66,14 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
     };
 
     setIsSaving(true);
+    setModalError(null);
     try {
       const result = onSave(newLead);
       if (result && typeof (result as Promise<void>).then === 'function') {
         await result;
       }
-    } catch {
-      // Parent handles error display
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'שגיאה בשמירת הליד');
     } finally {
       setIsSaving(false);
     }
@@ -95,7 +97,12 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
         </div>
         
         <div className="p-8 md:p-12 overflow-y-auto flex-1 custom-scrollbar safe-area-bottom">
-            <form id="new-lead-form" onSubmit={handleSubmit} className="space-y-10 pb-20 md:pb-0">
+            <form id="new-lead-form" onSubmit={handleSubmit} className="space-y-10 pb-safe">
+                {modalError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-sm font-bold">
+                    {modalError}
+                  </div>
+                )}
                 
                 <div className="space-y-4">
                     <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -182,9 +189,9 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
             </form>
         </div>
 
-        <div className="p-8 md:p-10 border-t border-slate-100 bg-slate-50 flex gap-4 shrink-0 safe-area-bottom">
+        <div className="p-8 md:p-10 border-t border-slate-100 bg-slate-50 flex gap-4 shrink-0" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom) + 80px)' }}>
             <button onClick={onClose} disabled={isSaving} className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-4 rounded-full hover:bg-slate-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">ביטול</button>
-            <button type="submit" form="new-lead-form" disabled={isSaving} className="flex-1 bg-onyx-900 text-white font-bold py-4 rounded-full hover:bg-black transition-all shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+            <button type="submit" form="new-lead-form" disabled={isSaving} className="flex-1 bg-slate-900 text-white font-bold py-4 rounded-full hover:bg-black transition-all shadow-xl hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0">
                 <Save size={20} /> {isSaving ? 'שומר...' : 'שמור ליד'}
             </button>
         </div>
