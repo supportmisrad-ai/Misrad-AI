@@ -350,9 +350,13 @@ function SystemShellGateClientCore({
                   />
 
                   <div
-                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-8 min-h-0 touch-pan-y`}
+                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-[calc(128px+env(safe-area-inset-bottom))] md:pb-8 min-h-0 touch-pan-y custom-scrollbar-hide`}
                     id="main-scroll-container"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
+                    style={{ 
+                      WebkitOverflowScrolling: 'touch',
+                      scrollbarWidth: 'none',
+                      msOverflowStyle: 'none'
+                    }}
                   >
                     {children}
                   </div>

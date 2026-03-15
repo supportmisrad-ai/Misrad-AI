@@ -319,7 +319,7 @@ export function OperationsDashboard({
                     options={inventoryOptions.map((o) => ({ value: String(o.itemId), label: o.label }))}
                   />
                 </div>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:flex gap-3">
                   <input 
                     name="qty" 
                     type="number" 
@@ -327,12 +327,12 @@ export function OperationsDashboard({
                     min="0.001" 
                     placeholder="כמות" 
                     required 
-                    className="flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 text-base font-black text-slate-800 shadow-inner outline-none focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 transition-all" 
+                    className="w-full sm:flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-slate-50 px-4 text-base font-black text-slate-800 shadow-inner outline-none focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100 transition-all" 
                   />
                   <button 
                     type="submit" 
                     disabled={!activeVehicleName || !inventoryOptions.length} 
-                    className="h-12 rounded-2xl px-8 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all disabled:opacity-40 disabled:grayscale"
+                    className="w-full sm:w-auto h-12 rounded-2xl px-10 text-base font-black bg-sky-500 text-white hover:bg-sky-600 shadow-lg shadow-sky-500/25 active:scale-95 transition-all disabled:opacity-40 disabled:grayscale"
                   >
                     קלוט
                   </button>
@@ -349,12 +349,12 @@ export function OperationsDashboard({
               </div>
               <form action={onQuickCreateItemAction} className="grid grid-cols-1 gap-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input name="name" required placeholder="שם הפריט (למשל: ברז ניל 1/2)" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
-                  <input name="sku" placeholder="מק״ט" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
+                  <input name="name" required placeholder="שם הפריט (למשל: ברז ניל 1/2)" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all w-full" />
+                  <input name="sku" placeholder="מק״ט" className="h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all w-full" />
                 </div>
-                <div className="flex gap-3">
-                  <input name="unit" placeholder="יחידה" className="flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
-                  <button type="submit" className="h-12 rounded-2xl px-8 text-base font-black text-slate-700 bg-white border-2 border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-all">צור</button>
+                <div className="grid grid-cols-1 sm:flex gap-3">
+                  <input name="unit" placeholder="יחידה" className="w-full sm:flex-1 h-12 rounded-2xl border-2 border-slate-100 bg-white px-4 text-base font-bold text-slate-800 shadow-sm outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all" />
+                  <button type="submit" className="w-full sm:w-auto h-12 rounded-2xl px-10 text-base font-black text-slate-700 bg-white border-2 border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition-all">צור</button>
                 </div>
               </form>
             </div>
