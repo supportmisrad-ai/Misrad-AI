@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { 
   MousePointerClick, Users, DollarSign, TrendingUp, 
@@ -31,7 +31,7 @@ interface DashboardData {
   }>;
 }
 
-export default function PartnerDashboardClient() {
+function DashboardContent() {
   const searchParams = useSearchParams();
   const partnerId = searchParams.get('id');
   
@@ -269,5 +269,17 @@ export default function PartnerDashboardClient() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function PartnerDashboardClient() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white flex items-center justify-center" dir="rtl">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }
