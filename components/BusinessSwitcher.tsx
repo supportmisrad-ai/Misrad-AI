@@ -146,9 +146,18 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 setBusinesses([]);
                 return;
             }
+            
+            // Handle both direct array and wrapped { workspaces: [...] } response
             const raw = await response.json().catch(() => ({}));
-            const payload = extractData<{ workspaces?: WorkspaceItem[] }>(raw);
+            const data = Array.isArray(raw) ? { workspaces: raw } : raw;
+            const payload = extractData<{ workspaces?: WorkspaceItem[] }>(data);
             const workspaces = payload?.workspaces || [];
+            
+            if (!Array.isArray(workspaces)) {
+                console.error('[BusinessSwitcher] fetchBusinesses: API did not return array:', raw);
+                setBusinesses([]);
+                return;
+            }
             
             // DEBUG: Check for duplicates in API response
             const seenIds = new Set<string>();
@@ -208,7 +217,15 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 setIsLoading(true);
                 const res = await fetch('/api/workspaces', { credentials: 'include' });
                 if (!res.ok) throw new Error('Failed to load workspaces');
-                const workspaces = await res.json() as Array<{ id: string; slug: string | null; name: string; logo?: string | null }>;
+                
+                // Handle both direct array and wrapped { workspaces: [...] } response
+                const rawData = await res.json();
+                const workspaces = Array.isArray(rawData) ? rawData : (rawData.workspaces || rawData.data || []);
+                
+                if (!Array.isArray(workspaces)) {
+                    console.error('[BusinessSwitcher] API did not return an array:', rawData);
+                    throw new Error('Invalid API response format');
+                }
 
                 // Debug: Check for duplicates in API response
                 const slugs = workspaces.map(w => w.slug);
