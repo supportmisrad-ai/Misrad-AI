@@ -108,7 +108,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Get current workspace slug from window location - defined early to avoid hoisting issues
-    const getCurrentSubdomain = () => {
+    const getCurrentSubdomain = (): string | null => {
         if (typeof window === 'undefined') return null;
         const path = window.location.pathname;
         
