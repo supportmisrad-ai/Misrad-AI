@@ -38,6 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const { notifications: contextNotifications } = useNexus();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [supportDraft, setSupportDraft] = useState({ category: 'Tech', subject: '', message: '' });
   const [supportError, setSupportError] = useState<string | null>(null);
