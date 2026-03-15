@@ -44,9 +44,16 @@ async function POSTHandler(req: Request) {
 
     console.log('[API:success-recommendation] Received:', { clientName: clientName || '(empty)', healthScore, bodyKeys: Object.keys(bodyObj) });
 
+    // If clientName is missing, return fallback instead of error
     if (!clientName) {
-      console.warn('[API:success-recommendation] Missing clientName - returning 400');
-      return NextResponse.json({ error: 'clientName is required' }, { status: 400 });
+      console.warn('[API:success-recommendation] Missing clientName - returning fallback tip');
+      return NextResponse.json(
+        {
+          tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
+          expectedBenefit: 'שיפור בשימור לקוח (Retention)',
+        },
+        { status: 200, headers: abuse.headers }
+      );
     }
 
     const prompt = `As a high-end agency consultant, provide a tip in Hebrew for the business owner on how to use transparency to retain client "${clientName}". Health Score is ${healthScore}/100. Tip should be motivating and professional (max 15 words). JSON: {tip, expectedBenefit}`;

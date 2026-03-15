@@ -161,8 +161,8 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 workspaces = raw.data;
             }
 
-            if (workspaces.length === 0 && !Array.isArray(workspaces)) {
-                console.error('[BusinessSwitcher] fetchBusinesses: API did not return array:', raw);
+            if (!Array.isArray(workspaces) || workspaces.length === 0) {
+                console.error('[BusinessSwitcher] fetchBusinesses: API did not return valid workspaces array:', raw);
                 setBusinesses([]);
                 return;
             }

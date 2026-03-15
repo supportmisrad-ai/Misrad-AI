@@ -238,7 +238,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/finance/control', label: 'Finance', icon: DollarSign },
       { href: '/app/admin/client/control', label: 'Client', icon: Users },
       { href: '/app/admin/operations/control', label: 'Operations', icon: Briefcase },
-      { href: `/app/admin/booking?org=${orgSlug}`, label: 'בוקינג', icon: Calendar },
+      ...(organization?.slug ? [{ href: `/app/admin/booking?org=${organization.slug}`, label: 'בוקינג', icon: Calendar }] : []),
     ],
     content: [
       { href: '/app/admin/global/promotions', label: 'מבצעים', icon: Zap },

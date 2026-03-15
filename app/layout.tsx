@@ -15,7 +15,7 @@ const heebo = Heebo({
   variable: "--font-sans",
   subsets: ["hebrew"],
   display: "swap",
-  preload: true,
+  preload: false,
   adjustFontFallback: true,
   fallback: ['system-ui', 'arial'],
 });

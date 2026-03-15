@@ -30,6 +30,16 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
   }, [client.id]);
 
   const fetchRecommendation = async () => {
+      // Don't call API if client name is missing
+      if (!client?.name?.trim()) {
+          console.log('[PortalManagementTab] Skipping recommendation fetch - no client name');
+          setRecommendation({
+              tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
+              expectedBenefit: 'שיפור בשימור לקוח (Retention)'
+          });
+          return;
+      }
+      
       setIsLoadingRec(true);
       try {
           const res = await fetch('/api/client-os/ai/success-recommendation', {
@@ -38,10 +48,23 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
               body: JSON.stringify({ clientName: client.name, healthScore: client.healthScore }),
           });
           const json = await res.json().catch(() => ({} as Record<string, unknown>));
-          if (!res.ok) throw new Error(json?.error || 'Failed to load recommendation');
+          if (!res.ok) {
+              console.warn('[PortalManagementTab] API error:', res.status, json);
+              // Use fallback on error
+              setRecommendation({
+                  tip: json?.tip || 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
+                  expectedBenefit: json?.expectedBenefit || 'שיפור בשימור לקוח (Retention)'
+              });
+              return;
+          }
           setRecommendation({ tip: json.tip, expectedBenefit: json.expectedBenefit });
       } catch (e) {
-          console.error(e);
+          console.error('[PortalManagementTab] Failed to fetch recommendation:', e);
+          // Fallback on network/error
+          setRecommendation({
+              tip: 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
+              expectedBenefit: 'שיפור בשימור לקוח (Retention)'
+          });
       } finally {
           setIsLoadingRec(false);
       }

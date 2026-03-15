@@ -556,11 +556,11 @@ const ClientView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar">
-        {activeTab === 'strategy' && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
+        {activeTab === 'strategy' && client && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת הצעת צמיחה — הפיצ׳ר בפיתוח.', type: 'info' } }));
            }} />}
-        {activeTab === 'portal' && <PortalManagementTab client={client} />}
-        {activeTab === 'pulse' && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
+        {activeTab === 'portal' && client && <PortalManagementTab client={client} />}
+        {activeTab === 'pulse' && client && <ClientPulseTab client={client} aiInsight={aiInsight} isInsightLoading={isInsightLoading} onGenerateInsight={async () => {
                if (isInsightLoading || !client) return;
                setIsInsightLoading(true);
                try {
@@ -569,7 +569,7 @@ const ClientView: React.FC = () => {
                } catch { setAiInsight({ insight: 'לא הצלחנו לייצר תובנה כרגע.', action: 'נסה שוב מאוחר יותר' }); }
                finally { setIsInsightLoading(false); }
            }} />}
-        {activeTab === 'tasks' && (
+        {activeTab === 'tasks' && client && (
              <ClientTasksTab 
                client={client} 
                assignedForms={assignedForms} 
@@ -593,7 +593,7 @@ const ClientView: React.FC = () => {
                  return { ...m, aiAnalysis: { ...m.aiAnalysis, [key]: tasks } };
                }));
            }} />}
-        {activeTab === 'work' && (
+        {activeTab === 'work' && client && (
           <div className="space-y-12">
             <ClientWorkTab client={client} />
             <div className="border-t border-gray-100 pt-12">
