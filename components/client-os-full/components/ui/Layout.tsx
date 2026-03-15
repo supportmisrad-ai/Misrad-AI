@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Users, Settings, Sparkles, Cpu, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send, SquareMousePointer, UserPlus, CalendarPlus } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '../../types';
