@@ -175,7 +175,7 @@ export interface BookingLink {
   requirePayment: boolean;
   paymentAmount?: Decimal | null;
   requireApproval: boolean;
-  locationType: BookingLocationType;
+  locationType: string;
   locationDetails?: string | null;
   isActive: boolean;
   createdAt: Date;
@@ -223,7 +223,7 @@ export interface BookingAppointment {
   timezone: string;
   
   // Location
-  locationType: BookingLocationType;
+  locationType: string;
   locationDetails?: string | null;
   meetingUrl?: string | null;
   
