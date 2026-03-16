@@ -14,6 +14,8 @@ export type WorkspaceInfo = {
   seatsAllowed: number | null;
   isShabbatProtected: boolean;
   subscriptionStatus: string | null;
+  subscriptionPlan: string | null;
+  trialEndDate: Date | null;
   entitlements: WorkspaceEntitlements;
 };
 
@@ -50,4 +52,6 @@ export type OrganizationRow = {
   coupon_allowed_modules?: unknown;
   is_shabbat_protected: boolean | null;
   subscription_status: string | null;
+  subscription_plan: string | null;
+  trial_end_date: Date | null;
 } & OrganizationModuleFlags;

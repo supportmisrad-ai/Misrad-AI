@@ -87,14 +87,24 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     throw setErrorStatus(new Error('Forbidden'), 403);
   }
 
-  // Check if organization trial has expired and redirect to trial-expired page
-  if (!isSuperAdmin && org.subscription_status === 'expired') {
+  // Check for Archive Mode (Read-only access after trial expired)
+  const isExpired = org.subscription_status === 'expired';
+  const now = new Date();
+  const trialEndDate = org.trial_end_date ? new Date(org.trial_end_date) : null;
+  const daysSinceExpired = trialEndDate 
+    ? Math.floor((now.getTime() - trialEndDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  const isArchiveMode = isExpired && daysSinceExpired <= 30;
+
+  // Block only if expired AND NOT in archive mode (or not superadmin)
+  if (!isSuperAdmin && isExpired && !isArchiveMode) {
     const { redirect } = await import('next/navigation');
     redirect('/app/trial-expired');
   }
 
   // Fire-and-forget: trial enforcement is a side-effect for NEXT request, not current
-  if (!isSuperAdmin && socialUser?.id) {
+  if (!isSuperAdmin && socialUser?.id && !isArchiveMode) {
     enforceTrialExpirationBestEffort({
       organizationId: String(org.id),
       socialUserId: String(socialUser.id),
@@ -121,6 +131,8 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     seatsAllowed: computeEffectiveSeatsAllowed({ seatsAllowedRaw: org?.seats_allowed, couponSeatsCapRaw: org?.coupon_seats_cap }),
     isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     subscriptionStatus: org?.subscription_status ?? null,
+    subscriptionPlan: org?.subscription_plan ?? null,
+    trialEndDate: org?.trial_end_date ?? null,
     entitlements,
   };
 });
@@ -153,13 +165,24 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     throw setErrorStatus(new Error('Forbidden'), 403);
   }
 
+  // Check for Archive Mode (Read-only access after trial expired)
+  const isExpired = org.subscription_status === 'expired';
+  const now = new Date();
+  const trialEndDate = org.trial_end_date ? new Date(org.trial_end_date) : null;
+  const daysSinceExpired = trialEndDate 
+    ? Math.floor((now.getTime() - trialEndDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  const isArchiveMode = isExpired && daysSinceExpired <= 30;
+
   // Check if organization trial has expired (for API routes)
-  if (!isSuperAdmin && org.subscription_status === 'expired') {
+  // Only block if NOT in archive mode
+  if (!isSuperAdmin && isExpired && !isArchiveMode) {
     throw setErrorStatus(new Error('Trial expired'), 402); // 402 Payment Required
   }
 
   // Fire-and-forget: trial enforcement is a side-effect for NEXT request, not current
-  if (!isSuperAdmin && socialUser?.id) {
+  if (!isSuperAdmin && socialUser?.id && !isArchiveMode) {
     enforceTrialExpirationBestEffort({
       organizationId: String(org.id),
       socialUserId: String(socialUser.id),
@@ -181,6 +204,8 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     seatsAllowed: computeEffectiveSeatsAllowed({ seatsAllowedRaw: org.seats_allowed, couponSeatsCapRaw: org.coupon_seats_cap }),
     isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     subscriptionStatus: org?.subscription_status ?? null,
+    subscriptionPlan: org?.subscription_plan ?? null,
+    trialEndDate: org?.trial_end_date ?? null,
     entitlements,
   };
 });

@@ -10,6 +10,9 @@ import OperationsLayoutShell from './OperationsLayoutShell';
 
 export const metadata: Metadata = getSystemMetadata('operations');
 
+import { getEntitlements } from '@/lib/entitlements';
+import { ArchiveModeBanner } from '@/components/shared/ArchiveModeBanner';
+
 export default async function OperationsModuleLayout({
   children,
   params,
@@ -19,9 +22,16 @@ export default async function OperationsModuleLayout({
 }) {
   const { orgSlug } = await params;
   // Only the fast access check blocks the layout — everything else streams
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
+  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
+  
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
+
+  const entitlements = getEntitlements(
+    workspace.subscriptionStatus,
+    workspace.subscriptionPlan,
+    workspace.trialEndDate
+  );
 
   const def = getModuleDefinition('operations');
 
@@ -42,6 +52,12 @@ export default async function OperationsModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
+      {entitlements.banner && (
+        <ArchiveModeBanner 
+          message={entitlements.banner.message} 
+          action={entitlements.banner.action} 
+        />
+      )}
       <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="operations" /></div>}>
         <OperationsLayoutShell orgSlug={orgSlug}>
           {children}

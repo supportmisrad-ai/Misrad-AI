@@ -10,12 +10,33 @@ import SystemLayoutShell from './SystemLayoutShell';
 
 export const metadata: Metadata = getSystemMetadata('system');
 
+import { getEntitlements } from '@/lib/entitlements';
+import { ArchiveModeBanner } from '@/components/shared/ArchiveModeBanner';
+
 // Async component for access check - wrapped in Suspense
 async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
-  await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
+  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
+  
   // Fire-and-forget: don't block render for location tracking
   persistCurrentUserLastLocation({ orgSlug, module: 'system' }).catch(() => undefined);
-  return <>{children}</>;
+
+  const entitlements = getEntitlements(
+    workspace.subscriptionStatus,
+    workspace.subscriptionPlan,
+    workspace.trialEndDate
+  );
+
+  return (
+    <>
+      {entitlements.banner && (
+        <ArchiveModeBanner 
+          message={entitlements.banner.message} 
+          action={entitlements.banner.action} 
+        />
+      )}
+      {children}
+    </>
+  );
 }
 
 export default async function SystemModuleLayout({

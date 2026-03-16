@@ -95,27 +95,21 @@ export default async function WorkspacesPage() {
   if (pinnedOrgId) {
     const pinnedWorkspace = workspaces.find((ws) => ws.id === pinnedOrgId);
     if (pinnedWorkspace) {
-      // Check if trial expired - redirect to trial-expired page
-      if (pinnedWorkspace.subscriptionStatus === 'expired') {
-        redirect('/app/trial-expired');
+      // If pinned and not expired, redirect. If expired, we show the list so they can see the status.
+      if (pinnedWorkspace.subscriptionStatus !== 'expired') {
+        if (!pinnedWorkspace.subscriptionPlan) {
+          redirect('/workspaces/onboarding');
+        }
+        redirect(`/w/${encodeURIComponent(pinnedWorkspace.slug)}`);
       }
-      if (!pinnedWorkspace.subscriptionPlan) {
-        redirect('/workspaces/onboarding');
-      }
-      redirect(`/w/${encodeURIComponent(pinnedWorkspace.slug)}`);
     }
   }
 
-  // Filter out expired workspaces
+  // If single valid workspace and NO expired ones, redirect to it
   const validWorkspaces = workspaces.filter(ws => ws.subscriptionStatus !== 'expired');
-  
-  // If all workspaces are expired, redirect to trial-expired
-  if (validWorkspaces.length === 0 && workspaces.length > 0) {
-    redirect('/app/trial-expired');
-  }
+  const expiredWorkspaces = workspaces.filter(ws => ws.subscriptionStatus === 'expired');
 
-  // If single valid workspace, redirect to it
-  if (validWorkspaces.length === 1) {
+  if (validWorkspaces.length === 1 && expiredWorkspaces.length === 0) {
     const singleWorkspace = validWorkspaces[0];
     if (!singleWorkspace.subscriptionPlan) {
       redirect('/workspaces/onboarding');
@@ -135,7 +129,11 @@ export default async function WorkspacesPage() {
         <div className="mb-8">
           <div className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">Workspaces</div>
           <h1 className="text-3xl font-black text-slate-900 mt-2">בחר עסק להיכנס אליו</h1>
-          <p className="text-sm text-slate-600 mt-2">הדף הזה מופיע רק אם המערכת לא יודעת לאן להפנות אותך.</p>
+          <p className="text-sm text-slate-600 mt-2 italic">
+            {expiredWorkspaces.length > 0 
+              ? 'שים לב: חלק מהעסקים שלך דורשים חידוש מנוי.'
+              : 'הדף הזה מופיע רק אם המערכת לא יודעת לאן להפנות אותך.'}
+          </p>
         </div>
 
         {workspaces.length === 0 ? (
@@ -153,32 +151,44 @@ export default async function WorkspacesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {workspaces.map((ws) => (
-              <Link
-                key={ws.id}
-                href={`/w/${encodeURIComponent(ws.slug)}`}
-                className="group relative rounded-3xl border border-white/70 bg-white/70 backdrop-blur p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] hover:shadow-[0_30px_80px_-35px_rgba(15,23,42,0.45)] transition-all overflow-hidden"
-              >
-                <div className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity" style={{ background: 'radial-gradient(600px circle at 30% 10%, rgba(99,102,241,0.18), transparent 40%)' }} />
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-white/80 border border-white/70 shadow-lg flex items-center justify-center overflow-hidden">
-                      {ws.logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ws.logo} alt={ws.name} className="w-8 h-8 object-contain" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-xl bg-slate-200" />
-                      )}
+            {workspaces.map((ws) => {
+              const isExpired = ws.subscriptionStatus === 'expired';
+              return (
+                <Link
+                  key={ws.id}
+                  href={isExpired ? '/app/trial-expired' : `/w/${encodeURIComponent(ws.slug)}`}
+                  className={`group relative rounded-3xl border border-white/70 backdrop-blur p-6 transition-all overflow-hidden shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] hover:shadow-[0_30px_80px_-35px_rgba(15,23,42,0.45)] ${
+                    isExpired ? 'bg-slate-50/80' : 'bg-white/70'
+                  }`}
+                >
+                  <div className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity" style={{ background: isExpired ? 'none' : 'radial-gradient(600px circle at 30% 10%, rgba(99,102,241,0.18), transparent 40%)' }} />
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl border border-white/70 shadow-lg flex items-center justify-center overflow-hidden ${isExpired ? 'bg-slate-100 grayscale' : 'bg-white/80'}`}>
+                        {ws.logo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={ws.logo} alt={ws.name} className="w-8 h-8 object-contain" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-xl bg-slate-200" />
+                        )}
+                      </div>
+                      <div>
+                        <div className={`font-black text-lg ${isExpired ? 'text-slate-500' : 'text-slate-900'}`}>{ws.name}</div>
+                        <div className="text-xs text-slate-400 font-bold">{ws.slug}</div>
+                        {isExpired && (
+                          <div className="text-[10px] text-red-500 font-black mt-1 bg-red-50 px-2 py-0.5 rounded-full inline-block">
+                            פג תוקף
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-black text-slate-900 text-lg">{ws.name}</div>
-                      <div className="text-xs text-slate-600 font-bold">{ws.slug}</div>
+                    <div className={`transition text-sm font-black ${isExpired ? 'text-red-600 group-hover:text-red-700' : 'text-slate-500 group-hover:text-slate-900'}`}>
+                      {isExpired ? 'חידוש' : 'כניסה'}
                     </div>
                   </div>
-                  <div className="text-slate-500 group-hover:text-slate-900 transition text-sm font-black">כניסה</div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
