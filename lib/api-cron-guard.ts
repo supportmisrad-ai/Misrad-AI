@@ -7,6 +7,11 @@ function isAuthorized(req: Request): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return false;
 
+  // Check query parameter (for services that strip headers on redirect)
+  const url = new URL(req.url);
+  const querySecret = url.searchParams.get('secret');
+  if (querySecret && timingSafeCompare(querySecret, cronSecret)) return true;
+
   const headerSecret = req.headers.get('x-cron-secret');
   if (headerSecret && timingSafeCompare(headerSecret, cronSecret)) return true;
 
