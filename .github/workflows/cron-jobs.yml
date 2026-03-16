@@ -1,0 +1,75 @@
+name: Cron Jobs
+
+on:
+  schedule:
+    # רץ כל 5 דקות
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # מאפשר הפעלה ידנית לצורכי דיבאג
+
+jobs:
+  cron:
+    name: Run Background Tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 4 # מניע הרצה ארוכה מדי
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: Run background processing
+        env:
+          # Environment variables מהפרויקט שלך
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # כל המשתנים האחרים שצריכים...
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_REDIRECT_URI: ${{ secrets.ZOOM_REDIRECT_URI }}
+        run: |
+          node -e "
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+          
+          async function runCronTasks() {
+            console.log('Starting cron tasks at:', new Date().toISOString());
+            
+            try {
+              // כאן כל מה שה-cron שלך צריך לעשות
+              // לדוגמה:
+              
+              // 1. עיבוד תור הודעות
+              console.log('Processing message queue...');
+              // await processMessageQueue();
+              
+              // 2. סנכרון רשתות חברתיות
+              console.log('Syncing social media...');
+              // await syncSocialMedia();
+              
+              // 3. בדיקות בריאות
+              console.log('Running health checks...');
+              // await runHealthChecks();
+              
+              // 4. ניקוי קבצים זמניים
+              console.log('Cleaning up temp files...');
+              // await cleanupTempFiles();
+              
+              console.log('Cron tasks completed successfully');
+            } catch (error) {
+              console.error('Cron task failed:', error);
+              process.exit(1);
+            } finally {
+              await prisma.$disconnect();
+            }
+          }
+          
+          runCronTasks();
+          "

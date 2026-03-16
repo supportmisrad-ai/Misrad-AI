@@ -244,78 +244,41 @@ class AnalyticsBatchQueue {
     const batch = this.queue.splice(0, MAX_BATCH_SIZE);
 
     try {
-      // Ensure session exists
-      let sid = this.sessionId || getStoredSessionId();
-      
-      // If no session, create one with the first event
-      if (!sid && batch.length > 0) {
-        const sessionEvent = batch.find(e => e.type === 'session') || batch[0];
-        if (sessionEvent.type === 'session' || !getStoredSessionId()) {
-          const device = detectDevice();
-          const utm = getUtmParams();
-          const result = await this.sendSingle({
-            type: 'session',
-            visitor_id: this.visitorId,
-            referrer: document.referrer || undefined,
-            landing_page: (sessionEvent.payload.path as string) || window.location.pathname,
-            ...device,
-            ...utm,
-          });
-          
-          if (result?.session_id) {
-            sid = result.session_id as string;
-            this.sessionId = sid;
-            storeSessionId(sid);
-            this.onSessionCreated?.(sid);
-          }
-        }
-      }
+      // Send as batch to new endpoint
+      const result = await this.sendBatch(batch);
 
-      if (!sid) {
-        // Re-queue events for next attempt
-        this.queue.unshift(...batch);
-        this.isProcessing = false;
+      if (!result.ok) {
+        if (result.status === 429) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
+          const backoff = Math.min(1000 * Math.pow(2, this.consecutiveFailures), MAX_BACKOFF_MS);
+          this.consecutiveFailures++;
+          setBackoffMs(backoff);
+          // Re-queue all events
+          this.queue.unshift(...batch);
+        } else {
+          // Re-queue retryable events
+          const retryableEvents = batch.filter(e => e.retries < 3).map(e => ({ ...e, retries: e.retries + 1 }));
+          this.queue.unshift(...retryableEvents);
+        }
         return;
       }
 
-      this.sessionId = sid;
+      // Reset failure count on success
+      this.consecutiveFailures = 0;
+      clearBackoff();
 
-      // Process batch
-      const results = await Promise.allSettled(
-        batch.map(event => this.processEvent(event, sid!))
-      );
+      // Update session ID if returned
+      if (result.session_id) {
+        this.sessionId = result.session_id;
+        storeSessionId(result.session_id);
+        this.onSessionCreated?.(result.session_id);
+      }
 
-      // Check for rate limiting
-      const rateLimited = results.some(
-        r => r.status === 'rejected' && 
-        (r.reason?.status === 429 || r.reason?.message?.includes('rate limit'))
-      );
-
-      if (rateLimited) {
-        // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
-        const backoff = Math.min(1000 * Math.pow(2, this.consecutiveFailures), MAX_BACKOFF_MS);
-        this.consecutiveFailures++;
-        setBackoffMs(backoff);
-        
-        // Re-queue failed events (except those with too many retries)
-        const failedEvents = batch.filter((_, i) => 
-          results[i].status === 'rejected' && batch[i].retries < 3
-        ).map(e => ({ ...e, retries: e.retries + 1 }));
-        
-        this.queue.unshift(...failedEvents);
-      } else {
-        // Reset failure count on success
-        this.consecutiveFailures = 0;
-        clearBackoff();
-        
-        // Re-queue events with retryable failures
-        const retryableEvents = batch.filter((_, i) => {
-          const result = results[i];
-          return result.status === 'rejected' && batch[i].retries < 3;
-        }).map(e => ({ ...e, retries: e.retries + 1 }));
-        
-        if (retryableEvents.length > 0) {
-          this.queue.unshift(...retryableEvents);
+      // Re-queue failed individual events from batch response
+      if (result.results) {
+        const failedEvents = batch.filter((_, i) => !result.results?.[i]?.ok && batch[i].retries < 3).map(e => ({ ...e, retries: e.retries + 1 }));
+        if (failedEvents.length > 0) {
+          this.queue.unshift(...failedEvents);
         }
       }
     } catch (error) {
@@ -327,18 +290,51 @@ class AnalyticsBatchQueue {
     }
   }
 
-  private async processEvent(event: AnalyticsEvent, sessionId: string): Promise<unknown> {
-    const payload = {
-      ...event.payload,
-      type: event.type,
-      visitor_id: this.visitorId,
-      session_id: sessionId,
-    };
+  private async sendBatch(batch: AnalyticsEvent[]): Promise<{ ok: boolean; status?: number; session_id?: string; results?: Array<{ ok: boolean }> }> {
+    try {
+      // Extract session fields from first session event if exists
+      const sessionEvent = batch.find(e => e.type === 'session');
+      const device = sessionEvent ? detectDevice() : { device_type: undefined, browser: undefined, os: undefined };
+      const utm = sessionEvent ? getUtmParams() : {};
 
-    return this.sendSingle(payload);
+      const payload = {
+        visitor_id: this.visitorId,
+        session_id: this.sessionId || getStoredSessionId(),
+        events: batch.map(e => ({
+          type: e.type as 'session' | 'pageview' | 'pageview_update' | 'event' | 'signup',
+          payload: e.payload,
+          timestamp: e.timestamp,
+        })),
+        // Include session fields if creating session
+        referrer: sessionEvent ? document.referrer || undefined : undefined,
+        landing_page: sessionEvent ? (sessionEvent.payload.path as string) || window.location.pathname : undefined,
+        device_type: device.device_type,
+        browser: device.browser,
+        os: device.os,
+        ...utm,
+      };
+
+      const res = await fetch('/api/analytics/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      });
+
+      if (!res.ok) {
+        return { ok: false, status: res.status };
+      }
+
+      const data = await res.json() as { ok: boolean; session_id?: string; results?: Array<{ ok: boolean }> };
+      return { ok: data.ok, session_id: data.session_id, results: data.results };
+    } catch (error) {
+      console.error('[Analytics] Batch error:', error);
+      return { ok: false };
+    }
   }
 
   private async sendSingle(payload: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+    // Fallback to single endpoint if batch fails (should not happen)
     try {
       const res = await fetch('/api/analytics/track', {
         method: 'POST',

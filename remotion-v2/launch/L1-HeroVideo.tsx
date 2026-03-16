@@ -8,10 +8,10 @@ import {
   Sequence,
 } from 'remotion';
 import { BRAND, HEEBO, RUBIK, SPRING } from '../shared/config';
-import { L1_TIMING, WARM } from './shared/launch-config';
+import { L1_TIMING } from './shared/launch-config';
 import {
-  F, CARD_W, ACCENT, gradientText, sceneBg, safeFill, safeTop,
-  glassCard, statCard, rowCard,
+  F, CARD_W, ACCENT, gradientText, sceneBg,
+  glassCard, statCard, rowCard, SceneContainer,
   MisradLogo, LogoWatermark, BloomOrb, GrainOverlay,
   CheckIcon, ShieldCheckIcon, DangerDot, FlowArrow,
 } from './shared/launch-design';
@@ -26,42 +26,56 @@ const HookScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const logoSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 20 });
-  const titleSpring = spring({ frame: Math.max(0, frame - 25), fps, config: SPRING.hero, durationInFrames: 18 });
-  const subSpring = spring({ frame: Math.max(0, frame - 45), fps, config: SPRING.ui, durationInFrames: 16 });
+  const logoSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 25 });
+  const titleSpring = spring({ frame: Math.max(0, frame - 25), fps, config: SPRING.heavy, durationInFrames: 30 });
+  const subSpring = spring({ frame: Math.max(0, frame - 55), fps, config: SPRING.smooth, durationInFrames: 25 });
+
+  const floatY = Math.sin(frame * 0.05) * 8;
 
   return (
-    <AbsoluteFill style={{ ...sceneBg(ACCENT.goldDim, '40%'), ...safeFill }}>
-      <BloomOrb color={ACCENT.gold} size={600} x="50%" y="40%" intensity={0.12} />
+    <SceneContainer style={sceneBg(ACCENT.goldDim, '40%')} focusY="45%">
+      <BloomOrb color={ACCENT.gold} size={800} x="50%" y="40%" intensity={0.15} />
 
       <div style={{
         opacity: logoSpring,
-        transform: `scale(${interpolate(logoSpring, [0, 1], [0.7, 1])})`,
+        transform: `scale(${interpolate(logoSpring, [0, 1], [0.6, 1])}) translateY(${floatY}px)`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
       }}>
-        <MisradLogo size={120} textSize={56} />
+        <MisradLogo size={140} textSize={64} />
       </div>
 
       <div style={{
-        ...gradientText(F.hero, 'gold'),
-        opacity: titleSpring,
-        transform: `translateY(${interpolate(titleSpring, [0, 1], [20, 0])}px)`,
-        maxWidth: CARD_W,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 40,
+        width: '100%',
       }}>
-        הבלגן שבחוץ
+        <div style={{
+          ...gradientText(F.mega, 'gold'),
+          opacity: titleSpring,
+          transform: `translateY(${interpolate(titleSpring, [0, 1], [40, 0])}px) scale(${interpolate(titleSpring, [0, 1], [0.95, 1])})`,
+          maxWidth: CARD_W,
+          filter: `blur(${interpolate(titleSpring, [0, 1], [10, 0])}px)`,
+        }}>
+          הבלגן שבחוץ
+        </div>
+
+        <div style={{
+          fontFamily: HEEBO, fontSize: F.subtitle, fontWeight: 900,
+          color: 'rgba(255,255,255,0.85)', direction: 'rtl', textAlign: 'center',
+          opacity: subSpring, maxWidth: CARD_W,
+          transform: `translateY(${interpolate(subSpring, [0, 1], [20, 0])}px)`,
+          letterSpacing: '0.05em',
+        }}>
+          כל בעל עסק מכיר את זה.
+        </div>
       </div>
 
-      <div style={{
-        fontFamily: HEEBO, fontSize: F.subtitle, fontWeight: 700,
-        color: 'rgba(255,255,255,0.7)', direction: 'rtl', textAlign: 'center',
-        opacity: subSpring,
-        maxWidth: CARD_W,
-      }}>
-        כל בעל עסק מכיר את זה.
-      </div>
-
-      <LogoWatermark />
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.2} />
+    </SceneContainer>
   );
 };
 
@@ -73,7 +87,7 @@ const ProblemScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 18 });
+  const titleSpring = spring({ frame, fps, config: SPRING.heavy, durationInFrames: 25 });
 
   const pains = [
     { text: 'ליד שנשרף כי שכחת לחזור', delay: 20 },
@@ -82,29 +96,35 @@ const ProblemScene: React.FC = () => {
   ];
 
   return (
-    <AbsoluteFill style={{ ...sceneBg('rgba(99,102,241,0.06)', '35%'), ...safeFill }}>
-      <BloomOrb color={ACCENT.gold} size={500} x="50%" y="35%" intensity={0.1} />
+    <SceneContainer style={sceneBg('rgba(99,102,241,0.06)', '35%')} focusY="40%">
+      <BloomOrb color={ACCENT.gold} size={600} x="50%" y="35%" intensity={0.12} />
 
       <div style={{
-        ...gradientText(F.title, 'warm'),
+        ...gradientText(F.hero, 'warm'),
         opacity: titleSpring,
+        transform: `translateY(${interpolate(titleSpring, [0, 1], [30, 0])}px)`,
+        filter: `blur(${interpolate(titleSpring, [0, 1], [8, 0])}px)`,
       }}>
         בלי מערכת? ככה זה נראה:
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: CARD_W }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: CARD_W }}>
         {pains.map((p, i) => {
-          const ps = spring({ frame: Math.max(0, frame - p.delay), fps, config: SPRING.punch, durationInFrames: 14 });
+          const ps = spring({ frame: Math.max(0, frame - p.delay), fps, config: SPRING.punch, durationInFrames: 18 });
           return (
             <div key={i} style={{
               ...rowCard(),
+              padding: '36px 48px',
+              borderRadius: 32,
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: `2px solid ${ACCENT.gold}40`,
               opacity: ps,
-              transform: `translateX(${interpolate(ps, [0, 1], [40, 0])}px)`,
+              transform: `translateX(${interpolate(ps, [0, 1], [60, 0])}px) scale(${interpolate(ps, [0, 1], [0.95, 1])})`,
               justifyContent: 'flex-start',
-              gap: 16,
+              gap: 24,
             }}>
-              <DangerDot size={20} color={ACCENT.gold} />
-              <span style={{ fontFamily: HEEBO, fontSize: F.body, fontWeight: 800, color: BRAND.white }}>
+              <DangerDot size={24} color={ACCENT.gold} />
+              <span style={{ fontFamily: RUBIK, fontSize: F.body + 4, fontWeight: 900, color: BRAND.white }}>
                 {p.text}
               </span>
             </div>
@@ -112,9 +132,8 @@ const ProblemScene: React.FC = () => {
         })}
       </div>
 
-      <LogoWatermark />
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.3} />
+    </SceneContainer>
   );
 };
 
@@ -126,84 +145,90 @@ const SolutionScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 18 });
+  const titleSpring = spring({ frame, fps, config: SPRING.heavy, durationInFrames: 25 });
 
   const features = [
     { text: 'ליד נכנס — AI מדרג ומתעדף', delay: 20 },
-    { text: 'חשבונית נשלחת בוואטסאפ — בלחיצה', delay: 45 },
+    { text: 'חשבונית נשלחת — בלחיצת כפתור', delay: 45 },
     { text: 'CRM + צוות + תוכן — הכל במקום אחד', delay: 70 },
   ];
 
-  const steps = ['ליד', 'AI', 'הצעה', 'חתימה', 'חשבונית'];
-  const pipeSpring = spring({ frame: Math.max(0, frame - 180), fps, config: SPRING.hero, durationInFrames: 18 });
+  const pipeSpring = spring({ frame: Math.max(0, frame - 180), fps, config: SPRING.heavy, durationInFrames: 25 });
+  const bottomSpring = spring({ frame: Math.max(0, frame - 300), fps, config: SPRING.punch, durationInFrames: 20 });
 
-  const bottomSpring = spring({ frame: Math.max(0, frame - 300), fps, config: SPRING.ui, durationInFrames: 16 });
+  const steps = ['ליד', 'AI', 'הצעה', 'חתימה', 'חשבונית'];
 
   return (
-    <AbsoluteFill style={{ ...sceneBg(ACCENT.goldDim, '38%'), ...safeFill }}>
-      <BloomOrb color={ACCENT.gold} size={500} x="50%" y="35%" intensity={0.1} />
+    <SceneContainer style={sceneBg(ACCENT.goldDim, '38%')} focusY="45%">
+      <BloomOrb color={ACCENT.gold} size={600} x="50%" y="40%" intensity={0.15} />
 
       <div style={{
-        ...gradientText(F.title, 'gold'),
+        ...gradientText(F.hero, 'gold'),
         opacity: titleSpring,
+        transform: `translateY(${interpolate(titleSpring, [0, 1], [30, 0])}px)`,
         maxWidth: CARD_W,
       }}>
         מערכת אחת. שעושה הכל.
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: CARD_W }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: CARD_W }}>
         {features.map((feat, i) => {
-          const fs = spring({ frame: Math.max(0, frame - feat.delay), fps, config: SPRING.punch, durationInFrames: 14 });
+          const fs = spring({ frame: Math.max(0, frame - feat.delay), fps, config: SPRING.punch, durationInFrames: 18 });
           return (
             <div key={i} style={{
               ...rowCard(),
+              padding: '32px 48px',
+              borderRadius: 32,
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: `2px solid ${ACCENT.gold}50`,
               opacity: fs,
-              transform: `translateX(${interpolate(fs, [0, 1], [40, 0])}px)`,
+              transform: `translateX(${interpolate(fs, [0, 1], [60, 0])}px)`,
             }}>
-              <span style={{ fontFamily: HEEBO, fontSize: F.body - 2, fontWeight: 800, color: BRAND.white }}>{feat.text}</span>
-              <CheckIcon size={40} color={ACCENT.gold} />
+              <span style={{ fontFamily: RUBIK, fontSize: F.body + 2, fontWeight: 900, color: BRAND.white }}>{feat.text}</span>
+              <CheckIcon size={48} color={ACCENT.gold} />
             </div>
           );
         })}
       </div>
 
       {/* Pipeline */}
-      {frame >= 180 && (
-        <div style={{
-          width: CARD_W, display: 'flex', justifyContent: 'center',
-          gap: 10, direction: 'rtl' as const,
-          opacity: pipeSpring,
-        }}>
-          {steps.map((step, i) => (
-            <React.Fragment key={i}>
-              <div style={{
-                padding: '14px 26px', borderRadius: 18,
-                background: ACCENT.goldDim,
-                border: `1.5px solid ${ACCENT.gold}35`,
-                fontFamily: HEEBO, fontSize: F.label, fontWeight: 700,
-                color: BRAND.white,
-              }}>
-                {step}
-              </div>
-              {i < steps.length - 1 && <FlowArrow size={24} color={`${ACCENT.gold}50`} />}
-            </React.Fragment>
-          ))}
-        </div>
-      )}
+      <div style={{
+        width: 1000, display: 'flex', justifyContent: 'center',
+        gap: 12, direction: 'rtl' as const,
+        opacity: pipeSpring,
+        transform: `scale(${interpolate(pipeSpring, [0, 1], [0.9, 1])})`,
+      }}>
+        {steps.map((step, i) => (
+          <React.Fragment key={i}>
+            <div style={{
+              padding: '16px 22px', borderRadius: 20,
+              background: ACCENT.goldDim,
+              border: `2px solid ${ACCENT.gold}50`,
+              fontFamily: RUBIK, fontSize: F.label + 2, fontWeight: 900,
+              color: BRAND.white,
+            }}>
+              {step}
+            </div>
+            {i < steps.length - 1 && <FlowArrow size={24} color={`${ACCENT.gold}50`} />}
+          </React.Fragment>
+        ))}
+      </div>
 
-      {frame >= 300 && (
-        <div style={{
-          ...gradientText(F.subtitle, 'gold'),
-          opacity: bottomSpring,
-          maxWidth: CARD_W,
-        }}>
-          AI שמבין עברית. לא תרגום. שפת אם.
-        </div>
-      )}
+      <div style={{ height: 120 }}>
+        {frame >= 300 && (
+          <div style={{
+            ...gradientText(F.subtitle, 'gold'),
+            opacity: bottomSpring,
+            maxWidth: CARD_W,
+            transform: `translateY(${interpolate(bottomSpring, [0, 1], [20, 0])}px)`,
+          }}>
+            AI שמבין עברית. לא תרגום. שפת אם.
+          </div>
+        )}
+      </div>
 
-      <LogoWatermark />
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.3} />
+    </SceneContainer>
   );
 };
 
@@ -215,44 +240,49 @@ const DifferentiatorScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 18 });
+  const titleSpring = spring({ frame, fps, config: SPRING.heavy, durationInFrames: 25 });
 
   const stats = [
-    { value: '₪149', label: 'מתחילים' },
-    { value: '5 דק׳', label: 'הקמה' },
-    { value: 'חינם', label: '7 ימי ניסיון' },
+              {value: '₪149', label: 'מתחילים'},
+              {value: '5 דק׳', label: 'הקמה'},
+              {value: 'חינם', label: '7 ימי ניסיון'},
   ];
 
   const diffs = [
-    { text: 'שומרת שבת וחג — אוטומטית', delay: 150 },
-    { text: 'לוח עברי מובנה — לא תרגום', delay: 180 },
+              {text: 'שומרת שבת וחג — אוטומטית', delay: 150},
+              {text: 'לוח עברי מובנה — לא תרגום', delay: 180},
   ];
 
   return (
-    <AbsoluteFill style={{ ...sceneBg(ACCENT.goldDim, '35%'), ...safeFill }}>
-      <BloomOrb color={ACCENT.gold} size={500} x="50%" y="30%" intensity={0.1} />
+    <SceneContainer style={sceneBg(ACCENT.goldDim, '35%')} focusY="35%">
+      <BloomOrb color={ACCENT.gold} size={600} x="50%" y="30%" intensity={0.12} />
 
       <div style={{
-        ...gradientText(F.title, 'gold'),
+        ...gradientText(F.hero, 'gold'),
         opacity: titleSpring,
+        transform: `translateY(${interpolate(titleSpring, [0, 1], [30, 0])}px)`,
       }}>
-        {'למה MISRAD AI?'}
+        למה MISRAD AI?
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'flex', gap: 18, width: CARD_W }}>
+      <div style={{ display: 'flex', gap: 20, width: CARD_W }}>
         {stats.map((s, i) => {
-          const ss = spring({ frame: Math.max(0, frame - 20 - i * 10), fps, config: SPRING.punch, durationInFrames: 14 });
+          const ss = spring({ frame: Math.max(0, frame - 30 - i * 15), fps, config: SPRING.punch, durationInFrames: 20 });
           return (
             <div key={i} style={{
               ...statCard(ACCENT.gold),
+              background: 'rgba(15, 23, 42, 0.85)',
+              border: `2px solid ${ACCENT.gold}50`,
+              boxShadow: `0 20px 60px ${ACCENT.gold}15`,
               opacity: ss,
-              transform: `translateY(${interpolate(ss, [0, 1], [30, 0])}px)`,
+              transform: `translateY(${interpolate(ss, [0, 1], [40, 0])}px) scale(${interpolate(ss, [0, 1], [0.9, 1])})`,
+              padding: '40px 20px',
             }}>
-              <div style={{ fontFamily: RUBIK, fontSize: F.title, fontWeight: 800, color: ACCENT.gold, marginBottom: 8 }}>
+              <div style={{ fontFamily: RUBIK, fontSize: F.title + 10, fontWeight: 900, color: ACCENT.gold, marginBottom: 12 }}>
                 {s.value}
               </div>
-              <div style={{ fontFamily: HEEBO, fontSize: F.label, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>
+              <div style={{ fontFamily: RUBIK, fontSize: F.label + 4, fontWeight: 800, color: 'rgba(255,255,255,0.7)' }}>
                 {s.label}
               </div>
             </div>
@@ -261,25 +291,28 @@ const DifferentiatorScene: React.FC = () => {
       </div>
 
       {/* Differentiators */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: CARD_W }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: CARD_W }}>
         {diffs.map((d, i) => {
-          const ds = spring({ frame: Math.max(0, frame - d.delay), fps, config: SPRING.punch, durationInFrames: 14 });
+          const ds = spring({ frame: Math.max(0, frame - d.delay), fps, config: SPRING.punch, durationInFrames: 18 });
           return (
             <div key={i} style={{
               ...rowCard(),
+              padding: '32px 48px',
+              borderRadius: 32,
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: `2px solid ${ACCENT.gold}60`,
               opacity: ds,
-              transform: `translateX(${interpolate(ds, [0, 1], [40, 0])}px)`,
+              transform: `translateX(${interpolate(ds, [0, 1], [60, 0])}px)`,
             }}>
-              <span style={{ fontFamily: HEEBO, fontSize: F.body - 2, fontWeight: 800, color: BRAND.white }}>{d.text}</span>
-              <ShieldCheckIcon size={44} color={ACCENT.gold} />
+              <span style={{ fontFamily: RUBIK, fontSize: F.body + 2, fontWeight: 900, color: BRAND.white }}>{d.text}</span>
+              <ShieldCheckIcon size={52} color={ACCENT.gold} />
             </div>
           );
         })}
       </div>
 
-      <LogoWatermark />
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.3} />
+    </SceneContainer>
   );
 };
 
@@ -291,7 +324,7 @@ const ProofScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 18 });
+  const titleSpring = spring({ frame, fps, config: SPRING.heavy, durationInFrames: 25 });
 
   const items = [
     { text: 'הכל כלול — מערכת שלמה', delay: 20 },
@@ -299,48 +332,55 @@ const ProofScene: React.FC = () => {
     { text: 'מליד לחשבונית — אפס נייר', delay: 70 },
   ];
 
-  const summarySpring = spring({ frame: Math.max(0, frame - 170), fps, config: SPRING.hero, durationInFrames: 18 });
+  const summarySpring = spring({ frame: Math.max(0, frame - 170), fps, config: SPRING.punch, durationInFrames: 20 });
 
   return (
-    <AbsoluteFill style={{ ...sceneBg(ACCENT.goldDim, '40%'), ...safeFill }}>
-      <BloomOrb color={ACCENT.gold} size={500} x="50%" y="35%" intensity={0.1} />
+    <SceneContainer style={sceneBg(ACCENT.goldDim, '40%')} focusY="45%">
+      <BloomOrb color={ACCENT.gold} size={600} x="50%" y="40%" intensity={0.15} />
 
       <div style={{
-        ...gradientText(F.title, 'warm'),
+        ...gradientText(F.hero, 'warm'),
         opacity: titleSpring,
+        transform: `translateY(${interpolate(titleSpring, [0, 1], [30, 0])}px)`,
       }}>
         הכל כבר בפנים.
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: CARD_W }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: CARD_W }}>
         {items.map((p, i) => {
-          const ps = spring({ frame: Math.max(0, frame - p.delay), fps, config: SPRING.punch, durationInFrames: 14 });
+          const ps = spring({ frame: Math.max(0, frame - p.delay), fps, config: SPRING.punch, durationInFrames: 18 });
           return (
             <div key={i} style={{
               ...rowCard(),
+              padding: '36px 50px',
+              borderRadius: 32,
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: `2px solid ${ACCENT.gold}40`,
               opacity: ps,
-              transform: `translateX(${interpolate(ps, [0, 1], [40, 0])}px)`,
+              transform: `translateX(${interpolate(ps, [0, 1], [60, 0])}px)`,
             }}>
-              <span style={{ fontFamily: HEEBO, fontSize: F.body, fontWeight: 800, color: BRAND.white }}>{p.text}</span>
-              <CheckIcon size={44} color={ACCENT.gold} />
+              <span style={{ fontFamily: RUBIK, fontSize: F.body + 6, fontWeight: 900, color: BRAND.white }}>{p.text}</span>
+              <CheckIcon size={52} color={ACCENT.gold} />
             </div>
           );
         })}
       </div>
 
-      {frame >= 170 && (
-        <div style={{
-          ...gradientText(F.subtitle, 'gold'),
-          opacity: summarySpring,
-          maxWidth: CARD_W,
-        }}>
-          לא צריך 5 כלים. צריך כלי אחד שעובד.
-        </div>
-      )}
+      <div style={{ height: 120 }}>
+        {frame >= 170 && (
+          <div style={{
+            ...gradientText(F.subtitle, 'gold'),
+            opacity: summarySpring,
+            maxWidth: CARD_W,
+            transform: `translateY(${interpolate(summarySpring, [0, 1], [20, 0])}px)`,
+          }}>
+            לא צריך 5 כלים. צריך כלי אחד שעובד.
+          </div>
+        )}
+      </div>
 
-      <LogoWatermark />
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.3} />
+    </SceneContainer>
   );
 };
 
@@ -352,37 +392,39 @@ const CTAScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const brandSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 20 });
+  const brandSpring = spring({ frame, fps, config: SPRING.hero, durationInFrames: 25 });
 
   const tags = [
     'מערכת ניהול עסק שלמה.',
     'AI שמבין עברית. שומרת שבת.',
   ];
 
-  const buttonSpring = spring({ frame: Math.max(0, frame - 180), fps, config: SPRING.punch, durationInFrames: 16 });
+  const buttonSpring = spring({ frame: Math.max(0, frame - 180), fps, config: SPRING.punch, durationInFrames: 20 });
   const buttonPulse = frame >= 180 ? Math.sin((frame - 180) * 0.06) * 0.015 + 1 : 1;
   const fadeOut = interpolate(frame, [570, 600], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
-    <AbsoluteFill style={{ ...sceneBg(ACCENT.goldDim, '40%'), ...safeFill, opacity: fadeOut }}>
-      <BloomOrb color={ACCENT.gold} size={700} x="50%" y="40%" intensity={0.14} />
+    <SceneContainer style={{ ...sceneBg(ACCENT.goldDim, '40%'), opacity: fadeOut }} focusY="40%">
+      <BloomOrb color={ACCENT.gold} size={800} x="50%" y="40%" intensity={0.15} />
 
       <div style={{
         opacity: brandSpring,
         transform: `scale(${interpolate(brandSpring, [0, 1], [0.75, 1])})`,
+        marginBottom: 60,
       }}>
-        <MisradLogo size={140} textSize={72} />
+        <MisradLogo size={180} textSize={84} />
       </div>
 
-      <div style={{ textAlign: 'center', direction: 'rtl', maxWidth: CARD_W }}>
+      <div style={{ textAlign: 'center', direction: 'rtl', maxWidth: CARD_W, marginBottom: 80 }}>
         {tags.map((tag, i) => {
-          const ts = spring({ frame: Math.max(0, frame - 30 - i * 10), fps, config: SPRING.ui, durationInFrames: 14 });
+          const ts = spring({ frame: Math.max(0, frame - 40 - i * 15), fps, config: SPRING.smooth, durationInFrames: 20 });
           return (
             <div key={i} style={{
-              fontFamily: HEEBO, fontSize: F.subtitle, fontWeight: 700,
-              color: 'rgba(255,255,255,0.75)',
-              marginBottom: 14,
+              fontFamily: RUBIK, fontSize: F.hero - 10, fontWeight: 900,
+              color: 'rgba(255,255,255,0.85)',
+              marginBottom: 20,
               opacity: ts,
+              transform: `translateY(${interpolate(ts, [0, 1], [20, 0])}px)`,
             }}>
               {tag}
             </div>
@@ -392,30 +434,31 @@ const CTAScene: React.FC = () => {
 
       {frame >= 180 && (
         <div style={{
-          padding: '28px 90px', borderRadius: 60,
+          padding: '36px 110px', borderRadius: 80,
           background: `linear-gradient(135deg, ${ACCENT.gold} 0%, ${ACCENT.goldLight} 100%)`,
-          boxShadow: `0 20px 60px ${ACCENT.gold}40`,
+          boxShadow: `0 25px 80px ${ACCENT.gold}60`,
           opacity: buttonSpring,
           transform: `scale(${interpolate(buttonSpring, [0, 1], [0.8, 1]) * buttonPulse})`,
+          marginBottom: 50,
         }}>
-          <span style={{ fontFamily: RUBIK, fontSize: F.body + 4, fontWeight: 800, color: '#1A1520' }}>
+          <span style={{ fontFamily: RUBIK, fontSize: F.hero - 20, fontWeight: 900, color: '#0A0A0F' }}>
             להתחיל — חינם
           </span>
         </div>
       )}
 
-      {frame >= 210 && (
+      {frame >= 220 && (
         <div style={{
-          fontFamily: RUBIK, fontSize: F.label, fontWeight: 700,
-          color: 'rgba(255,255,255,0.5)', letterSpacing: 3,
-          opacity: spring({ frame: Math.max(0, frame - 210), fps, config: SPRING.ui, durationInFrames: 14 }),
+          fontFamily: RUBIK, fontSize: F.body, fontWeight: 800,
+          color: 'rgba(255,255,255,0.6)', letterSpacing: 4,
+          opacity: spring({ frame: Math.max(0, frame - 220), fps, config: SPRING.ui, durationInFrames: 18 }),
         }}>
           <span dir="ltr">misrad-ai.com</span>
         </div>
       )}
 
-      <GrainOverlay />
-    </AbsoluteFill>
+      <LogoWatermark opacity={0.3} />
+    </SceneContainer>
   );
 };
 

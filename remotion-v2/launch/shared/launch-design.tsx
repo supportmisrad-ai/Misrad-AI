@@ -11,21 +11,98 @@
  * - Camera: 2-5° Dutch tilt for cinematic feel
  */
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
-import { RUBIK, HEEBO, BRAND } from '../../shared/config';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { RUBIK, HEEBO, BRAND, SAFE_ZONES } from '../../shared/config';
 import { WARM } from './launch-config';
+
+// ═══════════════════════════════════════════════════════════
+// RESPONSIVE SCALING CONTAINER
+// ═══════════════════════════════════════════════════════════
+/**
+ * Cinematic Scene Container
+ * Handles: Responsive scaling, Eye-tracking focus, and Safe Zones.
+ */
+export const SceneContainer: React.FC<{
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+  /** Focus point for eye-tracking (0-100) */
+  focusY?: string;
+}> = ({ children, style, focusY = '50%' }) => {
+  const { width, height } = useVideoConfig();
+  const frame = useCurrentFrame();
+  const isSocial = height > width;
+
+  // Scale factor: for Social (1080x1920), we base it on 1080px.
+  // For TV (1920x1080), we base it on 1920px.
+  const baseWidth = isSocial ? 1080 : 1920;
+  const baseHeight = isSocial ? 1920 : 1080;
+  const scale = width / baseWidth;
+
+  // Cinematic grain & background drift
+  const driftX = Math.sin(frame * 0.02) * 10;
+  const driftY = Math.cos(frame * 0.02) * 10;
+
+  return (
+    <AbsoluteFill
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: BRAND.bgDark,
+        overflow: 'hidden',
+        ...style,
+      }}
+    >
+      {/* Background Optical Depth */}
+      <div style={{
+        position: 'absolute',
+        width: '120%',
+        height: '120%',
+        left: '-10%',
+        top: '-10%',
+        background: `radial-gradient(circle at 50% ${focusY}, rgba(99, 102, 241, 0.08) 0%, transparent 70%)`,
+        transform: `translate(${driftX}px, ${driftY}px)`,
+        filter: 'blur(80px)',
+        zIndex: 0,
+      }} />
+
+      <div
+        style={{
+          width: baseWidth,
+          height: baseHeight,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-between', // Dynamic vertical distribution
+          paddingTop: SAFE.top,
+          paddingBottom: SAFE.bottom,
+          paddingLeft: SAFE.sides,
+          paddingRight: SAFE.sides,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {children}
+      </div>
+      <GrainOverlay opacity={0.05} />
+    </AbsoluteFill>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════
 // TYPOGRAPHY — Dramatic scale for 1080×1920
 // ═══════════════════════════════════════════════════════════
 export const F = {
-  mega: 120, // Increased for impact
-  hero: 100,
-  title: 80, // Increased for better hierarchy
-  subtitle: 56,
-  body: 40,
-  label: 28, // Slightly smaller labels for contrast
-  small: 24,
+  mega: 140,    // Enormous impact
+  hero: 110,    // Strong headlines
+  title: 84,    // Medium headers
+  subtitle: 48, // Support text
+  body: 36,     // Description
+  label: 24,    // UI labels
+  small: 20,    // Legal/Micro
 } as const;
 
 // ═══════════════════════════════════════════════════════════
@@ -36,12 +113,11 @@ export const PAD = 60; // Consistent padding
 export const FULL_W = 1080;
 export const FULL_H = 1920;
 
-// TikTok Safe Zone - Calibrated for V2 Premium
+// TikTok/Reels Safe Zone — Updated for High-End Precision
 export const SAFE = {
-  top: 180,
-  bottom: 300,
-  left: 80,
-  right: 80,
+  top: 220,    // Space for UI/Logo
+  bottom: 420, // Space for Caption/CTA
+  sides: 100,  // Breathing room
 } as const;
 
 // Unified accent — brand indigo
@@ -78,19 +154,25 @@ export const MisradLogo: React.FC<{
   </div>
 );
 
-// Compact watermark logo for bottom of scenes
-export const LogoWatermark: React.FC<{ opacity?: number }> = ({ opacity = 0.35 }) => (
+// ═══════════════════════════════════════════════════════════
+// LOGO WATERMARK — Minimalist & Non-intrusive
+// ═══════════════════════════════════════════════════════════
+export const LogoWatermark: React.FC<{ opacity?: number }> = ({ opacity = 0.15 }) => (
   <div style={{
-    position: 'absolute', bottom: SAFE.bottom + 10, left: '50%', transform: 'translateX(-50%)',
-    display: 'flex', alignItems: 'center', gap: 12, opacity,
+    position: 'absolute',
+    bottom: 80,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    opacity,
+    zIndex: -1, // Always behind everything
   }}>
-    <svg width={28} height={28} viewBox="0 0 64 64" fill="none">
-      <path fill="#0F172A" d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z" />
-      <path fill="#FFFFFF" d="M19 21.5h6.2l6.8 12.1 6.8-12.1H45v21h-5.8V32.2l-6.1 10.3h-2.2l-6.1-10.3v10.3H19v-21z" />
-    </svg>
-    <span style={{ fontFamily: RUBIK, fontSize: 20, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: 2 }}>
-      MISRAD AI
-    </span>
+    <div style={{ width: 32, height: 32, borderRadius: 8, background: BRAND.white, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ color: BRAND.bgDark, fontFamily: RUBIK, fontWeight: 900, fontSize: 20 }}>M</span>
+    </div>
+    <span style={{ fontFamily: RUBIK, fontWeight: 800, fontSize: 24, color: BRAND.white, letterSpacing: 2 }}>MISRAD AI</span>
   </div>
 );
 
@@ -110,11 +192,12 @@ export const gradientText = (
   return {
     fontFamily: RUBIK,
     fontSize,
-    fontWeight: 800,
+    fontWeight: 900, // Maximal weight for clarity
+    letterSpacing: '-0.02em', // Modern tight tracking
     background: bgs[variant],
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-    lineHeight: 1.15,
+    lineHeight: 1.1,
     direction: 'rtl',
     textAlign: 'center',
   };
@@ -205,8 +288,8 @@ export const safeFill: React.CSSProperties = {
   direction: 'rtl' as const,
   paddingTop: SAFE.top,
   paddingBottom: SAFE.bottom,
-  paddingLeft: SAFE.left,
-  paddingRight: SAFE.right,
+  paddingLeft: SAFE.sides,
+  paddingRight: SAFE.sides,
   gap: 28,
 };
 
@@ -220,8 +303,8 @@ export const safeTop: React.CSSProperties = {
   direction: 'rtl' as const,
   paddingTop: SAFE.top + 20,
   paddingBottom: SAFE.bottom,
-  paddingLeft: SAFE.left,
-  paddingRight: SAFE.right,
+  paddingLeft: SAFE.sides,
+  paddingRight: SAFE.sides,
   gap: 24,
 };
 

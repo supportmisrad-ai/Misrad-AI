@@ -74,15 +74,18 @@ export const EASING = {
   dramatic: [0.05, 0.7, 0.1, 1] as [number, number, number, number],
   // Smooth camera
   camera: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
+  // Cinematic focus pull
+  focus: [0.4, 0, 0.2, 1] as [number, number, number, number],
 } as const;
 
 // ─── Spring Configs ──────────────────────────────────────
 export const SPRING = {
   hero:     { damping: 14, stiffness: 180, mass: 0.8 },
-  punch:    { damping: 8,  stiffness: 280, mass: 0.6 },
+  punch:    { damping: 10, stiffness: 300, mass: 0.5 }, // More aggressive
   smooth:   { damping: 25, stiffness: 50,  mass: 1.2 },
   camera:   { damping: 30, stiffness: 40,  mass: 1.8 },
   ui:       { damping: 18, stiffness: 120, mass: 1.0 },
+  heavy:    { damping: 20, stiffness: 80,  mass: 2.0 }, // Slow, heavy impact
 } as const;
 
 // ─── Frame Constants ─────────────────────────────────────

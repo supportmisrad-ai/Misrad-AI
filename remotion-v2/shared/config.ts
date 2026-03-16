@@ -9,6 +9,8 @@ export {
   HEEBO,
   RUBIK,
   BRAND,
+  HIERARCHY,
+  SAFE_ZONES,
   MODULE_COLORS,
   EASING,
   SPRING,

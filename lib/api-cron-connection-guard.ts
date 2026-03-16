@@ -185,6 +185,7 @@ export function cronConnectionGuard(
     const lockAcquired = await acquireCronLock(cronPath, opts);
 
     if (!lockAcquired && !opts.critical) {
+      console.warn(`[CRON Guard] ${cronPath}: lock acquisition failed`);
       return NextResponse.json(
         {
           ok: false,
@@ -196,26 +197,31 @@ export function cronConnectionGuard(
       );
     }
 
-    // Track in memory (for same-instance awareness)
-    instanceRunningCrons.add(cronPath);
-
     try {
-      console.log(`[CRON Guard] Executing ${cronPath}${check.reason ? ` (${check.reason})` : ''}`);
-
-      const startTime = Date.now();
+      // Execute the handler
       const result = await handler(req);
-      const duration = Date.now() - startTime;
-
-      console.log(`[CRON Guard] Completed ${cronPath} in ${duration}ms`);
-
       return result;
     } catch (error) {
-      console.error(`[CRON Guard] Failed ${cronPath}:`, error);
-      throw error;
+      console.error(`[CRON Guard] ${cronPath}: execution error:`, error);
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Execution failed',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
     } finally {
+      // Always try to release the lock
+      if (lockAcquired) {
+        try {
+          await releaseCronLock(cronPath);
+        } catch (error) {
+          console.error(`[CRON Guard] ${cronPath}: failed to release lock:`, error);
+        }
+      }
       // Cleanup
       instanceRunningCrons.delete(cronPath);
-      await releaseCronLock(cronPath);
     }
   };
 }

@@ -212,13 +212,10 @@ async function GETHandler() {
           const details = customerDetailsByOrg.get(o.id);
           // Case 1: Customer account with full details → complete
           if (details?.hasCompany && details?.hasPhone) return true;
-          // Case 2: No customer_accounts record → legacy user if org is old
-          if (!details && o.created_at) {
-            const LEGACY_MS = 10 * 60 * 1000;
-            return (Date.now() - new Date(o.created_at).getTime()) > LEGACY_MS;
-          }
+          // Case 2: No customer account → needs onboarding
+          if (!details) return false;
           // Case 3: Customer account exists but details missing → not complete
-          return !details;
+          return false;
         })(),
       };
     });

@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
     const rl = await rateLimit({
       namespace: 'analytics.track',
       key: ip,
-      limit: 30,
+      limit: 60,
       windowMs: 60_000,
       mode: 'degraded',
-      degradedLimit: 10,
+      degradedLimit: 30,
     });
     if (!rl.ok) {
       return NextResponse.json(
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: buildRateLimitHeaders({
-            limit: 30,
+            limit: 60,
             remaining: 0,
             resetAt: rl.resetAt,
             retryAfterSeconds: rl.retryAfterSeconds,
