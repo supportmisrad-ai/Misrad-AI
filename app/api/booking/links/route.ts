@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
     }
 
+    // Validate providerId - must be a non-empty UUID
+    if (!data.providerId || typeof data.providerId !== 'string' || data.providerId.trim() === '') {
+      return NextResponse.json({ error: 'providerId is required and must be a valid UUID' }, { status: 400 });
+    }
+
     const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     const organizationId = workspace.id;
     requireOrganizationId('POST /api/booking/links', organizationId);
