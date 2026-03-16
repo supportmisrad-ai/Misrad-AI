@@ -19,29 +19,29 @@ import { WARM } from './launch-config';
 // TYPOGRAPHY — Dramatic scale for 1080×1920
 // ═══════════════════════════════════════════════════════════
 export const F = {
-  mega: 110,
-  hero: 96,
-  title: 72,
-  subtitle: 52,
+  mega: 120, // Increased for impact
+  hero: 100,
+  title: 80, // Increased for better hierarchy
+  subtitle: 56,
   body: 40,
-  label: 32,
+  label: 28, // Slightly smaller labels for contrast
   small: 24,
 } as const;
 
 // ═══════════════════════════════════════════════════════════
 // LAYOUT — Fill the screen
 // ═══════════════════════════════════════════════════════════
-export const CARD_W = 960;
-export const PAD = 50;
+export const CARD_W = 1000; // Wider cards for 1080px width
+export const PAD = 60; // Consistent padding
 export const FULL_W = 1080;
 export const FULL_H = 1920;
 
-// TikTok Safe Zone
+// TikTok Safe Zone - Calibrated for V2 Premium
 export const SAFE = {
-  top: 150,
-  bottom: 280,
-  left: 50,
-  right: 50,
+  top: 180,
+  bottom: 300,
+  left: 80,
+  right: 80,
 } as const;
 
 // Unified accent — brand indigo
@@ -230,13 +230,16 @@ export const safeTop: React.CSSProperties = {
 // ═══════════════════════════════════════════════════════════
 export const glassCard = (accent?: string): React.CSSProperties => ({
   width: CARD_W,
-  borderRadius: 28,
-  background: 'rgba(255,255,255,0.07)',
-  backdropFilter: 'blur(30px)',
-  border: `1.5px solid ${accent ? accent + '40' : 'rgba(255,255,255,0.12)'}`,
-  boxShadow: `0 12px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)${accent ? `, 0 0 80px ${accent}08` : ''}`,
-  padding: '32px 44px',
+  borderRadius: 32, // Smoother, premium radius
+  background: 'rgba(15, 23, 42, 0.75)', // Deeper Slate 900 for contrast
+  backdropFilter: 'blur(60px)', // Drastic blur increase
+  WebkitBackdropFilter: 'blur(60px)',
+  border: `1.5px solid ${accent ? accent + '50' : 'rgba(255,255,255,0.12)'}`,
+  boxShadow: `0 25px 50px -12px rgba(0,0,0,0.6)${accent ? `, 0 0 80px ${accent}15` : ''}`,
+  padding: '48px 60px', // More breathing room
   direction: 'rtl' as const,
+  position: 'relative',
+  overflow: 'hidden',
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -244,12 +247,12 @@ export const glassCard = (accent?: string): React.CSSProperties => ({
 // ═══════════════════════════════════════════════════════════
 export const statCard = (accent: string): React.CSSProperties => ({
   flex: 1,
-  borderRadius: 28,
-  background: 'rgba(255,255,255,0.06)',
-  backdropFilter: 'blur(24px)',
-  border: `1.5px solid ${accent}35`,
-  boxShadow: `0 16px 48px rgba(0,0,0,0.3), 0 0 80px ${accent}0A`,
-  padding: '40px 24px',
+  borderRadius: 32,
+  background: 'rgba(255, 255, 255, 0.03)',
+  backdropFilter: 'blur(40px)',
+  border: `1.5px solid ${accent}40`,
+  boxShadow: `0 20px 40px rgba(0,0,0,0.4), 0 0 60px ${accent}10`,
+  padding: '48px 32px',
   textAlign: 'center',
   direction: 'rtl' as const,
 });

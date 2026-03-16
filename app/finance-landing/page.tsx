@@ -48,13 +48,13 @@ export default function FinanceMarketingPage() {
             <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
               {getModuleLabelHe('finance')}
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600">
-                חשבוניות, הוצאות, תשלומים ודוחות
+                שהכסף ירדוף אחריך, לא להפך
               </span>
             </h1>
 
             <p className="mt-6 text-xl text-slate-600 max-w-2xl leading-relaxed">
-              שליטה פיננסית שמרגישה פשוטה. מנפיקים חשבוניות, מנהלים הוצאות, עוקבים אחר תשלומים,
-              ורואים תמונה ברורה של ההכנסות — בלי טבלאות מפוזרות.
+              סוגרים את הפינה של הגבייה: תזכורות אוטומטיות בוואטסאפ, מעקב תשלומים ורווחיות תכלס. 
+              בלי "לצאת פראייר" — כל שקל שנכנס מתועד ומקושר לפרויקט.
             </p>
 
             <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold">
@@ -66,7 +66,7 @@ export default function FinanceMarketingPage() {
                 href="/login?mode=sign-up&redirect=/workspaces/onboarding"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
               >
-                התחל ניסיון חינם
+                התחילו לגבות עכשיו
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
               </Link>
               <DemoVideoTrigger className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-black hover:border-indigo-300 hover:scale-105 transition-all" />
@@ -92,14 +92,14 @@ export default function FinanceMarketingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div>
                 <h2 className="text-3xl sm:text-4xl font-black leading-tight">
-                  מספרים פשוטים.
+                  כסף בבנק.
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-                    החלטות מהירות.
+                    בלי להיות "האיש הרע".
                   </span>
                 </h2>
                 <p className="mt-4 text-lg text-slate-600 leading-relaxed">
-                  המטרה היא לא &quot;עוד מערכת&quot; — אלא שתקבל החלטות בלי לחפש נתונים.
-                  הכל במקום אחד: חיובים, הוצאות, תזרים, ותיעוד.
+                  המטרה היא לא "ניהול חשבונות" — אלא גבייה תכלס. 
+                  ה-AI שולח תזכורות במקומך, מזהה חובות מסוכנים ואומר לך איזה פרויקט באמת מכניס כסף.
                 </p>
 
                 <div className="mt-8 space-y-4">
@@ -127,15 +127,15 @@ export default function FinanceMarketingPage() {
                       <BarChart3 size={14} className="text-emerald-600" />
                       דוגמה לתהליך פיננסי
                     </div>
-                    <div className="mt-2 text-xl font-black text-slate-900">מהנפקת חשבונית עד גבייה</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">גבייה אוטומטית שסוגרת פינות</div>
                   </div>
                   <div className="p-6">
                     <div className="space-y-4">
                       {[
-                        { title: 'יוצרים חשבונית', note: 'פריטים + לקוח + סכום', color: 'bg-emerald-600' },
-                        { title: 'שולחים ללקוח', note: 'מייל/וואטסאפ/קישור', color: 'bg-indigo-600' },
-                        { title: 'ממתינים לתשלום', note: 'סטטוס ברור', color: 'bg-slate-600' },
-                        { title: 'תשלום התקבל', note: 'תיעוד + התאמה', color: 'bg-amber-600' },
+                        { title: 'הנפקת חשבונית', note: 'קליק אחד מהנייד', color: 'bg-emerald-600' },
+                        { title: 'רדיפה אוטומטית', note: 'תזכורת וואטסאפ ללקוח', color: 'bg-indigo-600' },
+                        { title: 'כסף בבנק', note: 'סטטוס שולם ירוק', color: 'bg-slate-600' },
+                        { title: 'ניתוח רווחיות', note: 'היה שווה לעבוד?', color: 'bg-amber-600' },
                       ].map((s, i) => (
                         <div key={s.title} className="group flex items-start gap-4 rounded-2xl bg-slate-50 border border-slate-200 p-4 hover:shadow-lg transition-all">
                           <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-white flex-shrink-0`}>

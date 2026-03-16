@@ -267,7 +267,7 @@ Cinematic 4K, optical bloom from chrome reflections, film grain, Dutch angle 2°
 ```
 
 ### קליפ 20 | 2:32–2:40
-**קריינות:** "AI הוא לא השחקן. הוא הכלי. הכלי הכי חזק שהאנושות יצרה. ומי שמפעיל אותו — זה אתה."
+**קריינות:** "AI הוא לא השחקן. הוא הכלי. כלי חזק שהאנושות יצרה. ומי שמפעיל אותו — זה אתה."
 ```
 A craftsman's workshop — a powerful modern tool (laser cutter / precision machine) 
 sits on a heavy workbench. A person's hand reaches in and activates it. 
@@ -336,7 +336,7 @@ Cinematic 4K, film grain, subtle vignette, Dutch angle 2°.
 ```
 
 ### קליפ 25 | 3:12–3:20
-**קריינות:** "2028 עד 2032? שינוי מבני. משרות שנעלמות, משרות חדשות שנוצרות. כאב אמיתי למי שלא הסתגל."
+**קריינות:** "2028 עד 2032? שינוי מבני. משרות שמשתנות, דרכי עבודה חדשות שנוצרות. אתגר אמיתי למי שלא הסתגל."
 ```
 Same city street but now transformed: some storefronts are different — 
 new types of businesses, different signage. Some old shops have frosted glass 

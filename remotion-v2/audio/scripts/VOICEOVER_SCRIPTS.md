@@ -94,7 +94,7 @@ Generate TTS audio files and place them in `public/audio/voiceover/`.
 ### Authority (חבילת שיווק ומיתוג) — ₪349/חודש
 | Scene | Frames | File | Script |
 |-------|--------|------|--------|
-| Hook | 0-90 | `packages/authority-hook.mp3` | "המותג שלך. AI שלנו. שיווק שעובד 24/7." |
+| Hook | 0-90 | `packages/authority-hook.mp3` | "המותג שלך. AI שלנו. שיווק שעובד בשבילך." |
 | CTA | 1500-1800 | `packages/authority-cta.mp3` | "חבילת שיווק ומיתוג. 349 שקל בחודש. misrad-ai.com." |
 
 ### Operator (חבילת תפעול ושטח) — ₪349/חודש

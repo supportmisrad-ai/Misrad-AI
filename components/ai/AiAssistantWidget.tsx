@@ -309,7 +309,7 @@ export function AiAssistantWidget() {
                 className="absolute bottom-full mb-3 right-0 w-max max-w-[220px] hidden md:block"
               >
                 <div className="bg-slate-900 text-white px-6 py-4 rounded-2xl rounded-br-sm shadow-2xl border border-slate-700/50">
-                  <p className="text-[15px] font-bold text-right leading-snug">בוס, הנה 3 דברים שסגרתי לך הבוקר ⚡</p>
+                  <p className="text-[15px] font-bold text-right leading-snug">הנה 3 דברים שנסגרו הבוקר ⚡</p>
                   <div className="absolute -bottom-2 right-5 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-slate-900" />
                 </div>
               </motion.button>
@@ -546,7 +546,7 @@ export function AiAssistantWidget() {
                           <Sparkles size={28} className="sm:w-9 sm:h-9 text-slate-600" />
                         </div>
                         <h3 className="text-base sm:text-[17px] font-bold text-slate-900 mb-2">
-                          {isSales ? 'בוא נראה איך העסק שלך מתחיל לעבוד' : 'בוס, אני כאן. מה עושים?'}
+                          {isSales ? 'בוא נראה איך העסק שלך מתחיל לעבוד' : 'אני כאן. מה עושים?'}
                         </h3>
                         <p className="text-[13px] sm:text-[14px] text-slate-600 mb-4 sm:mb-6 leading-relaxed">
                           {isSales 

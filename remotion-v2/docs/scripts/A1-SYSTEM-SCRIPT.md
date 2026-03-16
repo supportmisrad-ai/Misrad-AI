@@ -1,10 +1,10 @@
-# A1 — System (מכירות) | תסריט שנייה-שנייה v2
+# A1 — מכונת מכירה (CRM) | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **פורמט:** Social 1080×1920 (9:16) + TV 1920×1080 (16:9)
 > **צבע מוביל:** `#A21D3C` (Deep Rose) + dark matte
-> **קהל יעד:** מנהלי מכירות, סוכני ביטוח/נדל"ן, מוקדי מכירות, שומרי שבת
-> **מטרה:** להראות שניהול לידים ומכירות יכול להיות פשוט, חכם, ומדויק — עם AI
+> **קהל יעד:** בעלי עסקים שלא רוצים לצאת פראיירים מול לידים שנשרפים
+> **מטרה:** להראות ש-CRM הוא לא רק מאגר נתונים, אלא מכונה שרודפת אחרי כסף
 > **⚠ פרוטוקול:** אפס פיצוצים גנריים, אפס screen shake, אפס מונים רצים, אפס מוחות. Macro + DoF + materialization.
 
 ---
@@ -35,9 +35,9 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **ה-overlay האדום "מתפוצץ לשברים"** (glass shatter, לא particles גנריים — שברי זכוכית frosted שמתפזרים). מאחוריו: **"System"** — brushed metal, 80% מהפריים, Optical Bloom רך. מתחתיו: "מכירות חכמות. אף ליד לא נופל." | Red overlay: shatters into frosted glass shards that drift away. Behind: "System" text materializes. Bloom: light leaks on edges. | "הכירו את System." |
+| 0:12–0:14 | 360–420 | **ה-overlay האדום "מתפוצץ לשברים"** (glass shatter). מאחוריו: **"מכונת מכירה"** — brushed metal, 80% מהפריים, Optical Bloom רך. מתחתיו: "היא רודפת. אתה סוגר." | Red overlay: shatters. "מכונת מכירה" text materializes. Bloom: light leaks. | "הכירו את מכונת המכירה שלכם." |
 | 0:14–0:17 | 420–510 | **Match cut:** שברי הזכוכית "מתגבשים" לתוך **טלפון חדש** ב-low angle. UI נקי: רשימת לידים מדורגת. **הלידים מתממשים מתוך blur** — כל אחד "מתגבש" עם ציון AI: ****ציון גבוה** (ירוק, bloom) / בינוני / נמוך / נמוך. פוקוס חד רק על הליד העליון. | Glass shards morph into phone frame. Lead list: each lead materializes from blur→sharp. AI scores: appear as frosted badges, top lead = sharp focus + green bloom. Others: bokeh gradient. | "AI מדרג כל ליד. ציון 0 עד 100. אתה תמיד יודע על מי לשים דגש." |
-| 0:17–0:20 | 510–600 | **Rack focus:** מהליד → ל-**AI Insight card** שמתממש מ-transparency. Frosted glass, refraction: "רונית כץ · ציון גבוה · שלח הצעה מותאמת עכשיו." כפתור "שלח" עם Optical Bloom רך. **אין אייקון מוח — רק נתון חד ופעולה.** | Rack focus: list→insight card. Card: materialize from transparent to frosted glass. Refraction affects background. Action button: subtle optical bloom. | "ה-AI אומר: 'רונית — ציון גבוה. שלח הצעה.' אתה רק לוחץ." |
+| 0:17–0:20 | 510–600 | **Rack focus:** מהליד → ל-**AI Insight card**. Frosted glass: "רונית כץ · 87% סיכוי לסגירה · שלח הצעה עכשיו." כפתור "שלח" עם Optical Bloom רך. | Rack focus: list→insight card. Card: materialize. Action button: optical bloom. | "ה-AI אומר: 'רונית — 87 אחוז לסגור. שלח הצעה.' בלי ניחושים." |
 | 0:20–0:22 | 600–660 | **Macro push-in** לכפתור "שלח הצעה". **Click.** כפתור transforms: "שלח" → V ירוק + "נשלח!" Bloom ירוק מהכפתור מטיל Light Leak על ה-card. | Macro: camera into button. Click: scale 0.97→1.0. Transform: text→checkmark. Green bloom: affects surrounding card via light leak. | "לחיצה. הצעה מותאמת — בדרך לרונית." |
 | 0:22–0:25 | 660–750 | **Camera pulls back** — חושף **Pipeline Dashboard** מעל הטלפון. 4 עמודות (ליד חדש / בטיפול / הצעה / סגירה) — כל עמודה frosted glass עם מספרים ב-Slot Machine Roll. "₪340K בצנרת" ננעל בנחיתה רכה. | Dolly out. Pipeline: frosted glass columns. Numbers: slot machine roll with motion blur → lock. Columns: depth-stacked with DoF (front sharp, back soft). | "Pipeline. כמה כסף בצנרת, מה צריך לעשות היום, מי הליד הבא. הכל פה." |
 
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"אף ליד לא נופל. אתה סוגר."** — brushed metal, 80% frame. Bloom. Camera still. | "אף ליד לא נופל. אתה סוגר." |
+| 0:53–0:57 | **"שהעסק יעבוד בשבילך. תמיד."** — brushed metal, 80% frame. Bloom. Camera still. | "שהעסק יעבוד בשבילך. תמיד." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. Dark matte bg + noise. | "misrad-ai.com" |
 
 ---

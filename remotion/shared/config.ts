@@ -13,27 +13,42 @@ export const { fontFamily: RUBIK } = loadRubik('normal', {
 
 // ─── Brand Colors ────────────────────────────────────────
 export const BRAND = {
-  primary: '#A21D3C',
-  primaryGlow: '#881337',
-  primaryDark: '#4C0519',
-  primaryAlpha: 'rgba(162, 29, 60, 0.4)',
+  primary: '#6366F1', // Indigo - דוגרי, נקי, פרימיום
+  primaryGlow: '#4F46E5',
+  primaryDark: '#312E81',
+  primaryAlpha: 'rgba(99, 102, 241, 0.2)',
 
-  indigo: '#3730A3',
-  indigoLight: '#6366F1',
-  indigoAlpha: 'rgba(55, 48, 163, 0.35)',
+  indigo: '#4338CA',
+  indigoLight: '#818CF8',
+  indigoAlpha: 'rgba(67, 56, 202, 0.3)',
 
-  gradient: 'linear-gradient(135deg, #A21D3C 0%, #3730A3 100%)',
+  gradient: 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)',
 
-  white: '#FAFAFA',
-  muted: '#94A3B8',
+  white: '#FFFFFF',
+  muted: '#64748B',
 
-  bgDark: '#09090B',
-  surfaceDark: '#18181B',
-  surfaceDark2: '#27272A',
+  bgDark: '#020617', // Slate 950 - עומק אמיתי
+  surfaceDark: '#0F172A',
+  surfaceDark2: '#1E293B',
 
   bgLight: '#F8FAFC',
   surfaceLight: '#F1F5F9',
-  surfaceGlass: 'rgba(255, 255, 255, 0.65)',
+  surfaceGlass: 'rgba(255, 255, 255, 0.03)',
+} as const;
+
+// ─── Hierarchy & Spacing (The "No-Fadicha" Rules) ──────────
+export const HIERARCHY = {
+  h1: { size: 96, weight: '900', letterSpacing: '-0.02em' },
+  h2: { size: 72, weight: '800', letterSpacing: '-0.01em' },
+  h3: { size: 48, weight: '700', letterSpacing: '0' },
+  body: { size: 32, weight: '600', lineHeight: 1.4 },
+  label: { size: 24, weight: '700', textTransform: 'uppercase' as const },
+} as const;
+
+export const SAFE_ZONES = {
+  top: 180,
+  bottom: 300,
+  sides: 80,
 } as const;
 
 // ─── Module Colors ───────────────────────────────────────

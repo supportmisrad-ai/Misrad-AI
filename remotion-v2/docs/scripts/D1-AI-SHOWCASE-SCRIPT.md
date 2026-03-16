@@ -16,7 +16,7 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:00–0:01.5 | 0–45 | **רקע כהה מט עם noise grain.** מסך UI מלא כאוס: טקסטים מטושטשים, מספרים רצים, שורות רועדות, הכל out-of-focus. מצלמה ב-Dutch angle 3°. **צליל של רעש לבן דחוס.** | UI chaos: blurred text fragments drifting, numbers cycling rapidly, rows jittering. Camera: slow pull-back. Audio: compressed white noise. | (SFX: compressed static — tension) |
-| 0:01.5–0:03 | 45–90 | **רגע אחד של דממה מוחלטת.** ואז — **כל הכאוס מתגבש בפריים אחד** לטבלה נקייה, חדה, עם Glassmorphism ו-Optical Bloom רך. **טקסט Extra Bold, 80% מהפריים, טקסטורת מתכת מוברשת:** **"AI."** | Snap: all chaos elements → rack focus → crystallize into clean table. One-frame cut to sharp. "AI" text: materialization from blur, brushed metal texture. | (SFX: single deep bass hit + silence) "AI." |
+| 0:01.5–0:03 | 45–90 | **הכאוס מתגבש בפריים אחד.** הכל הופך לשורה חדה אחת: **"ה-AI שעובד אצלך. נקודה."** — brushed metal, 80% מהפריים. | Snap: chaos to order. Text: materialize brushed metal. Camera: holds. | "ה-AI שעובד אצלך. נקודה." |
 
 ---
 
@@ -32,14 +32,14 @@
 
 ---
 
-## סצנה 3: AI CAPABILITY 2 — "מנתחת" [0:14–0:25]
+## סצנה 3: AI CAPABILITY 2 — "ביצוע" [0:14–0:25]
 **פריימים: 420–750**
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:14–0:16 | 420–480 | **"מנתחת"** — Same treatment: brushed metal, 70% of frame. Bloom. Rack focus from previous scene. | Text: materialize from blur. Rack focus transition from previous. | "מנתחת." |
+| 0:14–0:16 | 420–480 | **"ביצוע"** — Same treatment: brushed metal, 70% of frame. Bloom. Rack focus from previous scene. | Text: materialize from blur. Rack focus transition from previous. | "ביצוע." |
 | 0:16–0:19 | 480–570 | **Dashboard תובנות — מצלמה ב-low angle עם DoF.** 4 insights מתממשים אחד-אחד מתוך שקיפות (לא slide-in). כל card = frosted glass עם colored accent bloom: (1) "יוסי — עומס +40%" (2) "סגירות ירדו 15%" (3) "שרה — 30 ימים בלי קשר. שלח תזכורת" (4) "חובות מסוכנים — 3 לקוחות באיחור". פוקוס חד רק על אחד — השאר בבוקה. | Cards: materialize from transparency, 15 frames each. Camera: rack focus shifts between cards. Each card: frosted glass + accent color bloom affecting nearby elements. Only one in sharp focus at a time. | "עומסי צוות. סיכוני לקוחות. רווחיות. חובות. ה-AI רואה מה שאתה לא רואה — ומציע פעולה." |
-| 0:19–0:22 | 570–660 | **Dashboard רווחיות — "ניתוח AI".** גרף רווחיות עם grain texture. **3 frosted badges:** "חובות מסוכנים" (red bloom) / "שינויי תמחור" (אמבר bloom) / "מגמות" (green bloom). | Dashboard: grainy textured bars. Badges: frosted glass, materialize. Each: accent bloom. | "AI מזהה חובות מסוכנים. מנתח רווחיות. מציע שינויי תמחור." |
+| 0:19–0:22 | 570–660 | **Dashboard רווחיות — "תובנות AI".** גרף רווחיות עם grain texture. **3 frosted badges:** "חובות מסוכנים" (red bloom) / "שינויי תמחור" (אמבר bloom) / "מגמות" (green bloom). | Dashboard: grainy textured bars. Badges: frosted glass, materialize. Each: accent bloom. | "AI מזהה חובות מסוכנים. תובנות רווחיות. מציע שינויי תמחור." |
 | 0:22–0:25 | 660–750 | **Heatmap — "מתי לחייג?"** Grid שעות × ימים. Cells מתמלאים אחד-אחד — ירוק כהה (טוב) עד אדום כהה (רע). **Macro push-in** לתוך cell הכי ירוק: "יום ג' 10:00". ה-cell זוהר ב-Bloom פיזיקלי שמשפיע על cells סמוכים. | Heatmap: cells fill with grain-textured colors, one-by-one rapid. Macro: camera pushes into brightest cell. Bloom: light affects adjacent cells physically (not flat glow). | "מתי הכי טוב להתקשר? ה-AI כבר חישב. יום שלישי. 10 בבוקר. תתקשר." |
 
 ---
@@ -63,8 +63,8 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:38–0:42 | 1140–1260 | **6 frosted glass cards צפים במרחב 3D** — כל card = מודול בצבע שלו עם label AI: System: "דירוג" / Nexus: "הקצאות" / Social: "תוכן AI" / Client: "Health Score" / Finance: "חשבוניות" / Operations: "סיכום קולי". **מצלמה טסה ביניהם ב-dolly smooth** עם DoF — כל פעם card אחר בפוקוס. **במרכז: לוגו MISRAD AI מרחף** עם refraction דרך ה-cards. | 3D space: cards float with 150px diffusion shadows. Camera: smooth dolly between cards, rack focus on each. Logo center: refraction through glass cards. Grain texture on everything. | "AI בכל מודול. דירוג. הקצאות. תוכן. Health Score. חשבוניות. סיכום קולי." |
-| 0:42–0:45 | 1260–1350 | **3 נתונים — Slot Machine Roll:** "10,000+ החלטות/יום" / "0.3 שניות תגובה" / "עברית ברמת ה-DNA". כל מספר = ספרות מסתובבות במהירות עם Motion Blur, ננעלות בנחיתה רכה (overshoot). טקסטורת מתכת. | Numbers: slot machine roll, each locks 10 frames apart. Metal texture on digits. Optical bloom on final number. | "10 אלף החלטות ביום. 0.3 שניות. ועברית — ברמת ה-DNA." |
-| 0:45–0:48 | 1350–1440 | **Brand gradient עם noise 2%.** **"AI כשר. יודע מתי לפעול. יודע מתי לעצור."** Badges frosted glass: "שליטה קולית בעברית" / "שומר שבת" / "מבין חגים ומועדים". | Gradient transition (not flat). Text: large materialize. Badges: frosted glass materialize with refraction. | "AI כשר. יודע מתי לפעול. יודע מתי לעצור. מכבד את השבת שלך." |
+| 0:42–0:45 | 1260–1350 | **3 נתונים — Slot Machine Roll:** "10,000+ פעולות/יום" / "0.3 שניות תגובה" / "עברית ברמת ה-DNA". כל מספר = ספרות מסתובבות במהירות עם Motion Blur, ננעלות בנחיתה רכה (overshoot). טקסטורת מתכת. | Numbers: slot machine roll, each locks 10 frames apart. Metal texture on digits. Optical bloom on final number. | "10 אלף פעולות ביום. 0.3 שניות. ועברית — ברמת ה-DNA." |
+| 0:45–0:48 | 1350–1440 | **Brand gradient עם noise 2%.** **"AI כשר. פועל כשצריך. עוצר כשצריך."** Badges frosted glass: "שליטה קולית בעברית" / "שומר שבת" / "מבין חגים ומועדים". | Gradient transition (not flat). Text: large materialize. Badges: frosted glass materialize with refraction. | "AI כשר. פועל כשצריך. עוצר כשצריך. מכבד את השבת שלך." |
 
 ---
 
@@ -72,7 +72,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:48–0:53 | **"מבינה. מנתחת. עושה."** — 3 מילים, כל אחת מתממשת מ-blur + Bloom, בזו אחר זו, גדלות. הפריים האחרון = "עושה" ב-90% מהמסך. | "מבינה. מנתחת. עושה." |
+| 0:48–0:53 | **"הסוף לבלגן. תתחיל לעבוד."** — 3 מילים, כל אחת מתממשת מ-blur + Bloom. הפריים האחרון = "לעבוד" ב-90% מהמסך. | "הסוף לבלגן. תתחיל לעבוד." |
 | 0:53–0:57 | **"MISRAD AI — טכנולוגיה שיודעת מתי לפעול ומתי לעצור."** מתכת מוברשת על רקע כהה מט. | "MISRAD AI. טכנולוגיה שיודעת מתי לפעול — ומתי לעצור." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 
@@ -81,7 +81,7 @@
 ## שוני מ-C3:
 1. **C3 = hands-on UI walkthrough.** **D1 = narrative arc — chaos→understanding→action**
 2. **אפס מוחות/נוירונים.** AI = תגובתיות UI — blur→crystallize, materialize, rack focus
-3. **3-act structure: מבינה→מנתחת→עושה** (escalating scale per word)
+3. **3-act structure: מבינה→מבצעת→עושה** (escalating scale per word)
 4. **Heatmap + line chart** — data visualizations, not metaphors
 5. **4 rapid actions** — badge transforms, match cuts, not sequential "trigger→result"
 6. **Floating 3D glass cards** — not hexagon with arrows

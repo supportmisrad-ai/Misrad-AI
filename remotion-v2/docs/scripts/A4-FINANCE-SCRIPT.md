@@ -1,9 +1,9 @@
-# A4 — Finance (כספים) | תסריט שנייה-שנייה v2
+# A4 — גבייה וכסף | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **צבע מוביל:** `#059669` (Emerald) + dark matte
-> **קהל יעד:** בעלי עסקים, CFOs, עצמאיים שמנהלים כספים לבד
-> **מטרה:** להראות שניהול כספי יכול להיות פשוט — חשבוניות, הוצאות, תזרים, דוחות
+> **קהל יעד:** בעלי עסקים שנמאס להם לרדוף אחרי כסף
+> **מטרה:** להראות שגבייה יכולה להיות אוטומטית, שקטה ותכלס
 > **רקע:** Dark matte (כסף = רצינות, יוקרה) + emerald accents
 > **⚠ פרוטוקול:** אפס מונה כסף מ-0, אפס דפי נייר נערמים, אפס split screen, אפס stagger cards. Macro + frosted glass + rack focus.
 
@@ -35,11 +35,11 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית ירוקים.** מאחוריו: **"Finance"** — brushed emerald metal, 80% מהפריים, Optical Bloom ירוק רך. מתחתיו: "שליטה כספית. אף שקל לא נעלם." | Red overlay: shatters to emerald glass shards. "Finance": materializes, brushed emerald, bloom light leaks. | "הכירו את Finance." |
+| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית ירוקים.** מאחוריו: **"גבייה וכסף"** — brushed emerald metal, 80% מהפריים, Optical Bloom ירוק רך. מתחתיו: "שהכסף ירדוף אחריך." | Frosted overlay: shatters. "גבייה וכסף": materializes, brushed emerald, bloom. | "הכירו את הדרך החדשה לגבות כסף. בלי לרדוף אחרי אף אחד." |
 | 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לטלפון, low angle. **UI חשבוניות נקי.** כל חשבונית מתממשת מ-blur עם סטטוס frosted badge: ירוק "שולם" (bloom) / צהוב "ממתין" / אדום "באיחור". **פוקוס חד רק על סיכום:** "₪47,200 שולם · ₪23,400 ממתין" — Slot Machine Roll, ננעל. | Shards→phone. Invoice list: each materializes from blur. Status badges: frosted glass, colored bloom. Summary numbers: slot machine roll → lock. DoF: summary sharp, list soft. | "חשבוניות מסודרות. סטטוס חי. כמה נכנס, כמה ממתין — Slot Machine Roll שננעל." |
 | 0:17–0:20 | 510–600 | **Macro push-in** לכפתור **"שלח בוואטסאפ"**. **Click.** כפתור transforms → WhatsApp icon מתממש (frosted glass) → **Badge:** "נשלח ללקוח · V" ירוק + Bloom. **Camera follows** the WhatsApp icon path — dolly along the bezier. | Macro: into button. Click: scale 0.97→1.0. WA icon: materializes frosted, follows bezier. Badge: green V materialize with bloom. Camera: tracks the icon flight. | "שליחת חשבונית — לחיצה. בוואטסאפ. הלקוח מקבל, לוחץ, משלם." |
 | 0:20–0:23 | 600–690 | **Rack focus** מהWhatsApp → ל-**Cash flow dashboard.** גרף: הכנסות (emerald, grain stroke) מול הוצאות (red, grain stroke). ברגע שהקו מגיע להיום — **Morning אינטגרציה** badge עם Bloom. **"חשבונית ירוקה"** Slot Machine Roll. | Rack focus: WA→dashboard. Integration badge: materializes frosted + bloom. Number: slot machine roll → lock. | "אינטגרציה מלאה עם Morning — חשבוניות מס רשמיות. מתוך המערכת. בלי חלון נפרד." |
-| 0:23–0:25 | 690–750 | **Camera pulls back** — dashboard מלא: חשבוניות + הוצאות + תזרים. **"תמונה כספית. שקל-שקל."** — materialize, brushed metal. | Dolly out. Full dashboard: depth layers. Text: materialize from blur. | "תמונה כספית. שקל-שקל. במקום אחד." |
+| 0:23–0:25 | 690–750 | **Camera pulls back** — dashboard מלא: חובות שנסגרו + הוצאות + רווחיות תכלס. **"הכסף בבנק. ראש שקט."** — materialize, brushed metal. | Dolly out. Full dashboard. Text: materialize. | "הכסף בבנק. ראש שקט. בלי להיות האיש הרע." |
 
 ---
 

@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** השברים **מתגבשים לצורת הקסגון** — 6 צלעות, כל אחת בצבע מודול. במרכז: **לוגו MISRAD AI** — Bloom. **"הכל כלול"** — brushed brand metal, 80% frame. **"₪499/חודש · 5 משתמשים"** — Slot Machine Roll. | Shards: crystallize into hexagon. Each side: module color. Logo: bloom center. Title: materializes. Price: slot machine roll. | "הכל כלול. 6 מודולים. 5 משתמשים. 499 שקל." |
+| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** השברים **מתגבשים להקסגון** — 6 צלעות, כל אחת בצבע כלי אחר. במרכז: **לוגו MISRAD AI** — Bloom. **"האימפריה"** — brushed brand metal, 80% frame. **"₪499/חודש · 5 משתמשים"** — Slot Machine Roll. | Shards crystallize to hexagon. Each side a tool color. Logo: bloom. Title: materializes. Price: slot machine roll. | "חבילת האימפריה. 6 כלים שסוגרים לך פינות. 5 משתמשים. 499 שקל." |
 | 0:13–0:16 | 390–480 | **6 מודולים "נדלקים" ברצף — rack focus מסתובב על ההקסגון.** System (rose bloom) → Nexus (indigo bloom) → Social (purple bloom) → Client (gold bloom) → Finance (emerald bloom) → Operations (sky bloom). **Camera orbits 180°.** | Hexagon: sequential bloom per side. Camera: orbital movement 180°. Rack focus: shifts with each bloom. Labels: materialize per module. | "מכירות. ניהול. שיווק. לקוחות. כספים. תפעול. תחת קורת גג אחת." |
 | 0:16–0:19 | 480–570 | **הקסגון morphs לטלפון** (shape morph — hexagon collapses into phone frame). **Home screen:** 6 module icons מתממשים. **Fingerprint scan** — frosted glass circle, scan line, **V** green bloom. **"כניסה אחת. טביעת אצבע."** | Hexagon→phone morph. Icons: materialize (not stagger pop). Fingerprint: frosted glass + scan + green V bloom. | "כניסה אחת. טביעת אצבע אחת. כל המודולים — מהרגע הראשון." |
 | 0:19–0:22 | 570–660 | **THE 6-STEP MORPH CHAIN — הכי ארוך בסדרה.** Camera follows: ליד (rose) → **morphs** to משימה (indigo) → **morphs** to קמפיין (purple) → **morphs** to תיק לקוח (gold) → **morphs** to חשבונית (emerald) → **morphs** to קריאת שירות (sky). **6 transformations, continuous camera.** | 6-step morph chain. Each: shape+color shift, 10 frames (fast!). Camera: continuous follow, never stops. Bloom per step. | "ליד. משימה. קמפיין. לקוח. חשבונית. שירות. 6 שלבים. מערכת אחת." |
@@ -50,7 +50,7 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:28–0:32 | 840–960 | **6 frosted glass module cards** צפים ב-3D hexagonal orbit — camera dolly ביניהם. **כל card = שם + משפט אחד + mini UI.** Rack focus shifts. | 6 cards: hexagonal orbit in 3D. Camera: dolly through orbit. Rack focus: shifts per card. Each: frosted + mini UI inside. | "Pipeline AI. צוות ומשימות. תוכן וקמפיינים. תיק ו-Health Score. חשבוניות. שטח ו-Kiosk." |
-| 0:32–0:36 | 960–1080 | **3 frosted glass "killer" cards:** "AI בכל מודול" (mini waveform→crystallize) / "שליטה קולית" (mini waveform) / "Kiosk" (mini tablet, low angle). Camera dolly. | 3 killer cards: larger, frosted. Each: mini demo inside. Camera: dolly + rack focus. | "AI בכל מודול. שליטה קולית. Kiosk לעובדים." |
+| 0:32–0:36 | 960–1080 | **3 frosted glass "killer" cards:** "AI בכל מודול" (mini waveform→crystallize) / "פעולות קוליות" (mini waveform) / "Kiosk" (mini tablet, low angle). Camera dolly. | 3 killer cards: larger, frosted. Each: mini demo inside. Camera: dolly + rack focus. | "AI בכל מודול. פעולות קוליות. Kiosk לעובדים." |
 | 0:36–0:40 | 1080–1200 | **"₪39 למשתמש נוסף"** — Slot Machine Roll, brushed brand. ויזואל: **5 frosted glass circles** (כלולים, green bloom) + **3 more** מתממשים (sky, "₪39" ליד כל אחד). **"לא 150. לא 200. 39."** — red numbers מתפוררים, 39 נשאר. | 5 circles: green bloom. 3 more: materialize sky, ₪39 each. 150/200: red, disintegrate. 39: green, holds. | "5 משתמשים כלולים. עוד? 39 שקל. לא 150. לא 200. 39." |
 
 ---
@@ -71,7 +71,7 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:47–0:50 | 1410–1500 | **Brand gradient (full) עם noise 2%.** **"מערכת הפעלה ישראלית."** — brushed metal, enormous, Bloom. | Gradient (not flat). Text: materialize enormous. Bloom. | "מערכת הפעלה ישראלית. לעסק שלך." |
-| 0:50–0:53 | 1500–1590 | **5 frosted glass badges:** "שומר שבת" / "לוח עברי — חגים ומועדים" / "שליטה קולית — עברית" / "Kiosk — לעובדים בשטח" / "טביעת אצבע — כניסה אחת". | Badges: materialize frosted. Rack focus. Brand bloom per badge. | "שומר שבת. לוח עברי. שליטה קולית. Kiosk. טביעת אצבע." |
+| 0:50–0:53 | 1500–1590 | **5 frosted glass badges:** "שומר שבת" / "לוח עברי — חגים ומועדים" / "פעולות קוליות — עברית" / "Kiosk — לעובדים בשטח" / "טביעת אצבע — כניסה אחת". | Badges: materialize frosted. Rack focus. Brand bloom per badge. | "שומר שבת. לוח עברי. פעולות קוליות. Kiosk. טביעת אצבע." |
 
 ---
 
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:55 | **"מערכת אחת. כל העסק. אפס תירוצים."** — brushed brand, 80% frame. Bloom. | "מערכת אחת. כל העסק. אפס תירוצים." |
+| 0:53–0:55 | **"שהעסק יעבוד. עכשיו תורך."** — brushed brand, 80% frame. Bloom. | "שהעסק יעבוד. עכשיו תורך." |
 | 0:55–0:57 | **"₪499/חודש"** — brushed metal + "6 מודולים · 5 משתמשים" | "499 שקל. 6 מודולים. 5 משתמשים." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 

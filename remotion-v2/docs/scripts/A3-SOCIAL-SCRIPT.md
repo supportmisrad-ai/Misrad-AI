@@ -1,9 +1,9 @@
-# A3 — Social (שיווק) | תסריט שנייה-שנייה v2
+# A3 — פרסום ושיווק AI | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **צבע מוביל:** `#7C3AED` (Purple) + dark matte
-> **קהל יעד:** מנהלי סושיאל, יוצרי תוכן, משפיענים, עסקים שמשווקים ברשתות
-> **מטרה:** להראות שהשיווק הדיגיטלי שלך יכול להיות מנוהל, מדיד, ומחובר ל-CRM
+> **קהל יעד:** עסקים שצריכים נוכחות ברשת אבל אין להם זמן ל"התעסקות"
+> **מטרה:** להראות ששיווק יכול לעבוד לבד — מפוסטים שנוצרים ב-AI ועד לידים שנכנסים ל-CRM
 > **רקע:** Dark matte — **הסרטון הכי מהיר ואגרסיבי בסדרה** (social = speed)
 > **⚠ פרוטוקול:** אפס falling cards, אפס typewriter, אפס brain icons, אפס draw animation arrows, אפס diagonal wipes. Rack focus + materialization + physical morph transitions.
 
@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית סגולים.** מאחוריו: **"Social"** — brushed purple metal, 80% מהפריים, Bloom. מתחתיו: "שיווק חכם. כל like הופך לליד." | Overlay: shatters purple. "Social": materializes, brushed metal, bloom. | "הכירו את Social." |
+| 0:12–0:14 | 360–420 | **ה-frosted overlay "מתנפץ" לשברי זכוכית סגולים.** מאחוריו: **"פרסום ושיווק AI"** — brushed purple metal, 80% מהפריים, Bloom. מתחתיו: "מכונת התוכן שלך." | Overlay: shatters purple. "פרסום ושיווק AI": materializes, brushed metal, bloom. | "הכירו את מכונת התוכן שלכם." |
 | 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לטלפון, low angle. **לוח תוכן נקי.** כל פוסט מתממש מ-blur — platform icon (frosted) + כותרת + status badge (ירוק/צהוב/כחול, bloom). **DoF: רק שורה עליונה בפוקוס.** Camera: quick dolly through the list. | Shards→phone. Content board: each post materializes from blur. Status: frosted badges with colored bloom. Camera: fast dolly downward through list. DoF shifts. | "לוח תוכן שרואים בו הכל. מה יוצא. מתי. לאיפה. וכמה זה שווה." |
 | 0:17–0:20 | 510–600 | **THE PHYSICAL TRANSITION — הכי חשוב בסרטון.** Camera stays on **לייק icon** באינסטגרם שמופיע ב-UI. **מישהו לוחץ לייק. ה-icon עושה morph פיזי** → **נהפך לשורת ליד ב-CRM** (System module). **Camera follows the morph** — dolly smooth from Social screen to System screen. **ב-0.5 שנייה — like הפך לליד עם AI score.** | Like icon: click pulse. Shape morph: like→lead row (20 frames). Camera: follows morph, crosses from Social UI to System UI. Lead: materializes with AI score frosted badge. The transition is the product. | "לייק באינסטגרם — ותוך חצי שנייה, שורה חדשה ב-CRM. עם ציון AI. בלי שהקלדת אות." |
 | 0:20–0:23 | 600–690 | **Rack focus** מהליד → ל-**Analytics dashboard.** Frosted glass card: "קמפיין החודש: reach · לידים · עלות לליד". Bar chart עם grain texture — כל bar מתממש. **"עלות/ליד"** ב-Slot Machine Roll. | Rack focus: lead→analytics card. Card: frosted glass. Bar chart: bars materialize (not fill). Number: slot machine roll → lock. | "ו-analytics. "כמה reach, כמה לידים, כמה עולה כל ליד. מספרים, לא ניחושים." |
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"מהתוכן ללקוח. בלי להפסיד אף אחד בדרך."** — brushed purple, 80% frame. Bloom. | "מהתוכן ללקוח. בלי להפסיד אף אחד בדרך." |
+| 0:53–0:57 | **"הפוסטים באוויר. הלידים בדרך. עכשיו תורך."** — brushed purple, 80% frame. Bloom. | "הפוסטים באוויר. הלידים בדרך. עכשיו תורך." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. Dark matte + noise. | "misrad-ai.com" |
 
 ---

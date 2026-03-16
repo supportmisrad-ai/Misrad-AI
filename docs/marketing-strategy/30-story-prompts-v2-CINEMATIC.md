@@ -142,9 +142,9 @@ LAYOUT (safeFill, 0° tilt — clean/flat):
     Below: 6 minimal icons in a row — 5 gray outlines, 1 filled indigo.
     Arrow → "אתה בוחר."
   HEADLINE: Rubik 800 96px #0F172A: "₪149"
-  SUBTITLE: Heebo 52px #475569: "נקסוס בלבד. התחלה חכמה."
+  SUBTITLE: Heebo 52px #475569: "סידור עבודה וצוות. התחלה חכמה."
   Glass card (light variant: rgba(0,0,0,0.03), border slate-200):
-    "משתמש 1 · ניהול צוות ומשימות · גדל איתך"
+    "משתמש 1 · סידור עבודה וצוות · גדל איתך"
   CTA: Dark pill #0F172A, white text "התחל עכשיו" + misrad-ai.com
 ```
 
@@ -575,10 +575,10 @@ LAYOUT (safeFill, 2° tilt):
     "02:17 — תזכורת גבייה נשלחה" + CheckIcon
     "03:45 — דוח שבועי הוכן" + CheckIcon
     "06:00 — סיכום בוקר מוכן" + CheckIcon
-  HEADLINE: gradientText 96px 'warm': "אתה ישן."
-  SUBTITLE: gradientText 52px 'gold': "המערכת ערה."
-  Small 32px rgba white 60%: "AI 24/7 — תזכורות, דוחות, אוטומציות"
-  CTA: subtle indigo gradient "תן ל-AI לעבוד" + misrad-ai.com
+  HEADLINE: gradientText 96px 'warm': "העסק עובד."
+  SUBTITLE: gradientText 52px 'gold': "גם כשאתה נח."
+  Small 32px rgba white 60%: "סגירת פינות אוטומטית — תזכורות, דוחות, סדר"
+  CTA: subtle indigo gradient "בואו נתחיל" + misrad-ai.com
 ```
 
 ---

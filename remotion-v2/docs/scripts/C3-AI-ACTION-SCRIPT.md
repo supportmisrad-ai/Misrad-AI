@@ -9,13 +9,13 @@
 
 ---
 
-## סצנה 1: HOOK — "AI שלא רק מנתח. עושה." [0:00–0:03]
+## סצנה 1: HOOK — "AI שלא רק מציע. עושה." [0:00–0:03]
 **פריימים: 0–90**
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:00–0:01.5 | 0–45 | **רקע כהה מט עם noise grain 2%.** **טלפון frosted glass** במרכז — **5 לידים** בפנים, כולם כאוטיים, overlapping. **Camera: still, macro.** בשנייה: **הלידים מתארגנים מעצמם** — זזים לעמדות, מקבלים ציונים, צבעים. **AI = הסדר שקורה לבד.** | Phone: frosted glass, central. 5 leads: chaotic inside. Then: self-organize, slide into positions, scores appear. Camera: macro, still. AI = invisible force. | (SFX: order emerging — clean, crystalline) |
-| 0:01.5–0:03 | 45–90 | **"AI שלא רק מנתח. עושה."** — brushed purple-brand metal. **"עושה"** = enormous, bloom. | Text: materializes. "עושה": larger, bloom accent. Camera: holds. | "AI שלא רק מנתח. עושה." |
+| 0:01.5–0:03 | 45–90 | **"ה-AI שסוגר פינות."** — brushed purple-brand metal. **"סוגר פינות"** = enormous, bloom. | Text: materializes. "סוגר פינות": larger, bloom. | "ה-AI שסוגר פינות." |
 
 ---
 
@@ -31,12 +31,12 @@
 
 ---
 
-## סצנה 3: AI DEMO 2 — "שליטה קולית" [0:14–0:26]
+## סצנה 3: AI DEMO 2 — "פעולות קוליות" [0:14–0:26]
 **פריימים: 420–780**
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:14–0:16 | 420–480 | **"שליטה קולית"** — frosted badge "Operations" (sky bloom). **Waveform frosted glass** ענק מתממש — 70% frame. **"לחץ ודבר."** Camera: macro. | Title + badge. Waveform: frosted glass, enormous, materializes. Camera: macro. | "שליטה קולית." |
+| 0:14–0:16 | 420–480 | **"פעולות קוליות"** — frosted badge "Operations" (sky bloom). **Waveform frosted glass** ענק מתממש — 70% frame. **"לחץ ודבר."** Camera: macro. | Title + badge. Waveform: frosted glass, enormous, materializes. Camera: macro. | "פעולות קוליות." |
 | 0:16–0:19 | 480–570 | **Waveform activated — frosted glass waves pulse.** Voice demo audio plays. **Waves "מתגבשות" (crystallize) לטקסט:** "הוחלף מסנן מזגן X200. לקוח: דוד כהן. הרצל 15. הלקוח חתם." **לא typewriter! הגלים הופכים לאותיות.** | Waveform: frosted glass pulses. Crystallize: waves→text (physical transformation). Each sentence: waves collapse into letters. | (SFX: voice demo — Hebrew, field technician) |
 | 0:19–0:22 | 570–660 | **AI Summary** מתממש frosted glass — structured fields: "בוצע: החלפת מסנן / חלק: 20×25 / לקוח: דוד כהן / כתובת: הרצל 15 / חתימה: V". **Rack focus** between fields. Each: bloom as focused. | Summary: materializes frosted. Fields: rack focus shifts. Each: bloom when focused. | "AI הבין הכל. מילל. חילץ. סיכם. בלי מילה אחת." |
 | 0:22–0:24 | 660–720 | **AI prompt** materializes frosted: "ליצור חשבונית?" **Tap** → **summary morphs to invoice** (shape morph). **"₪450"** — Slot Machine Roll. **"נשלחה."** — green V bloom. | Prompt: materializes. Tap: summary→invoice morph. Amount: slot machine roll. V: green bloom. | "ליצור חשבונית? כן. 450 שקל. נשלחה. אוטומטית." |
@@ -71,7 +71,7 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:43–0:47 | 1290–1410 | **4-STEP MORPH CHAIN (not infographic circles).** Camera follows: "דירוג" (rose bloom) → **morphs** to "שליטה קולית" (sky bloom) → **morphs** to "תובנות" (indigo bloom) → **morphs** to "חיזוי" (purple bloom). **4 AI capabilities, one continuous transformation.** | 4-step morph chain: rating→voice→insights→prediction. Each: shape+color morph. Camera: follows. Physical, not diagram. | "דירוג. שליטה קולית. תובנות. חיזוי. AI בכל מודול." |
-| 0:47–0:50 | 1410–1500 | **Brand gradient עם noise 2%.** **"AI שמבין עברית."** — brushed metal, Bloom. **3 frosted badges:** "שליטה קולית — עברית שטח" / "שומר שבת — AI נח איתך" / "מנתח ומבצע — לא רק מציע". | Gradient (not flat). Text: materialize. Badges: frosted + refraction. Rack focus. | "AI שמבין עברית. שליטה קולית. שומר שבת." |
+| 0:47–0:50 | 1410–1500 | **Brand gradient עם noise 2%.** **"AI שמבין עברית."** — brushed metal, Bloom. **3 frosted badges:** "פעולות קוליות — עברית שטח" / "שומר שבת — AI נח איתך" / "מבצע — לא רק מציע". | Gradient (not flat). Text: materialize. Badges: frosted + refraction. Rack focus. | "AI שמבין עברית. פעולות קוליות. שומר שבת." |
 | 0:50–0:53 | 1500–1590 | **צללית** (קווי brand, בלי פנים) ליד טלפון — waveform visible on screen. **"אפילו בשטח. אפילו עם כפפות. פשוט מדברים."** — warm materialize. | Silhouette: brand outline, no face, parallax. Phone with waveform. Text: warm materialize. | "אפילו בשטח. אפילו עם כפפות. פשוט מדברים." |
 
 ---
@@ -80,7 +80,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"AI שלא רק חושב. עושה."** — brushed brand, 80% frame. Bloom. **"עושה"** = enormous. | "AI שלא רק חושב. עושה." |
+| 0:53–0:57 | **"ה-AI סוגר את הטכני. עכשיו תורך."** — brushed brand, 80% frame. Bloom. | "ה-AI סוגר את הטכני. עכשיו תורך." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 
 ---

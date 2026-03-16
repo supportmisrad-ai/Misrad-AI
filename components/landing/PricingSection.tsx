@@ -96,7 +96,7 @@ const PACKAGES: {
     { 
       key: 'the_empire', 
       emoji: '👑', 
-      label: 'הכל כלול (האימפריה)', 
+      label: 'הכל כלול (השלם)', 
       who: 'ארגונים שרוצים שהכל יעבוד בתיאום מושלם', 
       price: 499, 
       modules: 'כל 6 המודולים', 

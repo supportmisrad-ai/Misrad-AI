@@ -36,6 +36,10 @@ export const analyzeMeetingTranscript = async (transcript: string): Promise<Meet
       objections: [],
       compliments: [],
       decisions: [],
+      intents: [],
+      stories: [],
+      slang: [],
+      rating: { professionalism: 0, warmth: 0, clarity: 0 },
       agencyTasks: [],
       clientTasks: [],
       liabilityRisks: [],
@@ -43,7 +47,7 @@ export const analyzeMeetingTranscript = async (transcript: string): Promise<Meet
   }
 
   const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!data) return { summary: '', sentimentScore: 0, frictionKeywords: [], objections: [], compliments: [], decisions: [], agencyTasks: [], clientTasks: [], liabilityRisks: [] };
+  if (!data) return { summary: '', sentimentScore: 0, frictionKeywords: [], objections: [], compliments: [], decisions: [], intents: [], stories: [], slang: [], rating: { professionalism: 0, warmth: 0, clarity: 0 }, agencyTasks: [], clientTasks: [], liabilityRisks: [] };
   const nested = (data.data && typeof data.data === 'object' ? data.data : null) as Record<string, unknown> | null;
   return (data.analysis || nested?.analysis || data) as unknown as MeetingAnalysisResult;
 };

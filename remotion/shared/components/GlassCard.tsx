@@ -29,30 +29,29 @@ export const GlassCard: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const entrance = spring({
+  const scale = spring({
     frame: Math.max(0, frame - delay),
     fps,
     config: SPRING.ui,
-    durationInFrames: 20,
   });
 
-  const scaleY = interpolate(entrance, [0, 1], [0.92, 1]);
-  const translateY = interpolate(entrance, [0, 1], [30, 0]);
-  const opacity = interpolate(entrance, [0, 1], [0, 1]);
+  const scaleValue = interpolate(scale, [0, 1], [0.95, 1]);
+  const translateY = interpolate(scale, [0, 1], [40, 0]);
+  const opacity = interpolate(scale, [0, 1], [0, 1]);
 
   const isDark = variant === 'dark';
 
   const bg = isDark
-    ? 'rgba(24, 24, 27, 0.65)'
-    : 'rgba(255, 255, 255, 0.72)';
+    ? 'rgba(15, 23, 42, 0.75)' // Slate 900 base for better contrast
+    : 'rgba(255, 255, 255, 0.85)';
 
   const borderColor = isDark
-    ? 'rgba(255, 255, 255, 0.14)'
-    : 'rgba(0, 0, 0, 0.08)';
+    ? 'rgba(255, 255, 255, 0.12)'
+    : 'rgba(0, 0, 0, 0.04)';
 
   const shadowColor = isDark
-    ? 'rgba(0, 0, 0, 0.4)'
-    : 'rgba(0, 0, 0, 0.06)';
+    ? 'rgba(0, 0, 0, 0.6)'
+    : 'rgba(0, 0, 0, 0.1)';
 
   return (
     <div
@@ -60,36 +59,38 @@ export const GlassCard: React.FC<{
         position: 'relative',
         width,
         height,
-        borderRadius: 28,
+        borderRadius: 32, // Smoother corners
         background: bg,
-        backdropFilter: 'blur(40px)',
-        WebkitBackdropFilter: 'blur(40px)',
-        border: `1px solid ${borderColor}`,
+        backdropFilter: 'blur(60px)', // Deeper blur for premium feel
+        WebkitBackdropFilter: 'blur(60px)',
+        border: `1.5px solid ${borderColor}`, // Slightly thicker border for definition
         boxShadow: [
-          `0 20px 60px ${shadowColor}`,
-          glowColor ? `0 0 40px ${glowColor}30` : '',
+          `0 25px 50px -12px ${shadowColor}`,
+          glowColor ? `0 0 30px ${glowColor}25` : '',
         ]
           .filter(Boolean)
           .join(', '),
-        transform: `translateY(${translateY}px) scaleY(${scaleY})`,
+        transform: `translateY(${translateY}px) scale(${scaleValue})`, // Fix scale logic
         opacity,
         overflow: 'hidden',
+        padding: '40px', // Global default padding for consistency
         ...style,
       }}
     >
-      {/* Directional light — top-left specular highlight */}
+      {/* Real Optical Bloom / Specular Highlight */}
       <div
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
+          top: '-10%',
+          left: '-10%',
+          width: '50%',
           height: '50%',
           background: isDark
-            ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)'
-            : 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, transparent 100%)',
-          borderRadius: '28px 28px 0 0',
+            ? 'radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%)'
+            : 'radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, transparent 70%)',
+          filter: 'blur(40px)',
           pointerEvents: 'none',
+          zIndex: 0,
         }}
       />
 

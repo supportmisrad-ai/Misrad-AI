@@ -49,9 +49,9 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:26–0:30 | 780–900 | **השוואה בלי split screen — sequential.** מצלמה ב-low angle על טלפון. **Badge:** "מתחרה X — שלח 3 מיילים בשבת. לקוח כעס." אדום. **Match cut →** Badge חדש: "MISRAD AI — 0 הפרעות. לקוח נשאר." ירוק-זהב. | First badge: red, materialize. Camera holds. Match cut (not slide) to second badge: gold-green. Same phone, same angle. Clean contrast. | "מתחרה שלח 3 מיילים בשבת. הלקוח כעס. MISRAD AI? אפס הפרעות. הלקוח נשאר." |
-| 0:30–0:33 | 900–990 | **"טכנולוגיה כל כך חכמה — שהיא יודעת מתי לא לפעול."** — brushed gold, 70% מהפריים. DoF heavy. Bloom רך מהטקסט. | Text: large materialize, brushed gold texture. Heavy DoF. Optical bloom from text onto dark background. Camera: still. Let the words land. | "טכנולוגיה כל כך חכמה — שהיא יודעת מתי לא לפעול." |
+| 0:30–0:33 | 900–990 | **"המערכת היחידה שחכמה מספיק — כדי לדעת מתי לעצור."** — brushed gold, 70% מהפריים. DoF heavy. | Text: large materialize. LET THE WORDS LAND. | "המערכת היחידה שחכמה מספיק — כדי לדעת מתי לעצור." |
 | 0:33–0:36 | 990–1080 | **"וזה לא רק לשומרי שבת."** Rack focus → **צללית מינימליסטית** (קווי זהב דקים, בלי פנים) של איש עסקים ליד מסך. **"מערכת שיודעת לנוח — יודעת גם לעבוד חכם."** | Rack focus to silhouette. Figure: gold outline only, no face. Parallax float. Text: warm fade below. | "וזה לא רק לשומרי שבת. מערכת שיודעת לנוח — יודעת גם לעבוד חכם." |
-| 0:36–0:38 | 1080–1140 | **כותרת: "AI כשר."** Pause. **"לא בגלל שהוא מוגבל. בגלל שהוא מבין."** | "AI כשר": large, materialize, brushed gold. 15 frame pause. Second line: warm fade, smaller. | "AI כשר. לא בגלל שהוא מוגבל. בגלל שהוא מבין." |
+| 0:36–0:38 | 1080–1140 | **כותרת: "שומרת שבת."** Pause. **"כי העסק שלך הוא לא עבד."** | "שומרת שבת": large, materialize. Second line: warm fade. | "שומרת שבת. כי העסק שלך הוא לא עבד." |
 
 ---
 

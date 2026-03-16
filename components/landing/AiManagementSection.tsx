@@ -21,7 +21,7 @@ export function AiManagementSection() {
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6 leading-tight">
-            AI שעוזר לך לנהל את העסק חכם יותר
+            AI שסוגר לך פינות חכם יותר
           </h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
             לא עוד עבודה ידנית חוזרת ונשנית. AI חכם שמבין את העסק שלך בעברית טהורה ופועל בשמך
@@ -66,20 +66,20 @@ export function AiManagementSection() {
             </ul>
           </div>
 
-          {/* Feature 3: 24/7 Operations */}
+          {/* Feature 3: Shabbat-Safe Operations */}
           <div className="group bg-gradient-to-br from-white to-slate-50 rounded-2xl p-8 border border-slate-200 hover:border-cyan-300 transition-all duration-300 hover:shadow-xl">
             <div className="mb-6">
               <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-cyan-100 to-cyan-50 rounded-xl group-hover:from-cyan-200 group-hover:to-cyan-100 transition-colors">
                 <Clock className="w-7 h-7 text-cyan-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3">עובד 24/7 בשבילך</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mb-3">סדר ונוחות ביומיום</h3>
             <p className="text-slate-600 mb-4">
-              כשאתה ישן, המערכת ערה. כשאתה בחופשה, העסק ממשיך לעבוד. זמין מכל מכשיר, בכל שעה.
+              המערכת עובדת בשבילך לאורך כל השבוע. זמינה מכל מכשיר, בכל שעה, וסוגרת לך את כל הפינות כדי שתוכל לנוח באמת.
             </p>
             <ul className="space-y-2 text-slate-600 text-sm">
-              <li>✓ גישה מלאה מכל מכשיר 24/7</li>
-              <li>✓ עדכוני אוטומטיים ללקוחות</li>
+              <li>✓ גישה מלאה מכל מכשיר (בימי חול)</li>
+              <li>✓ עדכונים אוטומטיים ללקוחות</li>
               <li>✓ תדריך בוקר חכם עם סדר יום מומלץ</li>
             </ul>
           </div>

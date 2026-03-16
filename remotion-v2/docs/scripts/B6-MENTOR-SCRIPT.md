@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ — שברים זהובים.** מאחוריו: **"יועצים ומאמנים"** — brushed gold metal, 80% frame, Bloom. "כל 6 המודולים" — materialize. **"₪499/חודש"** — Slot Machine Roll. | Overlay: shatters gold. Title: materializes brushed gold. Price: slot machine roll → lock. Bloom. | "חבילת יועצים ומאמנים. כל 6 המודולים. 499 שקל." |
+| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** מאחוריו: **"המוח המלווה"** — brushed gold metal, 80% frame, Bloom. "כל 6 הכלים" — materialize. **"₪499/חודש"** — Slot Machine Roll. | Overlay shatters. Title materializes. Price: slot machine roll. Bloom. | "חבילת המוח המלווה. כל 6 הכלים שסוגרים לך פינות. 499 שקל." |
 | 0:13–0:17 | 390–510 | **"יום בחיים" — MORPH CHAIN, not timeline.** Camera follows: **08:00** AI תזכורת (blue bloom) → **morphs** to **09:00** תיק לקוח פתוח (gold bloom, Health Score 87% Slot Machine Roll) → **morphs** to **11:00** פגישה + תיעוד אוטומטי (green bloom) → **morphs** to **14:00** חשבונית נשלחה (emerald bloom, "₪800" Slot Machine Roll) → **morphs** to **16:00** AI סיכום (brand bloom, "3/3 · ₪2,400" Slot Machine Roll). **5 morphs, continuous.** | "Day in life" morph chain: 5 steps. Each: time+event shape+color morph. Camera: continuous follow. Numbers: slot machine roll. | "8 — AI מזכיר. 9 — תיק לקוח פתוח. 11 — פגישה ותיעוד. 2 — חשבונית. 4 — סיכום יום: 3 פגישות, 2,400 שקל." |
 | 0:17–0:20 | 510–600 | **HEALTH SCORE MACRO.** Camera push-in לרשימת לקוחות: **12 bars frosted glass.** 8 green bloom, 3 yellow, 1 red. **Rack focus on red:** "רמי · Health Score 31% · לא הגיע" — Slot Machine Roll. **AI badge** מתממש frosted: "שלח הודעה אישית." | Client list: 12 frosted bars. Camera: macro push-in to red. Score: slot machine roll → lock red. AI badge: materialize frosted. | "12 לקוחות. 8 בירוק. רמי? 31 אחוז. AI אומר — שלח הודעה." |
 | 0:20–0:23 | 600–690 | **Rack focus** מ-Health Score → ל-**Finance connection.** Client badge → **morphs** to חשבונית (shape morph). **"שולם"** — green V bloom. Refraction path: Client→Finance. | Rack focus: Client→Finance. Badge morph: client→invoice. Green V bloom. Refraction path. | "תיק לקוח. חשבונית. תשלום. הכל מחובר. אוטומטי." |
@@ -78,7 +78,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:55 | **"אמן אחרים. תן למערכת לנהל."** — brushed gold, 80% frame. Bloom. | "אמן אחרים. תן למערכת לנהל." |
+| 0:53–0:55 | **"תפסיק להתעסק בטכני. תתחיל לעבוד באמת."** — brushed gold, 80% frame. Bloom. | "תפסיק להתעסק בטכני. תתחיל לעבוד באמת." |
 | 0:55–0:57 | **"₪499/חודש"** — brushed gold + "6 מודולים · 5 משתמשים" | "499 שקל. 6 מודולים." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 

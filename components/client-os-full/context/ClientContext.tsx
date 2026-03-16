@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { Client, Meeting, Email, Notification, ClientStatus, SuccessGoal, ClientAction, ClientAsset } from '../types';
+import type { Meeting as PortalMeeting } from '@/components/client-portal/types';
 import {
   createDeliverable,
   getClientOSClients,
@@ -13,7 +14,7 @@ import { createClinicTask } from '@/app/actions/client-clinic';
 
 interface ClientContextType {
   clients: Client[];
-  meetings: Meeting[];
+  meetings: PortalMeeting[];
   emails: Email[];
   notifications: Notification[];
   refreshClients: () => Promise<void>;
@@ -46,7 +47,7 @@ type ClientProviderProps = {
   children: ReactNode;
   initialOrgId?: string | null;
   initialClients?: Client[];
-  initialMeetings?: Meeting[];
+  initialMeetings?: PortalMeeting[];
 };
 
 export const ClientProvider: React.FC<ClientProviderProps> = ({
@@ -58,7 +59,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
   const hasInitialData = Array.isArray(initialClients) || Array.isArray(initialMeetings);
 
   const [clients, setClients] = useState<Client[]>(Array.isArray(initialClients) ? initialClients : []);
-  const [meetings, setMeetings] = useState<Meeting[]>(Array.isArray(initialMeetings) ? initialMeetings : []);
+  const [meetings, setMeetings] = useState<PortalMeeting[]>(Array.isArray(initialMeetings) ? initialMeetings : []);
   const [emails, setEmails] = useState<Email[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(!hasInitialData);
@@ -116,7 +117,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
         const allSessions = await Promise.all(
           realClients.map((client) => getClientOSSessions(orgId, client.id))
         );
-        setMeetings(allSessions.flat());
+        setMeetings(allSessions.flat() as PortalMeeting[]);
       }
     } catch (error: unknown) {
       console.error('[ClientOS] error refreshing clients', {
@@ -172,7 +173,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
             const allSessions = await Promise.all(
               realClients.map((client) => getClientOSSessions(orgId, client.id))
             );
-            setMeetings(allSessions.flat());
+            setMeetings(allSessions.flat() as PortalMeeting[]);
 
             console.debug('[ClientOS] data loaded successfully', {
               clientsCount: clientsWithData.length,
@@ -216,7 +217,7 @@ export const ClientProvider: React.FC<ClientProviderProps> = ({
     setClients(prev => prev.map(c => c.id === id ? { ...c, healthScore: score } : c));
   };
 
-  const addMeeting = (meeting: Meeting) => {
+  const addMeeting = (meeting: PortalMeeting) => {
     setMeetings(prev => [meeting, ...prev]);
   };
 

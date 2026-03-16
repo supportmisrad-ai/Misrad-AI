@@ -28,16 +28,16 @@ export function LandingHeroSection() {
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight text-center lg:text-right">
-              <span className="text-slate-900">תפסיקו "להתעסק" בעסק,</span>
-              <span className="block mt-2 text-slate-900">תתחילו להנהיג אותו.</span>
+              <span className="text-slate-900">שהעסק יעבוד בשבילך,</span>
+              <span className="block mt-2 text-slate-900">לא אתה בשבילו.</span>
               <span className="block mt-3 text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 via-purple-700 to-rose-700 drop-shadow-sm">
-                ה-AI סוגר את הטכני. עכשיו תורך להחליט.
+                ה-AI סוגר את הטכני. עכשיו תורך.
               </span>
             </h1>
 
             <p className="mt-5 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-xl leading-relaxed text-center lg:text-right mx-auto lg:mx-0">
-              בינה ניהולית שמשחררת אותך מהעבודה השחורה ומציפה לך רק את ההחלטות שבאמת מכניסות כסף.
-              <span className="font-semibold text-slate-700"> — אפס בריחה לטבלאות. רק מנהיגות.</span>
+              כלי עבודה שמשחרר אותך מהעבודה השחורה ומציפה לך רק את מה שבאמת מכניס כסף.
+              <span className="font-semibold text-slate-700"> — אפס בריחה לטבלאות. פשוט עבודה.</span>
             </p>
 
             {/* Real Benefits */}

@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord, ServicePlan } from '../types';
+import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord, ServicePlan } from '../types';
+import type { Meeting as PortalMeeting } from '@/components/client-portal/types';
 import { generateClientInsight } from '../services/geminiService';
 import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe, FileUp } from 'lucide-react';
 import SmartImportClientsDialog from '@/components/client-os-full/SmartImportClientsDialog';
@@ -62,7 +63,7 @@ const ClientView: React.FC = () => {
   const [refundData, setRefundData] = useState({ amount: '', reason: '' });
 
   const client = clients.find(c => c.id === selectedClientId);
-  const [clientMeetings, setClientMeetings] = useState<Meeting[]>([]);
+  const [clientMeetings, setClientMeetings] = useState<PortalMeeting[]>([]);
   const [servicePlans, setServicePlans] = useState<ServicePlan[]>([]);
 
   // Sync data

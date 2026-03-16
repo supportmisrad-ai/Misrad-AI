@@ -56,7 +56,7 @@ export const PERMISSIONS_LIST: { id: PermissionId; label: string; desc: string }
     { id: 'manage_team', label: 'סידור עבודה וצוות', desc: 'הוספה והסרה של משתמשים, דוחות נוכחות' },
     { id: 'manage_system', label: 'הגדרות מערכת', desc: 'עריכת תהליכים, תפקידים ואינטגרציות (Admin)' },
     { id: 'delete_data', label: 'מחיקת מידע', desc: 'מחיקה לצמיתות של משימות, לקוחות וקבצים' },
-    { id: 'view_intelligence', label: 'גישה ל-AI', desc: 'שימוש בניתוחי Nexus Brain מתקדמים' },
+    { id: 'view_intelligence', label: 'גישה ל-AI', desc: 'שימוש בניתוחי דאטה מתקדמים' },
     { id: 'view_crm', label: 'מכונות מכירה (CRM)', desc: 'רדיפה אחרי לידים וסגירת עסקאות' },
     { id: 'view_assets', label: 'גישה לנכסים', desc: 'צפייה בקבצים, סיסמאות וארכיון מסמכים' },
 ];

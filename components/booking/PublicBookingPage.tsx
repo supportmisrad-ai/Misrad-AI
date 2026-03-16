@@ -328,7 +328,7 @@ export function PublicBookingPage({
             date={selectedDate}
             slot={selectedSlot}
             provider={provider}
-            locationType={link.locationType}
+            locationType={link.locationType as BookingLocationType}
             locationDetails={link.locationDetails}
             pdfUrl={bookedPdfUrl}
           />

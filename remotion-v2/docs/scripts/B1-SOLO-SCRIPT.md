@@ -1,11 +1,11 @@
-# B1 — Solo (מודול בודד) | תסריט שנייה-שנייה v2
+# B1 — סידור עבודה (Solo) | תסריט שנייה-שנייה v2
 
-> **אורך:** 60 שניות | **מחיר:** ₪149/חודש | **מודולים:** 1 לבחירה | **משתמשים:** 1
+> **אורך:** 60 שניות | **מחיר:** ₪149/חודש | **כלים:** 1 לבחירה | **משתמשים:** 1
 > **צבע מוביל:** Brand gradient `#A21D3C → #3730A3`
-> **קהל יעד:** פרילנסרים, עצמאיים, עסקים קטנים, צוותים בתחילת הדרך
+> **קהל יעד:** מי שרוצה להפסיק את הבלגן ולהתחיל לעבוד באמת
 > **מטרה:** להראות שאפשר להתחיל קטן ולגדול חכם — מודול אחד, תוצאות מיידיות
 > **רקע:** Warm light + brand accents (נקי, premium, לא מאיים)
-> **⚠ פרוטוקול:** אפס app grid, אפס falling icons, אפס counters מ-0, אפס split comparison, אפס draw arrows, אפס דמויות עם פנים. Pricing = "הצעד הראשון לאימפריה", not "הכי זול".
+> **⚠ פרוטוקול:** אפס app grid, אפס falling icons, אפס counters מ-0, אפס split comparison, אפס draw arrows, אפס דמויות עם פנים. Pricing = "הצעד הראשון לסדר", not "הכי זול".
 
 ---
 
@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:12 | 300–360 | **Frosted overlay מתנפץ לשברי זכוכית צבעוניים (brand gradient).** מאחוריו: **"מודול בודד"** — brushed brand metal, 80% frame, Bloom. מתחתיו: **"₪149/חודש"** — Slot Machine Roll ננעל. | Overlay: shatters brand gradient. Title: materializes. Price: slot machine roll → lock. Bloom. | "מודול בודד. 149 שקל." |
+| 0:10–0:12 | 300–360 | **Frosted overlay מתנפץ לשברי זכוכית צבעוניים (brand gradient).** מאחוריו: **"סידור עבודה"** — brushed brand metal, 80% frame, Bloom. מתחתיו: **"₪149/חודש"** — Slot Machine Roll ננעל. | Overlay: shatters brand gradient. Title: materializes. Price: slot machine roll → lock. Bloom. | "סידור עבודה וצוות. 149 שקל." |
 | 0:12–0:16 | 360–480 | **5 frosted glass module cards** צפים ב-3D space. Camera dolly ביניהם — **rack focus on each:** System (rose) → Social (purple) → Client (gold) → Operations (sky) → Nexus (indigo). **אחד "נבחר" — frosted glass שלו מתבהר, glow, שאר ה-cards נעלמים בבוקה.** | 5 module cards: 3D float. Camera: dolly + rack focus per card. Selection: one card brightens, others fade to bokeh. Physics: selected card floats forward. | "מכירות? שיווק? לקוחות? תפעול? ניהול? בוחרים אחד. מתחילים." |
 | 0:16–0:19 | 480–570 | **Selected card morphs לטלפון** (shape morph, not zoom). **UI מתממש בפנים:** System pipeline, ציוני AI. **ליד מקבל ציון "87%"** — Slot Machine Roll. Frosted AI badge bloom. | Card: shape morph → phone frame. UI: materializes inside. Score: slot machine roll → lock. AI badge: frosted bloom. | "מערכת מלאה מהרגע הראשון. UI מקצועי. AI מובנה. ציון 87 — הליד הזה שווה." |
 | 0:19–0:22 | 570–660 | **Camera pulls back.** ליד הטלפון — **2nd module card מתממש מ-transparency.** Light refraction path מהטלפון ל-card החדש. **"כשתרצה לגדול — לחיצה. בלי לעבור מערכת."** | Dolly out. 2nd card: materializes from transparency. Refraction path: phone→new card (connection). Text: materialize. | "וכשתרצה לגדול? מוסיפים מודול. לחיצה. בלי לעבור מערכת. בלי להתחיל מחדש." |
@@ -49,7 +49,7 @@
 |-------|---------|----------|---------|---------|
 | 0:22–0:26 | 660–780 | **4 frosted glass badges ב-3D space:** "AI מובנה — בכל מודול" / "עברית ברמת DNA" / "גישה מהנייד — כל מקום" / "7 ימי ניסיון — בלי כרטיס אשראי". Camera dolly + rack focus. | Badges: 3D float, frosted glass. Camera: dolly, rack focus shifts. Bloom accent per badge. | "AI מובנה. עברית DNA. גישה מכל מקום. 7 ימי ניסיון — בלי כרטיס אשראי." |
 | 0:26–0:30 | 780–900 | **3 frosted glass phone frames ב-3D** — System (pipeline) / Social (לוח תוכן) / Operations (קריאות). **Camera dolly ביניהם, rack focus shifts.** כל מסך = mini UI חי בפנים. | 3 phones: 3D space, different depths. Camera: dolly through, rack focus. Each: frosted frame + live mini UI. | "System — pipeline מכירות. Social — לוח תוכן. Operations — קריאות שירות." |
-| 0:30–0:35 | 900–1050 | **"₪149"** — brushed brand metal, enormous, 80% frame, Bloom. מתחתיו: **"הצעד הראשון לאימפריה שלך."** ואז: **2 frosted badges:** "גדלת? מוסיפים מודולים" / "כל הנתונים נשארים". | Price: materializes enormous, bloom. Sub-text: materializes warm. Badges: frosted, materialize. | "149 שקל. הצעד הראשון לאימפריה שלך. גדלת? מוסיפים מודולים. הנתונים נשארים." |
+| 0:30–0:35 | 900–1050 | **"₪149"** — brushed brand metal, enormous, 80% frame, Bloom. מתחתיו: **"הצעד הראשון לסדר שלך."** ואז: **2 frosted badges:** "גדלת? מוסיפים מודולים" / "כל הנתונים נשארים". | Price: materializes enormous, bloom. Sub-text: materializes warm. Badges: frosted, materialize. | "149 שקל. הצעד הראשון לסדר שלך. גדלת? מוסיפים מודולים. הנתונים נשארים." |
 
 ---
 
@@ -68,8 +68,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:43–0:47 | 1290–1410 | **Brand gradient עם noise 2%.** **"מערכת ישראלית. בנויה בשבילך."** — brushed metal, Bloom. | Gradient (not flat). Text: materialize. Bloom. | "מערכת ישראלית. בנויה בשבילך." |
-| 0:47–0:50 | 1410–1500 | **3 frosted glass badges:** "טביעת אצבע — הכניסה שלך לאימפריה" / "לוח עברי — חגים, לא רק תאריכים" / "שומר שבת — המערכת נחה איתך". | Badges: materialize frosted + refraction. Rack focus. | "טביעת אצבע. לוח עברי. שומר שבת." |
+| 0:47–0:50 | 1410–1500 | **Brand gradient עם noise 2%.** **"מערכת ישראלית. עושה סדר."** — brushed metal, Bloom. | Gradient (not flat). Text: materialize. Bloom. | "מערכת ישראלית. עושה סדר." |
+| 0:47–0:50 | 1410–1500 | **3 frosted glass badges:** "טביעת אצבע — הכניסה שלך לסדר" / "לוח עברי — חגים, לא רק תאריכים" / "שומר שבת — המערכת נחה איתך". | Badges: materialize frosted + refraction. Rack focus. | "טביעת אצבע. לוח עברי. שומר שבת." |
 
 ---
 
@@ -77,7 +77,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:50–0:55 | **"התחלה חכמה. מודול אחד. האימפריה מתחילה כאן."** — brushed brand, 80% frame. Bloom. | "התחלה חכמה. מודול אחד. האימפריה מתחילה כאן." |
+| 0:50–0:55 | **"התחלה חכמה. מודול אחד. בואו נעשה סדר."** — brushed brand, 80% frame. Bloom. | "התחלה חכמה. מודול אחד. בואו נעשה סדר." |
 | 0:55–0:57 | **"₪149/חודש"** — brushed metal + "משתמש אחד כלול" | "149 שקל לחודש." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 
@@ -89,7 +89,7 @@
 3. **Module selection via rack focus** — camera chooses, not cursor click
 4. **Card→phone shape morph** — physical transformation, not zoom
 5. **Growth = refraction path** — new module materializes connected (not slide-in)
-6. **Pricing = "הצעד הראשון לאימפריה"** — not "הכי זול בשוק"
+6. **Pricing = "הצעד הראשון לסדר"** — not "הכי זול בשוק"
 7. **צללית brand** במקום פרילנסר עם פנים
 8. **"חגים, לא רק תאריכים"** — Hebrew DNA
 9. **3D frosted phone frames** — not carousel

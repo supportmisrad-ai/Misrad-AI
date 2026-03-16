@@ -108,7 +108,7 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
       q: 'המערכת עובדת בשבת?',
       a: (
         <span>
-          <strong className="text-slate-900">המערכת מושבתת אוטומטית בשבת וחגים</strong> עבור כל הלקוחות, וחוזרת לפעול אוטומטית לאחר צאת הכוכבים. זהו ערך מרכזי שלנו כחברה ישראלית.{' '}
+          <strong className="text-slate-900">המערכת מושבתת אוטומטית בשבת וחגים</strong> עבור כל הלקוחות (כולל כל סוגי האוטומציות וההתראות), וחוזרת לפעול אוטומטית לאחר צאת הכוכבים. זהו ערך מרכזי שלנו כחברה ישראלית.{' '}
           <strong className="text-slate-900">חריג יחיד:</strong> מוסדות רפואיים, בתי חולים וגופים העוסקים בפיקוח נפש — עבורם ניתן לבקש הפעלה רציפה ללא הגבלה.
         </span>
       ),
@@ -127,7 +127,7 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
       q: 'איפה הנתונים שלי נשמרים? מה עם אבטחה?',
       a: (
         <span>
-          הנתונים מאוחסנים על שרתי ענן מאובטחים עם <strong className="text-slate-900">הצפנה בסטנדרט בנקאי (AES-256)</strong>, גיבוי אוטומטי יומי וניטור 24/7.
+          הנתונים מאוחסנים על שרתי ענן מאובטחים עם <strong className="text-slate-900">הצפנה בסטנדרט בנקאי (AES-256)</strong>, גיבוי אוטומטי יומי וניטור קבוע בימי חול.
           אנחנו עומדים בדרישות <strong className="text-slate-900">חוק הגנת הפרטיות הישראלי</strong> ובתקני <strong className="text-slate-900">GDPR</strong>.
           אנחנו לא משתמשים בנתונים שלך לאימון מודלים — לעולם.
         </span>

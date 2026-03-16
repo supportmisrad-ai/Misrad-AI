@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** מאחוריו: **3 frosted glass module cards** מתממשים ב-3D — Social (purple) + Client (gold) + Nexus (indigo) — **ו"מתלכדים" (triple merge morph) לכרטיס אחד:** **"שיווק ומיתוג"** — brushed purple-gold metal, Bloom. **"₪349/חודש"** — Slot Machine Roll. | Overlay shatters. 3 cards: materialize, triple merge morph into one. Title: brushed dual metal. Price: slot machine roll → lock. | "חבילת שיווק ומיתוג. Social + Client + Nexus. 349 שקל." |
+| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** מאחוריו: **3 frosted glass cards** מתממשים — פרסום ושיווק (purple) + תיקי לקוחות (gold) + סידור עבודה (indigo) — **ו"מתלכדים" (triple merge morph) לאחד:** **"פרסום ושיווק AI"** — brushed metal, Bloom. **"₪349/חודש"** — Slot Machine Roll. | Overlay shatters. 3 cards materialize, then merge morph. Title: materializes. Price: slot machine roll. | "חבילת פרסום ושיווק AI. הכל קורה לבד. 349 שקל." |
 | 0:13–0:16 | 390–480 | **THE PHYSICAL FUNNEL — morph chain.** Camera follows: עוקב (purple bloom, "1,200") → **morphs** to ליד (red bloom, "87") → **morphs** to לקוח (gold bloom, "23") → **morphs** to הכנסות (green bloom, "₪34,500" Slot Machine Roll). **כל מספר = Slot Machine Roll שננעל.** | Morph chain: follower→lead→client→revenue. Each: shape+color shift + slot machine roll number. Camera: follows. Physical transformation, not funnel bars. | "עוקבים הופכים ללידים. לידים — ללקוחות. לקוחות — לכסף. 34,500 שקל." |
 | 0:16–0:19 | 480–570 | **Card morphs לטלפון.** Camera dolly inside. **3 UI layers ב-DoF:** Front = Social content board (sharp). Mid = Client Health Scores (bokeh). Back = Nexus KPIs (deeper bokeh). **Rack focus shifts** — 3 depths, אותו מכשיר. | Card→phone morph. 3 UI layers at different depths. Rack focus shifts through Social→Client→Nexus. Same device, three depths. | "Social מנהל תוכן. Client מנהל לקוחות. Nexus מנהל צוות. באותו מקום." |
 | 0:19–0:22 | 570–660 | **Live demo — physical transition.** פוסט ב-Social → **like morphs** to ליד ב-Client (shape morph, 20 frames) → **ליד morphs** to תיק לקוח (Health Score 78% Slot Machine Roll). Camera follows the transformation. | Post→like→lead→client file. Physical morphs. Camera: follows. Health Score: slot machine roll → lock. Green bloom. | "פוסט יוצא. ליד נכנס. תיק לקוח נפתח אוטומטית. Health Score 78. בלי מאמץ." |
@@ -78,7 +78,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:52–0:55 | **"מעוקבים. ללקוחות. לכסף."** — brushed dual, 80% frame. Bloom. | "מעוקבים. ללקוחות. לכסף." |
+| 0:52–0:55 | **"מהתוכן ללקוח. עכשיו תורך."** — brushed dual, 80% frame. Bloom. | "מהתוכן ללקוח. עכשיו תורך." |
 | 0:55–0:57 | **"₪349/חודש"** — brushed metal + "Social + Client + Nexus" | "349 שקל. 3 מודולים." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 

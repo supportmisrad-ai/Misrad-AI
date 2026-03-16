@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ServicePlan, Meeting } from '../../types';
+import { ServicePlan, Meeting, MeetingTemplate } from '../../../types';
 import { 
   CheckCircle2, 
   Circle, 
@@ -54,7 +54,7 @@ export const ServiceTimeline: React.FC<ServiceTimelineProps> = ({ plans, onSelec
               <div className="text-center border-l border-gray-50 pl-6">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">התקדמות</div>
                 <div className="text-lg font-black text-nexus-primary">
-                  {Math.round((plan.phases.filter(p => p.status === 'COMPLETED').length / plan.phases.length) * 100)}%
+                  {Math.round((plan.phases.filter((p: { status: string }) => p.status === 'COMPLETED').length / plan.phases.length) * 100)}%
                 </div>
               </div>
               <div className="text-center">
@@ -73,7 +73,7 @@ export const ServiceTimeline: React.FC<ServiceTimelineProps> = ({ plans, onSelec
             <div className="absolute top-0 bottom-0 right-[2.25rem] w-1 bg-gradient-to-b from-nexus-primary/20 via-nexus-primary/10 to-transparent hidden md:block rounded-full" />
             
             <div className="space-y-16">
-              {plan.phases.map((phase, phaseIdx) => {
+              {plan.phases.map((phase: { id: string; status: string; title: string; description?: string; meetings: Meeting[]; templates: MeetingTemplate[] }, phaseIdx: number) => {
                 const isActive = phase.status === 'ACTIVE' || (phase.status === 'PENDING' && (phaseIdx === 0 || plan.phases[phaseIdx-1]?.status === 'COMPLETED'));
                 
                 return (
@@ -107,7 +107,7 @@ export const ServiceTimeline: React.FC<ServiceTimelineProps> = ({ plans, onSelec
                     <div className="md:mr-16 grid grid-cols-1 lg:grid-cols-12 gap-6">
                       {/* Meetings List */}
                       <div className="lg:col-span-8 space-y-3">
-                        {phase.meetings.map((meeting) => (
+                        {phase.meetings.map((meeting: Meeting) => (
                           <div 
                             key={meeting.id}
                             onClick={() => onSelectMeeting(meeting.id)}
@@ -140,8 +140,8 @@ export const ServiceTimeline: React.FC<ServiceTimelineProps> = ({ plans, onSelec
 
                         {/* Templates (Next Steps) */}
                         {phase.templates
-                          .filter(t => !phase.meetings.some(m => m.templateId === t.id))
-                          .map((template) => (
+                          .filter((t: { id: string }) => !phase.meetings.some((m: Meeting) => m.templateId === t.id))
+                          .map((template: MeetingTemplate) => (
                           <div 
                             key={template.id}
                             className={`rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all border-2 border-dashed ${

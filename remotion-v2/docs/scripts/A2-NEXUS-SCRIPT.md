@@ -1,9 +1,9 @@
-# A2 — Nexus (ניהול, משימות וצוות) | תסריט שנייה-שנייה v2
+# A2 — סידור עבודה וצוות | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **צבע מוביל:** `#3730A3` (Indigo) + warm light bg with paper grain
-> **קהל יעד:** מנכ"לים, מנהלי צוותים, מנהלי HR, בעלי עסקים עם 3+ עובדים
-> **מטרה:** להראות ש-Nexus הוא "מגדל הפיקוח" — תמונת מצב אחת על כל העסק
+> **קהל יעד:** בעלי עסקים שנמאס להם להיות "גננת" ולשאול מי עושה מה
+> **מטרה:** להראות שסידור עבודה חכם מונע טעויות ומחזיר את השליטה לבעל הבית
 > **רקע:** Light premium (paper grain, warm vignette, soft directional shadows)
 > **⚠ פרוטוקול:** אפס typewriter, אפס 3D fold, אפס screen shake, אפס stagger slide-in. Rack focus + materialization + DoF.
 
@@ -35,8 +35,8 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **ה-frosted overlay "מתנפץ" לשברי זכוכית** שמתפזרים. מאחוריו: **"Nexus"** — brushed indigo metal, 80% מהפריים, Optical Bloom רך. מתחתיו: "חדר הפיקוד שלך." | Frosted overlay: shatters into glass shards that drift. "Nexus": materializes, brushed metal, bloom light leaks. | "הכירו את Nexus. חדר הפיקוד שלך." |
-| 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לתוך **טלפון חדש**, low angle. **Dashboard Nexus נקי.** 4 KPIs ב-frosted glass cards, DoF — אחד בפוקוס בכל רגע (rack focus shifts): "12 משימות פעילות" / "3 בוצעו היום" / "98% SLA" / "₪340K בצנרת". כל מספר = Slot Machine Roll. | Shards→phone. KPI cards: frosted glass, float with 100px diffusion shadow. Rack focus: shifts between cards. Numbers: slot machine roll → lock with overshoot. Paper grain bg. | "12 משימות. 3 הושלמו. 98 אחוז SLA. 340 אלף בצנרת. הכל — בפריים אחד." |
+| 0:12–0:14 | 360–420 | **ה-frosted overlay "מתנפץ"** לשברי זכוכית. מאחוריו: **"סידור עבודה"** — brushed indigo metal, 80% מהפריים, Optical Bloom רך. מתחתיו: "הסוף לגננות." | Frosted overlay: shatters. "סידור עבודה": materializes, brushed metal, bloom. | "הכירו את סידור העבודה החדש שלכם. בלי סיפורים." |
+| 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לטלפון. **לוח עבודה נקי.** 4 KPIs ב-frosted glass cards: "12 משימות בביצוע" / "3 נסגרו היום" / "98% עמידה בזמנים" / "₪340K בעבודה". | Shards→phone. KPI cards: materialize. Numbers: slot machine roll → lock. | "12 משימות. 3 נסגרו. 98 אחוז עמידה בזמנים. הכל בשליטה." |
 | 0:17–0:20 | 510–600 | **Macro push-in** לטבלת צוות. **Live demo:** משימה **"פרויקט אלפא"** (אותו אחד שהיה באיחור) — **נגררת** ב-physics animation (momentum, settle) אל **"שמעון"**. Badge מתממש: "הוקצה · V" ירוק עם bloom. **Camera follows the drag** — dolly smooth along the path. | Macro into team table. Drag: physics-based (acceleration, deceleration, settle). Camera: follows drag movement. Drop: green badge materializes with bloom. | "גוררים. מקצים. שמעון כבר יודע. והמשימה שהייתה באיחור? עכשיו יש לה אחראי." |
 | 0:20–0:23 | 600–690 | **Rack focus** מהמשימה → ל-**AI Insight card** שמתממש מ-transparency. Frosted glass, refraction: "יוסי — עומס +40%. מומלץ: העבר 2 משימות למיכל (עומס 0%)." **AI פותר את הפער שראינו בסצנה 2.** | Rack focus: task→AI card. Card: materialize frosted glass + refraction. Direct callback to scene 2 gap. | "ו-Intelligence? ה-AI ראה מה שאתה לא ראית. 'יוסי עמוס. מיכל פנויה. העבר 2 משימות.' לחיצה." |
 | 0:23–0:25 | 690–750 | **Camera pulls back** — חושף Dashboard מלא: צוות + KPIs + pipeline + AI. **"ראש שקט. שליטה אמיתית."** — materialize, warm brushed metal. | Dolly out. Full dashboard: depth layers with DoF. Text: materializes from blur. | "ראש שקט. שליטה אמיתית. בזמן אמת." |
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"ראש שקט. שליטה מלאה. אפס הפתעות."** — brushed indigo, 80% frame. Bloom. | "ראש שקט. שליטה מלאה. אפס הפתעות." |
+| 0:53–0:57 | **"תפסיק לשאול. תתחיל לדעת."** — brushed indigo, 80% frame. Bloom. | "תפסיק לשאול. תתחיל לדעת." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. Light warm bg + paper grain. | "misrad-ai.com" |
 
 ---

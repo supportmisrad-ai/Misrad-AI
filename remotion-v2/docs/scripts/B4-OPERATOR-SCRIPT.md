@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** **3 frosted glass module cards** מתממשים: Operations (sky) + Nexus (indigo) + Finance (emerald) — **triple merge morph** לכרטיס אחד: **"תפעול ושטח"** — brushed sky-emerald metal, Bloom. **"₪349/חודש"** — Slot Machine Roll. **Gold border badge:** "Finance במתנה!" | Overlay shatters. 3 cards: materialize, triple merge. Title: brushed dual metal. Price: slot machine roll. Finance badge: gold bloom. | "תפעול ושטח. Operations + Nexus + Finance. 349 שקל. Finance — במתנה." |
+| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** **3 frosted glass cards** מתממשים: עבודת שטח (sky) + סידור עבודה (indigo) + גבייה וכסף (emerald) — **triple merge morph** לכרטיס אחד: **"עבודת שטח"** — brushed sky-emerald metal, Bloom. **"₪349/חודש"** — Slot Machine Roll. **Gold border badge:** "גבייה וכסף במתנה!" | Overlay shatters. 3 cards materialize and merge. Title: materializes. Price: slot machine roll. Bonus: gold bloom. | "חבילת עבודת שטח. כל מה שצריך כדי להספיק יותר. 349 שקל. גבייה וכסף — במתנה." |
 | 0:13–0:17 | 390–510 | **THE 5-STEP MORPH CHAIN.** Camera follows: קריאה (blue bloom) → **morphs** to שיבוץ AI (orange bloom) → **morphs** to שטח (green bloom) → **morphs** to סיכום AI (purple bloom) → **morphs** to חשבונית (emerald bloom, "₪2,400" Slot Machine Roll). **Camera doesn't stop — continuous.** | 5-step morph chain: call→assign→field→summary→invoice. Each: shape+color shift, 12 frames. Camera: continuous follow. Final amount: slot machine roll. | "קריאה. שיבוץ AI. שטח. סיכום AI. חשבונית — 2,400 שקל. אוטומטי. מקצה לקצה." |
 | 0:17–0:20 | 510–600 | **THE VOICE DEMO.** Macro push-in לכרטיס קריאה. **Waveform** מתממש — frosted glass. **גלים "מתגבשים" (crystallize) לטקסט:** "הוחלף מנוע מזגן X200. לקוח: דוד כהן. הרצל 15." **לא typewriter!** ואז: **AI Summary card** מתממש frosted. | Macro. Waveform: frosted glass waves. Crystallize: waves→text. AI summary: materializes frosted. | "הטכנאי מדבר. המערכת מתמללת. AI מסכם. דו'ח מוכן. בלי לכתוב מילה." |
 | 0:20–0:23 | 600–690 | **Rack focus** מ-summary → ל-**Finance connection.** Light refraction path: Operations badge → Finance badge. **"קריאה נסגרה → חשבונית ₪2,400 נוצרה"** — morph transition, green V bloom. | Rack focus: summary→Finance. Refraction path: Operations→Finance. Badge morph: service→invoice. Green V bloom. | "קריאה נסגרה — חשבונית יצאה אוטומטית. 2,400 שקל. בלי העתקות." |
@@ -48,7 +48,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:25–0:29 | 750–870 | **3 frosted glass cards ב-3D.** Camera dolly. **Card 1:** "שיבוץ AI — טכנאי נכון, אוטומטי" + mini map. **Card 2:** "שליטה קולית — ידיים מלאות, פה פנוי" + mini waveform. | 3D space. Camera: dolly + rack focus. Each: frosted + mini UI. | "שיבוץ AI. שליטה קולית — ידיים מלאות, פה פנוי." |
+| 0:25–0:29 | 750–870 | **3 frosted glass cards ב-3D.** Camera dolly. **Card 1:** "שיבוץ AI — טכנאי נכון, אוטומטי" + mini map. **Card 2:** "פעולות קוליות — ידיים מלאות, פה פנוי" + mini waveform. | 3D space. Camera: dolly + rack focus. Each: frosted + mini UI. | "שיבוץ AI. פעולות קוליות — ידיים מלאות, פה פנוי." |
 | 0:29–0:33 | 870–990 | **Card 3:** "תיעוד + חתימה דיגיטלית" + mini gallery. **Camera → KIOSK.** טאבלט low angle, thick bezels. מסך: שעון + משימות + "סיימתי". **צללית עובד** (קווי sky, בלי פנים). | Card 3: rack focus. Kiosk: low angle, tactical. Silhouette: sky outline. | "תיעוד וחתימה. Kiosk — כפתור אחד לעובד בשטח." |
 | 0:33–0:38 | 990–1140 | **"₪349"** — brushed sky-emerald, enormous, 80% frame. **Gold badge:** "Finance במתנה" — bloom. מתחתיו: **"מערכות אחרות — הרבה יותר. על פחות. בלי AI."** | Price: enormous. Gold badge: bloom. Comparison: general text. | "349 שקל. 4 מודולים. מערכות אחרות — הרבה יותר. על פחות. בלי AI." |
 
@@ -70,7 +70,7 @@
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
 | 0:45–0:49 | 1350–1470 | **Sky-Emerald gradient עם noise 2%.** **"תפעול ישראלי. כספים ישראליים."** — brushed metal, Bloom. | Gradient (not flat). Text: materialize. Bloom. | "תפעול ישראלי. כספים ישראליים." |
-| 0:49–0:52 | 1470–1560 | **3 frosted glass badges:** "שליטה קולית — עברית שטח" / "שומר שבת — אפס קריאות בשבת" / "Kiosk — לטכנאי עם ידיים מלאות". | Badges: materialize frosted + refraction. Rack focus. | "שליטה קולית בעברית. שומר שבת. Kiosk לשטח." |
+| 0:49–0:52 | 1470–1560 | **3 frosted glass badges:** "פעולות קוליות — עברית שטח" / "שומר שבת — אפס קריאות בשבת" / "Kiosk — לטכנאי עם ידיים מלאות". | Badges: materialize frosted + refraction. Rack focus. | "פעולות קוליות בעברית. שומר שבת. Kiosk לשטח." |
 
 ---
 
@@ -78,7 +78,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:52–0:55 | **"מהקריאה לחשבונית. אוטומטי."** — brushed sky-emerald, 80% frame. Bloom. | "מהקריאה לחשבונית. אוטומטי." |
+| 0:52–0:55 | **"השטח מדווח. הכסף בבנק. הכל מחובר."** — brushed sky-emerald, 80% frame. Bloom. | "השטח מדווח. הכסף בבנק. הכל מחובר." |
 | 0:55–0:57 | **"₪349/חודש"** + "Finance במתנה" — gold bloom | "349 שקל. Finance במתנה." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |
 

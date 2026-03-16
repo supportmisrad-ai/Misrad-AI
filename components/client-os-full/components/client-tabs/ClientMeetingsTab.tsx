@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Meeting, ServicePlan } from '../../types';
 import { Calendar, Video, Users, ChevronUp, ChevronDown, Brain, ShieldAlert, CirclePlay, FileText, Download, ListTodo, Check, Edit2, Save, FolderOpen, Layout } from 'lucide-react';
@@ -274,6 +273,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                 </div>
             )}
         </div>
+        )}
     </div>
   );
 };

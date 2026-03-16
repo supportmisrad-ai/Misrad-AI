@@ -111,9 +111,9 @@ Subtitle in rose: "לוח עברי מובנה. לא תרגום."
 Middle: 3 calendar event cards stacked:
   "ערב ר״ה → גבייה + סגירת חודש"
   "ערב יוה״כ → ברכה + שחרור משימות"
-  "כל שישי → נעילה + סיכום שבועי"
+  "3. כל שישי ← נעילה + מנוחה"
 Bottom: "התחל חינם" rose gradient CTA + misrad-ai.com
-Style: Warm rose bloom, elegant, respectful religious tone.
+Style: Warm rose bloom, elegant, respectful tone. המערכת שובתת בשבת וחג.
 ```
 
 ---
@@ -179,10 +179,10 @@ TOP: Dark (#1A0A0A). Clock icon showing Friday afternoon.
   "יום שישי — ועוד לא סגרת את השבוע"
   "המשפחה מחכה. העסק לא עוזב אותך."
 BOTTOM: Dark rose (#4C0519). Candle icons + lock icon.
-  "המערכת סוגרת הכל ביום שישי"
+  "המערכת שובתת ביום שישי"
   "שבת שלום. באמת."
-Bottom: Rose CTA "שומרת שבת — חינם" + misrad-ai.com
-Style: Emotional, warm, family-oriented tone. Soft glow.
+Bottom: "שומרת שבת — חינם" rose CTA + misrad-ai.com
+Style: Emotional, warm, family-oriented tone. Soft glow. המערכת מושבתת אוטומטית.
 ```
 
 ---
@@ -389,10 +389,10 @@ Style: Dark, futuristic, cinematic. Grain overlay.
 Create a 1080x1920 vertical story. Dark warm background (#1A0A0F).
 Warm rose glow orb. Two small candle icons at top.
 Quote text in white bold:
-  "מערכת שמכבדת את הזמן שלך — גם ביום המנוחה."
+  "מערכת שמכבדת את הזמן שלך — מושבתת ביום המנוחה."
 Attribution: "— MISRAD AI · שומרת שבת" in rose.
 Bottom: Rose CTA "נסו חינם" + misrad-ai.com
-Style: Warm, respectful, elegant. Candle glow aesthetic.
+Style: Warm, respectful, elegant. Candle glow aesthetic. שביתה מוחלטת בשבת.
 ```
 
 ---

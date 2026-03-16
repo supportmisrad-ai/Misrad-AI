@@ -1,9 +1,9 @@
-# A5 — Client (מעקב לקוחות ומתאמנים) | תסריט שנייה-שנייה v2
+# A5 — תיקי לקוחות | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **צבע מוביל:** `#C5A572` (Gold) + warm light bg
-> **קהל יעד:** מאמנים, יועצים, coaches, נותני שירות אישי
-> **מטרה:** להראות שכל לקוח מקבל "תיק" מלא — מהפנייה ועד היום
+> **קהל יעד:** עסקים שנותנים שירות ונחנקים מהודעות "מה הסטטוס?"
+> **מטרה:** להראות שפורטל לקוח בשירות עצמי נותן שקט לבעל הבית ומקצועיות ללקוח
 > **רקע:** Warm light premium (paper grain, gold accents, warm vignette)
 > **⚠ פרוטוקול:** אפס falling numbers, אפס stagger cards, אפס draw arrows, אפס דמויות עם פנים. Health Score = ויזואל מוביל. Frosted glass + rack focus + materialization.
 
@@ -35,7 +35,7 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית זהובים.** מאחוריו: **"Client"** — brushed gold metal, 80% מהפריים, Optical Bloom חם. מתחתיו: "כל לקוח. כל רגע. אף אחד לא נעלם." | Overlay: shatters gold. "Client": materializes, brushed gold, warm bloom. | "הכירו את Client." |
+| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית זהובים.** מאחוריו: **"תיקי לקוחות"** — brushed gold metal, 80% מהפריים, Optical Bloom חם. מתחתיו: "הסוף ל'מה הסטטוס'." | Overlay: shatters gold. "תיקי לקוחות": materializes, brushed gold, warm bloom. | "הכירו את תיקי הלקוחות של MISRAD AI." |
 | 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לטלפון. **תיק לקוח: שרה כהן.** Health Score gauge: **Slot Machine Roll 23→92%** (ירוק! bloom!). **ה-gauge "מתרפא"** — ויזואלית, הצבע עולה מאדום לירוק. מתחת: Timeline events מתממשים מ-blur: "פגישה / הודעה / תשלום / הערה". | Shards→phone. Health Score: slot machine roll 23→92. Color morph: red→green bloom. Timeline: events materialize from blur (not stagger slide). | "תיק לקוח מלא. Health Score — מ-23 ל-92. ירוק. Timeline — כל רגע מתועד." |
 | 0:17–0:20 | 510–600 | **Rack focus:** מ-Timeline → ל-**AI Insight card** שמתממש. Frosted glass: "שרה לא הגיבה 7 ימים. שלח תזכורת אישית." כפתור "שלח". **Click** → "נשלח · V" ירוק + bloom. **הAI ראה את הבעיה לפני שאתה — callback ל-scene 1.** | Rack focus: timeline→AI card. Card: materialize frosted glass. Click: button transform → green V bloom. Direct callback to hook scene. | "ה-AI ראה את הבעיה לפני שאתה. 'שרה — 7 ימים. שלח תזכורת.' לחיצה. נשלח." |
 | 0:20–0:23 | 600–690 | **Camera pulls back** — חושף **Health Score dashboard.** רשימת לקוחות מסודרת: ירוק בראש, צהוב באמצע, אדום בתחתית. כל שורה = frosted glass + mini gauge. **DoF:** רק top 3 בפוקוס. | Dolly out. Dashboard: frosted glass rows, mini gauges. DoF: top rows sharp, bottom soft. Colors: green→yellow→red gradient. | "כל הלקוחות שלך. מסודרים. מי בסדר, מי בסיכון — במבט אחד." |
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"כל לקוח. כל רגע. אף אחד לא נעלם."** — brushed gold, 80% frame. Bloom. | "כל לקוח. כל רגע. אף אחד לא נעלם." |
+| 0:53–0:57 | **"הלקוח מעודכן. אתה בעבודה. בלי חפירות."** — brushed gold, 80% frame. Bloom. | "הלקוח מעודכן. אתה בעבודה. בלי חפירות." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. Warm light bg + grain. | "misrad-ai.com" |
 
 ---

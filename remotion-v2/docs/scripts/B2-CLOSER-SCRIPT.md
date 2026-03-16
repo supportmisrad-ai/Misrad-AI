@@ -1,6 +1,6 @@
-# B2 — The Closer (חבילת מכירות) | תסריט שנייה-שנייה v2
+# B2 — מכונות מכירה (Closer) | תסריט שנייה-שנייה v2
 
-> **אורך:** 60 שניות | **מחיר:** ₪249/חודש | **מודולים:** System + Nexus | **משתמשים:** 1
+> **אורך:** 60 שניות | **מחיר:** ₪249/חודש | **כלים:** מכונות מכירה + סידור עבודה | **משתמשים:** 1
 > **צבע מוביל:** `#A21D3C` (Rose) + `#3730A3` (Indigo) — dual
 > **קהל יעד:** סוכני ביטוח, נדל"ן, מוקדי מכירות, עסקים מבוססי לידים
 > **מטרה:** להראות ש-System + Nexus ביחד = מכונת מכירות שלמה
@@ -35,10 +35,10 @@
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** מאחוריו: **2 frosted glass module cards** מתממשים ב-3D — System (rose) + Nexus (indigo) — **ו"מתלכדים" (merge morph) לכרטיס אחד:** **"חבילת מכירות"** — brushed dual metal, Bloom. **"₪249/חודש"** — Slot Machine Roll. | Overlay shatters. 2 cards: materialize, then merge morph into one card. Title: brushed dual metal. Price: slot machine roll → lock. | "חבילת מכירות. System + Nexus. 249 שקל." |
-| 0:13–0:16 | 390–480 | **Card morphs לטלפון.** Camera dolly inside. **2 UI layers ב-DoF:** Front = System pipeline (sharp). Back = Nexus KPI dashboard (bokeh). **Rack focus shifts** בין השניים — מראה שהם **באותו מקום.** | Card→phone morph. 2 UI layers at different depths. Rack focus shifts between System and Nexus. Same device, two depths. | "System — מנהל לידים. Nexus — מנהל צוות. באותו מקום. באותו מסך." |
+| 0:10–0:13 | 300–390 | **Frosted overlay מתנפץ.** מאחוריו: **2 frosted glass cards** מתממשים — מכונות מכירה (rose) + סידור עבודה (indigo) — **ו"מתלכדים" (merge morph) לאחד:** **"מכונות מכירה"** — brushed dual metal, Bloom. **"₪249/חודש"** — Slot Machine Roll. | Overlay shatters. 2 cards materialize, then merge. Title: brushed dual metal. Price: slot machine roll. | "חבילת מכונות מכירה. כל מה שצריך כדי לסגור. 249 שקל." |
+| 0:13–0:16 | 390–480 | **Card morphs לטלפון.** Camera dolly inside. **2 UI layers ב-DoF:** Front = System pipeline (sharp). Back = Nexus KPI dashboard (bokeh). **Rack focus shifts** בין השניים — מראה שהם **באותו מקום.** | Card→phone morph. 2 UI layers at different depths. Rack focus shifts between System and Nexus. Same device, two depths. | "System — סגירת לידים. Nexus — סידור צוות. באותו מקום. באותו מסך." |
 | 0:16–0:19 | 480–570 | **THE FLOW — physical morph chain.** Camera follows: ליד (rose bloom) → **morphs** to ציון AI 91% (bloom brightens) → **morphs** to משימה ב-Nexus (indigo bloom) → **morphs** to follow-up שנשלח (green bloom). **4 transformations.** | Morph chain: lead→score→task→followup. Each: shape+color shift, 15 frames. Camera: follows path. Physical, not arrows. | "ליד נכנס. AI — ציון 91. Nexus — מקצה לאיש המכירות. Follow-up — אוטומטי. בלי נגיעה." |
-| 0:19–0:22 | 570–660 | **End of chain:** Badge frosted glass: **"עסקה נסגרה · ₪32,000"** — green bloom, Slot Machine Roll. **Camera holds.** מתחתיו: "הכל מתועד. הכל מנוטר." — materialize. **לא confetti.** | Deal badge: materializes frosted, green bloom. Amount: slot machine roll → lock. Sub-text: materializes. Camera: holds. Clean. | "עסקה נסגרה. 32 אלף שקל. הכל מתועד. הכל מנוטר." |
+| 0:19–0:22 | 570–660 | **End of chain:** Badge frosted glass: **"עסקה נסגרה · ₪32,000"** — green bloom, Slot Machine Roll. **Camera holds.** מתחתיו: "הכל מתועד. הכל בסדר." — materialize. **לא confetti.** | Deal badge: materializes frosted, green bloom. Amount: slot machine roll → lock. Sub-text: materializes. Camera: holds. Clean. | "עסקה נסגרה. 32 אלף שקל. הכל מתועד. הכל בסדר." |
 | 0:22–0:25 | 660–750 | **Camera pulls back.** Dashboard מלא: pipeline + KPIs + צוות. **"₪340K בצנרת"** — Slot Machine Roll, brushed metal, Bloom. | Dolly out. Full dashboard depth layers. Pipeline value: slot machine roll → lock. | "תמונת מצב. 340 אלף בצנרת. 12 עסקאות פתוחות. שליטה מלאה." |
 
 ---
@@ -78,6 +78,6 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:52–0:55 | **"סוגר עסקאות. לא מפספס לידים."** — brushed dual, 80% frame. Bloom. | "סוגר עסקאות. לא מפספס לידים." |
+| 0:52–0:55 | **"סוגרים עסקאות. לא מנחשים."** — brushed dual, 80% frame. Bloom. | "סוגרים עסקאות. לא מנחשים." |
 | 0:55–0:57 | **"₪249/חודש"** — brushed metal + "System + Nexus" | "249 שקל בחודש." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. | "misrad-ai.com" |

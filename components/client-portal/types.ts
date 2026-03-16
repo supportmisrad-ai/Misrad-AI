@@ -447,13 +447,15 @@ export interface MeetingAnalysisResult {
   agencyTasks: AITask[];
   clientTasks: AITask[];
   liabilityRisks: AILiabilityRisk[];
-  intents?: string[];
-  stories?: string[];
-  slang?: string[];
-  rating?: {
+  intents: string[];
+  stories: string[];
+  slang: string[];
+  rating: {
     professionalism: number;
     warmth: number;
     clarity: number;
+  relationshipWarmth?: number;
+    relationshipNote?: string;
   };
 }
 

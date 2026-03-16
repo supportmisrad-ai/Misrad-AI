@@ -1,9 +1,9 @@
-# A6 — Operations (תפעול) | תסריט שנייה-שנייה v2
+# A6 — עבודת שטח | תסריט שנייה-שנייה v2
 
 > **אורך:** 60 שניות (1800 פריימים @ 30fps)
 > **צבע מוביל:** `#0EA5E9` (Sky Blue) + dark matte
-> **קהל יעד:** קבלני שיפוצים, מיזוג אוויר, אינסטלציה, חברות אחזקה וניהול
-> **מטרה:** להראות שתפעול שטח יכול להיות מסודר, מתועד, ואוטומטי — בלי וואטסאפ
+> **קהל יעד:** קבלנים וצוותי שטח שנמאס להם מניירת ודיווחים בוואטסאפ
+> **מטרה:** להראות ששטח יכול לעבוד בסינכרון מלא עם המשרד דרך פקודות קוליות ו-Kiosk
 > **רקע:** Dark matte (שטח = אקשן, עוצמה, כלי קרבי)
 > **⚠ פרוטוקול:** אפס brain icons, אפס typewriter, אפס stagger cards, אפס draw animation steps, אפס דמויות עם פנים. Kiosk = כלי קרבי. Voice = waveform→crystallize. Rack focus + materialization + DoF.
 
@@ -30,12 +30,12 @@
 
 ---
 
-## סצנה 3: SOLUTION — "Operations" [0:12–0:25]
+## סצנה 3: SOLUTION — "עבודת שטח" [0:12–0:25]
 **פריימים: 360–750**
 
 | שנייה | פריימים | מה רואים | אנימציה | קריינות |
 |-------|---------|----------|---------|---------|
-| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית כחולים.** מאחוריו: **"Operations"** — brushed sky blue metal, 80% מהפריים, Bloom. מתחתיו: "תפעול חכם. אפס בלגן. אפס וואטסאפ." | Overlay: shatters blue. "Operations": materializes, brushed metal, bloom. | "הכירו את Operations." |
+| 0:12–0:14 | 360–420 | **Frosted overlay מתנפץ לשברי זכוכית כחולים.** מאחוריו: **"עבודת שטח"** — brushed sky blue metal, 80% מהפריים, Bloom. מתחתיו: "מהשטח למשרד — בלי ניירת." | Overlay: shatters blue. "עבודת שטח": materializes, brushed metal, bloom. | "הכירו את עבודת השטח שלכם." |
 | 0:14–0:17 | 420–510 | **Match cut:** שברים מתגבשים לטלפון, low angle. **Dashboard קריאות שירות.** 3 כרטיסים מתממשים מ-blur — כל אחד frosted glass: כתובת + דחיפות badge (bloom) + טכנאי משויך + **SLA countdown** (Slot Machine Roll ננעל). **פוקוס:** רק הכרטיס הראשון חד. **Badge כחול:** "AI שיבץ אוטומטית" — frosted, bloom. | Shards→phone. Service cards: materialize from blur, frosted glass. SLA: slot machine roll digits. DoF: top card sharp, others bokeh. AI badge: frosted + bloom. | "3 קריאות. AI שיבץ את הטכנאי — לפי עומס, ניסיון, מיקום. אוטומטי." |
 | 0:17–0:20 | 510–600 | **THE VOICE DEMO — הכי חשוב.** Macro push-in לכרטיס קריאה פתוח. **Waveform** מתממש — גלי קול חיים, frosted glass texture. **הגלים "מתגבשים" (crystallize) לטקסט:** "סיימתי. לקוח כהן. הוחלף מסנן 20×25." **לא typewriter — blur→crystallize!** ואז: **AI Summary card** מתממש frosted: "בוצע: החלפת מסנן. חלק: 20×25. לקוח: כהן." | Macro into card. Waveform: frosted glass waves, animated. Crystallize: waves→text (blur→sharp, not typewriter). AI summary: materializes frosted below. Camera: follows transformation. | "הידיים מלוכלכות? מדברים. המערכת מתמללת, AI מסכם — דו'ח מוכן. בלי לכתוב מילה." |
 | 0:20–0:23 | 600–690 | **Rack focus** מה-summary → ל-**gallery grid** שמתממש. 4 תמונות: לפני/אחרי + חלק + חתימת לקוח. **כל תמונה = frosted frame + grain.** מתחת: **"הכל מתועד. הכל ניתן לחיפוש."** | Rack focus: summary→gallery. Photos: materialize in frosted frames. Grain texture. Text: materializes below. | "תמונות. לפני ואחרי. חלקים. חתימה. הכל מתועד. הכל ניתן לחיפוש." |
@@ -79,7 +79,7 @@
 
 | שנייה | מה רואים | קריינות |
 |-------|----------|---------|
-| 0:53–0:57 | **"הסוף לבלגן בשטח. התחלה של שליטה."** — brushed sky blue, 80% frame. Bloom. | "הסוף לבלגן בשטח. התחלה של שליטה." |
+| 0:53–0:57 | **"הסוף לבלגן. התחלה של סדר."** — brushed sky blue, 80% frame. Bloom. | "הסוף לבלגן. התחלה של סדר." |
 | 0:57–1:00 | לוגו + URL + "7 ימי ניסיון חינם". Logo: refraction bloom. Dark matte + noise. | "misrad-ai.com" |
 
 ---
