@@ -51,6 +51,7 @@ yarn-error.log*
 .env*.local
 .env
 .env.prod_backup
+.env.production
 
 # backup passwords
 .backup-password.txt

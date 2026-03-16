@@ -12,6 +12,7 @@ type WorkspaceItem = {
   name: string;
   logo?: string | null;
   subscriptionPlan: string | null;
+  subscriptionStatus: string | null;
 };
 
 async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
@@ -70,15 +71,17 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
       name: true,
       logo: true,
       subscription_plan: true,
+      subscription_status: true,
     },
   });
 
-  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null; subscription_plan: string | null }) => ({
+  return orgs.map((o: { id: string; slug: string | null; name: string; logo: string | null; subscription_plan: string | null; subscription_status: string | null }) => ({
     id: String(o.id),
     slug: String(o.slug || o.id),
     name: String(o.name || 'Workspace'),
     logo: o.logo ?? null,
     subscriptionPlan: o.subscription_plan ?? null,
+    subscriptionStatus: o.subscription_status ?? null,
   }));
 }
 
@@ -92,6 +95,10 @@ export default async function WorkspacesPage() {
   if (pinnedOrgId) {
     const pinnedWorkspace = workspaces.find((ws) => ws.id === pinnedOrgId);
     if (pinnedWorkspace) {
+      // Check if trial expired - redirect to trial-expired page
+      if (pinnedWorkspace.subscriptionStatus === 'expired') {
+        redirect('/app/trial-expired');
+      }
       if (!pinnedWorkspace.subscriptionPlan) {
         redirect('/workspaces/onboarding');
       }
@@ -99,11 +106,21 @@ export default async function WorkspacesPage() {
     }
   }
 
-  if (workspaces.length === 1) {
-    if (!workspaces[0].subscriptionPlan) {
+  // Filter out expired workspaces
+  const validWorkspaces = workspaces.filter(ws => ws.subscriptionStatus !== 'expired');
+  
+  // If all workspaces are expired, redirect to trial-expired
+  if (validWorkspaces.length === 0 && workspaces.length > 0) {
+    redirect('/app/trial-expired');
+  }
+
+  // If single valid workspace, redirect to it
+  if (validWorkspaces.length === 1) {
+    const singleWorkspace = validWorkspaces[0];
+    if (!singleWorkspace.subscriptionPlan) {
       redirect('/workspaces/onboarding');
     }
-    redirect(`/w/${encodeURIComponent(workspaces[0].slug)}`);
+    redirect(`/w/${encodeURIComponent(singleWorkspace.slug)}`);
   }
 
   return (

@@ -17,7 +17,7 @@ interface OrganizationInfo {
 }
 
 export default function TrialExpiredPage() {
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn, userId, signOut } = useAuth();
   const [orgInfo, setOrgInfo] = useState<OrganizationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [startingNewTrial, setStartingNewTrial] = useState(false);
@@ -272,13 +272,15 @@ export default function TrialExpiredPage() {
               </div>
             </div>
 
-            {/* Back to Login */}
+            {/* Logout */}
             <div className="pt-4 text-center">
-              <Link href="/login">
-                <Button variant="outline" className="w-full sm:w-auto">
-                  חזרה לדף התחברות
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                onClick={() => signOut?.({ redirectUrl: '/login' })}
+              >
+                התנתק מהמערכת
+              </Button>
             </div>
           </div>
         </div>

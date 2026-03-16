@@ -81,7 +81,7 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: str
       const orgs = await prisma.organization.findMany(
         withPrismaTenantIsolationOverride({
           where: { id: { in: ids } },
-          select: { id: true, slug: true, subscription_plan: true },
+          select: { id: true, slug: true, subscription_plan: true, subscription_status: true },
         }, { suppressReporting: true, reason: 'me_page_lookup_org_details_by_ids', source: 'me-page-redirect' })
       );
 
@@ -90,9 +90,9 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<{ slug: str
       }
 
       // Resolve best org: prefer last location > primary org > first available
-      type OrgRow = { id: string; slug: string | null; subscription_plan: string | null };
+      type OrgRow = { id: string; slug: string | null; subscription_plan: string | null; subscription_status: string | null };
       function toResult(o: OrgRow) {
-        return { slug: String(o.slug || o.id), hasPlan: Boolean(o.subscription_plan) };
+        return { slug: String(o.slug || o.id), hasPlan: Boolean(o.subscription_plan), isExpired: o.subscription_status === 'expired' };
       }
 
       const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
@@ -126,7 +126,7 @@ export default async function MePage({
     redirect('/login');
   }
 
-  let resolved: { slug: string; hasPlan: boolean } | null = null;
+  let resolved: { slug: string; hasPlan: boolean; isExpired?: boolean } | null = null;
   let retryCount = 0;
   const MAX_RETRIES = 2;
   
@@ -148,6 +148,11 @@ export default async function MePage({
   }
 
   if (resolved) {
+    // Check if trial expired - redirect to trial-expired page
+    if (resolved.isExpired) {
+      redirect('/app/trial-expired');
+    }
+
     // Onboarding check: subscription_plan was already fetched in Stage 3 (zero extra queries)
     if (!resolved.hasPlan) {
       redirect('/workspaces/onboarding');
