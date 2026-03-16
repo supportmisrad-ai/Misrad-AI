@@ -33,6 +33,8 @@ export type WorkspaceInfo = {
   seatsAllowed: number | null;
   isShabbatProtected: boolean;
   subscriptionStatus: string | null;
+  subscriptionPlan: string | null;
+  trialEndDate: Date | null;
   entitlements: Record<OSModuleKey, boolean>;
 };
 
