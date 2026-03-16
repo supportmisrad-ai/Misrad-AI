@@ -32,6 +32,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/guest/task/[token]/approve/route.ts', // Public: guest approval — scoped by share token
   'app/api/download-links/route.ts', // Public: download links for APK/Windows installer, no auth required
   'app/api/analytics/track/route.ts', // Public: site analytics tracking for landing pages and anonymous visitors
+  'app/api/analytics/batch/route.ts', // Public: batch analytics endpoint for reduced 429 errors
   'app/api/telephony/onboarding-request/route.ts', // Public: telephony onboarding form — no auth, sends confirmation emails
   'app/api/lead-capture/route.ts', // Public: shareable lead capture form — rate-limited by IP + honeypot, no auth required
   'app/api/oauth/connect/route.ts', // Public: OAuth initiator — CSRF protected via encrypted state
