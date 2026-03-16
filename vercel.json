@@ -1,47 +1,6 @@
 {
   "version": 2,
-  "crons": [
-    {
-      "path": "/api/cron/check-trial-expiry",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/send-trial-warnings",
-      "schedule": "0 9,17 * * *"
-    },
-    {
-      "path": "/api/cron/attendance-monthly-reports",
-      "schedule": "0 6 1 * *"
-    },
-    {
-      "path": "/api/cron/monthly-billing",
-      "schedule": "0 6 1 * *"
-    },
-    {
-      "path": "/api/cron/ai-credits-renewal",
-      "schedule": "0 5 1 * *"
-    },
-    {
-      "path": "/api/cron/abandoned-signups",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/onboarding-followups",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-tokens",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/storage-cleanup",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/partner-reports",
-      "schedule": "0 7 1 * *"
-    }
-  ],
+  "crons": [],
   "functions": {
     "app/api/workspaces/*/system/call-analyzer/transcribe/route.ts": {
       "maxDuration": 120
