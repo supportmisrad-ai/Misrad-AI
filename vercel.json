@@ -2,10 +2,6 @@
   "version": 2,
   "crons": [
     {
-      "path": "/api/cron/employee-invite-emails",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/check-trial-expiry",
       "schedule": "0 2 * * *"
     },
@@ -32,10 +28,6 @@
     {
       "path": "/api/cron/onboarding-followups",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/publish-scheduled",
-      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/refresh-tokens",
