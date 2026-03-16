@@ -75,3 +75,4 @@ deploy.ps1
 /proxy.ts
 
 scripts/update-blaster-secret.ps1
+.env.production
