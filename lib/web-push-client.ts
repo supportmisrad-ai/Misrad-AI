@@ -74,7 +74,7 @@ async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration
     throw new Error('Service worker is not supported');
   }
 
-  // Ensure SW is registered (PWAInstaller is dead code, so register here if needed)
+  // Ensure SW is registered
   const registrations = await navigator.serviceWorker.getRegistrations();
   if (registrations.length === 0) {
     await navigator.serviceWorker.register('/sw.js');

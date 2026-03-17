@@ -17,11 +17,6 @@ const PwaBiometricGuard = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const PWAInstaller = dynamic(
-  () => import('@/components/PWAInstaller').then((m) => m.PWAInstaller),
-  { ssr: false, loading: () => null }
-);
-
 const VoiceCommandFab = dynamic(
   () => import('@/components/voice/VoiceCommandFab').then((m) => m.VoiceCommandFab),
   { ssr: false, loading: () => null }
@@ -277,7 +272,6 @@ export function ClientOnlyGlobalWidgets() {
 
   return (
     <>
-      {shouldLoad && mounted && enableGlobalWidgets && <PWAInstaller />}
       {shouldLoad && mounted && enableGlobalWidgets && <VoiceCommandFab />}
       {shouldLoad && mounted && enableGlobalWidgets && <ComingSoonPortal />}
       {shouldLoad && mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}

@@ -176,7 +176,7 @@
 | פורטל לקוח | ✅ קיים | Client Portal component |
 | קריאות עבודה + SLA | ✅ קיים | Work Orders במודול Operations |
 | ניהול מלאי | ✅ קיים | Inventory במודול Operations |
-| PWA | ✅ קיים | PWAInstaller component |
+| PWA | ✅ קיים | manifest.json + service worker (כפתור התקנה הוסר) |
 | העברת לידים (Partners) | ✅ קיים | Partners view במודול System |
 
 ### ⚠️ מה שהשיווק מגזים בו / דורש ניואנס:
