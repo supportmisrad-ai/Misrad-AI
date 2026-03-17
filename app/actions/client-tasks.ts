@@ -19,10 +19,22 @@ export async function createClientTask(params: {
   const { orgId, clientId, title, description, dueDate, type, isBlocking, fileUrl, fileName } = params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
+  // Find the MisradClient that corresponds to this ClientClient
+  const misradClient = await prisma.misradClient.findFirst({
+    where: {
+      organizationId: workspace.id,
+      clientClientId: clientId,
+    },
+  });
+
+  if (!misradClient) {
+    throw new Error(`MisradClient not found for ClientClient ${clientId}. Please ensure the client has a finance record.`);
+  }
+
   const task = await prisma.misradClientAction.create({
     data: {
       organization_id: workspace.id,
-      client_id: clientId,
+      client_id: misradClient.id,
       title,
       description,
       dueDate,
