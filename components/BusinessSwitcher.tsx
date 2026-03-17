@@ -228,9 +228,21 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 
                 // Handle both direct array and wrapped { workspaces: [...] } or { success: true, data: { workspaces: [...] } } response
                 const rawData = await res.json();
-                const workspaces = Array.isArray(rawData) 
-                    ? rawData 
-                    : (rawData.workspaces || rawData.data?.workspaces || rawData.data || []);
+                let workspaces: any[] = [];
+                
+                if (Array.isArray(rawData)) {
+                    workspaces = rawData;
+                } else if (rawData.workspaces && Array.isArray(rawData.workspaces)) {
+                    workspaces = rawData.workspaces;
+                } else if (rawData.data?.workspaces && Array.isArray(rawData.data.workspaces)) {
+                    workspaces = rawData.data.workspaces;
+                } else if (rawData.data && Array.isArray(rawData.data)) {
+                    workspaces = rawData.data;
+                } else {
+                    console.error('[BusinessSwitcher] API did not return valid workspaces array:', rawData);
+                    setBusinesses([]);
+                    return;
+                }
                 
                 if (!Array.isArray(workspaces)) {
                     console.error('[BusinessSwitcher] API did not return an array:', rawData);
