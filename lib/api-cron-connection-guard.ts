@@ -172,12 +172,12 @@ export function cronConnectionGuard(
       console.warn(`[CRON Guard] Blocked ${cronPath}: ${check.reason}`);
       return NextResponse.json(
         {
-          ok: false,
+          ok: true,
           skipped: true,
           reason: check.reason,
           message: 'CRON skipped due to connection pressure or duplicate execution',
         },
-        { status: 503 }
+        { status: 200 }
       );
     }
 
@@ -188,12 +188,12 @@ export function cronConnectionGuard(
       console.warn(`[CRON Guard] ${cronPath}: lock acquisition failed`);
       return NextResponse.json(
         {
-          ok: false,
+          ok: true,
           skipped: true,
           reason: 'lock_acquisition_failed',
           message: 'Could not acquire CRON lock',
         },
-        { status: 503 }
+        { status: 200 }
       );
     }
 
