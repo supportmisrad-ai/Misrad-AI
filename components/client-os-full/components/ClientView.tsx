@@ -112,12 +112,18 @@ const ClientView: React.FC = () => {
         void getClientServicePlans(currentOrgId, client.id).then(async (plans) => {
           if (plans.length === 0) {
             // Auto-create a default plan if none exist
-            const defaultPlan = await createDefaultServicePlanForClient({
-              orgId: currentOrgId,
-              clientId: client.id,
-              businessType: client.industry || 'עסקים'
-            });
-            setServicePlans([defaultPlan as unknown as ServicePlan]);
+            try {
+              const defaultPlan = await createDefaultServicePlanForClient({
+                orgId: currentOrgId,
+                clientId: client.id,
+                businessType: client.industry || 'עסקים'
+              });
+              setServicePlans([defaultPlan as unknown as ServicePlan]);
+            } catch (error) {
+              console.error('Failed to create default service plan:', error);
+              // Don't fail the entire component if plan creation fails
+              setServicePlans([]);
+            }
           } else {
             setServicePlans(plans as unknown as ServicePlan[]);
           }

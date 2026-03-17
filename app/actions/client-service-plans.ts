@@ -13,6 +13,18 @@ export async function createServicePlan(params: {
   const { orgId, clientId, title, description } = params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
+  // Validate client exists before creating plan
+  const client = await prisma.misradClient.findFirst({
+    where: {
+      id: clientId,
+      organizationId: workspace.id,
+    },
+  });
+
+  if (!client) {
+    throw new Error(`Client ${clientId} not found in organization ${workspace.id}`);
+  }
+
   const plan = await prisma.misradServicePlan.create({
     data: {
       organization_id: workspace.id,
@@ -87,6 +99,18 @@ export async function createDefaultServicePlanForClient(params: {
 }) {
   const { orgId, clientId, businessType } = params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
+  // Validate client exists before creating plan
+  const client = await prisma.misradClient.findFirst({
+    where: {
+      id: clientId,
+      organizationId: workspace.id,
+    },
+  });
+
+  if (!client) {
+    throw new Error(`Client ${clientId} not found in organization ${workspace.id}`);
+  }
 
   // הגדרת שלבים ברירת מחדל לפי סוג העסק (כרגע גנרי, אפשר להרחיב)
   const defaultPhases = [
