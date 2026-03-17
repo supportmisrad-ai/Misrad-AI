@@ -9,7 +9,7 @@ import {
     ListTodo, ThumbsUp, ThumbsDown, MessageCircle, 
     Play, Pause, Mic, MicOff, Zap, User, Scan, Clock, FileText,
     ListChecks, Heart, Smile, History, Trash2, ArrowRight,
-    Edit2, Link as LinkIcon, StickyNote
+    Edit2, Link as LinkIcon, StickyNote, Send, Share2, CheckCircle, Save
 } from 'lucide-react';
 
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
@@ -19,6 +19,7 @@ import AiOutOfCreditsModal from '../../AiOutOfCreditsModal';
 import { CallAnalysisTask, Lead } from '../types';
 import { Priority, Task } from '@/types';
 import { createNexusTaskByOrgSlug } from '../../../../app/actions/nexus';
+import { createSystemLeadActivity } from '../../../../app/actions/system-leads';
 import { Skeleton } from '../../../ui/skeletons';
 
 interface CallAnalyzerViewProps {
@@ -991,6 +992,146 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                     {result.feedback.improvements.map((f, i) => <li key={i}>{f}</li>)}
                                 </ul>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* WhatsApp Follow-up Message */}
+                    {result.followupMessage && (
+                        <div className="bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+                            <div className="p-4 bg-emerald-100 border-b border-emerald-200 flex items-center gap-2">
+                                <MessageCircle size={18} className="text-emerald-700" />
+                                <h3 className="font-bold text-emerald-900 text-sm">הודעת פולואפ מוכנה</h3>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                <div className="bg-white p-3 rounded-xl border border-emerald-200">
+                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                        {result.followupMessage}
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const text = encodeURIComponent(result.followupMessage || '');
+                                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                                        }}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors"
+                                    >
+                                        <Share2 size={16} />
+                                        שלח בוואטסאפ
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(result.followupMessage || '');
+                                            addToast('הודעה הועתקה ללוח', 'success');
+                                        }}
+                                        className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-xl text-sm font-bold hover:bg-emerald-50 transition-colors"
+                                    >
+                                        העתק
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Summary Highlights - Strengths & Weaknesses */}
+                    {result.summaryHighlights && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="p-4 bg-slate-50 border-b border-slate-100">
+                                <h3 className="font-bold text-slate-800 text-sm">נקודות מפתח מהשיחה</h3>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                {result.summaryHighlights.strengths.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 mb-2">
+                                            <CheckCircle size={14} /> לשימור
+                                        </div>
+                                        <ul className="space-y-1">
+                                            {result.summaryHighlights.strengths.map((s, i) => (
+                                                <li key={i} className="text-xs text-slate-700 flex items-start gap-2 bg-emerald-50 p-2 rounded-lg">
+                                                    <span className="text-emerald-500 mt-0.5">✓</span>
+                                                    {s}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {result.summaryHighlights.weaknesses.length > 0 && (
+                                    <div className="pt-2 border-t border-slate-100">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-amber-600 mb-2">
+                                            <TriangleAlert size={14} /> לשיפור
+                                        </div>
+                                        <ul className="space-y-1">
+                                            {result.summaryHighlights.weaknesses.map((w, i) => (
+                                                <li key={i} className="text-xs text-slate-700 flex items-start gap-2 bg-amber-50 p-2 rounded-lg">
+                                                    <span className="text-amber-500 mt-0.5">→</span>
+                                                    {w}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quick Actions Bar */}
+                    <div className="bg-indigo-600 rounded-2xl p-4 shadow-lg shadow-indigo-200">
+                        <div className="flex items-center justify-between">
+                            <div className="text-white">
+                                <div className="font-bold text-sm">פעולות מהירות</div>
+                                <div className="text-xs text-indigo-200">
+                                    {result.leadId ? 'שמור את הניתוח בליד הקיים' : 'שמור את הניתוח במערכת'}
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    const orgSlug = orgSlugFromPathname();
+                                    if (!orgSlug || !state.result) {
+                                        addToast('חסר מידע נדרש לשמירה', 'error');
+                                        return;
+                                    }
+                                    
+                                    if (!result.leadId) {
+                                        addToast('יש לשייך את השיחה לליד תחילה', 'warning');
+                                        return;
+                                    }
+                                    
+                                    try {
+                                        const res = await createSystemLeadActivity({
+                                            orgSlug,
+                                            leadId: result.leadId,
+                                            type: 'call_analysis',
+                                            content: `ניתוח שיחה (AI): ${state.result!.summary.slice(0, 150)}...`,
+                                            metadata: {
+                                                callAnalysis: {
+                                                    summary: state.result!.summary,
+                                                    score: state.result!.score,
+                                                    intent: state.result!.intent,
+                                                    followupMessage: state.result!.followupMessage,
+                                                    summaryHighlights: state.result!.summaryHighlights,
+                                                    topics: state.result!.topics,
+                                                    feedback: state.result!.feedback,
+                                                    transcript: state.result!.transcript.slice(0, 20), // First 20 segments
+                                                }
+                                            } as unknown as import('@prisma/client').Prisma.InputJsonValue
+                                        });
+                                        
+                                        if (res.ok) {
+                                            addToast('ניתוח נשמר בליד בהצלחה', 'success');
+                                        } else {
+                                            addToast((res as { ok: false; message: string }).message || 'שגיאה בשמירת הניתוח', 'error');
+                                        }
+                                    } catch (e) {
+                                        console.error(e);
+                                        addToast('שגיאה בשמירת הניתוח', 'error');
+                                    }
+                                }}
+                                disabled={!result.leadId}
+                                className="flex items-center gap-2 bg-white text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Save size={16} />
+                                שמירה ותיעוד
+                            </button>
                         </div>
                     </div>
 

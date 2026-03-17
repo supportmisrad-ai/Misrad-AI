@@ -345,6 +345,11 @@ export interface CallAnalysisResult {
     positive: string[];
     improvements: string[];
   };
+  followupMessage?: string;
+  summaryHighlights?: {
+    strengths: string[];
+    weaknesses: string[];
+  };
   userNotes?: string;
   leadId?: string;
 }

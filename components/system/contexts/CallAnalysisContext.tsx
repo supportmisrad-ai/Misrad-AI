@@ -197,6 +197,15 @@ const CallAnalysisContext = createContext<CallAnalysisContextType | undefined>(u
 
 // Launch-safe: AI schema and client-side Gemini processing are disabled.
 
+function coerceSummaryHighlights(value: unknown): CallAnalysisResult['summaryHighlights'] {
+  const o = asObject(value);
+  if (!o) return undefined;
+  return {
+    strengths: coerceStringArray(o.strengths),
+    weaknesses: coerceStringArray(o.weaknesses),
+  };
+}
+
 export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const pathname = usePathname();
   const [state, setState] = useState<CallAnalysisState>({
@@ -356,29 +365,34 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         improvements: Array.isArray(feedbackObj?.improvements) ? feedbackObj!.improvements.map((v) => String(v)) : [],
       };
 
-      // Use AI transcript segments if available, otherwise parse from raw text
-      const aiTranscript2 = coerceTranscript(aiResult.transcript);
-      const parsedTranscript2 = aiTranscript2.length > 0 ? aiTranscript2 : parseTranscriptTextToSegments(clean);
-
-      const finalResult: CallAnalysisResult = {
-        id: `analysis_${Date.now()}`,
-        fileName: opts?.fileName ? String(opts.fileName) : 'Live',
-        title: opts?.title ? String(opts.title) : (opts?.fileName ? String(opts.fileName) : 'שיחה חיה'),
-        audioUrl: opts?.audioUrl ? String(opts.audioUrl) : '',
+      const result: CallAnalysisResult = {
+        id: Math.random().toString(36).substring(7),
+        fileName: opts?.fileName || 'Live',
+        title: opts?.title || (opts?.fileName ? `ניתוח: ${opts.fileName}` : 'ניתוח שיחה'),
+        audioUrl: opts?.audioUrl || '',
         date: new Date().toISOString(),
-        duration: '0:00',
-        summary: String(aiResult.summary || ''),
+        duration: '—',
+        summary: String(aiResult.summary || '').trim(),
         score: getNumberProp(aiResult, 'score') ?? 0,
         intent: coerceCallAnalysisIntent(aiResult.intent),
         objections: coerceObjections(aiResult.objections),
-        transcript: parsedTranscript2,
-        topics: normalizedTopics,
+        transcript: aiResult.transcript ? coerceTranscript(aiResult.transcript) : parseTranscriptTextToSegments(transcriptText),
+        topics: {
+          promises: coerceStringArray(asObject(aiResult.topics)?.promises),
+          painPoints: coerceStringArray(asObject(aiResult.topics)?.painPoints),
+          likes: coerceStringArray(asObject(aiResult.topics)?.likes),
+          slang: coerceStringArray(asObject(aiResult.topics)?.slang),
+          stories: coerceStringArray(asObject(aiResult.topics)?.stories),
+          decisions: coerceStringArray(asObject(aiResult.topics)?.decisions),
+          tasks: normalizeTasks(asObject(aiResult.topics)?.tasks),
+        },
         feedback,
-        leadId: opts?.leadId == null ? undefined : String(opts.leadId),
+        summaryHighlights: coerceSummaryHighlights(aiResult.summaryHighlights),
+        followupMessage: getStringProp(aiResult, 'followupMessage') ?? undefined,
+        leadId: opts?.leadId || undefined,
       };
 
-      setHistory((prev) => [finalResult, ...prev]);
-      setState((prev) => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
+      setState((prev) => ({ ...prev, isProcessing: false, progress: 100, currentStep: 'הושלם', result }));
     } catch (error: unknown) {
       console.error('Analysis error:', error);
       const message = error instanceof Error ? error.message : '';
@@ -580,6 +594,8 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         transcript: parsedTranscript,
         topics: normalizedTopics,
         feedback,
+        summaryHighlights: coerceSummaryHighlights(aiResult.summaryHighlights),
+        followupMessage: getStringProp(aiResult, 'followupMessage') ?? undefined,
       };
 
       setHistory((prev) => [finalResult, ...prev]);

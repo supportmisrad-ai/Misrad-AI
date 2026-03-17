@@ -98,12 +98,14 @@ async function POSTHandler(
 החזר JSON תקין בלבד (ללא טקסט חופשי).${businessContextBlock}
 
 מטרות:
-1) סכם את השיחה בקצרה.
+1) סכם את השיחה בצורה מדויקת ומקצועית.
 2) תן ציון שיחה 0-100 (אם יש הקשר עסקי – השווה לסטנדרט המכירה של העסק הזה).
 3) זהה כוונת לקוח.
 4) הפק 3-7 הצעות "מענה להתנגדות" (objection -> reply -> next_question). אם יש תסריטי מכירה או התנגדויות מוגדרות – השתמש בהם כבסיס.
 5) הפק רשימת משימות אופרטיביות.
-6) אם אפשר - החזר גם פירוק בסיסי לקטעי תמלול (speaker,timestamp,text,sentiment).
+6) הפק נקודות לשימור (strengths) ונקודות לשיפור (weaknesses).
+7) נסח הודעת פולואפ מותאמת אישית לשיחה (followupMessage) שמתאימה לשליחה בוואטסאפ (סגנון ישיר, קצר ומניע לפעולה).
+8) אם אפשר - החזר גם פירוק בסיסי לקטעי תמלול (speaker,timestamp,text,sentiment).
 
 חשוב: לגבי תזכורות ומועדים - אתה רשאי רק להציע מועד (dueAtSuggestion). אל תקבע מועד מחייב. המשתמש יאשר במערכת.
 אם אין מספיק מידע לשעה/תאריך - החזר null ב-dueAtSuggestion.
@@ -119,6 +121,8 @@ ${transcriptText.slice(0, 24000)}
   "objections": [{"objection":"...","reply":"...","next_question":"..."}],
   "topics": {"promises":[],"painPoints":[],"likes":[],"slang":[],"stories":[],"decisions":[],"tasks":[{"title":"...","dueAtSuggestion":null,"dueAtConfidence":0,"dueAtRationale":"..."}]},
   "feedback": {"positive":[],"improvements":[]},
+  "summaryHighlights": {"strengths": [], "weaknesses": []},
+  "followupMessage": "...",
   "transcript": [{"speaker":"Agent"|"Customer","timestamp":0,"text":"...","sentiment":"positive"|"negative"|"neutral"}]
 }`;
 
