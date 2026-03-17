@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { CallAnalysisState, CallAnalysisResult, CallAnalysisTask } from '../types';
+import { CallAnalysisState, CallAnalysisResult, CallAnalysisTask } from '../system.os/types';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { usePathname } from 'next/navigation';
 
