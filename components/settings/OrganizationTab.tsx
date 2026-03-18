@@ -77,6 +77,7 @@ export const OrganizationTab: React.FC = () => {
             form.append('file', resizedFile);
             form.append('bucket', 'attachments');
             form.append('folder', 'org-logos');
+            form.append('orgSlug', orgSlug);
             form.append('organizationId', organization?.id || '');
 
             const uploadRes = await fetch('/api/storage/upload', { method: 'POST', body: form });

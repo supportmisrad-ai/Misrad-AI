@@ -188,7 +188,7 @@ export default function TrialExpiredPage() {
         {/* Footer info */}
         <div className="flex items-center justify-center gap-6 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> SSL SECURE</span>
-          <span className="flex items-center gap-1.5"><Building2 className="w-3 h-3" /> MISRAD AI HQ</span>
+          <span className="flex items-center gap-1.5"><Building2 className="w-3 h-3" /> MISRAD AI</span>
         </div>
       </div>
     </div>

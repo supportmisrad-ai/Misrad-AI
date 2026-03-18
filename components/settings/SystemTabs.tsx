@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion } from 'framer-motion';
-import { Trash2, DollarSign, CircleCheckBig, TriangleAlert, Download, Upload, ShieldCheck, SquareCheck, Lightbulb, RotateCcw, BarChart3, FileClock, Database, Archive, Building, History, X, UserCheck, Crown, ChevronDown } from 'lucide-react';
+import { Trash2, DollarSign, CircleCheckBig, TriangleAlert, Download, Upload, ShieldCheck, SquareCheck, Lightbulb, RotateCcw, BarChart3, FileClock, Database, Archive, Building, History, X, UserCheck, Crown, ChevronDown, Loader2 } from 'lucide-react';
 import { Notification, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -24,10 +24,19 @@ export const DepartmentsTab: React.FC = () => {
     const { departments, updateSettings, addToast, currentUser, users, hasPermission } = useData();
     const [newDept, setNewDept] = useState('');
     const [isShaking, setIsShaking] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const inputRef = useRef<HTMLInputElement>(null);
     const [deptToDelete, setDeptToDelete] = useState<string | null>(null);
     const [history, setHistory] = useState<DepartmentHistory[]>([]);
     const [showHistory, setShowHistory] = useState(false);
+    const [displayDepartments, setDisplayDepartments] = useState<string[]>(departments);
+
+    // Initialize display departments from props
+    useEffect(() => {
+        if (departments && departments.length > 0) {
+            setDisplayDepartments(departments);
+        }
+    }, [departments]);
 
     const persistDepartmentsAndHistory = (nextDepartments: string[], nextHistory: DepartmentHistory[]) => {
         setHistory(nextHistory);
@@ -46,9 +55,13 @@ export const DepartmentsTab: React.FC = () => {
 
     useEffect(() => {
         let cancelled = false;
+        setIsLoading(true);
 
         const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
-        if (!orgSlug) return;
+        if (!orgSlug) {
+            setIsLoading(false);
+            return;
+        }
 
         const migrateAndLoad = async () => {
             try {
@@ -62,7 +75,10 @@ export const DepartmentsTab: React.FC = () => {
 
                 if (!cancelled) {
                     if (serverHistory) setHistory(serverHistory);
-                    if (serverDepartments) updateSettings('departments', serverDepartments);
+                    if (serverDepartments && serverDepartments.length > 0) {
+                        setDisplayDepartments(serverDepartments);
+                        updateSettings('departments', serverDepartments);
+                    }
                 }
 
                 // One-time migration: if legacy localStorage exists and server history is empty, persist it.
@@ -106,6 +122,10 @@ export const DepartmentsTab: React.FC = () => {
                 } catch {
                     // ignore
                 }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
         };
 
@@ -148,8 +168,9 @@ export const DepartmentsTab: React.FC = () => {
             setTimeout(() => setIsShaking(false), 400);
             return;
         }
-        if (!departments.includes(newDept.trim())) {
-            const newDepartments = [...departments, newDept.trim()];
+        if (!displayDepartments.includes(newDept.trim())) {
+            const newDepartments = [...displayDepartments, newDept.trim()];
+            setDisplayDepartments(newDepartments);
             updateSettings('departments', newDepartments);
             addHistoryEntry('added', newDept.trim(), undefined, undefined, newDepartments);
             addToast(`מחלקה "${newDept.trim()}" נוספה בהצלחה`, 'success');
@@ -165,7 +186,8 @@ export const DepartmentsTab: React.FC = () => {
 
     const confirmRemoveDepartment = () => {
         if (deptToDelete) {
-            const nextDepartments = departments.filter((d: string) => d !== deptToDelete);
+            const nextDepartments = displayDepartments.filter((d: string) => d !== deptToDelete);
+            setDisplayDepartments(nextDepartments);
             updateSettings('departments', nextDepartments);
             addHistoryEntry('removed', deptToDelete, undefined, undefined, nextDepartments);
             addToast('המחלקה הוסרה', 'info');
@@ -262,7 +284,18 @@ export const DepartmentsTab: React.FC = () => {
                     <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors w-full sm:w-auto">הוסף</button>
                 </form>
                 <div className="space-y-3 pb-28 md:pb-10">
-                    {departments.map((dept: string) => {
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-8 text-gray-400">
+                            <Loader2 size={24} className="animate-spin mr-2" />
+                            <span>טוען מחלקות...</span>
+                        </div>
+                    ) : displayDepartments.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                            <Building size={48} className="mx-auto mb-2 opacity-50" />
+                            <p>אין מחלקות. הוסף מחלקה ראשונה.</p>
+                        </div>
+                    ) : (
+                        displayDepartments.map((dept: string) => {
                         // Find department manager
                         const deptManager = users.find((u: any) => u.managedDepartment === dept);
                         // Find all users in this department
@@ -339,7 +372,8 @@ export const DepartmentsTab: React.FC = () => {
                                 </div>
                             </div>
                         );
-                    })}
+                    })
+                    )}
                 </div>
             </div>
         </motion.div>
@@ -357,12 +391,11 @@ interface DepartmentManagerSelectProps {
 const DepartmentManagerSelect: React.FC<DepartmentManagerSelectProps> = ({ department, currentManager, users, onSelect }) => {
     const [isOpen, setIsOpen] = useState(false);
     
-    // Filter users who can be managers (have manage_team permission or are in this department)
+    // Show all users except current manager - no department filtering
     const availableManagers = users.filter((u: User) => {
         // Can't select yourself if you're already manager
         if (currentManager && u.id === currentManager.id) return false;
-        // Filter users in this department or users with manage_team permission
-        return u.department === department || u.isSuperAdmin || isTenantAdminRole(u.role);
+        return true; // Show ALL users
     });
     
     return (
@@ -400,7 +433,7 @@ const DepartmentManagerSelect: React.FC<DepartmentManagerSelectProps> = ({ depar
                                 >
                                     <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full object-cover" />
                                     <span>{user.name}</span>
-                                    {user.managedDepartment && user.managedDepartment !== department && (
+                                    {user.managed_department && user.managed_department !== department && (
                                         <span className="text-[10px] text-orange-500">(מנהל מחלקה אחרת)</span>
                                     )}
                                 </button>

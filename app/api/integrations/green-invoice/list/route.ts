@@ -25,12 +25,13 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
-    if (!email) return null;
+    const workspaceIdSafe = String(params.workspaceId || '').trim();
+    if (!email || !workspaceIdSafe) return null;
 
     const row = await prisma.nexusUser.findFirst({
         where: {
             email,
-            organizationId: String(params.workspaceId),
+            organizationId: workspaceIdSafe,
         },
         select: { id: true },
     });
@@ -69,11 +70,21 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspaceId || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe) {
+            return NextResponse.json(
+                { error: 'Invalid parameters.' },
+                { status: 400 }
+            );
+        }
+
         // 2.1 GUARD: Verify Green Invoice integration is connected
         const activeIntegration = await prisma.misradIntegration.findFirst({
             where: {
-                tenant_id: String(workspaceId),
-                user_id: String(dbUserId),
+                tenant_id: workspaceIdSafe,
+                user_id: dbUserIdSafe,
                 service_type: 'green_invoice',
                 is_active: true,
             },

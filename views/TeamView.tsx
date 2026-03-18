@@ -815,7 +815,7 @@ export const TeamView: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              <div className="flex-1 flex flex-col md:flex-row gap-4 md:gap-6 overflow-visible md:overflow-hidden min-h-0">
+              <div className="flex-1 flex flex-col md:flex-row gap-4 md:gap-6 overflow-x-hidden md:overflow-hidden min-h-0">
                 {/* Team Grid - Main Content */}
                 <div className="flex-1 overflow-y-auto no-scrollbar pb-12 md:pb-10 min-w-0">
                   {visibleUsers.length === 0 ? (

@@ -73,10 +73,20 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspace.id || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe) {
+            return NextResponse.json(
+                { error: 'Invalid parameters' },
+                { status: 400 }
+            );
+        }
+
         const existingIntegration = await prisma.misradIntegration.findFirst({
             where: {
-                user_id: String(dbUserId),
-                tenant_id: String(workspace.id),
+                user_id: dbUserIdSafe,
+                tenant_id: workspaceIdSafe,
                 service_type: 'green_invoice',
             },
             select: { id: true },
@@ -94,8 +104,8 @@ async function POSTHandler(request: NextRequest) {
         } else {
             await prisma.misradIntegration.create({
                 data: {
-                    user_id: String(dbUserId),
-                    tenant_id: String(workspace.id),
+                    user_id: dbUserIdSafe,
+                    tenant_id: workspaceIdSafe,
                     service_type: 'green_invoice',
                     access_token: apiKey,
                     token_type: 'Bearer',

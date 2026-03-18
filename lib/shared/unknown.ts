@@ -9,7 +9,15 @@ export function getErrorMessage(error: unknown): string {
   if (typeof error === 'string') return error;
   const obj = asObject(error);
   const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
+  if (typeof msg === 'string' && msg.trim()) return msg;
+  // Fallback: return error name or type info for better debugging
+  if (error instanceof Error && error.name) return `[${error.name}]`;
+  if (obj && typeof obj.name === 'string' && obj.name) return `[${obj.name}]`;
+  if (typeof error === 'object' && error !== null) {
+    const ctor = error.constructor?.name;
+    if (ctor && ctor !== 'Object') return `[${ctor}]`;
+  }
+  return '[Unknown Error]';
 }
 export function asObjectLoose(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object') return value as Record<string, unknown>;

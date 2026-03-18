@@ -54,14 +54,21 @@ async function GETHandler(request: NextRequest) {
             return NextResponse.json({ connected: false });
         }
 
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspaceId || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe) {
+            return NextResponse.json({ connected: false });
+        }
+
         let integration: Prisma.MisradIntegrationGetPayload<{
             select: { id: true; is_active: true; last_synced_at: true; metadata: true };
         }> | null = null;
         try {
             integration = await prisma.misradIntegration.findFirst({
                 where: {
-                    user_id: String(dbUserId),
-                    tenant_id: String(workspaceId),
+                    user_id: dbUserIdSafe,
+                    tenant_id: workspaceIdSafe,
                     service_type: 'green_invoice',
                     is_active: true,
                 },

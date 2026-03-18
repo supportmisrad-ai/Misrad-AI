@@ -24,25 +24,31 @@ export const CalendarView: React.FC = () => {
   const showUnscheduled = true; // Always show unscheduled sidebar
   const [selectedDayDetail, setSelectedDayDetail] = useState<Date | null>(null);
   const [showHebrewCalendar, setShowHebrewCalendar] = useState(false);
+  const [calendarViewMode, setCalendarViewMode] = useState<'month' | 'week'>('month');
 
-  // Load Hebrew calendar preference from localStorage after mount (client-side only)
+  // Load preferences from localStorage after mount (client-side only)
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = localStorage.getItem('showHebrewCalendar');
-        if (saved === 'true') {
+        const savedHebrew = localStorage.getItem('showHebrewCalendar');
+        const savedViewMode = localStorage.getItem('calendarViewMode');
+        if (savedHebrew === 'true') {
           setShowHebrewCalendar(true);
+        }
+        if (savedViewMode === 'week') {
+          setCalendarViewMode('week');
         }
       }
     } catch { }
   }, []);
 
-  // Save preference to localStorage
+  // Save preferences to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('showHebrewCalendar', showHebrewCalendar.toString());
+      localStorage.setItem('calendarViewMode', calendarViewMode);
     }
-  }, [showHebrewCalendar]);
+  }, [showHebrewCalendar, calendarViewMode]);
   
   // Drag & Drop State
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null); // NEW: Track which day is being hovered
@@ -53,7 +59,7 @@ export const CalendarView: React.FC = () => {
       taskTitle: string;
   }>({ isOpen: false, taskId: null, targetDate: null, taskTitle: '' });
 
-  // Calendar Logic
+  // Calendar Logic - Month View
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -72,7 +78,22 @@ export const CalendarView: React.FC = () => {
     return days;
   };
 
-  const days = getDaysInMonth(currentDate);
+  // Week View Logic
+  const getDaysInWeek = (date: Date) => {
+    const dayOfWeek = date.getDay(); // 0 = Sunday
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - dayOfWeek);
+    
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
+  const days = calendarViewMode === 'month' ? getDaysInMonth(currentDate) : getDaysInWeek(currentDate);
   const weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
   
   // Get holidays for current month (memoized for performance)
@@ -127,10 +148,22 @@ export const CalendarView: React.FC = () => {
 
   const unscheduledTasks = tasks.filter((t: Task) => !t.dueDate && t.status !== Status.DONE && t.status !== Status.CANCELED);
 
+  // Navigation - works with both month and week views
   const changeMonth = (delta: number) => {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(newDate.getMonth() + delta);
-      setCurrentDate(newDate);
+    if (calendarViewMode === 'month') {
+      setCurrentDate(prev => {
+        const newDate = new Date(prev);
+        newDate.setMonth(prev.getMonth() + delta);
+        return newDate;
+      });
+    } else {
+      // Week view - move by weeks
+      setCurrentDate(prev => {
+        const newDate = new Date(prev);
+        newDate.setDate(prev.getDate() + (delta * 7));
+        return newDate;
+      });
+    }
   };
 
   const handleDayClick = (date: Date) => {
@@ -254,6 +287,26 @@ export const CalendarView: React.FC = () => {
                           <button onClick={() => changeMonth(1)} className="p-1 hover:bg-white rounded-md transition-shadow text-gray-600" aria-label="חודש הבא"><ChevronLeft size={18} /></button>
                       </div>
                       
+                      <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+                      
+                      {/* View Mode Toggle - Month/Week */}
+                      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                          <button 
+                            onClick={() => setCalendarViewMode('month')} 
+                            className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${calendarViewMode === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                            aria-label="תצוגת חודש"
+                          >
+                            חודש
+                          </button>
+                          <button 
+                            onClick={() => setCalendarViewMode('week')} 
+                            className={`px-2 py-1 rounded-md text-xs font-bold transition-all ${calendarViewMode === 'week' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                            aria-label="תצוגת שבוע"
+                          >
+                            שבוע
+                          </button>
+                      </div>
+
                       <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
                       
                       {/* Hebrew Calendar Toggle */}

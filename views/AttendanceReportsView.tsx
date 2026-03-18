@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { getHebrewYearLetters } from '@/lib/hebrew-calendar';
 import {
   generateMonthlyReport,
   generateAllMonthlyReports,
@@ -54,7 +55,11 @@ export function AttendanceReportsView() {
   const [message, setMessage] = useState('');
   const [selectedReport, setSelectedReport] = useState<MonthlyReportData | null>(null);
 
-  const monthLabel = useMemo(() => `${HEBREW_MONTHS[month] || month} ${year}`, [month, year]);
+  const monthLabel = useMemo(() => {
+    const date = new Date(year, month - 1, 1);
+    const hebrewYear = getHebrewYearLetters(date);
+    return `${HEBREW_MONTHS[month] || month} ${year} (ה'${hebrewYear})`;
+  }, [month, year]);
 
   const slug = orgSlug ?? '';
 

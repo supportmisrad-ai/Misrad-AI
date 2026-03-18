@@ -23,12 +23,13 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
-    if (!email) return null;
+    const workspaceIdSafe = String(params.workspaceId || '').trim();
+    if (!email || !workspaceIdSafe) return null;
 
     const row = await prisma.nexusUser.findFirst({
         where: {
             email,
-            organizationId: String(params.workspaceId),
+            organizationId: workspaceIdSafe,
         },
         select: { id: true },
     });
@@ -64,14 +65,22 @@ async function POSTHandler(request: NextRequest) {
                 { status: 400 }
             );
         }
+        
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspace.id || '').trim();
+        const serviceTypeSafe = String(serviceType || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe || !serviceTypeSafe) {
+            return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+        }
 
         let integrations: Awaited<ReturnType<typeof prisma.misradIntegration.findMany>> = [];
         try {
             integrations = await prisma.misradIntegration.findMany({
                 where: {
-                    user_id: String(dbUserId),
-                    tenant_id: String(workspace.id),
-                    service_type: String(serviceType),
+                    user_id: dbUserIdSafe,
+                    tenant_id: workspaceIdSafe,
+                    service_type: serviceTypeSafe,
                     is_active: true,
                     ...(integrationId ? { id: String(integrationId) } : {}),
                 },
@@ -112,8 +121,8 @@ async function POSTHandler(request: NextRequest) {
             return prisma.misradIntegration.deleteMany({
                 where: {
                     id: String(integration.id),
-                    tenant_id: String(workspace.id),
-                    user_id: String(dbUserId),
+                    tenant_id: workspaceIdSafe,
+                    user_id: dbUserIdSafe,
                 },
             });
         });

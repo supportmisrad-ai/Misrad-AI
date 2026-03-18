@@ -126,21 +126,51 @@ async function main() {
 
     try {
       for (const task of tasks) {
-        await prisma.misradClientAction.create({
+        const demoUser = demoUsers.find(u => u.clerk_user_id === task.assignedTo);
+        if (!demoUser) continue;
+
+        // Create NexusUser record for the demo user
+        const nexusUser = await prisma.nexusUser.upsert({
+          where: { 
+            organizationId_email: {
+              organizationId: ORG_ID,
+              email: demoUser.email || `demo-${task.assignedTo}@demo.com`
+            }
+          },
+          create: {
+            organizationId: ORG_ID,
+            name: demoUser.full_name || 'משתמש דמו',
+            email: demoUser.email || `demo-${task.assignedTo}@demo.com`,
+            role: 'member'
+          },
+          update: {}
+        });
+
+        await prisma.nexusTask.create({
           data: {
-            organization_id: ORG_ID,
-            client_id: demoClient.id,
-            type: 'APPROVAL',
+            id: crypto.randomUUID(),
+            organizationId: ORG_ID,
             title: task.title,
             description: task.content,
-            status: task.status === 'completed' ? 'COMPLETED' : 'PENDING',
-            dueDate: task.dueDate || '',
-            dueDateAt: task.dueDate ? new Date(task.dueDate + 'T00:00:00.000Z') : null,
-            isBlocking: false
+            status: task.status === 'todo' ? 'Todo' : task.status === 'in_progress' ? 'In Progress' : 'Done',
+            priority: task.priority === 'high' ? 'High' : task.priority === 'medium' ? 'Medium' : 'Low',
+            creatorId: nexusUser.id,
+            assigneeId: nexusUser.id,
+            assigneeIds: [nexusUser.id],
+            dueDate: task.dueDate ? new Date(task.dueDate + 'T00:00:00.000Z') : null,
+            clientId: demoClient.id,
+            createdAt: new Date(),
+            tags: [],
+            timeSpent: 0,
+            isTimerRunning: false,
+            isPrivate: false,
+            snoozeCount: 0,
+            isFocus: false,
+            module: 'nexus'
           }
         });
       }
-      console.log('✅ Nexus tasks seeded successfully');
+      console.log('✅ Nexus tasks seeded successfully (in nexusTask table)');
     } catch (error) {
       console.log('⚠️ Could not seed tasks:', error);
     }

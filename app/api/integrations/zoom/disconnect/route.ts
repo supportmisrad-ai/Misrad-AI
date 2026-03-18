@@ -46,11 +46,17 @@ export async function POST() {
     return await withTenantIsolationContext(
       { source: 'api_integrations_zoom_disconnect', organizationId: profile.organizationId, reason: 'zoom_disconnect' },
       async () => {
+        const userIdSafe = String(userId || '').trim();
+        const orgIdSafe = String(profile.organizationId || '').trim();
+        if (!userIdSafe || !orgIdSafe) {
+          return NextResponse.json({ error: 'Invalid user or organization' }, { status: 400 });
+        }
+
         // Deactivate integration
         await prisma.misradIntegration.updateMany({
           where: {
-            user_id: userId,
-            tenant_id: profile.organizationId,
+            user_id: userIdSafe,
+            tenant_id: orgIdSafe,
             service_type: 'zoom',
           },
           data: {

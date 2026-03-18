@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
+
 const prisma = new PrismaClient();
 
 // ========================================
@@ -244,6 +246,30 @@ function getModulesForPlan(plan: string): {
   }
 }
 
+async function seedDefaultRoles() {
+  console.log(`\n🛡️  Seeding default roles...`);
+  
+  const existingCount = await prisma.misradRole.count();
+  if (existingCount > 0) {
+    console.log(`   ⏭️  ${existingCount} roles already exist, skipping...`);
+    return;
+  }
+
+  for (const role of DEFAULT_ROLE_DEFINITIONS) {
+    await prisma.misradRole.create({
+      data: {
+        name: role.name,
+        permissions: role.permissions,
+        is_system: role.isSystem ?? false,
+        description: role.description || null,
+      },
+    });
+    console.log(`   ✅ Created role: ${role.name}`);
+  }
+  
+  console.log(`   ✅ ${DEFAULT_ROLE_DEFINITIONS.length} roles created`);
+}
+
 // ========================================
 // Main
 // ========================================
@@ -256,18 +282,20 @@ async function main() {
   console.log(`🌍 Environment detected: ${env}`);
 
   const user = await createOrFindUser(env);
+  await seedDefaultRoles();
   const mainOrg = await createMainOrganization(env, user.id);
   const testOrgs = await createTestOrganizations(user.id);
 
   console.log('\n═══════════════════════════════════════');
   console.log('🎉 Seed completed successfully!');
   console.log('═══════════════════════════════════════');
-  console.log(`\n� Summary:`);
+  console.log(`\n📊 Summary:`);
   console.log(`   🌍 Environment: ${env}`);
   console.log(`   👤 User: ${user.full_name} (${user.email})`);
   console.log(`   🆔 Clerk ID: ${user.clerk_user_id}`);
   console.log(`   🏢 Main Org: ${mainOrg.name}`);
   console.log(`   📦 Main Plan: ${mainOrg.subscription_plan}`);
+  console.log(`   🛡️  Roles: ${DEFAULT_ROLE_DEFINITIONS.length} default roles seeded`);
   console.log(`\n🧪 Test Organizations Created: ${testOrgs.length}`);
   
   if (testOrgs.length > 0) {

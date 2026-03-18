@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.misrad-ai.com https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.dev https://images.clerk.dev https://clerk.misrad-ai.com https://*.googleusercontent.com https://images.unsplash.com https://*.supabase.co https://grainy-gradients.vercel.app",
+              "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.dev https://images.clerk.dev https://clerk.misrad-ai.com https://*.googleusercontent.com https://images.unsplash.com https://*.supabase.co https://grainy-gradients.vercel.app https://*.greeninvoice.co.il",
               "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
               "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.misrad-ai.com https://challenges.cloudflare.com https://*.cloudflare.com https://*.sentry.io https://*.ingest.sentry.io https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com https://nominatim.openstreetmap.org",
               "frame-src 'self' https://challenges.cloudflare.com https://*.cloudflare.com https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.misrad-ai.com",

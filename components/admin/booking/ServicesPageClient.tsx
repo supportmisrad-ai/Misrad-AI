@@ -10,16 +10,19 @@ import { getBookingServices } from '@/app/actions/booking-services';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Briefcase, Plus, Clock, DollarSign, CheckCircle2, XCircle, Settings } from 'lucide-react';
+import { CreateServiceModal } from '@/components/booking/CreateServiceModal';
 import type { BookingService } from '@/types/booking';
 
 interface ServicesPageClientProps {
   orgSlug: string;
+  showCreateModal?: boolean;
 }
 
-export default function ServicesPageClient({ orgSlug }: ServicesPageClientProps) {
+export default function ServicesPageClient({ orgSlug, showCreateModal = false }: ServicesPageClientProps) {
   const [services, setServices] = useState<BookingService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(showCreateModal);
 
   const loadServices = useCallback(async () => {
     setIsLoading(true);
@@ -72,20 +75,28 @@ export default function ServicesPageClient({ orgSlug }: ServicesPageClientProps)
 
   if (services.length === 0) {
     return (
-      <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
-        <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Settings className="w-8 h-8 text-indigo-600" />
+      <>
+        <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Settings className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">אין שירותים עדיין</h3>
+          <p className="text-slate-500 mb-4">הוסף את השירות הראשון שלך</p>
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4 ml-2" />
+            הוסף שירות
+          </Button>
         </div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">אין שירותים עדיין</h3>
-        <p className="text-slate-500 mb-4">הוסף את השירות הראשון שלך</p>
-        <Button 
-          onClick={() => window.location.href = `/app/admin/booking?action=new-service`}
-          className="bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          הוסף שירות
-        </Button>
-      </div>
+        <CreateServiceModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSuccess={loadServices}
+          orgSlug={orgSlug}
+        />
+      </>
     );
   }
 
@@ -96,7 +107,7 @@ export default function ServicesPageClient({ orgSlug }: ServicesPageClientProps)
           שירותים ({services.length})
         </h3>
         <Button 
-          onClick={() => window.location.href = `/app/admin/booking?action=new-service`}
+          onClick={() => setIsCreateModalOpen(true)}
           className="bg-indigo-600 hover:bg-indigo-700"
           size="sm"
         >
@@ -104,6 +115,13 @@ export default function ServicesPageClient({ orgSlug }: ServicesPageClientProps)
           הוסף חדש
         </Button>
       </div>
+
+      <CreateServiceModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={loadServices}
+        orgSlug={orgSlug}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {services.map((service) => (

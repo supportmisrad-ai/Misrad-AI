@@ -25,12 +25,13 @@ const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerC
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
-    if (!email) return null;
+    const workspaceIdSafe = String(params.workspaceId || '').trim();
+    if (!email || !workspaceIdSafe) return null;
 
     const row = await prisma.nexusUser.findFirst({
         where: {
             email,
-            organizationId: String(params.workspaceId),
+            organizationId: workspaceIdSafe,
         },
         select: { id: true },
     });
@@ -62,6 +63,18 @@ async function GETHandler(request: NextRequest) {
             });
         }
         
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspace.id || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe) {
+            return apiSuccess({
+                status: {
+                    calendar: { connected: false },
+                    drive: { connected: false }
+                }
+            });
+        }
+        
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
 
@@ -69,8 +82,8 @@ async function GETHandler(request: NextRequest) {
         try {
             integrations = await prisma.misradIntegration.findMany({
                 where: {
-                    user_id: String(dbUserId),
-                    tenant_id: String(workspace.id),
+                    user_id: dbUserIdSafe,
+                    tenant_id: workspaceIdSafe,
                     is_active: true,
                     service_type:
                         service === 'calendar'
@@ -91,7 +104,7 @@ async function GETHandler(request: NextRequest) {
                     source: 'app/api/integrations/google/status.GETHandler',
                     reason: 'misrad_integrations missing table (fallback to connected=false)',
                     error,
-                    extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
+                    extras: { workspaceId: workspaceIdSafe, dbUserId: dbUserIdSafe, service: service ?? null },
                 });
                 if (IS_PROD) console.warn('[API] Integrations table not found');
                 else console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
@@ -108,7 +121,7 @@ async function GETHandler(request: NextRequest) {
                     source: 'app/api/integrations/google/status.GETHandler',
                     reason: 'misrad_integrations query schema mismatch (fallback to connected=false)',
                     error,
-                    extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
+                    extras: { workspaceId: workspaceIdSafe, dbUserId: dbUserIdSafe, service: service ?? null },
                 });
             }
             return apiSuccess({

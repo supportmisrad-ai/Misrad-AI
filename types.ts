@@ -107,7 +107,7 @@ export interface User {
     isSuperAdmin?: boolean; // NEW: Grants access to SaaS Console
     isTenantAdmin?: boolean;
     managerId?: string | null; // NEW: Hierarchy - ID of the user's manager
-    managedDepartment?: string | null; // NEW: Department this user manages (if they are a department manager)
+    managed_department?: string | null; // Matches schema.prisma mapping
     organizationId?: string | null;
     tenantId?: string | null; // Legacy alias (maps to organizationId)
     billingInfo?: {

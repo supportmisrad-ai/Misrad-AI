@@ -24,16 +24,18 @@ export async function getCalendarClient(
     userId: string,
     tenantId?: string
 ): Promise<calendar_v3.Calendar | null> {
-    if (!tenantId) {
-        console.error('[Calendar] Missing tenantId/organizationId (Tenant Isolation lockdown)');
+    const userIdSafe = String(userId || '').trim();
+    const tenantIdSafe = String(tenantId || '').trim();
+    if (!tenantIdSafe || !userIdSafe) {
+        console.error('[Calendar] Missing tenantId or userId (Tenant Isolation lockdown)');
         return null;
     }
 
     // Find integration
     const integration = await prisma.misradIntegration.findFirst({
         where: {
-            user_id: String(userId),
-            tenant_id: String(tenantId),
+            user_id: userIdSafe,
+            tenant_id: tenantIdSafe,
             service_type: 'google_calendar',
             is_active: true,
         },
@@ -176,10 +178,12 @@ export async function syncTaskToCalendar(
 
         // Log sync
         if (tenantId) {
+            const userIdSafe = String(userId || '').trim();
+            const tenantIdSafe = String(tenantId || '').trim();
             const integrationRow = await prisma.misradIntegration.findFirst({
                 where: {
-                    user_id: String(userId),
-                    tenant_id: String(tenantId),
+                    user_id: userIdSafe,
+                    tenant_id: tenantIdSafe,
                     service_type: 'google_calendar',
                     is_active: true,
                 },
@@ -249,10 +253,12 @@ export async function syncCalendarToTasks(
 
         // Update last sync time
         if (tenantId) {
+            const userIdSafe = String(userId || '').trim();
+            const tenantIdSafe = String(tenantId || '').trim();
             await prisma.misradIntegration.updateMany({
                 where: {
-                    user_id: String(userId),
-                    tenant_id: String(tenantId),
+                    user_id: userIdSafe,
+                    tenant_id: tenantIdSafe,
                     service_type: 'google_calendar',
                     is_active: true,
                 },

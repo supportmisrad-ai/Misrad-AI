@@ -62,25 +62,35 @@ export async function GET(request: NextRequest) {
     }
 
     // Store integration
+    const userIdSafe = String(userId || '').trim();
+    const orgIdSafe = String(profile.organizationId || '').trim();
+    
+    if (!userIdSafe || !orgIdSafe) {
+      return NextResponse.json(
+        { error: 'Invalid user or organization' },
+        { status: 400 }
+      );
+    }
+
     await withTenantIsolationContext(
       {
         source: 'api/integrations/zoom/callback',
         reason: 'zoom_oauth_callback',
-        tenantId: String(profile.organizationId),
+        tenantId: orgIdSafe,
         suppressReporting: true,
       },
       async () =>
         await prisma.misradIntegration.upsert({
           where: {
             user_id_tenant_id_service_type: {
-              user_id: userId,
-              tenant_id: profile.organizationId,
+              user_id: userIdSafe,
+              tenant_id: orgIdSafe,
               service_type: 'zoom',
             },
           },
           create: {
-            user_id: userId,
-            tenant_id: profile.organizationId,
+            user_id: userIdSafe,
+            tenant_id: orgIdSafe,
             service_type: 'zoom',
             access_token: tokens.accessToken,
             refresh_token: tokens.refreshToken,
@@ -88,7 +98,7 @@ export async function GET(request: NextRequest) {
             is_active: true,
           },
           update: {
-            tenant_id: profile.organizationId,
+            tenant_id: orgIdSafe,
             access_token: tokens.accessToken,
             refresh_token: tokens.refreshToken,
             expires_at: tokens.expiresAt,

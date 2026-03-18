@@ -97,11 +97,21 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const dbUserIdSafe = String(dbUserId || '').trim();
+        const workspaceIdSafe = String(workspaceId || '').trim();
+        
+        if (!dbUserIdSafe || !workspaceIdSafe) {
+            return NextResponse.json(
+                { error: 'Invalid parameters' },
+                { status: 400 }
+            );
+        }
+
         // 2.1 GUARD: Verify Green Invoice integration is physically connected
         const activeIntegration = await prisma.misradIntegration.findFirst({
             where: {
-                tenant_id: String(workspaceId),
-                user_id: String(dbUserId),
+                tenant_id: workspaceIdSafe,
+                user_id: dbUserIdSafe,
                 service_type: 'green_invoice',
                 is_active: true,
             },
@@ -140,8 +150,8 @@ async function POSTHandler(request: NextRequest) {
                 if (isTrial) {
                     const integration = await prisma.misradIntegration.findFirst({
                         where: {
-                            tenant_id: String(workspaceId),
-                            user_id: String(dbUserId),
+                            tenant_id: workspaceIdSafe,
+                            user_id: dbUserIdSafe,
                             service_type: 'green_invoice',
                             is_active: true,
                         },

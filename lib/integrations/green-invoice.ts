@@ -128,17 +128,18 @@ type GreenInvoiceDocumentCreatePayload = {
  * @returns API key or null if not configured
  */
 export async function getGreenInvoiceApiKey(userId: string, organizationId: string): Promise<string | null> {
+    const userIdSafe = String(userId || '').trim();
     const orgId = String(organizationId || '').trim();
-    if (!orgId) {
-        console.error('[Green Invoice] Missing organizationId (Tenant Isolation lockdown)');
+    if (!orgId || !userIdSafe) {
+        console.error('[Green Invoice] Missing organizationId or userId (Tenant Isolation lockdown)');
         return null;
     }
 
     try {
         const integration = await prisma.misradIntegration.findFirst({
             where: {
-                user_id: String(userId),
-                tenant_id: String(orgId),
+                user_id: userIdSafe,
+                tenant_id: orgId,
                 service_type: 'green_invoice',
                 is_active: true,
             },
@@ -152,7 +153,7 @@ export async function getGreenInvoiceApiKey(userId: string, organizationId: stri
         // In Green Invoice, access_token stores the API key
         return integration.access_token ? String(integration.access_token) : null;
     } catch (error: unknown) {
-        captureIntegrationException(error, { action: 'getGreenInvoiceApiKey', userId: String(userId), organizationId: orgId });
+        captureIntegrationException(error, { action: 'getGreenInvoiceApiKey', userId: userIdSafe, organizationId: orgId });
         console.error('[Green Invoice] Error getting API key:', error);
         return null;
     }
@@ -277,12 +278,13 @@ export async function createDocument(
         const result: GreenInvoiceDocumentResponse = parsed.data;
 
         // Update last sync time
-        const orgId = String(organizationId || '').trim();
-        if (orgId) {
+        const orgIdSafe = String(organizationId || '').trim();
+        const userIdSafe = String(userId || '').trim();
+        if (orgIdSafe && userIdSafe) {
             const existing = await prisma.misradIntegration.findFirst({
                 where: {
-                    user_id: String(userId),
-                    tenant_id: String(orgId),
+                    user_id: userIdSafe,
+                    tenant_id: orgIdSafe,
                     service_type: 'green_invoice',
                     is_active: true,
                 },

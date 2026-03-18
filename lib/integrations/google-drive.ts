@@ -23,16 +23,18 @@ export async function getDriveClient(
     userId: string,
     tenantId?: string
 ): Promise<drive_v3.Drive | null> {
-    if (!tenantId) {
-        console.error('[Drive] Missing tenantId/organizationId (Tenant Isolation lockdown)');
+    const userIdSafe = String(userId || '').trim();
+    const tenantIdSafe = String(tenantId || '').trim();
+    if (!tenantIdSafe || !userIdSafe) {
+        console.error('[Drive] Missing tenantId or userId (Tenant Isolation lockdown)');
         return null;
     }
 
     // Find integration
     const integration = await prisma.misradIntegration.findFirst({
         where: {
-            user_id: String(userId),
-            tenant_id: String(tenantId),
+            user_id: userIdSafe,
+            tenant_id: tenantIdSafe,
             service_type: 'google_drive',
             is_active: true,
         },
@@ -131,10 +133,12 @@ export async function listDriveFiles(
 
         // Update last sync time
         if (tenantId) {
+            const userIdSafe = String(userId || '').trim();
+            const tenantIdSafe = String(tenantId || '').trim();
             await prisma.misradIntegration.updateMany({
                 where: {
-                    user_id: String(userId),
-                    tenant_id: String(tenantId),
+                    user_id: userIdSafe,
+                    tenant_id: tenantIdSafe,
                     service_type: 'google_drive',
                     is_active: true,
                 },

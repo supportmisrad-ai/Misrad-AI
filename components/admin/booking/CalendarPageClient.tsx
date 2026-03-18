@@ -13,17 +13,22 @@ import { getBookingAppointments } from '@/app/actions/booking-appointments';
 import { getBookingProviders } from '@/app/actions/booking-providers';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, CalendarDays } from 'lucide-react';
+import { CreateAppointmentModal } from '@/components/booking/CreateAppointmentModal';
 import type { BookingAppointment, BookingProvider } from '@/types/booking';
 
 interface CalendarPageClientProps {
   orgSlug: string;
+  showCreateModal?: boolean;
 }
 
-export default function CalendarPageClient({ orgSlug }: CalendarPageClientProps) {
+export default function CalendarPageClient({ orgSlug, showCreateModal = false }: CalendarPageClientProps) {
   const [appointments, setAppointments] = useState<BookingAppointment[]>([]);
   const [providers, setProviders] = useState<BookingProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(showCreateModal);
+  const [modalDate, setModalDate] = useState<Date>(new Date());
+  const [modalTime, setModalTime] = useState<string>('09:00');
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -68,11 +73,13 @@ export default function CalendarPageClient({ orgSlug }: CalendarPageClientProps)
   }, [loadData]);
 
   const handleCreateAppointment = (date: Date, time: string) => {
-    // Navigate to new appointment page with pre-filled date/time
-    const params = new URLSearchParams();
-    params.set('date', date.toISOString().split('T')[0]);
-    params.set('time', time);
-    window.location.href = `/app/admin/booking?action=new&${params.toString()}`;
+    setModalDate(date);
+    setModalTime(time);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    loadData(); // Refresh data after creation
   };
 
   const handleAppointmentClick = (appointment: BookingAppointment) => {
@@ -153,12 +160,22 @@ export default function CalendarPageClient({ orgSlug }: CalendarPageClientProps)
 
   // Normal state with data
   return (
-    <BookingCalendar
-      appointments={appointments}
-      providers={providers}
-      onCreateAppointment={handleCreateAppointment}
-      onAppointmentClick={handleAppointmentClick}
-      defaultView="week"
-    />
+    <>
+      <BookingCalendar
+        appointments={appointments}
+        providers={providers}
+        onCreateAppointment={handleCreateAppointment}
+        onAppointmentClick={handleAppointmentClick}
+        defaultView="week"
+      />
+      <CreateAppointmentModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleModalSuccess}
+        orgSlug={orgSlug}
+        initialDate={modalDate}
+        initialTime={modalTime}
+      />
+    </>
   );
 }

@@ -77,3 +77,4 @@ deploy.ps1
 
 scripts/update-blaster-secret.ps1
 .env.production
+.env.prod_minimal
