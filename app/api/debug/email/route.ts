@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { 
   generateWelcomeEmailHTML,
   generatePaymentSuccessEmailHTML,
@@ -15,6 +16,11 @@ import {
 } from '@/lib/email-generators';
 
 export async function GET(req: NextRequest) {
+  // Security: Only allow authenticated users in development
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'welcome';
 
