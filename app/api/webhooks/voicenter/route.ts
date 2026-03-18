@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { createHmac } from 'crypto';
 
 // Helper to normalize phones
 function extractPhoneDigits(phone: string): string {
@@ -7,6 +8,17 @@ function extractPhoneDigits(phone: string): string {
 }
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+const VOICENTER_WEBHOOK_SECRET = process.env.VOICENTER_WEBHOOK_SECRET;
+
+/**
+ * Verify Voicenter webhook signature
+ */
+function verifyWebhookSignature(body: string, signature: string | null): boolean {
+  if (!VOICENTER_WEBHOOK_SECRET || !signature) return false;
+  const hmac = createHmac('sha256', VOICENTER_WEBHOOK_SECRET);
+  hmac.update(body);
+  return hmac.digest('hex') === signature;
+}
 
 /**
  * Webhook Endpoint for Voicenter Integration
@@ -18,8 +30,20 @@ const IS_PROD = process.env.NODE_ENV === 'production';
  */
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json().catch(() => null);
-        if (!body) {
+        const bodyText = await request.text();
+        const signature = request.headers.get('x-voicenter-signature') || 
+                         request.headers.get('x-webhook-signature');
+        
+        // Verify webhook signature in production
+        if (IS_PROD && !verifyWebhookSignature(bodyText, signature)) {
+            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        }
+
+        // Parse the JSON body
+        let body;
+        try {
+            body = JSON.parse(bodyText);
+        } catch {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
