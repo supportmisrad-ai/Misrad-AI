@@ -82,15 +82,11 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
           {/* PM Card */}
           <div className="bg-white p-10 rounded-3xl border border-slate-100 shadow-xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-nexus-primary via-nexus-accent to-nexus-primary" />
-            <div className="w-32 h-32 rounded-3xl overflow-hidden mx-auto mb-6 ring-4 ring-slate-50">
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150"
-                className="w-full h-full object-cover"
-                alt="PM"
-              />
+            <div className="w-32 h-32 rounded-3xl overflow-hidden mx-auto mb-6 ring-4 ring-slate-50 bg-gradient-to-br from-nexus-primary to-nexus-accent flex items-center justify-center text-white text-4xl font-bold">
+              {client.mainContact.charAt(0)}
             </div>
-            <h3 className="text-3xl font-bold text-slate-900">יוסי כהן</h3>
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 mb-10">מנהל הפרויקט האישי שלך</p>
+            <h3 className="text-3xl font-bold text-slate-900">{client.mainContactRole || 'מנהל הפרויקט'}</h3>
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 mb-10">איש הקשר האישי שלך</p>
 
             <div className="space-y-4">
               <button className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-xl">

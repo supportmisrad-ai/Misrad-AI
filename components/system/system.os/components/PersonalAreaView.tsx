@@ -39,7 +39,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
 
     // Mock Data for Personal Stats
     const myLeads = leads.filter(l => l.assignedAgentId === user?.id || !l.assignedAgentId);
-    const myWon = myLeads.filter(l => l.status === 'won').length;
+    const myWon = myLeads.filter(l => l.status === 'סגור').length;
     const myAssignedTasks = tasks.filter(t => t.assigneeId === user?.id);
     const myTasks = myAssignedTasks.filter(t => String(t.status).toLowerCase() !== 'done').length;
     const completedTasks = myAssignedTasks.filter(t => String(t.status).toLowerCase() === 'done').length;

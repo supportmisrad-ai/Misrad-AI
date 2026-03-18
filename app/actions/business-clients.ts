@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
@@ -154,6 +155,9 @@ export async function createBusinessClient(input: BusinessClientInput) {
       }
     );
 
+    revalidatePath('/app/admin/customers', 'page');
+    revalidatePath('/app/admin/organizations', 'page');
+    
     return {
       ok: true,
       client: {
@@ -407,6 +411,7 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
       }
     );
 
+    revalidatePath('/app/admin/customers', 'page');
     return { ok: true, client };
   } catch (error) {
     logger.error('updateBusinessClient', 'Error:', error);
@@ -740,6 +745,8 @@ export async function suspendBusinessClient(clientId: string) {
       }
     );
 
+    revalidatePath('/app/admin/customers', 'page');
+    revalidatePath('/app/admin/organizations', 'page');
     return { ok: true, orgsAffected: result.orgsAffected };
   } catch (error) {
     logger.error('suspendBusinessClient', 'Error:', error);
@@ -777,6 +784,8 @@ export async function unsuspendBusinessClient(clientId: string) {
       }
     );
 
+    revalidatePath('/app/admin/customers', 'page');
+    revalidatePath('/app/admin/organizations', 'page');
     return { ok: true, orgsRestored: result.orgsRestored };
   } catch (error) {
     logger.error('unsuspendBusinessClient', 'Error:', error);

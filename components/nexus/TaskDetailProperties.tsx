@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { Task, Priority } from '../../types';
 import { PRIORITY_LABELS } from '../../constants';
 import { SquareActivity, TriangleAlert, User as UserIcon, Calendar, Briefcase, Timer, Clock, Edit2, Info, ChevronDown, Sparkles } from 'lucide-react';
+import { formatDueDateDisplay, hasDueDate } from '@/lib/nexus/date-utils';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { CustomTimePicker } from '../CustomTimePicker';
@@ -155,10 +156,10 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
     const ACTIVE_CLASS = `bg-white border-gray-200 ring-2 ring-black/5 shadow-sm`;
 
     // Check for missing recommended fields
-    const hasDueDate = !!task.dueDate;
+    const hasDueDateValue = hasDueDate(task.dueDate);
     const hasEstimate = !!task.estimatedTime;
     const hasClient = !!task.clientId;
-    const missingFields = [hasDueDate, hasEstimate, hasClient].filter(f => !f).length;
+    const missingFields = [hasDueDateValue, hasEstimate, hasClient].filter(f => !f).length;
 
     return (
         <div className="space-y-6">
@@ -240,16 +241,16 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
 
             {/* 4. Date & Time */}
             <div className="col-span-1 lg:col-span-1 relative">
-                {!hasDueDate && (
+                {!hasDueDateValue && (
                     <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white animate-pulse z-10" title="מומלץ: תאריך יעד" />
                 )}
                 <RenderLabel icon={<Calendar size={12} />} label="מועד יעד" />
                 <div className="flex items-center gap-2">
-                    <div className={`flex-1 min-w-0 ${!hasDueDate ? 'ring-1 ring-amber-200 rounded-lg' : ''}`}>
+                    <div className={`flex-1 min-w-0 ${!hasDueDateValue ? 'ring-1 ring-amber-200 rounded-lg' : ''}`}>
                         <CustomDatePicker 
                             value={task.dueDate ? new Date().toISOString().split('T')[0] : ''} 
                             onChange={handleDateChange}
-                            placeholder={task.dueDate || "תאריך"}
+                            placeholder={formatDueDateDisplay(task.dueDate, "תאריך")}
                             showHebrewDate={true}
                         />
                     </div>

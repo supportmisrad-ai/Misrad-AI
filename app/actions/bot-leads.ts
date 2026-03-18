@@ -162,32 +162,43 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
     }
 
     // Get leads with conversation count using Prisma ORM
-    const [leads, total] = await Promise.all([
+    const [leads, total, conversationCounts] = await Promise.all([
       prisma.botLeadExtended.findMany({
         where,
         skip,
         take: pageSize,
         orderBy: { [sortBy]: sortOrder },
-        include: {
-          _count: {
-            select: { conversations: true },
-          },
-        },
       }),
       prisma.botLeadExtended.count({ where }),
+      // Get conversation counts separately for each lead
+      prisma.botConversation.groupBy({
+        by: ['lead_id'],
+        where: {
+          lead_id: {
+            in: await prisma.botLeadExtended
+              .findMany({ where, skip, take: pageSize, orderBy: { [sortBy]: sortOrder }, select: { id: true } })
+              .then(leads => leads.map(l => l.id)),
+          },
+        },
+        _count: { id: true },
+      }),
     ]);
 
+    // Create a map of lead_id -> conversation count
+    const countMap = new Map<string, number>();
+    conversationCounts.forEach((c: { lead_id: string; _count: { id: number } }) => {
+      countMap.set(c.lead_id, c._count.id);
+    });
+
     // Transform to DTO with conversation count
-    const leadsWithCount: BotLeadDTO[] = leads.map((lead: any) => {
-       
-      const { _count, ...leadData } = lead;
+    const leadsWithCount: BotLeadDTO[] = leads.map((lead) => {
       return {
-        ...leadData,
+        ...lead,
         latitude: lead.latitude ? parseFloat(lead.latitude.toString()) : null,
         longitude: lead.longitude ? parseFloat(lead.longitude.toString()) : null,
         discount_amount: lead.discount_amount ? parseFloat(lead.discount_amount.toString()) : null,
         plan_price: lead.plan_price ? parseFloat(lead.plan_price.toString()) : null,
-        conversation_count: _count?.conversations ?? 0,
+        conversation_count: countMap.get(lead.id) ?? 0,
       } as BotLeadDTO;
     });
 
@@ -197,7 +208,22 @@ export async function getBotLeads(params: GetBotLeadsParams = {}): Promise<GetBo
       hasMore: skip + leadsWithCount.length < total,
     };
   } catch (error) {
-    logger.error('bot-leads', 'Failed to get bot leads', error);
+    // Enhanced error logging for production debugging
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      // @ts-ignore - Prisma error properties
+      code: error.code,
+      // @ts-ignore
+      meta: error.meta,
+      // @ts-ignore
+      clientVersion: error.clientVersion,
+    } : { error: String(error) };
+    
+    logger.error('bot-leads', 'Failed to get bot leads - DETAILED', errorDetails);
+    console.error('[bot-leads] Full error:', error);
+    
     throw new Error('Failed to fetch leads');
   }
 }
@@ -223,14 +249,14 @@ export async function getBotLeadById(leadId: string): Promise<{
     }
 
     // Use Prisma ORM instead of raw SQL
-    const lead = await prisma.botLeadExtended.findUnique({
-      where: { id: leadId },
-      include: {
-        _count: {
-          select: { conversations: true },
-        },
-      },
-    });
+    const [lead, conversationCount] = await Promise.all([
+      prisma.botLeadExtended.findUnique({
+        where: { id: leadId },
+      }),
+      prisma.botConversation.count({
+        where: { lead_id: leadId },
+      }),
+    ]);
 
     const conversations = await prisma.botConversation.findMany({
       where: { lead_id: leadId },
@@ -253,7 +279,7 @@ export async function getBotLeadById(leadId: string): Promise<{
             longitude: lead.longitude ? parseFloat(lead.longitude.toString()) : null,
             discount_amount: lead.discount_amount ? parseFloat(lead.discount_amount.toString()) : null,
             plan_price: lead.plan_price ? parseFloat(lead.plan_price.toString()) : null,
-            conversation_count: lead._count?.conversations ?? 0,
+            conversation_count: conversationCount,
           }
         : null,
       conversations: conversations || [],

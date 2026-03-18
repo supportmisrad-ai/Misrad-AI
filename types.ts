@@ -185,7 +185,7 @@ export interface Task {
     creatorId?: string;
     tags: string[];
     createdAt: string;
-    dueDate?: string;
+    dueDate?: string; // Always string for UI (format: DD.M or ISO)
     dueTime?: string; // HH:mm format
     timeSpent: number;
     estimatedTime?: number; // In minutes

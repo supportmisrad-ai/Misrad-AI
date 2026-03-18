@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Copy, CircleCheckBig } from 'lucide-react';
+import { ArrowLeft, Copy, CircleCheckBig, RefreshCw, Shield, Building2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import { createSubscriptionOrder, getSubscriptionPaymentConfig, submitSubscriptionPaymentProof } from '@/app/actions/subscription-orders';
@@ -111,7 +111,6 @@ function SubscribeCheckoutContent({
       });
       return calc.amount;
     } catch {
-      // Failsafe
       return applyYearlyDiscount(149, billingCycle);
     }
   }, [billingCycle, packageType, seats, soloModuleKey]);
@@ -272,7 +271,7 @@ function SubscribeCheckoutContent({
         proofFile: proofFile || undefined,
       });
       if (!result.success) {
-        throw new Error(result.error || 'שגיאה בשליחת אישור. אם העלית קובץ, ייתכן ש-bucket בשם media לא קיים בסופאבייס.');
+        throw new Error(result.error || 'שגיאה בשליחת אישור.');
       }
       setIsPendingVerification(true);
       setIsSuccess(true);
@@ -303,23 +302,25 @@ function SubscribeCheckoutContent({
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
-            <CircleCheckBig className="w-16 h-16 text-emerald-400 mx-auto mb-6" />
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">ההזמנה התקבלה בהצלחה</h1>
-            <p className="text-sm sm:text-base text-slate-600 mb-6">
-              אנו מאמתים את התשלום. ברגע שנאשר — המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור.
-            </p>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6" dir="rtl">
+        <div className="w-full max-w-[540px] bg-white border border-slate-200/60 rounded-[24px] p-10 text-center shadow-sm">
+          <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-8 ring-1 ring-emerald-100">
+            <CircleCheckBig className="w-10 h-10 text-emerald-500" />
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">ההזמנה התקבלה</h1>
+          <p className="text-slate-500 mb-10 leading-relaxed font-medium">
+            אנו מאמתים את התשלום ברגעים אלו. ברגע שנאשר — המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור לכתובת {customerEmail}.
+          </p>
 
-            <button
-              onClick={() => router.push(lobbyUrl)}
-              className="w-full rounded-xl bg-indigo-600 text-white font-black py-3 hover:bg-indigo-500 shadow-sm"
-            >
-              חזרה ללובי
-            </button>
+          <button
+            onClick={() => router.push(lobbyUrl)}
+            className="w-full rounded-xl bg-slate-900 text-white font-black py-4 hover:bg-slate-800 transition-all shadow-none"
+          >
+            חזרה ללובי המערכת
+          </button>
 
-            <div className="text-xs text-slate-500 mt-4">הסטטוס שלך כרגע: ממתין לאימות</div>
+          <div className="mt-8 pt-8 border-t border-slate-50">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">סטטוס הזמנה: ממתין לאימות</div>
           </div>
         </div>
       </div>
@@ -337,356 +338,284 @@ function SubscribeCheckoutContent({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
-      {/* Mini Navbar */}
-      <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans" dir="rtl">
+      {/* Top Progress Bar or Header */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/60">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-lg font-black text-slate-900 tracking-tight">MISRAD AI</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/pricing" className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
-              מחירים
-            </Link>
-            <Link href="/support" className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors">
-              תמיכה
-            </Link>
+          <div className="hidden sm:flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-black">1</div>
+              <span className="text-xs font-bold text-slate-900">פרטי הזמנה</span>
+            </div>
+            <div className="w-8 h-px bg-slate-200" />
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-slate-100 text-slate-400 text-[10px] flex items-center justify-center font-black">2</div>
+              <span className="text-xs font-bold text-slate-400">אישור תשלום</span>
+            </div>
           </div>
+          <button onClick={() => router.back()} className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+            ביטול וחזרה
+          </button>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
-        <button
-          onClick={() => router.back()}
-          className="text-slate-600 hover:text-slate-900 mb-6 inline-flex items-center gap-2 text-sm"
-        >
-          <ArrowLeft size={16} /> חזרה
-        </button>
+      <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Left: Form */}
+        <div className="lg:col-span-7 space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+              {selectedPaymentOption === 'credit_card' ? 'תשלום באשראי' : 'פרטי לקוח'}
+            </h1>
+            <p className="text-slate-500 text-sm font-medium">
+              נא למלא את הפרטים הבאים להשלמת הגישה למערכת.
+            </p>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">
-            {selectedPaymentOption === 'credit_card' ? 'תשלום באשראי' : 'השלמת רכישה'}
-          </h1>
-          <p className="text-sm text-slate-600 mb-6">
-            {selectedPaymentOption === 'credit_card'
-              ? 'תשלום מאובטח באשראי דרך סליקה ישראלית.'
-              : 'מלא את הפרטים, בצע הזמנה ונפתח לך גישה מלאה למערכת.'}
-          </p>
-
-          <div className="grid grid-cols-1 gap-4 mb-6">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-bold text-slate-700">סיכום הזמנה</div>
-                <div className="text-xs text-slate-500">{billingCycle === 'yearly' ? 'חיוב שנתי' : 'חיוב חודשי'}</div>
-              </div>
-              <div className="text-slate-900 font-black text-2xl">
-                ₪{amountToPay}<span className="text-sm font-bold text-slate-500 mr-1">/חודש</span>
-                <span className="text-xs font-medium text-slate-400 mr-2">(כולל מע&quot;מ)</span>
-                {billingCycle === 'yearly' && monthlyBasePrice > amountToPay && (
-                  <span className="text-xs text-slate-400 line-through mr-1">₪{monthlyBasePrice}</span>
-                )}
-              </div>
-              {billingCycle === 'yearly' && (
-                <div className="mt-1.5 text-xs font-bold text-slate-600">
-                  סה״כ לשנה: <span className="text-indigo-700">₪{amountToPay * 12}</span> (חיוב שנתי מראש)
-                </div>
-              )}
-              <div className="mt-2 text-sm font-bold text-slate-800">
-                {productLabel}{seats ? ` · ${seats} משתמשים` : ''}
-              </div>
-              {includedModulesLabels.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {includedModulesLabels.map(label => (
-                    <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[11px] font-bold text-slate-600">
-                      {label}
-                    </span>
-                  ))}
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-700">
-                    🎁 כספים
-                  </span>
-                </div>
-              )}
-              {billingCycle === 'yearly' && yearlySavings > 0 && (
-                <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
-                  ✅ חיסכון שנתי: ₪{yearlySavings} (לעומת חודשי)
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <label className="flex items-start gap-3 cursor-pointer">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">שם מלא</label>
                 <input
-                  type="checkbox"
-                  checked={acceptedLegal}
-                  onChange={(e) => setAcceptedLegal(e.target.checked)}
-                  className="mt-1 w-5 h-5 rounded border-slate-300"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="ישראל ישראלי"
+                  className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3.5 text-sm text-slate-900 focus:border-slate-900 focus:ring-0 transition-all outline-none"
                 />
-                <div className="text-sm text-slate-700 leading-relaxed">
-                  אני מאשר/ת את
-                  {' '}
-                  <Link href="/terms" className="text-indigo-700 hover:text-indigo-900 underline">תנאי השימוש</Link>
-                  {' '}
-                  ואת
-                  {' '}
-                  <Link href="/privacy" className="text-indigo-700 hover:text-indigo-900 underline">מדיניות הפרטיות</Link>
-                  {' '}
-                  וכן קראתי את
-                  {' '}
-                  <Link href="/refund-policy" className="text-indigo-700 hover:text-indigo-900 underline">מדיניות ההחזרים</Link>
-                  .
-                </div>
-              </label>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">טלפון ליצירת קשר</label>
+                <input
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  placeholder="050-0000000"
+                  className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3.5 text-sm text-slate-900 focus:border-slate-900 focus:ring-0 transition-all outline-none"
+                />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <input
-                value={customerName}
-                onChange={e => setCustomerName(e.target.value)}
-                placeholder="שם מלא*"
-                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
-              />
-              <input
-                value={customerPhone}
-                onChange={e => setCustomerPhone(e.target.value)}
-                placeholder="טלפון*"
-                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
-              />
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">כתובת אימייל</label>
               <input
                 value={customerEmail}
                 onChange={e => setCustomerEmail(e.target.value)}
-                placeholder="אימייל*"
-                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                placeholder="me@example.com"
+                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3.5 text-sm text-slate-900 focus:border-slate-900 focus:ring-0 transition-all outline-none"
               />
             </div>
 
-            <input
-              value={partnerReferralCode}
-              onChange={e => setPartnerReferralCode(e.target.value)}
-              placeholder='קוד שותף / רו"ח (אופציונלי)'
-              className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
-            />
-
-            <input
-              value={couponCode}
-              onChange={e => setCouponCode(e.target.value)}
-              placeholder='קוד קופון (אופציונלי)'
-              className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
-            />
-
             {shouldShowPaymentSelector && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm text-slate-600 mb-3">בחר שיטת תשלום</div>
+              <div className="space-y-3">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider mr-1">שיטת תשלום</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentOption('manual')}
-                    className={`rounded-xl border px-4 py-3 text-right ${
+                    className={`flex flex-col p-4 rounded-xl border text-right transition-all ${
                       selectedPaymentOption === 'manual'
-                        ? 'border-indigo-300 bg-white text-slate-900'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        ? 'border-slate-900 bg-white shadow- luxury ring-1 ring-slate-900'
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                     }`}
                   >
-                    <div className="font-bold">העברה בנקאית / Bit</div>
-                    <div className="text-xs text-slate-500 mt-1">הוראות + העלאת אישור</div>
+                    <div className={`font-bold text-sm ${selectedPaymentOption === 'manual' ? 'text-slate-900' : ''}`}>העברה בנקאית / Bit</div>
+                    <div className="text-[10px] opacity-70 mt-1">העלאת אישור ידני</div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentOption('credit_card')}
-                    className={`rounded-xl border px-4 py-3 text-right ${
+                    className={`flex flex-col p-4 rounded-xl border text-right transition-all ${
                       selectedPaymentOption === 'credit_card'
-                        ? 'border-indigo-300 bg-white text-slate-900'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        ? 'border-slate-900 bg-white shadow-luxury ring-1 ring-slate-900'
+                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                     }`}
                   >
-                    <div className="font-bold">תשלום באשראי</div>
-                    <div className="text-xs text-slate-500 mt-1">סליקה מאובטחת</div>
+                    <div className={`font-bold text-sm ${selectedPaymentOption === 'credit_card' ? 'text-slate-900' : ''}`}>כרטיס אשראי</div>
+                    <div className="text-[10px] opacity-70 mt-1">סליקה מאובטחת ומיידית</div>
                   </button>
                 </div>
               </div>
             )}
 
-            {!hasAnyPaymentOption && (
-              <div className="text-sm text-amber-700">
-                כרגע אין אפשרות תשלום זמינה. נא לפנות לתמיכה.
+            <div className="pt-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={acceptedLegal}
+                    onChange={(e) => setAcceptedLegal(e.target.checked)}
+                    className="peer appearance-none w-5 h-5 rounded-md border-2 border-slate-200 checked:bg-slate-900 checked:border-slate-900 transition-all cursor-pointer"
+                  />
+                  <CircleCheckBig className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-all" strokeWidth={3} />
+                </div>
+                <div className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                  אני מאשר/ת את
+                  {' '}
+                  <Link href="/terms" className="text-slate-900 font-bold underline underline-offset-4 hover:text-indigo-600 transition-colors">תנאי השימוש</Link>
+                  ,
+                  {' '}
+                  <Link href="/privacy" className="text-slate-900 font-bold underline underline-offset-4 hover:text-indigo-600 transition-colors">מדיניות הפרטיות</Link>
+                  {' '}
+                  וכן קראתי את
+                  {' '}
+                  <Link href="/refund-policy" className="text-slate-900 font-bold underline underline-offset-4 hover:text-indigo-600 transition-colors">מדיניות ההחזרים</Link>.
+                </div>
+              </label>
+            </div>
+
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-xs font-bold text-red-600 animate-in fade-in slide-in-from-top-2">
+                {error}
               </div>
             )}
 
-            {enablePaymentCreditCard && selectedPaymentOption === 'credit_card' && (
-              <button
-                onClick={handleCreateOrder}
-                disabled={isCreating}
-                className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 shadow-sm"
-              >
-                {isCreating ? 'יוצר הזמנה...' : 'המשך לתשלום באשראי'}
-              </button>
-            )}
+            <button
+              onClick={handleCreateOrder}
+              disabled={isCreating}
+              className="group w-full rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 shadow-luxury transition-all flex items-center justify-center gap-2"
+            >
+              {isCreating ? 'מעבד הזמנה...' : (
+                <>
+                  {selectedPaymentOption === 'credit_card' ? 'המשך לסליקה מאובטחת' : 'אישור הזמנה והמשך'}
+                  <RefreshCw className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:rotate-180" />
+                </>
+              )}
+            </button>
+          </div>
 
-            {enablePaymentManual && selectedPaymentOption === 'manual' && (
-              <button
-                onClick={handleCreateOrder}
-                disabled={isCreating}
-                className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 shadow-sm"
-              >
-                {isCreating ? 'מעבד...' : 'אשר הזמנה'}
-              </button>
-            )}
+          <div className="pt-8 flex items-center justify-center gap-8 opacity-40 grayscale group-hover:grayscale-0 transition-all">
+            <Shield className="w-5 h-5" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Secure 256-bit SSL</span>
+            <Building2 className="w-5 h-5" />
+          </div>
+        </div>
 
-            {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 font-medium">{error}</div>}
+        {/* Right: Summary Card */}
+        <div className="lg:col-span-5">
+          <div className="sticky top-24 space-y-6">
+            <div className="bg-white border border-slate-200/60 rounded-[24px] p-8 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-black text-slate-900">סיכום הזמנה</h3>
+                <div className="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-black rounded-md uppercase tracking-wider">
+                  {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}
+                </div>
+              </div>
 
-            {/* Cancellation Rights Notice - required by Israeli Consumer Protection Law */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 leading-relaxed">
-              <div className="font-bold mb-1">זכות ביטול לפי חוק הגנת הצרכן</div>
-              ניתן לבטל את העסקה תוך 14 ימים ממועד ביצועה. דמי ביטול: עד 5% מסכום העסקה או 100 ₪ — הנמוך מביניהם.
-              {' '}
-              <Link href="/cancel" className="text-indigo-700 hover:text-indigo-900 underline underline-offset-2 font-bold">פרטים מלאים על ביטול עסקה</Link>
-              {' | '}
-              <Link href="/refund-policy" className="text-indigo-700 hover:text-indigo-900 underline underline-offset-2 font-bold">מדיניות החזרים</Link>
-            </div>
-
-            {orderId && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="inline-flex items-center gap-2 text-emerald-700 font-bold">
-                      <CircleCheckBig size={18} /> הזמנה נוצרה
-                    </div>
-                    <div className="text-sm text-slate-700 mt-2 whitespace-pre-line">{bitPayText}</div>
+              <div className="space-y-6">
+                <div className="flex items-baseline justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="font-black text-slate-900 text-xl">{productLabel}</div>
+                    <div className="text-xs text-slate-500 font-medium">{seats || 1} מושבים פעילים</div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-slate-900">₪{amountToPay}</div>
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">לחודש</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 py-4 border-y border-slate-50">
+                  {includedModulesLabels.map(label => (
+                    <span key={label} className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600">
+                      {label}
+                    </span>
+                  ))}
+                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-700">
+                    🎁 כספים (כלול)
+                  </span>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-slate-500">מחיר מחירון</span>
+                    <span className="text-slate-900">₪{monthlyBasePrice}</span>
+                  </div>
+                  {billingCycle === 'yearly' && (
+                    <div className="flex justify-between text-sm font-medium text-emerald-600">
+                      <span>הנחת תשלום שנתי (20%)</span>
+                      <span>-₪{monthlyBasePrice - amountToPay}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-4 border-t border-slate-100">
+                    <span className="text-base font-black text-slate-900">סה״כ לתשלום</span>
+                    <div className="text-right">
+                      <div className="text-2xl font-black text-indigo-600">₪{billingCycle === 'yearly' ? amountToPay * 12 : amountToPay}</div>
+                      <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">כולל מע״מ</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {billingCycle === 'yearly' && yearlySavings > 0 && (
+                <div className="mt-8 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <CircleCheckBig className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div className="text-xs font-bold text-emerald-700">
+                    חסכת ₪{yearlySavings} בתשלום שנתי!
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Manual Payment Instructions after order creation */}
+            {orderId && selectedPaymentOption === 'manual' && (
+              <div className="bg-white border border-slate-200/60 rounded-[24px] p-8 shadow-luxury animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-black text-slate-900">הוראות תשלום</h3>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{bitPayText}</div>
+                    <button
+                      onClick={copyDetails}
+                      className="shrink-0 rounded-xl bg-white border border-slate-200 p-2 text-xs hover:bg-slate-50 transition-colors shadow-sm"
+                    >
+                      {copied ? 'הועתק!' : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {instructionsText && (
+                    <div className="text-sm text-slate-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100 leading-relaxed">
+                      {instructionsText}
+                    </div>
+                  )}
+
+                  {qrImageUrl && (
+                    <div className="p-2 border border-slate-100 rounded-2xl bg-white shadow-sm">
+                      <img src={qrImageUrl} alt="QR" className="w-full rounded-xl" />
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">העלה אישור תשלום (צילום מסך)</label>
+                    <div className="relative group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                        className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[11px] file:font-black file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
                   <button
-                    onClick={copyDetails}
-                    className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-2"
+                    onClick={handleSubmitProof}
+                    disabled={isSubmittingProof || isPendingVerification}
+                    className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black py-4 shadow-luxury transition-all"
                   >
-                    <Copy size={16} /> {copied ? 'הועתק' : 'העתק'}
+                    {isPendingVerification ? 'נשלח לאימות' : isSubmittingProof ? 'שולח...' : 'שלחתי תשלום - אשר לי גישה'}
                   </button>
-                </div>
-
-                <div className="mt-3 text-xs text-slate-600">
-                  בצע את התשלום בהתאם לפרטים ונחזור אליך עם אישור.
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-3">
-                  {paymentMethod === 'automatic' && enablePaymentCreditCard && selectedPaymentOption === 'credit_card' ? (
-                    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
-                      <div className="text-slate-900 font-bold">תשלום מאובטח</div>
-                      {instructionsText && <div className="text-sm text-slate-600 whitespace-pre-line">{instructionsText}</div>}
-                      {externalPaymentUrl ? (
-                        <>
-                          <a
-                            href={externalPaymentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-full rounded-xl bg-indigo-600 text-white font-black py-3 hover:bg-indigo-500 text-center block shadow-sm"
-                          >
-                            פתח עמוד תשלום
-                          </a>
-                          <div className="rounded-xl border border-slate-200 overflow-hidden">
-                            <iframe
-                              src={externalPaymentUrl}
-                              title="External Payment"
-                              className="w-full h-[520px] bg-white"
-                            />
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            אם ה־iframe נחסם, השתמש בכפתור ״פתח עמוד תשלום״.
-                          </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-amber-700">
-                          חסר קישור סליקה (external_payment_url) לחבילה זו. נא להגדיר באדמין.
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    enablePaymentManual && selectedPaymentOption === 'manual' && (paymentTitle || instructionsText || qrImageUrl) && (
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        {paymentTitle && <div className="text-slate-900 font-bold mb-2">{paymentTitle}</div>}
-                        {instructionsText && <div className="text-sm text-slate-600 whitespace-pre-line">{instructionsText}</div>}
-                        {qrImageUrl && (
-                          <div className="mt-3">
-                            <img src={qrImageUrl} alt="QR" className="max-w-full rounded-xl border border-slate-200" />
-                          </div>
-                        )}
-                      </div>
-                    )
-                  )}
-
-                  {paymentMethod === 'manual' && enablePaymentManual && selectedPaymentOption === 'manual' ? (
-                    <>
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="text-sm text-slate-600 mb-3">העלה צילום מסך של אישור התשלום (אופציונלי)</div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                          className="w-full text-sm text-slate-700"
-                        />
-                      </div>
-
-                      <button
-                        onClick={handleSubmitProof}
-                        disabled={isSubmittingProof || isPendingVerification}
-                        className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3"
-                      >
-                        {isPendingVerification
-                          ? 'נשלח — ממתין לאישור'
-                          : isSubmittingProof
-                            ? 'שולח...'
-                            : 'שלחתי תשלום — אשרו לי גישה'}
-                      </button>
-
-                      <div className="text-xs text-slate-400">
-                        לאחר הלחיצה ההזמנה תועבר לאישור. תקבל מייל ברגע שנאשר.
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs text-slate-400">
-                      לאחר ביצוע התשלום, תקבל אישור במייל.
-                    </div>
-                  )}
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Trust Badges */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-700">
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-              SSL מאובטח
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-bold text-blue-700">
-              <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-              הצפנת AES-256
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[11px] font-bold text-purple-700">
-              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
-              חוק הגנת הפרטיות
-            </span>
-          </div>
-
-          {/* Business Details Footer - required by Israeli law + payment processor */}
-          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-center text-xs text-slate-500 space-y-2">
-            <div className="font-bold text-slate-700 text-sm">MISRAD AI</div>
-            <div>ע.מ 314885518 &bull; הפסנתר 9, ראשון לציון, ישראל</div>
-            <div>
-              <a href="mailto:support@misrad-ai.com" className="hover:text-slate-700">support@misrad-ai.com</a>
-              {' '}&bull;{' '}
-              <a href="https://wa.me/972512239520" target="_blank" rel="noreferrer" className="hover:text-slate-700" dir="ltr">051-2239520</a>
-              {' '}&bull;{' '}
-              <a href="https://misrad-ai.com" className="hover:text-slate-700">misrad-ai.com</a>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <Link href="/terms" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">תנאי שימוש</Link>
-              <span>&bull;</span>
-              <Link href="/privacy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">פרטיות</Link>
-              <span>&bull;</span>
-              <Link href="/refund-policy" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">מדיניות החזרים</Link>
-              <span>&bull;</span>
-              <Link href="/cancel" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">ביטול עסקה</Link>
-              <span>&bull;</span>
-              <Link href="/accessibility" className="text-indigo-600 hover:text-indigo-800 underline underline-offset-2">נגישות</Link>
-            </div>
           </div>
         </div>
       </div>

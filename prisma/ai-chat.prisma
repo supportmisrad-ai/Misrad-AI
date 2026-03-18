@@ -1,0 +1,46 @@
+
+model AiChatSession {
+  session_id           String          @id
+  organization_id      String          @db.Uuid
+  user_id              String          @db.Uuid
+  pathname             String
+  is_sales_mode        Boolean         @default(false) @map("is_sales_mode")
+  detected_name        String?         @map("detected_name")
+  detected_company     String?         @map("detected_company")
+  detected_industry    String?         @map("detected_industry")
+  detected_pain_points Json?           @map("detected_pain_points")
+  detected_objections  Json?           @map("detected_objections")
+  detected_budget      String?         @map("detected_budget")
+  detected_timeline    String?         @map("detected_timeline")
+  messages_count       Int             @default(0) @map("messages_count")
+  situation_type       String?         @map("situation_type")
+  started_at           DateTime        @default(now()) @map("started_at")
+  updated_at           DateTime        @default(now()) @updatedAt @map("updated_at")
+  ended_at             DateTime?       @map("ended_at")
+  duration_seconds     Int?            @map("duration_seconds")
+  final_outcome        String?         @map("final_outcome")
+  user_rating          Int?            @map("user_rating")
+  user_feedback        String?         @map("user_feedback")
+  helpful_yn           Boolean?        @map("helpful_yn")
+  
+  messages             AiChatMessage[]
+
+  @@index([organization_id])
+  @@index([user_id])
+  @@index([started_at])
+  @@map("ai_chat_sessions")
+}
+
+model AiChatMessage {
+  id            String        @id @default(uuid()) @db.Uuid
+  session_id    String
+  role          String
+  content       String
+  quick_actions Json?         @map("quick_actions")
+  created_at    DateTime      @default(now()) @map("created_at")
+  
+  session       AiChatSession @relation(fields: [session_id], references: [session_id], onDelete: Cascade)
+
+  @@index([session_id])
+  @@map("ai_chat_messages")
+}

@@ -1,7 +1,6 @@
 'use server';
 
-
-
+import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
@@ -761,6 +760,8 @@ export async function createClientForWorkspace(
       }
     }
 
+    revalidatePath(`/w/${resolvedOrgSlug}/client/clients`, 'page');
+    revalidatePath(`/w/${resolvedOrgSlug}/client/dashboard`, 'page');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in createClientForWorkspace:', error);
@@ -1009,6 +1010,7 @@ export async function updateClientForWorkspace(
       return { success: false, error: 'לקוח לא נמצא' };
     }
 
+    revalidatePath(`/w/${resolvedOrgSlug}/client/clients`, 'page');
     return { success: true };
   } catch (error: unknown) {
     logger.error('clients', 'Error in updateClientForWorkspace:', error);
@@ -1071,6 +1073,8 @@ export async function deleteClientForWorkspace(
       return { success: false, error: 'לקוח לא נמצא' };
     }
 
+    revalidatePath(`/w/${resolvedOrgSlug}/client/clients`, 'page');
+    revalidatePath(`/w/${resolvedOrgSlug}/client/dashboard`, 'page');
     return { success: true };
   } catch (error: unknown) {
     logger.error('clients', 'Error in deleteClientForWorkspace:', error);

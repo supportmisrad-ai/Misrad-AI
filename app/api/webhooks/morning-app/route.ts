@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
             if (toEmail) {
               const baseUrl = getBaseUrl();
               const portalUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : baseUrl;
-              const html = generatePaymentSuccessEmailHTML({
+            const html = await generatePaymentSuccessEmailHTML({
                 ownerName: org?.owner?.full_name || null,
                 organizationName: org?.name || '',
                 amount,
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
             if (toEmail) {
               const baseUrl = getBaseUrl();
               const retryUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : `${baseUrl}/subscribe/checkout`;
-              const html = generatePaymentFailedEmailHTML({
+              const html = await generatePaymentFailedEmailHTML({
                 ownerName: org?.owner?.full_name || null,
                 organizationName: org?.name || '',
                 amount: Number(payload.amount || payload.total || 0),

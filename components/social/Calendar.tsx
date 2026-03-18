@@ -46,11 +46,38 @@ export default function Calendar() {
     setViewDate(new Date());
   }, []);
   
-  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
+  // Load persisted settings from localStorage
+  const [viewMode, setViewMode] = useState<'month' | 'week'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('social-calendar-view-mode');
+      return saved === 'week' ? 'week' : 'month';
+    }
+    return 'month';
+  });
+  
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [showHebrewCalendar, setShowHebrewCalendar] = useState(true);
+  const [showHebrewCalendar, setShowHebrewCalendar] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('social-calendar-hebrew');
+      return saved === 'true';
+    }
+    return true;
+  });
+
+  // Persist settings to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('social-calendar-view-mode', viewMode);
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('social-calendar-hebrew', showHebrewCalendar.toString());
+    }
+  }, [showHebrewCalendar]);
 
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();

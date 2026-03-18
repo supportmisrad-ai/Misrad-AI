@@ -150,15 +150,15 @@ export function BookingAdminPanel({ orgSlug, initialData, children }: BookingAdm
 
             {/* Quick Actions */}
             <div className="flex items-center gap-3">
-              {/* Search */}
-              <div className="relative">
+              {/* Search - Responsive width */}
+              <div className="relative hidden sm:block">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="חיפוש..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 pl-4 pr-10 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-40 lg:w-64 pl-4 pr-10 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
@@ -172,13 +172,13 @@ export function BookingAdminPanel({ orgSlug, initialData, children }: BookingAdm
                 <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
 
-              {/* New Appointment */}
+              {/* New Appointment - Mobile Optimized */}
               <Link
                 href={`/app/admin/booking?action=new`}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">תור חדש</span>
+                <span className="text-sm">תור חדש</span>
               </Link>
             </div>
           </div>

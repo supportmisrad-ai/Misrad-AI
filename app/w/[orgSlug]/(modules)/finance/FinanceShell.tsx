@@ -205,16 +205,7 @@ export default function FinanceShell(props: {
             fallbackIcon: <OSModuleSquircleIcon moduleKey="finance" boxSize={32} iconSize={16} className="shadow-none" />,
             badgeModuleKey: 'finance',
           }}
-          mobileLeadingSlot={
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-full hover:bg-white/50 text-gray-600"
-              aria-label="פתח תפריט"
-              type="button"
-            >
-              <Menu size={18} />
-            </button>
-          }
+          mobileLeadingSlot={undefined}
           onOpenCommandPaletteAction={undefined}
           onOpenSupportAction={undefined}
           actionsSlot={<ModuleHelpVideos moduleKey="finance" />}

@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FileUp, Loader2, Sparkles, X } from 'lucide-react';
+import { formatDueDateDisplay } from '@/lib/nexus/date-utils';
 import { CustomSelect } from '@/components/CustomSelect';
 import {
   suggestTaskImportMapping,
@@ -416,7 +417,7 @@ export default function SmartImportTasksDialog(props: {
                           <td className="px-4 py-3 font-black text-slate-800">{r.title || '—'}</td>
                           <td className="px-4 py-3 text-xs font-bold text-slate-600">{r.status || '—'}</td>
                           <td className="px-4 py-3 text-xs font-bold text-slate-600">{r.priority || '—'}</td>
-                          <td className="px-4 py-3 text-xs font-bold text-slate-600" dir="ltr">{r.dueDate || '—'}</td>
+                          <td className="px-4 py-3 text-xs font-bold text-slate-600" dir="ltr">{formatDueDateDisplay(r.dueDate, '—')}</td>
                         </tr>
                       ))}
                     </tbody>

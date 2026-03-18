@@ -5,6 +5,7 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useData } from '../../context/DataContext';
 import { Status, Priority, Task } from '../../types';
 import { Sun, TriangleAlert, CircleCheckBig, X, Calendar, Clock, ChevronRight, ArrowLeft, Trophy, Target, Sparkles, Coffee, ArrowUpRight, Zap, ArrowRight, Play, Quote, Plus, Check, Trash2, GripVertical, Lock, Flame, Lightbulb, ListPlus } from 'lucide-react';
+import { toSafeString } from '@/lib/nexus/date-utils';
 import { PRIORITY_LABELS } from '../../constants';
 
 // --- Types for the Scheduler ---
@@ -140,7 +141,7 @@ export const MorningBriefing: React.FC = () => {
   // Existing Today: Already scheduled for today
   const existingToday = taskList.filter((t: Task) => 
     t.status !== Status.DONE &&
-    (t.dueDate === 'היום' || t.dueDate === new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }))
+    (t.dueDate === 'היום' || toSafeString(t.dueDate) === new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }))
   );
 
   // Opportunity: My tasks, not urgent, not today
@@ -463,7 +464,7 @@ export const MorningBriefing: React.FC = () => {
                                                             <span className="text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                                                 <TriangleAlert size={10} /> דורש תשומת לב
                                                             </span>
-                                                            <span className="text-[10px] text-gray-400">{task.dueDate ? `יעד: ${task.dueDate}` : 'ללא תאריך'}</span>
+                                                            <span className="text-[10px] text-gray-400">{task.dueDate ? `יעד: ${toSafeString(task.dueDate)}` : 'ללא תאריך'}</span>
                                                         </div>
                                                     </div>
                                                 </div>

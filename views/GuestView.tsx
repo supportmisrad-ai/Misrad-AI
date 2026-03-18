@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext';
 import { Status, Task, WorkflowStage, GuestMessage } from '../types';
 import { STATUS_COLORS } from '../constants';
 import { CircleCheckBig, Clock, Calendar, ArrowRight, ShieldCheck, Download, MessageSquare, Send, Check } from 'lucide-react';
+import { formatDueDateDisplay } from '@/lib/nexus/date-utils';
 import confetti from 'canvas-confetti';
 
 export const GuestView: React.FC = () => {
@@ -117,7 +118,7 @@ export const GuestView: React.FC = () => {
                         <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
                              <div className="flex items-center gap-2">
                                  <Calendar size={18} className="text-gray-400" /> 
-                                 <span>יעד: <span className="text-gray-900">{task.dueDate || 'לא הוגדר'}</span></span>
+                                 <span>יעד: <span className="text-gray-900">{formatDueDateDisplay(task.dueDate, 'לא הוגדר')}</span></span>
                              </div>
                              <div className="flex items-center gap-2">
                                  <Clock size={18} className="text-gray-400" /> 

@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Task, User, Client } from '../../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
 import { CalendarDays, Play, Pause, Timer, Lock, MoreHorizontal, Clock, Briefcase, TriangleAlert, ShieldAlert } from 'lucide-react';
+import { formatDueDateDisplay } from '@/lib/nexus/date-utils';
 import { motion } from 'framer-motion';
 import { useData } from '../../context/DataContext';
 import { useSecondTicker } from '../../hooks/useSecondTicker';
@@ -229,7 +230,7 @@ const TaskCardInner: React.FC<TaskCardProps> = ({ task, users, onClick, toggleTi
             <div className={`flex items-center gap-1.5 text-[10px] font-bold ${task.priority === 'Urgent' ? 'text-red-500 bg-red-50 px-2 py-1 rounded-md' : 'text-gray-400'}`}>
                 <CalendarDays size={12} /> 
                 <span>
-                    {task.dueDate && task.dueDate}
+                    {task.dueDate && formatDueDateDisplay(task.dueDate)}
                     {task.dueDate && task.dueTime && <span className="mr-1 text-gray-500">•</span>}
                     {task.dueTime && <span className={task.dueDate ? 'text-gray-500' : ''}>{task.dueTime}</span>}
                 </span>

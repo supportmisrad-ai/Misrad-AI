@@ -4,6 +4,9 @@ import { prefetchBookingData } from '@/lib/booking/cache';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { redirect } from 'next/navigation';
 import { LinksPageClient } from '@/components/admin/booking/LinksPageClient';
+import CalendarPageClient from '@/components/admin/booking/CalendarPageClient';
+import ProvidersPageClient from '@/components/admin/booking/ProvidersPageClient';
+import ServicesPageClient from '@/components/admin/booking/ServicesPageClient';
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
@@ -80,23 +83,28 @@ export default async function BookingAdminPage({ searchParams }: PageProps) {
         case 'links':
           return <LinksPageClient orgSlug={orgSlug} initialLinks={linksData} />;
         case 'calendar':
-        case 'appointments':
+          return <CalendarPageClient orgSlug={orgSlug} />;
         case 'providers':
+          return <ProvidersPageClient orgSlug={orgSlug} />;
         case 'services':
-        case 'settings':
-        default:
+          return <ServicesPageClient orgSlug={orgSlug} />;
+        case 'appointments':
           return (
             <div className="text-center py-12">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                {tab === 'calendar' && 'יומן תורים'}
-                {tab === 'appointments' && 'רשימת תורים'}
-                {tab === 'providers' && 'נותני שירות'}
-                {tab === 'services' && 'שירותים'}
-                {tab === 'settings' && 'הגדרות'}
-              </h3>
-              <p className="text-slate-500">תוכן יטען בקרוב...</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">רשימת תורים</h3>
+              <p className="text-slate-500 mb-4">התצוגה המורחבת של רשימת התורים תהיה זמינה בקרוב</p>
+              <CalendarPageClient orgSlug={orgSlug} />
             </div>
           );
+        case 'settings':
+          return (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">הגדרות</h3>
+              <p className="text-slate-500">הגדרות מערכת התורים יהיו זמינות בקרוב</p>
+            </div>
+          );
+        default:
+          return <CalendarPageClient orgSlug={orgSlug} />;
       }
     };
 

@@ -6,6 +6,7 @@ import { Task, Priority, Status, CalendarEvent } from '../types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { STATUS_COLORS, PRIORITY_COLORS } from '../constants';
 import { TaskItem } from '../components/nexus/TaskItem';
+import { toSafeString } from '@/lib/nexus/date-utils';
 import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, getHebrewYearLetters, isShabbat, isJewishHoliday, getJewishHolidayName, getJewishHolidays } from '../lib/hebrew-calendar';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -105,12 +106,13 @@ export const CalendarView: React.FC = () => {
           if (!t.dueDate) return false;
           if (t.status === Status.DONE || t.status === Status.CANCELED) return false;
           
-          // FIX: Use strict equality to prevent "1.11" matching inside "11.11"
-          return t.dueDate === dateString || 
-                 t.dueDate === isoDate ||
-                 t.dueDate === dayNum || 
-                 t.dueDate.startsWith(dayNum + ' ') ||
-                 (dayNum === '30' && t.dueDate.includes('סוף החודש'));
+          // Use utility function for safe string conversion
+          const taskDueDateStr = toSafeString(t.dueDate);
+          return taskDueDateStr === dateString || 
+                 taskDueDateStr === isoDate ||
+                 taskDueDateStr === dayNum || 
+                 taskDueDateStr.startsWith(dayNum + ' ') ||
+                 (dayNum === '30' && taskDueDateStr.includes('סוף החודש'));
       });
 
       // 2. Calendar Events

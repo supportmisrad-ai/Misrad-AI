@@ -311,7 +311,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
         <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth custom-scrollbar" dir="rtl">
             <div className="flex gap-4 md:gap-6 h-full min-h-0 min-w-[300px] w-max px-2 md:px-0">
                 {stages.map(stage => {
-                    const stageLeads = leads.filter(l => l.status === stage.id);
+                    const stageLeads = leads.filter(l => l.status !== 'סגור' && l.status !== 'לא רלוונטי');
                     const totalValue = stageLeads.reduce((sum, l) => sum + l.value, 0);
 
                     return (

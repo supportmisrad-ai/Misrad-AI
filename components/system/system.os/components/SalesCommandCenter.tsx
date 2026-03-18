@@ -75,7 +75,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
     ? leads.filter(l => (userId ? l.assignedAgentId === userId : false) || !l.assignedAgentId) 
     : leads;
 
-  const hitListLeads = myLeads.filter(l => (l.isHot || l.score > 70) && l.status !== 'won' && l.status !== 'lost');
+  const hitListLeads = myLeads.filter(l => (l.isHot || l.score > 70) && l.status !== 'סגור' && l.status !== 'לא רלוונטי');
 
   const myTasks = tasks.filter(t => 
       t.status !== 'done' && 
@@ -99,14 +99,14 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
     .sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
 
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
-  const myWonDeals = leads.filter(l => l.status === 'won' && l.assignedAgentId === userId).length;
+  const myWonDeals = leads.filter(l => l.status === 'סגור' && l.assignedAgentId === userId).length;
   const myCommission = leads
-    .filter(l => l.status === 'won' && l.assignedAgentId === userId)
+    .filter(l => l.status === 'סגור' && l.assignedAgentId === userId)
     .reduce((sum, l) => sum + (l.value * 0.05), 0);
 
   const totalRevenue = useMemo(() => {
       return leads
-        .filter(l => l.status === 'won')
+        .filter(l => l.status === 'סגור')
         .reduce((sum, l) => sum + (l.value || 0), 0);
   }, [leads]);
 

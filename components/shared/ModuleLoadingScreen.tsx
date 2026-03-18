@@ -40,66 +40,66 @@ export function ModuleLoadingScreen({ moduleKey }: { moduleKey?: string }) {
       {/* Sidebar skeleton — desktop only */}
       <div className="hidden md:flex flex-col w-[260px] shrink-0 border-l border-slate-200/60 p-4 gap-5" style={{ backgroundColor: c.sidebar }}>
         <div className="flex items-center gap-3 px-1 pt-1">
-          <ShimmerBlock className="rounded-2xl shrink-0" style={{ width: 40, height: 40, backgroundColor: c.accentLight }} />
-          <div className="flex-1 space-y-2">
-            <ShimmerBlock className="rounded-md" style={{ width: '75%', height: 13, backgroundColor: c.accentLight }} />
-            <ShimmerBlock className="rounded-md" style={{ width: '50%', height: 10, backgroundColor: '#E2E8F0' }} />
+          <ShimmerBlock className="rounded-xl shrink-0" style={{ width: 36, height: 36, backgroundColor: c.accentLight }} />
+          <div className="flex-1 space-y-1.5">
+            <ShimmerBlock className="rounded-md" style={{ width: '75%', height: 11, backgroundColor: c.accentLight }} />
+            <ShimmerBlock className="rounded-md" style={{ width: '50%', height: 9, backgroundColor: '#E2E8F0' }} />
           </div>
         </div>
         <div className="h-px" style={{ backgroundColor: `${c.accent}15` }} />
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-1.5">
           {[85, 70, 90, 60, 75, 80].map((w, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={i === 0 ? { backgroundColor: c.accentLight } : undefined}>
-              <ShimmerBlock className="rounded-lg shrink-0" style={{ width: 20, height: 20, backgroundColor: i === 0 ? c.accent + '30' : '#E2E8F0' }} />
-              <ShimmerBlock className="rounded-md" style={{ width: `${w}%`, height: 12, backgroundColor: i === 0 ? c.accent + '25' : '#E2E8F0' }} />
+            <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-xl" style={i === 0 ? { backgroundColor: c.accentLight } : undefined}>
+              <ShimmerBlock className="rounded-lg shrink-0" style={{ width: 18, height: 18, backgroundColor: i === 0 ? c.accent + '30' : '#E2E8F0' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: `${w}%`, height: 10, backgroundColor: i === 0 ? c.accent + '25' : '#E2E8F0' }} />
             </div>
           ))}
         </div>
-        <ShimmerBlock className="rounded-2xl" style={{ width: '100%', height: 44, backgroundColor: c.accentLight }} />
+        <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 40, backgroundColor: c.accentLight }} />
       </div>
 
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header skeleton */}
-        <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-200/40 shrink-0" style={{ height: 64 }}>
+        <div className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-slate-200/40 shrink-0" style={{ height: 56 }}>
           <div className="flex items-center gap-3">
-            <ShimmerBlock className="rounded-2xl md:hidden shrink-0" style={{ width: 32, height: 32, backgroundColor: c.accentLight }} />
-            <div className="space-y-1.5">
-              <ShimmerBlock className="rounded-md" style={{ width: 120, height: 14, backgroundColor: c.accentLight }} />
-              <ShimmerBlock className="rounded-md hidden md:block" style={{ width: 80, height: 10, backgroundColor: '#E2E8F0' }} />
+            <ShimmerBlock className="rounded-xl md:hidden shrink-0" style={{ width: 28, height: 28, backgroundColor: c.accentLight }} />
+            <div className="space-y-1">
+              <ShimmerBlock className="rounded-md" style={{ width: 110, height: 12, backgroundColor: c.accentLight }} />
+              <ShimmerBlock className="rounded-md hidden md:block" style={{ width: 70, height: 9, backgroundColor: '#E2E8F0' }} />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ShimmerBlock className="rounded-full" style={{ width: 36, height: 36, backgroundColor: '#E2E8F0' }} />
-            <ShimmerBlock className="rounded-full hidden md:block" style={{ width: 36, height: 36, backgroundColor: '#E2E8F0' }} />
+            <ShimmerBlock className="rounded-full" style={{ width: 32, height: 32, backgroundColor: '#E2E8F0' }} />
+            <ShimmerBlock className="rounded-full hidden md:block" style={{ width: 32, height: 32, backgroundColor: '#E2E8F0' }} />
           </div>
         </div>
 
         {/* Content skeleton */}
-        <div className="flex-1 p-4 md:p-6 overflow-hidden">
-          <div className="space-y-5 animate-in fade-in duration-300">
+        <div className="flex-1 p-4 md:p-5 overflow-hidden">
+          <div className="space-y-4 animate-in fade-in duration-300">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-                  <ShimmerBlock className="rounded-lg" style={{ width: 80, height: 12, backgroundColor: '#F1F5F9' }} />
-                  <ShimmerBlock className="rounded-lg" style={{ width: 48, height: 24, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
-                  <ShimmerBlock className="rounded-full" style={{ width: 56, height: 8, backgroundColor: '#F8FAFC' }} />
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3.5 space-y-2.5">
+                  <ShimmerBlock className="rounded-md" style={{ width: 70, height: 10, backgroundColor: '#F1F5F9' }} />
+                  <ShimmerBlock className="rounded-md" style={{ width: 40, height: 20, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
+                  <ShimmerBlock className="rounded-full" style={{ width: 48, height: 7, backgroundColor: '#F8FAFC' }} />
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-                <ShimmerBlock className="rounded-lg" style={{ width: 120, height: 16, backgroundColor: c.accentLight }} />
-                <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 140, backgroundColor: '#F1F5F9' }} />
+              <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3.5">
+                <ShimmerBlock className="rounded-md" style={{ width: 110, height: 14, backgroundColor: c.accentLight }} />
+                <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 120, backgroundColor: '#F1F5F9' }} />
               </div>
-              <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-                <ShimmerBlock className="rounded-lg" style={{ width: 100, height: 16, backgroundColor: c.accentLight }} />
+              <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-2.5">
+                <ShimmerBlock className="rounded-md" style={{ width: 90, height: 14, backgroundColor: c.accentLight }} />
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-3 py-2">
-                    <ShimmerBlock className="rounded-full shrink-0" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
-                    <div className="flex-1 space-y-1.5">
-                      <ShimmerBlock className="rounded-md" style={{ width: `${55 + (i % 3) * 15}%`, height: 11, backgroundColor: '#F1F5F9' }} />
-                      <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 9, backgroundColor: '#F8FAFC' }} />
+                  <div key={i} className="flex items-center gap-3 py-1.5">
+                    <ShimmerBlock className="rounded-full shrink-0" style={{ width: 28, height: 28, backgroundColor: '#F1F5F9' }} />
+                    <div className="flex-1 space-y-1">
+                      <ShimmerBlock className="rounded-md" style={{ width: `${55 + (i % 3) * 15}%`, height: 9, backgroundColor: '#F1F5F9' }} />
+                      <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 8, backgroundColor: '#F8FAFC' }} />
                     </div>
                   </div>
                 ))}
@@ -120,9 +120,9 @@ export function MinimalLoadingSpinner() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
       <style>{shimmerStyle}</style>
-      <div className="flex flex-col items-center gap-5">
-        <ShimmerBlock className="rounded-[18px]" style={{ width: 64, height: 64, backgroundColor: '#E2E8F0' }} />
-        <ShimmerBlock className="rounded-full" style={{ width: 120, height: 12, backgroundColor: '#E2E8F0' }} />
+      <div className="flex flex-col items-center gap-4">
+        <ShimmerBlock className="rounded-xl" style={{ width: 48, height: 48, backgroundColor: '#E2E8F0' }} />
+        <ShimmerBlock className="rounded-full" style={{ width: 100, height: 10, backgroundColor: '#E2E8F0' }} />
       </div>
     </div>
   );
@@ -136,49 +136,49 @@ export function MinimalLoadingSpinner() {
 export function DashboardContentSkeleton({ moduleKey }: { moduleKey?: string }) {
   const c = getColors(moduleKey);
   return (
-    <div className="space-y-5 animate-in fade-in duration-200">
+    <div className="space-y-4 animate-in fade-in duration-200">
       <style>{shimmerStyle}</style>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-            <ShimmerBlock className="rounded-lg" style={{ width: 80, height: 12, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-lg" style={{ width: 48, height: 24, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-full" style={{ width: 56, height: 8, backgroundColor: '#F8FAFC' }} />
+          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3.5 space-y-2.5">
+            <ShimmerBlock className="rounded-md" style={{ width: 70, height: 10, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md" style={{ width: 40, height: 20, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-full" style={{ width: 48, height: 7, backgroundColor: '#F8FAFC' }} />
           </div>
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-          <ShimmerBlock className="rounded-lg" style={{ width: 120, height: 16, backgroundColor: c.accentLight }} />
-          <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 160, backgroundColor: '#F1F5F9' }} />
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3.5">
+          <ShimmerBlock className="rounded-md" style={{ width: 110, height: 14, backgroundColor: c.accentLight }} />
+          <ShimmerBlock className="rounded-xl" style={{ width: '100%', height: 140, backgroundColor: '#F1F5F9' }} />
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-          <ShimmerBlock className="rounded-lg" style={{ width: 100, height: 16, backgroundColor: c.accentLight }} />
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-2.5">
+          <ShimmerBlock className="rounded-md" style={{ width: 90, height: 14, backgroundColor: c.accentLight }} />
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex items-center gap-3 py-2">
-              <ShimmerBlock className="rounded-full shrink-0" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
-              <div className="flex-1 space-y-1.5">
-                <ShimmerBlock className="rounded-md" style={{ width: `${55 + (i % 3) * 15}%`, height: 11, backgroundColor: '#F1F5F9' }} />
-                <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 9, backgroundColor: '#F8FAFC' }} />
+            <div key={i} className="flex items-center gap-3 py-1.5">
+              <ShimmerBlock className="rounded-full shrink-0" style={{ width: 28, height: 28, backgroundColor: '#F1F5F9' }} />
+              <div className="flex-1 space-y-1">
+                <ShimmerBlock className="rounded-md" style={{ width: `${55 + (i % 3) * 15}%`, height: 9, backgroundColor: '#F1F5F9' }} />
+                <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 8, backgroundColor: '#F8FAFC' }} />
               </div>
             </div>
           ))}
         </div>
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-4 px-5 py-3 border-b border-slate-100">
-          <ShimmerBlock className="rounded-lg" style={{ width: 100, height: 16, backgroundColor: c.accentLight }} />
+        <div className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-100">
+          <ShimmerBlock className="rounded-md" style={{ width: 90, height: 14, backgroundColor: c.accentLight }} />
           <div className="flex-1" />
-          <ShimmerBlock className="rounded-lg" style={{ width: 80, height: 28, backgroundColor: '#F1F5F9' }} />
+          <ShimmerBlock className="rounded-md" style={{ width: 70, height: 24, backgroundColor: '#F1F5F9' }} />
         </div>
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center gap-4 px-5 py-3 border-b border-slate-50 last:border-0">
-            <ShimmerBlock className="rounded-xl shrink-0" style={{ width: 36, height: 36, backgroundColor: '#F1F5F9' }} />
-            <div className="flex-1 space-y-2">
-              <ShimmerBlock className="rounded-md" style={{ width: `${60 + (i % 3) * 15}%`, height: 12, backgroundColor: '#F1F5F9' }} />
-              <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 10, backgroundColor: '#F8FAFC' }} />
+          <div key={i} className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-50 last:border-0">
+            <ShimmerBlock className="rounded-xl shrink-0" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
+            <div className="flex-1 space-y-1.5">
+              <ShimmerBlock className="rounded-md" style={{ width: `${60 + (i % 3) * 15}%`, height: 10, backgroundColor: '#F1F5F9' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: `${30 + (i % 2) * 20}%`, height: 9, backgroundColor: '#F8FAFC' }} />
             </div>
-            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 56, height: 22, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 50, height: 20, backgroundColor: '#F1F5F9' }} />
           </div>
         ))}
       </div>
@@ -189,35 +189,35 @@ export function DashboardContentSkeleton({ moduleKey }: { moduleKey?: string }) 
 export function ListContentSkeleton({ moduleKey, rows = 8 }: { moduleKey?: string; rows?: number }) {
   const c = getColors(moduleKey);
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
+    <div className="space-y-3.5 animate-in fade-in duration-200">
       <style>{shimmerStyle}</style>
       <div className="flex items-center justify-between gap-3">
-        <ShimmerBlock className="rounded-lg" style={{ width: 140, height: 28, backgroundColor: c.accentLight }} />
+        <ShimmerBlock className="rounded-md" style={{ width: 130, height: 24, backgroundColor: c.accentLight }} />
         <div className="flex items-center gap-2">
-          <ShimmerBlock className="rounded-xl" style={{ width: 100, height: 36, backgroundColor: '#F1F5F9' }} />
-          <ShimmerBlock className="rounded-xl" style={{ width: 110, height: 36, backgroundColor: c.accentLight }} />
+          <ShimmerBlock className="rounded-xl" style={{ width: 90, height: 32, backgroundColor: '#F1F5F9' }} />
+          <ShimmerBlock className="rounded-xl" style={{ width: 100, height: 32, backgroundColor: c.accentLight }} />
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <ShimmerBlock className="rounded-xl" style={{ width: 200, height: 36, backgroundColor: '#F1F5F9' }} />
-        <ShimmerBlock className="rounded-xl" style={{ width: 80, height: 36, backgroundColor: '#F1F5F9' }} />
-        <ShimmerBlock className="rounded-xl" style={{ width: 80, height: 36, backgroundColor: '#F1F5F9' }} />
+        <ShimmerBlock className="rounded-xl" style={{ width: 180, height: 32, backgroundColor: '#F1F5F9' }} />
+        <ShimmerBlock className="rounded-xl" style={{ width: 70, height: 32, backgroundColor: '#F1F5F9' }} />
+        <ShimmerBlock className="rounded-xl" style={{ width: 70, height: 32, backgroundColor: '#F1F5F9' }} />
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-          {[100, 140, 100, 80, 60].map((w, i) => (
-            <ShimmerBlock key={i} className="rounded-md" style={{ width: w, height: 12, backgroundColor: '#E2E8F0' }} />
+        <div className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
+          {[90, 120, 90, 70, 50].map((w, i) => (
+            <ShimmerBlock key={i} className="rounded-md" style={{ width: w, height: 10, backgroundColor: '#E2E8F0' }} />
           ))}
         </div>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-slate-50 last:border-0">
-            <ShimmerBlock className="rounded-xl shrink-0" style={{ width: 36, height: 36, backgroundColor: '#F1F5F9' }} />
-            <div className="flex-1 space-y-2">
-              <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 4) * 12}%`, height: 12, backgroundColor: '#F1F5F9' }} />
-              <ShimmerBlock className="rounded-md" style={{ width: `${25 + (i % 3) * 15}%`, height: 10, backgroundColor: '#F8FAFC' }} />
+          <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-slate-50 last:border-0">
+            <ShimmerBlock className="rounded-xl shrink-0" style={{ width: 32, height: 32, backgroundColor: '#F1F5F9' }} />
+            <div className="flex-1 space-y-1.5">
+              <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 4) * 12}%`, height: 10, backgroundColor: '#F1F5F9' }} />
+              <ShimmerBlock className="rounded-md" style={{ width: `${25 + (i % 3) * 15}%`, height: 9, backgroundColor: '#F8FAFC' }} />
             </div>
-            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 64, height: 24, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-md shrink-0 hidden md:block" style={{ width: 80, height: 12, backgroundColor: '#F8FAFC' }} />
+            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 56, height: 20, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md shrink-0 hidden md:block" style={{ width: 70, height: 10, backgroundColor: '#F8FAFC' }} />
           </div>
         ))}
       </div>
@@ -519,32 +519,32 @@ export function NotificationsContentSkeleton({ moduleKey }: { moduleKey?: string
 export function TasksContentSkeleton({ moduleKey }: { moduleKey?: string }) {
   const c = getColors(moduleKey);
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
+    <div className="space-y-3.5 animate-in fade-in duration-200">
       <style>{shimmerStyle}</style>
       <div className="flex items-center justify-between gap-3">
-        <ShimmerBlock className="rounded-lg" style={{ width: 100, height: 28, backgroundColor: c.accentLight }} />
+        <ShimmerBlock className="rounded-md" style={{ width: 90, height: 24, backgroundColor: c.accentLight }} />
         <div className="flex items-center gap-2">
-          <ShimmerBlock className="rounded-xl" style={{ width: 120, height: 36, backgroundColor: '#F1F5F9' }} />
-          <ShimmerBlock className="rounded-xl" style={{ width: 110, height: 36, backgroundColor: c.accentLight }} />
+          <ShimmerBlock className="rounded-xl" style={{ width: 110, height: 32, backgroundColor: '#F1F5F9' }} />
+          <ShimmerBlock className="rounded-xl" style={{ width: 100, height: 32, backgroundColor: c.accentLight }} />
         </div>
       </div>
       <div className="flex gap-2">
         {['הכל', 'ממתין', 'בביצוע', 'הושלם'].map((t, i) => (
-          <ShimmerBlock key={t} className="rounded-full" style={{ width: 70, height: 32, backgroundColor: i === 0 ? c.accentLight : '#F1F5F9' }} />
+          <ShimmerBlock key={t} className="rounded-full" style={{ width: 60, height: 28, backgroundColor: i === 0 ? c.accentLight : '#F1F5F9' }} />
         ))}
       </div>
       <div className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-4">
-            <ShimmerBlock className="rounded-lg shrink-0" style={{ width: 20, height: 20, backgroundColor: '#F1F5F9' }} />
-            <div className="flex-1 space-y-2">
-              <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 3) * 15}%`, height: 13, backgroundColor: '#F1F5F9' }} />
+          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3.5 flex items-center gap-3.5">
+            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 18, height: 18, backgroundColor: '#F1F5F9' }} />
+            <div className="flex-1 space-y-1.5">
+              <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 3) * 15}%`, height: 11, backgroundColor: '#F1F5F9' }} />
               <div className="flex items-center gap-2">
-                <ShimmerBlock className="rounded-full" style={{ width: 60, height: 18, backgroundColor: '#F8FAFC' }} />
-                <ShimmerBlock className="rounded-full" style={{ width: 70, height: 18, backgroundColor: '#F8FAFC' }} />
+                <ShimmerBlock className="rounded-full" style={{ width: 50, height: 16, backgroundColor: '#F8FAFC' }} />
+                <ShimmerBlock className="rounded-full" style={{ width: 60, height: 16, backgroundColor: '#F8FAFC' }} />
               </div>
             </div>
-            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 28, height: 28, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 24, height: 24, backgroundColor: '#F1F5F9' }} />
           </div>
         ))}
       </div>
@@ -555,33 +555,33 @@ export function TasksContentSkeleton({ moduleKey }: { moduleKey?: string }) {
 export function InvoicesContentSkeleton({ moduleKey }: { moduleKey?: string }) {
   const c = getColors(moduleKey);
   return (
-    <div className="space-y-4 animate-in fade-in duration-200">
+    <div className="space-y-3.5 animate-in fade-in duration-200">
       <style>{shimmerStyle}</style>
       <div className="flex items-center justify-between gap-3">
-        <ShimmerBlock className="rounded-lg" style={{ width: 120, height: 28, backgroundColor: c.accentLight }} />
-        <ShimmerBlock className="rounded-xl" style={{ width: 130, height: 36, backgroundColor: c.accentLight }} />
+        <ShimmerBlock className="rounded-md" style={{ width: 110, height: 24, backgroundColor: c.accentLight }} />
+        <ShimmerBlock className="rounded-xl" style={{ width: 120, height: 32, backgroundColor: c.accentLight }} />
       </div>
       <div className="grid grid-cols-3 gap-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 space-y-2">
-            <ShimmerBlock className="rounded-md" style={{ width: 80, height: 12, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-md" style={{ width: 60, height: 22, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
+          <div key={i} className="bg-white rounded-2xl border border-slate-100 p-3.5 space-y-2">
+            <ShimmerBlock className="rounded-md" style={{ width: 70, height: 10, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md" style={{ width: 50, height: 20, backgroundColor: i === 1 ? c.accentLight : '#F1F5F9' }} />
           </div>
         ))}
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-4 px-5 py-3 border-b border-slate-100 bg-slate-50/50">
-          {[60, 120, 80, 100, 80, 80].map((w, i) => (
-            <ShimmerBlock key={i} className="rounded-md" style={{ width: w, height: 12, backgroundColor: '#E2E8F0' }} />
+        <div className="flex items-center gap-4 px-4 py-2.5 border-b border-slate-100 bg-slate-50/50">
+          {[50, 100, 70, 90, 70, 70].map((w, i) => (
+            <ShimmerBlock key={i} className="rounded-md" style={{ width: w, height: 10, backgroundColor: '#E2E8F0' }} />
           ))}
         </div>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-slate-50 last:border-0">
-            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 50, height: 12, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 3) * 15}%`, height: 12, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 70, height: 12, backgroundColor: '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 64, height: 22, backgroundColor: i < 2 ? c.accentLight : '#F1F5F9' }} />
-            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 70, height: 12, backgroundColor: '#F8FAFC' }} />
+          <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-slate-50 last:border-0">
+            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 45, height: 10, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md" style={{ width: `${50 + (i % 3) * 15}%`, height: 10, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 60, height: 10, backgroundColor: '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-full shrink-0" style={{ width: 56, height: 20, backgroundColor: i < 2 ? c.accentLight : '#F1F5F9' }} />
+            <ShimmerBlock className="rounded-md shrink-0" style={{ width: 60, height: 10, backgroundColor: '#F8FAFC' }} />
           </div>
         ))}
       </div>

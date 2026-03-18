@@ -143,7 +143,7 @@ export async function sendTrialExpiryWarningEmail(params: {
 
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
         const toEmail = resolveRecipientEmail(params.toEmail);
-        const html = generateTrialExpiryWarningEmailHTML(params);
+        const html = await generateTrialExpiryWarningEmailHTML(params);
 
         const subject = params.daysRemaining === 1
             ? `מחר מסתיים הניסיון — ${params.organizationName}`
@@ -203,7 +203,11 @@ export async function sendTrialExpiredEmail(params: {
 
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
         const toEmail = resolveRecipientEmail(params.toEmail);
-        const html = generateTrialExpiredEmailHTML(params);
+        const html = await generateTrialExpiredEmailHTML({
+            organizationName: params.organizationName,
+            ownerName: params.ownerName,
+            portalUrl: params.portalUrl,
+        });
 
         const { data, error } = await resend.emails.send({
             from: fromEmail,

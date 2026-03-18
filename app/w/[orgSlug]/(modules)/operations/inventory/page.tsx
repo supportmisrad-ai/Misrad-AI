@@ -126,6 +126,70 @@ export default async function OperationsInventoryPage({
           </form>
         </div>
       </section>
+
+      {/* Inventory List Section */}
+      <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-black text-slate-900">רשימת מלאי</div>
+            <div className="text-xs text-slate-500 mt-1">{items.length} פריטים במערכת</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <form className="relative">
+              <input
+                name="q"
+                defaultValue={q}
+                placeholder={'חיפוש פריט...'}
+                className="w-48 h-10 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all duration-150 hover:border-slate-300 focus:border-sky-400 focus:ring-[3px] focus:ring-sky-100"
+              />
+            </form>
+            <InventoryCsvImport orgSlug={orgSlug} />
+            <ExportInventoryCsvButton items={filteredItems} filename={`inventory-${orgSlug}-${new Date().toISOString().split('T')[0]}.csv`} />
+          </div>
+        </div>
+        
+        {filteredItems.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="text-slate-400 mb-2">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <div className="text-sm text-slate-500">לא נמצאו פריטים במלאי</div>
+            <div className="text-xs text-slate-400 mt-1">השתמש בטופס למעלה כדי להוסיף פריטים חדשים</div>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-900 truncate">{item.itemName}</span>
+                    {item.sku && (
+                      <span className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded">{item.sku}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                    <span>מלאי: {item.onHand} יח'</span>
+                    <span>מינימום: {item.minLevel || 0}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className={`text-sm font-black ${isLowStock(item.onHand, item.minLevel) ? 'text-amber-600' : 'text-slate-900'}`}>
+                      {item.onHand} יח'
+                    </div>
+                    {isLowStock(item.onHand, item.minLevel) && (
+                      <div className="text-xs text-amber-600 font-medium">מלאי נמוך!</div>
+                    )}
+                  </div>
+                  <InventoryItemActions item={item} orgSlug={orgSlug} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

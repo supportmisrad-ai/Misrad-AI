@@ -304,7 +304,7 @@ async function POSTHandler(req: NextRequest) {
 
                 const adminName = profile?.first_name ? String(profile.first_name) : null;
 
-                const emailHtml = generateAiMonthlyReportReadyEmailHTML({
+                const emailHtml = await generateAiMonthlyReportReadyEmailHTML({
                   adminName,
                   organizationName: org.name || '',
                   periodLabel,

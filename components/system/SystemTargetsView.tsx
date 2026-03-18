@@ -116,7 +116,7 @@ const SystemTargetsView: React.FC<SystemTargetsViewProps> = ({ leads }) => {
                     <div>
                         <p className="text-sm font-bold text-slate-600">לידים חדשים</p>
                         <p className="text-2xl font-black text-slate-900">
-                            {leads.filter(l => l.status === 'incoming').length}
+                            {leads.filter(l => l.status === 'חדש').length}
                         </p>
                     </div>
                 </div>

@@ -459,6 +459,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             mobileBrand={{ name: 'ענן משרד', badgeModuleKey: 'system' }}
             onOpenCommandPaletteAction={() => setCommandPaletteOpen(true)}
             onOpenSupportAction={() => openSupport?.()}
+            onOpenMobileNavAction={() => setIsMobileNavOpen(true)}
             user={{ name: userName, role: userRole }}
             userAvatarSlot={<Avatar src={currentUser?.avatar || null} name={userName} size="md" rounded="full" />}
             switcherSlot={!isAuditServiceRole ? (

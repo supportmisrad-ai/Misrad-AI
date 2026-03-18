@@ -6,25 +6,25 @@ export type PipelineStage =
   | string;
 
 export type SystemStage =
-  | 'incoming'
-  | 'contacted'
-  | 'meeting'
-  | 'proposal'
-  | 'negotiation'
-  | 'won'
-  | 'lost'
-  | 'churned';
+  | 'חדש'
+  | 'נוצר קשר'
+  | 'פגישה תואמה'
+  | 'הצעת מחיר'
+  | 'משא ומתן'
+  | 'סגור'
+  | 'לא רלוונטי'
+  | 'נטישה';
 
 export function isSystemStage(value: unknown): value is SystemStage {
   return (
-    value === 'incoming' ||
-    value === 'contacted' ||
-    value === 'meeting' ||
-    value === 'proposal' ||
-    value === 'negotiation' ||
-    value === 'won' ||
-    value === 'lost' ||
-    value === 'churned'
+    value === 'חדש' ||
+    value === 'נוצר קשר' ||
+    value === 'פגישה תואמה' ||
+    value === 'הצעת מחיר' ||
+    value === 'משא ומתן' ||
+    value === 'סגור' ||
+    value === 'לא רלוונטי' ||
+    value === 'נטישה'
   );
 }
 

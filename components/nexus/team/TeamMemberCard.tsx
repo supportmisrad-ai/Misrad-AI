@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Zap, LogOut, EyeOff, MoreHorizontal, Edit, Trash2, TrendingUp, Crown } from 'lucide-react';
+import { formatDueDateDisplay } from '@/lib/nexus/date-utils';
 import { User, Task } from '../../../types';
 import { Avatar } from '@/components/Avatar';
 
@@ -196,7 +197,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                                     {task.title}
                                 </span>
                                 <span className="text-[10px] md:text-xs text-gray-400 whitespace-nowrap shrink-0">
-                                    {task.dueDate}
+                                    {formatDueDateDisplay(task.dueDate)}
                                 </span>
                             </div>
                         ))

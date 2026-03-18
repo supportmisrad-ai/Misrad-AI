@@ -138,7 +138,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick }) => {
 
         <div className={`hidden md:flex items-center gap-1.5 text-xs font-medium w-28 justify-end ${task.priority === 'Urgent' ? 'text-red-600' : 'text-gray-400'}`}>
             <CalendarDays size={14} />
-            <span>{task.dueDate || '-'}</span>
+            <span>{task.dueDate ? String(task.dueDate) : '-'}</span>
             {task.dueTime && <span className="opacity-70 text-[10px] ml-1">{task.dueTime}</span>}
         </div>
 

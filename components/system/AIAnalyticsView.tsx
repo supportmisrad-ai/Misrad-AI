@@ -114,7 +114,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
 
   // Revenue calculations
   const revenueMetrics = useMemo(() => {
-    const wonLeads = filteredLeads.filter(l => l.status === 'won');
+    const wonLeads = filteredLeads.filter(l => l.status === 'סגור');
     const totalRevenue = wonLeads.reduce((sum, lead) => sum + lead.value, 0);
     const avgDealSize = wonLeads.length > 0 ? totalRevenue / wonLeads.length : 0;
     const conversionRate = filteredLeads.length > 0 
@@ -134,7 +134,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       const activeInPrevRange = l.lastContact >= prevPeriodStart && l.lastContact < prevPeriodEnd;
       return createdInPrevRange || activeInPrevRange;
     });
-    const prevWonLeads = prevPeriodLeads.filter(l => l.status === 'won');
+    const prevWonLeads = prevPeriodLeads.filter(l => l.status === 'סגור');
     const prevRevenue = prevWonLeads.reduce((sum, lead) => sum + lead.value, 0);
     const revenueChange = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
 
@@ -155,7 +155,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
         sourceMap[lead.source] = { count: 0, revenue: 0 };
       }
       sourceMap[lead.source].count += 1;
-      if (lead.status === 'won') {
+      if (lead.status === 'סגור') {
         sourceMap[lead.source].revenue += lead.value;
       }
     });
@@ -164,7 +164,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       name,
       לידים: data.count,
       הכנסות: data.revenue,
-      המרה: data.count > 0 ? parseFloat(((filteredLeads.filter(l => l.source === name && l.status === 'won').length / data.count) * 100).toFixed(1)) : 0
+      המרה: data.count > 0 ? parseFloat(((filteredLeads.filter(l => l.source === name && l.status === 'סגור').length / data.count) * 100).toFixed(1)) : 0
     })).sort((a, b) => b.לידים - a.לידים);
   }, [filteredLeads]);
 
@@ -202,7 +202,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
         buckets[bucketKey] = { revenue: 0, leads: 0, won: 0 };
       }
       buckets[bucketKey].leads += 1;
-      if (lead.status === 'won') {
+      if (lead.status === 'סגור') {
         buckets[bucketKey].revenue += lead.value;
         buckets[bucketKey].won += 1;
       }
@@ -291,7 +291,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
     // Identify stuck leads (no contact for 7+ days)
     const stuckLeads = filteredLeads.filter(l => {
       const daysSinceLastContact = (new Date().getTime() - l.lastContact.getTime()) / (1000 * 60 * 60 * 24);
-      return daysSinceLastContact > 7 && l.status !== 'won' && l.status !== 'lost';
+      return daysSinceLastContact > 7 && l.status !== 'סגור' && l.status !== 'לא רלוונטי';
     });
 
     if (stuckLeads.length > 0) {

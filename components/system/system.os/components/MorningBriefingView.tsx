@@ -23,7 +23,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
   const todayLabel = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'long' });
 
   const todaysEvents = events.filter(e => e.date === todayIso);
-  const urgentLeads = leads.filter(l => l.isHot && l.status !== 'won').slice(0, 3);
+  const urgentLeads = leads.filter(l => l.isHot && l.status !== 'סגור').slice(0, 3);
   
   const markEventDone = (id: string) => {
       if (completedSteps.includes(id)) {

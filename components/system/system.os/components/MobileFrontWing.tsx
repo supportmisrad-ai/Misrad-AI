@@ -1,6 +1,5 @@
 
 import React, { useMemo } from 'react';
-import { isSuperAdminEmail } from '@/lib/constants/roles';
 import { 
     Zap, Calendar, BarChart2, Plus, 
     ArrowRight, ChevronRight, SquareActivity, 
@@ -35,16 +34,17 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
     
     const stats = useMemo(() => {
         const total = leads.length;
-        const won = leads.filter(l => l.status === 'won').length;
-        const hot = leads.filter(l => l.isHot && l.status !== 'won' && l.status !== 'lost').length;
+        const won = leads.filter(l => l.status === 'סגור').length;
+        const lost = leads.filter(l => l.status === 'לא רלוונטי').length;
+        const hot = leads.filter(l => l.isHot && l.status !== 'סגור' && l.status !== 'לא רלוונטי').length;
         const conversionRate = total > 0 ? Math.round((won / total) * 100) : 0;
         
-        return { total, won, hot, conversionRate };
+        return { total, won, lost, hot, conversionRate };
     }, [leads]);
 
     const activeCases = useMemo(() => {
         return leads
-            .filter(l => l.status !== 'won' && l.status !== 'lost')
+            .filter(l => l.status !== 'סגור' && l.status !== 'לא רלוונטי')
             .sort((a,b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime());
     }, [leads]);
 
@@ -55,7 +55,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
         return 'ערב טוב';
     };
 
-    const isSuperUser = isSuperAdminEmail(user.email) || (user as any).isSuperAdmin;
+    const isSuperUser = (user as any).isSuperAdmin || false;
 
     return (
         <div className="flex flex-col space-y-6 animate-fade-in">

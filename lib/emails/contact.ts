@@ -103,7 +103,7 @@ export async function sendContactFormReceivedEmail(params: {
 
         const fromEmail = resolveSupportFromEmail();
         const toEmail = resolveRecipientEmail(params.toEmail);
-        const html = generateContactFormReceivedEmailHTML(params);
+        const html = await generateContactFormReceivedEmailHTML(params);
 
         const sendParams: ResendSendEmailParams = {
             from: fromEmail,
@@ -141,7 +141,7 @@ export async function sendContactFormAdminNotification(params: {
 
         const adminEmail = await resolveSystemSupportEmail();
         const fromEmail = resolveSupportFromEmail();
-        const html = generateContactFormAdminNotificationHTML(params);
+        const html = await generateContactFormAdminNotificationHTML(params);
 
         const sendParams: ResendSendEmailParams = {
             from: fromEmail,

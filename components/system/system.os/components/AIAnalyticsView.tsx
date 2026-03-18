@@ -33,7 +33,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
 
     setTimeout(() => {
         const isAdmin = isAdminUser;
-        const churnedCount = leads.filter(l => l.status === 'churned').length;
+        const churnedCount = leads.filter(l => l.status === 'נטישה').length;
         
         const newReport: AIReport = {
             id: `rep_${Date.now()}`,

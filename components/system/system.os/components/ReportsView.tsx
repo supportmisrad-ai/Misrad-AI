@@ -26,12 +26,12 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
     const trendData = useMemo(() => [], []);
 
     const wonLeadsCount = useMemo(
-      () => leads.filter(l => String(l.status).toLowerCase() === 'won').length,
+      () => leads.filter(l => l.status === 'סגור').length,
       [leads]
     );
 
     const totalRevenue = useMemo(
-      () => leads.reduce((sum, l) => (String(l.status).toLowerCase() === 'won' ? sum + (Number(l.value) || 0) : sum), 0),
+      () => leads.reduce((sum, l) => (l.status === 'סגור' ? sum + (Number(l.value) || 0) : sum), 0),
       [leads]
     );
 

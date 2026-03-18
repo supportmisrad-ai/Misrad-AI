@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# חסימת דפי ניהול פנימיים
+Disallow: /admin/
+Disallow: /app/
+Disallow: /api/
+Disallow: /w/*/admin/
+Disallow: /*/me/
+Disallow: /checkout/
+Disallow: /cancel/
+Disallow: /kiosk-*/
+Disallow: /sso-callback/
+Disallow: /employee-invite/
+Disallow: /business-client/
+
+# חסימת פרמטרים של מעקב
+Disallow: /*?*
+Allow: /*?utm_
+
+# Sitemap
+Sitemap: https://www.misrad-ai.com/sitemap.xml

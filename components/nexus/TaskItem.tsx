@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { Task, User } from '../../types';
 import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS as DEFAULT_STATUS_COLORS } from '../../constants';
 import { CircleCheckBig, Circle, CircleAlert, SignalHigh, SignalMedium, SignalLow, CalendarDays, User as UserIcon, Clock, Play, Pause, Mic, Target, MoreHorizontal } from 'lucide-react';
+import { formatDueDateDisplay } from '@/lib/nexus/date-utils';
 import { Skeleton } from '@/components/ui/skeletons';
 import { useSecondTicker } from '../../hooks/useSecondTicker';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
@@ -230,7 +231,7 @@ export const TaskItem: React.FC<TaskItemProps> = memo(({ task, users, onClick, t
 
         <div className={`hidden md:flex items-center gap-1.5 text-xs font-medium w-28 justify-end ${task.priority === 'Urgent' ? 'text-red-600' : 'text-gray-400'}`}>
             <CalendarDays size={14} />
-            <span>{task.dueDate || '-'}</span>
+            <span>{formatDueDateDisplay(task.dueDate, '-')}</span>
             {task.dueTime && <span className="opacity-70 text-[10px] ml-1">{task.dueTime}</span>}
         </div>
 

@@ -25,7 +25,7 @@ const SystemTargetsView: React.FC<SystemTargetsViewProps> = ({ leads }) => {
       // In a real app, filter by date based on 'period'. 
       // For this demo, we'll just sum all won leads or mock it slightly for visuals.
       return leads
-        .filter(l => l.status === 'won')
+        .filter(l => l.status === 'סגור')
         .reduce((sum, l) => sum + l.value, 0);
   }, [leads, period]);
 
@@ -85,7 +85,7 @@ const SystemTargetsView: React.FC<SystemTargetsViewProps> = ({ leads }) => {
                     <Trophy size={14} className="text-yellow-500" /> סגירות החודש
                 </div>
                 <div className="text-3xl font-bold text-slate-800">
-                    {leads.filter(l => l.status === 'won').length}
+                    {leads.filter(l => l.status === 'סגור').length}
                 </div>
             </div>
             

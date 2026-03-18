@@ -25,6 +25,41 @@ type WorkspaceItem = {
     owner?: { email?: string };
 };
 
+// Helper: Parse workspaces from various API response formats
+function parseWorkspaces(raw: unknown): WorkspaceItem[] {
+  if (!raw) return [];
+  
+  if (Array.isArray(raw)) {
+    return raw as WorkspaceItem[];
+  }
+  
+  const obj = raw as Record<string, unknown>;
+  
+  if (Array.isArray(obj.workspaces)) {
+    return obj.workspaces as WorkspaceItem[];
+  }
+  
+  const data = obj.data as Record<string, unknown> | undefined;
+  if (Array.isArray(data?.workspaces)) {
+    return data.workspaces as WorkspaceItem[];
+  }
+  
+  if (Array.isArray(data)) {
+    return data as WorkspaceItem[];
+  }
+  
+  if (obj.success && data) {
+    if (Array.isArray(data.workspaces)) {
+      return data.workspaces as WorkspaceItem[];
+    }
+    if (Array.isArray(data)) {
+      return data as WorkspaceItem[];
+    }
+  }
+  
+  return [];
+}
+
 export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({ 
     currentTenantId,
     currentTenantName
@@ -147,22 +182,19 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 return;
             }
             
-            // Handle both direct array and wrapped { workspaces: [...] } or { success: true, data: { workspaces: [...] } } response
-            const raw = await response.json().catch(() => ({}));
+            const raw = await response.json().catch(() => null);
             
-            let workspaces: WorkspaceItem[] = [];
-            if (Array.isArray(raw)) {
-                workspaces = raw;
-            } else if (raw.workspaces && Array.isArray(raw.workspaces)) {
-                workspaces = raw.workspaces;
-            } else if (raw.data && Array.isArray(raw.data.workspaces)) {
-                workspaces = raw.data.workspaces;
-            } else if (raw.data && Array.isArray(raw.data)) {
-                workspaces = raw.data;
+            // Debug: Log the raw response structure
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[BusinessSwitcher] Raw API response:', raw);
             }
+            
+            const workspaces = parseWorkspaces(raw);
 
-            if (!Array.isArray(workspaces) || workspaces.length === 0) {
-                console.error('[BusinessSwitcher] fetchBusinesses: API did not return valid workspaces array:', raw);
+            if (workspaces.length === 0) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[BusinessSwitcher] No workspaces found for user');
+                }
                 setBusinesses([]);
                 return;
             }
@@ -211,66 +243,13 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             }));
             setBusinesses(businesses);
         } catch (error) {
-            console.error('Error fetching businesses:', error);
+            console.error('[BusinessSwitcher] Error fetching businesses:', error);
             setBusinesses([]);
         } finally {
             setIsLoading(false);
             lastFetchAtRef.current = Date.now();
         }
     };
-
-    useEffect(() => {
-        async function loadWorkspaces() {
-            try {
-                setIsLoading(true);
-                const res = await fetch('/api/workspaces', { credentials: 'include' });
-                if (!res.ok) throw new Error('Failed to load workspaces');
-                
-                // Handle both direct array and wrapped { workspaces: [...] } or { success: true, data: { workspaces: [...] } } response
-                const rawData = await res.json();
-                let workspaces: any[] = [];
-                
-                if (Array.isArray(rawData)) {
-                    workspaces = rawData;
-                } else if (rawData.workspaces && Array.isArray(rawData.workspaces)) {
-                    workspaces = rawData.workspaces;
-                } else if (rawData.data?.workspaces && Array.isArray(rawData.data.workspaces)) {
-                    workspaces = rawData.data.workspaces;
-                } else if (rawData.data && Array.isArray(rawData.data)) {
-                    workspaces = rawData.data;
-                } else {
-                    console.error('[BusinessSwitcher] API did not return valid workspaces array:', rawData);
-                    setBusinesses([]);
-                    return;
-                }
-                
-                if (!Array.isArray(workspaces)) {
-                    console.error('[BusinessSwitcher] API did not return an array:', rawData);
-                    throw new Error('Invalid API response format');
-                }
-
-                // Debug: Check for duplicate slugs
-                const slugs = workspaces.map(w => w.slug);
-                const duplicateSlugs = slugs.filter((slug, index) => slugs.indexOf(slug) !== index);
-                
-                if (duplicateSlugs.length > 0) {
-                    console.error('[BusinessSwitcher] DETECTED DUPLICATE SLUGS:', duplicateSlugs);
-                }
-
-                // Check which ones would be marked active
-                const activeItems = workspaces.filter(w => w.slug === getCurrentSubdomain());
-                
-                if (activeItems.length > 1) {
-                    console.error('[BusinessSwitcher] CRITICAL: Multiple workspaces match current subdomain!', activeItems.map(w => w.name));
-                }
-            } catch (err) {
-                console.error('[BusinessSwitcher] Failed to load workspaces:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        loadWorkspaces();
-    }, []);
 
     useEffect(() => {
         if (!isOpen) return;

@@ -1,0 +1,99 @@
+
+> misrad-ai@2.0.0 build
+> npm run security:scan-api-guards && npm run security:scan-actions-guards && npm run security:scan-layer-boundaries && npm run security:assert-no-prod-bypass && npm run security:no-new-prisma-any && npm run check:no-postgrest && npm run prisma:migrate:deploy:ci && npm run prisma:migrations:check && npm run prisma:migrations:sync && npm run security:rls:coverage && npm run prisma:generate && next build
+
+
+> misrad-ai@2.0.0 security:scan-api-guards
+> node scripts/security/scan-api-guards.js
+
+{
+  "totalRoutes": 210,
+  "excludedPrefixes": [],
+  "publicApproved": [
+    "app/api/strategic-content/route.ts",
+    "app/api/shabbat/status/route.ts",
+    "app/api/version/route.ts",
+    "app/api/download/android/route.ts",
+    "app/api/download/admin-android/route.ts",
+    "app/api/download/windows/route.ts",
+    "app/api/os/module-icons/route.ts",
+    "app/api/landing/social-stats/route.ts",
+    "app/api/public/leads/route.ts",
+    "app/api/employees/invite/[token]/route.ts",
+    "app/api/employees/invite/[token]/complete/route.ts",
+    "app/api/invitations/token/[token]/route.ts",
+    "app/api/invitations/complete/[token]/route.ts",
+    "app/api/webhooks/morning-app/route.ts",
+    "app/api/email/unsubscribe/route.ts",
+    "app/api/email/track/route.ts",
+    "app/api/contact/route.ts",
+    "app/api/landing/testimonials/route.ts",
+    "app/api/landing/faq/route.ts",
+    "app/api/debug/clerk-config/route.ts",
+    "app/api/debug/db-check/route.ts",
+    "app/api/guest/task/[token]/route.ts",
+    "app/api/guest/task/[token]/comment/route.ts",
+    "app/api/guest/task/[token]/approve/route.ts",
+    "app/api/download-links/route.ts",
+    "app/api/analytics/track/route.ts",
+    "app/api/analytics/batch/route.ts",
+    "app/api/telephony/onboarding-request/route.ts",
+    "app/api/lead-capture/route.ts",
+    "app/api/oauth/connect/route.ts",
+    "app/api/oauth/facebook/callback/route.ts",
+    "app/api/oauth/linkedin/callback/route.ts",
+    "app/api/referral/route.ts"
+  ],
+  "candidateApproved": [
+    "app/api/workspaces/route.ts"
+  ],
+  "summary": {
+    "protected:workspace": 103,
+    "protected:superadmin": 16,
+    "protected:auth": 19,
+    "public:approved": 33,
+    "protected:kiosk": 5,
+    "protected:cron": 14,
+    "unprotected": 2,
+    "protected:e2e": 8,
+    "protected:integration_key": 1,
+    "protected:permission": 2,
+    "deprecated:gone": 3,
+    "protected:webhook": 4
+  },
+  "unprotectedRoutes": [
+    "app/api/debug/email/route.ts",
+    "app/api/webhooks/voicenter/route.ts"
+  ],
+  "candidateCount": 3,
+  "candidates": [
+    {
+      "route": "app/api/debug/email/route.ts",
+      "currentGuard": "unprotected",
+      "reason": "unprotected route outside known-public token flows"
+    },
+    {
+      "route": "app/api/webhooks/voicenter/route.ts",
+      "currentGuard": "unprotected",
+      "reason": "unprotected route outside known-public token flows"
+    },
+    {
+      "route": "app/api/workspaces/route.ts",
+      "currentGuard": "protected:auth",
+      "reason": "workspace-scoped but not using requireWorkspaceAccessByOrgSlugApi"
+    }
+  ],
+  "dangerousCandidateCount": 2,
+  "dangerousCandidates": [
+    {
+      "route": "app/api/debug/email/route.ts",
+      "currentGuard": "unprotected",
+      "reason": "unprotected route outside known-public token flows"
+    },
+    {
+      "route": "app/api/webhooks/voicenter/route.ts",
+      "currentGuard": "unprotected",
+      "reason": "unprotected route outside known-public token flows"
+    }
+  ]
+}

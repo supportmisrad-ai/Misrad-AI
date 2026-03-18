@@ -59,16 +59,16 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
   if (loading) return <DashboardSkeleton />;
 
   const stats: DashboardStats = {
-    totalValue: leads.reduce((sum, lead) => lead.status !== 'lost' ? sum + lead.value : sum, 0),
+    totalValue: leads.reduce((sum, lead) => lead.status !== 'לא רלוונטי' ? sum + lead.value : sum, 0),
     totalLeads: leads.length,
-    newLeads: leads.filter(l => l.status === 'incoming').length,
-    inProgress: leads.filter(l => !['incoming', 'won', 'lost', 'churned'].includes(l.status)).length,
+    newLeads: leads.filter(l => l.status === 'חדש').length,
+    inProgress: leads.filter(l => !['חדש', 'סגור', 'לא רלוונטי', 'נטישה'].includes(l.status)).length,
     wonLeads: leads.filter(l => l.status === 'won').length,
     conversionRate: Math.round((leads.filter(l => l.status === 'won').length / leads.length) * 100) || 0,
     leadsNeedingAttention: leads.filter(l => {
         const diffTime = Math.abs(new Date().getTime() - new Date(l.lastContact).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        return diffDays > 3 && l.status !== 'won' && l.status !== 'lost';
+        return diffDays > 3 && l.status !== 'סגור' && l.status !== 'לא רלוונטי';
     }).length
   };
 

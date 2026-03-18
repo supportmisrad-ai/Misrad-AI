@@ -126,7 +126,7 @@ export async function sendEmployeeInvitationEmail(
     createdByName?: string | null
 ): Promise<EmailSendResult> {
     try {
-        const html = generateEmployeeInvitationEmailHTML(
+        const html = await generateEmployeeInvitationEmailHTML(
             employeeName,
             employeeEmail,
             department,
@@ -196,7 +196,7 @@ export async function sendTenantInvitationEmail(
     }
 ): Promise<EmailSendResult> {
     try {
-        const html = generateInvitationEmailHTML(
+        const html = await generateInvitationEmailHTML(
             tenantName,
             options?.ownerName || null,
             signupUrl,

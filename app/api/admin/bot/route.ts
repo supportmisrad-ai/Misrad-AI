@@ -44,7 +44,6 @@ export async function GET(req: NextRequest) {
       where,
       orderBy: { last_interaction: 'desc' },
       take: 200,
-      include: { _count: { select: { conversations: true } } },
     });
 
     // Stats

@@ -43,13 +43,13 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
   if (loading) return <DashboardSkeleton />;
 
   const stats: DashboardStats = {
-    totalValue: leads.reduce((sum, lead) => lead.status !== 'lost' ? sum + lead.value : sum, 0),
+    totalValue: leads.reduce((sum, lead) => lead.status !== 'לא רלוונטי' ? sum + lead.value : sum, 0),
     totalLeads: leads.length,
-    conversionRate: Math.round((leads.filter(l => l.status === 'won').length / leads.length) * 100) || 0,
+    conversionRate: Math.round((leads.filter(l => l.status === 'סגור').length / leads.length) * 100) || 0,
     leadsNeedingAttention: leads.filter(l => {
         const diffTime = Math.abs(new Date().getTime() - new Date(l.lastContact).getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        return diffDays > 3 && l.status !== 'won' && l.status !== 'lost';
+        return diffDays > 3 && l.status !== 'סגור' && l.status !== 'לא רלוונטי';
     }).length
   };
 
@@ -73,11 +73,11 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
 
   const getBarColor = (stageId: PipelineStage) => {
     switch(stageId) {
-        case 'won': return '#A21D3C'; 
-        case 'negotiation': return '#3730A3'; 
-        case 'proposal': return '#4338CA'; 
-        case 'meeting': return '#64748B'; 
-        case 'contacted': return '#94A3B8'; 
+        case 'סגור': return '#A21D3C'; 
+        case 'משא ומתן': return '#3730A3'; 
+        case 'הצעת מחיר': return '#4338CA'; 
+        case 'פגישה תואמה': return '#64748B'; 
+        case 'נוצר קשר': return '#94A3B8'; 
         default: return '#E2E8F0'; 
     }
   };

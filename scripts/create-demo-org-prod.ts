@@ -240,7 +240,7 @@ async function seedLeads(orgId: string) {
   console.log('🔹 Seeding System Leads...');
   
   // Pipeline Stages
-  const stages = ['חדש', 'נוצר קשר', 'פגישה תואמה', 'הצעת מחיר', 'משא ומתן', 'זכייה', 'הפסד'];
+  const stages = ['חדש', 'נוצר קשר', 'פגישה תואמה', 'הצעת מחיר', 'משא ומתן', 'סגור', 'לא רלוונטי'];
   
   // Ensure stages exist (SystemPipelineStage) - Simplified for now, assuming defaults or just creating leads with statuses
   

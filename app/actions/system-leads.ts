@@ -890,6 +890,8 @@ export async function updateSystemLead(params: {
 
         const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
         if (!hydrated) return { ok: false, message: 'Lead not found' };
+        
+        revalidatePath(`/w/${orgSlug}/system/sales_leads`, 'page');
         return { ok: true, lead: hydrated };
       },
       { source: 'server_actions_system_leads', reason: 'updateSystemLead' }
@@ -1074,6 +1076,7 @@ export async function createSystemLeadActivity(params: {
           }
         }
 
+        revalidatePath(`/w/${orgSlug}/system/sales_leads`, 'page');
         return { ok: true, SquareActivity: toActivityDto(row), lead: leadDto };
       },
       { source: 'server_actions_system_leads', reason: 'createSystemLeadActivity' }
@@ -1445,6 +1448,12 @@ export async function updateSystemLeadStatus(params: {
         }
       } catch { /* best-effort */ }
 
+      revalidatePath(`/w/${orgSlug}/system/sales_leads`, 'page');
+      revalidatePath(`/w/${orgSlug}/client/clients`, 'page');
+      if (workspace.entitlements?.operations) {
+        revalidatePath(`/w/${orgSlug}/operations/projects`, 'page');
+      }
+      
       return { ok: true, lead, syncedClientId: syncedClientId || nexusClientId };
     },
     { source: 'server_actions_system_leads', reason: 'updateSystemLeadStatus' }

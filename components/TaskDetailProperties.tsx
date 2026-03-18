@@ -197,7 +197,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                         <CustomDatePicker 
                             value={task.dueDate ? new Date().toISOString().split('T')[0] : ''} 
                             onChange={handleDateChange}
-                            placeholder={task.dueDate || "תאריך"}
+                            placeholder={task.dueDate ? String(task.dueDate) : "תאריך"}
                         />
                     </div>
                     <div className="w-24 shrink-0">

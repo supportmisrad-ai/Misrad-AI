@@ -373,7 +373,7 @@ export default function SmartImportLeadsDialog(props: {
         enabledCustomFieldKeys: approvedCustomFields.map((f) => f.key),
         defaults: {
           source: 'import',
-          status: 'incoming',
+          status: 'חדש',
         },
       });
 

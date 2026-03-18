@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, Headphones, Bell } from 'lucide-react';
+import { Search, Headphones, Bell, Menu } from 'lucide-react';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { Button } from '@/components/ui/button';
 
 export function SharedHeader({
   title,
@@ -15,6 +16,7 @@ export function SharedHeader({
   mobileLeadingSlot,
   onOpenCommandPaletteAction,
   onOpenSupportAction,
+  onOpenMobileNavAction,
   actionsSlot,
   switcherSlot,
   notificationsSlot,
@@ -38,6 +40,7 @@ export function SharedHeader({
   mobileLeadingSlot?: React.ReactNode;
   onOpenCommandPaletteAction?: () => void;
   onOpenSupportAction?: () => void;
+  onOpenMobileNavAction?: () => void;
   actionsSlot?: React.ReactNode;
   switcherSlot?: React.ReactNode;
   notificationsSlot?: React.ReactNode;
@@ -72,6 +75,16 @@ export function SharedHeader({
   return (
     <header className={`h-20 md:h-24 flex items-center justify-between px-4 md:px-8 z-40 sticky top-0 pt-[env(safe-area-inset-top)] ${className || 'bg-white md:bg-transparent'}`}>
       <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
+        {onOpenMobileNavAction && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenMobileNavAction}
+            className="md:hidden h-10 w-10 rounded-full hover:bg-slate-100 shrink-0"
+          >
+            <Menu size={20} />
+          </Button>
+        )}
         {mobileLeadingSlot ? <div className="shrink-0">{mobileLeadingSlot}</div> : null}
         <div className="relative w-8 h-8 rounded-xl shrink-0">
           <div className="absolute inset-0 rounded-xl flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">

@@ -168,7 +168,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                                     {task.title}
                                 </span>
                                 <span className="text-xs text-gray-400 whitespace-nowrap">
-                                    {task.dueDate}
+                                    {task.dueDate ? String(task.dueDate) : ''}
                                 </span>
                             </div>
                         ))

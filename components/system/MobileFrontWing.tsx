@@ -23,16 +23,17 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
     
     const stats = useMemo(() => {
         const total = leads.length;
-        const won = leads.filter(l => l.status === 'won').length;
-        const hot = leads.filter(l => l.isHot && l.status !== 'won' && l.status !== 'lost').length;
+        const won = leads.filter(l => l.status === 'סגור').length;
+        const activeLeadsCount = leads.filter(l => l.status !== 'סגור' && l.status !== 'לא רלוונטי').length;
         const conversionRate = total > 0 ? Math.round((won / total) * 100) : 0;
+        const hot = leads.filter(l => l.isHot && l.status !== 'סגור' && l.status !== 'לא רלוונטי').length;
         
-        return { total, won, hot, conversionRate };
+        return { total, won, activeLeadsCount, conversionRate, hot };
     }, [leads]);
 
     const activeCases = useMemo(() => {
         return leads
-            .filter(l => l.status !== 'won' && l.status !== 'lost')
+            .filter(l => l.status !== 'סגור' && l.status !== 'לא רלוונטי')
             .sort((a,b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime())
             .slice(0, 10);
     }, [leads]);

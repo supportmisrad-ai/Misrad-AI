@@ -51,7 +51,7 @@ const PipelineCard = memo(({ lead, onDragStart, onClick, now }: {
     };
 
     const timeStatus = getTimeStatus(lead.createdAt);
-    const isWon = lead.status === 'won';
+    const isWon = lead.status === 'סגור';
 
     return (
         <div

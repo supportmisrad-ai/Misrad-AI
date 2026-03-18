@@ -263,7 +263,7 @@ export async function createAppInvoice(
       if (toEmail) {
         const baseUrl = getBaseUrl();
         const portalUrl = org?.slug ? `${baseUrl}/w/${encodeURIComponent(org.slug)}/billing` : baseUrl;
-        const html = generateInvoiceCreatedEmailHTML({
+        const html = await generateInvoiceCreatedEmailHTML({
           ownerName: org?.owner?.full_name ?? null,
           organizationName: orgBilling.name,
           amount: orgBilling.mrr,

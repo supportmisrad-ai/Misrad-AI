@@ -1,0 +1,56 @@
+▲ Next.js 16.1.5 (Turbopack)
+- Environments: .env.local, .env.production, .env
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · optimizePackageImports
+  · serverActions
+  · staleTimes
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./app/api/admin/email-assets/upload-url/route.ts:2:1
+Module not found: Can't resolve '@/lib/auth/guards'
+  1 | import { createServiceRoleClient } from '@/lib/supabase/server';
+> 2 | import { requireSuperAdminOrFail } from '@/lib/auth/guards';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  3 | import { NextRequest, NextResponse } from 'next/server';
+  4 |
+  5 | /**
+
+Import map: aliased to relative './lib/auth/guards' inside of [project]/
+
+
+Import trace:
+  App Route:
+    ./app/api/admin/email-assets/upload-url/route.ts
+    ./app/api/ai/chat/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./app/api/admin/email-assets/upload-url/route.ts:1:1
+Module not found: Can't resolve '@/lib/supabase/server'
+> 1 | import { createServiceRoleClient } from '@/lib/supabase/server';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireSuperAdminOrFail } from '@/lib/auth/guards';
+  3 | import { NextRequest, NextResponse } from 'next/server';
+  4 |
+
+Import map: aliased to relative './lib/supabase/server' inside of [project]/
+
+
+Import trace:
+  App Route:
+    ./app/api/admin/email-assets/upload-url/route.ts
+    ./app/api/ai/chat/route.ts
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./app/api/admin/email-assets/upload-url/route.ts:2:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./app/api/admin/email-assets/upload-url/route.ts:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

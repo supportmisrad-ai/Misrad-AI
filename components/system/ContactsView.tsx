@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Lead, PipelineStage } from './types';
 import { STAGES } from './constants';
-import { Search, Filter, Phone, MessageSquare, FileDown, FileUp, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock, Share2, Copy, Check, LinkIcon } from 'lucide-react';
+import { Search, Filter, Phone, MessageSquare, FileDown, FileUp, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock, Share2, Copy, Check, LinkIcon, SortAsc, SortDesc, Calendar } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import { CustomSelect } from '@/components/CustomSelect';
 import LogCallModal from './LogCallModal';
@@ -28,13 +28,14 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<PipelineStage | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'value_high' | 'value_low' | 'name_az' | 'name_za'>('newest');
   const [logCallLead, setLogCallLead] = useState<Lead | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Rule 9: Performance Strategy - Memoized Filtering
   const filteredLeads = useMemo(() => {
-      return leads.filter(lead => {
+      let result = leads.filter(lead => {
         const matchesSearch = 
           lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lead.phone.includes(searchTerm);
@@ -46,7 +47,29 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
         const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
         return matchesSearch && matchesStatus && matchesMode;
       });
-  }, [leads, searchTerm, statusFilter, viewMode]);
+
+      // Apply Sorting
+      result = [...result].sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case 'oldest':
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case 'value_high':
+            return (b.value || 0) - (a.value || 0);
+          case 'value_low':
+            return (a.value || 0) - (b.value || 0);
+          case 'name_az':
+            return a.name.localeCompare(b.name, 'he');
+          case 'name_za':
+            return b.name.localeCompare(a.name, 'he');
+          default:
+            return 0;
+        }
+      });
+
+      return result;
+  }, [leads, searchTerm, statusFilter, viewMode, sortBy]);
 
   const handleExport = () => {
       addToast('רשימת אנשי הקשר יוצאה לקובץ CSV', 'success');
@@ -142,9 +165,30 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
         <div className="flex gap-2">
             <div className="relative w-full md:min-w-[200px]">
                 <CustomSelect
+                    value={sortBy}
+                    onChange={(val) => setSortBy(val as any)}
+                    options={[
+                        { value: 'newest', label: 'חדש ביותר', icon: <Calendar size={14} /> },
+                        { value: 'oldest', label: 'ישן ביותר', icon: <Clock size={14} /> },
+                        { value: 'value_high', label: 'שווי גבוה', icon: <SortDesc size={14} /> },
+                        { value: 'value_low', label: 'שווי נמוך', icon: <SortAsc size={14} /> },
+                        { value: 'name_az', label: 'שם (א-ת)', icon: <SortAsc size={14} /> },
+                        { value: 'name_za', label: 'שם (ת-א)', icon: <SortDesc size={14} /> },
+                    ]}
+                />
+            </div>
+            <div className="relative w-full md:min-w-[200px]">
+                <CustomSelect
                     value={statusFilter}
                     onChange={(val) => setStatusFilter(val as PipelineStage | 'all')}
-                    options={[{ value: 'all', label: 'כל הסטטוסים' }, ...STAGES.map(stage => ({ value: stage.id, label: stage.label }))]}
+                    options={[
+                        { value: 'all', label: 'כל הסטטוסים', icon: <Filter size={14} /> }, 
+                        ...STAGES.map(stage => ({ 
+                            value: stage.id, 
+                            label: stage.label,
+                            icon: <div className={`w-2 h-2 rounded-full ${stage.accent}`} />
+                        }))
+                    ]}
                 />
             </div>
         </div>

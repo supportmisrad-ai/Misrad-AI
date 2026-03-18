@@ -242,7 +242,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                       <button key={lead.id} onClick={() => handleSelectLead(lead)} className="w-full text-right px-3 py-2.5 rounded-xl hover:bg-slate-50 flex items-center justify-between group transition-colors">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border transition-colors ${
-                            lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200 group-hover:border-slate-300'
+                            lead.status === 'סגור' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : lead.status === 'לא רלוונטי' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200 group-hover:border-slate-300'
                           }`}>{lead.name.charAt(0)}</div>
                           <div>
                             <div className="font-bold text-slate-800 text-sm">{lead.name}</div>

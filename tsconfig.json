@@ -41,6 +41,7 @@
     "node_modules",
     "remotion/**",
     "remotion-v2/**",
+    "scripts/**",
     "**/*.legacy.ts",
     "**/*.legacy.tsx",
     "components/App.tsx",
