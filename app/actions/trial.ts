@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 /**
  * Trial & Subscription Management Server Actions
@@ -122,7 +121,6 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
     });
 
     if (!trialUsers || trialUsers.length === 0) {
-      revalidatePath('/', 'layout');
       return createSuccessResponse({ updated: 0 });
     }
 
@@ -152,8 +150,6 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
         }
       }
     }
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse({ updated: updatedCount });
       }
@@ -200,8 +196,6 @@ export async function startSubscription(): Promise<{
       },
     });
 
-        revalidatePath('/', 'layout');
-
         return createSuccessResponse(true);
       }
     );
@@ -245,8 +239,6 @@ export async function cancelSubscription(): Promise<{
         updated_at: now,
       },
     });
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse(true);
       }

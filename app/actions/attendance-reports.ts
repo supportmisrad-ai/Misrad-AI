@@ -106,8 +106,6 @@ export async function updateSalaryConfig(
     },
   });
 
-  revalidatePath('/', 'layout');
-
   return {
     standardDailyHours: Number(config.standardDailyHours),
     breakMinutesPerDay: config.breakMinutesPerDay,
@@ -495,8 +493,6 @@ export async function generateMonthlyReport(
     },
   });
 
-  revalidatePath('/', 'layout');
-
   return {
     id: String(report.id),
     year: report.year,
@@ -689,6 +685,5 @@ export async function generateAllMonthlyReports(
     }
   }
 
-  revalidatePath('/', 'layout');
   return { generated, errors };
 }

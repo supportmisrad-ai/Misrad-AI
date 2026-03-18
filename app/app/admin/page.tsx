@@ -111,156 +111,166 @@ export default async function AdminDashboardPage() {
       {/* APK Download - Moved to /app/admin/global/downloads */}
 
       {!res.success ? (
-        <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
-          <div className="text-slate-900 font-black">שגיאה בטעינת מדדים</div>
-          <div className="text-sm text-slate-600 mt-2">{res.error || 'שגיאה לא ידועה'}</div>
+        <div className="bg-white border border-rose-200 rounded-2xl p-6 text-rose-900 shadow-sm">
+          <div className="text-rose-700 font-black flex items-center gap-2">
+            <Shield size={20} />
+            שגיאה בטעינת מדדים
+          </div>
+          <div className="text-sm text-rose-600 mt-2 font-medium">{res.error || 'שגיאה לא ידועה'}</div>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {AREA_CARDS.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div key={card.title} className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-5 shadow-xl hover:shadow-2xl hover:border-slate-300 transition-all group">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-md">
-                      <Icon size={18} />
-                    </div>
-                    <div>
-                      <Link href={card.href} className="text-sm font-black text-slate-900 group-hover:text-slate-700 transition-colors">
-                        {card.title}
-                      </Link>
-                      <div className="text-[10px] font-bold text-slate-500">{card.description}</div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    {card.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="block px-3 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
-              <div className="text-xs font-bold text-slate-500">סה"כ ארגונים</div>
-              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Number(kpis?.totalOrganizations ?? 0).toLocaleString('he-IL')}</div>
+        <div className="space-y-8">
+          {/* KPIs Row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="admin-pro-card p-5 flex flex-col justify-between h-full">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">סה"כ ארגונים</div>
+              <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight tabular-nums">{Number(kpis?.totalOrganizations ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
-              <div className="text-xs font-bold text-slate-500">סה"כ משתמשים</div>
-              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Number(kpis?.totalProfiles ?? 0).toLocaleString('he-IL')}</div>
+            <div className="admin-pro-card p-5 flex flex-col justify-between h-full">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">סה"כ משתמשים</div>
+              <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight tabular-nums">{Number(kpis?.totalProfiles ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
-              <div className="text-xs font-bold text-slate-500">הכנסה חודשית</div>
-              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">₪{Number(kpis?.revenuePaidThisMonth ?? 0).toLocaleString('he-IL')}</div>
+            <div className="admin-pro-card p-5 flex flex-col justify-between h-full border-emerald-100 bg-emerald-50/30">
+              <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide">הכנסה חודשית</div>
+              <div className="text-3xl font-black text-emerald-900 mt-2 tracking-tight tabular-nums">₪{Number(kpis?.revenuePaidThisMonth ?? 0).toLocaleString('he-IL')}</div>
             </div>
-            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-4 md:p-6 shadow-xl hover:border-slate-300/80 transition-all">
-              <div className="text-xs font-bold text-slate-500 truncate">שימוש AI היום</div>
-              <div className="text-2xl md:text-3xl font-black text-slate-900 mt-1 md:mt-2">{Math.round(Number(kpis?.aiCreditsUsedTodayCents ?? 0) / 100).toLocaleString('he-IL')}</div>
-              <div className="text-xs font-bold text-slate-400 mt-1">בקרדיטים</div>
+            <div className="admin-pro-card p-5 flex flex-col justify-between h-full">
+              <div className="flex justify-between items-start">
+                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">שימוש AI היום</div>
+                 <BrainCircuit size={16} className="text-indigo-500" />
+              </div>
+              <div>
+                <div className="text-3xl font-black text-slate-900 mt-2 tracking-tight tabular-nums">{Math.round(Number(kpis?.aiCreditsUsedTodayCents ?? 0) / 100).toLocaleString('he-IL')}</div>
+                <div className="text-[10px] font-bold text-slate-400 mt-1">קרדיטים</div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-5 border-b border-slate-200/70 bg-white/60 backdrop-blur-sm">
-              <div className="text-sm font-black text-slate-800">ארגונים אחרונים</div>
-              <div className="text-xs font-bold text-slate-500 mt-1">5 ארגונים אחרונים שנרשמו</div>
-            </div>
-
-            <div className="md:hidden p-4">
-              {recentOrgs.length === 0 ? (
-                <div className="text-sm font-bold text-slate-600">אין ארגונים להצגה</div>
-              ) : (
-                <div className="space-y-3">
-                  {recentOrgs.slice(0, 5).map((o: AdminGodViewRecentOrganization) => (
-                    <div key={String(o.id)} className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur-sm p-4">
-                      <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
-                      <div className="mt-1 text-xs font-bold text-slate-600 truncate">כתובת: {o.slug ? String(o.slug) : '—'}</div>
-                      <div className="mt-1 text-xs font-bold text-slate-600 truncate">
-                        נוצר: {o.createdAt ? new Date(String(o.createdAt)).toLocaleString('he-IL') : '—'}
+          {/* Shortcuts Grid */}
+          <div>
+            <div className="text-sm font-black text-slate-900 mb-4 px-1">קיצורי דרך</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AREA_CARDS.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.title} className="admin-pro-card p-5 group hover:border-indigo-100">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-indigo-50 flex items-center justify-center text-slate-600 group-hover:text-indigo-600 transition-colors">
+                        <Icon size={20} strokeWidth={2} />
                       </div>
-                      <div className="mt-1 text-xs font-bold text-slate-600 truncate">סטטוס: {o.subscriptionStatus ? String(o.subscriptionStatus) : '—'}</div>
-                      <div className="mt-3">
-                        <OrgImpersonateButton orgSlug={o.slug ?? null} fallbackOrgId={String(o.id)} clientId={o.primaryClientId ?? null} />
+                      <div>
+                        <Link href={card.href} className="text-base font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">
+                          {card.title}
+                        </Link>
+                        <div className="text-xs font-medium text-slate-500">{card.description}</div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div className="space-y-1">
+                      {card.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                        >
+                          <span>{item.label}</span>
+                          <span className="opacity-0 group-hover/link:opacity-100 text-slate-300">→</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="hidden md:block overflow-x-auto">
-              <table className="min-w-full text-right">
-                <thead className="bg-white/80 border-b border-slate-200/70">
-                  <tr>
-                    <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
-                    <th className="px-4 py-3 text-xs font-black text-slate-600">כתובת</th>
-                    <th className="px-4 py-3 text-xs font-black text-slate-600">נוצר</th>
-                    <th className="px-4 py-3 text-xs font-black text-slate-600">סטטוס</th>
-                    <th className="px-4 py-3 text-xs font-black text-slate-600">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {recentOrgs.length === 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Organizations */}
+            <div className="admin-pro-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <div className="text-sm font-black text-slate-900">ארגונים אחרונים</div>
+                  <div className="text-xs font-medium text-slate-500 mt-0.5">5 שנרשמו לאחרונה</div>
+                </div>
+                <Link href="/app/admin/organizations" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">
+                  לכל הארגונים
+                </Link>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-right">
+                  <thead className="bg-slate-50 border-b border-slate-100">
                     <tr>
-                      <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={5}>
-                        אין ארגונים להצגה
-                      </td>
+                      <th className="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">שם</th>
+                      <th className="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">סטטוס</th>
+                      <th className="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">פעולות</th>
                     </tr>
-                  ) : (
-                    recentOrgs.map((o: AdminGodViewRecentOrganization) => (
-                      <tr key={String(o.id)} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-sm font-black text-slate-900">{String(o.name || '')}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{o.slug ? String(o.slug) : <span className="text-slate-400">—</span>}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700">
-                          {o.createdAt ? new Date(String(o.createdAt)).toLocaleString('he-IL') : <span className="text-slate-400">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-slate-700">{o.subscriptionStatus ? String(o.subscriptionStatus) : <span className="text-slate-400">—</span>}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <OrgImpersonateButton orgSlug={o.slug ?? null} fallbackOrgId={String(o.id)} clientId={o.primaryClientId ?? null} />
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {recentOrgs.length === 0 ? (
+                      <tr>
+                        <td className="px-5 py-8 text-sm font-medium text-slate-500 text-center" colSpan={3}>
+                          אין נתונים
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      recentOrgs.map((o: AdminGodViewRecentOrganization) => (
+                        <tr key={String(o.id)} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-5 py-3">
+                            <div className="text-sm font-bold text-slate-900">{String(o.name || '')}</div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">{o.slug}</div>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`badge-pro ${
+                              o.subscriptionStatus === 'active' ? 'badge-pro-success' : 
+                              o.subscriptionStatus === 'trial' ? 'badge-pro-warning' : 
+                              'badge-pro-neutral'
+                            }`}>
+                              {o.subscriptionStatus || '—'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-sm">
+                            <OrgImpersonateButton orgSlug={o.slug ?? null} fallbackOrgId={String(o.id)} clientId={o.primaryClientId ?? null} />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
 
-          <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-5 border-b border-slate-200/70 bg-white/60 backdrop-blur-sm">
-              <div className="text-sm font-black text-slate-800">התראות מערכת</div>
-              <div className="text-xs font-bold text-slate-500 mt-1">חריגות ותשלומים</div>
-            </div>
+            {/* System Alerts */}
+            <div className="admin-pro-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="text-sm font-black text-slate-900">התראות מערכת</div>
+                <div className="text-xs font-medium text-slate-500 mt-0.5">חריגות ותשלומים</div>
+              </div>
 
-            <div className="p-4 md:p-6">
-              {alerts.length === 0 ? (
-                <div className="text-sm font-bold text-slate-600">אין התראות כרגע</div>
-              ) : (
-                <div className="space-y-3">
-                  {alerts.slice(0, 15).map((a: AdminGodViewAlert, idx: number) => (
-                    <div key={`${String(a.type)}-${idx}`} className="rounded-2xl border border-slate-200/70 bg-white/80 backdrop-blur-sm p-4">
-                      <div className="text-sm font-black text-slate-900">{String(a.title || '')}</div>
-                      <div className="text-xs font-bold text-slate-600 mt-1">{String(a.details || '')}</div>
-                      {a.organizationSlug ? (
-                        <div className="text-xs font-bold text-slate-400 mt-2">ארגון: {String(a.organizationSlug)}</div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="p-4 max-h-[300px] overflow-y-auto">
+                {alerts.length === 0 ? (
+                  <div className="text-sm font-medium text-slate-500 text-center py-8">אין התראות כרגע</div>
+                ) : (
+                  <div className="space-y-3">
+                    {alerts.slice(0, 15).map((a: AdminGodViewAlert, idx: number) => (
+                      <div key={`${String(a.type)}-${idx}`} className="flex gap-3 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0" />
+                        <div>
+                          <div className="text-sm font-bold text-slate-900">{String(a.title || '')}</div>
+                          <div className="text-xs font-medium text-slate-600 mt-0.5">{String(a.details || '')}</div>
+                          {a.organizationSlug ? (
+                            <div className="text-[10px] font-bold text-slate-400 mt-1 font-mono">{String(a.organizationSlug)}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }

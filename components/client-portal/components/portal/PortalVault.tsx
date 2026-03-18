@@ -48,10 +48,10 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
             {pendingTasks.map((action) => (
               <div
                 key={action.id}
-                className="p-6 rounded-[32px] border bg-white border-slate-200 hover:border-slate-400 group shadow-sm transition-all"
+                className="p-6 rounded-2xl border bg-white border-slate-200 hover:border-slate-400 group shadow-sm transition-all"
               >
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
                     {action.type === 'FORM' ? (
                       <ClipboardList size={24} />
                     ) : action.type === 'UPLOAD' ? (
@@ -69,7 +69,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                 {action.type === 'UPLOAD' && (
                   <div className="space-y-4">
                     {(action as any).file_url && (
-                      <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl">
+                      <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-white rounded-lg text-blue-600 shadow-sm">
                             <Paperclip size={16} />
@@ -83,13 +83,13 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                           href={(action as any).file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-black rounded-lg hover:bg-blue-700 transition-all uppercase tracking-tighter"
+                          className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg hover:bg-blue-700 transition-all uppercase tracking-tighter"
                         >
                           הורד קובץ
                         </a>
                       </div>
                     )}
-                    <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
+                    <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
                       {isUploading === action.id ? (
                         <div className="flex flex-col items-center gap-2">
                           <Skeleton className="w-6 h-6 rounded-full bg-nexus-accent/20" />
@@ -109,7 +109,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                 {action.type === 'FORM' && (
                   <button
                     onClick={() => onOpenForm(action)}
-                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-nexus-accent transition-all flex items-center justify-center gap-3 shadow-lg"
+                    className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-nexus-accent transition-all flex items-center justify-center gap-3 shadow-lg"
                   >
                     פתח שאלון אינטראקטיבי למילוי <span className="rotate-180">→</span>
                   </button>
@@ -118,7 +118,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                 {(action.type === 'APPROVAL' || action.type === 'SIGNATURE') && (
                   <button
                     onClick={() => onActionComplete(action.id, action.title)}
-                    className="w-full py-4 border-2 border-slate-900 text-slate-900 rounded-2xl font-bold text-sm hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-3"
+                    className="w-full py-4 border-2 border-slate-900 text-slate-900 rounded-xl font-bold text-sm hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-3"
                   >
                     לחץ לאישור סופי <Check size={16} />
                   </button>
@@ -127,7 +127,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
             ))}
 
             {pendingTasks.length === 0 && (
-              <div className="p-12 text-center bg-green-50 rounded-[40px] border border-green-100">
+              <div className="p-12 text-center bg-green-50 rounded-3xl border border-green-100">
                 <CircleCheckBig size={48} className="mx-auto text-green-500 mb-4" />
                 <h4 className="text-xl font-bold text-green-800">הכל מעודכן!</h4>
                 <p className="text-green-600 mt-1">אין משימות פתוחות שדורשות את תשומת ליבך כרגע.</p>
@@ -150,7 +150,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                   </div>
                   <div>
                     <span className="text-sm font-bold text-slate-700 block">{asset.name}</span>
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
                       {asset.category} • {asset.date}
                     </span>
                   </div>

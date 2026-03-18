@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
@@ -201,7 +200,6 @@ export async function deleteAdminUser(userId: string): Promise<{ success: boolea
     } catch {
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -279,7 +277,6 @@ export async function updateUserProfile(
     } catch {
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -503,9 +500,7 @@ export async function createUser(
           safeErrorLog('Error logging invitation action', logError);
         }
 
-        revalidatePath('/', 'layout');
-
-        return createSuccessResponse({
+            return createSuccessResponse({
           clerkUserId: invitation.id,
           supabaseUserId: '',
           email: trimmedEmail,
@@ -536,7 +531,6 @@ export async function createUser(
           safeErrorLog('Error logging invitation action', logError);
         }
         
-        revalidatePath('/', 'layout');
         
         return createSuccessResponse({
           clerkUserId: invitation.id,

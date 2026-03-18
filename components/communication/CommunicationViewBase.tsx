@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  ChevronDown,
+  CheckCheck,
   CircleAlert,
   CalendarPlus,
   Check,
@@ -13,8 +15,10 @@ import {
   Link,
   Mail,
   MessageSquare,
+  Mic,
   MoreVertical,
   Phone,
+  Plus,
   Search,
   Send,
   Smartphone,
@@ -111,7 +115,11 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [chatInput, setChatInput] = useState('');
   const [showQuickLinks, setShowQuickLinks] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  const plusMenuRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
   const [selectedSendChannel, setSelectedSendChannel] = useState<SendChannel>('whatsapp');
@@ -120,8 +128,11 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [isSending, setIsSending] = useState(false);
 
   useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setShowMoreMenu(false));
+  useOnClickOutside(statusMenuRef as React.RefObject<HTMLElement>, () => setShowStatusMenu(false));
+  useOnClickOutside(plusMenuRef as React.RefObject<HTMLElement>, () => setShowPlusMenu(false));
 
   const activeLead = leads.find((l) => l.id === selectedChatId);
+  const currentStage = activeLead ? STAGES.find((s) => s.id === activeLead.status) : null;
 
   const handleAIDraft = async () => {
     if (!activeLead) return;
@@ -168,7 +179,8 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
         return l.activities.some((a) => a.type === channelFilter);
       })
       .map((lead) => {
-        const lastMsg = [...lead.activities].reverse().find((a) => ['whatsapp', 'sms', 'email', 'note'].includes(String(a.type)));
+          const lastMsg = [...lead.activities].reverse().find((a) => ['whatsapp', 'sms', 'email', 'note'].includes(String(a.type)));
+        const isLastMsgMe = lastMsg?.direction === 'outbound';
         const hasUnread = Boolean(lead.isHot) || lead.status === 'incoming';
 
         return {
@@ -178,6 +190,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           avatar: lead.name.charAt(0),
           source: (lastMsg?.type as string) || 'system',
           lastMsg: lastMsg?.content || 'התחיל שיחה חדשה',
+          isLastMsgMe,
           time: lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
           timestamp: lastMsg ? new Date(lastMsg.timestamp).getTime() : new Date(lead.createdAt).getTime(),
           unread: hasUnread ? 1 : 0,
@@ -419,47 +432,55 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
   return (
     <div className="p-0 md:p-8 max-w-[1920px] mx-auto h-full flex flex-col animate-fade-in pb-20 md:pb-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0 mb-6 px-4 md:px-0 pt-4 md:pt-0">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-            <CloudLightning className="text-primary" strokeWidth={2.5} />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 mb-2 md:mb-4 px-1 pt-2 md:pt-0">
+        <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-start">
+          <h2 className="hidden md:flex text-xl font-bold text-slate-700 items-center gap-2">
+            <CloudLightning className="text-primary" size={24} strokeWidth={3} />
             מרכז תקשורת
           </h2>
-        </div>
-
-        <div className="bg-slate-100 p-1 rounded-xl flex border border-slate-200/50 shadow-inner w-full md:w-auto">
-          <button
-            onClick={() => setActiveTab('inbox')}
-            className={`flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'inbox' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <MessageSquare size={18} /> Inbox אחוד
-          </button>
-          <button
-            onClick={() => setActiveTab('phone')}
-            className={`flex-1 md:flex-none px-5 py-2.5 rounded-lg text-sm md:text-base font-bold transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'phone' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Phone size={18} /> מרכזיה
-          </button>
+          <div className="hidden md:block h-6 w-px bg-slate-200 mx-2"></div>
+           <div className="bg-slate-100/80 p-1 rounded-xl flex border border-slate-200/60 w-full md:w-auto shadow-sm">
+            <button
+              onClick={() => setActiveTab('phone')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'phone' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
+            >
+              <Phone size={16} strokeWidth={activeTab === 'phone' ? 2.5 : 2} /> 
+              <span className="text-xs md:text-sm">מרכזיה</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('inbox')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'inbox' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
+            >
+              <MessageSquare size={16} strokeWidth={activeTab === 'inbox' ? 2.5 : 2} /> 
+              <span className="text-xs md:text-sm">הודעות</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 relative bg-white rounded-none md:rounded-3xl border-t md:border border-slate-200 shadow-none md:shadow-xl overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 relative bg-white rounded-none md:rounded-2xl border-t md:border border-slate-200 shadow-none md:shadow-sm overflow-hidden">
         {activeTab === 'inbox' && (
           <div className="flex h-full flex-col md:flex-row">
             <div
               className={`${selectedChatId ? 'hidden md:flex' : 'flex'} w-full md:w-96 border-l border-slate-100 flex-col bg-slate-50/50 h-full`}
             >
-              <div className="p-4 border-b border-slate-100 bg-white md:bg-transparent space-y-3">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <div className="p-4 bg-white md:bg-transparent space-y-3 sticky top-0 z-10 backdrop-blur-xl bg-white/80 md:backdrop-blur-none">
+                <div className="flex items-center justify-between md:hidden mb-2">
+                   <h1 className="text-2xl font-bold text-slate-800 tracking-tight">הודעות</h1>
+                   <div className="bg-slate-100 rounded-full p-1 flex items-center justify-center w-8 h-8">
+                      <span className="text-xs font-bold text-slate-500">{chatList.length}</span>
+                   </div>
+                </div>
+                <div className="relative group">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                   <input
                     type="text"
                     placeholder="חיפוש שיחות..."
-                    className="w-full bg-slate-50 md:bg-white border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 transition-all font-medium shadow-sm"
+                    className="w-full bg-slate-100/50 border border-transparent focus:bg-white focus:border-indigo-200 rounded-full pl-4 pr-10 py-2 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-medium placeholder:text-slate-400"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -477,10 +498,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                     <button
                       key={filter.id}
                       onClick={() => setChannelFilter(filter.id)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all whitespace-nowrap border ${
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
                         channelFilter === filter.id
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                          ? 'bg-slate-800 text-white shadow-md'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                       }`}
                     >
                       <filter.icon size={12} />
@@ -495,15 +516,15 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                   <div
                     key={chat.id}
                     onClick={() => setSelectedChatId(chat.id)}
-                    className={`p-4 border-b border-slate-100 cursor-pointer transition-all hover:bg-white group ${
-                      selectedChatId === chat.id ? 'bg-white border-l-4 border-l-primary shadow-sm' : 'border-l-4 border-l-transparent'
+                    className={`p-4 cursor-pointer transition-all hover:bg-slate-50 border-b border-slate-200 last:border-0 ${
+                      selectedChatId === chat.id ? 'bg-indigo-50/40 border-r-2 border-r-indigo-500 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]' : 'bg-transparent border-r-2 border-r-transparent'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="flex items-center gap-4 overflow-hidden">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border transition-colors ${
-                            selectedChatId === chat.id ? 'border-rose-100' : 'border-slate-200'
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-base shrink-0 border transition-colors ${
+                            selectedChatId === chat.id ? 'border-rose-100' : 'border-slate-100'
                           } ${chat.color}`}
                         >
                           {chat.avatar}
@@ -516,47 +537,93 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-[10px] text-slate-400">{chat.time}</span>
                         {chat.unread > 0 && (
-                          <span className="bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center shadow-sm animate-pulse">
+                          <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[1.2rem] text-center shadow-sm animate-pulse">
                             {chat.unread}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2 pl-1">
-                      <p className={`text-xs truncate max-w-[200px] ${chat.unread > 0 ? 'font-bold text-slate-700' : 'text-slate-500'}`}>{chat.lastMsg}</p>
-                      <div className="p-1 rounded bg-slate-50 shadow-sm border border-slate-100">{getSourceIcon(chat.source)}</div>
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        {chat.isLastMsgMe && <CheckCheck size={14} className="text-blue-400 shrink-0" />}
+                        <p className={`text-xs truncate max-w-[180px] ${chat.unread > 0 ? 'font-bold text-slate-700' : 'text-slate-500'}`}>{chat.lastMsg}</p>
+                      </div>
+                      <div className="opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all">{getSourceIcon(chat.source)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className={`${!selectedChatId ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-[#e5ddd5]/30 relative h-full`}>
+            <div className={`${!selectedChatId ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-[#efe7dd] relative h-full bg-opacity-90`}>
               {selectedChatId && activeLead ? (
                 <>
-                  <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center shadow-sm z-10 sticky top-0">
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => setSelectedChatId(null)} className="md:hidden p-2 -mr-2 text-slate-400">
-                        <ArrowLeft size={20} />
+                  <div className="px-4 py-3 border-b border-slate-200 bg-white flex justify-between items-center z-10 sticky top-0 shadow-sm">
+                    <div className="flex items-center gap-3.5">
+                      <button onClick={() => setSelectedChatId(null)} className="md:hidden p-2 -ml-2 text-slate-400 hover:bg-slate-100 rounded-full transition-colors">
+                        <ArrowLeft size={22} />
                       </button>
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold border border-slate-200">
-                        {activeLead.name.charAt(0)}
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-600 font-bold border-2 border-white shadow-sm">
+                          {activeLead.name.charAt(0)}
+                        </div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm"></div>
                       </div>
                       <div>
-                        <div className="font-bold text-slate-800">{activeLead.name}</div>
-                        <div className="text-xs text-slate-500 flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                          מחובר • Omnichannel
+                        <div className="font-bold text-slate-800 leading-tight flex items-center gap-2">
+                          {activeLead.name}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {/* Status Badge - 1-Click Update */}
+                          {currentStage && (
+                            <div className="relative" ref={statusMenuRef}>
+                              <button
+                                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all flex items-center gap-1 hover:shadow-sm ${
+                                  // Hacky class extraction for demo, ideally pass hex colors or proper Tailwind classes
+                                  currentStage.accent?.includes('bg-') 
+                                    ? currentStage.accent.replace('bg-', 'bg-').replace('500', '50').replace('600', '50') + ' ' + currentStage.accent.replace('bg-', 'text-').replace('500', '700').replace('600', '700') + ' ' + currentStage.accent.replace('bg-', 'border-').replace('500', '200').replace('600', '200')
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}
+                              >
+                                <div className={`w-1.5 h-1.5 rounded-full ${currentStage.accent}`}></div>
+                                {currentStage.label}
+                                <ChevronDown size={10} className="opacity-50" />
+                              </button>
+
+                              {showStatusMenu && (
+                                <div className="absolute top-full right-0 mt-1 w-40 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden py-1 animate-scale-in">
+                                  {STAGES.map((stage) => (
+                                    <button
+                                      key={stage.id}
+                                      onClick={() => {
+                                        handleUpdateStatus(stage.id);
+                                        setShowStatusMenu(false);
+                                      }}
+                                      className="w-full text-right px-3 py-2 text-xs font-bold hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                                    >
+                                      <div className={`w-2 h-2 rounded-full ${stage.accent}`}></div>
+                                      {stage.label}
+                                      {stage.id === activeLead.status && <Check size={12} className="mr-auto text-slate-400" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-wider flex items-center gap-1">
+                            • Omnichannel
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-2 relative" ref={moreMenuRef}>
+                    <div className="flex gap-1 relative" ref={moreMenuRef}>
                       <CallButton
                         phoneNumber={activeLead.phone}
                         size="sm"
                         variant="icon"
-                        className="border border-transparent hover:border-slate-100"
+                        className="w-9 h-9 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-indigo-600 border border-transparent hover:border-indigo-100 transition-all shadow-sm"
                         user={user}
                         onToast={addToast}
                         onCallInitiated={(phone) => {
@@ -570,17 +637,17 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className={`p-2 rounded-full transition-all border border-transparent ${
-                          showMoreMenu ? 'bg-slate-100 text-primary' : 'text-slate-400 hover:text-primary hover:bg-slate-50 hover:border-slate-100'
+                        className={`w-9 h-9 rounded-full transition-all flex items-center justify-center border border-transparent ${
+                          showMoreMenu ? 'bg-slate-100 text-slate-900' : 'bg-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600'
                         }`}
                       >
                         <MoreVertical size={20} />
                       </button>
 
                       {showMoreMenu && (
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl z-50 p-2 animate-scale-in origin-top-left overflow-hidden ring-1 ring-slate-900/5 border border-slate-200">
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl z-50 p-2 animate-scale-in origin-top-left overflow-hidden ring-1 ring-slate-900/5 border border-slate-100">
                           <div className="p-3 border-b border-slate-100 mb-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ניהול ליד מהיר</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">ניהול ליד</p>
                             <p className="font-bold text-slate-800 text-sm truncate">{activeLead.name}</p>
                           </div>
 
@@ -603,24 +670,6 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                           </div>
 
                           <div className="mt-2 pt-2 border-t border-slate-100">
-                            <p className="px-3 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-right">שנה סטטוס עסקה</p>
-                            <div className="grid grid-cols-2 gap-1 px-1">
-                              {STAGES.filter((s) => s.id !== activeLead.status)
-                                .slice(0, 4)
-                                .map((stage) => (
-                                  <button
-                                    key={stage.id}
-                                    onClick={() => handleUpdateStatus(stage.id)}
-                                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[10px] font-bold text-slate-600 transition-colors border border-transparent hover:border-slate-100 text-right"
-                                  >
-                                    <div className={`w-1.5 h-1.5 rounded-full ${stage.accent}`}></div>
-                                    {stage.label}
-                                  </button>
-                                ))}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 pt-2 border-t border-slate-100">
                             <button
                               onClick={() => handleUpdateStatus('lost')}
                               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-colors text-xs font-bold text-right"
@@ -634,154 +683,142 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-                    {activeMessages.map((msg) => {
+                    {activeMessages.map((msg, index) => {
                       const isMe = msg.sender === 'me';
                       const isNote = msg.type === 'note';
+                      
+                      // Date Separator Logic
+                      const prevMsg = activeMessages[index - 1];
+                      const currentDate = new Date(activeLead.activities.find(a => a.id === msg.id)?.timestamp || Date.now());
+                      const prevDate = prevMsg 
+                        ? new Date(activeLead.activities.find(a => a.id === prevMsg.id)?.timestamp || Date.now()) 
+                        : null;
 
-                      if (isNote) {
-                        return (
-                          <div key={msg.id} className="flex justify-center my-4">
-                            <div className="bg-amber-50 border border-amber-100 px-4 py-2 rounded-xl text-amber-800 text-xs font-bold shadow-sm flex items-center gap-2">
-                              <FileText size={12} />
-                              הערה פנימית: {msg.text}
-                            </div>
-                          </div>
-                        );
-                      }
+                      const isNewDate = !prevDate || 
+                        currentDate.getDate() !== prevDate.getDate() || 
+                        currentDate.getMonth() !== prevDate.getMonth() || 
+                        currentDate.getFullYear() !== prevDate.getFullYear();
+
+                      const getDateLabel = (date: Date) => {
+                        const today = new Date();
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        if (date.toDateString() === today.toDateString()) return 'היום';
+                        if (date.toDateString() === yesterday.toDateString()) return 'אתמול';
+                        return date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit' });
+                      };
 
                       return (
-                        <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'} animate-fade-in`}>
-                          <div
-                            className={`
-                                                relative group overflow-hidden border shadow-sm transition-all
-                                                ${isMe ? 'rounded-[24px] rounded-tr-none' : 'rounded-[24px] rounded-tl-none'}
-                                                ${
-                                                  isMe
-                                                    ? 'bg-onyx-900 border-onyx-800 text-white w-[85%] md:w-[70%]'
-                                                    : 'bg-white border-slate-200 text-slate-800 w-[85%] md:w-[70%]'
-                                                }
-                                            `}
-                          >
-                            <div
-                              className={`px-4 py-1.5 flex items-center justify-between border-b ${
-                                isMe ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {getSourceIcon(String(msg.type))}
-                                <span className={`text-[9px] font-black uppercase tracking-wider ${isMe ? 'text-slate-400' : 'text-slate-500'}`}>
-                                  {msg.type} • {isMe ? 'נשלח ממך' : 'התקבל'}
-                                </span>
-                              </div>
-                              {msg.subject && (
-                                <span className={`text-[10px] font-bold truncate max-w-[150px] italic ${isMe ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                                  {msg.subject}
-                                </span>
-                              )}
+                        <React.Fragment key={msg.id}>
+                          {isNewDate && (
+                            <div className="flex justify-center my-6 sticky top-0 z-10">
+                              <span className="bg-slate-100/90 backdrop-blur-sm text-slate-500 text-[10px] font-bold px-3 py-1 rounded-full shadow-sm border border-slate-200">
+                                {getDateLabel(currentDate)}
+                              </span>
                             </div>
+                          )}
 
-                            <div className="p-4">
-                              <p className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${isMe ? 'text-white' : 'text-slate-700'}`}>{msg.text}</p>
+                          {isNote ? (
+                            <div className="flex justify-center my-4">
+                              <div className="bg-amber-50 border border-amber-100 px-4 py-2 rounded-xl text-amber-800 text-xs font-bold shadow-sm flex items-center gap-2">
+                                <FileText size={12} />
+                                הערה פנימית: {msg.text}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in group`}>
+                              <div
+                                className={`
+                                                    relative overflow-hidden shadow-sm transition-all max-w-[85%] md:max-w-[70%]
+                                                    ${isMe ? 'rounded-[20px] rounded-tl-none' : 'rounded-[20px] rounded-tr-none'}
+                                                    ${
+                                                      isMe
+                                                        ? 'bg-[#dcf8c6] md:bg-emerald-100 border border-emerald-200/50'
+                                                        : 'bg-white border border-slate-100'
+                                                    }
+                                                `}
+                              >
+                                <div className="px-3 py-2 md:px-4 md:py-3">
+                                  {/* Email Subject - Compact */}
+                                  {msg.subject && (
+                                    <div className={`text-[11px] font-bold mb-1 leading-tight ${isMe ? 'text-emerald-800' : 'text-slate-800'}`}>
+                                      {msg.subject}
+                                    </div>
+                                  )}
 
-                              {String(msg.type) === 'call' ? <CommCallAnalysis metadata={msg.metadata} /> : null}
+                                  {/* Message Body */}
+                                  <p className={`text-[15px] leading-relaxed whitespace-pre-wrap font-medium ${isMe ? 'text-slate-900' : 'text-slate-800'}`}>
+                                    {msg.text}
+                                  </p>
 
-                              <div className={`text-[10px] mt-2 flex items-center justify-end gap-1.5 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
-                                <span className="font-mono">{msg.time}</span>
-                                {isMe && (
-                                  <div className="flex items-center">
-                                    {sendingStatus[msg.id] === 'sending' ? (
-                                      <Skeleton className="w-2.5 h-2.5 rounded-full" />
-                                    ) : sendingStatus[msg.id] === 'sent' ? (
-                                      <Check size={12} />
-                                    ) : (
-                                      <Check size={12} className="text-blue-400" />
+                                  {String(msg.type) === 'call' ? <CommCallAnalysis metadata={msg.metadata} /> : null}
+
+                                  {/* Footer: Time + Icon + Checks */}
+                                  <div className={`text-[10px] mt-1 flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity ${isMe ? 'text-emerald-900' : 'text-slate-500'}`}>
+                                    {/* Source Icon - Minimal */}
+                                    {String(msg.type) !== 'whatsapp' && (
+                                      <span title={String(msg.type)}>{getSourceIcon(String(msg.type))}</span>
+                                    )}
+                                    
+                                    <span className="font-mono text-[9px]">{msg.time}</span>
+                                    
+                                    {isMe && (
+                                      <div className="flex items-center">
+                                        {sendingStatus[msg.id] === 'sending' ? (
+                                          <Skeleton className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                                        ) : sendingStatus[msg.id] === 'sent' ? (
+                                          <Check size={12} className="text-slate-400" />
+                                        ) : (
+                                          <CheckCheck size={12} className="text-blue-500" />
+                                        )}
+                                      </div>
                                     )}
                                   </div>
-                                )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </div>
 
-                  <div className="p-3 md:p-4 bg-white border-t border-slate-200 relative">
-                    <div className="flex gap-2 mb-3 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit mx-auto md:mx-0">
-                      {(
-                        [
-                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100' },
-                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100' },
-                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100' },
-                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string }>
-                      ).map((channel) => (
-                        <button
-                          key={channel.id}
-                          type="button"
-                          onClick={() => setSelectedSendChannel(channel.id)}
-                          className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all border border-transparent ${
-                            selectedSendChannel === channel.id
-                              ? `${channel.active} ${channel.color}`
-                              : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
-                          }`}
-                        >
-                          <channel.icon size={12} />
-                          {channel.label}
-                        </button>
-                      ))}
+                  <div className="p-3 bg-[#f0f2f5] md:bg-[#f0f2f5] border-t border-slate-200 relative shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    {/* Channel Selector - Hardened Segmented Control */}
+                    <div className="flex justify-center mb-2 px-4">
+                       <div className="flex gap-2 w-full max-w-sm mx-auto">
+                        {(
+                          [
+                            { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'text-emerald-700', active: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                            { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-700', active: 'bg-blue-50 border-blue-200 text-blue-800' },
+                            { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-700', active: 'bg-amber-50 border-amber-200 text-amber-800' },
+                          ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string }>
+                        ).map((channel) => (
+                          <button
+                            key={channel.id}
+                            type="button"
+                            onClick={() => setSelectedSendChannel(channel.id)}
+                            className={`flex-1 py-1.5 rounded-full text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border ${
+                              selectedSendChannel === channel.id
+                                ? `${channel.active} shadow-sm`
+                                : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-600'
+                            }`}
+                          >
+                            <channel.icon size={12} strokeWidth={2.5} />
+                            {channel.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <form onSubmit={handleSendMessage} className="flex items-end gap-3">
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowQuickLinks(!showQuickLinks)}
-                          className={`p-3 rounded-2xl transition-all border ${
-                            showQuickLinks ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'
-                          }`}
-                          title="נכסים מהירים"
-                        >
-                          <Zap size={20} className={showQuickLinks ? 'fill-current' : ''} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleAIDraft}
-                          disabled={isDrafting}
-                          className="p-3 rounded-2xl bg-onyx-900 text-white hover:bg-black transition-all shadow-xl active:scale-95 disabled:opacity-50"
-                          title="טיוטת AI"
-                        >
-                          {isDrafting ? <Skeleton className="w-5 h-5 rounded-full bg-white/30" /> : <Wand2 size={20} />}
-                        </button>
-                      </div>
-
-                      <div
-                        className={`flex-1 border-2 rounded-[28px] flex flex-col px-5 py-3 transition-all ${
-                          selectedSendChannel === 'whatsapp'
-                            ? 'bg-emerald-50/20 border-emerald-100 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-50'
-                            : selectedSendChannel === 'sms'
-                              ? 'bg-blue-50/20 border-blue-100 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50'
-                              : 'bg-amber-50/20 border-amber-100 focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-amber-50'
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                            שולח ב:{' '}
-                            <span
-                              className={`font-black ${
-                                selectedSendChannel === 'whatsapp'
-                                  ? 'text-emerald-600'
-                                  : selectedSendChannel === 'sms'
-                                    ? 'text-blue-600'
-                                    : 'text-amber-600'
-                              }`}
-                            >
-                              {selectedSendChannel}
-                            </span>
-                          </span>
-                        </div>
+                    <form onSubmit={handleSendMessage} className="flex items-end gap-2 relative z-20">
+                      <div className="flex-1 bg-white border border-slate-300 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 rounded-[24px] flex items-end px-2 py-1 transition-all shadow-sm">
                         <textarea
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-1 font-medium placeholder-slate-300 resize-none h-16 custom-scrollbar"
-                          placeholder={`כתוב הודעת ${selectedSendChannel === 'whatsapp' ? 'WhatsApp' : selectedSendChannel === 'sms' ? 'SMS' : 'Email'}...`}
+                          className="flex-1 bg-transparent border-none focus:ring-0 text-base md:text-[15px] py-3 px-2 font-medium placeholder-slate-400 resize-none h-11 max-h-32 custom-scrollbar leading-relaxed"
+                          placeholder="הקלד הודעה..."
+                          dir="auto"
+                          rows={1}
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           onKeyDown={(e) => {
@@ -791,26 +828,54 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                             }
                           }}
                         />
+                        
+                        {/* Ghost Actions - Clean & Integrated */}
+                        <div className="flex items-center pb-2 pl-1 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowQuickLinks(!showQuickLinks)}
+                            className={`p-2 rounded-full transition-all flex items-center justify-center ${
+                              showQuickLinks ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                            }`}
+                            title="נכסים מהירים"
+                          >
+                            <Zap size={18} fill={showQuickLinks ? 'currentColor' : 'none'} />
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={handleAIDraft}
+                            disabled={isDrafting}
+                            className="p-2 rounded-full transition-all flex items-center justify-center text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-50"
+                            title="טיוטת AI"
+                          >
+                            {isDrafting ? <Skeleton className="w-4 h-4 rounded-full bg-slate-300" /> : <Wand2 size={18} />}
+                          </button>
+                        </div>
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={!chatInput.trim() || isSending}
-                        className={`w-14 h-14 text-white rounded-[24px] shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
-                          selectedSendChannel === 'whatsapp'
-                            ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
-                            : selectedSendChannel === 'sms'
-                              ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
-                              : 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
-                        }`}
-                      >
-                        <Send size={24} />
-                      </button>
+                      {chatInput.trim() ? (
+                        <button
+                          type="submit"
+                          disabled={isSending}
+                          className="w-10 h-10 md:w-11 md:h-11 rounded-full shadow-md transition-all flex items-center justify-center shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Send size={18} className="ml-0.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => addToast('הקלטת הודעות קוליות תופעל בקרוב!')}
+                          className="w-10 h-10 md:w-11 md:h-11 rounded-full shadow-md transition-all flex items-center justify-center shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200"
+                        >
+                          <Mic size={20} />
+                        </button>
+                      )}
                     </form>
 
                     {showQuickLinks && (
-                      <div className="absolute bottom-[90%] right-4 mb-2 w-72 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-scale-in z-20">
-                        <div className="p-4 bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">נכסים מהירים לשליחה</div>
+                      <div className="absolute bottom-[90%] right-4 mb-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden animate-scale-in z-20">
+                        <div className="p-3 bg-slate-50/50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest">נכסים מהירים לשליחה</div>
                         <div className="max-h-64 overflow-y-auto custom-scrollbar">
                           {QUICK_ASSETS.map((asset) => (
                             <button
@@ -862,6 +927,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           </div>
         )}
       </div>
+
     </div>
   );
 };

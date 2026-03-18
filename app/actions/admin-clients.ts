@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
@@ -84,18 +83,14 @@ export async function createClient(
     const existingInvite = await prisma.organization_signup_invitations.findFirst({
       where: {
         owner_email: normalizedEmail,
-        is_active: true,
         is_used: false,
+        expires_at: { gt: new Date() },
       },
-      select: { id: true, token: true, desired_slug: true },
+      select: { id: true },
     });
 
-    if (existingInvite?.id) {
-      const baseUrl = getBaseUrl();
-      const token = String(existingInvite.token);
-      const signupUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
-      revalidatePath('/', 'layout');
-      return { ok: true, invitationToken: token, signupUrl };
+    if (existingInvite) {
+      return { ok: false, error: 'כבר קיימת הזמנה פעילה לכתובת מייל זו' };
     }
 
     // Generate a unique slug from the owner's name
@@ -146,8 +141,6 @@ export async function createClient(
       }
     }
 
-    revalidatePath('/', 'layout');
-
     return { ok: true, invitationToken: token, signupUrl };
   } catch (error) {
     logger.error('createClient', 'Error:', error);
@@ -180,13 +173,11 @@ export async function getClients() {
     // Use existing getOrganizations action which already has the data we need
     const { getOrganizations } = await import('./admin-organizations');
     const result = await getOrganizations({});
-    
+
     if (!result.success) {
       return { ok: false, error: result.error || 'שגיאה בטעינת נתונים' };
     }
-    
-    revalidatePath('/', 'layout');
-    
+
     return { ok: true, data: result };
   } catch (error) {
     logger.error('getClients', 'Error:', error);

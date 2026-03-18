@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
@@ -347,7 +346,6 @@ export async function getClients(
     }
 
     const resolved = await resolveClientsAvatarsMaybe(acc.slice(0, maxTotal), organizationId);
-    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClients:', error);
@@ -498,7 +496,6 @@ export async function getClientByIdForWorkspace(params: {
     if (!row?.id) return { success: false, error: 'לקוח לא נמצא' };
     const client = mapClientClientToSocialClient(row);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
-    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClientByIdForWorkspace:', error);
@@ -560,8 +557,6 @@ export async function createClientInvitationLinkForWorkspace(params: {
       },
       select: { id: true },
     });
-
-    revalidatePath('/', 'layout');
 
     return { success: true, token };
   } catch (error: unknown) {
@@ -766,7 +761,6 @@ export async function createClientForWorkspace(
       }
     }
 
-    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in createClientForWorkspace:', error);
@@ -852,7 +846,6 @@ export async function createClient(
 
     const client = mapClientClientToSocialClient(created);
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
-    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in createClient:', error);
@@ -907,6 +900,8 @@ export async function updateClient(
     if (updates.invitationToken !== undefined) mdPatch.invitationToken = updates.invitationToken;
     if (updates.portalToken !== undefined) mdPatch.portalToken = updates.portalToken;
     if (updates.color !== undefined) mdPatch.color = updates.color;
+    if (updates.industry !== undefined) mdPatch.industry = updates.industry;
+    if (updates.mainContact !== undefined) mdPatch.mainContact = updates.mainContact;
 
     const merged: JsonObjectInput = { ...asRecord(existing.metadata), ...mdPatch };
 
@@ -923,8 +918,6 @@ export async function updateClient(
     if (!updated.count) {
       return { success: false, error: 'שגיאה בעדכון לקוח' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -956,7 +949,7 @@ export async function updateClientForWorkspace(
     }
 
     const existing = await prisma.clientClient.findFirst({
-      where: { id: String(clientId), organizationId },
+      where: { id: String(clientId), organizationId: String(organizationId) },
       select: {
         id: true,
         organizationId: true,
@@ -996,11 +989,13 @@ export async function updateClientForWorkspace(
     if (updates.invitationToken !== undefined) mdPatch.invitationToken = updates.invitationToken;
     if (updates.portalToken !== undefined) mdPatch.portalToken = updates.portalToken;
     if (updates.color !== undefined) mdPatch.color = updates.color;
+    if (updates.industry !== undefined) mdPatch.industry = updates.industry;
+    if (updates.mainContact !== undefined) mdPatch.mainContact = updates.mainContact;
 
     const merged: JsonObjectInput = { ...asRecord(existing.metadata), ...mdPatch };
 
     const updated = await prisma.clientClient.updateMany({
-      where: { id: existing.id, organizationId },
+      where: { id: existing.id, organizationId: String(organizationId) },
       data: {
         fullName: updates.companyName ?? updates.name ?? existing.fullName,
         phone: updates.phone ?? existing.phone,
@@ -1013,8 +1008,6 @@ export async function updateClientForWorkspace(
     if (!updated.count) {
       return { success: false, error: 'לקוח לא נמצא' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -1041,8 +1034,6 @@ export async function deleteClient(clientId: string): Promise<{ success: boolean
     if (!deleted.count) {
       return { success: false, error: 'לקוח לא נמצא' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -1079,8 +1070,6 @@ export async function deleteClientForWorkspace(
     if (!deleted.count) {
       return { success: false, error: 'לקוח לא נמצא' };
     }
-
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -1217,8 +1206,6 @@ export async function inviteClientForWorkspace(
       };
     }
 
-    revalidatePath('/', 'layout');
-
     return { success: true };
   } catch (error: unknown) {
     logger.error('clients', 'Error in inviteClientForWorkspace:', error);
@@ -1297,7 +1284,6 @@ export async function getClientByInvitationToken(
     }
 
     const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
-    revalidatePath('/', 'layout');
     return { success: true, data: resolved };
   } catch (error: unknown) {
     logger.error('clients', 'Error in getClientByInvitationToken:', error);

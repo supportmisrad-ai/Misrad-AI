@@ -25,31 +25,31 @@ function generateSupportTicketReceivedEmailHTML(params: {
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:8px;">
-            קיבלנו את הדיווח שלך ונטפל בו.
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:8px;">
+            קיבלנו את הדיווח שלך ונטפל בו בהקדם.
         </div>
         
-        <div style="margin:24px 0;padding:20px 24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 12px;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">מספר קריאה</div>
-                        <div style="font-size:22px;font-weight:900;background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:4px;">#${params.ticketNumber}</div>
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">מספר קריאה</div>
+                        <div style="font-size:20px;font-weight:700;color:#6366f1;">#${params.ticketNumber}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">נושא</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.subject}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">נושא</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${params.subject}</div>
                     </td>
                 </tr>
                 ${params.message ? `
                 <tr>
-                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">תיאור</div>
-                        <div style="font-size:14px;color:#334155;line-height:1.7;margin-top:4px;white-space:pre-line;">${params.message}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">תיאור</div>
+                        <div style="font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${params.message}</div>
                     </td>
                 </tr>
                 ` : ''}
@@ -60,7 +60,7 @@ function generateSupportTicketReceivedEmailHTML(params: {
             emoji: '⏱️',
             title: 'זמן מענה משוער: 24-48 שעות',
             text: 'נחזור אליך בהקדם האפשרי. אם יש עדכון דחוף — אפשר להשיב ישירות למייל הזה.',
-            bgColor: '#eff6ff',
+            bgColor: '#f0f9ff',
             borderColor: '#bfdbfe',
             titleColor: '#1e40af',
             textColor: '#1e3a5f',
@@ -75,7 +75,6 @@ function generateSupportTicketReceivedEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הדיווח התקבל',
-        headerGradient: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -92,14 +91,14 @@ function generateSupportTicketReplyEmailHTML(params: {
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:20px;">
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:20px;">
             יש לנו עדכון לגבי קריאה <strong style="color:#6366f1;">#${params.ticketNumber}</strong> — ${params.subject}:
         </div>
         
-        <div style="margin:24px 0;padding:24px;background:linear-gradient(135deg,#f0f9ff 0%,#eff6ff 100%);border-radius:14px;border-right:4px solid #6366f1;">
-            <div style="font-size:15px;font-weight:600;color:#1e293b;line-height:1.8;white-space:pre-line;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;border-right:4px solid #6366f1;">
+            <div style="font-size:15px;font-weight:500;color:#1e293b;line-height:1.7;white-space:pre-line;">
                 ${params.reply}
             </div>
         </div>
@@ -109,7 +108,7 @@ function generateSupportTicketReplyEmailHTML(params: {
             url: portalUrl,
         })}
         
-        <div style="margin-top:24px;font-size:14px;color:#64748b;line-height:1.7;">
+        <div style="margin-top:24px;font-size:14px;color:#64748b;line-height:1.6;">
             יש עוד שאלות? פשוט תשיב למייל הזה.
         </div>
     `;
@@ -117,7 +116,6 @@ function generateSupportTicketReplyEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: `עדכון קריאה #${params.ticketNumber}`,
-        headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
         bodyContent,
         showSocialLinks: false,
     });

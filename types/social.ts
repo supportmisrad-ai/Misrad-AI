@@ -198,6 +198,8 @@ export interface Client {
   businessMetrics: BusinessMetrics;
   internalNotes?: string;
   organizationId: string; // Which organization owns this client
+  industry?: string;
+  mainContact?: string;
 }
 
 export interface SocialPost {

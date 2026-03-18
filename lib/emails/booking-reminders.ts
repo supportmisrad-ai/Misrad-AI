@@ -54,17 +54,17 @@ function generateBookingReminderHTML(params: BookingReminderParams): string {
     switch (params.locationType) {
         case 'zoom':
             locationInfo = params.locationDetails.zoomUrl
-                ? `<a href="${params.locationDetails.zoomUrl}" style="color:#6366f1;font-weight:700;">הצטרף בזום</a>`
+                ? `<a href="${params.locationDetails.zoomUrl}" style="color:#6366f1;font-weight:700;text-decoration:none;">הצטרף בזום</a>`
                 : 'זום (הקישור יישלח בהודעת וואטסאפ)';
             break;
         case 'meet':
             locationInfo = params.locationDetails.meetUrl
-                ? `<a href="${params.locationDetails.meetUrl}" style="color:#6366f1;font-weight:700;">הצטרף ב-Google Meet</a>`
+                ? `<a href="${params.locationDetails.meetUrl}" style="color:#6366f1;font-weight:700;text-decoration:none;">הצטרף ב-Google Meet</a>`
                 : 'Google Meet';
             break;
         case 'phone':
             locationInfo = params.locationDetails.phone
-                ? `<a href="tel:${params.locationDetails.phone}" style="color:#6366f1;font-weight:700;">${params.locationDetails.phone}</a>`
+                ? `<a href="tel:${params.locationDetails.phone}" style="color:#6366f1;font-weight:700;text-decoration:none;">${params.locationDetails.phone}</a>`
                 : 'טלפון';
             break;
         case 'address':
@@ -75,49 +75,48 @@ function generateBookingReminderHTML(params: BookingReminderParams): string {
     }
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
-
         ${EmailTemplateComponents.generateFeatureBanner({
             emoji: '📅',
             title: 'תזכורת לפגישה',
             subtitle: 'הפגישה שלך מתקרבת',
-            gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         })}
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
             זו תזכורת לפגישה שקבעת עבור <strong>${params.serviceName}</strong>.
         </div>
 
-        <div style="margin:28px 0;padding:24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
                     <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">תאריך</div>
-                        <div style="font-size:16px;font-weight:800;color:#0f172a;">${dateStr}</div>
+                        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">תאריך</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;">${dateStr}</div>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">שעה</div>
-                        <div style="font-size:16px;font-weight:800;color:#0f172a;">${timeStr}</div>
+                        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">שעה</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;">${timeStr}</div>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">משך</div>
-                        <div style="font-size:16px;font-weight:800;color:#0f172a;">${params.durationMinutes} דקות</div>
+                        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">משך</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;">${params.durationMinutes} דקות</div>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:12px 0;border-bottom:1px solid #e2e8f0;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">נותן השירות</div>
-                        <div style="font-size:16px;font-weight:800;color:#0f172a;">${params.providerName}</div>
+                        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">נותן השירות</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;">${params.providerName}</div>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:12px 0;">
-                        <div style="font-size:12px;color:#64748b;margin-bottom:4px;">מיקום</div>
-                        <div style="font-size:16px;font-weight:800;color:#0f172a;direction:ltr;text-align:right;">${locationInfo}</div>
+                        <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">מיקום</div>
+                        <div style="font-size:16px;font-weight:700;color:#0f172a;direction:ltr;text-align:right;">${locationInfo}</div>
                     </td>
                 </tr>
             </table>
@@ -126,12 +125,12 @@ function generateBookingReminderHTML(params: BookingReminderParams): string {
         ${EmailTemplateComponents.generateDivider()}
 
         <div style="text-align:center;margin:24px 0;">
-            <div style="font-size:14px;color:#64748b;margin-bottom:16px;">צריך לשנות משהו?</div>
-            <div style="display:inline-block;margin:0 8px;">
-                <a href="${params.rescheduleUrl}" style="display:inline-block;padding:12px 24px;background:#f1f5f9;color:#475569;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;">שינוי מועד</a>
+            <div style="font-size:13px;font-weight:500;color:#64748b;margin-bottom:16px;">צריך לשנות משהו?</div>
+            <div style="display:inline-block;margin:0 6px;">
+                <a href="${params.rescheduleUrl}" style="display:inline-block;padding:10px 20px;background:#f1f5f9;color:#0f172a;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;border:1px solid #e2e8f0;">שינוי מועד</a>
             </div>
-            <div style="display:inline-block;margin:0 8px;">
-                <a href="${params.cancelUrl}" style="display:inline-block;padding:12px 24px;background:#fef2f2;color:#dc2626;text-decoration:none;border-radius:10px;font-weight:700;font-size:14px;">ביטול פגישה</a>
+            <div style="display:inline-block;margin:0 6px;">
+                <a href="${params.cancelUrl}" style="display:inline-block;padding:10px 20px;background:#fef2f2;color:#dc2626;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;border:1px solid #fee2e2;">ביטול פגישה</a>
             </div>
         </div>
 
@@ -149,7 +148,6 @@ function generateBookingReminderHTML(params: BookingReminderParams): string {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'תזכורת לפגישה',
-        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,
     });

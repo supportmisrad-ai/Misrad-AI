@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -491,7 +490,6 @@ export async function restoreDeletedItem(
       data: { deleted_at: null, deleted_by: null } satisfies Prisma.SocialPostUpdateManyMutationInput,
     });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -521,8 +519,7 @@ export async function hardDeleteItem(
         return createErrorResponse(null, 'Tenant Isolation lockdown: client ללא organization_id לא ניתן למחיקה');
       }
       await prisma.clientClient.deleteMany({ where: { id: itemId, organizationId } });
-      revalidatePath('/', 'layout');
-      return createSuccessResponse(true);
+        return createSuccessResponse(true);
     }
 
     const post = await prisma.socialPost.findUnique({ where: { id: itemId }, select: { id: true, clientId: true } });
@@ -539,7 +536,6 @@ export async function hardDeleteItem(
 
     await prisma.socialPost.deleteMany({ where: { id: itemId, clientId: clientIdForPost } });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -870,7 +866,6 @@ export async function updateFeatureFlags(
         })
     );
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -1023,7 +1018,6 @@ export async function updateSystemEmailSettings(input: {
         })
     );
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -1164,7 +1158,6 @@ export async function updateModuleIcons(params: {
         })
     );
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -1186,7 +1179,6 @@ export async function sendChurnEmail(
 
     await requireSuperAdmin();
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {

@@ -25,13 +25,13 @@ const TestimonialPrompt: React.FC<TestimonialPromptProps> = ({ clientName, onClo
   };
 
   return (
-    <div className="relative w-full bg-[#0F172A] rounded-[40px] p-8 lg:p-12 text-white overflow-hidden shadow-2xl border border-white/5 animate-slide-up group">
+    <div className="relative w-full bg-[#0F172A] rounded-3xl p-8 lg:p-12 text-white overflow-hidden shadow-2xl border border-white/5 animate-slide-up group">
       <button onClick={onClose} className="absolute top-6 left-8 p-2 text-white/30 hover:text-white transition-colors z-20">
         <X size={20} />
       </button>
 
       <div className="absolute top-8 right-8 flex items-center gap-2 px-3 py-1 bg-[#C5A572]/10 border border-[#C5A572]/30 rounded-full">
-        <span className="text-[10px] font-black text-[#C5A572] uppercase tracking-[0.1em]">Moment of Success</span>
+        <span className="text-[10px] font-bold text-[#C5A572] uppercase tracking-[0.1em]">Moment of Success</span>
         <Sparkles size={12} className="text-[#C5A572]" />
       </div>
 
@@ -63,7 +63,7 @@ const TestimonialPrompt: React.FC<TestimonialPromptProps> = ({ clientName, onClo
         </div>
 
         <div className="flex-1 text-right space-y-6">
-          <h2 className="text-4xl lg:text-5xl font-display font-black text-white leading-tight">
+          <h2 className="text-4xl lg:text-5xl font-display font-bold text-white leading-tight">
             אוהבים את התוצאות?<br />
             <span className="text-[#C5A572]">תנו לעולם לדעת.</span>
           </h2>

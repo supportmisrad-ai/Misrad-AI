@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
@@ -127,8 +126,6 @@ export async function punchIn(orgSlugOrId: string, note: string | undefined, loc
     id: String(created.id),
     startTime: created.start_time instanceof Date ? created.start_time.toISOString() : String(created.start_time),
   };
-
-  revalidatePath('/', 'layout');
   
   // 🏛️ AI Tower: Emit ATTENDANCE_PUNCH_IN event (fire-and-forget)
   eventBus.emitSimple(
@@ -200,7 +197,6 @@ export async function punchOut(orgSlugOrId: string, note: string | undefined, lo
 
   if (!updatedCount) throw new Error('Failed to punch out');
 
-  revalidatePath('/', 'layout');
   return { success: true, closed: true, entryId: existing.activeShift.id, noActiveShift: false };
 }
 

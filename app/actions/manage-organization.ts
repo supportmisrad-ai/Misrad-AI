@@ -1,9 +1,8 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
-import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/server/logger';
 import { requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
@@ -107,7 +106,6 @@ export async function updateOrganizationSettings(
       changes: data,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, organization: updated };
   } catch (error) {
@@ -184,7 +182,6 @@ export async function updateOrganizationPackage(
       changes: data,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, organization: updated };
   } catch (error) {
@@ -227,8 +224,6 @@ export async function updateOrganizationUserRole(
     );
 
     logger.info('updateOrganizationUserRole', 'User role updated', { userId, role });
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, user: updated };
   } catch (error) {
@@ -274,8 +269,6 @@ export async function removeUserFromOrganization(userId: string) {
     );
 
     logger.info('removeUserFromOrganization', 'User removed', { userId });
-
-    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (error) {
@@ -332,7 +325,6 @@ export async function extendOrganizationTrial(
       additionalDays,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, organization: updated };
   } catch (error) {
@@ -398,7 +390,6 @@ export async function deactivateOrganization(organizationId: string) {
       result,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, data: result };
   } catch (error) {
@@ -456,7 +447,6 @@ export async function reactivateOrganization(organizationId: string) {
       result,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, data: result };
   } catch (error) {
@@ -533,7 +523,6 @@ export async function softDeleteOrganization(organizationId: string) {
       result,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, data: result };
   } catch (error) {
@@ -607,7 +596,6 @@ export async function restoreOrganization(organizationId: string) {
       result,
     });
 
-    revalidatePath('/', 'layout');
 
     return { ok: true, data: result };
   } catch (error) {
@@ -791,8 +779,6 @@ export async function updateOrganizationBusinessClientDetails(
       organizationId,
       changes: data,
     });
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, businessClient: result };
   } catch (error) {

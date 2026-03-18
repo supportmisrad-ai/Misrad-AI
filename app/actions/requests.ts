@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
@@ -176,7 +175,6 @@ export async function getClientRequests(
       };
     });
 
-    revalidatePath('/', 'layout');
 
     return { success: true, data: requests };
   } catch (error: unknown) {
@@ -222,7 +220,6 @@ export async function getManagerRequests(
       feedbackFromClient: req.feedback_from_client == null ? undefined : String(req.feedback_from_client),
     }));
 
-    revalidatePath('/', 'layout');
 
     return { success: true, data: requests };
   } catch (error: unknown) {
@@ -323,7 +320,6 @@ export async function createClientRequest(
       status: normalizeClientRequestStatus(request.status),
     };
 
-    revalidatePath('/', 'layout');
 
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
@@ -386,7 +382,6 @@ export async function createManagerRequest(
       feedbackFromClient: request.feedback_from_client == null ? undefined : String(request.feedback_from_client),
     };
 
-    revalidatePath('/', 'layout');
 
     return { success: true, data: formattedRequest };
   } catch (error: unknown) {
@@ -446,7 +441,6 @@ export async function approveClientRequest(
       }
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -501,7 +495,6 @@ export async function rejectClientRequest(
       };
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -565,7 +558,6 @@ export async function updateManagerRequest(
       };
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {

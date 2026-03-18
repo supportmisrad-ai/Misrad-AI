@@ -1,8 +1,5 @@
 'use server';
 
-
-
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
@@ -410,8 +407,6 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
       }
     );
 
-    revalidatePath('/', 'layout');
-
     return { ok: true, client };
   } catch (error) {
     logger.error('updateBusinessClient', 'Error:', error);
@@ -486,8 +481,6 @@ export async function addContactToClient(clientId: string, input: ContactInput) 
         })
     );
 
-    revalidatePath('/', 'layout');
-
     return { ok: true, contact };
   } catch (error) {
     logger.error('addContactToClient', 'Error:', error);
@@ -523,8 +516,6 @@ export async function removeContactFromClient(clientId: string, userId: string) 
         });
       }
     );
-
-    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (error) {
@@ -574,8 +565,6 @@ export async function updateContactOnClient(
           data: input,
         })
     );
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, contact };
   } catch (error) {
@@ -631,21 +620,21 @@ export async function createOrganizationForClient(
             slug: uniqueSlug,
             owner_id: primaryContactUserId,
             client_id: clientId,
-            
+
             // Subscription
             subscription_status: 'trial',
             subscription_plan: input.subscription_plan || null,
             trial_start_date: now,
             trial_days: appliedTrialDays,
             seats_allowed: input.seats_allowed || null,
-            
+
             // Modules
             has_nexus: input.has_nexus ?? true,
             has_social: input.has_social ?? false,
             has_finance: input.has_finance ?? false,
             has_client: input.has_client ?? false,
             has_operations: input.has_operations ?? false,
-            
+
             // Timestamps
             created_at: now,
             updated_at: now,
@@ -661,8 +650,6 @@ export async function createOrganizationForClient(
         });
       }
     );
-
-    revalidatePath('/', 'layout');
 
     return { ok: true, organization: org };
   } catch (error) {
@@ -712,8 +699,6 @@ export async function updateOrganization(orgId: string, input: {
       }
     );
 
-    revalidatePath('/', 'layout');
-
     return { ok: true, organization: org };
   } catch (error) {
     logger.error('updateOrganization', 'Error:', error);
@@ -755,7 +740,6 @@ export async function suspendBusinessClient(clientId: string) {
       }
     );
 
-    revalidatePath('/', 'layout');
     return { ok: true, orgsAffected: result.orgsAffected };
   } catch (error) {
     logger.error('suspendBusinessClient', 'Error:', error);
@@ -793,7 +777,6 @@ export async function unsuspendBusinessClient(clientId: string) {
       }
     );
 
-    revalidatePath('/', 'layout');
     return { ok: true, orgsRestored: result.orgsRestored };
   } catch (error) {
     logger.error('unsuspendBusinessClient', 'Error:', error);
@@ -833,8 +816,6 @@ export async function deleteBusinessClient(clientId: string) {
         });
       }
     );
-
-    revalidatePath('/', 'layout');
 
     return { ok: true };
   } catch (error) {
@@ -903,7 +884,6 @@ export async function restoreBusinessClient(clientId: string) {
       }
     );
 
-    revalidatePath('/', 'layout');
     return { ok: true };
   } catch (error) {
     logger.error('restoreBusinessClient', 'Error:', error);
@@ -1011,7 +991,6 @@ export async function createUserAndAddAsContact(
           },
         });
 
-        revalidatePath('/', 'layout');
         return { ok: true as const, userId: user.id };
       }
     );
@@ -1431,8 +1410,6 @@ export async function syncOrganizationsToBusinessClients(): Promise<
           });
           linked += orgIds.length;
         }
-
-        revalidatePath('/', 'layout');
 
         return { ok: true as const, created, linked };
       }

@@ -23,16 +23,11 @@ function generateTrialExpiryWarningEmailHTML(params: {
     const isLastDay = params.daysRemaining <= 1;
     const isUrgent = params.daysRemaining <= 3;
 
-    const headerGradient = isLastDay
-        ? 'linear-gradient(135deg, #1e293b 0%, #334155 100%)'
-        : isUrgent
-        ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
-        : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
-
-    const calloutBg = isLastDay ? '#f8fafc' : isUrgent ? '#fffbeb' : '#eff6ff';
-    const calloutBorder = isLastDay ? '#e2e8f0' : isUrgent ? '#fcd34d' : '#bfdbfe';
-    const calloutTitle = isLastDay ? '#0f172a' : isUrgent ? '#78350f' : '#1e40af';
-    const calloutText = isLastDay ? '#475569' : isUrgent ? '#92400e' : '#1e3a5f';
+    // Use cleaner colors from the new palette
+    const calloutBg = isLastDay ? '#f8fafc' : isUrgent ? '#fffbeb' : '#f8fafc';
+    const calloutBorder = isLastDay ? '#e2e8f0' : isUrgent ? '#fde68a' : '#e2e8f0';
+    const calloutTitle = isLastDay ? '#0f172a' : isUrgent ? '#92400e' : '#0f172a';
+    const calloutText = isLastDay ? '#475569' : isUrgent ? '#92400e' : '#475569';
 
     const dayLabel = params.daysRemaining === 1
         ? 'יום'
@@ -41,10 +36,10 @@ function generateTrialExpiryWarningEmailHTML(params: {
         : `${params.daysRemaining} ימים`;
 
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            רציתי לתת לך תזכורת — תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
+            רציתי לתת לך תזכורת — תקופת הניסיון של <strong>"${params.organizationName}"</strong>
             מסתיימת ${urgencyText}.
         </div>
 
@@ -59,7 +54,7 @@ function generateTrialExpiryWarningEmailHTML(params: {
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'בחירת תוכנית →',
+            text: 'בחירת תוכנית',
             url: params.portalUrl,
         })}
 
@@ -77,7 +72,6 @@ function generateTrialExpiryWarningEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: `תקופת הניסיון מסתיימת ${urgencyText}`,
-        headerGradient,
         bodyContent,
         showSocialLinks: false,
     });
@@ -92,10 +86,10 @@ function generateTrialExpiredEmailHTML(params: {
     const greeting = params.ownerName ? `${params.ownerName},` : 'שלום,';
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            תקופת הניסיון של <strong style="color:#6366f1;">"${params.organizationName}"</strong>
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
+            תקופת הניסיון של <strong>"${params.organizationName}"</strong>
             הסתיימה. הגישה למערכת הושהתה זמנית עד להשלמת התשלום.
         </div>
 
@@ -103,14 +97,14 @@ function generateTrialExpiredEmailHTML(params: {
             emoji: '💾',
             title: 'הנתונים שלך בטוחים',
             text: 'כל המידע שלך נשמר ומאובטח. ברגע שתחדש את המנוי — הכל יחזור מיידית, בדיוק כפי שהשארת.',
-            bgColor: '#eff6ff',
-            borderColor: '#bfdbfe',
-            titleColor: '#1e40af',
-            textColor: '#1e3a5f',
+            bgColor: '#f8fafc',
+            borderColor: '#e2e8f0',
+            titleColor: '#0f172a',
+            textColor: '#475569',
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'חידוש הגישה →',
+            text: 'חידוש הגישה',
             url: params.portalUrl,
         })}
 
@@ -128,7 +122,6 @@ function generateTrialExpiredEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הגישה הושהתה זמנית',
-        headerGradient: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
         bodyContent,
         showSocialLinks: false,
     });

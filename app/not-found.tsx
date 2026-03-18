@@ -1,111 +1,75 @@
 import Link from 'next/link';
-import { ArrowRight, Home, Search, Sparkles, Brain, Zap } from 'lucide-react';
+import { Home, Zap, ChevronLeft } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full text-center">
-        {/* AI Icon Animation */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
-            <Brain className="w-24 h-24 text-blue-600 relative animate-bounce" />
-            <Sparkles className="w-8 h-8 text-purple-600 absolute -top-2 -right-2 animate-spin" />
-          </div>
-        </div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4" dir="rtl">
+      {/* Subtle glow effect in the background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[120px]" />
+      </div>
 
-        {/* Main Message */}
-        <h1 className="text-7xl font-bold text-gray-900 mb-4">
-          404
-        </h1>
-        
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">
-          ה-AI שלנו חיפש בכל מקום... 🤔
-        </h2>
-
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 mb-8 border border-gray-200">
-          <p className="text-xl text-gray-700 mb-4">
-            <span className="font-semibold text-blue-600">MISRAD AI</span> בדיקת רגע זה בדק:
-          </p>
+      <div className="max-w-2xl w-full text-center space-y-8 relative z-10">
+        <div className="space-y-4">
+          <h1 className="text-8xl md:text-9xl font-black text-slate-200 tracking-tighter select-none">
+            404
+          </h1>
           
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Zap className="w-5 h-5 text-yellow-500" />
-              <span>75,000 מסמכים</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Search className="w-5 h-5 text-green-500" />
-              <span>234 צ'אטים פעילים</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Brain className="w-5 h-5 text-purple-500" />
-              <span>1,247 תהליכים</span>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-lg mb-6">
-            <p className="text-gray-700 font-medium">
-              הדף שחיפשת לא נמצא, אבל ה-AI שלנו <span className="text-blue-600">כן מצא</span> את כל הדרכים 
-              לעזור לך לנהל את הארגון שלך בצורה חכמה יותר 🚀
+          <div className="space-y-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+              הגעת לנקודה עיוורת.
+            </h2>
+            <p className="text-lg text-slate-600 max-w-md mx-auto leading-relaxed">
+              הדף שחיפשת לא קיים. אבל בניגוד לדף הזה — בארגון שלך שום דבר לא אמור ללכת לאיבוד.
             </p>
           </div>
-
-          <p className="text-gray-600 italic">
-            "בניגוד לדף הזה, הלקוחות שלך לא צריכים להיעלם. 
-            <br />
-            MISRAD AI מזהה בזמן אמת מתי לקוח בסיכון ומה לעשות בדיוק."
-          </p>
         </div>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm max-w-lg mx-auto text-right hover:shadow-md transition-shadow">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5 border border-blue-100/50">
+              <Zap className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-slate-900">ניהול ללא שטחים מתים</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                מערכת MISRAD AI מזהה בזמן אמת עומסים, חריגות ולקוחות בסיכון, כדי ששום פרט לא יפול בין הכיסאות. שליטה מוחלטת במידע.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
           <Link 
             href="/"
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:scale-105"
+            className="inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-all active:scale-95 w-full sm:w-auto shadow-sm"
           >
-            <Home className="w-5 h-5" />
-            חזרה לדף הבית
-            <ArrowRight className="w-5 h-5" />
+            <Home className="w-4 h-4" />
+            חזרה לעמוד הראשי
           </Link>
 
           <Link 
             href="/pricing"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all border-2 border-blue-600 hover:scale-105"
+            className="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-6 py-2.5 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 w-full sm:w-auto shadow-sm"
           >
-            <Sparkles className="w-5 h-5" />
-            גלה איך AI מנהל את הארגון
+            איך AI מנהל את הארגון?
+            <ChevronLeft className="w-4 h-4" />
           </Link>
         </div>
 
-        {/* Quick Links */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <p className="text-gray-600 mb-4 font-medium">אולי חיפשת את אחד מהמודולים שלנו?</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Nexus OS
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Social
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Client
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Finance OS
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/me" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors">
-              Operations OS
-            </Link>
+        <div className="pt-10 border-t border-slate-200/60 mt-12">
+          <p className="text-sm text-slate-500 mb-5 font-medium">ניווט מהיר למודולים:</p>
+          <div className="flex flex-wrap gap-2.5 justify-center">
+            {['Nexus OS', 'Social', 'Client', 'Finance OS', 'Operations OS'].map((module) => (
+              <Link 
+                key={module}
+                href="/me" 
+                className="px-4 py-2 bg-white border border-slate-200/80 rounded-lg text-sm font-medium text-slate-600 hover:border-blue-300 hover:text-blue-700 hover:bg-blue-50/50 hover:shadow-sm transition-all"
+              >
+                {module}
+              </Link>
+            ))}
           </div>
-        </div>
-
-        {/* Brand Message */}
-        <div className="mt-8 text-sm text-gray-500">
-          <p>MISRAD AI - מערכת AI שמנהלת את הארגון שלך 🚀</p>
         </div>
       </div>
     </div>

@@ -282,14 +282,14 @@ function StatCard({ label, value, icon: Icon, color }: StatCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition-all">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{label}</p>
+          <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{value}</p>
         </div>
-        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
-          <Icon className="w-6 h-6" />
+        <div className={`p-2 rounded-lg ${colorClasses[color]} bg-opacity-10 text-opacity-100`}>
+          <Icon className="w-5 h-5" />
         </div>
       </div>
     </div>
@@ -321,11 +321,11 @@ export function AppointmentList({ appointments, onAction }: AppointmentListProps
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
-      confirmed: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: CheckCircle2 },
-      pending: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock4 },
-      completed: { bg: 'bg-blue-100', text: 'text-blue-700', icon: CheckCircle2 },
-      cancelled: { bg: 'bg-slate-100', text: 'text-slate-500', icon: XCircle },
-      no_show: { bg: 'bg-rose-100', text: 'text-rose-700', icon: AlertCircle },
+      confirmed: { bg: 'bg-emerald-50 border-emerald-100', text: 'text-emerald-700', icon: CheckCircle2 },
+      pending: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-700', icon: Clock4 },
+      completed: { bg: 'bg-blue-50 border-blue-100', text: 'text-blue-700', icon: CheckCircle2 },
+      cancelled: { bg: 'bg-slate-50 border-slate-100', text: 'text-slate-600', icon: XCircle },
+      no_show: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-700', icon: AlertCircle },
     };
     return styles[status] || styles.confirmed;
   };

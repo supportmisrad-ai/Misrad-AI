@@ -101,8 +101,6 @@ export async function getSiteContent(
       updatedBy: row.updated_by ? String(row.updated_by) : '',
     }));
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: out };
   } catch (error) {
     if (isMissingTableError(error)) {
@@ -116,7 +114,6 @@ export async function getSiteContent(
         error,
         extras: { page },
       });
-      revalidatePath('/', 'layout');
       return { success: true, data: [] };
     }
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
@@ -179,7 +176,11 @@ export async function updateSiteContent(
       });
     }
 
-    revalidatePath('/', 'layout');
+    if (page === 'landing') {
+      revalidatePath('/', 'page');
+    } else {
+      revalidatePath(`/${page}`, 'page');
+    }
 
     return { success: true };
   } catch (error) {

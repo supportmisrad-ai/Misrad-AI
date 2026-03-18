@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useRouter } from 'next/navigation';
-import { UserPlus, Link2, Check, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { UserPlus, Link2, Check, LayoutGrid, List as ListIcon, Share2 } from 'lucide-react';
 import { Select } from '@/components/ui/select';
 import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
@@ -220,6 +220,24 @@ export default function SystemSalesPipelineClient({
       addToast('קישור לטופס לידים הועתק!', 'success');
       setTimeout(() => setLeadFormCopied(false), 2000);
     });
+  };
+
+  const handleShareLeadFormLink = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'טופס לידים',
+          text: 'הנה הקישור לטופס הלידים שלנו',
+          url: leadFormUrl,
+        });
+      } catch (error) {
+        if ((error as any).name !== 'AbortError') {
+          addToast('שגיאה בשיתוף', 'error');
+        }
+      }
+    } else {
+      handleCopyLeadFormLink();
+    }
   };
 
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
@@ -724,6 +742,15 @@ export default function SystemSalesPipelineClient({
           >
             {leadFormCopied ? <Check size={14} /> : <Link2 size={14} />}
             טופס
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void handleShareLeadFormLink()}
+            className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 shadow-sm transition-all"
+            title="שתף קישור"
+          >
+            <Share2 size={14} />
           </button>
           
           {isAdmin && (

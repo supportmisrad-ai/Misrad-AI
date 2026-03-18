@@ -31,31 +31,37 @@ const CommCallAnalysis: React.FC<CommCallAnalysisProps> = ({ metadata }) => {
       ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-          <div className="text-[11px] font-black text-slate-500">ציון</div>
-          <div className="text-lg font-black text-slate-900">{score == null ? '—' : score}</div>
+          <div className="bg-slate-50/80 border border-slate-200/60 rounded-2xl p-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">ציון</div>
+          <div className="text-lg font-bold text-slate-900">{score == null ? '—' : score}</div>
         </div>
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 md:col-span-2">
-          <div className="text-[11px] font-black text-slate-500">סיכום</div>
-          <div className="text-sm font-bold text-slate-800 whitespace-pre-wrap">{summary || '—'}</div>
+        <div className="bg-slate-50/80 border border-slate-200/60 rounded-2xl p-3 md:col-span-2">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">סיכום</div>
+          <div className="text-sm font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">{summary || '—'}</div>
         </div>
       </div>
 
       {promises.length || tasks.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
-            <div className="mt-2 space-y-1">
+          <div className="bg-white border border-slate-200/60 rounded-2xl p-3 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">התחייבויות</div>
+            <div className="space-y-1.5">
               {(promises.length ? promises : ['—']).slice(0, 8).map((p: unknown, idx: number) => (
-                <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
+                <div key={idx} className="text-sm font-medium text-slate-800 flex items-start gap-2">
+                  <span className="text-emerald-500 mt-1">•</span>
+                  {String(p)}
+                </div>
               ))}
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-2xl p-3">
-            <div className="text-[11px] font-black text-slate-500">משימות</div>
-            <div className="mt-2 space-y-1">
+          <div className="bg-white border border-slate-200/60 rounded-2xl p-3 shadow-sm">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">משימות</div>
+            <div className="space-y-1.5">
               {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => (
-                <div key={idx} className="text-sm font-bold text-slate-800">{String(t)}</div>
+                <div key={idx} className="text-sm font-medium text-slate-800 flex items-start gap-2">
+                  <span className="text-indigo-500 mt-1">•</span>
+                  {String(t)}
+                </div>
               ))}
             </div>
           </div>
@@ -63,20 +69,22 @@ const CommCallAnalysis: React.FC<CommCallAnalysisProps> = ({ metadata }) => {
       ) : null}
 
       {objections.length ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-3">
-          <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
-          <div className="mt-2 space-y-2">
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-3 shadow-sm">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">התנגדויות</div>
+          <div className="space-y-2">
             {objections.slice(0, 6).map((o: unknown, idx: number) => {
               const oObj = asObject(o);
               const objection = typeof oObj?.objection === 'string' ? oObj.objection : '';
               const reply = typeof oObj?.reply === 'string' ? oObj.reply : '';
               const nextQuestion = typeof oObj?.next_question === 'string' ? oObj.next_question : '';
               return (
-                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                  <div className="text-xs font-black text-slate-900">{String(objection || '')}</div>
-                  <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String(reply || '')}</div>
+                <div key={idx} className="bg-slate-50/50 border border-slate-100 rounded-xl p-3">
+                  <div className="text-xs font-bold text-slate-900">{String(objection || '')}</div>
+                  <div className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{String(reply || '')}</div>
                   {nextQuestion ? (
-                    <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(nextQuestion)}</div>
+                    <div className="text-xs font-medium text-indigo-600 mt-2 flex items-center gap-1">
+                      <span className="opacity-70">שאלה הבאה:</span> {String(nextQuestion)}
+                    </div>
                   ) : null}
                 </div>
               );
@@ -86,16 +94,16 @@ const CommCallAnalysis: React.FC<CommCallAnalysisProps> = ({ metadata }) => {
       ) : null}
 
       {transcript.length ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-3">
-          <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
-          <div className="mt-2 space-y-2">
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-3 shadow-sm">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">תמלול (דוגמית)</div>
+          <div className="space-y-2 pl-1">
             {transcript.slice(0, 10).map((t: unknown, idx: number) => {
               const tObj = asObject(t);
               const speaker = typeof tObj?.speaker === 'string' ? tObj.speaker : '';
               const text = typeof tObj?.text === 'string' ? tObj.text : '';
               return (
-                <div key={idx} className="text-sm font-bold text-slate-800">
-                  <span className="text-slate-500">{String(speaker || '')}:</span> {String(text || '')}
+                <div key={idx} className="text-sm text-slate-800">
+                  <span className="text-slate-400 font-bold text-xs">{String(speaker || '')}:</span> {String(text || '')}
                 </div>
               );
             })}

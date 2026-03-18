@@ -56,7 +56,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveScreen(item.id)}
-                  className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl transition-all group relative ${
+                  className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all group relative ${
                     isActive
                       ? 'bg-slate-100 text-slate-900 font-bold shadow-sm'
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -83,7 +83,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
           </button>
 
           {client ? (
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-900 font-bold shadow-sm">
                   {String(client?.mainContact || client?.name || 'ל').charAt(0)}
@@ -107,7 +107,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveScreen(item.id)}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-w-[72px] flex-shrink-0 ${
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all min-w-[72px] flex-shrink-0 ${
                   isActive ? 'text-nexus-accent bg-slate-50' : 'text-slate-400'
                 }`}
               >
@@ -128,7 +128,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
           </div>
           <button
             onClick={onShowFriction}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
             title="משהו לא זורם?"
           >
             <MessageSquareWarning size={20} />

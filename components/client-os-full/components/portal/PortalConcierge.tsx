@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, MessageCircle, MessageSquareQuote, Download, UserCircle } from 'lucide-react';
 import { Client, Meeting } from '../../types';
+import { useRouter } from 'next/navigation';
 
 interface PortalConciergeProps {
   client: Client;
@@ -13,7 +14,14 @@ const toast = (message: string, type: 'info' | 'success' | 'error' = 'info') => 
 };
 
 export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, clientMeetings }) => {
-  const pmName = client.mainContact || 'מנהל הפרויקט';
+  const router = useRouter();
+  
+  // Extract manager info from metadata
+  const metadata = (client.internalNotes && typeof client.internalNotes === 'object') ? client.internalNotes as Record<string, unknown> : {};
+  const pmName = (metadata.assignedManagerName as string) || client.mainContact || 'מנהל הפרויקט';
+  const pmPhone = (metadata.assignedManagerPhone as string) || '';
+  const pmEmail = (metadata.assignedManagerEmail as string) || '';
+  
   const pmInitials = pmName
     .split(' ')
     .filter(Boolean)
@@ -22,15 +30,22 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
     .join('');
 
   const handleScheduleMeeting = () => {
-    toast('תיאום פגישה חדשה — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+    toast('פותח דף תיאום פגישות...', 'info');
+    router.push('/booking');
   };
 
   const handleScheduleCall = () => {
-    toast('תיאום שיחה בלו"ז — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+    router.push('/booking');
   };
 
   const handleWhatsApp = () => {
-    toast('שליחת וואטסאפ — הפיצ׳ר בפיתוח. פנה למנהל הפרויקט בצ׳אט.', 'info');
+    if (pmPhone) {
+      const cleanPhone = pmPhone.replace(/[^0-9]/g, '');
+      const message = encodeURIComponent(`שלום ${pmName}, אשמח לדבר איתך בנוגע לפרויקט`);
+      window.open(`https://wa.me/972${cleanPhone.startsWith('0') ? cleanPhone.substring(1) : cleanPhone}?text=${message}`, '_blank');
+    } else {
+      toast('לא נמצא מספר טלפון למנהל הפרויקט', 'error');
+    }
   };
 
   return (
@@ -48,16 +63,23 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-5">
-          <div className="bg-white border border-slate-200 rounded-[48px] p-10 shadow-sm text-center relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-2 bg-nexus-accent"></div>
-            <div className="w-32 h-32 rounded-[40px] bg-slate-900 mx-auto mb-8 overflow-hidden border-4 border-slate-50 shadow-2xl transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
-              <span className="text-4xl font-black text-white">{pmInitials}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="lg:col-span-2">
+          <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-nexus-primary via-nexus-accent to-nexus-primary" />
+            <div className="w-32 h-32 rounded-[32px] bg-gradient-to-br from-nexus-primary to-nexus-accent flex items-center justify-center text-white text-4xl font-black mx-auto mb-6 ring-4 ring-slate-50">
+              {pmInitials}
             </div>
             <h3 className="text-3xl font-bold text-slate-900">{pmName}</h3>
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 mb-10">מנהל הפרויקט האישי שלך</p>
-            
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-1 mb-2">מנהל הפרויקט האישי שלך</p>
+            {pmEmail && (
+              <p className="text-xs text-slate-500 mb-6">{pmEmail}</p>
+            )}
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500 mb-10">
+              <UserCircle size={16} />
+              <span>זמין לשיחה ותיאום</span>
+            </div>
+
             <div className="space-y-4">
               <button
                 onClick={handleScheduleCall}

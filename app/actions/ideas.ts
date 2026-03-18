@@ -1,8 +1,5 @@
 'use server';
 
-
-
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import { Idea } from '@/types/social';
@@ -36,8 +33,7 @@ async function assertClientInOrganization(params: { clientId: string; organizati
   }
 }
 
-async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }>
-{
+async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }> {
   const idea = await prisma.socialMediaIdea.findFirst({
     where: {
       id: String(params.ideaId),
@@ -88,8 +84,6 @@ export async function getIdeas(
       };
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: ideas };
   } catch (error: unknown) {
     logger.error('ideas', 'Error in getIdeas:', error);
@@ -138,11 +132,11 @@ export async function createIdea(
         'ideas',
         ideaData.orgSlug
       );
-      
+
       if (!uploadResult.success) {
         return { success: false, error: uploadResult.error || 'שגיאה בהעלאת המדיה' };
       }
-      
+
       mediaUrl = uploadResult.url;
     }
 
@@ -174,8 +168,6 @@ export async function createIdea(
           ? ((asObject(idea) ?? {}).created_at as Date).toISOString()
           : String((asObject(idea) ?? {}).created_at ?? ''),
     };
-
-    revalidatePath('/', 'layout');
 
     return { success: true, data: formattedIdea };
   } catch (error: unknown) {
@@ -226,11 +218,11 @@ export async function updateIdea(
         'ideas',
         updates.orgSlug
       );
-      
+
       if (!uploadResult.success) {
         return { success: false, error: uploadResult.error || 'שגיאה בהעלאת המדיה' };
       }
-      
+
       mediaUrl = uploadResult.url;
     }
 
@@ -270,12 +262,9 @@ export async function updateIdea(
     if (result.success && result.data) {
       const updatedIdea = result.data.find(i => i.id === ideaId);
       if (updatedIdea) {
-        revalidatePath('/', 'layout');
         return { success: true, data: updatedIdea };
       }
     }
-
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -326,7 +315,6 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
       };
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {

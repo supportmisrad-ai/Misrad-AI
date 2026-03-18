@@ -41,6 +41,7 @@ import {
   type ClinicTask,
   type ClinicSession,
   type ClinicFeedback,
+  type ClinicClient,
 } from '@/app/actions/client-clinic';
 
 import { createStorageClient } from '@/lib/supabase';
@@ -155,13 +156,17 @@ function defaultEngagement(): EngagementMetrics {
   };
 }
 
-function mapClinicClientToClientOS(client: { id: string; fullName: string }): Client {
+function mapClinicClientToClientOS(client: ClinicClient): Client {
   // Minimal mapping to satisfy existing UI types without changing UI.
   // Most advanced fields default to safe values.
+  const metadata = (client.metadata as Record<string, unknown>) || {};
+  
   return {
     id: client.id,
     name: client.fullName,
-    industry: '',
+    industry: (metadata.industry as string) || '',
+    phone: client.phone || undefined,
+    email: client.email || undefined,
     employeeCount: 0,
     logoInitials: client.fullName
       .split(' ')
@@ -201,7 +206,7 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
     profitabilityVerdict: '',
     lastContact: '',
     nextRenewal: '',
-    mainContact: client.fullName,
+    mainContact: (metadata.mainContact as string) || client.fullName,
     mainContactRole: '',
     strengths: [],
     weaknesses: [],
@@ -221,6 +226,7 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
     cancellationDate: undefined,
     cancellationReason: undefined,
     cancellationNote: undefined,
+    internalNotes: client.notes || undefined,
   };
 }
 
@@ -228,7 +234,7 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
 
 export async function getClientOSClients(orgId: string): Promise<Client[]> {
   const clinicClients = await getClinicClients(orgId);
-  return clinicClients.map((c) => mapClinicClientToClientOS({ id: c.id, fullName: c.fullName }));
+  return clinicClients.map(mapClinicClientToClientOS);
 }
 
 export type ClientDashboardData = {

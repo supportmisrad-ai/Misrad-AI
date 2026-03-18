@@ -1,12 +1,18 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { requireSuperAdmin } from '@/lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+
+async function requireSuperAdmin(): Promise<void> {
+  const user = await getAuthenticatedUser();
+  if (!user?.isSuperAdmin) {
+    throw new Error('Forbidden: Super Admin required');
+  }
+}
 
 /**
  * Get system maintenance info
@@ -44,7 +50,6 @@ export async function getMaintenanceInfo(): Promise<{
     });
   } catch (error: unknown) {
     // Return empty/default data if RPC doesn't exist
-    revalidatePath('/', 'layout');
     return createSuccessResponse({
       databaseSize: 'לא זמין',
       lastBackup: null,
@@ -188,7 +193,6 @@ export async function createBackup(): Promise<{
       // Table might not exist, that's okay
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ backupId });
   } catch (error: unknown) {
@@ -242,7 +246,6 @@ export async function runSystemCleanup(): Promise<{
       // Best-effort only
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ cleanedItems });
   } catch (error: unknown) {
@@ -315,11 +318,9 @@ export async function updateSystemSettings(
       // Best-effort only
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בעדכון הגדרות');
   }
 }
-

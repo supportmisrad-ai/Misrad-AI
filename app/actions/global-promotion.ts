@@ -5,11 +5,11 @@
  * Manages site-wide promotional campaigns with FOMO messaging
  */
 
+import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
 import type { ActionResult } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import * as Sentry from '@sentry/nextjs';
 
 function captureActionException(error: unknown, context: Record<string, unknown>) {
@@ -225,9 +225,7 @@ export async function upsertGlobalPromotion(data: {
     });
 
     // Revalidate all pages that might show the promotion
-    revalidatePath('/');
     revalidatePath('/pricing');
-    revalidatePath('/get-started');
 
     return createSuccessResponse({
       id: promotion.id,
@@ -275,9 +273,7 @@ export async function deleteGlobalPromotion(id: string): Promise<ActionResult<vo
       where: { id },
     });
 
-    revalidatePath('/');
     revalidatePath('/pricing');
-    revalidatePath('/get-started');
 
     return createSuccessResponse(undefined);
   } catch (error: unknown) {

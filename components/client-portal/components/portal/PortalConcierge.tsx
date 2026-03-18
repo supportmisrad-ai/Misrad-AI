@@ -49,14 +49,14 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
         <div className="lg:col-span-5 space-y-8">
           {/* AI Brief: What to expect next */}
           {upcomingTemplate && (
-            <div className="bg-gradient-to-br from-nexus-primary to-nexus-accent rounded-[40px] p-8 text-white shadow-2xl relative overflow-hidden group">
+            <div className="bg-gradient-to-br from-nexus-primary to-nexus-accent rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
               <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700" />
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
                     <Brain size={20} className="text-white" />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">הכנה למפגש הבא</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">הכנה למפגש הבא</span>
                 </div>
                 
                 <h3 className="text-2xl font-bold mb-4">במפגש הקרוב: {upcomingTemplate.title}</h3>
@@ -64,8 +64,8 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
                   "אנחנו הולכים להתמקד בפיצוח {upcomingTemplate.agenda[0]}. המטרה שלנו היא לצאת עם {upcomingTemplate.successCriteria[0]}."
                 </p>
                 
-                <div className="space-y-3 bg-black/10 p-5 rounded-3xl border border-white/10">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60 block">מה להכין?</span>
+                <div className="space-y-3 bg-black/10 p-5 rounded-2xl border border-white/10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60 block">מה להכין?</span>
                   <ul className="text-xs space-y-2 font-bold">
                     {upcomingTemplate.agenda.map((item, i) => (
                       <li key={i} className="flex items-center gap-2">
@@ -80,9 +80,9 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
           )}
 
           {/* PM Card */}
-          <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl text-center relative overflow-hidden">
+          <div className="bg-white p-10 rounded-3xl border border-slate-100 shadow-xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-nexus-primary via-nexus-accent to-nexus-primary" />
-            <div className="w-32 h-32 rounded-[32px] overflow-hidden mx-auto mb-6 ring-4 ring-slate-50">
+            <div className="w-32 h-32 rounded-3xl overflow-hidden mx-auto mb-6 ring-4 ring-slate-50">
               <img
                 src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150"
                 className="w-full h-full object-cover"
@@ -112,7 +112,7 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
             {clientMeetings.length > 0 ? clientMeetings.map((meeting) => (
               <div
                 key={meeting.id}
-                className="bg-white p-6 rounded-[32px] border border-slate-100 hover:shadow-md hover:border-nexus-accent/30 transition-all group"
+                className="bg-white p-6 rounded-3xl border border-slate-100 hover:shadow-md hover:border-nexus-accent/30 transition-all group"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -129,11 +129,11 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
                     <span className="text-xs text-gray-400 font-bold mt-1 block">{meeting.date}</span>
                   </div>
                   {meeting.aiAnalysis && (
-                    <div className="flex items-center gap-1 text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100">
                       <Zap size={12} fill="currentColor" /> מנותח AI
                     </div>
                   )}
-                  <button className="p-3 bg-slate-50 rounded-2xl text-slate-400 group-hover:text-nexus-primary group-hover:bg-nexus-accent/10 transition-all">
+                  <button className="p-3 bg-slate-50 rounded-xl text-slate-400 group-hover:text-nexus-primary group-hover:bg-nexus-accent/10 transition-all">
                     <Download size={20} />
                   </button>
                 </div>
@@ -142,7 +142,7 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({
                 </p>
               </div>
             )) : (
-              <div className="text-center py-20 bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200">
+              <div className="text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                 <Calendar size={48} className="mx-auto text-slate-200 mb-4" />
                 <p className="text-slate-400 font-bold">עדיין לא היו פגישות מתועדות.</p>
               </div>

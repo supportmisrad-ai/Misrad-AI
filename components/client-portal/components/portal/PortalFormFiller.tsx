@@ -33,14 +33,14 @@ export const PortalFormFiller: React.FC<PortalFormFillerProps> = ({ activeForm, 
               <p className="text-xl text-slate-400 font-light">תתפרעו, אנחנו כאן כדי להגשים.</p>
             </div>
             <textarea
-              className="w-full p-8 bg-white border-2 border-slate-100 rounded-[40px] shadow-xl shadow-slate-200/50 outline-none focus:border-nexus-accent transition-all min-h-[250px] text-2xl font-light placeholder:text-slate-200"
+              className="w-full p-8 bg-white border border-slate-200 rounded-3xl shadow-lg shadow-slate-200/50 outline-none focus:border-nexus-accent transition-all min-h-[250px] text-2xl font-light placeholder:text-slate-200"
               placeholder="הקלד כאן..."
               autoFocus
             />
             <div className="pt-10 mt-6 border-t border-slate-100 flex justify-end items-center">
               <button
                 onClick={onSubmit}
-                className="px-12 py-5 bg-slate-900 text-white rounded-[32px] font-bold text-xl shadow-2xl hover:bg-nexus-accent hover:-translate-y-1 transition-all flex items-center gap-3"
+                className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-bold text-xl shadow-xl hover:bg-nexus-accent hover:-translate-y-1 transition-all flex items-center gap-3"
               >
                 שלח טופס והשלם משימה <Check size={24} />
               </button>

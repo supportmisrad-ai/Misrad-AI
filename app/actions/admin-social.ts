@@ -1,8 +1,5 @@
 'use server';
 
-
-import { revalidatePath } from 'next/cache';
-import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { Prisma } from '@prisma/client';
@@ -46,26 +43,19 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
   return out;
 }
 
- function isUuidLike(value: string | null | undefined): boolean {
-   const v = String(value || '').trim();
-   if (!v) return false;
-   const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
-   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
- }
+function isUuidLike(value: string | null | undefined): boolean {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
+}
 
 async function requireSuperAdminOrFail(): Promise<SuperAdminCheckResult> {
   const authCheck = await requireAuth();
-  if (!authCheck.success) {
-    return { success: false, error: authCheck.error, errors: authCheck.errors };
+  if (!authCheck.success || !authCheck.userId) {
+    return { success: false, error: authCheck.error || 'Unauthorized' };
   }
-  const u = await currentUser();
-  const isSuperAdmin = getBooleanProp(u?.publicMetadata, 'isSuperAdmin');
-  if (!isSuperAdmin) {
-    return { success: false, error: 'אין הרשאה' };
-  }
-  const userId = String(authCheck.userId ?? authCheck.data?.userId ?? '').trim();
-  if (!userId) return { success: false, error: 'נדרשת התחברות' };
-  return { success: true, userId };
+  return { success: true, userId: authCheck.userId };
 }
 
 async function resolveOrganizationIdFromTenantKey(tenantKey: string): Promise<string | null> {
@@ -374,8 +364,6 @@ export async function updateSocialAutomation(
       }
     );
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשמירת אוטומציות');
@@ -423,8 +411,6 @@ export async function updateUserRole(
       where: { id: resolvedUserId, organization_id: organizationId },
       data: { role: resolvedRole },
     });
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -504,8 +490,6 @@ export async function removeUserFromTeam(
     if (deleteUserRow.error) {
       return createErrorResponse(deleteUserRow.error, 'שגיאה בהסרת משתמש');
     }
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -623,8 +607,6 @@ export async function updateSocialQuotas(
       }
     );
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בשמירת מכסות');
@@ -739,8 +721,6 @@ export async function disconnectSocialIntegration(
         integration_name: { contains: providerLike, mode: 'insensitive' },
       },
     });
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ deleted: Number(deleted.count || 0) });
   } catch (error) {

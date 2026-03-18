@@ -1,0 +1,16 @@
+app/actions/admin-maintenance.ts(29,11): error TS2304: Cannot find name 'requireSuperAdmin'.
+app/actions/admin-maintenance.ts(81,11): error TS2304: Cannot find name 'requireSuperAdmin'.
+app/actions/admin-maintenance.ts(150,11): error TS2304: Cannot find name 'requireSuperAdmin'.
+app/actions/admin-maintenance.ts(209,11): error TS2304: Cannot find name 'requireSuperAdmin'.
+app/actions/admin-maintenance.ts(264,11): error TS2304: Cannot find name 'requireSuperAdmin'.
+app/actions/admin-organizations.ts(74,19): error TS2304: Cannot find name 'randomBytes'.
+app/actions/admin-organizations.ts(531,25): error TS2552: Cannot find name 'getBaseUrl'. Did you mean 'baseUrl'?
+app/actions/admin-organizations.ts(671,25): error TS2552: Cannot find name 'getBaseUrl'. Did you mean 'baseUrl'?
+app/actions/admin-organizations.ts(718,21): error TS2552: Cannot find name 'getBaseUrl'. Did you mean 'baseUrl'?
+app/actions/admin-social.ts(55,27): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+app/actions/client-portal-clinic.ts(230,5): error TS2353: Object literal may only specify known properties, and 'organizationId' does not exist in type 'Client'.
+app/actions/global-promotion.ts(227,5): error TS2304: Cannot find name 'revalidatePath'.
+app/actions/global-promotion.ts(275,5): error TS2304: Cannot find name 'revalidatePath'.
+app/actions/manage-organization.ts(5,10): error TS2300: Duplicate identifier 'logger'.
+app/actions/manage-organization.ts(9,10): error TS2300: Duplicate identifier 'logger'.

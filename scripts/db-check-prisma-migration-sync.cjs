@@ -51,6 +51,12 @@ function printDbTargetToStderr() {
     console.error('[db-check-prisma-migration-sync] DATABASE_URL -> (missing/invalid)');
     return;
   }
+  try {
+    const u = new URL(process.env.DATABASE_URL);
+    console.error(`[db-check-prisma-migration-sync] Protocol: '${u.protocol}'`);
+  } catch (e) {
+    console.error('[db-check-prisma-migration-sync] Failed to parse URL for protocol logging');
+  }
   console.error(
     `[db-check-prisma-migration-sync] DATABASE_URL -> host=${id.host} port=${id.port} db=${id.database ?? 'unknown'} user=${id.user ?? 'unknown'}`
   );
@@ -302,10 +308,24 @@ async function main() {
   }
 
   const originalDatabaseUrl = process.env.DATABASE_URL;
-  const directUrl = process.env.DIRECT_URL;
+  let directUrl = process.env.DIRECT_URL;
+
+  // Fix: Handle cases where DIRECT_URL is set to a variable reference like "%DATABASE_URL%" or "$DATABASE_URL"
+  // This happens when dotenv doesn't expand variables or when using Windows-style env vars in .env files
+  if (directUrl) {
+    if (directUrl.startsWith('%') && directUrl.endsWith('%')) {
+        const varName = directUrl.slice(1, -1);
+        if (process.env[varName]) directUrl = process.env[varName];
+    } else if (directUrl.startsWith('$')) {
+        const varName = directUrl.slice(1);
+        if (process.env[varName]) directUrl = process.env[varName];
+    }
+  }
+
   const checkDirectUrl = envBool('PRISMA_MIGRATION_SYNC_CHECK_DIRECT_URL', envBool('CI', false));
 
   const shouldPreferDirect = Boolean(directUrl) && looksLikeSupabasePooler(originalDatabaseUrl);
+  
   if (shouldPreferDirect) {
     process.env.DATABASE_URL = directUrl;
     await runCheck('DIRECT_URL (preferred: pooler detected)');

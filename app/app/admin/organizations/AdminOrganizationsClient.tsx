@@ -343,18 +343,18 @@ export default function AdminOrganizationsClient(props: {
 
       {/* Search, Filter & Sort */}
       {!showRecycleBin && (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-5">
+        <div className="admin-pro-card p-4">
           <div className="flex flex-col gap-4">
             {/* Search & Filter Row */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="חיפוש לפי שם, כתובת, מייל..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 h-11 text-right"
+                  className="pr-9 h-10 text-right bg-slate-50 border-slate-200 focus:bg-white"
                   dir="rtl"
                 />
               </div>
@@ -373,7 +373,7 @@ export default function AdminOrganizationsClient(props: {
                     ]}
                   />
                   {statusFilter !== 'all' && (
-                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                    <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
                       1
                     </span>
                   )}
@@ -389,13 +389,13 @@ export default function AdminOrganizationsClient(props: {
                     ]}
                   />
                   {packageFilter !== 'all' && (
-                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                    <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
                       1
                     </span>
                   )}
                 </div>
                 {activeFiltersCount > 0 && (
-                  <Button onClick={clearFilters} variant="ghost" className="h-11 text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <Button onClick={clearFilters} variant="ghost" className="h-10 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
                     <span className="text-sm">נקה</span>
                   </Button>
                 )}
@@ -405,31 +405,31 @@ export default function AdminOrganizationsClient(props: {
             {/* Active Filters Display */}
             {activeFiltersCount > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-slate-600">סינונים פעילים:</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">מסננים:</span>
                 {searchQuery && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold border border-indigo-100">
                     <Search className="w-3 h-3" />
                     {searchQuery}
-                    <button onClick={() => setSearchQuery('')} className="hover:bg-blue-100 rounded p-0.5">
-                      <span className="text-blue-600">✕</span>
+                    <button onClick={() => setSearchQuery('')} className="hover:bg-indigo-100 rounded p-0.5 ml-1">
+                      <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {statusFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold border border-indigo-100">
                     <Filter className="w-3 h-3" />
                     {getStatusLabel(statusFilter)}
-                    <button onClick={() => setStatusFilter('all')} className="hover:bg-blue-100 rounded p-0.5">
-                      <span className="text-blue-600">✕</span>
+                    <button onClick={() => setStatusFilter('all')} className="hover:bg-indigo-100 rounded p-0.5 ml-1">
+                      <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
                 {packageFilter !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold border border-indigo-100">
                     <Filter className="w-3 h-3" />
                     {getPackageLabel(packageFilter)}
-                    <button onClick={() => setPackageFilter('all')} className="hover:bg-blue-100 rounded p-0.5">
-                      <span className="text-blue-600">✕</span>
+                    <button onClick={() => setPackageFilter('all')} className="hover:bg-indigo-100 rounded p-0.5 ml-1">
+                      <X className="w-3 h-3" />
                     </button>
                   </span>
                 )}
@@ -438,50 +438,50 @@ export default function AdminOrganizationsClient(props: {
 
             {/* Sort Options */}
             <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-              <span className="text-xs font-bold text-slate-600">מיון לפי:</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">מיון:</span>
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setSortBy('created')}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
                     sortBy === 'created'
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   תאריך יצירה
                 </button>
                 <button
                   onClick={() => setSortBy('name')}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
                     sortBy === 'name'
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   שם
                 </button>
                 <button
                   onClick={() => setSortBy('members')}
-                  className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                  className={`text-xs px-2.5 py-1 rounded-md font-medium transition-all ${
                     sortBy === 'members'
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      ? 'bg-slate-800 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   מספר משתמשים
                 </button>
                 <button
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="text-xs px-3 py-1.5 rounded-lg border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition-all"
+                  className="text-xs px-2.5 py-1 rounded-md font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
                   title={sortOrder === 'asc' ? 'סדר עולה' : 'סדר יורד'}
                 >
-                  {sortOrder === 'asc' ? '↑ עולה' : '↓ יורד'}
+                  {sortOrder === 'asc' ? '↑' : '↓'}
                 </button>
               </div>
             </div>
 
             {/* Results Count */}
-            <div className="text-xs text-slate-600">
+            <div className="text-xs text-slate-500 font-medium">
               מציג <span className="font-bold text-slate-900">{filteredAndSortedOrgs.length}</span> מתוך <span className="font-bold text-slate-900">{orgs.length}</span> ארגונים
             </div>
           </div>
@@ -510,47 +510,49 @@ export default function AdminOrganizationsClient(props: {
               ].filter((x): x is string => Boolean(x));
               const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
               return (
-                <div key={String(o.id)} className="bg-white border border-slate-200 rounded-2xl p-4">
+                <div key={String(o.id)} className="admin-pro-card p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Link
                         href={`/app/admin/organizations/${o.id}`}
-                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                        className="p-1.5 rounded-md hover:bg-slate-100 transition-colors"
                       >
-                        <Settings className="w-4 h-4 text-slate-600" />
+                        <Settings className="w-4 h-4 text-slate-500" />
                       </Link>
                       <button
                         type="button"
                         onClick={() => { setConfirmDeleteId(o.id); setConfirmDeleteName(o.name); }}
-                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-md hover:bg-rose-50 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4 text-red-400" />
+                        <Trash2 className="w-4 h-4 text-rose-400" />
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                      o.subscription_status === 'active' ? 'bg-green-100 text-green-800'
-                      : o.subscription_status === 'trial' ? 'bg-blue-100 text-blue-800'
-                      : 'bg-slate-100 text-slate-600'
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`badge-pro ${
+                      o.subscription_status === 'active' ? 'badge-pro-success' : 
+                      o.subscription_status === 'trial' ? 'badge-pro-warning' : 
+                      'badge-pro-neutral'
                     }`}>
                       {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
                     </span>
                     {o.subscription_plan && (
-                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-700">
+                      <span className="badge-pro badge-pro-neutral">
                         {String(o.subscription_plan).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs font-bold text-slate-600 truncate mt-1">כתובת: {o.slug || '-'}</div>
-                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
-                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
-                  {o.businessClientName ? (
-                    <div className="mt-1 text-xs font-bold text-slate-700 truncate">לקוח עסקי: {o.businessClientName}</div>
-                  ) : null}
-                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">
-                    מודולים: {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                    <div>
+                      <span className="font-bold text-slate-700">כתובת:</span> {o.slug || '-'}
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-700">חברים:</span> {Number(o.membersCount ?? 0)}
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-bold text-slate-700">בעלים:</span> {ownerName || '-'}
+                    </div>
                   </div>
                 </div>
               );
@@ -559,33 +561,22 @@ export default function AdminOrganizationsClient(props: {
         )}
       </div>
 
-      <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden">
+      <div className="hidden md:block admin-pro-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-right">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">סטטוס</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">מידע ניסיון</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">חבילה</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">לקוח עסקי</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">מודולים</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600 text-center">פעולות</th>
+                <th className="admin-table-header">שם הארגון</th>
+                <th className="admin-table-header">סטטוס</th>
+                <th className="admin-table-header">מידע ניסיון</th>
+                <th className="admin-table-header">חבילה</th>
+                <th className="admin-table-header">בעלים</th>
+                <th className="admin-table-header">חברים</th>
+                <th className="admin-table-header text-center">פעולות</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {orgs.map((o) => {
-                const mods = [
-                  o?.has_nexus ? 'nexus' : null,
-                  o?.has_system ? 'system' : null,
-                  o?.has_social ? 'social' : null,
-                  o?.has_finance ? 'finance' : null,
-                  o?.has_client ? 'client' : null,
-                  o?.has_operations ? 'operations' : null,
-                ].filter((x): x is string => Boolean(x));
-
+            <tbody className="divide-y divide-slate-50">
+              {filteredAndSortedOrgs.map((o) => {
                 const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
 
                 // Calculate trial days remaining
@@ -602,55 +593,61 @@ export default function AdminOrganizationsClient(props: {
                 const trialInfo = getTrialInfo();
 
                 return (
-                  <tr key={String(o.id)} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{o.name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                        o.subscription_status === 'active' ? 'bg-green-100 text-green-800'
-                        : o.subscription_status === 'trial' ? 'bg-blue-100 text-blue-800'
-                        : 'bg-slate-100 text-slate-600'
+                  <tr key={String(o.id)} className="admin-table-row group">
+                    <td className="admin-table-cell">
+                      <div className="font-bold text-slate-900">{o.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">{o.slug}</div>
+                    </td>
+                    <td className="admin-table-cell">
+                      <span className={`badge-pro ${
+                        o.subscription_status === 'active' ? 'badge-pro-success' : 
+                        o.subscription_status === 'trial' ? 'badge-pro-warning' : 
+                        'badge-pro-neutral'
                       }`}>
                         {o.subscription_status === 'active' ? 'פעיל' : o.subscription_status === 'trial' ? 'ניסיון' : 'מבוטל'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="admin-table-cell text-xs">
                       {trialInfo ? (
                         <div className="flex flex-col gap-0.5">
-                          <span className={trialInfo.remaining <= 3 ? 'text-red-600 font-bold' : 'text-slate-700'}>
-                            {trialInfo.remaining > 0 ? `נשארו ${trialInfo.remaining} ימים` : 'פג תוקף'}
+                          <span className={trialInfo.remaining <= 3 ? 'text-rose-600 font-bold' : 'text-slate-700'}>
+                            {trialInfo.remaining > 0 ? `נותרו ${trialInfo.remaining} ימים` : 'פג תוקף'}
                           </span>
-                          <span className="text-[10px] text-slate-500">
+                          <span className="text-[10px] text-slate-400">
                             {trialInfo.resetCount > 0 && `איפוס ${trialInfo.resetCount}/2`}
                           </span>
                         </div>
                       ) : o.subscription_status === 'expired' ? (
-                        <span className="text-red-500">פג תוקף</span>
+                        <span className="text-rose-500 font-medium">פג תוקף</span>
                       ) : (
-                        <span className="text-slate-400">-</span>
+                        <span className="text-slate-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{o.subscription_plan ? String(o.subscription_plan).toUpperCase() : '-'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700 font-bold">{o.businessClientName || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">
-                      {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
+                    <td className="admin-table-cell text-xs font-medium text-slate-600">
+                      {o.subscription_plan ? String(o.subscription_plan).toUpperCase() : '—'}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="admin-table-cell text-xs text-slate-600 max-w-[150px] truncate" title={ownerName}>
+                      {ownerName}
+                    </td>
+                    <td className="admin-table-cell text-xs text-slate-600">
+                      {Number(o.membersCount ?? 0)}
+                    </td>
+                    <td className="admin-table-cell text-center">
+                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link
                           href={`/app/admin/organizations/${o.id}`}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="הגדרות"
                         >
-                          <Settings className="w-3.5 h-3.5" />
-                          נהל
+                          <Settings className="w-4 h-4" />
                         </Link>
                         <button
                           type="button"
                           onClick={() => { setConfirmDeleteId(o.id); setConfirmDeleteName(o.name); }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 text-xs font-bold transition-colors"
+                          className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="מחיקה"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

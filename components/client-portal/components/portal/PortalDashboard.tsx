@@ -72,9 +72,9 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
         <div>
           <div className="flex items-center gap-2 text-nexus-accent mb-2">
             <Sparkles size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Portal Access Active</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Portal Access Active</span>
           </div>
-          <h2 className="text-4xl font-display font-bold text-slate-900 tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-slate-900 tracking-tight">
             היי {client.mainContact.split(' ')[0]}, מה קורה?
           </h2>
           <p className="text-slate-500 text-lg mt-2 font-medium">יש לנו {pendingTasks.length} משימות שמחכות לך.</p>
@@ -82,9 +82,9 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
       </header>
 
       {nextActionCard ? (
-        <div className="bg-white border border-slate-200 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="min-w-0">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">הצעד הבא</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">הצעד הבא</div>
             <div className="text-xl font-bold text-slate-900 mt-1">{nextActionCard.title}</div>
             <div className="text-sm text-slate-500 mt-1">{nextActionCard.description}</div>
           </div>
@@ -115,7 +115,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
         {northStarGoal && (
           <div
             onClick={() => onNavigate('metrics')}
-            className="md:col-span-2 bg-white rounded-[40px] p-8 border border-slate-200 shadow-xl relative overflow-hidden group cursor-pointer hover:border-nexus-accent/50 transition-all"
+            className="md:col-span-2 bg-white rounded-3xl p-8 border border-slate-200 shadow-lg relative overflow-hidden group cursor-pointer hover:border-nexus-accent/50 transition-all"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-nexus-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
@@ -143,7 +143,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-black text-slate-900">
+                  <span className="text-3xl font-bold text-slate-900">
                     {Math.round((northStarGoal.metricCurrent / northStarGoal.metricTarget) * 100)}%
                   </span>
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">התקדמות</span>
@@ -153,11 +153,11 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
               <div className="flex-1 space-y-3">
                 <div className="flex items-center gap-2 text-nexus-accent">
                   <Target size={18} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">היעד המרכזי שלכם (North Star)</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">היעד המרכזי שלכם (North Star)</span>
                 </div>
                 <h3 className="text-3xl font-bold text-slate-900 leading-tight">"{northStarGoal.title}"</h3>
                 <div className="flex items-center gap-4">
-                  <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                  <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
                     <span className="text-[10px] text-slate-400 font-bold uppercase block">נוכחי</span>
                     <span className="text-xl font-bold text-slate-900">
                       {northStarGoal.metricCurrent}
@@ -165,7 +165,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                     </span>
                   </div>
                   <ArrowLeft className="text-slate-300" />
-                  <div className="bg-nexus-accent/10 px-4 py-2 rounded-2xl border border-nexus-accent/20">
+                  <div className="bg-nexus-accent/10 px-4 py-2 rounded-xl border border-nexus-accent/20">
                     <span className="text-[10px] text-nexus-accent font-bold uppercase block">יעד</span>
                     <span className="text-xl font-bold text-nexus-primary">
                       {northStarGoal.metricTarget}
@@ -184,7 +184,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
           </div>
         )}
 
-        <div className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
           <h3 className="font-bold text-xl text-slate-900 mb-6 flex items-center gap-2">
             <PenTool size={22} className="text-nexus-accent" /> אישורים וחתימות
           </h3>
@@ -220,7 +220,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm flex flex-col transition-all duration-500">
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm flex flex-col transition-all duration-500">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-xl text-slate-900">איך המרגש השבוע?</h3>
             {selectedMood && !moodSubmitted && (
@@ -248,7 +248,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                     <button
                       key={opt.label}
                       onClick={() => setSelectedMood(opt)}
-                      className={`flex flex-col items-center gap-3 p-6 rounded-3xl border-2 border-transparent transition-all active:scale-95 ${opt.color} ${opt.hover}`}
+                      className={`flex flex-col items-center gap-3 p-6 rounded-2xl border-2 border-transparent transition-all active:scale-95 ${opt.color} ${opt.hover}`}
                     >
                       <opt.icon size={24} />
                       <span className="text-[10px] font-bold uppercase">{opt.label}</span>

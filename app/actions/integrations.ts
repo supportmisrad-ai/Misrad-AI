@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { getOrCreateOrganizationUserAction } from '@/app/actions/social-users';
 import prisma from '@/lib/prisma';
@@ -95,7 +94,6 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
       });
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -119,7 +117,6 @@ export async function hasMorningCredentialsForWorkspace(
     try {
       organizationId = requireOrganizationId('hasMorningCredentialsForWorkspace', workspace.id);
     } catch {
-      revalidatePath('/', 'layout');
       return { success: true, connected: false };
     }
 
@@ -127,8 +124,6 @@ export async function hasMorningCredentialsForWorkspace(
       where: { user_id: organizationId, integration_name: 'morning' },
       select: { id: true },
     });
-
-    revalidatePath('/', 'layout');
 
     return { success: true, connected: Boolean(row?.id) };
   } catch (e: unknown) {
@@ -144,7 +139,6 @@ export async function hasMorningCredentialsForWorkspace(
         extras: { orgSlug: String(orgSlug || '') },
       });
     }
-    revalidatePath('/', 'layout');
     return { success: true, connected: false };
   }
 }
@@ -171,7 +165,6 @@ export async function getMorningApiKeyForWorkspace(
     });
 
     if (!data?.encrypted_data) {
-      revalidatePath('/', 'layout');
       return { success: true, apiKey: null };
     }
 
@@ -179,7 +172,6 @@ export async function getMorningApiKeyForWorkspace(
     const encryptedValue = encryptedData?.encrypted;
     const encryptedValueStr = typeof encryptedValue === 'string' ? encryptedValue : '';
     if (!encryptedValueStr) {
-      revalidatePath('/', 'layout');
       return { success: true, apiKey: null };
     }
 
@@ -187,7 +179,6 @@ export async function getMorningApiKeyForWorkspace(
     const apiKey = typeof decrypted === 'object' && decrypted !== null && 'api_key' in decrypted
       ? String(decrypted.api_key || '')
       : '';
-    revalidatePath('/', 'layout');
     return { success: true, apiKey: apiKey || null };
   } catch (error: unknown) {
     logger.error('integrations', 'Error getting Morning API key for workspace:', error);
@@ -217,8 +208,6 @@ export async function getAllIntegrationsStatusForWorkspace(orgSlug: string) {
       }
     }
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: list };
   } catch (error: unknown) {
     logger.error('integrations', 'Error getting integrations status for workspace:', error);
@@ -245,8 +234,6 @@ export async function getIntegrationStatus(integrationName: string) {
       where: { name: integrationName },
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: data || null };
   } catch (error: unknown) {
     logger.error('integrations', 'Error getting integration status:', error);
@@ -260,7 +247,6 @@ export async function getIntegrationStatus(integrationName: string) {
 export async function getGoogleCalendarAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.calendar);
-    revalidatePath('/', 'layout');
     return { success: true, authUrl };
   } catch (error: unknown) {
     logger.error('integrations', 'Error generating Google Calendar auth URL:', error);
@@ -274,7 +260,6 @@ export async function getGoogleCalendarAuthUrl() {
 export async function getGoogleDriveAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.drive);
-    revalidatePath('/', 'layout');
     return { success: true, authUrl };
   } catch (error: unknown) {
     logger.error('integrations', 'Error generating Google Drive auth URL:', error);
@@ -288,7 +273,6 @@ export async function getGoogleDriveAuthUrl() {
 export async function getGoogleSheetsAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.sheets);
-    revalidatePath('/', 'layout');
     return { success: true, authUrl };
   } catch (error: unknown) {
     logger.error('integrations', 'Error generating Google Sheets auth URL:', error);
@@ -327,7 +311,6 @@ export async function saveGoogleTokens(
       scope,
     });
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -402,8 +385,6 @@ export async function syncGoogleCalendar() {
       },
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, events: events.items || [] };
   } catch (error: unknown) {
     logger.error('integrations', 'Error syncing Google Calendar:', error);
@@ -470,8 +451,6 @@ export async function syncGoogleDrive(clientId?: string) {
       },
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, files: files.files || [] };
   } catch (error: unknown) {
     logger.error('integrations', 'Error syncing Google Drive:', error);
@@ -511,8 +490,6 @@ export async function disconnectIntegration(integrationName: string, orgSlug?: s
         where: { user_id: organizationId, integration_name: 'morning' },
       });
 
-      revalidatePath('/', 'layout');
-
       return { success: true };
     }
 
@@ -528,7 +505,6 @@ export async function disconnectIntegration(integrationName: string, orgSlug?: s
       where: { user_id: supabaseUserId, integration_name: resolvedIntegrationName },
     });
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -613,8 +589,6 @@ export async function triggerWebhookEvent(params: {
       });
     }
 
-    revalidatePath('/', 'layout');
-
     return { success: true, delivered };
   } catch (error: unknown) {
     logger.error('integrations', 'Error triggering webhook event:', error);
@@ -676,8 +650,6 @@ export async function saveWebhookConfig(
       });
     }
 
-    revalidatePath('/', 'layout');
-
     return { success: true, secretKey };
   } catch (error: unknown) {
     logger.error('integrations', 'Error saving webhook config:', error);
@@ -734,7 +706,6 @@ export async function saveMorningCredentials(apiKey: string) {
       });
     }
 
-    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: unknown) {
@@ -800,8 +771,6 @@ export async function getAllIntegrationsStatus() {
     const data = await prisma.integrationStatus.findMany({
       orderBy: { name: 'asc' },
     });
-
-    revalidatePath('/', 'layout');
 
     return { success: true, data: data || [] };
   } catch (error: unknown) {

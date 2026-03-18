@@ -17,22 +17,22 @@ function generateContactFormReceivedEmailHTML(params: {
     const greeting = params.name ? `${params.name},` : 'היי,';
 
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:8px;">
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:8px;">
             קיבלנו את הפנייה שלך ונחזור אליך בהקדם.
         </div>
         
-        <div style="margin:24px 0;padding:20px 24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
-            <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ההודעה שלך</div>
-            <div style="font-size:14px;color:#334155;line-height:1.7;margin-top:8px;white-space:pre-line;">${params.message}</div>
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+            <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ההודעה שלך</div>
+            <div style="font-size:14px;color:#334155;line-height:1.6;margin-top:8px;white-space:pre-line;">${params.message}</div>
         </div>
         
         ${EmailTemplateComponents.generateCallout({
             emoji: '⏱️',
             title: 'זמן מענה משוער: עד 24 שעות',
             text: 'נחזור אליך בהקדם האפשרי. אם יש עניין דחוף — אפשר להשיב ישירות למייל הזה.',
-            bgColor: '#eff6ff',
+            bgColor: '#f0f9ff',
             borderColor: '#bfdbfe',
             titleColor: '#1e40af',
             textColor: '#1e3a5f',
@@ -42,7 +42,6 @@ function generateContactFormReceivedEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'פנייתך התקבלה',
-        headerGradient: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -54,28 +53,28 @@ function generateContactFormAdminNotificationHTML(params: {
     message: string;
 }): string {
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">פנייה חדשה מטופס צור קשר</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">פנייה חדשה מטופס צור קשר</div>
         
-        <div style="margin:24px 0;padding:20px 24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 12px;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">שם</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.name}</div>
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">שם</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${params.name}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">אימייל</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">
-                            <a href="mailto:${params.email}" style="color:#0f172a;text-decoration:underline;">${params.email}</a>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">אימייל</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">
+                            <a href="mailto:${params.email}" style="color:#0f172a;text-decoration:none;">${params.email}</a>
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">הודעה</div>
-                        <div style="font-size:14px;color:#334155;line-height:1.7;margin-top:4px;white-space:pre-line;">${params.message}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">הודעה</div>
+                        <div style="font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${params.message}</div>
                     </td>
                 </tr>
             </table>
@@ -85,7 +84,6 @@ function generateContactFormAdminNotificationHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'פנייה חדשה',
-        headerGradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
         bodyContent,
         showSocialLinks: false,
     });

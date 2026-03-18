@@ -298,6 +298,9 @@ export interface Client {
   id: string;
   name: string;
   industry: string;
+  phone?: string;
+  email?: string;
+  internalNotes?: string;
   employeeCount: number;
   logoInitials: string;
   healthScore: number;

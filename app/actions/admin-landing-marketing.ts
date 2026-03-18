@@ -4,7 +4,6 @@ import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
 import { asObjectLoose as asObject } from '@/lib/shared/unknown';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -132,8 +131,6 @@ export async function savePromotions(promotions: Promotion[]) {
       })
     );
 
-    revalidatePath('/pricing');
-    revalidatePath('/');
     return createSuccessResponse({ ok: true });
   } catch (error: unknown) {
     return createErrorResponse(error instanceof Error ? error.message : 'Failed to save promotions');
@@ -174,8 +171,6 @@ export async function saveContextualBanners(banners: ContextualBanner[]) {
       })
     );
 
-    revalidatePath('/pricing');
-    revalidatePath('/');
     return createSuccessResponse({ ok: true });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to save banners';

@@ -1,6 +1,6 @@
 /**
- * MISRAD AI — Premium Email Template System
- * RTL Hebrew · Brand Colors · Modern Design
+ * MISRAD AI — Pro Minimalist Email System
+ * RTL Hebrew · Clean · Direct · Intelligent
  */
 
 import { getBaseUrl } from '@/lib/utils';
@@ -13,10 +13,10 @@ export interface EmailTemplateParams {
 }
 
 const BRAND_COLORS = {
-  primary: '#6366f1',
-  primaryDark: '#4f46e5',
-  secondary: '#8b5cf6',
-  accent: '#ec4899',
+  primary: '#0f172a', // Darker, more professional (Slate 900)
+  primaryHover: '#1e293b',
+  secondary: '#334155',
+  accent: '#6366f1', // Indigo 500 for small highlights
   dark: '#0f172a',
   darkLight: '#1e293b',
   slate: '#334155',
@@ -25,22 +25,20 @@ const BRAND_COLORS = {
   muted: '#cbd5e1',
   border: '#e2e8f0',
   borderLight: '#f1f5f9',
-  background: '#f8fafc',
+  background: '#ffffff', // Clean white background
+  pageBackground: '#f8fafc', // Light slate for page
   white: '#ffffff',
-  success: '#10b981',
-  successDark: '#059669',
+  success: '#059669', // Emerald 600
   successBg: '#ecfdf5',
   successBorder: '#a7f3d0',
-  warning: '#f59e0b',
-  warningDark: '#d97706',
-  warningBg: '#fff7ed',
-  warningBorder: '#fed7aa',
-  danger: '#ef4444',
-  dangerDark: '#dc2626',
+  warning: '#d97706', // Amber 600
+  warningBg: '#fffbeb',
+  warningBorder: '#fde68a',
+  danger: '#dc2626', // Red 600
   dangerBg: '#fef2f2',
   dangerBorder: '#fecaca',
-  infoBg: '#eff6ff',
-  infoBorder: '#bfdbfe',
+  infoBg: '#f8fafc',
+  infoBorder: '#e2e8f0',
 };
 
 const BRAND_LINKS = {
@@ -57,51 +55,51 @@ const BRAND_LINKS = {
 
 function getLogoUrl(): string {
   try {
-    return `${getBaseUrl()}/icons/misrad-icon-192.png`;
+    // Using the admin icon which is usually cleaner/darker or the main icon
+    return `${getBaseUrl()}/icons/icon-128.png`;
   } catch {
-    return 'https://misrad-ai.com/icons/misrad-icon-192.png';
+    return 'https://misrad-ai.com/icons/icon-128.png';
   }
 }
 
 /**
- * Emoji-based decorative icons (universally supported in all email clients)
+ * Minimalist Icons (No shadows, clean colors)
  */
 const EmailIcons = {
-  CircleCheck: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.success},${BRAND_COLORS.successDark});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(16,185,129,0.3);">✓</div>`,
-  mailOpen: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.primary},${BRAND_COLORS.secondary});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(99,102,241,0.3);">📩</div>`,
-  userPlus: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.secondary},${BRAND_COLORS.primary});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(139,92,246,0.3);">👋</div>`,
-  support: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.dark},${BRAND_COLORS.darkLight});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(15,23,42,0.3);">🛟</div>`,
-  rocket: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.primary},${BRAND_COLORS.secondary});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(99,102,241,0.3);">🚀</div>`,
-  celebration: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.warning},${BRAND_COLORS.warningDark});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(245,158,11,0.3);">🎉</div>`,
-  clock: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.danger},${BRAND_COLORS.dangerDark});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(239,68,68,0.3);">⏰</div>`,
-  heart: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.accent},#db2777);margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(236,72,153,0.3);">💜</div>`,
-  key: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.warning},${BRAND_COLORS.warningDark});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(245,158,11,0.3);">🔑</div>`,
-  shield: `<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.success},${BRAND_COLORS.successDark});margin:0 auto;line-height:56px;text-align:center;font-size:28px;box-shadow:0 8px 20px rgba(16,185,129,0.3);">🛡️</div>`,
+  CircleCheck: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.successBg};color:${BRAND_COLORS.success};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.successBorder};">✓</div>`,
+  mailOpen: `<div style="width:48px;height:48px;border-radius:12px;background:#e0e7ff;color:${BRAND_COLORS.accent};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid #c7d2fe;">📩</div>`,
+  userPlus: `<div style="width:48px;height:48px;border-radius:12px;background:#f3e8ff;color:#7e22ce;margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid #d8b4fe;">👋</div>`,
+  support: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.infoBg};color:${BRAND_COLORS.dark};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.border};">🛟</div>`,
+  rocket: `<div style="width:48px;height:48px;border-radius:12px;background:#e0e7ff;color:${BRAND_COLORS.accent};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid #c7d2fe;">🚀</div>`,
+  celebration: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.warningBg};color:${BRAND_COLORS.warning};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.warningBorder};">🎉</div>`,
+  clock: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.dangerBg};color:${BRAND_COLORS.danger};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.dangerBorder};">⏰</div>`,
+  heart: `<div style="width:48px;height:48px;border-radius:12px;background:#fce7f3;color:#db2777;margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid #fbcfe8;">💜</div>`,
+  key: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.warningBg};color:${BRAND_COLORS.warning};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.warningBorder};">🔑</div>`,
+  shield: `<div style="width:48px;height:48px;border-radius:12px;background:${BRAND_COLORS.successBg};color:${BRAND_COLORS.success};margin:0 auto;line-height:48px;text-align:center;font-size:24px;border:1px solid ${BRAND_COLORS.successBorder};">🛡️</div>`,
 };
 
 /**
- * Email Header — logo + title + subtitle on gradient background
+ * Email Header — Clean, Minimal, No Gradient
  */
 function generateEmailHeader(options: {
   title?: string;
   subtitle?: string;
-  gradient?: string;
+  gradient?: string; // Kept for type compatibility but ignored or used as accent
   icon?: string;
 }): string {
-  const gradient = options.gradient || `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%)`;
   const title = options.title || 'MISRAD AI';
-  const subtitle = options.subtitle || 'מערכת AI לניהול הארגון';
+  const subtitle = options.subtitle || 'מערכת ניהול חכמה';
   const logoUrl = getLogoUrl();
 
   return `
     <tr>
-      <td style="background: ${gradient}; padding: 40px 40px 36px; text-align: center;">
-        <img src="${logoUrl}" alt="MISRAD AI" width="52" height="52" style="display:block;margin:0 auto 16px;border-radius:14px;border:2px solid rgba(255,255,255,0.25);" />
-        ${options.icon ? `<div style="margin: 0 auto 16px; display: inline-block;">${options.icon}</div>` : ''}
-        <div style="color: #ffffff; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px;">
+      <td style="padding: 48px 40px 24px; text-align: center; border-bottom: 1px solid ${BRAND_COLORS.borderLight};">
+        <img src="${logoUrl}" alt="MISRAD AI" width="48" height="48" style="display:block;margin:0 auto 20px;border-radius:10px;" />
+        ${options.icon ? `<div style="margin: 0 auto 20px; display: inline-block;">${options.icon}</div>` : ''}
+        <div style="color: ${BRAND_COLORS.dark}; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px;">
           ${title}
         </div>
-        <div style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 600;">
+        <div style="color: ${BRAND_COLORS.gray}; font-size: 15px; font-weight: 500;">
           ${subtitle}
         </div>
       </td>
@@ -110,7 +108,7 @@ function generateEmailHeader(options: {
 }
 
 /**
- * Email Footer — minimal, clean, professional
+ * Email Footer — Minimal, Gray
  */
 function generateEmailFooter(options?: {
   showSocialLinks?: boolean;
@@ -118,49 +116,30 @@ function generateEmailFooter(options?: {
   unsubscribeUrl?: string;
 }): string {
   const currentYear = new Date().getFullYear();
-  const showSocial = options?.showSocialLinks === true;
   const unsubscribeLink = options?.unsubscribeUrl || `${getBaseUrl()}/api/email/unsubscribe`;
 
   return `
     <tr>
-      <td style="background: ${BRAND_COLORS.dark}; padding: 32px 40px; text-align: center;">
-        ${showSocial ? `
-          <table role="presentation" style="margin: 0 auto 20px;" cellpadding="0" cellspacing="0">
-            <tr>
-              <td style="padding: 0 6px;"><a href="${BRAND_LINKS.instagram}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;font-weight:600;">Instagram</a></td>
-              <td style="color:rgba(255,255,255,0.3);padding:0 4px;">·</td>
-              <td style="padding: 0 6px;"><a href="${BRAND_LINKS.tiktok}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;font-weight:600;">TikTok</a></td>
-              <td style="color:rgba(255,255,255,0.3);padding:0 4px;">·</td>
-              <td style="padding: 0 6px;"><a href="${BRAND_LINKS.linkedin}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;font-weight:600;">LinkedIn</a></td>
-              <td style="color:rgba(255,255,255,0.3);padding:0 4px;">·</td>
-              <td style="padding: 0 6px;"><a href="${BRAND_LINKS.youtube}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;font-weight:600;">YouTube</a></td>
-            </tr>
-          </table>
-        ` : ''}
-
+      <td style="background: ${BRAND_COLORS.pageBackground}; padding: 32px 40px; text-align: center; border-top: 1px solid ${BRAND_COLORS.border};">
+        
         ${options?.additionalInfo ? `
-          <div style="color:rgba(255,255,255,0.5);font-size:12px;line-height:1.6;margin-bottom:16px;">
+          <div style="color:${BRAND_COLORS.gray};font-size:13px;line-height:1.6;margin-bottom:20px;">
             ${options.additionalInfo}
           </div>
         ` : ''}
 
-        <div style="margin-bottom: 12px;">
-          <a href="${BRAND_LINKS.support}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:12px;font-weight:600;">support@misrad-ai.com</a>
-          <span style="color:rgba(255,255,255,0.25);margin:0 8px;">·</span>
-          <a href="${BRAND_LINKS.whatsapp}" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:12px;font-weight:600;">WhatsApp</a>
+        <div style="margin-bottom: 16px;">
+          <a href="${BRAND_LINKS.support}" style="color:${BRAND_COLORS.slate};text-decoration:none;font-size:13px;font-weight:600;">support@misrad-ai.com</a>
+          <span style="color:${BRAND_COLORS.muted};margin:0 8px;">·</span>
+          <a href="${BRAND_LINKS.whatsapp}" style="color:${BRAND_COLORS.slate};text-decoration:none;font-size:13px;font-weight:600;">WhatsApp</a>
         </div>
         
-        <!-- Unsubscribe / Preferences Link -->
-        <div style="margin-bottom: 12px;">
-          <a href="${unsubscribeLink}" style="color:rgba(255,255,255,0.5);text-decoration:underline;font-size:11px;font-weight:500;">הסרה מרשימת תפוצה / עדכון העדפות</a>
+        <div style="margin-bottom: 16px;">
+          <a href="${unsubscribeLink}" style="color:${BRAND_COLORS.lightGray};text-decoration:underline;font-size:12px;">הסרה / עדכון העדפות</a>
         </div>
         
-        <div style="color:rgba(255,255,255,0.35);font-size:11px;line-height:1.6;">
-          © ${currentYear} MISRAD AI · כל הזכויות שמורות
-          <br />
-          <a href="${BRAND_LINKS.privacy}" style="color:rgba(255,255,255,0.45);text-decoration:none;">פרטיות</a>
-          <span style="margin:0 4px;">·</span>
-          <a href="${BRAND_LINKS.terms}" style="color:rgba(255,255,255,0.45);text-decoration:none;">תנאים</a>
+        <div style="color:${BRAND_COLORS.lightGray};font-size:12px;">
+          © ${currentYear} MISRAD AI
         </div>
       </td>
     </tr>
@@ -168,27 +147,27 @@ function generateEmailFooter(options?: {
 }
 
 /**
- * CTA Button — prominent, with shadow
+ * CTA Button — Solid, No Shadow, Direct
  */
 function generateCTAButton(options: {
   text: string;
   url: string;
   color?: string;
-  gradient?: string;
+  gradient?: string; // Ignored for flat design
 }): string {
-  const gradient = options.gradient || `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%)`;
+  const bgColor = options.color || BRAND_COLORS.dark; // Default to dark slate for pro look
 
   return `
-    <table role="presentation" style="width:100%;margin:28px 0;" cellpadding="0" cellspacing="0">
+    <table role="presentation" style="width:100%;margin:32px 0;" cellpadding="0" cellspacing="0">
       <tr>
         <td align="center">
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${options.url}" style="height:54px;v-text-anchor:middle;width:280px;" arcsize="26%" fillcolor="${BRAND_COLORS.primary}" stroke="f">
-            <v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold;">${options.text}</center></v:textbox>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${options.url}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="10%" fillcolor="${bgColor}" stroke="f">
+            <v:textbox inset="0,0,0,0"><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">${options.text}</center></v:textbox>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-->
-          <a href="${options.url}" style="display:inline-block;background:${gradient};color:#ffffff;text-decoration:none;padding:16px 44px;border-radius:14px;font-weight:800;font-size:16px;box-shadow:0 8px 24px rgba(99,102,241,0.35);letter-spacing:0.3px;mso-hide:all;">
+          <a href="${options.url}" style="display:inline-block;background:${bgColor};color:#ffffff;text-decoration:none;padding:14px 48px;border-radius:8px;font-weight:600;font-size:16px;letter-spacing:0.2px;mso-hide:all;">
             ${options.text}
           </a>
           <!--<![endif]-->
@@ -199,7 +178,7 @@ function generateCTAButton(options: {
 }
 
 /**
- * Secondary CTA — lighter style
+ * Secondary CTA — Outline
  */
 function generateSecondaryCTA(options: {
   text: string;
@@ -209,7 +188,7 @@ function generateSecondaryCTA(options: {
     <table role="presentation" style="width:100%;margin:16px 0;" cellpadding="0" cellspacing="0">
       <tr>
         <td align="center">
-          <a href="${options.url}" style="display:inline-block;background:${BRAND_COLORS.white};color:${BRAND_COLORS.primary};text-decoration:none;padding:14px 36px;border-radius:12px;font-weight:700;font-size:15px;border:2px solid ${BRAND_COLORS.border};">
+          <a href="${options.url}" style="display:inline-block;background:transparent;color:${BRAND_COLORS.dark};text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:15px;border:1px solid ${BRAND_COLORS.border};">
             ${options.text}
           </a>
         </td>
@@ -219,7 +198,7 @@ function generateSecondaryCTA(options: {
 }
 
 /**
- * Info Box — for highlighted content blocks
+ * Info Box — Clean, bordered
  */
 function generateInfoBox(options: {
   title?: string;
@@ -228,18 +207,18 @@ function generateInfoBox(options: {
   borderColor?: string;
   icon?: string;
 }): string {
-  const bgColor = options.backgroundColor || BRAND_COLORS.background;
+  const bgColor = options.backgroundColor || BRAND_COLORS.infoBg;
   const borderColor = options.borderColor || BRAND_COLORS.border;
 
   return `
-    <div style="margin:24px 0;background:${bgColor};border:2px solid ${borderColor};border-radius:14px;padding:22px 24px;">
-      ${options.icon ? `<div style="margin-bottom:14px;text-align:center;">${options.icon}</div>` : ''}
+    <div style="margin:24px 0;background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:20px;">
+      ${options.icon ? `<div style="margin-bottom:12px;text-align:center;">${options.icon}</div>` : ''}
       ${options.title ? `
-        <div style="font-size:12px;font-weight:800;color:${BRAND_COLORS.gray};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:${BRAND_COLORS.gray};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
           ${options.title}
         </div>
       ` : ''}
-      <div style="font-size:15px;font-weight:500;color:${BRAND_COLORS.slate};line-height:1.7;white-space:pre-line;">
+      <div style="font-size:15px;font-weight:400;color:${BRAND_COLORS.slate};line-height:1.6;white-space:pre-line;">
         ${options.content}
       </div>
     </div>
@@ -247,34 +226,34 @@ function generateInfoBox(options: {
 }
 
 /**
- * Badge / Pill — for status indicators
+ * Badge / Pill — Subtle
  */
 function generateBadge(options: {
   text: string;
   color?: string;
   bgColor?: string;
 }): string {
-  const color = options.color || BRAND_COLORS.primary;
-  const bgColor = options.bgColor || BRAND_COLORS.infoBg;
-  return `<span style="display:inline-block;background:${bgColor};color:${color};padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;">${options.text}</span>`;
+  const color = options.color || BRAND_COLORS.dark;
+  const bgColor = options.bgColor || BRAND_COLORS.borderLight;
+  return `<span style="display:inline-block;background:${bgColor};color:${color};padding:4px 10px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid rgba(0,0,0,0.05);">${options.text}</span>`;
 }
 
 /**
- * Numbered Steps — for onboarding sequences
+ * Numbered Steps — Minimal
  */
 function generateSteps(steps: Array<{ title: string; desc?: string }>): string {
   return `
-    <table role="presentation" style="width:100%;margin:24px 0;border-collapse:collapse;" cellpadding="0" cellspacing="0">
+    <table role="presentation" style="width:100%;margin:28px 0;border-collapse:collapse;" cellpadding="0" cellspacing="0">
       ${steps.map((step, i) => `
         <tr>
-          <td style="width:36px;vertical-align:top;padding-bottom:${i < steps.length - 1 ? '16' : '0'}px;">
-            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${BRAND_COLORS.primary},${BRAND_COLORS.secondary});color:#fff;font-size:14px;font-weight:900;text-align:center;line-height:32px;">
+          <td style="width:32px;vertical-align:top;padding-bottom:${i < steps.length - 1 ? '20' : '0'}px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:${BRAND_COLORS.dark};color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:24px;">
               ${i + 1}
             </div>
           </td>
-          <td style="vertical-align:top;padding-bottom:${i < steps.length - 1 ? '16' : '0'}px;padding-right:14px;">
-            <div style="font-size:15px;font-weight:700;color:${BRAND_COLORS.dark};line-height:32px;">${step.title}</div>
-            ${step.desc ? `<div style="font-size:13px;color:${BRAND_COLORS.gray};line-height:1.5;margin-top:2px;">${step.desc}</div>` : ''}
+          <td style="vertical-align:top;padding-bottom:${i < steps.length - 1 ? '20' : '0'}px;padding-right:16px;">
+            <div style="font-size:15px;font-weight:700;color:${BRAND_COLORS.dark};line-height:24px;">${step.title}</div>
+            ${step.desc ? `<div style="font-size:14px;color:${BRAND_COLORS.gray};line-height:1.5;margin-top:4px;">${step.desc}</div>` : ''}
           </td>
         </tr>
       `).join('')}
@@ -283,7 +262,7 @@ function generateSteps(steps: Array<{ title: string; desc?: string }>): string {
 }
 
 /**
- * Stat Card — for numbers/metrics (single or multi-item)
+ * Stat Card — Minimal
  */
 function generateStatCard(options: {
   value?: string;
@@ -293,11 +272,11 @@ function generateStatCard(options: {
 }): string {
   if (options.items && options.items.length > 0) {
     const cells = options.items.map((item) => {
-      const c = item.color || BRAND_COLORS.primary;
+      const c = item.color || BRAND_COLORS.dark;
       return `
-        <td style="text-align:center;padding:16px 12px;background:${BRAND_COLORS.background};border-radius:12px;border:1px solid ${BRAND_COLORS.border};">
-          <div style="font-size:24px;font-weight:900;color:${c};letter-spacing:-1px;">${item.value}</div>
-          <div style="font-size:11px;font-weight:600;color:${BRAND_COLORS.gray};margin-top:4px;">${item.label}</div>
+        <td style="text-align:center;padding:16px 12px;background:${BRAND_COLORS.pageBackground};border-radius:8px;border:1px solid ${BRAND_COLORS.border};">
+          <div style="font-size:20px;font-weight:800;color:${c};">${item.value}</div>
+          <div style="font-size:12px;font-weight:500;color:${BRAND_COLORS.gray};margin-top:4px;">${item.label}</div>
         </td>
       `;
     }).join('<td style="width:8px;"></td>');
@@ -307,11 +286,11 @@ function generateStatCard(options: {
       </table>
     `;
   }
-  const color = options.color || BRAND_COLORS.primary;
+  const color = options.color || BRAND_COLORS.dark;
   return `
-    <div style="display:inline-block;text-align:center;padding:16px 24px;background:${BRAND_COLORS.background};border-radius:12px;border:1px solid ${BRAND_COLORS.border};margin:4px;">
-      <div style="font-size:28px;font-weight:900;color:${color};letter-spacing:-1px;">${options.value || ''}</div>
-      <div style="font-size:12px;font-weight:600;color:${BRAND_COLORS.gray};margin-top:4px;">${options.label || ''}</div>
+    <div style="display:inline-block;text-align:center;padding:16px 24px;background:${BRAND_COLORS.pageBackground};border-radius:8px;border:1px solid ${BRAND_COLORS.border};margin:4px;">
+      <div style="font-size:24px;font-weight:800;color:${color};">${options.value || ''}</div>
+      <div style="font-size:12px;font-weight:500;color:${BRAND_COLORS.gray};margin-top:4px;">${options.label || ''}</div>
     </div>
   `;
 }
@@ -320,11 +299,11 @@ function generateStatCard(options: {
  * Horizontal Divider
  */
 function generateDivider(): string {
-  return `<div style="height:1px;background:${BRAND_COLORS.border};margin:28px 0;"></div>`;
+  return `<div style="height:1px;background:${BRAND_COLORS.border};margin:32px 0;"></div>`;
 }
 
 /**
- * Callout Box — for warnings, tips, etc.
+ * Callout Box — Clean
  */
 function generateCallout(options: {
   emoji: string;
@@ -336,11 +315,11 @@ function generateCallout(options: {
   textColor?: string;
 }): string {
   return `
-    <div style="margin:24px 0;padding:20px 24px;background:${options.bgColor || BRAND_COLORS.warningBg};border-radius:14px;border:2px solid ${options.borderColor || BRAND_COLORS.warningBorder};">
-      <div style="font-size:15px;font-weight:800;color:${options.titleColor || '#78350f'};margin-bottom:6px;">
-        ${options.emoji} ${options.title}
+    <div style="margin:24px 0;padding:20px;background:${options.bgColor || BRAND_COLORS.warningBg};border-radius:8px;border:1px solid ${options.borderColor || BRAND_COLORS.warningBorder};">
+      <div style="font-size:14px;font-weight:700;color:${options.titleColor || '#92400e'};margin-bottom:6px;display:flex;align-items:center;">
+        <span style="margin-left:8px;">${options.emoji}</span> ${options.title}
       </div>
-      <div style="font-size:14px;color:${options.textColor || '#92400e'};line-height:1.7;">
+      <div style="font-size:14px;color:${options.textColor || '#92400e'};line-height:1.6;">
         ${options.text}
       </div>
     </div>
@@ -348,7 +327,7 @@ function generateCallout(options: {
 }
 
 /**
- * Base Email Template Wrapper
+ * Base Email Template Wrapper — Professional, No Shadow Container
  */
 export function generateBaseEmailTemplate(options: {
   headerTitle?: string;
@@ -373,11 +352,11 @@ export function generateBaseEmailTemplate(options: {
   </style>
   <![endif]-->
 </head>
-<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#eef2f7;direction:rtl;-webkit-font-smoothing:antialiased;">
-    <table role="presentation" style="width:100%;border-collapse:collapse;background-color:#eef2f7;" cellpadding="0" cellspacing="0">
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:${BRAND_COLORS.pageBackground};color:${BRAND_COLORS.dark};direction:rtl;-webkit-font-smoothing:antialiased;">
+    <table role="presentation" style="width:100%;border-collapse:collapse;background-color:${BRAND_COLORS.pageBackground};" cellpadding="0" cellspacing="0">
     <tr>
-      <td align="center" style="padding:20px 4px;">
-        <table role="presentation" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;box-shadow:0 4px 24px rgba(15,23,42,0.08);overflow:hidden;" cellpadding="0" cellspacing="0">
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid ${BRAND_COLORS.border};border-radius:12px;overflow:hidden;" cellpadding="0" cellspacing="0">
           ${generateEmailHeader({
             title: options.headerTitle,
             subtitle: options.headerSubtitle,
@@ -386,7 +365,7 @@ export function generateBaseEmailTemplate(options: {
           })}
 
           <tr>
-            <td style="padding:32px 24px;">
+            <td style="padding:40px 40px;">
               ${options.bodyContent}
             </td>
           </tr>
@@ -396,6 +375,12 @@ export function generateBaseEmailTemplate(options: {
             additionalInfo: options.footerAdditionalInfo,
           })}
         </table>
+        
+        <div style="max-width:600px;margin:24px auto 0;text-align:center;">
+           <div style="font-size:11px;color:${BRAND_COLORS.lightGray};">
+             MISRAD AI - מערכת ניהול חכמה
+           </div>
+        </div>
       </td>
     </tr>
   </table>
@@ -405,7 +390,7 @@ export function generateBaseEmailTemplate(options: {
 }
 
 /**
- * Hero Image — full-width visual at top of email body
+ * Hero Image — Clean border
  */
 function generateHeroImage(options: {
   src: string;
@@ -414,20 +399,20 @@ function generateHeroImage(options: {
   borderRadius?: string;
   caption?: string;
 }): string {
-  const radius = options.borderRadius || '14px';
-  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;max-width:540px;margin:0 auto;border-radius:${radius};border:2px solid ${BRAND_COLORS.border};" />`;
+  const radius = options.borderRadius || '8px';
+  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;max-width:520px;margin:0 auto;border-radius:${radius};border:1px solid ${BRAND_COLORS.border};" />`;
   const wrapped = options.href ? `<a href="${options.href}" style="text-decoration:none;">${img}</a>` : img;
 
   return `
-    <div style="margin:24px 0;text-align:center;">
+    <div style="margin:28px 0;text-align:center;">
       ${wrapped}
-      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.lightGray};margin-top:8px;">${options.caption}</div>` : ''}
+      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.gray};margin-top:12px;">${options.caption}</div>` : ''}
     </div>
   `;
 }
 
 /**
- * Screenshot Mockup — image inside a browser-like frame
+ * Screenshot Mockup
  */
 function generateScreenshot(options: {
   src: string;
@@ -435,16 +420,16 @@ function generateScreenshot(options: {
   title?: string;
   href?: string;
 }): string {
-  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;border-radius:0 0 10px 10px;" />`;
+  const img = `<img src="${options.src}" alt="${options.alt}" style="display:block;width:100%;border-radius:0 0 8px 8px;" />`;
   const wrapped = options.href ? `<a href="${options.href}" style="text-decoration:none;">${img}</a>` : img;
 
   return `
-    <div style="margin:24px 0;border-radius:12px;border:2px solid ${BRAND_COLORS.border};overflow:hidden;box-shadow:0 4px 16px rgba(15,23,42,0.08);">
-      <div style="background:${BRAND_COLORS.dark};padding:10px 16px;display:flex;align-items:center;gap:6px;">
-        <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
-        <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
-        <span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>
-        ${options.title ? `<span style="color:rgba(255,255,255,0.6);font-size:11px;margin-right:auto;font-weight:600;">${options.title}</span>` : ''}
+    <div style="margin:24px 0;border-radius:8px;border:1px solid ${BRAND_COLORS.border};overflow:hidden;background:${BRAND_COLORS.white};">
+      <div style="background:${BRAND_COLORS.pageBackground};padding:10px 16px;display:flex;align-items:center;gap:6px;border-bottom:1px solid ${BRAND_COLORS.border};">
+        <span style="width:10px;height:10px;border-radius:50%;background:#e2e8f0;display:inline-block;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#e2e8f0;display:inline-block;"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#e2e8f0;display:inline-block;"></span>
+        ${options.title ? `<span style="color:${BRAND_COLORS.gray};font-size:11px;margin-right:auto;font-weight:600;">${options.title}</span>` : ''}
       </div>
       ${wrapped}
     </div>
@@ -452,7 +437,7 @@ function generateScreenshot(options: {
 }
 
 /**
- * Video Thumbnail — clickable image with play button overlay
+ * Video Thumbnail
  */
 function generateVideoThumbnail(options: {
   thumbnailSrc: string;
@@ -461,20 +446,20 @@ function generateVideoThumbnail(options: {
   caption?: string;
 }): string {
   return `
-    <div style="margin:24px 0;text-align:center;">
+    <div style="margin:28px 0;text-align:center;">
       <a href="${options.videoUrl}" style="text-decoration:none;display:inline-block;position:relative;">
-        <img src="${options.thumbnailSrc}" alt="${options.alt || 'צפייה בסרטון'}" style="display:block;width:100%;max-width:540px;border-radius:14px;border:2px solid ${BRAND_COLORS.border};" />
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(99,102,241,0.9);box-shadow:0 8px 24px rgba(99,102,241,0.4);text-align:center;line-height:64px;">
-          <span style="display:inline-block;width:0;height:0;border-style:solid;border-width:12px 0 12px 22px;border-color:transparent transparent transparent #ffffff;margin-right:-4px;margin-top:2px;"></span>
+        <img src="${options.thumbnailSrc}" alt="${options.alt || 'צפייה בסרטון'}" style="display:block;width:100%;max-width:520px;border-radius:8px;border:1px solid ${BRAND_COLORS.border};" />
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:${BRAND_COLORS.dark};text-align:center;line-height:56px;">
+          <span style="display:inline-block;width:0;height:0;border-style:solid;border-width:10px 0 10px 18px;border-color:transparent transparent transparent #ffffff;margin-right:-2px;margin-top:2px;"></span>
         </div>
       </a>
-      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.lightGray};margin-top:8px;">${options.caption}</div>` : ''}
+      ${options.caption ? `<div style="font-size:12px;color:${BRAND_COLORS.gray};margin-top:12px;">${options.caption}</div>` : ''}
     </div>
   `;
 }
 
 /**
- * Founder Card — personal message with photo and signature (inspired by Mishloha)
+ * Founder Card — Personal, Clean
  */
 function generateFounderCard(options: {
   photoUrl: string;
@@ -484,24 +469,25 @@ function generateFounderCard(options: {
   signatureText?: string;
 }): string {
   return `
-    <div style="margin:28px 0;padding:28px;background:linear-gradient(135deg,#faf5ff 0%,#f0f9ff 100%);border-radius:18px;border:2px solid ${BRAND_COLORS.border};">
-      <div style="text-align:center;margin-bottom:20px;">
-        <img src="${options.photoUrl}" alt="${options.name}" width="80" height="80" style="border-radius:50%;border:3px solid ${BRAND_COLORS.primary};box-shadow:0 4px 12px rgba(99,102,241,0.2);" />
-      </div>
-      <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.8;text-align:center;margin-bottom:16px;">
-        ${options.message}
-      </div>
-      <div style="text-align:center;margin-top:16px;">
-        ${options.signatureText ? `<div style="font-family:'Segoe Script','Dancing Script',cursive;font-size:22px;color:${BRAND_COLORS.primary};margin-bottom:4px;">${options.signatureText}</div>` : ''}
-        <div style="font-size:14px;font-weight:800;color:${BRAND_COLORS.dark};">${options.name}</div>
-        <div style="font-size:12px;color:${BRAND_COLORS.gray};">${options.title}</div>
+    <div style="margin:32px 0;padding:24px;background:${BRAND_COLORS.pageBackground};border-radius:12px;border:1px solid ${BRAND_COLORS.border};">
+      <div style="display:flex;align-items:start;gap:16px;">
+         <img src="${options.photoUrl}" alt="${options.name}" width="56" height="56" style="border-radius:50%;border:1px solid ${BRAND_COLORS.border};display:block;flex-shrink:0;" />
+         <div>
+            <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.7;margin-bottom:12px;">
+              ${options.message}
+            </div>
+            <div>
+               <div style="font-size:14px;font-weight:700;color:${BRAND_COLORS.dark};">${options.name}</div>
+               <div style="font-size:12px;color:${BRAND_COLORS.gray};">${options.title}</div>
+            </div>
+         </div>
       </div>
     </div>
   `;
 }
 
 /**
- * Testimonial Quote — customer quote with optional avatar
+ * Testimonial Quote
  */
 function generateTestimonial(options: {
   quote: string;
@@ -510,57 +496,48 @@ function generateTestimonial(options: {
   authorPhotoUrl?: string;
 }): string {
   return `
-    <div style="margin:24px 0;padding:24px 28px;background:${BRAND_COLORS.background};border-radius:16px;border-right:4px solid ${BRAND_COLORS.primary};">
-      <div style="font-size:24px;color:${BRAND_COLORS.primary};margin-bottom:8px;line-height:1;">"</div>
-      <div style="font-size:15px;color:${BRAND_COLORS.slate};line-height:1.7;font-style:italic;margin-bottom:16px;">
-        ${options.quote}
+    <div style="margin:24px 0;padding:24px;background:${BRAND_COLORS.infoBg};border-radius:8px;border-right:3px solid ${BRAND_COLORS.dark};">
+      <div style="font-size:16px;color:${BRAND_COLORS.slate};line-height:1.7;font-style:italic;margin-bottom:16px;">
+        "${options.quote}"
       </div>
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          ${options.authorPhotoUrl ? `<td style="width:40px;vertical-align:middle;padding-left:10px;"><img src="${options.authorPhotoUrl}" alt="${options.authorName}" width="36" height="36" style="border-radius:50%;border:2px solid ${BRAND_COLORS.border};display:block;" /></td>` : ''}
-          <td style="vertical-align:middle;">
-            <div style="font-size:13px;font-weight:800;color:${BRAND_COLORS.dark};">${options.authorName}</div>
-            ${options.authorTitle ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};">${options.authorTitle}</div>` : ''}
-          </td>
-        </tr>
-      </table>
+      <div style="font-size:13px;font-weight:700;color:${BRAND_COLORS.dark};">${options.authorName}</div>
+      ${options.authorTitle ? `<div style="font-size:12px;color:${BRAND_COLORS.gray};">${options.authorTitle}</div>` : ''}
     </div>
   `;
 }
 
 /**
- * Feature Banner — eye-catching gradient banner with icon + text
+ * Feature Banner — Clean, bordered, no heavy gradient
  */
 function generateFeatureBanner(options: {
   emoji: string;
   title: string;
   subtitle?: string;
-  gradient?: string;
+  gradient?: string; // Ignored for flat design
 }): string {
-  const gradient = options.gradient || `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%)`;
   return `
-    <div style="margin:24px 0;padding:28px;background:${gradient};border-radius:16px;text-align:center;box-shadow:0 8px 24px rgba(99,102,241,0.2);">
-      <div style="font-size:36px;margin-bottom:12px;">${options.emoji}</div>
-      <div style="font-size:20px;font-weight:900;color:#ffffff;margin-bottom:4px;">${options.title}</div>
-      ${options.subtitle ? `<div style="font-size:14px;color:rgba(255,255,255,0.8);font-weight:500;">${options.subtitle}</div>` : ''}
+    <div style="margin:24px 0;padding:24px;background:${BRAND_COLORS.infoBg};border:1px solid ${BRAND_COLORS.border};border-radius:12px;text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">${options.emoji}</div>
+      <div style="font-size:18px;font-weight:700;color:${BRAND_COLORS.dark};margin-bottom:4px;">${options.title}</div>
+      ${options.subtitle ? `<div style="font-size:14px;color:${BRAND_COLORS.gray};font-weight:400;">${options.subtitle}</div>` : ''}
     </div>
   `;
 }
 
 /**
- * Image Row — 2-3 images side by side (for showcasing features)
+ * Image Row
  */
 function generateImageRow(options: {
   images: Array<{ src: string; alt: string; caption?: string; href?: string }>;
 }): string {
   const width = options.images.length <= 2 ? '48%' : '31%';
   const cells = options.images.map((img) => {
-    const imgTag = `<img src="${img.src}" alt="${img.alt}" style="display:block;width:100%;border-radius:10px;border:1px solid ${BRAND_COLORS.border};" />`;
+    const imgTag = `<img src="${img.src}" alt="${img.alt}" style="display:block;width:100%;border-radius:8px;border:1px solid ${BRAND_COLORS.border};" />`;
     const wrapped = img.href ? `<a href="${img.href}" style="text-decoration:none;">${imgTag}</a>` : imgTag;
     return `
       <td style="width:${width};vertical-align:top;padding:0 4px;">
         ${wrapped}
-        ${img.caption ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};text-align:center;margin-top:6px;font-weight:600;">${img.caption}</div>` : ''}
+        ${img.caption ? `<div style="font-size:11px;color:${BRAND_COLORS.gray};text-align:center;margin-top:6px;font-weight:500;">${img.caption}</div>` : ''}
       </td>
     `;
   }).join('');

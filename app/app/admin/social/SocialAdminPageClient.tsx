@@ -121,7 +121,7 @@ export default function SocialAdminPageClient() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl" dir="rtl">
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 text-slate-900 shadow-sm" dir="rtl">
         <h2 className="text-2xl font-black text-slate-900 mb-2">ניהול סושיאל</h2>
         <p className="text-slate-600">אין לך הרשאות לניהול מערכת סושיאל.</p>
       </div>

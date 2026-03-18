@@ -1,7 +1,6 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -179,8 +178,6 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
       // ignore
     }
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse(true);
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בשמירת פרטי העסק');
@@ -244,8 +241,6 @@ export async function selectPlanForCurrentOrganization(input: {
         updated_at: now,
       },
     });
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(undefined);
   } catch (error: unknown) {

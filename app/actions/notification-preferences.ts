@@ -1,7 +1,6 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 /**
  * Server Actions: Notification Preferences
  * Read/write Profile.notificationPreferences JSON field.
@@ -39,8 +38,6 @@ export async function getNotificationPreferences(organizationId: string): Promis
         const prefs = typeof profile.notificationPreferences === 'object' && profile.notificationPreferences !== null
             ? (profile.notificationPreferences as Record<string, unknown>)
             : {};
-
-        revalidatePath('/', 'layout');
 
         return { success: true, data: prefs };
     } catch (error: unknown) {
@@ -112,8 +109,6 @@ export async function saveNotificationPreferences(
                 updatedAt: new Date(),
             },
         });
-
-        revalidatePath('/', 'layout');
 
         return { success: true };
     } catch (error: unknown) {

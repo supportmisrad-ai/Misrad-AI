@@ -73,19 +73,19 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             {!hideHeader ? (
                 <div className="mb-8">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">
                         בקרת מערכת גלובלית
                     </h1>
-                    <p className="text-slate-600 text-lg">שליטה על סטטוס כל מסך במערכת (פעיל / תחזוקה / מוסתר) עבור כל המשתמשים.</p>
+                    <p className="text-slate-500 text-lg">שליטה על סטטוס כל מסך במערכת (פעיל / תחזוקה / מוסתר) עבור כל המשתמשים.</p>
                 </div>
             ) : null}
 
             <div className="mb-6">
-                <Button onClick={downloadAiBackup} disabled={isExporting}>
+                <Button onClick={downloadAiBackup} disabled={isExporting} className="font-bold">
                     {isExporting ? (
                         <span className="inline-flex items-center gap-2">מייצא...</span>
                     ) : (
-                        <span className="inline-flex items-center gap-2"><Download size={14} /> גיבוי הגדרות AI</span>
+                        <span className="inline-flex items-center gap-2"><Download size={16} /> גיבוי הגדרות AI</span>
                     )}
                 </Button>
             </div>
@@ -95,24 +95,24 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                     const currentFlag = organization.systemFlags?.[screen.id] || 'active';
                     
                     return (
-                        <div key={screen.id} className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl hover:bg-white/90 hover:border-slate-300/80 transition-all shadow-xl">
+                        <div key={screen.id} className="bg-white border border-slate-200 p-5 rounded-2xl hover:border-slate-300 transition-all shadow-sm group">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <h3 className="font-bold text-slate-900 text-lg">{screen.label}</h3>
-                                    <p className="text-xs text-slate-500 font-mono mt-1">ID: {screen.id}</p>
-                                    <p className="text-[11px] text-slate-600 font-bold mt-2">חוצה מודולים: {resolveCrossModulesLabel(screen)}</p>
+                                    <h3 className="font-bold text-slate-900 text-base">{screen.label}</h3>
+                                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {screen.id}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold mt-1">חוצה מודולים: {resolveCrossModulesLabel(screen)}</p>
                                 </div>
-                                <span className="text-[10px] bg-slate-50/80 backdrop-blur-sm text-slate-600 px-2 py-1 rounded border border-slate-200 uppercase tracking-wide">
+                                <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200 uppercase tracking-wide font-bold">
                                     {screen.category}
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 bg-slate-50/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200">
+                            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
                                 <Button
                                     size="sm"
                                     variant={currentFlag === 'active' ? 'default' : 'ghost'}
                                     onClick={() => updateSystemFlag(screen.id, 'active')}
-                                    className={`${currentFlag === 'active' ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-200/60 hover:from-green-600 hover:to-emerald-600' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'} rounded-lg text-xs`}
+                                    className={`${currentFlag === 'active' ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs font-bold h-7`}
                                 >
                                     פעיל
                                 </Button>
@@ -123,7 +123,7 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                                         const addonObj = screen as { id?: string; category?: string };
                                         updateSystemFlag(addonObj?.id || '', 'maintenance');
                                     }}
-                                    className={`${currentFlag === 'maintenance' ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-200/60 hover:from-yellow-600 hover:to-orange-600' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'} rounded-lg text-xs`}
+                                    className={`${currentFlag === 'maintenance' ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs font-bold h-7`}
                                 >
                                     תחזוקה
                                 </Button>
@@ -131,17 +131,17 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                                     size="sm"
                                     variant={currentFlag === 'hidden' ? 'default' : 'ghost'}
                                     onClick={() => updateSystemFlag(screen.id, 'hidden')}
-                                    className={`${currentFlag === 'hidden' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200/60 hover:from-red-600 hover:to-rose-600' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'} rounded-lg text-xs`}
+                                    className={`${currentFlag === 'hidden' ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs font-bold h-7`}
                                 >
                                     מוסתר
                                 </Button>
                             </div>
                             
-                            <div className="mt-3 text-center">
-                                <p className="text-[10px] text-slate-500">
-                                    {currentFlag === 'active' && <span className="flex items-center justify-center gap-1"><CircleCheckBig size={10} className="text-green-500" /> זמין לכולם</span>}
-                                    {currentFlag === 'maintenance' && <span className="flex items-center justify-center gap-1"><TriangleAlert size={10} className="text-yellow-500" /> מוצג עם מסך "בשיפוצים"</span>}
-                                    {currentFlag === 'hidden' && <span className="flex items-center justify-center gap-1"><CircleX size={10} className="text-red-500" /> מוסתר מהתפריט וחסום</span>}
+                            <div className="mt-3 text-center h-4">
+                                <p className="text-[10px] text-slate-400 font-medium">
+                                    {currentFlag === 'active' && <span className="flex items-center justify-center gap-1 text-emerald-600"><CircleCheckBig size={10} /> זמין לכולם</span>}
+                                    {currentFlag === 'maintenance' && <span className="flex items-center justify-center gap-1 text-amber-600"><TriangleAlert size={10} /> מוצג עם מסך "בשיפוצים"</span>}
+                                    {currentFlag === 'hidden' && <span className="flex items-center justify-center gap-1 text-rose-600"><CircleX size={10} /> מוסתר מהתפריט וחסום</span>}
                                 </p>
                             </div>
                         </div>

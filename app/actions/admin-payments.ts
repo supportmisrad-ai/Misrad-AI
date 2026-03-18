@@ -1,6 +1,5 @@
 'use server';
 
-
 import { revalidatePath } from 'next/cache';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
@@ -8,7 +7,7 @@ import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
+import { z } from 'zod';
 
 import { asObject } from '@/lib/shared/unknown';
 function toNumber(value: unknown): number {
@@ -150,8 +149,6 @@ export async function getAllPayments(): Promise<
       (row) => asObject(row) ?? {}
     );
 
-    revalidatePath('/', 'layout');
-
     return createSuccessResponse({
       paymentOrders: paymentOrders || [],
       invoices: invoices || [],
@@ -216,7 +213,7 @@ export async function updatePaymentOrderStatus(
       metadata: { orderId: String(parsed.data.orderId), status: parsed.data.status },
     });
 
-    revalidatePath('/', 'layout');
+    revalidatePath('/app/admin/payments', 'page');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -278,7 +275,7 @@ export async function updateInvoiceStatus(
       metadata: { invoiceId: String(parsed.data.invoiceId), status: parsed.data.status },
     });
 
-    revalidatePath('/', 'layout');
+    revalidatePath('/app/admin/payments', 'page');
 
     return createSuccessResponse(true);
   } catch (error: unknown) {

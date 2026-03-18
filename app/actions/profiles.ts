@@ -1,7 +1,6 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -382,7 +381,6 @@ export async function upsertMyProfile(params: {
           }).catch(() => { /* ignore sync errors */ });
         }
 
-        revalidatePath('/', 'layout');
         return createSuccessResponse({ profile: toProfileRecord(profile) });
       },
       { source: 'server_actions_profiles', reason: 'upsertMyProfile' }

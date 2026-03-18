@@ -581,7 +581,6 @@ export async function createSystemCalendarEvent(params: {
           });
         }
 
-        revalidatePath('/', 'layout');
         return { ok: true, event: toCalendarEventDto(created) };
       },
       { source: 'server_actions_system_leads', reason: 'createSystemCalendarEvent' }
@@ -621,7 +620,6 @@ export async function updateSystemLeadFollowUp(params: {
 
         const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
         if (!hydrated) return { ok: false, message: 'Lead not found' };
-        revalidatePath('/', 'layout');
         return { ok: true, lead: hydrated };
       },
       { source: 'server_actions_system_leads', reason: 'updateSystemLeadFollowUp' }
@@ -685,7 +683,6 @@ export async function createSystemLead(
 
       revalidatePath(`/w/${orgSlug}/system`, 'page');
       revalidatePath(`/w/${orgSlug}/system/leads`, 'page');
-      revalidatePath('/', 'layout');
       const dto = toDto(row);
 
       // Notify org members about new lead
@@ -893,7 +890,6 @@ export async function updateSystemLead(params: {
 
         const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
         if (!hydrated) return { ok: false, message: 'Lead not found' };
-        revalidatePath('/', 'layout');
         return { ok: true, lead: hydrated };
       },
       { source: 'server_actions_system_leads', reason: 'updateSystemLead' }
@@ -972,7 +968,6 @@ export async function recomputeSystemLeadAiScore(params: {
           return { ok: false, message: 'Lead not found' };
         }
 
-        revalidatePath('/', 'layout');
         return { ok: true, lead: hydrated };
       },
       { source: 'server_actions_system_leads', reason: 'recomputeSystemLeadAiScore' }

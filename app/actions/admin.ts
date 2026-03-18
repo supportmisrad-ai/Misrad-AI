@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
@@ -198,7 +197,6 @@ export async function updateClientStatus(
       updates: { metadata: nextMetadata },
     });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -240,7 +238,6 @@ export async function toggleClientAccess(
       updates: { metadata: nextMetadata },
     });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -299,7 +296,6 @@ export async function refreshSystemData(): Promise<{ success: boolean; error?: s
       },
     });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -488,8 +484,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
         error: sessionError,
         extras: { clientId: String(clientId || '') },
       });
-      revalidatePath('/', 'layout');
-      return createSuccessResponse({ impersonationToken: token });
+        return createSuccessResponse({ impersonationToken: token });
     }
 
     // Log the impersonation action

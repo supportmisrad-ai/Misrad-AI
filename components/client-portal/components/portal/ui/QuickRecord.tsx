@@ -120,7 +120,7 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 transition-all hover:shadow-md">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-4 transition-all hover:shadow-md">
       {status === 'idle' && (
         <>
           <button 
@@ -130,8 +130,8 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
             <Mic2 size={24} />
           </button>
           <div className="flex-1">
-            <h4 className="text-sm font-bold text-gray-900 leading-tight">הקלטה מהירה</h4>
-            <p className="text-[10px] text-gray-400 font-medium">הקלט סיכום קולי או מפגש קצר</p>
+            <h4 className="text-sm font-bold text-slate-900 leading-tight">הקלטה מהירה</h4>
+            <p className="text-[10px] text-slate-400 font-medium">הקלט סיכום קולי או מפגש קצר</p>
           </div>
         </>
       )}
@@ -147,7 +147,7 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-              <span className="text-sm font-mono font-bold text-gray-900">{formatTime(recordingTime)}</span>
+              <span className="text-sm font-mono font-bold text-slate-900">{formatTime(recordingTime)}</span>
             </div>
             <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider">מקליט כעת...</p>
           </div>
@@ -159,7 +159,7 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
           <div className="flex gap-2">
             <button 
               onClick={reset}
-              className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all"
+              className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all"
             >
               <Trash2 size={18} />
             </button>
@@ -171,8 +171,8 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
             </button>
           </div>
           <div className="flex-1 text-left">
-            <div className="text-sm font-mono font-bold text-gray-900">{formatTime(recordingTime)}</div>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">מוכן לשליחה</p>
+            <div className="text-sm font-mono font-bold text-slate-900">{formatTime(recordingTime)}</div>
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">מוכן לשליחה</p>
           </div>
         </>
       )}
@@ -183,11 +183,11 @@ export const QuickRecord: React.FC<QuickRecordProps> = ({ clientId, phaseId, tem
             <Loader2 size={24} className="animate-spin" />
           </div>
           <div className="flex-1">
-            <h4 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <Brain size={14} className="text-nexus-primary" />
               {status === 'uploading' ? 'מעלה קובץ...' : 'ה-AI מנתח את הפגישה...'}
             </h4>
-            <div className="w-full bg-gray-100 h-1 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-slate-100 h-1 rounded-full mt-2 overflow-hidden">
               <div className="h-full bg-nexus-primary animate-progress-indefinite"></div>
             </div>
           </div>

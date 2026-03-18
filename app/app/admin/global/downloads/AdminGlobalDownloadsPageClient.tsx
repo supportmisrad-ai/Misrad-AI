@@ -69,59 +69,62 @@ export default function AdminGlobalDownloadsPageClient() {
   return (
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="לינקים להורדה" subtitle="ניהול לינקי הורדה לאפליקציות" icon={Download} />
-    <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-5 md:p-6 shadow-2xl space-y-5">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <div className="text-sm font-black text-slate-900">לינקים להורדה</div>
-          <div className="text-xs font-bold text-slate-600 mt-1">
+          <div className="text-base font-black text-slate-900">לינקים להורדה</div>
+          <div className="text-sm font-medium text-slate-500 mt-1">
             הלינקים האלו משמשים את מסך הכניסה, ה-Welcome Email, ו-API ההורדות.
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={load} disabled={loading || saving}>
-            <RefreshCw size={16} />
+            <RefreshCw size={16} className="ml-2" />
             רענן
           </Button>
-          <Button onClick={save} disabled={loading || saving}>
-            <Save size={16} />
+          <Button onClick={save} disabled={loading || saving} className="font-bold">
+            <Save size={16} className="ml-2" />
             {saving ? 'שומר…' : 'שמירה'}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
-          <div className="text-xs font-black text-slate-700">Windows Download URL</div>
+          <div className="text-xs font-bold text-slate-700 uppercase tracking-wide">Windows Download URL</div>
           <Input
             value={windowsDownloadUrl}
             onChange={(e) => setWindowsDownloadUrl(e.target.value)}
             placeholder="https://.../MISRAD-AI-Setup.exe"
             disabled={loading || saving}
+            className="bg-slate-50 border-slate-200 focus:bg-white"
           />
-          <div className="text-[11px] font-bold text-slate-500">השאר ריק כדי להסיר לינק (fallback ל-ENV אם קיים).</div>
+          <div className="text-[11px] font-medium text-slate-400">השאר ריק כדי להסיר לינק (fallback ל-ENV).</div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-black text-slate-700">Android Download URL</div>
+          <div className="text-xs font-bold text-slate-700 uppercase tracking-wide">Android Download URL</div>
           <Input
             value={androidDownloadUrl}
             onChange={(e) => setAndroidDownloadUrl(e.target.value)}
             placeholder="https://.../misrad.apk"
             disabled={loading || saving}
+            className="bg-slate-50 border-slate-200 focus:bg-white"
           />
-          <div className="text-[11px] font-bold text-slate-500">השאר ריק כדי להסיר לינק (fallback ל-ENV אם קיים).</div>
+          <div className="text-[11px] font-medium text-slate-400">השאר ריק כדי להסיר לינק (fallback ל-ENV).</div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-black text-slate-700">Admin APK Download URL</div>
+          <div className="text-xs font-bold text-slate-700 uppercase tracking-wide">Admin APK Download URL</div>
           <Input
             value={adminAndroidDownloadUrl}
             onChange={(e) => setAdminAndroidDownloadUrl(e.target.value)}
             placeholder="https://.../misrad-admin.apk"
             disabled={loading || saving}
+            className="bg-slate-50 border-slate-200 focus:bg-white"
           />
-          <div className="text-[11px] font-bold text-slate-500">APK אדמין נפרד עם טביעת אצבע (fallback ל-ENV אם קיים).</div>
+          <div className="text-[11px] font-medium text-slate-400">APK אדמין נפרד עם טביעת אצבע.</div>
         </div>
       </div>
     </div>

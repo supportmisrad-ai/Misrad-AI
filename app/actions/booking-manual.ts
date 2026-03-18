@@ -9,7 +9,6 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import type {
@@ -124,7 +123,6 @@ export async function createManualAppointment(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -196,7 +194,6 @@ export async function refundBookingPayment(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -263,7 +260,6 @@ export async function markAppointmentAsPaid(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -346,7 +342,6 @@ export async function cancelAppointmentWithReason(
           console.log('TODO: Send cancellation notification to customer');
         }
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -428,7 +423,6 @@ export async function rescheduleAppointment(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -486,7 +480,6 @@ export async function quickAppointmentAction(
         }
 
         if (notes) {
-          updateData.adminNotes = notes;
         }
 
         await prisma.bookingAppointment.updateMany({
@@ -494,7 +487,6 @@ export async function quickAppointmentAction(
           data: updateData,
         });
 
-        revalidatePath('/admin/booking/appointments');
         
         return {
           success: true,
@@ -540,7 +532,6 @@ export async function saveCancellationPolicy(
         // TODO: להוסיף טבלת organization_settings או לשמור ב-json
         console.log('TODO: Save cancellation policy to organization settings', policy);
 
-        revalidatePath('/admin/booking/settings');
         
         return {
           success: true,

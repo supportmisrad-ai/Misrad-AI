@@ -1,7 +1,6 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 import { currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
@@ -33,7 +32,8 @@ const helpVideoUpdateSchema = z.object({
   videoUrl: z.string().min(1).optional(),
   order: z.number().int().min(0).optional(),
   duration: z.string().optional(),
-});
+});
+
 
 type AdminCheckResult =
   | { success: true; userId: string }
@@ -64,7 +64,6 @@ async function requireSuperAdminOrFail(): Promise<AdminCheckResult> {
   if (!authCheck.userId) {
     return { success: false, error: 'נדרשת התחברות' };
   }
-  revalidatePath('/', 'layout');
   return { success: true, userId: authCheck.userId };
 }
 
@@ -115,8 +114,7 @@ export async function getHelpVideoByRoute(params: {
     });
 
     if (rows.length === 0) {
-      revalidatePath('/', 'layout');
-      return createSuccessResponse(null);
+        return createSuccessResponse(null);
     }
 
     let best: HelpVideoRow | null = null;
@@ -146,7 +144,6 @@ export async function getHelpVideoByRoute(params: {
       return createSuccessResponse(mapRow(moduleDefault));
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(null);
   } catch (error: unknown) {
@@ -292,7 +289,6 @@ export async function adminDeleteHelpVideo(id: string): Promise<{ success: boole
     }
 
     await prisma.help_videos.delete({ where: { id: resolvedId } });
-    revalidatePath('/', 'layout');
     return createSuccessResponse(true);
   } catch (error: unknown) {
     return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה במחיקת סרטון');

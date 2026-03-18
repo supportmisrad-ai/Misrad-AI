@@ -34,27 +34,27 @@ export default function AdminEmptyState({
       className="flex flex-col items-center justify-center py-16 px-6"
       dir="rtl"
     >
-      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 border border-slate-200 flex items-center justify-center mb-5">
-        <Icon size={32} className="text-slate-400" />
+      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-5 text-slate-400">
+        <Icon size={28} />
       </div>
 
-      <h3 className="text-lg font-black text-slate-900 text-center">{title}</h3>
+      <h3 className="text-base font-black text-slate-900 text-center tracking-tight">{title}</h3>
 
       {description ? (
-        <p className="text-sm font-bold text-slate-500 text-center mt-2 max-w-md">{description}</p>
+        <p className="text-sm font-medium text-slate-500 text-center mt-1 max-w-sm">{description}</p>
       ) : null}
 
       <div className="flex items-center gap-3 mt-6">
         {actionLabel && actionHref ? (
           <a href={actionHref}>
-            <Button>{actionLabel}</Button>
+            <Button className="font-bold">{actionLabel}</Button>
           </a>
         ) : actionLabel && onAction ? (
-          <Button onClick={onAction}>{actionLabel}</Button>
+          <Button onClick={onAction} className="font-bold">{actionLabel}</Button>
         ) : null}
 
         {secondaryLabel && onSecondaryAction ? (
-          <Button variant="outline" onClick={onSecondaryAction}>{secondaryLabel}</Button>
+          <Button variant="outline" onClick={onSecondaryAction} className="font-bold">{secondaryLabel}</Button>
         ) : null}
       </div>
     </motion.div>

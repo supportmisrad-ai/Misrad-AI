@@ -161,26 +161,26 @@ export default function OrgImpersonateButton(props: {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+              className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                    <Shield size={20} className="text-amber-600" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                    <Shield size={18} className="text-slate-700" />
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-900">גישת תמיכה</h3>
-                    <p className="text-xs text-slate-500">אימות נדרש לפני כניסה</p>
+                    <h3 className="font-black text-slate-900 text-sm">גישת תמיכה</h3>
+                    <p className="text-xs text-slate-500 font-medium">אימות נדרש לפני כניסה</p>
                   </div>
                 </div>
                 {step !== 'success' && (
                   <button
                     onClick={handleCancel}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-slate-50 rounded-lg transition-colors text-slate-400 hover:text-slate-600"
                   >
-                    <X size={18} className="text-slate-400" />
+                    <X size={18} />
                   </button>
                 )}
               </div>
@@ -189,26 +189,26 @@ export default function OrgImpersonateButton(props: {
               <div className="p-6">
                 {/* Step: Confirm */}
                 {step === 'confirm' && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <div className="space-y-5">
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm text-amber-800">
-                          <p className="font-bold mb-1">אישור נדרש</p>
-                          <p className="text-amber-700">
-                            כניסה לחשבון הלקוח תידרש אישור מהלקוח עצמו.
-                            קוד אימות יישלח למייל של הלקוח.
+                        <AlertTriangle size={18} className="text-slate-500 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-slate-600">
+                          <p className="font-bold text-slate-900 mb-1">אישור נדרש</p>
+                          <p>
+                            כניסה לחשבון הלקוח דורשת אישור. קוד אימות יישלח למייל של הלקוח.
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-sm text-slate-600">
-                      <p><strong>ארגון:</strong> {props.orgName || props.orgSlug || props.fallbackOrgId}</p>
+                    <div className="text-sm font-medium text-slate-600 bg-white border border-slate-100 p-3 rounded-lg flex justify-between items-center">
+                      <span>ארגון:</span>
+                      <span className="font-bold text-slate-900">{props.orgName || props.orgSlug || props.fallbackOrgId}</span>
                     </div>
 
                     {error && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                      <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg text-sm text-rose-600 font-medium">
                         {error}
                       </div>
                     )}
@@ -216,14 +216,14 @@ export default function OrgImpersonateButton(props: {
                     <div className="flex gap-3 pt-2">
                       <Button
                         onClick={handleCancel}
-                        variant="outline"
-                        className="flex-1"
+                        variant="ghost"
+                        className="flex-1 font-bold"
                       >
                         ביטול
                       </Button>
                       <Button
                         onClick={handleConfirm}
-                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold"
                       >
                         <Mail size={16} className="ml-2" />
                         שלח קוד אימות

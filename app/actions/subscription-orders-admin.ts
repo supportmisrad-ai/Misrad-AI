@@ -1,7 +1,6 @@
 'use server';
 
 
-import { revalidatePath } from 'next/cache';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
@@ -108,8 +107,6 @@ async function requireSuperAdmin(): Promise<{ success: true } | { success: false
   if (!user?.isSuperAdmin) {
     return { success: false, error: 'אין הרשאה (נדרש Super Admin)' };
   }
-
-  revalidatePath('/', 'layout');
 
   return { success: true };
 }
@@ -477,8 +474,6 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     } catch (e: unknown) {
       captureActionException(e, { action: 'adminMarkSubscriptionOrderPaid', stage: 'audit_log', organizationId, orderId });
     }
-
-        revalidatePath('/', 'layout');
 
         return createSuccessResponse(true);
       }

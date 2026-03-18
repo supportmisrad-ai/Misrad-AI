@@ -16,6 +16,15 @@ type StorageClientLike = {
   };
 };
 
+// Singleton instance to prevent creating a new Service Role client for every single file resolution
+let cachedServiceRoleStorageClient: StorageClientLike | null = null;
+
+export function getServiceRoleStorageClient() {
+  if (cachedServiceRoleStorageClient) return cachedServiceRoleStorageClient;
+  cachedServiceRoleStorageClient = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'storage_signed_url_resolve' });
+  return cachedServiceRoleStorageClient;
+}
+
 function isStorageClientLike(value: unknown): value is StorageClientLike {
   const obj = asObject(value);
   if (!obj) return false;
@@ -147,7 +156,7 @@ export async function resolveStorageUrlsMaybeBatchedServiceRole(
   if (!inputs.length) return [];
 
   try {
-    const sb = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'storage_signed_url_resolve' });
+    const sb = getServiceRoleStorageClient();
     return await resolveStorageUrlsMaybeBatchedWithClient(sb, inputs, ttlSeconds, scope);
   } catch (err) {
     console.error('[resolveStorageUrlsMaybeBatchedServiceRole] FAILED for inputs:', inputs.map(r => r ? String(r).substring(0, 60) : r), 'error:', err instanceof Error ? err.message : err);

@@ -29,7 +29,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
         <div>
           <div className="flex items-center gap-2 text-nexus-accent mb-2">
             <TrendingUp size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Real-time Performance</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Real-time Performance</span>
           </div>
           <h2 className="text-4xl font-display font-bold text-slate-900">ביצועים ומדדים</h2>
           <p className="text-slate-500 mt-2 text-lg">שקיפות מלאה על כל מה שקובע הצלחה.</p>
@@ -41,7 +41,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
         </div>
       </header>
 
-      <div className="bg-white border border-slate-200 rounded-[48px] p-8 md:p-12 shadow-xl relative overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-nexus-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
         <div className="relative z-10">
           <div className="flex justify-between items-end mb-10">
@@ -50,7 +50,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
               <p className="text-slate-400 text-sm">{performanceHistory.length ? `שינוי של ${growthPct}% בתקופה האחרונה.` : '—'}</p>
             </div>
             <div className="text-left">
-              <span className="text-4xl font-black text-slate-900 tracking-tighter">{performanceHistory.length ? `${growthPct >= 0 ? '+' : ''}${growthPct}%` : '—'}</span>
+              <span className="text-4xl font-bold text-slate-900 tracking-tighter">{performanceHistory.length ? `${growthPct >= 0 ? '+' : ''}${growthPct}%` : '—'}</span>
               <span className="text-[10px] font-bold text-green-500 uppercase block">Growth Score</span>
             </div>
           </div>
@@ -75,15 +75,15 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
         </div>
       </div>
 
-      <div className="bg-slate-900 rounded-[40px] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5 group">
+      <div className="bg-slate-900 rounded-3xl p-10 text-white relative overflow-hidden shadow-2xl border border-white/5 group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-nexus-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-          <div className="w-20 h-20 bg-nexus-accent/20 rounded-3xl flex items-center justify-center text-nexus-accent shadow-glow-gold">
+          <div className="w-20 h-20 bg-nexus-accent/20 rounded-2xl flex items-center justify-center text-nexus-accent shadow-glow-gold">
             <Sparkles size={40} />
           </div>
           <div className="flex-1 space-y-4">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-nexus-accent uppercase tracking-widest">Nexus AI Insight</span>
+              <span className="text-[10px] font-bold text-nexus-accent uppercase tracking-widest">Nexus AI Insight</span>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
             <h4 className="text-2xl font-bold italic leading-relaxed">
@@ -114,7 +114,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
             return (
               <div
                 key={goal.id}
-                className="bg-white border border-slate-200 rounded-[32px] p-8 shadow-sm hover:border-nexus-accent/40 transition-all flex flex-col h-full"
+                className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm hover:border-nexus-accent/40 transition-all flex flex-col h-full"
               >
                 <div className="flex justify-between items-start mb-6">
                   <div className="p-3 bg-slate-50 rounded-2xl text-nexus-primary">
@@ -135,7 +135,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
 
                 <h4 className="text-xl font-bold text-slate-900 mb-2">{goal.title}</h4>
                 <div className="flex items-end gap-2 mb-6">
-                  <span className="text-4xl font-black text-slate-900">
+                  <span className="text-4xl font-bold text-slate-900">
                     {goal.metricCurrent}
                     {goal.unit}
                   </span>
@@ -156,7 +156,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
                   <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 animate-fade-in mb-6 flex-1">
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles size={14} className="text-nexus-accent" />
-                      <span className="text-[10px] font-black uppercase text-slate-400">AI Analysis</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400">AI Analysis</span>
                     </div>
                     <p className="text-sm text-slate-600 leading-relaxed mb-4">"{String((summary as Record<string, unknown>).summary || '')}"</p>
                     <div className="text-[10px] font-bold text-nexus-primary bg-nexus-accent/10 p-2 rounded-lg inline-block">

@@ -5,7 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord, ServicePlan } from '../types';
 import type { Meeting as PortalMeeting } from '@/components/client-portal/types';
 import { generateClientInsight } from '../services/geminiService';
-import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe, FileUp } from 'lucide-react';
+import { SquareActivity, Map, Target, ArrowLeft, Ghost, FileText, Calendar, Users, ListTodo, Split, Briefcase, MessageCircleHeart, CircleAlert, TriangleAlert, Send, Trophy, Presentation, Printer, ArrowRight, LayoutTemplate, Star, Layers, Mail, Search, X, Video, Link, Check, Mic2, Filter, ChevronDown, RefreshCw, Briefcase as BriefcaseIcon, Tag, Archive, Trash2, RotateCcw, Ban, CreditCard, Share2, ExternalLink, Globe, FileUp, Edit2 } from 'lucide-react';
 import SmartImportClientsDialog from '@/components/client-os-full/SmartImportClientsDialog';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
@@ -18,7 +18,9 @@ import { ClientWorkTab } from './client-tabs/ClientWorkTab';
 import { ClientJourneyTab } from './client-tabs/ClientJourneyTab';
 import { ClientTransformTab } from './client-tabs/ClientTransformTab';
 import { ClientFeedbackTab } from './client-tabs/ClientFeedbackTab';
+import { ClientDetailsTab } from './client-tabs/ClientDetailsTab';
 import { PortalManagementTab } from './client-tabs/PortalManagementTab';
+import { EditClientModal } from './EditClientModal';
 import { useNexus } from '../context/ClientContext';
 import { createClinicClient } from '@/app/actions/client-clinic';
 import { getClientOSFeedbacks } from '@/app/actions/client-portal-clinic';
@@ -35,8 +37,9 @@ const ClientView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'LIST' | 'DETAIL'>('LIST');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pulse' | 'strategy' | 'tasks' | 'journey' | 'meetings' | 'work' | 'feedback' | 'transform' | 'stakeholders' | 'portal'>('pulse');
+  const [activeTab, setActiveTab] = useState<'pulse' | 'strategy' | 'tasks' | 'journey' | 'meetings' | 'work' | 'feedback' | 'transform' | 'stakeholders' | 'portal' | 'details'>('pulse');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const [isCreateClientOpen, setIsCreateClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
@@ -497,6 +500,13 @@ const ClientView: React.FC = () => {
           </div>
       )}
 
+      {/* Edit Client Modal */}
+      <EditClientModal 
+        client={client} 
+        isOpen={isEditModalOpen} 
+        onClose={() => setIsEditModalOpen(false)} 
+      />
+      
       {/* Header UI */}
       <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -515,40 +525,55 @@ const ClientView: React.FC = () => {
           </button>
       </div>
 
-      <div className="glass-card p-8 rounded-2xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden">
-           <div className="flex items-center gap-8 relative z-10">
-              <div className="w-20 h-20 rounded-2xl bg-nexus-primary text-white flex items-center justify-center text-3xl font-display font-bold shadow-xl">
+      <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
+           <div className="flex items-center gap-6 relative z-10">
+              <div className="w-16 h-16 rounded-xl bg-nexus-primary text-white flex items-center justify-center text-2xl font-display font-bold shadow-lg shadow-nexus-primary/20 group-hover:scale-105 transition-transform duration-500">
                  {client.logoInitials}
               </div>
               <div>
-                 <div className="flex items-center gap-4">
-                    <h1 className="text-4xl font-display font-bold text-gray-900">{client.name}</h1>
-                    <div className="flex gap-2">
-                        <button onClick={() => setShowRefundModal(true)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg border border-red-100" title="בצע החזר כספי"><CreditCard size={18} /></button>
-                        <button onClick={() => setShowChurnModal(true)} className="p-2 text-gray-400 hover:text-red-600 rounded-lg border border-gray-200" title="סיום התקשרות (נטישה)"><Ban size={18} /></button>
-                    </div>
+                 <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-display font-bold text-gray-900">{client.name}</h1>
+                    <button 
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="p-1.5 text-gray-400 hover:text-nexus-primary hover:bg-nexus-primary/5 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                        title="ערוך פרטי לקוח"
+                    >
+                        <Edit2 size={14} />
+                    </button>
                  </div>
-                 <div className="flex gap-3 mt-2">
-                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${getStatusColor(client.healthStatus)}`}>{getStatusLabel(client.healthStatus)}</span>
-                    <span className="text-xs text-gray-500 py-1">{client.industry}</span>
+                 <div className="flex items-center gap-3 mt-1.5">
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${getStatusColor(client.healthStatus)}`}>{getStatusLabel(client.healthStatus)}</span>
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                        {client.industry}
+                    </span>
                  </div>
               </div>
            </div>
-           <div className="text-left mt-6 md:mt-0">
-               <span className="text-xs text-gray-400 font-bold uppercase block mb-1">רווח נקי משוער</span>
-               <span className="text-4xl font-display font-bold text-nexus-primary">₪{(client.monthlyRetainer - (client.hoursLogged * client.internalHourlyRate) - client.directExpenses).toLocaleString()}</span>
+
+           <div className="flex items-center gap-3 mt-4 md:mt-0">
+               <div className="flex gap-1 mr-4 border-r border-gray-100 pr-4">
+                    <button onClick={() => setShowRefundModal(true)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="בצע החזר כספי"><CreditCard size={16} /></button>
+                    <button onClick={() => setShowChurnModal(true)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="סיום התקשרות (נטישה)"><Ban size={16} /></button>
+               </div>
+               
+               <div className="text-left pl-4">
+                   <span className="text-[10px] text-gray-400 font-bold uppercase block mb-0.5">רווח נקי משוער</span>
+                   <span className="text-2xl font-display font-bold text-nexus-primary">₪{(client.monthlyRetainer - (client.hoursLogged * client.internalHourlyRate) - client.directExpenses).toLocaleString()}</span>
+               </div>
            </div>
       </div>
 
       {/* COMPREHENSIVE TABS NAVIGATION */}
-      <div className="flex gap-2 border-b border-gray-200/60 overflow-x-auto no-scrollbar scroll-smooth">
+      <div className="flex gap-1 border-b border-gray-200/60 overflow-x-auto no-scrollbar scroll-smooth pt-2">
         {[
           { id: 'pulse', icon: SquareActivity, label: 'מצב התיק' },
-          { id: 'tasks', icon: ListTodo, label: 'משימות וביצוע' },
-          { id: 'meetings', icon: Calendar, label: 'סיכומי פגישות' },
-          { id: 'work', icon: BriefcaseIcon, label: 'תוצרים וקבצים' },
-          { id: 'strategy', icon: Target, label: 'שורת הרווח' },
-          { id: 'portal', icon: Globe, label: 'ניהול פורטל' },
+          { id: 'details', icon: FileText, label: 'פרטים והערות' },
+          { id: 'tasks', icon: ListTodo, label: 'משימות' },
+          { id: 'meetings', icon: Calendar, label: 'פגישות' },
+          { id: 'work', icon: BriefcaseIcon, label: 'תוצרים' },
+          { id: 'strategy', icon: Target, label: 'כספים' },
+          { id: 'portal', icon: Globe, label: 'פורטל' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -565,20 +590,22 @@ const ClientView: React.FC = () => {
                   | 'work'
                   | 'feedback'
                   | 'portal'
+                  | 'details'
               )
             }
-            className={`px-6 py-4 text-sm font-bold transition-all relative rounded-t-xl flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-3 text-xs font-bold transition-all relative rounded-t-lg flex items-center gap-2 whitespace-nowrap ${
               activeTab === tab.id
-                ? 'text-nexus-primary bg-white shadow-sm ring-1 ring-gray-200'
-                : 'text-gray-400 hover:text-gray-600'
+                ? 'text-nexus-primary bg-white shadow-[0_-1px_2px_rgba(0,0,0,0.02)] border-x border-t border-gray-100 -mb-px z-10'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50/50'
             }`}
           >
-            <tab.icon size={16} /> {tab.label}
+            <tab.icon size={14} /> {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar pt-6">
+        {activeTab === 'details' && client && <ClientDetailsTab client={client} />}
         {activeTab === 'strategy' && client && <ClientStrategyTab client={client} opportunities={opportunities} onAddOpportunity={() => {
                window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: 'הוספת הצעת צמיחה — הפיצ׳ר בפיתוח.', type: 'info' } }));
            }} />}

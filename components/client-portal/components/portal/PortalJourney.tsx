@@ -17,7 +17,7 @@ export const PortalJourney: React.FC<PortalJourneyProps> = ({ journey, servicePl
       </header>
 
       {servicePlans.length > 0 ? (
-        <div className="bg-white/40 backdrop-blur-sm rounded-[40px] p-8 border border-white/20 shadow-xl">
+        <div className="bg-white/40 backdrop-blur-sm rounded-3xl p-8 border border-white/20 shadow-xl">
           <ServiceTimeline plans={servicePlans} onSelectMeeting={(id: string) => console.log('Meeting selected in portal', id)} />
         </div>
       ) : (
@@ -39,8 +39,8 @@ export const PortalJourney: React.FC<PortalJourneyProps> = ({ journey, servicePl
                 ></div>
 
                 <div
-                  className={`p-8 rounded-[40px] border transition-all ${
-                    isActive ? 'bg-white border-nexus-accent shadow-xl scale-[1.02]' : 'bg-white/60 border-slate-100 opacity-80'
+                  className={`p-8 rounded-3xl border transition-all ${
+                    isActive ? 'bg-white border-nexus-accent shadow-lg scale-[1.02]' : 'bg-white/60 border-slate-100 opacity-80'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-6">
@@ -66,7 +66,7 @@ export const PortalJourney: React.FC<PortalJourneyProps> = ({ journey, servicePl
                             m.isCompleted ? 'bg-nexus-accent border-nexus-accent text-white' : 'bg-white border-slate-200'
                           }`}
                         >
-                          {m.isCompleted && <Check size={14} strokeWidth={4} />}
+                          {m.isCompleted && <Check size={14} strokeWidth={3} />}
                         </div>
                         <span className={m.isCompleted ? 'text-slate-400 line-through' : 'text-slate-600 font-bold'}>{m.label}</span>
                       </div>

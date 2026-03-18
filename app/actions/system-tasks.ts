@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { queryRawOrgScoped } from '@/lib/prisma';
@@ -168,7 +167,6 @@ export async function createSystemTask(params: {
       },
     });
 
-    revalidatePath('/', 'layout');
     return { ok: true, task: toSystemTaskDto(created) };
   } catch (e: unknown) {
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת משימה' };
@@ -258,7 +256,6 @@ export async function updateSystemTask(params: {
       return { ok: false, message: 'משימה לא נמצאה' };
     }
 
-    revalidatePath('/', 'layout');
     return { ok: true, task: toSystemTaskDto(row) };
   } catch (e: unknown) {
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון משימה' };
@@ -285,7 +282,6 @@ export async function deleteSystemTask(params: {
       where: { id: taskId },
     });
     if (!deleted.count) return { ok: false, message: 'משימה לא נמצאה' };
-    revalidatePath('/', 'layout');
     return { ok: true };
   } catch (e: unknown) {
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה במחיקת משימה' };

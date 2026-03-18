@@ -9,7 +9,6 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import type {
@@ -66,7 +65,6 @@ export async function createBookingProvider(
           },
         });
 
-        revalidatePath('/admin/booking/providers');
         
         return {
           success: true,
@@ -129,7 +127,6 @@ export async function updateBookingProvider(
           },
         });
 
-        revalidatePath('/admin/booking/providers');
         
         return {
           success: true,
@@ -197,7 +194,6 @@ export async function deleteBookingProvider(
           data: { isActive: false },
         });
 
-        revalidatePath('/admin/booking/providers');
         
         return {
           success: true,
@@ -426,7 +422,6 @@ export async function assignServiceToProvider(
           },
         });
 
-        revalidatePath('/admin/booking/providers');
 
         return {
           success: true,
@@ -468,7 +463,6 @@ export async function removeServiceFromProvider(
           },
         });
 
-        revalidatePath('/admin/booking/providers');
 
         return {
           success: true,

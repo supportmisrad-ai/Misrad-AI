@@ -23,14 +23,13 @@ function generateOrganizationWelcomeEmailHTML(params: {
         ${EmailTemplateComponents.generateFeatureBanner({
             emoji: '🚀',
             title: `"${params.organizationName}" התחיל לעבוד!`,
-            subtitle: 'הכלי שלך ב-MISRAD AI מוכן לסגור פינות',
-            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            subtitle: 'הכלי שלך ב-MISRAD AI מוכן.',
         })}
 
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            העסק <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${params.organizationName}"</strong> מחובר.
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
+            העסק <strong>"${params.organizationName}"</strong> מחובר.
             <br />
             הנה 3 צעדים שיגרמו למערכת לעבוד בשבילך:
         </div>
@@ -42,7 +41,7 @@ function generateOrganizationWelcomeEmailHTML(params: {
         ])}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'כניסה למערכת →',
+            text: 'כניסה למערכת',
             url: params.portalUrl,
         })}
 
@@ -60,7 +59,6 @@ function generateOrganizationWelcomeEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הארגון שלך מוכן',
-        headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -75,7 +73,7 @@ function generateFirstCustomerEmailHTML(params: {
     const greeting = params.ownerName ? `${params.ownerName},` : 'היי,';
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
 
         ${EmailTemplateComponents.generateFounderCard({
             photoUrl: assets.founderPhoto,
@@ -85,11 +83,11 @@ function generateFirstCustomerEmailHTML(params: {
             signatureText: assets.founderSignature,
         })}
 
-        <div style="margin:28px 0;padding:24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:16px;border:2px solid #fbbf24;text-align:center;">
-            <div style="font-size:14px;font-weight:800;color:#78350f;margin-bottom:10px;">
+        <div style="margin:28px 0;padding:24px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;text-align:center;">
+            <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px;text-transform:uppercase;">
                 הנייד האישי שלי
             </div>
-            <a href="https://wa.me/${params.founderPhone.replace(/[^0-9]/g, '')}" style="font-size:22px;font-weight:900;color:#0f172a;text-decoration:none;">
+            <a href="https://wa.me/${params.founderPhone.replace(/[^0-9]/g, '')}" style="font-size:20px;font-weight:800;color:#0f172a;text-decoration:none;">
                 ${params.founderPhone}
             </a>
             <div style="margin-top:8px;font-size:13px;color:#92400e;">
@@ -105,7 +103,6 @@ function generateFirstCustomerEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הודעה אישית מהמייסד',
-        headerGradient: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -122,12 +119,12 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
     const founderPhone = String(params.founderPhone || '').trim();
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
             ראיתי שנרשמת ל-MISRAD, אבל המערכת עדיין לא עובדת בשבילך.
             <br /><br />
-            <strong style="color:#6366f1;">רציתי לשאול אם משהו בדרך לא היה מספיק "תכלס"?</strong>
+            <strong>רציתי לשאול אם משהו בדרך לא היה מספיק "תכלס"?</strong>
         </div>
 
         ${EmailTemplateComponents.generateCTAButton({
@@ -136,13 +133,13 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
         })}
 
         ${founderPhone ? `
-            <div style="margin:32px 0;padding:20px;background:#ecfdf5;border-radius:14px;border:2px solid #a7f3d0;text-align:center;">
-                <div style="font-size:15px;color:#065f46;line-height:1.7;">
-                    <strong style="color:#047857;">אם נוח יותר</strong>
+            <div style="margin:32px 0;padding:20px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;text-align:center;">
+                <div style="font-size:14px;color:#334155;line-height:1.6;">
+                    <strong>אם נוח יותר</strong>
                     <br>
                     אפשר גם לשלוח לי וואטסאפ או להתקשר:
                     <br>
-                    <strong style="font-size:18px;color:#0f172a;">${founderPhone}</strong>
+                    <strong style="font-size:16px;color:#0f172a;">${founderPhone}</strong>
                 </div>
             </div>
         ` : ''}
@@ -157,7 +154,7 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
             signatureText: assets.founderSignature,
         })}
 
-        <div style="margin-top:24px;padding:16px;background:#f1f5f9;border-radius:12px;text-align:center;">
+        <div style="margin-top:24px;padding:16px;background:#f1f5f9;border-radius:8px;text-align:center;">
             <div style="font-size:12px;color:#64748b;line-height:1.6;">
                 אם קיבלת את ההודעה בטעות, אפשר להתעלם
             </div>
@@ -167,7 +164,6 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'רק לבדוק אם הכל בסדר',
-        headerGradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -197,57 +193,57 @@ function generateMisradWelcomeEmailHTML(params: {
     }) : '';
 
     const windowsBtn = windowsUrl
-        ? '<a href="' + windowsUrl + '" style="display:inline-block;margin:0 6px;padding:12px 20px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;text-decoration:none;font-size:14px;font-weight:900;box-shadow:0 4px 8px rgba(99,102,241,0.3);">Windows</a>'
+        ? '<a href="' + windowsUrl + '" style="display:inline-block;margin:0 6px;padding:10px 18px;border-radius:6px;background:#0f172a;color:white;text-decoration:none;font-size:13px;font-weight:600;">Windows</a>'
         : '';
     const androidBtn = androidUrl
-        ? '<a href="' + androidUrl + '" style="display:inline-block;margin:0 6px;padding:12px 20px;border-radius:10px;background:linear-gradient(135deg,#10b981,#059669);color:white;text-decoration:none;font-size:14px;font-weight:900;box-shadow:0 4px 8px rgba(16,185,129,0.3);">Android</a>'
+        ? '<a href="' + androidUrl + '" style="display:inline-block;margin:0 6px;padding:10px 18px;border-radius:6px;background:#0f172a;color:white;text-decoration:none;font-size:13px;font-weight:600;">Android</a>'
         : '';
     const downloadSection = (windowsUrl || androidUrl)
-        ? '<div style="margin:28px 0;padding:20px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;text-align:center;"><div style="font-size:14px;font-weight:900;color:#475569;margin-bottom:12px;">הורדת האפליקציה</div><div>' + windowsBtn + androidBtn + '</div></div>'
+        ? '<div style="margin:28px 0;padding:20px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;text-align:center;"><div style="font-size:13px;font-weight:700;color:#334155;margin-bottom:12px;">הורדת האפליקציה</div><div>' + windowsBtn + androidBtn + '</div></div>'
         : '';
 
     const whatsappSection = whatsappUrl
-        ? '<div style="text-align:center;margin:24px 0;"><a href="' + whatsappUrl + '" style="display:inline-block;background:#16a34a;color:white;padding:14px 24px;border-radius:12px;text-decoration:none;font-weight:900;font-size:15px;box-shadow:0 6px 16px rgba(22,163,74,0.4);">קבוצת תמיכה בוואטסאפ</a></div>'
+        ? '<div style="text-align:center;margin:24px 0;"><a href="' + whatsappUrl + '" style="display:inline-block;background:#059669;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">קבוצת תמיכה בוואטסאפ</a></div>'
         : '';
 
     let migrationInner = '';
     if (migrationEmail) {
-        migrationInner = '<br><strong>מייל:</strong> <a href="mailto:' + migrationEmail + '" style="color:#c2410c;font-weight:900;text-decoration:none;">' + migrationEmail + '</a>';
+        migrationInner = '<br><strong>מייל:</strong> <a href="mailto:' + migrationEmail + '" style="color:#92400e;font-weight:700;text-decoration:none;">' + migrationEmail + '</a>';
     } else if (whatsappUrl) {
-        migrationInner = '<br><strong>וואטסאפ:</strong> <a href="' + whatsappUrl + '" style="color:#c2410c;font-weight:900;text-decoration:none;">שלח כאן</a>';
+        migrationInner = '<br><strong>וואטסאפ:</strong> <a href="' + whatsappUrl + '" style="color:#92400e;font-weight:700;text-decoration:none;">שלח כאן</a>';
     }
     const migrationSection = (migrationEmail || whatsappUrl)
-        ? '<div style="margin:28px 0;padding:20px;background:#fff7ed;border-radius:14px;border:2px solid #fed7aa;"><div style="font-size:15px;font-weight:900;color:#7c2d12;margin-bottom:10px;text-align:center;">ייבוא נתונים מאקסל</div><div style="font-size:14px;color:#9a3412;line-height:1.7;text-align:center;">שלח לנו את האקסלים שלך ונעזור לך לייבא אותם' + migrationInner + '</div></div>'
+        ? '<div style="margin:28px 0;padding:20px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;"><div style="font-size:14px;font-weight:700;color:#78350f;margin-bottom:8px;text-align:center;">ייבוא נתונים מאקסל</div><div style="font-size:13px;color:#92400e;line-height:1.6;text-align:center;">שלח לנו את האקסלים שלך ונעזור לך לייבא אותם' + migrationInner + '</div></div>'
         : '';
 
     const featuresGrid = `
         <table role="presentation" style="width:100%;margin:24px 0;border-collapse:separate;border-spacing:0 10px;" cellpadding="0" cellspacing="0">
             <tr>
-                <td style="background:#f0fdf4;border-radius:12px;padding:16px 18px;border-right:4px solid #10b981;">
-                    <div style="font-size:13px;font-weight:800;color:#065f46;margin-bottom:3px;">מכונות מכירה (CRM)</div>
-                    <div style="font-size:12px;color:#047857;line-height:1.5;">ה-AI רודף אחרי לידים וסוגר עסקאות במקומך</div>
+                <td style="background:#f0fdf4;border-radius:8px;padding:16px;border:1px solid #bbf7d0;">
+                    <div style="font-size:13px;font-weight:700;color:#065f46;margin-bottom:3px;">מכונות מכירה (CRM)</div>
+                    <div style="font-size:13px;color:#166534;line-height:1.5;">ה-AI רודף אחרי לידים וסוגר עסקאות במקומך</div>
                 </td>
             </tr>
             <tr>
-                <td style="background:#eff6ff;border-radius:12px;padding:16px 18px;border-right:4px solid #6366f1;">
-                    <div style="font-size:13px;font-weight:800;color:#1e40af;margin-bottom:3px;">סידור עבודה וצוות</div>
-                    <div style="font-size:12px;color:#1e3a5f;line-height:1.5;">הסוף ל"גננות" - דעו בדיוק מי עושה מה ומתי</div>
+                <td style="background:#eff6ff;border-radius:8px;padding:16px;border:1px solid #bfdbfe;">
+                    <div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:3px;">סידור עבודה וצוות</div>
+                    <div style="font-size:13px;color:#1e3a5f;line-height:1.5;">הסוף ל"גננות" - דעו בדיוק מי עושה מה ומתי</div>
                 </td>
             </tr>
             <tr>
-                <td style="background:#faf5ff;border-radius:12px;padding:16px 18px;border-right:4px solid #8b5cf6;">
-                    <div style="font-size:13px;font-weight:800;color:#5b21b6;margin-bottom:3px;">גבייה וכסף</div>
-                    <div style="font-size:12px;color:#6b21a8;line-height:1.5;">הכסף ירדוף אחריך, לא להפך. תזכורות אוטומטיות בוואטסאפ.</div>
+                <td style="background:#faf5ff;border-radius:8px;padding:16px;border:1px solid #e9d5ff;">
+                    <div style="font-size:13px;font-weight:700;color:#5b21b6;margin-bottom:3px;">גבייה וכסף</div>
+                    <div style="font-size:13px;color:#6b21a8;line-height:1.5;">הכסף ירדוף אחריך, לא להפך. תזכורות אוטומטיות.</div>
                 </td>
             </tr>
         </table>
     `;
 
     const bodyContent = `
-        <div style="font-size:26px;font-weight:900;color:#0f172a;margin-bottom:8px;">${greeting}</div>
+        <div style="font-size:24px;font-weight:800;color:#0f172a;margin-bottom:8px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:28px;">
-            שמחים שהצטרפת ל-<strong style="color:#6366f1;">MISRAD AI</strong>.
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:28px;">
+            שמחים שהצטרפת ל-<strong>MISRAD AI</strong>.
             <br />
             הנה כל מה שצריך כדי להתחיל מהר:
         </div>
@@ -255,7 +251,7 @@ function generateMisradWelcomeEmailHTML(params: {
         ${featuresGrid}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'כניסה למערכת →',
+            text: 'כניסה למערכת',
             url: params.signInUrl,
         })}
 
@@ -278,7 +274,6 @@ function generateMisradWelcomeEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'ברוכים הבאים',
-        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: true,
     });

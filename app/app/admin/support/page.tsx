@@ -65,7 +65,7 @@ export default function AdminSupportSettingsPage() {
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="הגדרות תמיכה" subtitle="קישורים ותצוגה בחלון התמיכה" icon={LifeBuoy} />
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 max-w-2xl">
+      <div className="admin-pro-card p-6 max-w-2xl">
         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">קישור להצטרפות לקבוצת הוואטסאפ</label>
         <div className="text-xs font-bold text-slate-400 mt-2">
           הקישור יוצג בחלון התמיכה למשתמשים (כפתור &quot;הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ&quot;).
@@ -75,7 +75,7 @@ export default function AdminSupportSettingsPage() {
           value={whatsappGroupUrl}
           onChange={(e) => setWhatsappGroupUrl(e.target.value)}
           placeholder="הדבק כאן קישור (invite link)"
-          className="mt-3"
+          className="mt-3 bg-slate-50 border-slate-200 focus:bg-white"
         />
 
         {status ? (
@@ -88,9 +88,9 @@ export default function AdminSupportSettingsPage() {
           </div>
         ) : null}
 
-        <div className="mt-4 flex justify-end">
-          <Button onClick={onSave} disabled={isSaving} variant="secondary" className="w-full md:w-auto">
-            <Save size={16} />
+        <div className="mt-6 flex justify-end">
+          <Button onClick={onSave} disabled={isSaving} className="w-full md:w-auto font-bold">
+            <Save size={16} className="ml-2" />
             {isSaving ? 'שומר…' : 'שמור'}
           </Button>
         </div>

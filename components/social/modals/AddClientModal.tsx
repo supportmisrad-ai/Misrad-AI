@@ -248,20 +248,20 @@ export default function AddClientModal() {
           </button>
           
           {/* Mobile: Horizontal compact view */}
-          <div className="md:hidden flex items-center gap-3 min-w-max">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-900 font-black text-lg shadow-lg shrink-0">S</div>
-            <div className="flex gap-2">
+          <div className="md:hidden flex items-center gap-2.5 min-w-max">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-900 font-bold text-lg shadow-sm shrink-0">S</div>
+            <div className="flex gap-1.5">
               {[
                 { s: 1, l: 'פרטי העסק' },
                 { s: 2, l: 'חשבונאות' },
                 { s: 3, l: 'גישה לרשתות' },
                 { s: 4, l: 'בחירת חבילה' },
               ].map(item => (
-                <div key={item.s} className={`flex items-center gap-2 ${step === item.s ? 'opacity-100' : 'opacity-40'}`} title={item.l}>
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${
-                    step === item.s ? 'bg-white text-slate-900' : 
-                    step > item.s ? 'bg-green-500' : 
-                    'bg-slate-700'
+                <div key={item.s} className={`flex items-center gap-1.5 ${step === item.s ? 'opacity-100' : 'opacity-50'}`} title={item.l}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                    step === item.s ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 
+                    step > item.s ? 'bg-emerald-500 text-white' : 
+                    'bg-slate-200/50 text-slate-500'
                   }`}>
                     {step > item.s ? <CircleCheckBig size={14} /> : item.s}
                   </div>
@@ -271,32 +271,32 @@ export default function AddClientModal() {
           </div>
           
           {/* Desktop: Full vertical view */}
-          <div className="hidden md:flex flex-col gap-6 md:gap-8">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-900 font-black text-2xl shadow-xl">S</div>
-            <h2 className="text-2xl font-black">הקמה ידנית</h2>
-            <div className="flex flex-col gap-6">
+          <div className="hidden md:flex flex-col gap-6">
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-900 font-bold text-2xl shadow-sm border border-slate-100">S</div>
+            <h2 className="text-xl font-bold">הקמה ידנית</h2>
+            <div className="flex flex-col gap-5">
               {[
                 { s: 1, l: 'פרטי העסק' },
                 { s: 2, l: 'חשבונאות' },
                 { s: 3, l: 'גישה לרשתות' },
                 { s: 4, l: 'בחירת חבילה' },
               ].map(item => (
-                <div key={item.s} className={`flex gap-4 items-center ${step === item.s ? 'opacity-100' : 'opacity-40'}`}>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
-                    step === item.s ? 'bg-white text-slate-900' : 
-                    step > item.s ? 'bg-green-500' : 
-                    'bg-slate-700'
+                <div key={item.s} className={`flex gap-3 items-center transition-opacity ${step === item.s ? 'opacity-100' : 'opacity-50'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-colors ${
+                    step === item.s ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 
+                    step > item.s ? 'bg-emerald-500 text-white' : 
+                    'bg-slate-200/50 text-slate-500'
                   }`}>
-                    {step > item.s ? <CircleCheckBig size={20} /> : item.s}
+                    {step > item.s ? <CircleCheckBig size={18} /> : item.s}
                   </div>
-                  <span className="font-black">{item.l}</span>
+                  <span className={`font-bold text-sm ${step === item.s ? 'text-slate-900' : 'text-slate-500'}`}>{item.l}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 p-4 sm:p-6 md:p-10 overflow-y-auto max-h-[calc(100vh-120px)] sm:max-h-[calc(95vh-200px)] md:max-h-none relative">
+        <div className="flex-1 p-5 md:p-8 overflow-y-auto max-h-[calc(100vh-120px)] md:max-h-none relative">
           {/* Desktop: Close button */}
           <button
             onClick={resetAndClose}
@@ -308,12 +308,12 @@ export default function AddClientModal() {
           
           <AnimatePresence mode="sync">
             {step === 1 && (
-              <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4 md:gap-8">
+              <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-4 md:mb-6">פרטי העסק</h3>
-                  <div className="flex flex-col gap-4 md:gap-6">
+                  <h3 className="text-xl font-bold mb-6 text-slate-900">פרטי העסק</h3>
+                  <div className="flex flex-col gap-5">
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">שם העסק</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">שם העסק</label>
                       <input
                         ref={nameRef}
                         type="text"
@@ -323,27 +323,27 @@ export default function AddClientModal() {
                           if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
                         }}
                         onKeyDown={(e) => handleKeyDown(e, nextStepButtonRef, () => name && setStep(2))}
-                        className={`w-full px-4 md:px-6 py-4 md:py-4 bg-slate-50 border rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none min-h-[48px] transition-all ${
+                        className={`w-full px-4 py-3 bg-slate-50/50 border rounded-xl font-bold text-sm outline-none transition-all ${
                           errors.name 
-                            ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
-                            : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' 
+                            : 'border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white'
                         }`}
-                        placeholder="שם העסק"
+                        placeholder="הזן שם עסק"
                       />
                       {errors.name && (
-                        <p className="text-xs text-red-500 mt-1">{errors.name}</p>
+                        <p className="text-[10px] font-bold text-rose-500 mt-1.5">{errors.name}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">לוגו</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">לוגו (אופציונלי)</label>
                       <div className="flex items-center gap-4">
-                        {safeBrowserUrl(logo) && <img src={safeBrowserUrl(logo)!} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
+                        {safeBrowserUrl(logo) && <img src={safeBrowserUrl(logo)!} className="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-sm" alt="Logo" />}
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl font-black flex items-center gap-2 text-sm md:text-base hover:bg-slate-100 transition-colors"
+                          className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold flex items-center gap-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
                         >
-                          <Camera size={18} className="md:w-5 md:h-5" />
+                          <Camera size={16} />
                           העלה לוגו
                         </button>
                         <input 
@@ -372,21 +372,21 @@ export default function AddClientModal() {
                     setStep(2);
                   }}
                   disabled={!name}
-                  className="w-full py-4 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 transition-all min-h-[48px]"
+                  className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 transition-all shadow-sm mt-4"
                 >
-                  המשך <ArrowRight size={18} className="inline mr-2 md:w-5 md:h-5" />
+                  המשך <ArrowRight size={16} className="inline mr-2" />
                 </button>
               </motion.div>
             )}
 
             {step === 2 && (
-              <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4 md:gap-8">
+              <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-4 md:mb-6">חשבונאות</h3>
-                  <div className="flex flex-col gap-4 md:gap-6">
+                  <h3 className="text-xl font-bold mb-6 text-slate-900">חשבונאות</h3>
+                  <div className="flex flex-col gap-5">
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">
-                        ח.פ / ע.מ <span className="text-slate-300 font-normal">(אופציונלי)</span>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        ח.פ / ע.מ <span className="text-slate-400 font-medium normal-case">(אופציונלי)</span>
                       </label>
                       <input
                         ref={businessIdRef}
@@ -397,20 +397,20 @@ export default function AddClientModal() {
                           if (errors.businessId) setErrors(prev => ({ ...prev, businessId: '' }));
                         }}
                         onKeyDown={(e) => handleKeyDown(e, invoiceNameRef)}
-                        className={`w-full px-4 md:px-6 py-4 md:py-4 bg-slate-50 border rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none min-h-[48px] transition-all ${
+                        className={`w-full px-4 py-3 bg-slate-50/50 border rounded-xl font-bold text-sm outline-none transition-all ${
                           errors.businessId 
-                            ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
-                            : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' 
+                            : 'border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white'
                         }`}
-                        placeholder="מספר עסק"
+                        placeholder="הזן מספר עוסק"
                       />
                       {errors.businessId && (
-                        <p className="text-xs text-red-500 mt-1">{errors.businessId}</p>
+                        <p className="text-[10px] font-bold text-rose-500 mt-1.5">{errors.businessId}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">
-                        שם לחשבונית <span className="text-slate-300 font-normal">(אופציונלי)</span>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        שם לחשבונית <span className="text-slate-400 font-medium normal-case">(אופציונלי)</span>
                       </label>
                       <input
                         ref={invoiceNameRef}
@@ -418,13 +418,13 @@ export default function AddClientModal() {
                         value={invoiceName}
                         onChange={e => setInvoiceName(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, emailRef)}
-                        className="w-full px-4 md:px-6 py-4 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px] transition-all"
-                        placeholder="שם לחשבונית"
+                        className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all"
+                        placeholder="הזן שם לחשבונית"
                       />
-                      <p className="text-xs text-slate-400 mt-2">אם לא יוזן, יישתמש בשם העסק</p>
+                      <p className="text-[10px] font-medium text-slate-400 mt-1.5">אם לא יוזן, ייעשה שימוש בשם העסק</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">אימייל (אופציונלי)</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">אימייל <span className="text-slate-400 font-medium normal-case">(אופציונלי)</span></label>
                       <input
                         ref={emailRef}
                         type="email"
@@ -439,22 +439,20 @@ export default function AddClientModal() {
                             setErrors(prev => ({ ...prev, email: 'אימייל לא תקין' }));
                           }
                         }}
-                        className={`w-full px-4 md:px-6 py-4 md:py-4 bg-slate-50 border rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none min-h-[48px] transition-all ${
+                        className={`w-full px-4 py-3 bg-slate-50/50 border rounded-xl font-bold text-sm outline-none transition-all ${
                           errors.email 
-                            ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
-                            : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' 
+                            : 'border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white'
                         }`}
-                        placeholder="דוא&quot;ל"
+                        placeholder="email@example.com"
+                        dir="ltr"
                       />
                       {errors.email && (
-                        <p className="text-xs text-red-500 mt-1">{errors.email}</p>
-                      )}
-                      {!errors.email && (
-                      <p className="text-xs text-slate-400 mt-2">לא חובה - ניתן להוסיף מאוחר יותר</p>
+                        <p className="text-[10px] font-bold text-rose-500 mt-1.5">{errors.email}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-400 mb-2">טלפון (אופציונלי)</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">טלפון <span className="text-slate-400 font-medium normal-case">(אופציונלי)</span></label>
                       <input
                         ref={phoneRef}
                         type="tel"
@@ -469,62 +467,60 @@ export default function AddClientModal() {
                             setErrors(prev => ({ ...prev, phone: 'טלפון לא תקין. נא להזין בפורמט: 050-1234567' }));
                           }
                         }}
-                        className={`w-full px-4 md:px-6 py-4 md:py-4 bg-slate-50 border rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none min-h-[48px] transition-all ${
+                        className={`w-full px-4 py-3 bg-slate-50/50 border rounded-xl font-bold text-sm outline-none transition-all ${
                           errors.phone 
-                            ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
-                            : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            ? 'border-rose-300 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-rose-50/30' 
+                            : 'border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white'
                         }`}
                         placeholder="050-1234567"
+                        dir="ltr"
                       />
                       {errors.phone && (
-                        <p className="text-xs text-red-500 mt-1">{errors.phone}</p>
-                      )}
-                      {!errors.phone && (
-                      <p className="text-xs text-slate-400 mt-2">לא חובה - ניתן להוסיף מאוחר יותר</p>
+                        <p className="text-[10px] font-bold text-rose-500 mt-1.5">{errors.phone}</p>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-3 md:gap-4">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3 md:py-4 bg-slate-100 text-slate-600 rounded-xl md:rounded-2xl font-black text-sm md:text-base">
+                <div className="flex gap-3 mt-2">
+                  <button onClick={() => setStep(1)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl font-bold text-sm transition-colors shadow-sm">
                     חזרה
                   </button>
-                  <button onClick={() => setStep(3)} className="flex-1 py-3 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base">
-                    המשך <ArrowRight size={18} className="inline mr-2 md:w-5 md:h-5" />
+                  <button onClick={() => setStep(3)} className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm shadow-sm hover:bg-slate-800 transition-colors">
+                    המשך <ArrowRight size={16} className="inline mr-2" />
                   </button>
                 </div>
               </motion.div>
             )}
 
             {step === 3 && (
-              <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4 md:gap-8">
+              <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-4 md:mb-6">גישה לרשתות</h3>
-                  <p className="text-slate-500 text-sm md:text-base mb-4 md:mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-slate-900">גישה לרשתות</h3>
+                  <p className="text-slate-500 text-sm mb-4">
                     ניתן להוסיף גישה לרשתות החברתיות מאוחר יותר בהגדרות הלקוח.
                   </p>
-                  <div className="bg-slate-50 rounded-xl md:rounded-2xl p-4 md:p-6">
-                    <p className="text-slate-600 text-sm md:text-base font-medium">
+                  <div className="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100">
+                    <p className="text-indigo-800 text-sm font-medium">
                       💡 טיפ: תוכל להוסיף את הגישות לרשתות החברתיות בהגדרות הלקוח לאחר היצירה.
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3 md:gap-4">
-                  <button onClick={() => setStep(2)} className="flex-1 py-3 md:py-4 bg-slate-100 text-slate-600 rounded-xl md:rounded-2xl font-black text-sm md:text-base">
+                <div className="flex gap-3">
+                  <button onClick={() => setStep(2)} className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl font-bold text-sm transition-colors shadow-sm">
                     חזרה
                   </button>
-                  <button onClick={() => setStep(4)} className="flex-1 py-3 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base">
-                    המשך <ArrowRight size={18} className="inline mr-2 md:w-5 md:h-5" />
+                  <button onClick={() => setStep(4)} className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm shadow-sm hover:bg-slate-800 transition-colors">
+                    המשך <ArrowRight size={16} className="inline mr-2" />
                   </button>
                 </div>
               </motion.div>
             )}
 
             {step === 4 && (
-              <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4 md:gap-8">
+              <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-6">
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-2">בחירת חבילה</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+                  <h3 className="text-xl font-bold mb-4 text-slate-900">בחירת חבילה</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
                     {PLANS.map(plan => (
                       <button
                         key={plan.id}
@@ -532,34 +528,34 @@ export default function AddClientModal() {
                           setSelectedPlan(plan.id);
                           setMonthlyFee(plan.price);
                         }}
-                        className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all ${
+                        className={`p-4 rounded-xl border-2 transition-all ${
                           selectedPlan === plan.id 
-                            ? 'border-green-600 bg-green-600 text-white shadow-lg shadow-green-100' 
-                            : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-md'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm' 
+                            : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'
+                        } disabled:opacity-50 disabled:cursor-not-allowed text-right`}
                       >
-                        <p className="font-black text-base md:text-lg mb-1 md:mb-2">{plan.name}</p>
-                        <p className="text-xs md:text-sm font-bold opacity-70">{plan.desc}</p>
+                        <p className="font-bold text-base mb-1">{plan.name}</p>
+                        <p className={`text-xs font-medium ${selectedPlan === plan.id ? 'text-emerald-700' : 'text-slate-500'}`}>{plan.desc}</p>
                       </button>
                     ))}
                   </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6">
-                    <label className="block text-sm font-black text-slate-500 mb-2">מחיר חודשי ללקוח (₪)</label>
+                  <div className="bg-slate-50/50 border border-slate-200 rounded-xl p-4">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">מחיר חודשי ללקוח (₪)</label>
                     <input
                       type="number"
                       value={monthlyFee}
                       onChange={(e) => setMonthlyFee(Number(e.target.value))}
                       min={0}
-                      className="w-full px-4 md:px-6 py-4 md:py-4 bg-white border border-slate-200 rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 min-h-[48px] transition-all"
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm"
                       placeholder="לדוגמה: 2990"
                     />
-                    <p className="text-xs text-slate-500 mt-2">ברירת המחדל מגיעה מהחבילה שבחרת — אפשר לערוך לפני יצירת הלקוח.</p>
+                    <p className="text-[10px] text-slate-500 mt-2 font-medium">ברירת המחדל מגיעה מהחבילה שבחרת — אפשר לערוך לפני יצירת הלקוח.</p>
                   </div>
                 </div>
                 <button
                   ref={submitButtonRef}
                   onClick={handlePayment}
-                  className="w-full py-4 md:py-5 bg-green-600 text-white rounded-xl md:rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-2 md:gap-3 hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
+                  className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-sm mt-2"
                 >
                   הוסף לקוח
                 </button>

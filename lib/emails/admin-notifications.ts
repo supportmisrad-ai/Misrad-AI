@@ -28,57 +28,56 @@ function generateAdminNewSignupEmailHTML(params: {
         ${EmailTemplateComponents.generateFeatureBanner({
             emoji: '🎉',
             title: 'לקוח חדש נרשם!',
-            subtitle: 'התראת מנהל — הרשמה חדשה במערכת',
-            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            subtitle: 'התראת מנהל',
         })}
 
-        <div style="font-size:20px;font-weight:900;color:#0f172a;margin-bottom:20px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;text-align:center;">
             נרשם לקוח חדש ל-MISRAD AI
         </div>
 
-        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:16px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 14px;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">שם</div>
-                        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:4px;">${name}</div>
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">שם</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${name}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">אימייל</div>
-                        <div style="font-size:16px;font-weight:700;color:#6366f1;margin-top:4px;">
-                            <a href="mailto:${params.customerEmail}" style="color:#6366f1;text-decoration:none;">${params.customerEmail}</a>
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">אימייל</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">
+                            <a href="mailto:${params.customerEmail}" style="color:#0f172a;text-decoration:none;">${params.customerEmail}</a>
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">ארגון</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${orgLabel}</div>
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">ארגון</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${orgLabel}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">תאריך הרשמה</div>
-                        <div style="font-size:14px;font-weight:600;color:#334155;margin-top:4px;">${params.signupDate}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">תאריך הרשמה</div>
+                        <div style="font-size:14px;font-weight:500;color:#334155;">${params.signupDate}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">Clerk User ID</div>
-                        <div style="font-size:12px;font-weight:500;color:#94a3b8;margin-top:4px;font-family:monospace;">${params.clerkUserId}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Clerk User ID</div>
+                        <div style="font-size:12px;font-weight:500;color:#94a3b8;font-family:monospace;">${params.clerkUserId}</div>
                     </td>
                 </tr>
             </table>
         </div>
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'צפייה בפאנל הניהול →',
+            text: 'צפייה בפאנל הניהול',
             url: adminUrl,
         })}
 
-        <div style="margin-top:16px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
+        <div style="margin-top:16px;font-size:13px;color:#64748b;line-height:1.6;text-align:center;">
             התראה זו נשלחת אוטומטית בכל הרשמה חדשה למערכת.
         </div>
     `;
@@ -86,7 +85,6 @@ function generateAdminNewSignupEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'לקוח חדש נרשם',
-        headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
         bodyContent,
         showSocialLinks: false,
     });
@@ -115,86 +113,85 @@ function generateAdminPaymentReceivedEmailHTML(params: {
             emoji: '💳',
             title: 'תשלום התקבל!',
             subtitle: 'לקוח שילם אחרי תקופת ניסיון',
-            gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         })}
 
-        <div style="font-size:20px;font-weight:900;color:#0f172a;margin-bottom:20px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;text-align:center;">
             לקוח ביצע תשלום — נדרש אישור
         </div>
 
-        <div style="margin:24px 0;padding:24px;background:linear-gradient(135deg,#f0fdf4 0%,#ecfdf5 100%);border-radius:16px;border:2px solid #a7f3d0;">
+        <div style="margin:24px 0;padding:24px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 14px;">
-                        <div style="font-size:11px;font-weight:800;color:#065f46;text-transform:uppercase;letter-spacing:0.8px;">סכום</div>
-                        <div style="font-size:28px;font-weight:900;background:linear-gradient(135deg,#059669,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-top:4px;">
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">סכום</div>
+                        <div style="font-size:28px;font-weight:800;color:#166534;">
                             ${currencySymbol}${params.amount}
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #a7f3d0;">
-                        <div style="font-size:11px;font-weight:800;color:#065f46;text-transform:uppercase;letter-spacing:0.8px;">חבילה</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.packageLabel} · ${billingLabel}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #bbf7d0;">
+                        <div style="font-size:12px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">חבילה</div>
+                        <div style="font-size:16px;font-weight:600;color:#166534;">${params.packageLabel} · ${billingLabel}</div>
                     </td>
                 </tr>
             </table>
         </div>
 
-        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:16px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 14px;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">שם הלקוח</div>
-                        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:4px;">${params.customerName}</div>
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">שם הלקוח</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${params.customerName}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">אימייל</div>
-                        <div style="font-size:16px;font-weight:700;color:#6366f1;margin-top:4px;">
-                            <a href="mailto:${params.customerEmail}" style="color:#6366f1;text-decoration:none;">${params.customerEmail}</a>
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">אימייל</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">
+                            <a href="mailto:${params.customerEmail}" style="color:#0f172a;text-decoration:none;">${params.customerEmail}</a>
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">טלפון</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">טלפון</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">
                             <a href="tel:${params.customerPhone}" style="color:#0f172a;text-decoration:none;">${params.customerPhone}</a>
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">ארגון</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${orgLabel}</div>
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">ארגון</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${orgLabel}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">מספר הזמנה</div>
-                        <div style="font-size:13px;font-weight:600;color:#94a3b8;margin-top:4px;font-family:monospace;">${params.orderId}</div>
+                    <td style="padding:16px 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">מספר הזמנה</div>
+                        <div style="font-size:13px;font-weight:500;color:#64748b;font-family:monospace;">${params.orderId}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:14px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;">תאריך</div>
-                        <div style="font-size:14px;font-weight:600;color:#334155;margin-top:4px;">${params.paymentDate}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">תאריך</div>
+                        <div style="font-size:14px;font-weight:500;color:#334155;">${params.paymentDate}</div>
                     </td>
                 </tr>
                 ${params.hasProofImage ? `
                 <tr>
-                    <td style="padding:14px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="display:inline-block;background:#ecfdf5;color:#065f46;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;">
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="display:inline-block;background:#ecfdf5;color:#065f46;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #bbf7d0;">
                             ✓ צילום מסך הוכחה צורף
                         </div>
                     </td>
                 </tr>
                 ` : `
                 <tr>
-                    <td style="padding:14px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="display:inline-block;background:#fff7ed;color:#9a3412;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;">
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="display:inline-block;background:#fffbeb;color:#92400e;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid #fde68a;">
                             ⚠ לא צורפה הוכחת תשלום
                         </div>
                     </td>
@@ -207,18 +204,18 @@ function generateAdminPaymentReceivedEmailHTML(params: {
             emoji: '⚡',
             title: 'נדרש אישור ידני',
             text: 'יש לאשר את ההזמנה בפאנל הניהול כדי להפעיל את המנוי ללקוח.',
-            bgColor: '#fff7ed',
-            borderColor: '#fed7aa',
-            titleColor: '#9a3412',
+            bgColor: '#fffbeb',
+            borderColor: '#fde68a',
+            titleColor: '#92400e',
             textColor: '#92400e',
         })}
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'אישור הזמנה בפאנל הניהול →',
+            text: 'אישור הזמנה בפאנל הניהול',
             url: adminUrl,
         })}
 
-        <div style="margin-top:16px;font-size:13px;color:#64748b;line-height:1.7;text-align:center;">
+        <div style="margin-top:16px;font-size:13px;color:#64748b;line-height:1.6;text-align:center;">
             התראה זו נשלחת אוטומטית בכל הגשת הוכחת תשלום מלקוח.
         </div>
     `;
@@ -226,7 +223,6 @@ function generateAdminPaymentReceivedEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'תשלום חדש ממתין לאישור',
-        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: false,
     });

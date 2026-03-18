@@ -19,29 +19,29 @@ function generateInvitationEmailHTML(
     const greeting = ownerName ? `${ownerName},` : 'שלום,';
     
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:28px;">
-            העסק <strong style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:19px;">"${tenantName}"</strong> הוקם בהצלחה במערכת.
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:32px;">
+            העסק <strong>"${tenantName}"</strong> הוקם בהצלחה.
             <br />
-            נשאר רק ליצור חשבון ולהתחיל.
+            נשאר רק ליצור חשבון ולהתחיל לעבוד.
         </div>
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'יצירת חשבון →',
+            text: 'יצירת חשבון',
             url: signupUrl,
         })}
         
         ${subdomain ? `
-            <div style="margin:28px 0;padding:18px 24px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;text-align:center;">
-                <div style="font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">הכתובת הישירה שלך</div>
-                <a href="https://${subdomain}.misrad-ai.com" style="color:#6366f1;font-size:16px;font-weight:700;text-decoration:none;">
+            <div style="margin:32px 0;padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+                <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">הכתובת הישירה שלך</div>
+                <a href="https://${subdomain}.misrad-ai.com" style="color:#0f172a;font-size:18px;font-weight:700;text-decoration:none;">
                     ${subdomain}.misrad-ai.com
                 </a>
             </div>
         ` : ''}
         
-        <div style="margin-top:32px;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+        <div style="margin-top:32px;font-size:13px;color:#94a3b8;line-height:1.6;text-align:center;">
             הקישור תקף ללא הגבלת זמן. לא יצרת את הבקשה? אפשר להתעלם.
         </div>
     `;
@@ -49,7 +49,6 @@ function generateInvitationEmailHTML(
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'העסק שלך מוכן',
-        headerGradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         bodyContent,
         showSocialLinks: true,
     });
@@ -67,31 +66,31 @@ function generateEmployeeInvitationEmailHTML(
     const inviter = createdByName ? `${createdByName} ` : '';
     
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:24px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${greeting}</div>
         
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
             ${inviter ? `${inviter}הזמין אותך להצטרף לצוות` : 'הוזמנת להצטרף לצוות'} ב-MISRAD.
         </div>
         
-        <div style="margin:24px 0;background:#f8fafc;border:2px solid #e2e8f0;border-radius:14px;padding:22px 24px;">
+        <div style="margin:24px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:24px;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 <tr>
-                    <td style="padding:0 0 10px;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;letter-spacing:0.5px;">מחלקה</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:2px;">${department}</div>
+                    <td style="padding:0 0 16px;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;letter-spacing:0.5px;margin-bottom:4px;">מחלקה</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${department}</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:10px 0 0;border-top:1px solid #e2e8f0;">
-                        <div style="font-size:12px;font-weight:800;color:#64748b;letter-spacing:0.5px;">תפקיד</div>
-                        <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:2px;">${role}</div>
+                    <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                        <div style="font-size:12px;font-weight:600;color:#64748b;letter-spacing:0.5px;margin-bottom:4px;">תפקיד</div>
+                        <div style="font-size:16px;font-weight:600;color:#0f172a;">${role}</div>
                     </td>
                 </tr>
             </table>
         </div>
         
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'השלמת הרשמה →',
+            text: 'השלמת הרשמה',
             url: invitationUrl,
         })}
         
@@ -99,13 +98,13 @@ function generateEmployeeInvitationEmailHTML(
             emoji: '⏰',
             title: 'הקישור תקף 30 יום',
             text: 'לאחר מכן תצטרך הזמנה חדשה.',
-            bgColor: '#fff7ed',
-            borderColor: '#fed7aa',
-            titleColor: '#9a3412',
-            textColor: '#9a3412',
+            bgColor: '#fffbeb',
+            borderColor: '#fde68a',
+            titleColor: '#92400e',
+            textColor: '#92400e',
         })}
         
-        <div style="margin-top:28px;font-size:12px;color:#94a3b8;line-height:1.6;text-align:center;">
+        <div style="margin-top:28px;font-size:13px;color:#94a3b8;line-height:1.6;text-align:center;">
             לא ביקשת הזמנה זו? אפשר להתעלם מהמייל.
         </div>
     `;
@@ -113,7 +112,6 @@ function generateEmployeeInvitationEmailHTML(
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'הזמנה להצטרף לצוות',
-        headerGradient: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
         bodyContent,
         showSocialLinks: false,
     });

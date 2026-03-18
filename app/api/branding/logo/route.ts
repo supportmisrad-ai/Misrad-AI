@@ -7,7 +7,7 @@ import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { createServiceRoleStorageClient } from '@/lib/supabase';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
-import { parseSbRef, toSbRefMaybe } from '@/lib/services/operations/storage';
+import { getServiceRoleStorageClient, parseSbRef, toSbRefMaybe } from '@/lib/services/operations/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 const GLOBAL_BRANDING_KEY = 'global_branding';
@@ -40,10 +40,25 @@ async function resolveGlobalBrandingSignedUrl(ref: string, ttlSeconds: number): 
     if (!parsed) return null;
     if (!isAllowedGlobalBrandingRef(ref)) return null;
 
-    const sb = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'storage_signed_url_resolve' });
-    const { data, error } = await sb.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
-    if (error || !data?.signedUrl) return null;
-    return String(data.signedUrl);
+    const sb = getServiceRoleStorageClient();
+    const bucketApi = sb.storage.from(parsed.bucket);
+    
+    if (typeof bucketApi.createSignedUrl !== 'function') {
+      return null;
+    }
+
+    const { data, error } = await bucketApi.createSignedUrl(parsed.path, ttlSeconds);
+    
+    if (error) return null;
+    
+    // content of data is unknown in StorageClientLike, so we cast safely
+    const signedUrl = data && typeof data === 'object' && 'signedUrl' in data 
+      ? (data as Record<string, unknown>).signedUrl 
+      : null;
+
+    if (!signedUrl) return null;
+    
+    return String(signedUrl);
   } catch {
     return null;
   }

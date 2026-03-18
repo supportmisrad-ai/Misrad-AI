@@ -21,13 +21,13 @@ export function ClientWorkspaceTabs({ activeTab, onTabChange }: ClientWorkspaceT
   ] as const;
 
   return (
-    <div className="flex bg-white p-2 rounded-2xl md:rounded-[28px] border border-slate-200 shadow-sm overflow-x-auto scroll-smooth">
+    <div className="flex bg-white p-1.5 md:p-2 rounded-2xl border border-slate-100 shadow-sm overflow-x-auto scroll-smooth no-scrollbar">
       {tabs.map(tab => (
         <button 
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`flex items-center gap-2 md:gap-3 px-5 md:px-8 py-3 md:py-4 rounded-xl md:rounded-[22px] font-black text-[11px] md:text-sm transition-all whitespace-nowrap ${
-            activeTab === tab.id ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'
+          className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-xl font-bold text-[11px] md:text-sm transition-all whitespace-nowrap ${
+            activeTab === tab.id ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
           }`}
         >
           <tab.icon size={16} /> {tab.label}

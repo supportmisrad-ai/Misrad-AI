@@ -10,7 +10,6 @@
 
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { eventBus } from '@/lib/events/event-bus';
@@ -110,8 +109,6 @@ export async function createBookingAppointment(
           timeout: 10000,
         });
 
-        revalidatePath('/admin/booking/appointments');
-        
         // 🏛️ AI Tower: Emit BOOKING_CREATED event (fire-and-forget)
         eventBus.emitSimple(
           'BOOKING_CREATED',
@@ -218,8 +215,7 @@ export async function updateBookingAppointment(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
-        
+
         return {
           success: true,
           data: appointment as unknown as BookingAppointment,
@@ -296,8 +292,6 @@ export async function cancelBookingAppointment(
           },
         });
 
-        revalidatePath('/admin/booking/appointments');
-        
         return {
           success: true,
           message: 'התור בוטל בהצלחה',
@@ -430,8 +424,7 @@ export async function updateAppointmentAttendance(
           data: { attended },
         });
 
-        revalidatePath('/admin/booking/appointments');
-        
+
         return {
           success: true,
           message: attended ? 'סומן כהגיע' : 'סומן שלא הגיע',

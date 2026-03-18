@@ -103,46 +103,48 @@ export function BotAnalyticsDashboard() {
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    return (
+    <div className="space-y-8 font-sans text-slate-900" dir="rtl">
+      <div className="flex items-center justify-between pb-6 border-b border-slate-200">
         <div>
-          <h2 className="text-2xl font-bold">אנליטיקס לידים</h2>
-          <p className="text-gray-500">סקירת ביצועים בזמן אמת</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">אנליטיקס לידים</h2>
+          <p className="text-slate-500 font-medium mt-1">סקירת ביצועים ומגמות בזמן אמת</p>
         </div>
         <button
           onClick={fetchAnalytics}
           disabled={isLoading}
-          className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 flex items-center gap-2 transition-all shadow-sm"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading && 'animate-spin'}`} />
-          רענן
+          {isLoading ? 'מרענן...' : 'רענון נתונים'}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stats.map((stat) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {stats.map((stat, idx) => {
           const Icon = stat.icon;
-          const ChangeIcon = stat.changeType === 'positive' ? ArrowUpRight : ArrowDownRight;
           
           return (
-            <div key={stat.title} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-500">
-                  {stat.title}
-                </h3>
-                <div className={`p-2 rounded-full ${stat.color} bg-opacity-20`}>
-                  <Icon className="w-4 h-4 text-white" />
+            <div key={idx} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all group">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 rounded-xl ${stat.color} bg-opacity-10 text-white group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className={`w-6 h-6 ${stat.color.replace('bg-', 'text-')}`} />
+                </div>
+                <div className={`flex items-center gap-1 text-xs font-black px-2 py-1 rounded-full ${stat.changeType === 'positive' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                  {stat.changeType === 'positive' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {stat.change}
                 </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold">
-                  {stat.value.toLocaleString()}
-                  {stat.suffix}
-                </div>
-                <div className={`flex items-center text-sm ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
-                  <ChangeIcon className="w-4 h-4 ml-1" />
-                  {stat.change}
+              
+              <div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  {stat.title}
+                </h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-black text-slate-900 tracking-tight">
+                    {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                  </span>
+                  {stat.suffix && <span className="text-sm font-bold text-slate-400">{stat.suffix}</span>}
                 </div>
               </div>
             </div>

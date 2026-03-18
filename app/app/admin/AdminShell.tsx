@@ -343,102 +343,115 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   return (
     <AdminGuard>
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-slate-100/50 text-slate-900 font-sans relative overflow-hidden flex">
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 -right-1/4 w-[800px] h-[800px] bg-slate-200/30 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 -left-1/4 w-[600px] h-[600px] bg-slate-100/40 rounded-full blur-3xl"></div>
-        </div>
+      <div className="min-h-screen w-full bg-[#F8FAFC] text-slate-900 font-sans relative flex text-right" dir="rtl">
+        
+        {/* Mobile Nav Overlay */}
+        {isMobileNavOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
+        )}
 
-        <aside className="hidden md:flex w-72 shrink-0 flex-col border-l border-slate-200/70 bg-white/80 backdrop-blur-3xl fixed right-0 top-0 bottom-0 z-20 shadow-2xl shadow-slate-200/60 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-slate-400/3 to-slate-500/5 pointer-events-none"></div>
-          <div className="pt-6 pb-4 px-5 shrink-0 relative z-10 border-b border-slate-200/70">
-            <div className="flex items-center gap-2 text-slate-700 font-bold uppercase tracking-wider text-xs mb-2">
-              <div className="p-1.5 bg-slate-100 rounded-lg backdrop-blur-sm border border-slate-300">
-                <Shield size={12} />
+        {/* Sidebar - Desktop */}
+        <aside className="hidden md:flex w-72 shrink-0 flex-col bg-white border-l border-slate-200 fixed right-0 top-0 bottom-0 z-30 shadow-sm">
+          {/* Header */}
+          <div className="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-sm">
+                <ShieldCheck size={16} strokeWidth={2.5} />
               </div>
-              ניהול-על
+              <div>
+                <div className="text-base font-bold text-slate-900 leading-tight">ענן משרד</div>
+                <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Super Admin</div>
+              </div>
             </div>
-            <div className="text-lg font-black text-slate-900 tracking-tight">
-              ענן משרד
-            </div>
-            <div className="mt-2 h-0.5 w-16 bg-gradient-to-r from-slate-800 to-slate-500 rounded-full"></div>
           </div>
 
-          <nav className="p-3 flex-1 min-h-0 overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
-
-            {!isAuditServiceRole ? (
-              <div className="mb-3 rounded-2xl border border-slate-200 bg-white/70 p-3">
-                <div className="text-xs font-black text-slate-600">סביבת עבודה</div>
-                <div className="mt-2 grid grid-cols-3 gap-1.5">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
+            
+            {!isAuditServiceRole && (
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2">אזורי ניהול</label>
+                <div className="grid grid-cols-2 gap-2">
                   {ADMIN_AREAS.map((area) => {
-                    const areaColors: Record<AdminArea, { active: string; inactive: string }> = {
-                      customers: { active: 'bg-blue-600 text-white border-blue-600', inactive: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' },
-                      users: { active: 'bg-purple-600 text-white border-purple-600', inactive: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' },
-                      support: { active: 'bg-green-600 text-white border-green-600', inactive: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' },
-                      product: { active: 'bg-orange-600 text-white border-orange-600', inactive: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
-                      content: { active: 'bg-pink-600 text-white border-pink-600', inactive: 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100' },
-                      infra: { active: 'bg-slate-800 text-white border-slate-800', inactive: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200' },
-                      bot: { active: 'bg-teal-600 text-white border-teal-600', inactive: 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100' },
-                      ai: { active: 'bg-indigo-600 text-white border-indigo-600', inactive: 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' },
-                      analytics: { active: 'bg-amber-600 text-white border-amber-600', inactive: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' },
+                    const isActive = adminArea === area;
+                    // Colors mapping for active state
+                    const colors: Record<AdminArea, string> = {
+                      customers: 'bg-blue-600',
+                      users: 'bg-purple-600',
+                      support: 'bg-green-600',
+                      product: 'bg-orange-600',
+                      content: 'bg-pink-600',
+                      infra: 'bg-slate-700',
+                      bot: 'bg-teal-600',
+                      ai: 'bg-indigo-600',
+                      analytics: 'bg-amber-600',
                     };
-                    const colors = areaColors[area];
-                    // Get first nav item for each area as the main link
-                    const areaFirstHref = areaNavMap[area][0]?.href || '/app/admin';
+
                     return (
-                      <Link
+                      <button
                         key={area}
-                        href={areaFirstHref}
-                        className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border shadow-sm text-center ${
-                          adminArea === area ? colors.active : colors.inactive
-                        }`}
+                        type="button"
+                        onClick={() => switchAdminArea(area)}
+                        className={`
+                          relative overflow-hidden px-3 py-2 rounded-lg text-xs font-bold transition-all text-right
+                          ${isActive 
+                            ? `${colors[area]} text-white shadow-sm ring-1 ring-black/5` 
+                            : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-slate-300'}
+                        `}
                       >
-                        {getAdminAreaLabel(area)}
-                      </Link>
+                        <span className="relative z-10">{getAdminAreaLabel(area)}</span>
+                      </button>
                     );
                   })}
                 </div>
-                <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
+                <div className="px-2 text-[11px] text-slate-400 font-medium">
+                  {getAdminAreaDescription(adminArea)}
+                </div>
               </div>
-            ) : null}
+            )}
 
-            {(isAuditServiceRole ? effectiveNavItems : effectiveNavItems.filter((item) => item.href !== dashboardItem.href)).map((item) => {
-              const active = isActivePath(pathname, item.href, currentSearch);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-colors ${
-                    active
-                      ? 'bg-slate-900 text-white border border-slate-800'
-                      : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-2 mb-2 block">תפריט</label>
+              {(isAuditServiceRole ? effectiveNavItems : effectiveNavItems.filter((item) => item.href !== dashboardItem.href)).map((item) => {
+                const active = isActivePath(pathname, item.href, currentSearch);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`
+                      admin-nav-item group
+                      ${active ? 'active' : ''}
+                    `}
+                  >
+                    <Icon 
+                      size={16} 
+                      className={active ? 'text-slate-300' : 'text-slate-400 group-hover:text-slate-600'} 
+                      strokeWidth={active ? 2.5 : 2}
+                    />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
 
           </nav>
 
-          <div className="p-4 border-t border-slate-200/70 relative z-10 bg-gradient-to-t from-white/60 to-transparent">
+          <div className="p-4 border-t border-slate-100 bg-slate-50/50">
             <div className="flex items-center gap-3">
-              <Avatar src={currentUser?.avatar || null} name={userName} size="md" rounded="full" />
+              <Avatar src={currentUser?.avatar || null} name={userName} size="sm" rounded="full" className="ring-2 ring-white shadow-sm" />
               <div className="min-w-0">
-                <div className="text-sm font-black text-slate-900 truncate" suppressHydrationWarning>
-                  {userName}
-                </div>
-                <div className="text-[10px] font-bold text-slate-500 truncate" suppressHydrationWarning>
-                  {userRole || ''}
-                </div>
+                <div className="text-sm font-bold text-slate-900 truncate">{userName}</div>
+                <div className="text-xs text-slate-500 truncate">{userRole}</div>
               </div>
             </div>
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0 relative z-10 md:mr-72">
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col min-w-0 md:mr-72 bg-[#F8FAFC]">
           <SharedHeader
             title="ענן משרד"
             subtitle={`Super Admin · ${getAdminAreaLabel(adminArea)}`}
@@ -455,9 +468,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   onClick={() => router.push('/app/admin/ai')}
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+                  className="h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
                   title="ניהול AI"
-                  aria-label="ניהול AI"
                 >
                   <BrainCircuit size={18} />
                 </Button>
@@ -466,100 +478,106 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   onClick={() => router.push('/app/admin/global/links')}
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+                  className="h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
                   title="מרכז קישורים"
-                  aria-label="מרכז קישורים"
                 >
                   <Globe size={18} />
                 </Button>
-                <a
-                  href="/shabbat"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-                  title="מצב שבת"
-                  aria-label="מצב שבת"
-                >
-                  <Moon size={18} />
-                </a>
                 <Button
                   type="button"
                   onClick={() => router.push(getReturnToPath())}
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+                  className="h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                   title="חזרה לאפליקציה"
-                  aria-label="חזרה לאפליקציה"
                 >
                   <ArrowRight size={18} />
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => { router.refresh(); window.location.reload(); }}
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-                  title="רענון"
-                  aria-label="רענון"
-                >
-                  <RefreshCw size={18} />
-                </Button>
               </div>
             ) : null}
-            actionsSlot={!isAuditServiceRole ? (
-              <Button
-                type="button"
-                onClick={() => router.push(getReturnToPath())}
-                variant="ghost"
-                size="icon"
-                className="md:hidden h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-                title="חזרה לאפליקציה"
-                aria-label="חזרה לאפליקציה"
-              >
-                <ArrowRight size={18} />
-              </Button>
-            ) : null}
-            className="bg-white/80 backdrop-blur-3xl border-b border-slate-200/70"
+            className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm"
           />
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
-            {children}
+          <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <div className="max-w-7xl mx-auto w-full">
+              {children}
+            </div>
           </div>
         </main>
 
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/70 bg-white/85 backdrop-blur-3xl safe-area-bottom">
-          <div className="grid items-stretch px-2 py-2" style={{ gridTemplateColumns: `repeat(${mobileNavItems.length + 1}, minmax(0, 1fr))` }}>
-            {mobileNavItems.map((item) => {
-              const active = isActivePath(pathname, item.href, currentSearch);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileNavOpen(false)}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 font-black text-[10px] transition-colors ${
-                    active ? 'text-slate-900' : 'text-slate-600'
-                  }`}
-                  aria-label={item.label}
-                >
-                  <Icon size={18} />
-                  <span className="truncate max-w-full">{item.label}</span>
-                </Link>
-              );
-            })}
-
-            <Button
-              type="button"
-              onClick={() => setIsMobileNavOpen(true)}
-              variant="ghost"
-              className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 font-black text-[10px] transition-colors ${
-                isMobileNavOpen ? 'text-slate-900' : 'text-slate-600'
-              }`}
-              aria-label="עוד"
-            >
-              <MoreHorizontal size={18} />
-              <span className="truncate max-w-full">עוד</span>
+        {/* Mobile Navigation Drawer */}
+        <div 
+          className={`
+            fixed inset-y-0 right-0 w-[85%] max-w-xs bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
+            ${isMobileNavOpen ? 'translate-x-0' : 'translate-x-full'}
+          `}
+        >
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="font-bold text-slate-900">תפריט ניהול</div>
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileNavOpen(false)} className="h-8 w-8 rounded-full hover:bg-slate-200/50">
+              <ArrowRight size={18} />
             </Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+             {/* Mobile Area Switcher */}
+             {!isAuditServiceRole && (
+               <div className="space-y-3">
+                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">אזורי ניהול</label>
+                 <div className="grid grid-cols-2 gap-2">
+                   {ADMIN_AREAS.map((area) => (
+                     <button
+                       key={area}
+                       onClick={() => { switchAdminArea(area); }}
+                       className={`
+                         px-3 py-2.5 rounded-lg text-xs font-bold transition-all text-center border
+                         ${adminArea === area
+                           ? 'bg-slate-900 text-white border-slate-900'
+                           : 'bg-white text-slate-600 border-slate-200'}
+                       `}
+                     >
+                       {getAdminAreaLabel(area)}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+
+             {/* Mobile Links */}
+             <div className="space-y-1">
+               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">ניווט</label>
+               {effectiveNavItems.map((item) => {
+                  const active = isActivePath(pathname, item.href, currentSearch);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileNavOpen(false)}
+                      className={`
+                        flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all
+                        ${active
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-600 bg-slate-50 border border-slate-100'}
+                      `}
+                    >
+                      <Icon size={18} className={active ? 'text-slate-300' : 'text-slate-500'} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+               })}
+             </div>
+          </div>
+
+          <div className="p-4 border-t border-slate-100 bg-slate-50">
+             <Button 
+               onClick={() => { setIsMobileNavOpen(false); router.push(getReturnToPath()); }}
+               className="w-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+               variant="outline"
+             >
+               <ArrowRight size={16} className="ml-2" />
+               חזרה לאפליקציה
+             </Button>
           </div>
         </div>
 
@@ -580,102 +598,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           hideAssets
         />
 
-        {isMobileNavOpen ? (
-          <div className="fixed inset-0 z-[120] flex items-end" role="dialog" aria-modal="true">
-            <Button
-              type="button"
-              variant="ghost"
-              className="absolute inset-0 w-full h-full p-0 bg-slate-900/40 backdrop-blur-sm rounded-none"
-              onClick={() => setIsMobileNavOpen(false)}
-              aria-label="Close"
-            />
-            <div className="relative w-full rounded-t-3xl bg-white border-t border-slate-200 shadow-2xl overflow-hidden">
-              <div className="px-5 pt-4 pb-3 border-b border-slate-200">
-                <div className="text-sm font-black text-slate-900">ניווט אדמין</div>
-              </div>
-
-              <div className="max-h-[70vh] min-h-[50vh] overflow-y-auto p-3 space-y-2 overscroll-contain">
-                <div className="grid grid-cols-2 gap-2">
-                  {effectiveNavItems.map((item) => {
-                    const active = isActivePath(pathname, item.href, currentSearch);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMobileNavOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-colors ${
-                          active ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-50 text-slate-700'
-                        }`}
-                      >
-                        <Icon size={18} />
-                        <span className="flex-1 min-w-0 truncate">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  {!isAuditServiceRole ? (
-                    <div className="px-2 pt-2">
-                      <div className="text-xs font-black text-slate-500">סביבת עבודה</div>
-                      <div className="grid grid-cols-3 gap-1.5 mt-2">
-                        {ADMIN_AREAS.map((area) => {
-                          const areaFirstHref = areaNavMap[area][0]?.href || '/app/admin';
-                          return (
-                            <Link
-                              key={area}
-                              href={areaFirstHref}
-                              onClick={() => setIsMobileNavOpen(false)}
-                              className={`px-2 py-1.5 rounded-lg text-[11px] font-black transition-all border text-center ${
-                                adminArea === area
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-md'
-                                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                              }`}
-                            >
-                              {getAdminAreaLabel(area)}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-2 text-[10px] font-bold text-slate-500">{getAdminAreaDescription(adminArea)}</div>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="p-3 border-t border-slate-200 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => { setIsMobileNavOpen(false); router.push(getReturnToPath()); }}
-                    variant="outline"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-black text-sm"
-                  >
-                    <ArrowRight size={16} />
-                    חזרה לאפליקציה
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => { setIsMobileNavOpen(false); router.refresh(); }}
-                    variant="outline"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-black text-sm"
-                  >
-                    <RefreshCw size={16} />
-                    רענון
-                  </Button>
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => setIsMobileNavOpen(false)}
-                  className="w-full inline-flex items-center justify-center px-4 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-slate-800 transition-colors"
-                >
-                  סגור
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     </AdminGuard>
   );

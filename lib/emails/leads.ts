@@ -22,19 +22,19 @@ function generateNewLeadNotificationHTML(params: {
 
     rows.push(`
         <tr>
-            <td style="padding:0 0 12px;">
-                <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">שם</div>
-                <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.leadName}</div>
+            <td style="padding:0 0 16px;">
+                <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">שם</div>
+                <div style="font-size:16px;font-weight:600;color:#0f172a;">${params.leadName}</div>
             </td>
         </tr>
     `);
 
     rows.push(`
         <tr>
-            <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">טלפון</div>
-                <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;" dir="ltr">
-                    <a href="tel:${params.leadPhone}" style="color:#0f172a;text-decoration:underline;">${params.leadPhone}</a>
+            <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">טלפון</div>
+                <div style="font-size:16px;font-weight:600;color:#0f172a;" dir="ltr">
+                    <a href="tel:${params.leadPhone}" style="color:#0f172a;text-decoration:none;">${params.leadPhone}</a>
                 </div>
             </td>
         </tr>
@@ -43,10 +43,10 @@ function generateNewLeadNotificationHTML(params: {
     if (params.leadEmail) {
         rows.push(`
             <tr>
-                <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                    <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">אימייל</div>
-                    <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">
-                        <a href="mailto:${params.leadEmail}" style="color:#0f172a;text-decoration:underline;">${params.leadEmail}</a>
+                <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                    <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">אימייל</div>
+                    <div style="font-size:16px;font-weight:600;color:#0f172a;">
+                        <a href="mailto:${params.leadEmail}" style="color:#0f172a;text-decoration:none;">${params.leadEmail}</a>
                     </div>
                 </td>
             </tr>
@@ -56,9 +56,9 @@ function generateNewLeadNotificationHTML(params: {
     if (params.leadCompany) {
         rows.push(`
             <tr>
-                <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                    <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">חברה</div>
-                    <div style="font-size:16px;font-weight:700;color:#0f172a;margin-top:4px;">${params.leadCompany}</div>
+                <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                    <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">חברה</div>
+                    <div style="font-size:16px;font-weight:600;color:#0f172a;">${params.leadCompany}</div>
                 </td>
             </tr>
         `);
@@ -67,26 +67,26 @@ function generateNewLeadNotificationHTML(params: {
     if (params.leadMessage) {
         rows.push(`
             <tr>
-                <td style="padding:12px 0 0;border-top:1px solid #e2e8f0;">
-                    <div style="font-size:12px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">הודעה</div>
-                    <div style="font-size:14px;color:#334155;line-height:1.7;margin-top:4px;white-space:pre-line;">${params.leadMessage}</div>
+                <td style="padding:16px 0 0;border-top:1px solid #e2e8f0;">
+                    <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">הודעה</div>
+                    <div style="font-size:14px;color:#334155;line-height:1.6;white-space:pre-line;">${params.leadMessage}</div>
                 </td>
             </tr>
         `);
     }
 
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:8px;">ליד חדש מטופס ציבורי!</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:8px;">ליד חדש מטופס ציבורי!</div>
         <div style="font-size:14px;color:#64748b;margin-bottom:24px;">מישהו מילא את טופס הלידים של <strong>${params.orgName}</strong></div>
         
-        <div style="margin:24px 0;padding:20px 24px;background:#f8fafc;border-radius:14px;border:2px solid #e2e8f0;">
+        <div style="margin:24px 0;padding:24px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
             <table role="presentation" style="width:100%;" cellpadding="0" cellspacing="0">
                 ${rows.join('')}
             </table>
         </div>
 
         <div style="text-align:center;margin:32px 0 16px;">
-            <a href="${params.leadsPageUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;font-size:16px;font-weight:800;text-decoration:none;padding:14px 32px;border-radius:12px;">
+            <a href="${params.leadsPageUrl}" style="display:inline-block;background:#0f172a;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:8px;">
                 צפה בלידים שלך
             </a>
         </div>
@@ -95,7 +95,6 @@ function generateNewLeadNotificationHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'ליד חדש נכנס!',
-        headerGradient: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
         bodyContent,
         showSocialLinks: false,
     });

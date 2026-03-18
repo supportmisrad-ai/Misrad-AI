@@ -1,7 +1,6 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { MisradClientActionType } from '@prisma/client';
 
@@ -46,7 +45,6 @@ export async function createClientTask(params: {
     },
   });
 
-  revalidatePath('/', 'layout');
   return task;
 }
 

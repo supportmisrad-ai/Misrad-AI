@@ -111,13 +111,13 @@ function HeavySocialAdminPanelInner() {
   if (!hasAccess) {
     return (
       <div className="w-full flex items-center justify-center py-16">
-        <div className="text-center p-12 bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl max-w-md border border-slate-200">
+        <div className="text-center p-12 bg-white rounded-3xl shadow-sm max-w-md border border-slate-200">
           <TriangleAlert className="w-16 h-16 text-rose-500 mx-auto mb-6" />
           <h2 className="text-2xl font-black text-slate-900 mb-4">גישה נדחתה</h2>
           <p className="text-slate-600 mb-6">אין לך הרשאה לגשת לפאנל ניהול המערכת.</p>
           <Button
             onClick={() => router.push(joinPath(basePath, '/dashboard'))}
-            className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-md"
+            className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-sm"
             type="button"
           >
             חזור לדף הבית

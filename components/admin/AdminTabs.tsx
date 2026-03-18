@@ -27,19 +27,21 @@ export default function AdminTabs(props: {
             key={t.id}
             type="button"
             onClick={() => props.onValueChange(t.id)}
-            variant="outline"
+            variant="ghost"
             className={cn(
-              'gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-colors whitespace-nowrap',
-              active ? 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100' : undefined
+              'gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap border',
+              active 
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
             )}
           >
-            {Icon ? <Icon size={16} /> : null}
+            {Icon ? <Icon size={16} className={active ? 'text-slate-300' : 'text-slate-500'} /> : null}
             <span>{t.label}</span>
             {typeof t.badgeCount === 'number' ? (
               <span
                 className={cn(
-                  'inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full text-[11px] font-black',
-                  active ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'
+                  'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold',
+                  active ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
                 )}
               >
                 {t.badgeCount}

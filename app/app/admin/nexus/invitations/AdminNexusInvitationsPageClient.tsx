@@ -14,7 +14,7 @@ export default function AdminNexusInvitationsPageClient() {
     <div className="space-y-6 pb-24" dir="rtl">
       <AdminPageHeader title="הזמנות" subtitle="קישורי הזמנה למשתמשים" icon={Link} />
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 text-slate-900 shadow-sm">
           <InvitationLinksPanel addToast={addToast} hideHeader />
         </div>
       </motion.div>

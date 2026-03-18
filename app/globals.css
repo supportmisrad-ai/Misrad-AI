@@ -684,12 +684,84 @@ input[type=range]:active::-webkit-slider-thumb {
 
 /* Landing page performance: defer rendering of below-fold sections */
 .landing-section-lazy {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
+content-visibility: auto;
+contain-intrinsic-size: auto 600px;
 }
 
 /* GPU-accelerated decorative blurs */
 .gpu-blur {
-  will-change: transform;
-  transform: translateZ(0);
+will-change: transform;
+transform: translateZ(0);
+}
+
+/* --- Admin Pro Minimalist Theme --- */
+.admin-pro-card {
+@apply bg-white border border-slate-100 rounded-2xl shadow-sm transition-all duration-200;
+}
+
+.admin-pro-card:hover {
+@apply border-slate-200 shadow-md transform -translate-y-0.5;
+}
+
+.admin-pro-header {
+@apply text-slate-900 font-black tracking-tight;
+}
+
+.admin-pro-sub {
+@apply text-slate-500 font-medium tracking-normal;
+}
+
+.admin-pro-button {
+@apply bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-all active:scale-95;
+}
+
+.admin-pro-input {
+@apply bg-slate-50 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-0 transition-all font-medium text-slate-900 placeholder:text-slate-400;
+}
+
+/* Table Styles */
+.admin-table-header {
+@apply bg-slate-50/50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider py-3 px-4;
+}
+
+.admin-table-row {
+@apply border-b border-slate-50 hover:bg-slate-50/80 transition-colors;
+}
+
+.admin-table-cell {
+@apply py-3 px-4 text-sm text-slate-700;
+}
+
+/* Status Badges */
+.badge-pro {
+@apply px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 border;
+}
+
+.badge-pro-success {
+@apply bg-emerald-50 text-emerald-700 border-emerald-100;
+}
+
+.badge-pro-warning {
+@apply bg-amber-50 text-amber-700 border-amber-100;
+}
+
+.badge-pro-danger {
+@apply bg-rose-50 text-rose-700 border-rose-100;
+}
+
+.badge-pro-neutral {
+@apply bg-slate-50 text-slate-600 border-slate-100;
+}
+
+/* Sidebar & Nav */
+.admin-nav-item {
+@apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all text-slate-500 hover:text-slate-900 hover:bg-slate-50;
+}
+
+.admin-nav-item.active {
+@apply bg-slate-900 text-white shadow-sm shadow-slate-200;
+}
+
+.admin-nav-item.active svg {
+@apply text-slate-300;
 }

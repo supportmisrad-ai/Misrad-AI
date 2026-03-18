@@ -14,7 +14,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
       <header>
         <div className="flex items-center gap-2 text-nexus-accent mb-2">
           <Wallet size={18} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Financial Portal</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest">Financial Portal</span>
         </div>
         <h2 className="text-4xl font-display font-bold text-slate-900">פיננסים והסכמים</h2>
         <p className="text-slate-500 mt-2 text-lg">ניהול חשבונות, תשלומים וחוזים במקום אחד.</p>
@@ -22,13 +22,13 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4">
-          <div className="bg-slate-900 rounded-[40px] p-8 text-white relative overflow-hidden shadow-2xl h-full flex flex-col">
+          <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl h-full flex flex-col">
             <div className="absolute top-0 right-0 w-48 h-48 bg-nexus-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10 space-y-8 flex-1">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">ריטיינר נוכחי</span>
-                  <h3 className="text-3xl font-display font-black text-white">₪{client.monthlyRetainer.toLocaleString()}</h3>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">ריטיינר נוכחי</span>
+                  <h3 className="text-3xl font-display font-bold text-white">₪{client.monthlyRetainer.toLocaleString()}</h3>
                 </div>
                 <div className="p-3 bg-white/5 rounded-2xl border border-white/10 text-nexus-accent">
                   <CreditCard size={24} />
@@ -47,7 +47,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
               </div>
 
               <div className="pt-6 border-t border-white/5">
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">בנק שעות</h4>
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">בנק שעות</h4>
                 <div className="flex justify-between items-end">
                   <span className="text-2xl font-bold">
                     {client.hoursLogged} <span className="text-sm text-slate-500 font-normal">שעות נוצלו</span>
@@ -83,14 +83,14 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
             <Receipt size={22} className="text-nexus-accent" /> חשבוניות אחרונות
           </h3>
 
-          <div className="bg-white border border-slate-200 rounded-[32px] overflow-hidden shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-right">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">מספר</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">תאריך</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">סכום</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase">סטטוס</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">מספר</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">תאריך</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">סכום</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase">סטטוס</th>
                   <th className="px-6 py-4"></th>
                 </tr>
               </thead>

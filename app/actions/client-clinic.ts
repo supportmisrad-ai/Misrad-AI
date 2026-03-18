@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
@@ -274,7 +273,6 @@ export async function createClinicClient(params: {
   });
 
   if (!created?.id) throw new Error('Failed to create client');
-  revalidatePath('/', 'layout');
   return { id: created.id };
 }
 
@@ -302,7 +300,6 @@ export async function updateClinicClient(params: {
     data: patch,
   });
 
-  revalidatePath('/', 'layout');
 
   return { ok: true };
 }
@@ -397,7 +394,6 @@ export async function createClinicTask(params: {
   });
 
   if (!created?.id) throw new Error('Failed to create task');
-  revalidatePath('/', 'layout');
   return { id: created.id };
 }
 
@@ -426,7 +422,6 @@ export async function updateClinicTask(params: {
     data: patch,
   });
 
-  revalidatePath('/', 'layout');
 
   return { ok: true };
 }
@@ -610,7 +605,6 @@ export async function createClinicPortalContent(params: {
   });
 
   if (!created?.id) throw new Error('Failed to create portal content');
-  revalidatePath('/', 'layout');
   return { id: created.id };
 }
 
@@ -693,6 +687,5 @@ export async function createClinicFeedback(params: {
   });
 
   if (!created?.id) throw new Error('Failed to create feedback');
-  revalidatePath('/', 'layout');
   return { id: created.id };
 }

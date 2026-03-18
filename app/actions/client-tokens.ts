@@ -78,10 +78,6 @@ export async function saveClientToken(params: {
   try {
     const result = await saveClientTokenLib(params);
     
-    if (result.success) {
-      revalidatePath('/', 'layout');
-    }
-    
     return result;
   } catch (error) {
     logger.error('saveClientToken', 'Error saving token', error);
@@ -108,8 +104,6 @@ export async function deleteClientToken(params: {
         isActive: false,
       },
     });
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({});
   } catch (error) {
@@ -156,8 +150,6 @@ export async function refreshClientToken(params: {
       });
     }
     // Add other platforms as needed
-
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({});
   } catch (error) {

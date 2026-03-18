@@ -540,8 +540,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="flex overflow-x-auto scrollbar-hide">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden p-1">
+        <div className="flex overflow-x-auto scrollbar-hide gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -549,13 +549,13 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-[120px] px-4 py-4 flex items-center justify-center gap-2 text-sm font-bold transition-all border-b-2 ${
+                className={`flex-1 min-w-[120px] px-4 py-3 flex items-center justify-center gap-2 text-sm font-bold transition-all rounded-lg ${
                   isActive
-                    ? 'border-blue-600 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-slate-300' : ''}`} />
                 <span>{tab.label}</span>
               </button>
             );

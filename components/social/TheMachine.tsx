@@ -360,12 +360,12 @@ export default function TheMachine() {
   );
 
   return (
-    <div className="flex flex-col md:flex-row min-h-full bg-slate-50/30 rounded-3xl md:rounded-[48px] overflow-hidden border border-slate-200 shadow-sm" dir="rtl">
+    <div className="flex flex-col md:flex-row min-h-full bg-slate-50/30 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200 shadow-sm" dir="rtl">
       {/* Sidebar Steps */}
-      <div className="w-full md:w-80 bg-white border-b md:border-l border-slate-200 p-6 md:p-8 flex flex-col z-10">
+      <div className="w-full md:w-72 bg-white border-b md:border-l border-slate-200 p-4 md:p-6 flex flex-col z-10">
         <div className="flex items-center justify-between mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl font-black text-slate-900 flex items-center gap-2">
-            <Zap size={18} className="text-blue-600" /> פוסט בקליק
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Zap size={18} className="text-indigo-600" /> פוסט בקליק
           </h2>
           <button onClick={handleCancel} className="p-2 text-slate-400 hover:text-slate-800">
             <X size={20}/>
@@ -374,14 +374,14 @@ export default function TheMachine() {
         
         <div className="flex md:flex-col items-center md:items-start justify-center gap-4 md:gap-10 mt-2 md:mt-4">
           {[1, 2, 3].map(s => (
-            <div key={s} className="flex items-center gap-2 md:gap-5">
-              <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl flex items-center justify-center font-black transition-all text-sm md:text-base ${
-                step === s ? 'bg-slate-900 text-white shadow-lg md:shadow-xl' : 
-                step > s ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-300'
+            <div key={s} className="flex items-center gap-2 md:gap-4">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold transition-all text-sm ${
+                step === s ? 'bg-slate-900 text-white shadow-md' : 
+                step > s ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
               }`}>
                 {s}
               </div>
-              <span className={`hidden md:block font-black text-sm ${
+              <span className={`hidden md:block font-bold text-sm ${
                 step === s ? 'text-slate-900' : 'text-slate-400'
               }`}>
                 {s === 1 ? 'מי ומה?' : s === 2 ? 'בוחרים הצעה' : 'ליטוש אחרון'}
@@ -391,20 +391,20 @@ export default function TheMachine() {
         </div>
 
         {selectedClient && (
-          <div className="hidden md:flex mt-8 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 flex-col gap-4">
-            <div className="flex items-center gap-4">
+          <div className="hidden md:flex mt-8 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex-col gap-3">
+            <div className="flex items-center gap-3">
               <Avatar
                 src={String(selectedClient.avatar || '')}
                 name={String(selectedClient.companyName || selectedClient.name || '')}
                 alt={String(selectedClient.companyName || '')}
-                size="lg"
-                rounded="xl"
+                size="md"
+                rounded="lg"
               />
-              <p className="font-black text-blue-900 truncate">{selectedClient.companyName}</p>
+              <p className="font-bold text-indigo-900 truncate text-sm">{selectedClient.companyName}</p>
             </div>
             <button 
               onClick={() => { setSelectedClient(null); setStep(1); }} 
-              className="text-[10px] font-black text-blue-600 hover:underline"
+              className="text-[10px] font-bold text-indigo-600 hover:underline"
             >
               החלף לקוח
             </button>
@@ -412,28 +412,28 @@ export default function TheMachine() {
         )}
       </div>
 
-      <div className="flex-1 p-6 md:p-12 flex flex-col items-center justify-start overflow-y-auto">
+      <div className="flex-1 p-4 md:p-8 flex flex-col items-center justify-start overflow-y-auto">
         <AnimatePresence mode="sync">
           {step === 1 && (
             <motion.div 
               key="s1" 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
-              className="max-w-3xl w-full flex flex-col gap-8 md:gap-10"
+              className="max-w-3xl w-full flex flex-col gap-6 md:gap-8"
             >
               {!selectedClient && (
-                <div className="flex flex-col gap-6 md:gap-8">
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-xl md:text-2xl font-black">עבור איזה לקוח הפוסט?</h3>
+                <div className="flex flex-col gap-4 md:gap-6">
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-xl md:text-2xl font-bold">עבור איזה לקוח הפוסט?</h3>
                     <div className="relative">
                       <input 
                         type="text" 
                         placeholder="חפש לקוח..." 
                         value={clientSearchQuery}
                         onChange={e => setClientSearchQuery(e.target.value)}
-                        className="w-full bg-white border border-slate-100 rounded-xl md:rounded-2xl py-3 md:py-4 px-10 md:px-12 text-base md:text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all" 
+                        className="w-full bg-white border border-slate-200 rounded-xl py-2.5 md:py-3 px-10 md:px-12 text-sm md:text-base font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm" 
                       />
-                      <Search className="absolute right-3 md:right-4 top-3.5 md:top-5 text-slate-300" size={18} />
+                      <Search className="absolute right-3 md:right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     </div>
                   </div>
                   
@@ -449,17 +449,17 @@ export default function TheMachine() {
                               : DEFAULT_PLATFORMS
                           ); 
                         }} 
-                        className="p-3 md:p-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200 flex flex-col items-center gap-2 md:gap-3 hover:shadow-xl transition-all group"
+                        className="p-3 md:p-4 bg-white rounded-xl md:rounded-2xl border border-slate-200 flex flex-col items-center gap-2 md:gap-3 hover:shadow-md transition-all group"
                       >
                         <Avatar
                           src={String(c.avatar || '')}
                           name={String(c.companyName || c.name || '')}
                           alt={String(c.companyName || '')}
-                          size="lg"
-                          rounded="xl"
-                          className="group-hover:scale-110 transition-transform"
+                          size="md"
+                          rounded="lg"
+                          className="group-hover:scale-105 transition-transform"
                         />
-                        <span className="font-black text-[10px] md:text-xs text-center line-clamp-1">{c.companyName}</span>
+                        <span className="font-bold text-[11px] md:text-xs text-center line-clamp-1">{c.companyName}</span>
                       </button>
                     ))}
                   </div>
@@ -469,7 +469,7 @@ export default function TheMachine() {
               {selectedClient && (
                 <div className="flex flex-col gap-6 md:gap-8 animate-in slide-in-from-bottom w-full">
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-lg md:text-2xl font-black">איפה מפרסמים?</h3>
+                    <h3 className="text-lg md:text-xl font-bold">איפה מפרסמים?</h3>
                     <div className="flex flex-wrap gap-2">
                       {(Array.isArray(selectedClient.activePlatforms) && selectedClient.activePlatforms.length > 0
                         ? selectedClient.activePlatforms
@@ -481,8 +481,8 @@ export default function TheMachine() {
                           <button 
                             key={platform} 
                             onClick={() => togglePlatformSelection(platform)}
-                            className={`px-4 md:px-5 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs flex items-center gap-2 transition-all border-2 ${
-                              isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-50'
+                            className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full font-bold text-[11px] md:text-xs flex items-center gap-2 transition-all border ${
+                              isSelected ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                             }`}
                           >
                             <Icon size={14} /> <span className="capitalize">{platform}</span>
@@ -493,19 +493,19 @@ export default function TheMachine() {
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <h3 className="text-lg md:text-2xl font-black">מה הסיפור היום?</h3>
+                    <h3 className="text-lg md:text-xl font-bold">מה הסיפור היום?</h3>
                     <textarea 
                       value={brief} 
                       onChange={e => setBrief(e.target.value)} 
                       placeholder="תיאור המבצע או הפוסט..." 
-                      className="w-full h-32 md:h-48 p-5 md:p-8 bg-white border border-slate-200 rounded-2xl md:rounded-[32px] outline-none focus:border-slate-900 transition-all text-lg md:text-xl font-bold shadow-sm" 
+                      className="w-full h-32 p-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-base md:text-lg font-medium shadow-sm resize-none" 
                     />
                   </div>
 
                   <button 
                     onClick={handleGenerate} 
                     disabled={!brief || !brief.trim()} 
-                    className="w-full py-4 md:py-6 bg-slate-900 text-white rounded-2xl md:rounded-[24px] font-black text-lg md:text-xl shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3.5 md:py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-base md:text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     צור סקיצות ✨
                   </button>
@@ -521,64 +521,64 @@ export default function TheMachine() {
               animate={{ opacity: 1, x: 0 }} 
               className="max-w-6xl w-full"
             >
-              <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 text-center">בחר את הגרסה המנצחת</h3>
+              <h3 className="text-xl font-bold mb-6 text-center">בחר את הגרסה המנצחת</h3>
               {isLoading ? (
-                <div className="flex flex-col items-center py-24 gap-6">
-                  <Skeleton className="w-12 h-12 rounded-full bg-blue-100" />
-                  <p className="font-black text-lg">ה-AI בונה וריאציות...</p>
+                <div className="flex flex-col items-center py-20 gap-4">
+                  <Skeleton className="w-12 h-12 rounded-full bg-indigo-100" />
+                  <p className="font-bold text-base text-slate-600">ה-AI בונה וריאציות...</p>
                 </div>
               ) : variations.length === 0 ? (
-                <div className="flex flex-col items-center py-24 gap-6">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                    <Sparkles size={32} className="text-slate-400" />
+                <div className="flex flex-col items-center py-20 gap-5">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center">
+                    <Sparkles size={32} className="text-slate-300" />
                   </div>
                   <div className="text-center">
-                    <p className="font-black text-lg text-slate-700 mb-2">לא נמצאו וריאציות</p>
-                    <p className="text-sm text-slate-500">נסה ליצור סקיצות שוב או לשנות את התיאור</p>
+                    <p className="font-bold text-lg text-slate-700 mb-1">לא נמצאו וריאציות</p>
+                    <p className="text-sm font-medium text-slate-500">נסה ליצור סקיצות שוב או לשנות את התיאור</p>
                   </div>
                   <button
                     onClick={() => setStep(1)}
-                    className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-slate-800 transition-all"
+                    className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-sm"
                   >
                     חזור ונסה שוב
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                   {variations.map((v, idx) => (
                     <motion.div 
                       key={v.id} 
-                      whileHover={{ y: -5 }}
-                      className="bg-white rounded-3xl md:rounded-[44px] border-2 border-slate-50 shadow-xl p-6 md:p-8 flex flex-col gap-4 md:gap-6 hover:border-blue-500 transition-all cursor-pointer group relative" 
+                      whileHover={{ y: -2 }}
+                      className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm p-5 md:p-6 flex flex-col gap-4 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer group relative" 
                       onClick={() => handleSelectVariation(v)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-lg md:text-xl shadow-xl border-4 border-white transform -translate-y-2 -translate-x-2">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-base shadow-sm border-[3px] border-white transform -translate-y-2 -translate-x-2">
                           {String.fromCharCode(65 + idx)}
                         </div>
-                        <span className={`px-3 py-1 rounded-lg font-black text-[9px] md:text-[10px] uppercase ${
-                          v.type === 'sales' ? 'bg-red-50 text-red-600' : 
-                          v.type === 'social' ? 'bg-blue-50 text-blue-600' : 
-                          'bg-green-50 text-green-600'
+                        <span className={`px-2.5 py-1 rounded-md font-bold text-[10px] uppercase tracking-wide ${
+                          v.type === 'sales' ? 'bg-rose-50 text-rose-600' : 
+                          v.type === 'social' ? 'bg-indigo-50 text-indigo-600' : 
+                          'bg-emerald-50 text-emerald-600'
                         }`}>
                           {v.type === 'sales' ? 'מכירתי' : v.type === 'social' ? 'מעורבות' : 'ערך'}
                         </span>
                       </div>
                       
-                      <div className="flex-1 min-h-[100px] md:min-h-[160px] max-h-[250px] md:max-h-[300px] overflow-y-auto scrollbar-thin">
-                        <p className="font-bold text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-wrap break-words" dir="rtl">
+                      <div className="flex-1 min-h-[120px] max-h-[250px] overflow-y-auto scrollbar-thin">
+                        <p className="font-medium text-slate-700 leading-relaxed text-sm whitespace-pre-wrap break-words" dir="rtl">
                           {v.content}
                         </p>
                       </div>
 
                       {/* Suggested Hashtags */}
                       {v.suggestedHashtags && (
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1.5 mt-2">
+                          <div className="flex items-center gap-1.5">
                             <Wand size={12} className="text-purple-500" />
-                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags מומלצים</span>
+                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1">
                             {(() => {
                               const allTags = new Set<string>();
                               selectedPlatforms.forEach(platform => {
@@ -591,10 +591,10 @@ export default function TheMachine() {
                               if (v.suggestedHashtags?.general) {
                                 v.suggestedHashtags.general.forEach(tag => allTags.add(tag.startsWith('#') ? tag : `#${tag}`));
                               }
-                              return Array.from(allTags).slice(0, 10).map((tag, i) => (
+                              return Array.from(allTags).slice(0, 8).map((tag, i) => (
                                 <span 
                                   key={i}
-                                  className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-bold border border-purple-100"
+                                  className="px-1.5 py-0.5 bg-purple-50/50 text-purple-600 rounded text-[9px] font-medium border border-purple-100/50"
                                 >
                                   {tag}
                                 </span>
@@ -604,9 +604,9 @@ export default function TheMachine() {
                         </div>
                       )}
 
-                      <div className="pt-4 md:pt-6 border-t border-slate-200 flex items-center justify-between">
-                        <button className="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2">
-                          בחר גרסה {String.fromCharCode(65 + idx)} <ArrowRight size={14}/>
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between mt-auto">
+                        <button className="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 group-hover:bg-indigo-600">
+                          בחר גרסה {String.fromCharCode(65 + idx)} <ArrowRight size={14} className="group-hover:-translate-x-1 transition-transform"/>
                         </button>
                       </div>
                     </motion.div>
@@ -625,45 +625,45 @@ export default function TheMachine() {
             >
               {/* Preview */}
               <div className="lg:col-span-5 flex flex-col items-center">
-                <div className="bg-white rounded-[40px] md:rounded-[56px] border-[8px] md:border-[12px] border-slate-300 shadow-2xl relative aspect-[9/18] w-full max-w-[260px] md:max-w-[300px] overflow-hidden">
-                  <div className="p-3 md:p-4 border-b border-slate-200 font-black text-[10px] md:text-[11px] flex items-center gap-2">
+                <div className="bg-white rounded-[32px] md:rounded-[40px] border-[6px] md:border-[8px] border-slate-200 shadow-xl relative aspect-[9/18] w-full max-w-[260px] md:max-w-[280px] overflow-hidden">
+                  <div className="p-3 border-b border-slate-100 font-bold text-[10px] md:text-[11px] flex items-center gap-2">
                     <Avatar
                       src={String(selectedClient?.avatar || '')}
                       name={String(selectedClient?.companyName || selectedClient?.name || '')}
                       alt={String(selectedClient?.companyName || '')}
                       size="sm"
                       rounded="lg"
-                      className="w-4 h-4 md:w-5 md:h-5"
+                      className="w-5 h-5"
                     />
-                    {selectedClient?.companyName}
+                    <span className="truncate">{selectedClient?.companyName}</span>
                   </div>
-                  <div className="aspect-square bg-slate-100 flex items-center justify-center text-slate-200 relative overflow-hidden">
+                  <div className="aspect-square bg-slate-50 flex items-center justify-center text-slate-300 relative overflow-hidden border-b border-slate-100">
                     {isGeneratingImage ? (
-                      <div className="absolute inset-0 bg-slate-900/10 flex flex-col items-center justify-center gap-4 z-10 backdrop-blur-sm">
-                        <Skeleton className="w-8 h-8 rounded-full bg-blue-100" />
-                        <span className="text-[10px] font-black uppercase text-blue-600">מייצר תמונה...</span>
+                      <div className="absolute inset-0 bg-slate-900/5 flex flex-col items-center justify-center gap-3 z-10 backdrop-blur-sm">
+                        <Skeleton className="w-8 h-8 rounded-full bg-indigo-100" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">מייצר תמונה...</span>
                       </div>
                     ) : null}
                     {selectedVariation.generatedImage ? (
                       <img src={selectedVariation.generatedImage} className="w-full h-full object-cover" alt="Generated" />
                     ) : (
-                      <Image size={32}/>
+                      <Image size={24}/>
                     )}
                   </div>
-                  <div className="p-4 md:p-5 font-bold text-[10px] md:text-[12px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words overflow-y-auto max-h-[140px]">{editableContent}</div>
+                  <div className="p-4 font-medium text-[11px] leading-relaxed text-slate-700 whitespace-pre-wrap break-words overflow-y-auto max-h-[140px] custom-scrollbar">{editableContent}</div>
                 </div>
-                <div className="mt-6 md:mt-8 flex gap-2 p-2 bg-white rounded-2xl md:rounded-3xl border border-slate-200 shadow-sm overflow-x-auto max-w-full">
+                <div className="mt-6 flex gap-2 p-1.5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto max-w-full">
                   {selectedPlatforms.map(p => {
                     const Icon = PLATFORM_ICONS[p];
                     return (
                       <button 
                         key={p} 
                         onClick={() => setPreviewPlatform(p)} 
-                        className={`p-3 md:p-4 rounded-xl md:rounded-2xl transition-all ${
-                          previewPlatform === p ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400'
+                        className={`p-2.5 rounded-xl transition-all ${
+                          previewPlatform === p ? 'bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100' : 'text-slate-400 hover:bg-slate-50'
                         }`}
                       >
-                        <Icon size={20}/>
+                        <Icon size={18}/>
                       </button>
                     );
                   })}
@@ -671,13 +671,13 @@ export default function TheMachine() {
               </div>
               
               {/* Controls */}
-              <div className="lg:col-span-7 flex flex-col gap-6 md:gap-8 w-full">
-                <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[44px] shadow-xl border border-slate-200 flex flex-col gap-4 md:gap-6">
-                  <h4 className="text-lg md:text-xl font-black">ליטוש ודיוק</h4>
+              <div className="lg:col-span-7 flex flex-col gap-6 w-full">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col gap-5">
+                  <h4 className="text-lg font-bold text-slate-900">ליטוש ודיוק</h4>
                   <textarea 
                     value={editableContent} 
                     onChange={e => setEditableContent(e.target.value)} 
-                    className="w-full h-32 md:h-40 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[28px] outline-none focus:border-slate-900 font-bold text-base md:text-lg leading-relaxed shadow-inner" 
+                    className="w-full h-32 md:h-40 p-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium text-sm md:text-base leading-relaxed shadow-inner resize-none transition-all custom-scrollbar" 
                   />
 
                   {/* Hashtags Section */}
@@ -718,33 +718,33 @@ export default function TheMachine() {
 
                   {/* Best Posting Time */}
                   {postingTimes && postingTimes.bestTimes.length > 0 && (
-                    <div className="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                    <div className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
                       <div className="flex items-center gap-3">
-                        <Clock size={18} className="text-emerald-600" />
+                        <Clock size={18} className="text-indigo-600" />
                         <div className="flex flex-col">
-                          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">שעה מומלצת לפרסום</span>
-                          <span className="text-sm font-black text-emerald-900">
+                          <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">שעה מומלצת לפרסום</span>
+                          <span className="text-sm font-bold text-indigo-900">
                             {postingTimes.bestTimes[0].dayHebrew} ב-{postingTimes.bestTimes[0].hourDisplay}
                           </span>
-                          <span className="text-[10px] text-emerald-600">{postingTimes.bestTimes[0].reason}</span>
+                          <span className="text-[10px] text-indigo-600">{postingTimes.bestTimes[0].reason}</span>
                         </div>
                       </div>
                       <button
                         onClick={() => setShowTimesModal(true)}
-                        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-all"
+                        className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm"
                       >
                         עוד המלצות
                       </button>
                     </div>
                   )}
                   
-                  <div className="flex flex-col gap-4 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 mt-2">
+                  <div className="flex flex-col gap-4 p-5 md:p-6 bg-slate-50/50 rounded-2xl border border-slate-200 mt-2">
                     <div className="flex items-center gap-3">
-                      <Wand className="text-blue-600" size={20}/>
-                      <span className="font-black text-sm text-slate-800">ויז׳ואל AI משלים</span>
+                      <Wand className="text-indigo-600" size={20}/>
+                      <span className="font-bold text-sm text-slate-800">ויז׳ואל AI משלים</span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-[11px] font-bold text-blue-700">גודל תמונה</span>
+                      <span className="text-[11px] font-bold text-slate-600">גודל תמונה</span>
                       <div className="flex gap-2">
                         {([
                           { label: '1:1', value: '1024x1024' as const, desc: 'ריבועי' },
@@ -754,13 +754,13 @@ export default function TheMachine() {
                           <button
                             key={opt.value}
                             onClick={() => setImageSize(opt.value)}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border-2 transition-all text-center ${
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all text-center ${
                               imageSize === opt.value 
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm' 
+                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                             }`}
                           >
-                            <div className="font-black">{opt.label}</div>
+                            <div className="font-bold">{opt.label}</div>
                             <div className="text-[9px] opacity-80">{opt.desc}</div>
                           </button>
                         ))}
@@ -769,15 +769,15 @@ export default function TheMachine() {
                     <button 
                       onClick={handleGenerateImage} 
                       disabled={isGeneratingImage}
-                      className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full py-2.5 md:py-3 bg-white border border-indigo-200 text-indigo-700 rounded-xl text-sm font-bold shadow-sm hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {isGeneratingImage ? <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> : <Sparkles size={14}/>}
+                      {isGeneratingImage ? <Skeleton className="w-3.5 h-3.5 rounded-full bg-indigo-200" /> : <Sparkles size={14}/>}
                       {selectedVariation.generatedImage ? 'ייצר תמונה חדשה' : 'ייצר תמונה'}
                     </button>
                     {selectedVariation.generatedImage && (
                       <div className="mt-1">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-bold text-blue-700">תמונה שנוצרה</span>
+                          <span className="text-[11px] font-bold text-indigo-700">תמונה שנוצרה</span>
                           <button 
                             onClick={() => {
                               const a = document.createElement('a');
@@ -787,19 +787,19 @@ export default function TheMachine() {
                               a.click();
                               a.remove();
                             }} 
-                            className="text-[10px] text-blue-600 font-bold hover:underline"
+                            className="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-1"
                           >
                             הורד תמונה
                           </button>
                         </div>
                         <img 
                           src={selectedVariation.generatedImage} 
-                          className="w-full rounded-2xl border border-blue-100 shadow-sm" 
+                          className="w-full rounded-xl border border-slate-200 shadow-sm" 
                           alt="AI Generated" 
                         />
                       </div>
                     )}
-                    <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
+                    <p className="text-[10px] font-medium text-slate-500 leading-relaxed text-center">
                       ה-AI ייצר תמונה מותאמת אישית לתוכן הפוסט בגודל שנבחר.
                     </p>
                   </div>
@@ -807,41 +807,41 @@ export default function TheMachine() {
                 <div className="flex flex-col gap-3">
                   <button 
                     onClick={handleFinalize} 
-                    className="w-full py-5 md:py-6 bg-slate-900 text-white font-black text-xl md:text-2xl rounded-2xl md:rounded-[32px] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all"
+                    className="w-full py-4 md:py-5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg md:text-xl rounded-2xl shadow-md flex items-center justify-center gap-3 transition-all"
                   >
                     שגר לאוויר 🚀
                   </button>
                   <div className="flex gap-3">
                     <button 
                       onClick={handleSaveToContentBank}
-                      className="flex-1 py-3 md:py-4 bg-white text-slate-800 font-black text-sm rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all"
+                      className="flex-1 py-3 bg-white text-slate-700 font-bold text-sm rounded-xl border border-slate-200 shadow-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
                     >
-                      <BookmarkPlus size={16}/> שמור לבנק תכנים
+                      <BookmarkPlus size={16} className="text-slate-400" /> לבנק תכנים
                     </button>
                     <button 
                       onClick={() => setShowScheduleInput(!showScheduleInput)}
-                      className={`flex-1 py-3 md:py-4 font-black text-sm rounded-2xl border-2 shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all ${
-                        showScheduleInput ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      className={`flex-1 py-3 font-bold text-sm rounded-xl border shadow-sm flex items-center justify-center gap-2 transition-all ${
+                        showScheduleInput ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                       }`}
                     >
-                      <CalendarPlus size={16}/> תזמן פרסום
+                      <CalendarPlus size={16} className={showScheduleInput ? "text-indigo-500" : "text-slate-400"} /> תזמן
                     </button>
                   </div>
                   {showScheduleInput && (
-                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-4 bg-amber-50 rounded-2xl border border-amber-200 animate-in slide-in-from-top">
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3 md:p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 animate-in slide-in-from-top">
                       <input 
                         type="datetime-local" 
                         value={scheduledDate}
                         onChange={e => setScheduledDate(e.target.value)}
-                        className="flex-1 p-3 border border-amber-300 rounded-xl font-bold text-sm bg-white outline-none focus:ring-2 ring-amber-200"
+                        className="flex-1 p-2.5 border border-indigo-200 rounded-lg font-bold text-sm bg-white outline-none focus:ring-2 ring-indigo-500/20 text-slate-700"
                         dir="ltr"
                       />
                       <button 
                         onClick={handleSchedulePost}
                         disabled={!scheduledDate}
-                        className="px-6 py-3 bg-amber-600 text-white rounded-xl text-sm font-black shadow-lg hover:bg-amber-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
                       >
-                        <Check size={14}/> אשר תזמון
+                        <Check size={14}/> אשר
                       </button>
                     </div>
                   )}
@@ -854,41 +854,47 @@ export default function TheMachine() {
 
       {/* Posting Times Modal */}
       {showTimesModal && postingTimes && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTimesModal(false)}>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTimesModal(false)}>
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[85vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-3xl">
+            <div className="bg-white border-b border-slate-100 p-5 md:p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <Clock size={24} className="text-emerald-600" />
-                <h3 className="text-xl font-black">שעות פרסום מומלצות</h3>
+                <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center">
+                  <Clock size={20} className="text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">שעות פרסום מומלצות</h3>
+                  <p className="text-xs text-slate-500 font-medium">מבוסס על מעורבות קהל</p>
+                </div>
               </div>
-              <button onClick={() => setShowTimesModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-all">
+              <button onClick={() => setShowTimesModal(false)} className="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-700 rounded-full transition-all">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-5 md:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
               {/* Best Times */}
               <div>
-                <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות מומלצות ביותר</h4>
-                <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">זמנים מעולים (Top 6)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {postingTimes.bestTimes.slice(0, 6).map((time, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-black text-lg">
-                          {time.score}
+                    <div key={i} className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl hover:border-indigo-200 hover:shadow-sm transition-all group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-lg flex flex-col items-center justify-center leading-none">
+                          <span className="text-[10px] font-medium opacity-80 mb-0.5">ציון</span>
+                          <span className="font-bold text-sm">{time.score}</span>
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{time.dayHebrew} ב-{time.hourDisplay}</div>
-                          <div className="text-xs text-emerald-700">{time.reason}</div>
+                          <div className="font-bold text-sm text-slate-800">{time.dayHebrew} ב-{time.hourDisplay}</div>
+                          <div className="text-[10px] text-slate-500 truncate max-w-[120px]" title={time.reason}>{time.reason}</div>
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold">
-                        {time.platform}
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors" title={time.platform}>
+                        {React.createElement(PLATFORM_ICONS[time.platform as SocialPlatform] || Globe, { size: 14 })}
                       </div>
                     </div>
                   ))}
@@ -898,11 +904,12 @@ export default function TheMachine() {
               {/* Avoid Times */}
               {postingTimes.avoidTimes.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות להימנע מהן</h4>
-                  <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">שעות חלשות (להימנע)</h4>
+                  <div className="flex flex-wrap gap-2">
                     {postingTimes.avoidTimes.map((time, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
-                        <div className="text-xs font-bold text-red-600">{time.reason}</div>
+                      <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-full border border-rose-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        <span className="text-xs font-medium text-rose-700">{time.reason}</span>
                       </div>
                     ))}
                   </div>
@@ -910,19 +917,16 @@ export default function TheMachine() {
               )}
 
               {/* General Tip */}
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <div className="flex items-start gap-3">
-                  <Sparkles size={16} className="text-blue-600 mt-0.5" />
-                  <p className="text-sm text-blue-900">{postingTimes.generalTip}</p>
-                </div>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                <Sparkles size={16} className="text-indigo-500 mt-0.5 shrink-0" />
+                <p className="text-xs font-medium text-slate-600 leading-relaxed">{postingTimes.generalTip}</p>
               </div>
-
-              {/* Data Source */}
-              <div className="text-center">
-                <p className="text-xs text-slate-400">
-                  מקור: {postingTimes.dataSource === 'industry_best_practices' ? 'מחקרי engagement גלובליים' : 'הנתונים שלך'}
+            </div>
+            
+            <div className="p-3 bg-slate-50 border-t border-slate-100 text-center shrink-0">
+                <p className="text-[10px] font-medium text-slate-400">
+                  מקור הנתונים: {postingTimes.dataSource === 'industry_best_practices' ? 'סטטיסטיקות גלובליות וניתוח שוק' : 'היסטוריית הביצועים של הלקוח'}
                 </p>
-              </div>
             </div>
           </motion.div>
         </div>

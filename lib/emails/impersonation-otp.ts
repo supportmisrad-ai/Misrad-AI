@@ -25,17 +25,17 @@ function generateImpersonationOtpEmailHTML(params: {
     const { clientName, otpCode, organizationName, adminName } = params;
     
     const bodyContent = `
-        <div style="font-size:22px;font-weight:900;color:#0f172a;margin-bottom:24px;">${clientName},</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:24px;">${clientName},</div>
         
-        <div style="font-size:16px;line-height:1.8;color:#334155;margin-bottom:20px;">
-            בקשת גישת תמיכה התקבלה עבור הארגון <strong style="color:#6366f1;">${organizationName}</strong>.
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:20px;">
+            בקשת גישת תמיכה התקבלה עבור הארגון <strong>${organizationName}</strong>.
         </div>
         
-        <div style="margin:24px 0;padding:20px 24px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:14px;border:2px solid #f59e0b;">
-            <div style="font-size:14px;font-weight:700;color:#92400e;margin-bottom:12px;">
+        <div style="margin:24px 0;padding:20px 24px;background:#fffbeb;border-radius:8px;border:1px solid #fde68a;">
+            <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px;text-transform:uppercase;">
                 ⚠️ אישור נדרש
             </div>
-            <div style="font-size:15px;line-height:1.7;color:#78350f;">
+            <div style="font-size:15px;line-height:1.6;color:#92400e;">
                 נציג תמיכה בשם <strong>${adminName}</strong> מבקש לגשת לחשבון שלך לצורך סיוע טכני.
                 <br /><br />
                 <strong>אם את/ה מעוניינ/ת בכך</strong> — העבר/י את הקוד הבא לנציג:
@@ -43,8 +43,8 @@ function generateImpersonationOtpEmailHTML(params: {
         </div>
         
         <div style="margin:32px 0;text-align:center;">
-            <div style="display:inline-block;padding:20px 40px;background:#0f172a;border-radius:16px;">
-                <div style="font-family:ui-monospace,monospace;font-size:36px;font-weight:900;color:#fff;letter-spacing:8px;">
+            <div style="display:inline-block;padding:16px 32px;background:#0f172a;border-radius:12px;">
+                <div style="font-family:ui-monospace,monospace;font-size:32px;font-weight:700;color:#fff;letter-spacing:6px;">
                     ${otpCode}
                 </div>
             </div>
@@ -54,13 +54,13 @@ function generateImpersonationOtpEmailHTML(params: {
             emoji: '🔒',
             title: 'אבטחה ופרטיות',
             text: 'הקוד תקף ל-10 דקות בלבד. גישת התמיכה תתועד במערכת וניתן יהיה לבקש פירוט בכל עת. אם לא ביקשת סיוע — התעלם/י ממייל זה.',
-            bgColor: '#f1f5f9',
-            borderColor: '#cbd5e1',
+            bgColor: '#f8fafc',
+            borderColor: '#e2e8f0',
             titleColor: '#334155',
             textColor: '#475569',
         })}
         
-        <div style="margin-top:24px;font-size:14px;color:#64748b;line-height:1.7;">
+        <div style="margin-top:24px;font-size:14px;color:#64748b;line-height:1.6;">
             בברכה,<br />
             <strong>צוות MISRAD AI</strong>
         </div>
@@ -69,7 +69,6 @@ function generateImpersonationOtpEmailHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: 'קוד אימות לגישת תמיכה',
-        headerGradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
         bodyContent,
         showSocialLinks: false,
     });

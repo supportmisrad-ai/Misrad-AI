@@ -3,8 +3,9 @@
  * יוצר אסטרטגיית שיווק מותאמת אישית לכל לקוח - מותאם לשוק הישראלי
  */
 
+// TODO: TEMPORARY COST-SAVING MEASURE - Using Google AI Studio (free) instead of OpenAI (paid)
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 
 export interface ClientProfile {
   name: string;
@@ -171,7 +172,7 @@ ${hebrewCalendarNote}
 
   try {
     const { text } = await generateText({
-      model: openai('gpt-4-turbo'),
+      model: google('gemini-2.5-flash'), // TODO: TEMPORARY - Using free Google AI instead of paid OpenAI
       prompt,
       temperature: 0.7,
     });
@@ -248,7 +249,7 @@ ${clientProfile.brandVoice ? `טון דיבור: ${clientProfile.brandVoice}` : 
 
   try {
     const { text } = await generateText({
-      model: openai('gpt-4-turbo'),
+      model: google('gemini-2.5-flash'), // TODO: TEMPORARY - Using free Google AI instead of paid OpenAI
       prompt,
       temperature: 0.8,
     });
@@ -293,7 +294,7 @@ export async function analyzeTargetAudience(
 
   try {
     const { text } = await generateText({
-      model: openai('gpt-4-turbo'),
+      model: google('gemini-2.5-flash'), // TODO: TEMPORARY - Using free Google AI instead of paid OpenAI
       prompt,
       temperature: 0.7,
     });

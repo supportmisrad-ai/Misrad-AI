@@ -39,27 +39,27 @@ function generatePartnerMonthlyReportHTML(params: {
 
     // Tier display
     const tierDisplay = params.currentTier ? `
-        <div style="margin:20px 0;padding:16px;background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);border-radius:12px;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.8);margin-bottom:4px;">הדרגה שלך</div>
-            <div style="font-size:22px;font-weight:900;color:#ffffff;">${params.currentTier}</div>
-            ${params.nextTier ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;">עוד ${params.referralsToNextTier || 0} לקוחות לדרגה הבאה!</div>` : ''}
+        <div style="margin:20px 0;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;">הדרגה שלך</div>
+            <div style="font-size:20px;font-weight:700;color:#0f172a;">${params.currentTier}</div>
+            ${params.nextTier ? `<div style="font-size:13px;color:#64748b;margin-top:4px;">עוד ${params.referralsToNextTier || 0} לקוחות לדרגה הבאה!</div>` : ''}
         </div>
     ` : '';
 
     // Competition display
     const competitionDisplay = params.competitionRank ? `
-        <div style="margin:20px 0;padding:16px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:12px;border:2px solid #fbbf24;text-align:center;">
-            <div style="font-size:12px;font-weight:700;color:#78350f;margin-bottom:4px;">🏆 דירוג בתחרות החודשית</div>
-            <div style="font-size:28px;font-weight:900;color:#0f172a;">מקום ${params.competitionRank}</div>
-            ${params.competitionRank === 1 ? `<div style="font-size:14px;color:#059669;font-weight:700;margin-top:4px;">🎉 זכית ב-1000₪ בונוס!</div>` : params.competitionRank <= 3 ? `<div style="font-size:12px;color:#78350f;margin-top:4px;">עוד קצת ואתה במקום הראשון!</div>` : ''}
+        <div style="margin:20px 0;padding:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;text-align:center;">
+            <div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:4px;">🏆 דירוג בתחרות החודשית</div>
+            <div style="font-size:24px;font-weight:700;color:#0f172a;">מקום ${params.competitionRank}</div>
+            ${params.competitionRank === 1 ? `<div style="font-size:14px;color:#059669;font-weight:600;margin-top:4px;">🎉 זכית ב-1000₪ בונוס!</div>` : params.competitionRank <= 3 ? `<div style="font-size:13px;color:#92400e;margin-top:4px;">עוד קצת ואתה במקום הראשון!</div>` : ''}
         </div>
     ` : '';
 
     const bodyContent = `
-        <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:20px;">${greeting}</div>
+        <div style="font-size:20px;font-weight:700;color:#0f172a;margin-bottom:20px;">${greeting}</div>
 
-        <div style="font-size:17px;line-height:1.8;color:#334155;margin-bottom:24px;">
-            הנה הסיכום שלך לחודש <strong style="color:#6366f1;">${params.month} ${params.year}</strong> — 
+        <div style="font-size:16px;line-height:1.6;color:#334155;margin-bottom:24px;">
+            הנה הסיכום שלך לחודש <strong>${params.month} ${params.year}</strong> — 
             המשיכו להפנות לקוחות והעמלות ימשיכו להצטבר 💰
         </div>
 
@@ -74,40 +74,40 @@ function generatePartnerMonthlyReportHTML(params: {
 ✅ מנויים פעילים: <strong>${params.activeSubscribers}</strong>
             `.trim(),
             backgroundColor: '#f0fdf4',
-            borderColor: '#86efac',
+            borderColor: '#bbf7d0',
         })}
 
         ${EmailTemplateComponents.generateInfoBox({
             title: 'הכנסות',
             content: `
-💵 הכנסות החודש: <strong style="font-size:20px;color:#059669;">₪${params.totalRevenue.toLocaleString()}</strong>
-💰 עמלה שהרווחת: <strong style="font-size:20px;color:#059669;">₪${params.commissionEarned.toLocaleString()}</strong>
+💵 הכנסות החודש: <strong style="font-size:18px;color:#059669;">₪${params.totalRevenue.toLocaleString()}</strong>
+💰 עמלה שהרווחת: <strong style="font-size:18px;color:#059669;">₪${params.commissionEarned.toLocaleString()}</strong>
 📦 עמלה לא שולמה (עדיין): <strong>₪${params.unpaidCommission.toLocaleString()}</strong>
             `.trim(),
-            backgroundColor: '#ecfdf5',
-            borderColor: '#a7f3d0',
+            backgroundColor: '#f0fdf4',
+            borderColor: '#bbf7d0',
         })}
 
-        <div style="margin:28px 0;padding:20px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border-radius:14px;border:2px solid #fbbf24;text-align:center;">
-            <div style="font-size:13px;font-weight:700;color:#78350f;margin-bottom:8px;">
+        <div style="margin:28px 0;padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px;">
                 הקוד האישי שלך להפניות
             </div>
-            <div style="font-size:28px;font-weight:900;color:#0f172a;letter-spacing:2px;">
+            <div style="font-size:24px;font-weight:700;color:#0f172a;letter-spacing:1px;">
                 ${params.referralCode}
             </div>
-            <div style="margin-top:8px;font-size:12px;color:#92400e;">
+            <div style="margin-top:8px;font-size:13px;color:#64748b;">
                 שתף את הלינק: <a href="${params.dashboardUrl}?ref=${params.referralCode}" style="color:#6366f1;word-break:break-all;">${params.dashboardUrl}?ref=${params.referralCode}</a>
             </div>
         </div>
 
         ${EmailTemplateComponents.generateCTAButton({
-            text: 'צפייה בדו״ח המלא →',
+            text: 'צפייה בדו״ח המלא',
             url: params.dashboardUrl,
         })}
 
         ${EmailTemplateComponents.generateDivider()}
 
-        <div style="font-size:14px;color:#64748b;line-height:1.7;text-align:center;">
+        <div style="font-size:14px;color:#64748b;line-height:1.6;text-align:center;">
             💡 טיפ: שתף את הלינק האישי שלך ברשתות החברתיות, בקבוצות וואטסאפ ועם לקוחות פוטנציאליים.
             <br />
             כל לקוח שנרשם דרכך מקבל <strong>50% הנחה</strong> לחצי שנה!
@@ -127,7 +127,6 @@ function generatePartnerMonthlyReportHTML(params: {
     return generateBaseEmailTemplate({
         headerTitle: 'MISRAD AI',
         headerSubtitle: `דו״ח שותפים - ${params.month} ${params.year}`,
-        headerGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
         bodyContent,
         showSocialLinks: false,
     });

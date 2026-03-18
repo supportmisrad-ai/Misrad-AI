@@ -2,19 +2,18 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
-import { randomBytes } from 'crypto';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getBaseUrl } from '@/lib/utils';
 import { sendOrganizationWelcomeEmail } from '@/lib/email';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getUnknownErrorMessage } from '@/lib/shared/unknown';
 import { Prisma } from '@prisma/client';
+import { randomBytes } from 'crypto';
+import { getBaseUrl } from '@/lib/utils';
 
 type OrganizationCreateData = Parameters<typeof prisma.organization.create>[0]['data'];
 type OrganizationUpdateManyData = Parameters<typeof prisma.organization.updateMany>[0]['data'];
@@ -545,7 +544,6 @@ export async function createOrganization(input: {
       logger.error('createOrganization', 'welcome email failed (ignored)', e);
     }
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse({ organizationId: createdOrg.id });
   } catch (error) {
@@ -815,7 +813,6 @@ export async function updateOrganization(input: {
       data: patch,
     });
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -860,7 +857,6 @@ export async function setOrganizationOwner(input: {
       }
     );
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -896,7 +892,6 @@ export async function setUserOrganization(input: {
         })
     );
 
-    revalidatePath('/', 'layout');
 
     return createSuccessResponse(true);
   } catch (error) {

@@ -1044,21 +1044,23 @@ export class AIService {
       const shouldTryFallback = this.isRetryableProviderFailure(primaryError) || !primaryText;
       if (shouldTryFallback) {
         console.log('[AIService.transcribe] Trying fallback provider');
-        // Smart fallback: OpenAI Whisper is most reliable, then Groq, then Deepgram, then Gemini
+        // TODO: TEMPORARY COST-SAVING MEASURE - Prioritize Deepgram (using $200 credit) and Google (free)
+        // Smart fallback: Deepgram first (using $200 credit), then Google (free), then Groq (free), then OpenAI (paid)
         let fallbackProvider: AIProviderName;
         let fallbackModel: string;
-        if (primaryProvider === 'openai') {
+        if (primaryProvider === 'deepgram') {
+          fallbackProvider = 'google';
+          fallbackModel = 'gemini-1.5-flash';
+        } else if (primaryProvider === 'google') {
           fallbackProvider = 'groq';
           fallbackModel = 'whisper-large-v3';
         } else if (primaryProvider === 'groq') {
-          fallbackProvider = 'openai';
-          fallbackModel = 'whisper-1';
-        } else if (primaryProvider === 'deepgram') {
-          fallbackProvider = 'openai';
-          fallbackModel = 'whisper-1';
+          fallbackProvider = 'deepgram';
+          fallbackModel = 'nova-2';
         } else {
-          fallbackProvider = 'openai';
-          fallbackModel = 'whisper-1';
+          // OpenAI/Anthropic - fallback to free providers first
+          fallbackProvider = 'deepgram';
+          fallbackModel = 'nova-2';
         }
 
         try {
@@ -1070,17 +1072,28 @@ export class AIService {
             mimeType: params.mimeType
           });
 
-          if (fallbackProvider === 'openai') {
-            const openaiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
-            const openai = new OpenAIProvider(openaiKey);
-            const out = await openai.transcribe({
+          // TODO: TEMPORARY COST-SAVING MEASURE - Simplify to only handle providers we actually fallback to
+          if (fallbackProvider === 'deepgram') {
+            const deepgramKey = await this.getProviderKey({ provider: 'deepgram', organizationId: ctx.organizationId });
+            const deepgram = new DeepgramProvider(deepgramKey);
+            const out = await deepgram.transcribe({
+              audioBuffer: params.audioBuffer,
+              mimeType: params.mimeType,
+              timeoutMs: feature.settings.timeout_ms,
+            });
+            fallbackText = String(out.text || '').trim();
+            console.log('[AIService.transcribe] Deepgram FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
+          } else if (fallbackProvider === 'google') {
+            const googleKey = await this.getProviderKey({ provider: 'google', organizationId: ctx.organizationId });
+            const gemini = new GeminiProvider(googleKey);
+            const out = await gemini.transcribe({
               model: fallbackModel,
               audioBuffer: params.audioBuffer,
               mimeType: params.mimeType,
               timeoutMs: feature.settings.timeout_ms,
             });
             fallbackText = String(out.text || '').trim();
-            console.log('[AIService.transcribe] OpenAI Whisper FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
+            console.log('[AIService.transcribe] Gemini FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
           } else if (fallbackProvider === 'groq') {
             const groqKey = await this.getProviderKey({ provider: 'groq', organizationId: ctx.organizationId });
             const groq = new GroqProvider(groqKey);
@@ -1092,6 +1105,9 @@ export class AIService {
             });
             fallbackText = String(out.text || '').trim();
             console.log('[AIService.transcribe] Groq Whisper FALLBACK SUCCESS', { length: fallbackText.length, isEmpty: !fallbackText, preview: fallbackText.substring(0, 150) });
+          } else {
+            // TODO: TEMPORARY - Avoid OpenAI/Anthropic in fallback for cost savings
+            console.warn('[AIService.transcribe] Unsupported fallback provider for cost-saving mode:', fallbackProvider);
           }
 
           if (fallbackText) {

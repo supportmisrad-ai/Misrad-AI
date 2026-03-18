@@ -2,7 +2,6 @@
 
 
 
-import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/server/logger';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
@@ -112,8 +111,6 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
       };
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
     logger.error('updates', 'Error getting updates:', error);
@@ -126,7 +123,6 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
         reason: 'app_updates missing table/column (fallback to empty list)',
         error,
       });
-      revalidatePath('/', 'layout');
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -184,8 +180,6 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
       };
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
     logger.error('updates', 'Error getting updates with status:', error);
@@ -198,7 +192,6 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
         reason: 'app_updates/user_update_views missing table/column (fallback to empty list)',
         error,
       });
-      revalidatePath('/', 'layout');
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -240,8 +233,6 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
       },
     });
 
-    revalidatePath('/', 'layout');
-
     return { success: true };
   } catch (error: unknown) {
     logger.error('updates', 'Error marking update as viewed:', error);
@@ -255,7 +246,6 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
         error,
         extras: { updateId: String(updateId || '') },
       });
-      revalidatePath('/', 'layout');
       return { success: true };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסימון עדכון') };
@@ -269,13 +259,11 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
   try {
     const { userId } = await auth();
     if (!userId) {
-      revalidatePath('/', 'layout');
       return { success: true, count: 0 };
     }
 
     const socialUserId = await getOrCreateSocialUserIdForClerkUserId(userId);
     if (!socialUserId) {
-      revalidatePath('/', 'layout');
       return { success: true, count: 0 };
     }
 
@@ -304,8 +292,6 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
       return id && !viewedIds.has(id);
     }).length;
 
-    revalidatePath('/', 'layout');
-
     return { success: true, count: unreadCount };
   } catch (error: unknown) {
     logger.error('updates', 'Error getting unread count:', error);
@@ -322,10 +308,8 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
         reason: 'app_updates/user_update_views missing table/column (fallback to count=0)',
         error,
       });
-      revalidatePath('/', 'layout');
       return { success: true, count: 0 };
     }
-    revalidatePath('/', 'layout');
     return { success: true, count: 0 }; // Return 0 on error to not block UI
   }
 }
