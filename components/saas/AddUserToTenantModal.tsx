@@ -75,7 +75,7 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                     twoFactorEnabled: false,
                     isSuperAdmin: false,
                     managerId: undefined,
-                    managedDepartment: undefined,
+                    managed_department: undefined,
                     tenantId: tenant.id,
                     billingInfo: undefined,
                 },

@@ -74,9 +74,9 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                         </div>
                         <p className="text-[10px] md:text-xs text-gray-500 truncate">
                             {user.role} • {user.department || 'לא מוגדר'}
-                            {user.managedDepartment && (
+                            {user.managed_department && (
                                 <span className="inline-flex items-center gap-0.5 mr-1 text-amber-600 font-bold">
-                                    <Crown size={9} className="md:w-[10px] md:h-[10px]" /> מנהל {user.managedDepartment}
+                                    <Crown size={9} className="md:w-[10px] md:h-[10px]" /> מנהל {user.managed_department}
                                 </span>
                             )}
                         </p>

@@ -238,7 +238,7 @@ export const TeamView: React.FC = () => {
       () =>
           users.filter((user: User) => {
               if (showHeadsOnly) {
-                  const isHead = isManagementRole(user.role) || isAdminRole(user.role) || Boolean(user.managedDepartment);
+                  const isHead = isManagementRole(user.role) || isAdminRole(user.role) || Boolean(user.managed_department);
                   if (!isHead) return false;
               }
 
@@ -402,7 +402,7 @@ export const TeamView: React.FC = () => {
       setIsMemberModalOpen(true);
   };
 
-  const handleSaveMember = async (formData: Partial<User> & { name: string }) => {
+  const handleSaveMember = async (formData: Partial<User> & { name: string; managed_department?: string | null }) => {
       if (!formData?.name) return;
 
       try {
@@ -426,7 +426,7 @@ export const TeamView: React.FC = () => {
                   commissionPct: Number(formData.commissionPct),
                   bonusPerTask: Number(formData.bonusPerTask),
                   managerId: formData.managerId || null,
-                  managedDepartment: formData.managedDepartment || null,
+                  managed_department: formData.managed_department || null,
               } as User);
 
               try {
@@ -464,7 +464,7 @@ export const TeamView: React.FC = () => {
                   commissionPct: Number(formData.commissionPct),
                   bonusPerTask: Number(formData.bonusPerTask),
                   managerId: formData.managerId,
-                  managedDepartment: formData.managedDepartment,
+                  managed_department: formData.managed_department,
               };
               updateUser(editingUser.id, optimisticUpdates);
               addToast('פרטי העובד עודכנו בהצלחה', 'success');

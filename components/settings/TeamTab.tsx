@@ -327,10 +327,10 @@ export const TeamTab: React.FC = () => {
                                         <Avatar src={user.avatar} name={user.name} size="md" />
                                         <div className="flex flex-col">
                                         <span className="font-bold text-gray-900">{user.name}</span>
-                                            {user.managedDepartment && (
+                                            {user.managed_department && (
                                                 <span className="text-[10px] text-yellow-600 font-bold flex items-center gap-1">
                                                     <Crown size={10} />
-                                                    מנהל {user.managedDepartment}
+                                                    מנהל {user.managed_department}
                                                 </span>
                                             )}
                                         </div>
@@ -449,10 +449,10 @@ export const TeamTab: React.FC = () => {
                                         <div className="min-w-0 flex-1">
                                             <div className="font-black text-gray-900 text-base truncate">{user.name}</div>
                                             <div className="text-sm text-gray-600 truncate">{user.role}</div>
-                                            {user.managedDepartment && (
+                                            {user.managed_department && (
                                                 <div className="text-[10px] text-yellow-600 font-bold flex items-center gap-1 mt-1">
                                                     <Crown size={10} />
-                                                    מנהל {user.managedDepartment}
+                                                    מנהל {user.managed_department}
                                                 </div>
                                             )}
                                         </div>

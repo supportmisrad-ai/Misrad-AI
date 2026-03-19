@@ -39,7 +39,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
         bonusPerTask: 0,
         allowed_modules: ['nexus', 'client'] as string[],
         managerId: null as string | null,
-        managedDepartment: null as string | null,
+        managed_department: null as string | null,
     });
 
     useEffect(() => {
@@ -59,7 +59,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     bonusPerTask: initialData.bonusPerTask || 0,
                     allowed_modules: initialData.allowed_modules || ['nexus', 'client'],
                     managerId: initialData.managerId || null,
-                    managedDepartment: initialData.managedDepartment || null,
+                    managed_department: initialData.managed_department || null,
                 });
             } else {
                 setForm({ 
@@ -76,7 +76,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     bonusPerTask: 0,
                     allowed_modules: ['nexus', 'client'],
                     managerId: null,
-                    managedDepartment: null,
+                    managed_department: null,
                 });
             }
         }
@@ -226,8 +226,8 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                                 <Crown size={12} /> מחלקה בניהול
                             </label>
                             <CustomSelect
-                                value={form.managedDepartment || ''}
-                                onChange={(val) => setForm({...form, managedDepartment: val || null})}
+                                value={form.managed_department || ''}
+                                onChange={(val) => setForm({...form, managed_department: val || null})}
                                 options={[
                                     { value: '', label: 'לא מנהל מחלקה' },
                                     ...departments.map(d => ({ value: d, label: d }))

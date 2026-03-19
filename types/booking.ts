@@ -101,11 +101,11 @@ export interface BookingService {
   id: string;
   organizationId: string;
   name: string;
-  description?: string | null;
+  description: string | null;
   color: string;
   durationMinutes: number;
   bufferAfterMinutes: number;
-  priceAmount?: Decimal | null;
+  priceAmount: Decimal | null;
   currency: string;
   requiresPayment: boolean;
   requiresApproval: boolean;
@@ -166,17 +166,20 @@ export interface BookingLink {
   providerId: string;
   slug: string;
   title: string;
-  description?: string | null;
+  description: string | null;
   availableDays: number[]; // 0-6 (ראשון-שבת)
   minNoticeHours: number;
   maxBookingDays: number;
+  availableStartTime: string;
+  availableEndTime: string;
+  maxBookingsPerSlot: number;
   allowCancellations: boolean;
   cancellationDeadlineHours: number;
   requirePayment: boolean;
-  paymentAmount?: Decimal | null;
+  paymentAmount: Decimal | null;
   requireApproval: boolean;
   locationType: string;
-  locationDetails?: string | null;
+  locationDetails: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -224,7 +227,7 @@ export interface BookingAppointment {
   
   // Location
   locationType: string;
-  locationDetails?: string | null;
+  locationDetails: string | null;
   meetingUrl?: string | null;
   
   // Status
