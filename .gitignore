@@ -52,6 +52,7 @@ yarn-error.log*
 .env
 .env.prod_backup
 .env.production
+.env.prod_minimal
 
 # backup passwords
 .backup-password.txt
