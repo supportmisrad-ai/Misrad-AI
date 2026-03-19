@@ -12,7 +12,7 @@ import { CreateServiceModal } from '@/components/booking/CreateServiceModal';
 import { BookingCalendar } from '@/components/admin/BookingCalendar';
 import { LinksPageClient } from '@/components/admin/booking/LinksPageClient';
 import { ProvidersPageClient } from '@/components/admin/booking/ProvidersPageClient';
-import { ServicesPageClient } from '@/components/admin/booking/ServicesPageClient';
+import ServicesPageClient from '@/components/admin/booking/ServicesPageClient';
 import {
   Calendar,
   Users,
