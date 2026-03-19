@@ -182,8 +182,8 @@ export interface BookingLink {
   updatedAt: Date;
   
   // Relations
-  provider?: BookingProvider;
-  services?: BookingLinkService[];
+  provider: BookingProvider;
+  services: BookingLinkService[];
   appointments?: BookingAppointment[];
 }
 
@@ -197,7 +197,7 @@ export interface BookingLinkService {
   
   // Relations
   link?: BookingLink;
-  service?: BookingService;
+  service: BookingService;
 }
 
 /**

@@ -717,7 +717,7 @@ export const useAuth = (
     const hasPermission = useCallback(
         (permission: PermissionId): boolean => {
             // Super admins have all permissions
-            if (currentUser.isSuperAdmin === true) {
+            if (currentUser.isSuperAdmin === true || currentUser.role === 'super_admin') {
                 return true;
             }
 

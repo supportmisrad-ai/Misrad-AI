@@ -203,7 +203,7 @@ export async function getAuthenticatedUser() {
             imageUrl: user.imageUrl,
             // Get role from metadata (you'll need to set this in Clerk)
             role,
-            isSuperAdmin: user.publicMetadata?.isSuperAdmin === true
+            isSuperAdmin: user.publicMetadata?.isSuperAdmin === true || role === 'super_admin'
         };
     } catch (error: unknown) {
         const message = getErrorMessage(error);

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;
+    const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true || (clerk.publicMetadata?.role as string) === 'super_admin';
     if (!isSuperAdmin) {
       return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
     }

@@ -25,7 +25,7 @@ export default async function AdminLayout({
     redirect('/login?redirect=/app/admin');
   }
 
-  const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;
+  const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true || (clerk.publicMetadata?.role as string) === 'super_admin';
   const canAccessAdmin = isSuperAdmin ? true : await hasAuditLogAccess();
 
   if (!canAccessAdmin) {

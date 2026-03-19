@@ -307,7 +307,9 @@ export default clerkMiddleware(
       getProp(getProp(claims, 'public_metadata'), 'isSuperAdmin') === true ||
       getProp(getProp(claims, 'public_metadata'), 'is_super_admin') === true ||
       getProp(getProp(claims, 'app_metadata'), 'is_super_admin') === true ||
-      getProp(getProp(claims, 'app_metadata'), 'isSuperAdmin') === true
+      getProp(getProp(claims, 'app_metadata'), 'isSuperAdmin') === true ||
+      getProp(getProp(claims, 'publicMetadata'), 'role') === 'super_admin' ||
+      getProp(getProp(claims, 'public_metadata'), 'role') === 'super_admin'
   );
 
   const sessionEmail = extractEmailFromClaims(claims);

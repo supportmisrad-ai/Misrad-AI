@@ -103,7 +103,7 @@ async function requireSuperAdmin(): Promise<{ success: true } | { success: false
   }
 
   const user = await getAuthenticatedUser();
-  if (!user?.isSuperAdmin) {
+  if (!user?.isSuperAdmin && user?.role !== 'super_admin') {
     return { success: false, error: 'אין הרשאה (נדרש Super Admin)' };
   }
 
