@@ -76,11 +76,11 @@ export type CalendarSyncDirection =
 export interface BookingProvider {
   id: string;
   organizationId: string;
-  userId?: string | null;
+  userId: string | null;
   name: string;
   email: string;
-  phone?: string | null;
-  avatar?: string | null;
+  phone: string | null;
+  avatar: string | null;
   isActive: boolean;
   bufferMinutes: number;
   maxDailyAppointments: number;
