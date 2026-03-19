@@ -57,7 +57,7 @@ async function POSTHandler(request: NextRequest) {
 
         // Subscription guard — block AI for suspended/past_due/cancelled orgs
         // Super Admins are always allowed (they need to debug and support tenants regardless of billing state).
-        const isSuperAdmin = user.isSuperAdmin === true;
+        const isSuperAdmin = user.isSuperAdmin === true || user.role === 'super_admin';
         const aiAccess = isSuperAdmin ? { allowed: true as const } : checkAiAccess(callerWorkspace.subscriptionStatus);
 
         // #region agent log
