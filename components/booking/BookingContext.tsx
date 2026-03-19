@@ -10,7 +10,7 @@ import type { BookingService, BookingProvider, BookingAppointment, BookingLink }
 
 type TabId = 'calendar' | 'appointments' | 'providers' | 'services' | 'links' | 'settings';
 
-interface BookingStats {
+export interface BookingStats {
   providersCount: number;
   servicesCount: number;
   linksCount: number;
