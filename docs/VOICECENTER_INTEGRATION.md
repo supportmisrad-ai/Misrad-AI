@@ -66,21 +66,73 @@ GET /api/telephony/reports/monthly
 
 ---
 
-### ✅ 5. WebRTC Widget Placeholder
+### ✅ 5. Call Log API (משיכת היסטוריית שיחות)
+**קובץ:** `app/api/telephony/call-log/route.ts`
+
+**יכולות:**
+- משיכת פרטי שיחות מ-Voicenter Call Log API
+- סינון לפי תאריכים (fromdate, todate - חובה)
+- סינון לפי מספרי טלפון, שלוחות, סוגי שיחות
+- תמיכה בפורמטים POST-JSON ו-GET
+- החזרת מידע מפורט: CallerNumber, Duration, RecordURL, DialStatus וכו'
+
+**API Endpoint:** `https://api.voicenter.com/hub/cdr/`
+
+**דוגמת שימוש:**
+```typescript
+POST /api/telephony/call-log
+{
+  "fromdate": "2024-01-01T00:00:00",
+  "todate": "2024-01-31T23:59:59",
+  "fields": ["CallerNumber", "Duration", "RecordURL", "CallID"]
+}
+```
+
+---
+
+### ✅ 6. Click2Call API (יזום שיחות)
+**קובץ:** `app/actions/telephony-click2call.ts`
+
+**יכולות:**
+- יזום שיחות דרך Voicenter Click2Call API
+- תמיכה ב-2 רגליים: רגל 1 (לנציג) → רגל 2 (ליעד)
+- מענה אוטומטי (phoneautoanswer=True)
+- בדיקת זמינות שלוחה (checkphonedevicestate=True)
+- פרמטרים נוספים: record, maxduration, CallerID customization
+
+**API Endpoint:** `https://api.voicenter.com/ForwardDialer/click2call.aspx`
+
+**פרמטרים חובה:**
+- `code` - קוד ייחודי לחשבון
+- `phone` - השלוחה/מספר שממנו יוצאת השיחה
+- `target` - מספר היעד
+- `action=call`
+- `phoneautoanswer=True` (מומלץ מאוד)
+- `checkphonedevicestate=True` (מומלץ)
+
+---
+
+### ✅ 7. WebRTC Widget
 **קובץ:** `components/telephony/VoicecenterWidget.tsx`
 
-**מצב נוכחי:**
-- קומפוננטה מוכנה לקבלת פרטי Widget מ-Voicenter
-- מציגה placeholder עד שניקיטה יספק את פרטי האינטגרציה
-- תשתית לטעינה דינמית של סקריפט Widget
-- Callback hooks ל-incoming calls
+**יכולות:**
+- שלוחה מלאה בדפדפן (WebRTC)
+- ביצוע וקבלת שיחות ישירות מהממשק
+- התאמה אישית מלאה (צבעים, לוגו, מיקום)
+- Noise Reduction מובנה
+- תמיכה בהעברות שיחות, Merge, DND
 
-**להוספה בעתיד:**
+**Widget CDN:** `https://cdn.opensipsjs.org/opensipsjs-widget/v0.2.39/opensipsjs-widget.mjs`
+
+**דוגמת שימוש:**
 ```tsx
 <VoicecenterWidget 
-  orgSlug={orgSlug}
-  config={{ apiKey, extension, serverUrl }}
-  onIncomingCall={(caller) => { /* handle */ }}
+  credentials={{
+    username: "...",
+    password: "...",
+    domain: "..."
+  }}
+  onCallIncoming={(call) => { /* handle */ }}
 />
 ```
 
