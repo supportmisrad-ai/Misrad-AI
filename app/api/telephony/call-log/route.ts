@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { withWorkspaceTenantContext } from '@/lib/prisma-tenant-guard';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 import type { 
   VoicecenterCallLogRequest, 
@@ -19,13 +19,15 @@ import type {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentication
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // 1. Authentication & Authorization
+    const user = await getAuthenticatedUser();
+    await requirePermission('manage_system');
 
-    // 2. Parse request body
+    // 2. Get workspace context
+    const { workspace } = await getWorkspaceOrThrow(request);
+    const organizationId = String(workspace.id);
+
+    // 3. Parse request body
     const body = await request.json();
     const { 
       fromdate, 
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
       saveToDatabase = false
     } = body;
 
-    // 3. Validate required fields
+    // 4. Validate required fields
     if (!fromdate || !todate) {
       return NextResponse.json(
         { error: 'fromdate and todate are required (ISO 8601 format)' },
@@ -44,172 +46,163 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Get organization context
-    const orgSlug = request.nextUrl.searchParams.get('orgSlug');
-    if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug query parameter required' }, { status: 400 });
+    // 5. Get Voicenter credentials from system_settings
+    const settings = await prisma.system_settings.findFirst({
+      where: { tenant_id: organizationId },
+      select: {
+        system_flags: true,
+      },
+    });
+
+    const systemFlags = settings?.system_flags as Record<string, unknown> | null;
+    const telephony = systemFlags?.telephony as Record<string, unknown> | undefined;
+    const provider = telephony?.provider as string | undefined;
+    const isActive = telephony?.isActive as boolean | undefined;
+    const credentials = telephony?.credentials as Record<string, unknown> | undefined;
+
+    if (!isActive || provider !== 'voicenter') {
+      return NextResponse.json(
+        { error: 'Voicenter integration not enabled for this organization' },
+        { status: 400 }
+      );
     }
 
-    return await withWorkspaceTenantContext(
-      orgSlug,
-      async ({ organizationId }) => {
-        // 5. Get Voicenter credentials from system_settings
-        const settings = await prisma.systemSettings.findUnique({
-          where: { organizationId },
-          select: {
-            telephony_provider: true,
-            telephony_config: true,
-            telephony_enabled: true,
-          },
-        });
+    const code = credentials?.UserCode as string | undefined;
 
-        if (!settings?.telephony_enabled || settings.telephony_provider !== 'voicenter') {
-          return NextResponse.json(
-            { error: 'Voicenter integration not enabled for this organization' },
-            { status: 400 }
-          );
-        }
+    if (!code) {
+      return NextResponse.json(
+        { error: 'Voicenter UserCode not configured. Please configure in System Settings.' },
+        { status: 400 }
+      );
+    }
 
-        const config = settings.telephony_config as Record<string, unknown> | null;
-        const code = config?.UserCode as string | undefined;
+    // 6. Build Call Log API request
+    const callLogRequest: VoicecenterCallLogRequest = {
+      code,
+      fromdate,
+      todate,
+      fields,
+    };
 
-        if (!code) {
-          return NextResponse.json(
-            { error: 'Voicenter UserCode not configured. Please configure in System Settings.' },
-            { status: 400 }
-          );
-        }
+    // Add optional search filters
+    if (phones || extensions) {
+      callLogRequest.search = {};
+      if (phones) callLogRequest.search.phones = phones;
+      if (extensions) callLogRequest.search.extensions = extensions;
+    }
 
-        // 6. Build Call Log API request
-        const callLogRequest: VoicecenterCallLogRequest = {
-          code,
-          fromdate,
-          todate,
-          fields,
-        };
-
-        // Add optional search filters
-        if (phones || extensions) {
-          callLogRequest.search = {};
-          if (phones) callLogRequest.search.phones = phones;
-          if (extensions) callLogRequest.search.extensions = extensions;
-        }
-
-        // 7. Call Voicenter Call Log API
-        const apiUrl = 'https://api.voicenter.com/hub/cdr/';
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify(callLogRequest),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[CallLog] Voicenter API error:', {
-            status: response.status,
-            body: errorText,
-          });
-          return NextResponse.json(
-            { error: `Voicenter API error: ${response.statusText}` },
-            { status: response.status }
-          );
-        }
-
-        const result = (await response.json()) as VoicecenterCallLogResponse;
-
-        // 8. Check for API errors
-        if (result.ERROR_NUMBER !== 0) {
-          return NextResponse.json(
-            { error: result.ERROR_DESCRIPTION },
-            { status: result.STATUS_CODE || 400 }
-          );
-        }
-
-        // 9. Optionally save to database
-        if (saveToDatabase && result.CDR_LIST && result.CDR_LIST.length > 0) {
-          let savedCount = 0;
-          
-          for (const call of result.CDR_LIST) {
-            if (!call.CallID) continue;
-
-            // Check if call already exists
-            const existing = await prisma.systemLeadActivity.findFirst({
-              where: {
-                organizationId,
-                metadata: {
-                  path: ['callId'],
-                  equals: call.CallID,
-                },
-              },
-            });
-
-            if (existing) continue; // Skip duplicates
-
-            // Try to find matching lead by phone number
-            const phoneDigits = call.CallerNumber?.replace(/\D/g, '') || '';
-            let leadId: string | null = null;
-
-            if (phoneDigits.length >= 9) {
-              const lead = await prisma.systemLead.findFirst({
-                where: {
-                  organizationId,
-                  phone: {
-                    contains: phoneDigits.slice(-9),
-                  },
-                },
-                select: { id: true },
-              });
-              leadId = lead?.id || null;
-            }
-
-            // Create activity record
-            if (leadId) {
-              await prisma.systemLeadActivity.create({
-                data: {
-                  organizationId,
-                  leadId,
-                  type: 'call',
-                  content: `Call ${call.Type || 'Unknown'} - ${call.DialStatus || 'Unknown'}`,
-                  direction: call.Type?.includes('Incoming') ? 'inbound' : 'outbound',
-                  timestamp: call.Date ? new Date(call.Date) : new Date(),
-                  metadata: {
-                    callId: call.CallID,
-                    duration: call.Duration,
-                    recordingUrl: call.RecordURL,
-                    dialStatus: call.DialStatus,
-                    callType: call.Type,
-                    callerNumber: call.CallerNumber,
-                    targetNumber: call.TargetNumber,
-                    source: 'voicenter_call_log_api',
-                  },
-                },
-              });
-              savedCount++;
-            }
-          }
-
-          return NextResponse.json({
-            success: true,
-            totalHits: result.TOTAL_HITS,
-            returnedHits: result.RETURN_HITS,
-            savedToDatabase: savedCount,
-            calls: result.CDR_LIST,
-          });
-        }
-
-        // 10. Return call log data
-        return NextResponse.json({
-          success: true,
-          totalHits: result.TOTAL_HITS,
-          returnedHits: result.RETURN_HITS,
-          calls: result.CDR_LIST,
-        });
+    // 7. Call Voicenter Call Log API
+    const apiUrl = 'https://api.voicenter.com/hub/cdr/';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      { source: 'api_telephony_call_log', reason: 'fetch_call_history' }
-    );
+      body: JSON.stringify(callLogRequest),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[CallLog] Voicenter API error:', {
+        status: response.status,
+        body: errorText,
+      });
+      return NextResponse.json(
+        { error: `Voicenter API error: ${response.statusText}` },
+        { status: response.status }
+      );
+    }
+
+    const result = (await response.json()) as VoicecenterCallLogResponse;
+
+    // 8. Check for API errors
+    if (result.ERROR_NUMBER !== 0) {
+      return NextResponse.json(
+        { error: result.ERROR_DESCRIPTION },
+        { status: result.STATUS_CODE || 400 }
+      );
+    }
+
+    // 9. Optionally save to database
+    if (saveToDatabase && result.CDR_LIST && result.CDR_LIST.length > 0) {
+      let savedCount = 0;
+      
+      for (const call of result.CDR_LIST) {
+        if (!call.CallID) continue;
+
+        // Check if call already exists
+        const existing = await prisma.systemLeadActivity.findFirst({
+          where: {
+            organizationId,
+            metadata: {
+              path: ['callId'],
+              equals: call.CallID,
+            },
+          },
+        });
+
+        if (existing) continue; // Skip duplicates
+
+        // Try to find matching lead by phone number
+        const phoneDigits = call.CallerNumber?.replace(/\D/g, '') || '';
+        let leadId: string | null = null;
+
+        if (phoneDigits.length >= 9) {
+          const lead = await prisma.systemLead.findFirst({
+            where: {
+              organizationId,
+              phone: {
+                contains: phoneDigits.slice(-9),
+              },
+            },
+            select: { id: true },
+          });
+          leadId = lead?.id || null;
+        }
+
+        // Create activity record
+        if (leadId) {
+          await prisma.systemLeadActivity.create({
+            data: {
+              organizationId,
+              leadId,
+              type: 'call',
+              content: `Call ${call.Type || 'Unknown'} - ${call.DialStatus || 'Unknown'}`,
+              direction: call.Type?.includes('Incoming') ? 'inbound' : 'outbound',
+              timestamp: call.Date ? new Date(call.Date) : new Date(),
+              metadata: {
+                callId: call.CallID,
+                duration: call.Duration,
+                recordingUrl: call.RecordURL,
+                dialStatus: call.DialStatus,
+                callType: call.Type,
+                callerNumber: call.CallerNumber,
+                targetNumber: call.TargetNumber,
+                source: 'voicenter_call_log_api',
+              },
+            },
+          });
+          savedCount++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        totalHits: result.TOTAL_HITS,
+        returnedHits: result.RETURN_HITS,
+        savedToDatabase: savedCount,
+        calls: result.CDR_LIST,
+      });
+    }
+
+    // 10. Return call log data
+    return NextResponse.json({
+      success: true,
+      totalHits: result.TOTAL_HITS,
+      returnedHits: result.RETURN_HITS,
+      calls: result.CDR_LIST,
+    });
   } catch (error: unknown) {
     console.error('[CallLog] Error:', error);
     return NextResponse.json(
