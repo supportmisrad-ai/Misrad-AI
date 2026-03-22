@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createHmac } from 'crypto';
+import { addScreenPop } from '@/app/api/telephony/events/route';
 
 // Helper to normalize phones
 function extractPhoneDigits(phone: string): string {
@@ -109,16 +110,21 @@ export async function POST(request: NextRequest) {
 
         // If it's a Screen Pop event (e.g. ringing)
         if (event_type === 'ringing' || body.status === 'ringing') {
-            // Can be used later via Websockets/Pusher to notify the UI
-            // For now, if Voicenter expects a redirect URL for Screen Pop:
+            // Send real-time screen pop notification via SSE
+            addScreenPop(orgId, {
+                caller: customerPhone || phone || 'Unknown',
+                leadId: leadId || undefined,
+                leadName: leadId ? leadName : undefined,
+            });
+            
             if (leadId) {
                 return NextResponse.json({
                     success: true,
                     action: 'screen_pop',
-                    url: `/w/${orgId}/system/dialer?leadId=${leadId}` // Redirect to dialer with lead open
+                    url: `/w/${orgId}/system/dialer?leadId=${leadId}`
                 });
             }
-            return NextResponse.json({ success: true, message: 'Ringing event received, no lead found' });
+            return NextResponse.json({ success: true, message: 'Ringing event received, screen pop sent' });
         }
 
         // If it's a CDR (Call ended)

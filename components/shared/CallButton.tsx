@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Phone } from 'lucide-react';
-import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { useTelephonyOptional } from '@/contexts/TelephonyContext';
 
 interface CallButtonProps {
   /**
@@ -64,6 +64,8 @@ export const CallButton: React.FC<CallButtonProps> = ({
 }) => {
   const [isCalling, setIsCalling] = React.useState(false);
 
+  const telephony = useTelephonyOptional();
+
   const handleCall = async (e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
@@ -72,11 +74,10 @@ export const CallButton: React.FC<CallButtonProps> = ({
 
     if (!phoneNumber || isCalling) return;
 
-    // Get caller's phone number (from current user)
-    const callerNumber = user?.phone;
-    if (!callerNumber) {
+    // Check if telephony is configured
+    if (!telephony?.config?.isActive) {
       if (onToast) {
-        onToast('מספר טלפון לא זמין למשתמש הנוכחי', 'error');
+        onToast('טלפוניה לא מוגדרת במערכת', 'error');
       }
       return;
     }
@@ -84,29 +85,12 @@ export const CallButton: React.FC<CallButtonProps> = ({
     setIsCalling(true);
 
     try {
-      // Call API to initiate telephony call
-      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (orgSlug) {
-        headers['x-org-id'] = encodeURIComponent(orgSlug);
-      }
-      const response = await fetch('/api/telephony/call', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          to: phoneNumber,      // Destination (target phone)
-          from: callerNumber    // Source (current user's phone)
-        })
-      });
+      // Use TelephonyContext to initiate call
+      const result = await telephony.initiateCall(phoneNumber);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'שגיאה בהפעלת השיחה' }));
-        throw new Error(errorData.error || 'שגיאה בהפעלת השיחה');
+      if (!result.success) {
+        throw new Error(result.error || 'שגיאה בהפעלת השיחה');
       }
-
-      const result = await response.json();
       
       // Show success toast
       if (onToast) {

@@ -8,6 +8,11 @@ import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { CallAnalysisProvider } from '@/components/system/contexts/CallAnalysisContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
+import { TelephonyProvider, useTelephonyOptional } from '@/contexts/TelephonyContext';
+import dynamic from 'next/dynamic';
+
+const VoicecenterWidget = dynamic(() => import('@/components/telephony/VoicecenterWidget'), { ssr: false });
+const ScreenPopNotification = dynamic(() => import('@/components/telephony/ScreenPopNotification'), { ssr: false });
 import { NAV_ITEMS, NAV_GROUPS } from '@/components/system/constants';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
@@ -278,8 +283,10 @@ function SystemShellGateClientCore({
         <AuthProvider initialCurrentUser={initialCurrentUser}>
           <CallAnalysisProvider>
             <BrandProvider>
-              <div className="flex min-h-screen h-[100dvh] w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
-                <ModuleBackground moduleKey="system" />
+              <TelephonyProvider orgSlug={orgSlug}>
+                <TelephonyWidgets orgSlug={orgSlug} />
+                <div className="flex min-h-screen h-[100dvh] w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
+                  <ModuleBackground moduleKey="system" />
                 <SharedSidebar
                   isOpen={isSidebarOpen}
                   onSetOpenAction={setIsSidebarOpen}
@@ -569,7 +576,8 @@ function SystemShellGateClientCore({
                   plusActive={isPlusFanOpen || isCalendarPlusOpen}
                   plusGradient={getOSModule('system')?.gradient}
                 />
-              </div>
+                </div>
+              </TelephonyProvider>
             </BrandProvider>
           </CallAnalysisProvider>
         </AuthProvider>
@@ -577,6 +585,33 @@ function SystemShellGateClientCore({
       <GlobalSearchModal />
       <GlobalSupportModal />
     </SystemShellContext.Provider>
+  );
+}
+
+// Telephony widgets component - renders WebRTC widget and screen pop
+function TelephonyWidgets({ orgSlug }: { orgSlug: string }) {
+  const telephony = useTelephonyOptional();
+  
+  if (!telephony?.config?.isActive) {
+    return null;
+  }
+
+  return (
+    <>
+      <ScreenPopNotification orgSlug={orgSlug} />
+      {telephony.widgetCredentials && (
+        <VoicecenterWidget
+          credentials={telephony.widgetCredentials}
+          orgSlug={orgSlug}
+          onIncomingCall={(call) => {
+            console.log('[Telephony] Incoming call:', call);
+          }}
+          onCallEnded={(call) => {
+            console.log('[Telephony] Call ended:', call);
+          }}
+        />
+      )}
+    </>
   );
 }
 
