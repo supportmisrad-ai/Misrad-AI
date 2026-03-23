@@ -7,8 +7,9 @@ export const metadata = {
 };
 
 export default async function BusinessClientsPage() {
-  // Auto-backfill runs fire-and-forget — never blocks the page render.
-  backfillUnlinkedOrganizations().catch(() => {});
+  // ⚠️ DISABLED: backfillUnlinkedOrganizations auto-creates business_clients for unlinked orgs
+  // We don't want this behavior - orgs should be independent unless explicitly linked
+  // backfillUnlinkedOrganizations().catch(() => {});
 
   const result = await getBusinessClients({});
   const initialClients = result.ok && 'clients' in result ? result.clients : [];
