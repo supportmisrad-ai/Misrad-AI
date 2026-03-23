@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, isTenantAdmin } from '@/lib/auth';
 import { TelephonyService } from '@/lib/services/telephony';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
@@ -15,19 +15,12 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-/**
- * Helper function to get tenantId from request/user
- */
-async function getTenantId(request: NextRequest, userEmail: string | null, workspaceId: string): Promise<string | null> {
-    void userEmail;
-    const searchParams = request.nextUrl.searchParams;
-    const providedTenantId = searchParams.get('tenantId');
-
-    if (providedTenantId && String(providedTenantId) !== String(workspaceId)) {
-        return null;
-    }
-
-    return String(workspaceId);
+async function requireTelephonyAccess(): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (user.isSuperAdmin) return;
+    const isAdmin = await isTenantAdmin();
+    if (isAdmin) return;
+    throw new Error('Forbidden - Missing permission: manage telephony settings');
 }
 
 /**
@@ -40,22 +33,12 @@ async function getTenantId(request: NextRequest, userEmail: string | null, works
  */
 async function POSTHandler(request: NextRequest) {
     try {
-        // 1. Authenticate user
-        const user = await getAuthenticatedUser();
+        // 1. Authenticate + authorise (superAdmin OR tenantAdmin/CEO)
+        await requireTelephonyAccess();
 
-        // 2. Authorization: only admins can initiate calls
-        await requirePermission('manage_system');
-
+        // 2. Resolve workspace
         const { workspace } = await getWorkspaceOrThrow(request);
-        
-        // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email, String(workspace.id));
-        if (!tenantId) {
-            return NextResponse.json(
-                { error: 'Forbidden - Invalid tenant context' },
-                { status: 403 }
-            );
-        }
+        const tenantId = String(workspace.id);
         
         // 4. Parse request body
         const body = await request.json();

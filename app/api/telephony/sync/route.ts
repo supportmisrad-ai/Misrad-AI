@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, isTenantAdmin } from '@/lib/auth';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 import { TelephonyService } from '@/lib/services/telephony';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+async function requireTelephonyAccess(): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (user.isSuperAdmin) return;
+    const isAdmin = await isTenantAdmin();
+    if (isAdmin) return;
+    throw new Error('Forbidden - Missing permission: manage telephony settings');
+}
 
 // Helper to normalize phones
 function extractPhoneDigits(phone: string): string {
@@ -20,8 +28,7 @@ function extractPhoneDigits(phone: string): string {
  */
 export async function POST(request: NextRequest) {
     try {
-        const user = await getAuthenticatedUser();
-        await requirePermission('manage_system');
+        await requireTelephonyAccess();
 
         const { workspace } = await getWorkspaceOrThrow(request);
         const orgId = String(workspace.id);

@@ -8,8 +8,16 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, isTenantAdmin } from '@/lib/auth';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+
+async function requireTelephonyAccess(): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (user.isSuperAdmin) return;
+    const isAdmin = await isTenantAdmin();
+    if (isAdmin) return;
+    throw new Error('Forbidden - Missing permission: manage telephony settings');
+}
 
 // In-memory store for pending screen pops (in production, use Redis)
 const pendingScreenPops = new Map<string, Array<{ caller: string; leadId?: string; leadName?: string; timestamp: number }>>();
@@ -27,9 +35,8 @@ export function addScreenPop(orgSlug: string, data: { caller: string; leadId?: s
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate and verify workspace access
-    await getAuthenticatedUser();
-    await requirePermission('manage_system');
+    // Authenticate + authorise (superAdmin OR tenantAdmin/CEO)
+    await requireTelephonyAccess();
     const { workspace } = await getWorkspaceOrThrow(request);
     
     // Use workspace from context instead of query param

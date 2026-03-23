@@ -8,6 +8,7 @@ import { useData } from '../../context/DataContext';
 import { Phone, Save, CircleCheckBig, CircleAlert } from 'lucide-react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { Skeleton } from '@/components/ui/skeletons';
+import { usePathname } from 'next/navigation';
 
 // Zod schema for form validation
 const telephonyConfigSchema = z.object({
@@ -37,6 +38,8 @@ interface TelephonyConfigResponse {
 
 export const TelephonyConfigForm: React.FC = () => {
     const { addToast } = useData();
+    const pathname = usePathname();
+    const orgSlug = pathname?.match(/\/w\/([^/]+)/)?.[1] || '';
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [existingIntegration, setExistingIntegration] = useState<TelephonyIntegration | null>(null);
@@ -68,7 +71,9 @@ export const TelephonyConfigForm: React.FC = () => {
         const fetchConfig = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch('/api/settings/telephony');
+                const response = await fetch('/api/settings/telephony', {
+                    headers: orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : {},
+                });
                 if (!response.ok) {
                     throw new Error('שגיאה בטעינת התצורה');
                 }
@@ -121,7 +126,8 @@ export const TelephonyConfigForm: React.FC = () => {
             const response = await fetch('/api/settings/telephony', {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : {}),
                 },
                 body: JSON.stringify({
                     provider: data.provider,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, isTenantAdmin } from '@/lib/auth';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 import type { 
@@ -17,11 +17,19 @@ import type {
  * 
  * @see https://api.voicenter.com/hub/cdr/
  */
+
+async function requireTelephonyAccess(): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (user.isSuperAdmin) return;
+    const isAdmin = await isTenantAdmin();
+    if (isAdmin) return;
+    throw new Error('Forbidden - Missing permission: manage telephony settings');
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentication & Authorization
-    const user = await getAuthenticatedUser();
-    await requirePermission('manage_system');
+    // 1. Authentication & Authorization (superAdmin OR tenantAdmin/CEO)
+    await requireTelephonyAccess();
 
     // 2. Get workspace context
     const { workspace } = await getWorkspaceOrThrow(request);

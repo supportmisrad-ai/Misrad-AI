@@ -7,13 +7,16 @@ import {
     Globe, Lock, LogOut, Receipt, FileText, TriangleAlert, 
     Kanban, GripVertical, Save, Cpu, ToggleLeft, ToggleRight, Target,
     FileInput, Zap, ExternalLink, BrainCircuit, Loader2, Info,
-    Phone, ShoppingBag, MessageSquareText, Lightbulb, BookOpenText
+    Phone, ShoppingBag, MessageSquareText, Lightbulb, BookOpenText, Settings
 } from 'lucide-react';
 import { INITIAL_AGENTS, STAGES } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import SystemTargetsView from './SalesTargetsView';
 import { Lead } from '../types';
+import dynamic from 'next/dynamic';
+
+const SystemIntegrationsTab = dynamic(() => import('../../settings/SystemIntegrationsTab'), { ssr: false });
 
 interface SettingsViewProps {
   logs?: unknown[]; 
@@ -21,7 +24,7 @@ interface SettingsViewProps {
   orgSlug?: string;
 }
 
-type SettingsTabId = 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications' | 'ai_sales';
+type SettingsTabId = 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications' | 'ai_sales' | 'integrations';
 
 interface AiSalesContextData {
   businessDescription: string;
@@ -154,6 +157,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
       { id: 'targets', label: 'יעדים', icon: Target, desc: 'ניהול יעדי מכירות', allowed: true },
       { id: 'pipeline', label: 'תהליך המכירה', icon: Kanban, desc: 'עריכת שלבים', allowed: canAccess('settings_team') },
       { id: 'team', label: 'צוות והרשאות', icon: Users, desc: 'מי במערכת', allowed: canAccess('settings_team') },
+      { id: 'integrations', label: 'אינטגרציות', icon: Settings, desc: 'מרכזייה ושירותים חיצוניים', allowed: true },
       { id: 'billing', label: 'תוכנית ותשלום', icon: CreditCard, desc: 'חשבוניות', allowed: canAccess('billing') },
       { id: 'ai_sales', label: 'AI מאמן מכירות', icon: BrainCircuit, desc: 'הנחיות למנוע הניתוח', allowed: true },
       { id: 'notifications', label: 'התראות', icon: Bell, desc: 'מתי להציק לך', allowed: true },
@@ -639,6 +643,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [], orgSlug = '' })
                       </>
                     )}
                 </div>
+              )}
+
+              {/* INTEGRATIONS TAB */}
+              {activeTab === 'integrations' && (
+                  <div className="animate-slide-up">
+                      <SystemIntegrationsTab />
+                  </div>
               )}
 
               {/* NOTIFICATIONS TAB */}

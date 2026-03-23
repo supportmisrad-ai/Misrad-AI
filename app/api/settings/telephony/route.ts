@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, isTenantAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { queryRawTenantScoped } from '@/lib/prisma';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
@@ -16,19 +16,19 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
 /**
- * Helper function to get tenantId from request/user
+ * Require that the caller is either a super-admin (system-level)
+ * or a tenant admin / CEO (business-level) for this workspace.
+ * Telephony settings are a tenant-level configuration — the business
+ * owner (מנכ"ל) must be able to manage them.
  */
-async function getTenantId(request: NextRequest, userEmail: string | null, workspaceId: string): Promise<string | null> {
-    void userEmail;
-    const searchParams = request.nextUrl.searchParams;
-    const providedTenantId = searchParams.get('tenantId');
-
-    if (providedTenantId && String(providedTenantId) !== String(workspaceId)) {
-        return null;
-    }
-
-    return String(workspaceId);
+async function requireTelephonyAccess(): Promise<void> {
+    const user = await getAuthenticatedUser();
+    if (user.isSuperAdmin) return;
+    const isAdmin = await isTenantAdmin();
+    if (isAdmin) return;
+    throw new Error('Forbidden - Missing permission: manage telephony settings');
 }
 
 /**
@@ -37,22 +37,12 @@ async function getTenantId(request: NextRequest, userEmail: string | null, works
  */
 async function GETHandler(request: NextRequest) {
     try {
-        // 1. Authenticate user
-        const user = await getAuthenticatedUser();
-        
-        // 2. Check permissions - only admins can view telephony settings
-        await requirePermission('manage_system');
+        // 1. Authenticate + authorise (superAdmin OR tenantAdmin/CEO)
+        await requireTelephonyAccess();
 
+        // 2. Resolve workspace from x-org-id header
         const { workspace } = await getWorkspaceOrThrow(request);
-        
-        // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email, String(workspace.id));
-        if (!tenantId) {
-            return NextResponse.json(
-                { error: 'Forbidden - Invalid tenant context' },
-                { status: 403 }
-            );
-        }
+        const tenantId = String(workspace.id);
 
         const rows = await queryRawTenantScoped<
             Array<{ id: string; system_flags: unknown; created_at: string | null; updated_at: string | null }>
@@ -119,22 +109,12 @@ async function GETHandler(request: NextRequest) {
  */
 async function PUTHandler(request: NextRequest) {
     try {
-        // 1. Authenticate user
-        const user = await getAuthenticatedUser();
-        
-        // 2. Check permissions - only admins can update telephony settings
-        await requirePermission('manage_system');
+        // 1. Authenticate + authorise (superAdmin OR tenantAdmin/CEO)
+        await requireTelephonyAccess();
 
+        // 2. Resolve workspace from x-org-id header
         const { workspace } = await getWorkspaceOrThrow(request);
-        
-        // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email, String(workspace.id));
-        if (!tenantId) {
-            return NextResponse.json(
-                { error: 'Forbidden - Invalid tenant context' },
-                { status: 403 }
-            );
-        }
+        const tenantId = String(workspace.id);
         
         // 4. Parse request body
         const bodyJson: unknown = await request.json().catch(() => ({}));
