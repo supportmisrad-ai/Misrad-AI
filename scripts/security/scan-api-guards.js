@@ -28,6 +28,7 @@ const PUBLIC_APPROVED = new Set([
   'app/api/landing/faq/route.ts', // Public: landing page data, no auth required
   'app/api/debug/clerk-config/route.ts', // Public: exposes only NEXT_PUBLIC_ env vars for diagnostics
   'app/api/debug/db-check/route.ts', // Public: table existence diagnostic — no sensitive data returned
+  'app/api/debug/db-state/route.ts', // Public: diagnostic endpoint for DB state verification — temporary
   'app/api/guest/task/[token]/route.ts', // Public: guest task view — scoped by share token, no sensitive data
   'app/api/guest/task/[token]/comment/route.ts', // Public: guest comment — scoped by share token
   'app/api/guest/task/[token]/approve/route.ts', // Public: guest approval — scoped by share token

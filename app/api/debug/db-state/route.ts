@@ -1,9 +1,11 @@
 /**
  * Debug endpoint — בדיקת מצב DB ומחזיר JSON עם כל הנתונים
  * גישה: GET /api/debug/db-state?orgId=ORG_ID
+ * Requires: Super Admin
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { requireSuperAdmin } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +13,11 @@ const ORG_ID = '444a2284-c5e4-48a8-8608-ae890dfb5e62';
 const USER_EMAIL = 'itsikdahan1@gmail.com';
 
 export async function GET(request: NextRequest) {
+  // Require super admin access
+  try { await requireSuperAdmin(); } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const orgId = searchParams.get('orgId') || ORG_ID;
 
@@ -88,7 +95,7 @@ export async function GET(request: NextRequest) {
     // 12. Profile for user in org
     const profile = await prisma.profile.findFirst({
       where: { organizationId: orgId, email: USER_EMAIL },
-      select: { id: true, role: true, isSuperAdmin: true },
+      select: { id: true, role: true },
     });
     results.profile = profile;
 
