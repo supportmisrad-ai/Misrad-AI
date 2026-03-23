@@ -430,8 +430,9 @@ export async function createCoupon(params: {
     revalidatePath('/app/admin/coupons');
     return { ok: true, data: { id: coupon.id, codeLast4 } };
   } catch (error) {
-    logger.error('createCoupon', 'Error:', error);
-    return { ok: false, error: 'שגיאה ביצירת קופון' };
+    const errorDetails = error instanceof Error ? error.message : String(error);
+    logger.error('createCoupon', 'Error details:', { error: errorDetails, stack: error instanceof Error ? error.stack : undefined, params });
+    return { ok: false, error: `שגיאה ביצירת קופון: ${errorDetails}` };
   }
 }
 
@@ -523,8 +524,9 @@ export async function deleteCoupon(couponId: string) {
     revalidatePath('/app/admin/coupons');
     return { ok: true };
   } catch (error) {
-    logger.error('deleteCoupon', 'Error:', error);
-    return { ok: false, error: 'שגיאה במחיקת קופון' };
+    const errorDetails = error instanceof Error ? error.message : String(error);
+    logger.error('deleteCoupon', 'Error details:', { error: errorDetails, stack: error instanceof Error ? error.stack : undefined, couponId });
+    return { ok: false, error: `שגיאה במחיקת קופון: ${errorDetails}` };
   }
 }
 
