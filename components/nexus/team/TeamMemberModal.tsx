@@ -107,10 +107,9 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col"
-                style={{ overflow: 'visible' }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 flex flex-col max-h-[90vh]"
             >
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl shrink-0">
                     <h3 className="font-bold text-lg text-gray-900">
                         {mode === 'add' ? 'גיוס עובד חדש' : 'עריכת פרטי עובד'}
                     </h3>
@@ -119,7 +118,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                     </button>
                 </div>
                 
-                <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div className="p-6 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">שם מלא</label>
                         <input 

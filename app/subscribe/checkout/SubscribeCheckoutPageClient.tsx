@@ -313,6 +313,7 @@ function SubscribeCheckoutContent({
           </p>
 
           <button
+            type="button"
             onClick={() => router.push(lobbyUrl)}
             className="w-full rounded-xl bg-slate-900 text-white font-black py-4 hover:bg-slate-800 transition-all shadow-none"
           >
@@ -356,7 +357,7 @@ function SubscribeCheckoutContent({
               <span className="text-xs font-bold text-slate-400">אישור תשלום</span>
             </div>
           </div>
-          <button onClick={() => router.back()} className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
+          <button type="button" onClick={() => router.back()} className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
             ביטול וחזרה
           </button>
         </div>
@@ -472,6 +473,7 @@ function SubscribeCheckoutContent({
             )}
 
             <button
+              type="button"
               onClick={handleCreateOrder}
               disabled={isCreating}
               className="group w-full rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 shadow-luxury transition-all flex items-center justify-center gap-2"
@@ -573,6 +575,7 @@ function SubscribeCheckoutContent({
                   <div className="flex items-start justify-between gap-4">
                     <div className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{bitPayText}</div>
                     <button
+                      type="button"
                       onClick={copyDetails}
                       className="shrink-0 rounded-xl bg-white border border-slate-200 p-2 text-xs hover:bg-slate-50 transition-colors shadow-sm"
                     >
@@ -607,6 +610,7 @@ function SubscribeCheckoutContent({
                   </div>
 
                   <button
+                    type="button"
                     onClick={handleSubmitProof}
                     disabled={isSubmittingProof || isPendingVerification}
                     className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black py-4 shadow-luxury transition-all"

@@ -23,24 +23,34 @@ function getStringField(obj: Record<string, unknown> | null, key: string): strin
 }
 
 export interface TelephonyCredentials {
-    // Voicenter credentials
+    // ── Voicenter credentials ─────────────────────────────────────
+    // Click2Call API code (required for making calls)
+    code?: string;
+    // Legacy alias — older configs stored the Click2Call code here
     UserCode?: string;
+    // Legacy — not required by VoiceCenter APIs but kept for compat
     OrganizationCode?: string;
-    
-    // Twilio credentials
+    // Default extension number for outgoing calls (e.g. "1131")
+    defaultExtension?: string;
+    // Real-Time Events API token (for live call monitoring)
+    eventsToken?: string;
+    // CPanel user email (for Events SDK / WebRTC widget login)
+    email?: string;
+    // CPanel user password (for Events SDK / WebRTC widget login)
+    password?: string;
+
+    // ── Twilio credentials ────────────────────────────────────────
     account_sid?: string;
     auth_token?: string;
     
-    // Generic/legacy fields (for backward compatibility)
+    // ── Generic / legacy fields ───────────────────────────────────
     api_key?: string;
     api_secret?: string;
     secret?: string;
     account_id?: string;
-
-    // Common provider field
     from_number?: string;
     
-    [key: string]: unknown; // Allow additional provider-specific credentials
+    [key: string]: unknown;
 }
 
 export interface CallInitiationResult {
@@ -125,8 +135,8 @@ export class TelephonyService {
     /**
      * Initiate call via Voicenter Click2Call API
      * 
-     * Uses Voicenter's ForwardDialing API v2
-     * Documentation: https://api.voicenter.com/ForwardDialing/v2
+     * Uses Voicenter's Click2Call endpoint (GET request with query params)
+     * API: https://api.voicenter.com/ForwardDialer/click2call.aspx
      */
     private static async initiateVoicenterCall(
         from: string,
@@ -134,90 +144,70 @@ export class TelephonyService {
         credentials: TelephonyCredentials
     ): Promise<CallInitiationResult> {
         try {
-            // Validate required Voicenter credentials
-            if (!credentials.UserCode) {
+            // Resolve Click2Call code (new field 'code' or legacy 'UserCode')
+            const code = credentials.code || credentials.UserCode;
+            if (!code) {
                 return {
                     success: false,
-                    error: 'Voicenter UserCode not configured'
+                    error: 'Voicenter Click2Call code not configured'
                 };
             }
 
-            if (!credentials.OrganizationCode) {
-                return {
-                    success: false,
-                    error: 'Voicenter OrganizationCode not configured'
-                };
-            }
+            // Build Click2Call query params
+            const params = new URLSearchParams({
+                code,
+                phone: from,
+                target: to,
+                action: 'call',
+                phoneautoanswer: 'true',
+                checkphonedevicestate: 'true',
+                format: 'JSON',
+            });
 
-            // Voicenter Click2Call API endpoint
-            const apiUrl = 'https://api.voicenter.com/ForwardDialing/v2';
-            
-            // Prepare request payload according to Voicenter Click2Call API specification
-            const payload = {
-                UserCode: credentials.UserCode,
-                OrganizationCode: credentials.OrganizationCode,
-                CompositeDestination: to,  // Phone number to call to
-                CallerID: from  // Phone number/extension of the agent calling from
-            };
+            const apiUrl = `https://api.voicenter.com/ForwardDialer/click2call.aspx?${params.toString()}`;
 
-            // Make API call to Voicenter
             const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
                 let errorMessage = `Voicenter API error: ${response.statusText}`;
-                
                 try {
                     const parsed = JSON.parse(errorText) as unknown;
                     const errorObj = asObject(parsed);
-                    errorMessage = String(errorObj?.message || errorObj?.error || errorMessage);
+                    errorMessage = String(errorObj?.ERRORMESSAGE || errorObj?.message || errorObj?.error || errorMessage);
                 } catch {
-                    // If error response is not JSON, use the text as-is
-                    if (errorText) {
-                        errorMessage = errorText;
-                    }
+                    if (errorText) errorMessage = errorText;
                 }
 
                 console.error('[TelephonyService] Voicenter API error:', {
                     status: response.status,
                     statusText: response.statusText,
                 });
-                
-                return {
-                    success: false,
-                    error: errorMessage
-                };
+                return { success: false, error: errorMessage };
             }
 
             const result = (await response.json()) as unknown;
             const resultObj = asObject(result);
-            const callId =
-                getStringField(resultObj, 'CallID') ??
-                getStringField(resultObj, 'callId') ??
-                getStringField(resultObj, 'id') ??
-                getStringField(resultObj, 'SessionID') ??
-                getStringField(resultObj, 'sessionId');
-            const sessionId =
-                getStringField(resultObj, 'SessionID') ??
-                getStringField(resultObj, 'sessionId') ??
-                getStringField(resultObj, 'CallID') ??
-                getStringField(resultObj, 'callId');
-            const message = getStringField(resultObj, 'message') || 'Call initiated successfully via Voicenter';
 
-            // Extract call ID from Voicenter response
-            // Adjust these field names based on actual Voicenter API response structure
+            // VoiceCenter Click2Call returns { ERRORCODE, ERRORMESSAGE, CALLID }
+            const errorCode = resultObj?.ERRORCODE;
+            if (typeof errorCode === 'number' && errorCode !== 0) {
+                return {
+                    success: false,
+                    error: getStringField(resultObj, 'ERRORMESSAGE') || `Voicenter error code: ${errorCode}`,
+                };
+            }
+
+            const callId = getStringField(resultObj, 'CALLID') ?? getStringField(resultObj, 'CallID');
+
             return {
                 success: true,
                 callId: callId || undefined,
-                sessionId: sessionId || undefined,
-                message
+                sessionId: callId || undefined,
+                message: 'Call initiated successfully via Voicenter',
             };
         } catch (error: unknown) {
             const msg = getErrorMessage(error);

@@ -68,12 +68,12 @@ export async function initiateClick2Call(params: {
           };
         }
 
-        const code = credentials?.UserCode as string | undefined;
+        const code = (credentials?.code ?? credentials?.UserCode) as string | undefined;
 
         if (!code) {
           return {
             success: false,
-            error: 'Voicenter UserCode not configured. Please configure in System Settings.',
+            error: 'קוד Click2Call לא מוגדר. הגדר בהגדרות → אינטגרציות → Voicenter.',
           };
         }
 
@@ -228,12 +228,12 @@ export async function terminateCall(params: {
           };
         }
 
-        const code = credentials?.UserCode as string | undefined;
+        const code = (credentials?.code ?? credentials?.UserCode) as string | undefined;
 
         if (!code) {
           return {
             success: false,
-            error: 'Voicenter UserCode not configured',
+            error: 'קוד Click2Call לא מוגדר. הגדר בהגדרות → אינטגרציות → Voicenter.',
           };
         }
 

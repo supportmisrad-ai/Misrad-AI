@@ -43,9 +43,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No active Voicenter integration found' }, { status: 400 });
         }
 
-        const credentials = integration.credentials as any;
-        if (!credentials.UserCode || !credentials.OrganizationCode) {
-            return NextResponse.json({ error: 'Missing Voicenter credentials' }, { status: 400 });
+        const credentials = integration.credentials as Record<string, unknown>;
+        const code = (credentials?.code ?? credentials?.UserCode) as string | undefined;
+        if (!code) {
+            return NextResponse.json({ error: 'Missing Voicenter Click2Call code' }, { status: 400 });
         }
 
         // 2. Fetch from Voicenter CDR API
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         const fromDate = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
         const toDate = new Date().toISOString();
 
-        const apiUrl = `https://api.voicenter.com/CDR/v2?UserCode=${credentials.UserCode}&OrganizationCode=${credentials.OrganizationCode}&FromDate=${encodeURIComponent(fromDate)}&ToDate=${encodeURIComponent(toDate)}`;
+        const apiUrl = `https://api.voicenter.com/CDR/v2?code=${encodeURIComponent(code)}&FromDate=${encodeURIComponent(fromDate)}&ToDate=${encodeURIComponent(toDate)}`;
 
         const response = await fetch(apiUrl);
         if (!response.ok) {

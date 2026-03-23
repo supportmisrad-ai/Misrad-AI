@@ -197,20 +197,26 @@ export async function getAuthenticatedUser() {
 
         return {
             id: userId,
-            email: user.emailAddresses[0]?.emailAddress,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            imageUrl: user.imageUrl,
+            email: user.emailAddresses[0]?.emailAddress ?? undefined,
+            firstName: user.firstName ?? undefined,
+            lastName: user.lastName ?? undefined,
+            imageUrl: user.imageUrl ?? undefined,
             // Get role from metadata (you'll need to set this in Clerk)
             role,
             isSuperAdmin: user.publicMetadata?.isSuperAdmin === true || role === 'super_admin'
         };
     } catch (error: unknown) {
         const message = getErrorMessage(error);
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
         console.error('[Auth] Error in getAuthenticatedUser:', {
-            message,
-            name: error instanceof Error ? error.name : undefined,
+            message: message || 'No error message',
+            name: errorName,
+            stack: errorStack,
+            rawError: String(error),
         });
+        
         // Re-throw with clearer message
         if (message.includes('Unauthorized')) {
             throw error instanceof Error ? error : new Error(message);

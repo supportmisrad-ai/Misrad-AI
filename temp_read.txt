@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><script src="/cascade-browser-integration.js"></script><meta name="x-codeium-csrf-token" content="9b588207-9e71-44b8-95e7-699025def06a">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MISRAD AI — מסמך השקעה 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root{--sb:#0f172a;--sbt:#94a3b8;--sba:#3b82f6;--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--blue:#1e40af;--blueli:#dbeafe;--green:#065f46;--greenli:#d1fae5;--amber:#b45309;--amberli:#fef3c7;--red:#b91c1c;--redli:#fee2e2;--border:#e2e8f0;--sw:230px;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);display:flex;font-size:15px;line-height:1.75;letter-spacing:-.01em}
+#sb{position:fixed;right:0;top:0;bottom:0;width:var(--sw);background:var(--sb);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.sb-logo svg{color:var(--sba);flex-shrink:0;width:20px;height:20px}
+.sb-name{color:#f1f5f9;font-weight:700;font-size:.95rem}.sb-sub{color:var(--sbt);font-size:.68rem}
+nav{flex:1;padding:10px 0}
+.ncat{padding:12px 18px 3px;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#475569;font-weight:700}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 18px;color:var(--sbt);text-decoration:none;font-size:.8rem;font-weight:500;border-right:3px solid transparent;transition:all .15s}
+.ni:hover{background:#1e293b;color:#e2e8f0}.ni.active{color:#fff;border-right-color:var(--sba);background:rgba(59,130,246,.12)}
+.ni svg{width:14px;height:14px;flex-shrink:0}
+.sb-foot{padding:14px 18px;border-top:1px solid rgba(255,255,255,.07);font-size:.73rem;color:var(--sbt)}
+.sb-foot a{color:var(--sba);text-decoration:none}
+#main{margin-right:var(--sw);flex:1;padding:0 48px 80px;max-width:900px}
+section{padding-top:56px;scroll-margin-top:20px;padding-bottom:8px}
+section+section{border-top:1px solid var(--border)}
+.slbl{display:inline-flex;align-items:center;gap:6px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);background:var(--blueli);padding:4px 10px;border-radius:20px;margin-bottom:10px}
+.slbl svg{width:11px;height:11px}
+h1{font-size:1.75rem;font-weight:800;line-height:1.3;margin-bottom:10px;letter-spacing:-.02em}
+h2{font-size:1.25rem;font-weight:700;margin:28px 0 8px}
+h3{font-size:1rem;font-weight:700;margin-bottom:6px}
+p{color:var(--muted);margin-bottom:8px}.lead{font-size:1rem;color:var(--text)}
+strong{color:var(--text);font-weight:700}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 22px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.sc{text-align:center;padding:16px 12px}.sc .n{font-size:1.8rem;font-weight:800;color:var(--blue);display:block}.sc .l{font-size:.78rem;color:var(--muted)}
+.box{border-radius:var(--r);padding:14px 18px;margin-top:14px}.box p,.box h3{margin-bottom:4px}.box h3{color:var(--text)}
+.bblue{background:#f0f5ff;border-right:3px solid var(--blue)}.bblue p{color:#1e3a8a}
+.bgreen{background:#f0faf5;border-right:3px solid #059669}.bgreen p{color:#064e3b}
+.bamber{background:#fefcf3;border-right:3px solid var(--amber)}.bamber p{color:#78350f}
+.bred{background:#fef5f5;border-right:3px solid var(--red)}.bred p{color:#7f1d1d}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.88rem}
+th{background:#1e293b;color:#f1f5f9;padding:9px 13px;font-weight:600;text-align:right;font-size:.82rem}
+td{padding:8px 13px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:nth-child(even) td{background:#f8fafc}
+.hrow td{background:var(--blueli)!important;font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:.73rem;font-weight:600}
+.bb{background:var(--blueli);color:var(--blue)}.bg{background:var(--greenli);color:var(--green)}.ba{background:var(--amberli);color:var(--amber)}
+.track{border-radius:var(--r);padding:20px 24px;border:1px solid var(--border);margin-top:14px;background:var(--card)}
+.ta{border-right:3px solid var(--blue)}.tb{border-right:3px solid #059669}.tc{border-right:3px solid var(--amber)}
+.tlbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.ta .tlbl{color:var(--blue)}.tb .tlbl{color:#059669}.tc .tlbl{color:var(--amber)}
+.bigr{font-size:1.8rem;font-weight:800;display:block;margin:4px 0 10px}
+.ta .bigr{color:var(--blue)}.tb .bigr{color:#059669}.tc .bigr{color:var(--amber)}
+.td{font-size:.86rem;color:var(--muted)}
+.elevator{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:#fff;border-radius:var(--r);padding:28px 32px;margin-top:20px}
+.elevator h2{color:#fff;margin-top:0}.elevator p{color:rgba(255,255,255,.85)}
+.tl-item{display:flex;gap:14px;padding-bottom:18px;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;right:17px;top:34px;bottom:0;width:2px;background:var(--border)}
+.tl-dot{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:var(--blue);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.75rem;position:relative;z-index:1}
+.tl-dot.done{background:#059669}
+#mb{display:none;position:fixed;top:14px;right:14px;z-index:300;background:var(--sb);border:1.5px solid rgba(255,255,255,.12);border-radius:8px;cursor:pointer;width:42px;height:42px;flex-direction:column;gap:5px;align-items:center;justify-content:center;padding:0}
+#mb span{display:block;width:20px;height:2px;background:#e2e8f0;border-radius:1px;transition:all .2s}
+#sbo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;opacity:0;transition:opacity .2s;pointer-events:none}
+#sbo.open{opacity:1;pointer-events:all}
+.cta-wrap{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.cta-btn{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--blue);font-weight:700;font-size:.88rem;padding:10px 20px;border-radius:8px;text-decoration:none;transition:background .15s}.cta-btn:hover{background:#dbeafe}
+.cta-outline{background:transparent;color:rgba(255,255,255,.9);border:1.5px solid rgba(255,255,255,.35);padding:9px 19px}.cta-outline:hover{background:rgba(255,255,255,.1)}
+.contact-cta{display:inline-flex;align-items:center;gap:8px;background:#059669;color:#fff;font-weight:700;font-size:.9rem;padding:11px 22px;border-radius:8px;text-decoration:none;margin-top:16px;transition:background .15s}.contact-cta:hover{background:#047857}
+.beta-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.bs-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.bs-n{font-size:1.45rem;font-weight:800;color:var(--blue);display:block;margin-bottom:2px}.bs-l{font-size:.73rem;color:var(--muted)}
+.hero-wrap{background:radial-gradient(ellipse 70% 60% at 110% -10%,rgba(59,130,246,.35) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at -10% 110%,rgba(99,102,241,.2) 0%,transparent 60%),linear-gradient(145deg,#0f172a 0%,#1e3a8a 55%,#1d4ed8 100%);margin:-56px -48px 0;padding:56px 48px 44px;border-bottom:3px solid #3b82f6}
+.hero-wrap h1{color:#fff;font-size:2.3rem;margin-bottom:6px;letter-spacing:-.03em}.hero-wrap .lead{color:rgba(255,255,255,.85);font-size:1.05rem;max-width:600px}
+.hero-wrap .slbl{background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.sc-b{background:#1e3a8a;border:none;box-shadow:0 2px 8px rgba(30,64,175,.25)}
+.sc-g{background:#065f46;border:none;box-shadow:0 2px 8px rgba(5,150,105,.25)}
+.sc-a{background:#92400e;border:none;box-shadow:0 2px 8px rgba(217,119,6,.25)}
+.sc-d{background:#0f172a;border:none;box-shadow:0 2px 8px rgba(15,23,42,.3)}
+.sc-b .n,.sc-g .n,.sc-a .n,.sc-d .n{color:#fff}.sc-b .l,.sc-g .l,.sc-a .l,.sc-d .l{color:rgba(255,255,255,.75)}
+section h1{position:relative;padding-bottom:10px;margin-bottom:14px}
+section h1::after{content:'';position:absolute;bottom:0;right:0;width:36px;height:2px;background:var(--blue);border-radius:1px}
+.hero-wrap h1::after{background:#60a5fa}
+.crow{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}.crow:last-child{border-bottom:none}.crow svg{width:18px;height:18px;color:var(--blue);flex-shrink:0}.crow a{color:var(--text);text-decoration:none;font-weight:500}.crow a:hover{color:var(--blue)}
+.bar-wrap{margin-top:18px}.bar-row{margin-bottom:10px}
+.bar-lbl{display:flex;justify-content:space-between;font-size:.8rem;color:var(--text);margin-bottom:4px;font-weight:500}
+.bar-bg{height:10px;background:var(--border);border-radius:5px;overflow:hidden}
+.bar-fill{height:100%;border-radius:5px}.bar-b{background:linear-gradient(90deg,#1e40af,#3b82f6)}.bar-g{background:linear-gradient(90deg,#065f46,#059669)}.bar-a{background:linear-gradient(90deg,#78350f,#d97706)}
+.roi-cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.roi-box{border-radius:var(--r);padding:20px 16px;text-align:center;border:2px solid}
+.roi-box.rb{border-color:var(--blue);background:#f0f7ff}.roi-box.rg{border-color:#059669;background:#f0fdf4}
+.roi-num{font-size:2.4rem;font-weight:800;display:block;line-height:1}
+.roi-box.rb .roi-num{color:var(--blue)}.roi-box.rg .roi-num{color:#059669}
+.roi-sub{font-size:.82rem;color:var(--muted);display:block;margin-top:3px;font-weight:600}
+.roi-desc{font-size:.85rem;color:var(--text);margin-top:10px;line-height:1.5;text-align:right}
+.timing{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.timing-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;border-top:3px solid var(--blue)}.timing-item h3{font-size:.9rem;margin-bottom:4px}.timing-item p{font-size:.82rem;margin:0}
+.founder-story{background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;border-radius:var(--r);padding:22px 26px;margin-top:14px}.founder-story p{color:rgba(255,255,255,.85);margin:0}.founder-story strong{color:#fff}
+.ss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.ss-box{background:#f1f5f9;border:1px solid var(--border);border-radius:var(--r);aspect-ratio:16/10;position:relative;overflow:hidden}.ss-caption{font-size:.78rem;color:var(--muted);text-align:center;margin-top:6px}
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}.exp-cat{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:6px;margin-top:14px}.exp-cat:first-child{margin-top:0}.exp-total{background:var(--blueli);font-weight:700}.exp-note{font-size:.78rem;color:var(--muted);margin-top:10px}
+.margin-bar{height:8px;border-radius:4px;margin-top:6px;overflow:hidden;background:var(--border)}.margin-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#059669,#34d399)}
+.pie-wrap{display:flex;align-items:center;gap:24px;margin-top:18px}
+.pie{width:140px;height:140px;border-radius:50%;background:conic-gradient(var(--blue) 0% 42%,#059669 42% 75%,var(--amber) 75% 90%,#94a3b8 90% 100%);flex-shrink:0;position:relative}
+.pie::after{content:'₪100K';position:absolute;inset:20%;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:var(--text)}
+.pie-legend{flex:1;font-size:.84rem}.pie-legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}.pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.mock-screen{position:absolute;inset:0;background:#1e293b;border-radius:calc(var(--r) - 1px);overflow:hidden;display:flex;flex-direction:column}
+.mock-titlebar{background:#0f172a;padding:5px 8px;display:flex;align-items:center;gap:4px;flex-shrink:0}
+.mock-dot-r{width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0}.mock-dot-y{width:6px;height:6px;border-radius:50%;background:#eab308;flex-shrink:0}.mock-dot-g{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0}
+.mock-url{flex:1;background:rgba(255,255,255,.08);border-radius:3px;padding:2px 6px;color:rgba(255,255,255,.4);font-size:.53rem;text-align:center;margin:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;direction:ltr}
+.mock-body{flex:1;background:#f8fafc;padding:8px;overflow:hidden;display:flex;flex-direction:column;gap:5px}
+.mock-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.mock-kpi{background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:4px 3px;text-align:center}
+.mock-kpi .kn{font-size:.85rem;font-weight:800;color:#1e40af;display:block;line-height:1.1}.mock-kpi .kl{font-size:.47rem;color:#64748b;line-height:1.3}
+.mock-chartrow{display:flex;align-items:flex-end;gap:3px;height:38px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:5px 5px 3px;margin-top:auto}
+.mock-bar-col{flex:1;border-radius:2px 2px 0 0;background:linear-gradient(180deg,#60a5fa,#1e40af)}
+.mock-crm{flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:4px;overflow:hidden;display:flex;flex-direction:column}
+.mock-th{display:grid;grid-template-columns:1fr 54px 36px;background:#1e293b;padding:4px 6px;gap:3px}.mock-th span{color:rgba(255,255,255,.65);font-size:.5rem;font-weight:700}
+.mock-tr{display:grid;grid-template-columns:1fr 54px 36px;padding:4px 6px;gap:3px;border-bottom:1px solid #f1f5f9;align-items:center}.mock-tr:last-child{border-bottom:none}
+.mock-td-name{font-size:.57rem;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mock-td-badge{font-size:.48rem;padding:1px 4px;border-radius:8px;text-align:center;white-space:nowrap}.mock-td-score{font-size:.65rem;font-weight:800;text-align:center}
+.bstat-hot{background:#fef3c7;color:#92400e}.bstat-new{background:#dbeafe;color:#1e40af}.bstat-open{background:#d1fae5;color:#065f46}
+.score-hi{color:#059669}.score-mid{color:#d97706}
+.mock-ai-header{display:flex;align-items:center;gap:8px;padding-bottom:4px}
+.mock-score-circle{width:46px;height:46px;border-radius:50%;background:conic-gradient(#059669 0% 72%,#e2e8f0 72% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mock-score-inner{width:33px;height:33px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;color:#059669}
+.mock-ai-label{font-size:.58rem;font-weight:700;color:#1e293b}.mock-ai-sub{font-size:.5rem;color:#64748b;margin-top:1px}
+.mock-insight{background:#f0fdf4;border-right:2px solid #059669;padding:3px 6px;border-radius:0 3px 3px 0;font-size:.52rem;color:#065f46;line-height:1.4}
+.mock-rec{background:#fffbeb;border-right:2px solid #d97706;padding:3px 6px;border-radius:0 3px 3px 0;font-size:.52rem;color:#78350f;line-height:1.4;margin-top:2px}
+.edit-bar{position:fixed;bottom:0;left:0;right:0;background:#1e293b;color:#fff;padding:8px 20px;display:flex;align-items:center;gap:12px;z-index:500;font-family:'Heebo',sans-serif;font-size:.85rem;transition:transform .3s}.edit-bar.hidden{transform:translateY(100%)}
+.edit-bar button{background:#3b82f6;color:#fff;border:none;padding:6px 16px;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;font-size:.82rem}.edit-bar button:hover{background:#2563eb}
+.edit-bar .btn-exit{background:#ef4444}.edit-bar .btn-exit:hover{background:#dc2626}
+.edit-bar .edit-status{margin-right:auto;color:#94a3b8}
+[contenteditable=true]{outline:2px dashed rgba(59,130,246,.4);outline-offset:2px;border-radius:4px;min-height:1em}
+[contenteditable=true]:focus{outline-color:#3b82f6;background:rgba(59,130,246,.03)}
+@media(max-width:768px){#mb{display:flex}#sb{transform:translateX(100%);transition:transform .25s}#sb.open{transform:translateX(0)}#sbo{display:block}#main{margin-right:0;padding:0 18px 80px;max-width:100%}.g2,.g3,.g4,.timing,.roi-cmp,.ss-grid,.exp-grid,.beta-stats{grid-template-columns:1fr}.hero-wrap{margin:-56px -18px 0;padding:44px 18px 36px}.hero-wrap h1{font-size:1.7rem}h1{font-size:1.4rem}section table{display:block;overflow-x:auto}.cta-wrap{flex-direction:column;align-items:flex-start}.elevator{padding:20px 18px}.track{padding:16px 18px}.pie-wrap{flex-direction:column;align-items:flex-start;gap:16px}.bar-lbl{flex-direction:column;gap:1px}}
+@media print{#sb,.edit-bar{display:none!important}#main{margin-right:0;padding:0;max-width:100%}body{font-size:12px}.hero-wrap,.elevator{-webkit-print-color-adjust:exact;print-color-adjust:exact}section{page-break-inside:avoid}.sc-b,.sc-g,.sc-a,.sc-d,.bar-fill,.pie{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<button id="mb" aria-label="תפריט"><span></span><span></span><span></span></button>
+<div id="sbo"></div>
+<aside id="sb">
+  <div class="sb-logo"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="command" aria-hidden="true" class="lucide lucide-command"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg><div><div class="sb-name">MISRAD AI</div><div class="sb-sub">מסמך השקעה · 2026</div></div></div>
+  <nav>
+    <div class="ncat">תקציר</div>
+    <a href="#intro" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" aria-hidden="true" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg>ההזדמנות</a>
+    <a href="#problem" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="target" aria-hidden="true" class="lucide lucide-target"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>הבעיה</a>
+    <a href="#timing" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>למה עכשיו?</a>
+    <a href="#solution" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" aria-hidden="true" class="lucide lucide-layers"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>הפתרון</a>
+    <div class="ncat">המוצר</div>
+    <a href="#product" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layout-grid" aria-hidden="true" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>מודולים</a>
+    <a href="#ai" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>יתרון ה-AI</a>
+    <div class="ncat">כסף ועסקים</div>
+    <a href="#market" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" aria-hidden="true" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>שוק יעד</a>
+    <a href="#pricing" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="tag" aria-hidden="true" class="lucide lucide-tag"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>תמחור</a>
+    <a href="#competition" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="swords" aria-hidden="true" class="lucide lucide-swords"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" x2="19" y1="19" y2="13"></line><line x1="16" x2="20" y1="16" y2="20"></line><line x1="19" x2="21" y1="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" x2="9" y1="14" y2="18"></line><line x1="7" x2="4" y1="17" y2="20"></line><line x1="3" x2="5" y1="19" y2="21"></line></svg>תחרות</a>
+    <div class="ncat">תכנית עבודה</div>
+    <a href="#marketing" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rocket" aria-hidden="true" class="lucide lucide-rocket"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"></path><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"></path></svg>שיווק ומכירות</a>
+    <a href="#forecast" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trending-up" aria-hidden="true" class="lucide lucide-trending-up"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>הכנסות והוצאות</a>
+    <div class="ncat">ההשקעה</div>
+    <a href="#investment" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" aria-hidden="true" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>לאן הולך הכסף</a>
+    <a href="#returns" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="handshake" aria-hidden="true" class="lucide lucide-handshake"><path d="m11 17 2 2a1 1 0 1 0 3-3"></path><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"></path><path d="m21 3 1 11h-2"></path><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"></path><path d="M3 4h8"></path></svg>מה המשקיע מקבל</a>
+    <a href="#roadmap" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="map" aria-hidden="true" class="lucide lucide-map"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"></path><path d="M15 5.764v15"></path><path d="M9 3.236v15"></path></svg>צעד-אחר-צעד</a>
+    <a href="#team" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>היזם</a>
+    <a href="#social" class="ni active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="star" aria-hidden="true" class="lucide lucide-star"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>מצב עכשווי</a>
+    <a href="#contact" class="ni"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="phone" aria-hidden="true" class="lucide lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg>צור קשר</a>
+  </nav>
+  <div class="sb-foot"><a href="https://misrad-ai.com" target="_blank">misrad-ai.com ↗</a></div>
+</aside>
+<main id="main">
+
+<!-- ===== הזדמנות ===== -->
+<section id="intro">
+  <div class="hero-wrap">
+    <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="zap" aria-hidden="true" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg>סבב ראשון · 2026</div>
+    <h1>מערכת ההפעלה לעסק הישראלי</h1>
+    <p class="lead">שמי איציק דהן. בניתי את המערכת שתמיד חסרה לי — ולכל בעל עסק ישראלי שמנהל לקוחות בוואטסאפ, תורים באקסל, ושיחות מכירה בלי שום ניתוח. אם זה נשמע מוכר — כנראה שיש לנו על מה לדבר.</p>
+    <div class="cta-wrap">
+      <a href="#investment" class="cta-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" aria-hidden="true" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>לפרטי ההשקעה</a>
+      <a href="https://misrad-ai.com" target="_blank" class="cta-btn cta-outline"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="external-link" aria-hidden="true" class="lucide lucide-external-link"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>ראה את המוצר החי</a>
+    </div>
+  </div>
+  <div class="g4" style="margin-top:24px">
+    <div class="card sc sc-b"><span class="n">₪149–₪499</span><span class="l">מנוי חודשי</span></div>
+    <div class="card sc sc-g"><span class="n">&lt;24 שעות</span><span class="l">זמן הטמעה</span></div>
+    <div class="card sc sc-a"><span class="n">7 מודולים</span><span class="l">מוצר אחד שלם</span></div>
+    <div class="card sc sc-d"><span class="n">100K+</span><span class="l">עסקים בשוק היעד</span></div>
+  </div>
+  <div class="elevator">
+    <h2>תכלס — למה אני פונה אליך?</h2>
+    <p>בניתי מערכת שמחברת ניהול לקוחות + יומן + בינה מלאכותית + ניתוח שיחות + שיווק — הכל בעברית, מוצר אחד, בלי בלגן. <strong>המוצר כבר חי ורץ</strong>. יש לקוחות שמשלמים עליו עכשיו. מה שחסר לי זה לפתוח את הגז בשיווק — ולשם כך אני מחפש שותף.</p>
+    <p style="margin-bottom:0">לא מחפש מישהו שיאמין לי על המילה — <strong>תיכנס ל-<a href="https://misrad-ai.com" target="_blank" style="color:#93c5fd">misrad-ai.com</a> ותראה בעצמך</strong>. אם זה מדבר אליך — בוא נשב.</p>
+  </div>
+</section>
+
+<!-- ===== הבעיה ===== -->
+<section id="problem">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="target" aria-hidden="true" class="lucide lucide-target"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>הבעיה</div>
+  <h1>אני רואה את זה כל יום — ואתה כנראה גם</h1>
+  <p class="lead">בעל מספרה, יועץ עסקי, סוכן נדל"ן — כולם מנהלים 5–7 כלים שלא מדברים אחד עם השני. שמעתי את זה מעשרות אנשים. זה לא בעיה של מישהו אחד — זה השוק כולו.</p>
+  <div class="g3">
+    <div class="box bred"><h3>📱 ניהול לקוחות? וואטסאפ</h3><p>70% מהעסקים הקטנים מנהלים לקוחות בצ'אט. לידים נאבדים בין ההודעות.</p></div>
+    <div class="box bamber"><h3>🗓️ תורים ב-Excel</h3><p>פגישות בגיליון, ביטולים במייל, תזכורות ידניות — עובד אדמיניסטרציה כמעט במשרה מלאה.</p></div>
+    <div class="box bred"><h3>🤖 בינה מלאכותית? לא בעברית</h3><p>ChatGPT לא יודע מי הלקוח שלך. Salesforce עולה כמו שכיר בכיר. Zoho — אנגלית בלבד.</p></div>
+    <div class="box bamber"><h3>🧾 חשבוניות בנפרד</h3><p>כל מכירה דורשת עוד כלי, עוד כניסה, עוד עלות. ממוצע 4 מינויים נפרדים בעסק קטן.</p></div>
+    <div class="box bred"><h3>📊 ניתוח שיחות? אפס</h3><p>מנהלים לא יודעים אם הצוות מוכר נכון. שיחות נסגרות בלי תיעוד, בלי למידה.</p></div>
+    <div class="box bamber"><h3>🕍 שבת וחגים — לא מטופל</h3><p>אין מערכת ישראלית שמנהלת חגים ושבת בצורה ברורה — עסקים שוברים אוטומציות.</p></div>
+  </div>
+  <div class="box bblue" style="margin-top:18px"><h3>💸 מה זה עולה בפועל?</h3><p>עסק ממוצע משלם ₪800–₪2,500 בחודש על כלים שאינם מסונכרנים. שעות אדמיניסטרציה: 15–25 שעות בשבוע. אובדן לקוחות פוטנציאליים: 30–40% (מקור: Salesforce SMB Report 2024).</p></div>
+</section>
+
+<!-- ===== למה עכשיו ===== -->
+<section id="timing">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>למה עכשיו?</div>
+  <h1>למה עכשיו ולא לפני 3 שנים?</h1>
+  <p class="lead">שאלה הוגנת. לפני שנתיים לא ניתן היה לשלב בינה מלאכותית בתוכנה שעולה ₪149 בחודש ועדיין להרוויח. היום אפשר. זה בדיוק החלון.</p>
+  <div class="timing">
+    <div class="timing-item"><h3>🌊 גל הבינה המלאכותית</h3><p>עלויות מנועי AI ירדו 80% ב-18 חודשים. לראשונה ניתן לשלב AI במוצר זול ולהרוויח.</p></div>
+    <div class="timing-item"><h3>📱 WhatsApp Business API נפתח</h3><p>Meta פתחה את ה-API לעסקים קטנים ב-2024. אינטגרציה ישירה לניהול לקוחות.</p></div>
+    <div class="timing-item"><h3>🏦 הגדולים נכשלו בישראל</h3><p>Zoho ו-Salesforce ניסו להיכנס לשוק הישראלי ונכשלו בגלל חסם השפה. הפינה שלנו פתוחה.</p></div>
+  </div>
+  <div class="box bgreen" style="margin-top:14px"><h3>🎯 חלון הזדמנויות — 18 חודשים</h3><p>אם נגיע ל-200 לקוחות עד סוף 2026, יהיה לנו יתרון שאי אפשר לשחזר — מאגר נתונים של שיחות ועסקאות מהשוק הישראלי שמתחרה חדש לא יוכל לבנות מאפס.</p></div>
+</section>
+
+<!-- ===== הפתרון ===== -->
+<section id="solution">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layers" aria-hidden="true" class="lucide lucide-layers"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path></svg>הפתרון</div>
+  <h1>מערכת הפעלה אחת — עברית, חכמה, ישראלית</h1>
+  <p class="lead">מערכת שמבינה שאתה בעל עסק ישראלי, לא מנהל בחברת Fortune 500. שיודעת שהיום שישי ושהלקוח הזה פנה לפני שבועיים ועוד לא קיבל תשובה.</p>
+  <div class="g3">
+    <div class="card"><div class="slbl" style="background:#f0fdf4;color:#059669"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="globe" aria-hidden="true" class="lucide lucide-globe"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>שפת אם</div><h3>עברית אמיתית</h3><p>לא תרגום — לוגיקה עברית מהיסוד. כתיבה מימין לשמאל, מונחים עסקיים ישראליים, ממשק מלא בעברית.</p></div>
+    <div class="card"><div class="slbl" style="background:#f0f5ff;color:#1e40af"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>עוזר AI</div><h3>AI שמכיר את הלקוחות שלך</h3><p>לא בוט גנרי — AI שמחובר לנתוני העסק שלך, מזהה הזדמנויות מכירה, ומציע את הצעד הבא.</p></div>
+    <div class="card"><div class="slbl" style="background:#fff7ed;color:#c2410c"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield" aria-hidden="true" class="lucide lucide-shield"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>שבת ישראלית</div><h3>מכבדת שבת וחגים ❤️</h3><p>המערכת מושבתת אוטומטית בשבת וחגים יהודיים. האוטומציות פועלות לפי לוח השנה הישראלי.</p></div>
+  </div>
+  <div class="g2" style="margin-top:14px">
+    <div class="box bblue"><h3>נכנסים קל — מתרחבים בהדרגה</h3><p>הלקוח נכנס עם מודול אחד, מוסיף יומן, לאחר מכן ניתוח שיחות, ואז שיווק AI — כל מודול שמוסיפים מגדיל את ההכנסה החודשית.</p></div>
+    <div class="box bgreen"><h3>הכל-באחד = חיסכון</h3><p>מחיר מקסימום ₪499 בחודש מחליף 4–6 כלים שעולים ₪800–₪2,500 בחודש בנפרד.</p></div>
+  </div>
+</section>
+
+<!-- ===== מוצר ===== -->
+<section id="product">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layout-grid" aria-hidden="true" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>מוצר</div>
+  <h1>7 מודולים — מוצר אחד חי</h1>
+  <p class="lead">אני לא מראה לך עיצוב על נייר. מה שתראה כאן — רץ עכשיו בפרודקשן עם לקוחות אמיתיים.</p>
+  <div class="ss-grid">
+    <div>
+      <div class="ss-box"><div class="mock-screen">
+        <div class="mock-titlebar"><div class="mock-dot-r"></div><div class="mock-dot-y"></div><div class="mock-dot-g"></div><div class="mock-url">misrad-ai.com/clients</div></div>
+        <div class="mock-body">
+          <div class="mock-kpis"><div class="mock-kpi"><span class="kn">47</span><span class="kl">לקוחות פעילים</span></div><div class="mock-kpi"><span class="kn">₪8.4K</span><span class="kl">צפי חודשי</span></div><div class="mock-kpi"><span class="kn">12</span><span class="kl">פגישות השבוע</span></div><div class="mock-kpi"><span class="kn">94%</span><span class="kl">שביעות</span></div></div>
+          <div class="mock-crm"><div class="mock-th"><span>שם לקוח</span><span>סטטוס</span><span>ציון</span></div><div class="mock-tr"><div class="mock-td-name">ישראל כהן</div><div><span class="mock-td-badge bstat-hot">חם 🔥</span></div><div class="mock-td-score score-hi">9.1</div></div><div class="mock-tr"><div class="mock-td-name">רחל לוי</div><div><span class="mock-td-badge bstat-new">חדש</span></div><div class="mock-td-score score-mid">7.4</div></div><div class="mock-tr"><div class="mock-td-name">אבי שפירא</div><div><span class="mock-td-badge bstat-open">בטיפול</span></div><div class="mock-td-score score-hi">8.8</div></div></div>
+          <div class="mock-chartrow"><div class="mock-bar-col" style="height:60%"></div><div class="mock-bar-col" style="height:45%"></div><div class="mock-bar-col" style="height:75%"></div><div class="mock-bar-col" style="height:55%"></div><div class="mock-bar-col" style="height:90%"></div><div class="mock-bar-col" style="height:70%"></div><div class="mock-bar-col" style="height:85%"></div></div>
+        </div>
+      </div></div>
+      <div class="ss-caption">ניהול לקוחות — תיקי לקוח, ציוני AI, דשבורד</div>
+    </div>
+    <div>
+      <div class="ss-box"><div class="mock-screen">
+        <div class="mock-titlebar"><div class="mock-dot-r"></div><div class="mock-dot-y"></div><div class="mock-dot-g"></div><div class="mock-url">misrad-ai.com/ai-brain</div></div>
+        <div class="mock-body" style="padding:7px;gap:4px">
+          <div class="mock-ai-header"><div class="mock-score-circle"><div class="mock-score-inner">72</div></div><div><div class="mock-ai-label">ניתוח AI — ישראל כהן</div><div class="mock-ai-sub">עדכון אחרון: לפני 3 שעות · שיחה מוקלטת ✓</div></div></div>
+          <div class="mock-insight">✅ <strong>AI:</strong> הלקוח הביע עניין בחבילה מתקדמת. הזכיר "אוטומציה" 3 פעמים.</div>
+          <div class="mock-rec">💡 <strong>המלצה:</strong> שלח הצעת מחיר עד מחר בצהריים. הלקוח בשל לסגירה.</div>
+          <div style="display:flex;gap:3px;margin-top:3px"><div style="flex:1;background:#f0f5ff;border-radius:3px;padding:4px 5px;font-size:.5rem;color:#1e40af;line-height:1.4">📞 <strong>שיחה 23 דק'</strong><br>טון: חיובי<br>הערה: ביקש הדגמה</div><div style="flex:1;background:#f0fdf4;border-radius:3px;padding:4px 5px;font-size:.5rem;color:#065f46;line-height:1.4">📅 <strong>פגישה הבאה</strong><br>ב׳, 14:00<br>נשלחה הזמנה ✓</div></div>
+        </div>
+      </div></div>
+      <div class="ss-caption">עוזר AI — ניתוח שיחות, המלצות, ציון לקוח</div>
+    </div>
+    <div>
+      <div class="ss-box"><div class="mock-screen">
+        <div class="mock-titlebar"><div class="mock-dot-r"></div><div class="mock-dot-y"></div><div class="mock-dot-g"></div><div class="mock-url">misrad-ai.com/calendar</div></div>
+        <div class="mock-body" style="padding:6px;gap:4px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><span style="font-size:.65rem;font-weight:700;color:#1e293b">ינואר 2026</span><span style="font-size:.5rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:8px;font-weight:600">6 פגישות השבוע</span></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center"><div style="font-size:.47rem;color:#94a3b8;font-weight:700">א׳</div><div style="font-size:.47rem;color:#94a3b8;font-weight:700">ב׳</div><div style="font-size:.47rem;color:#94a3b8;font-weight:700">ג׳</div><div style="font-size:.47rem;color:#94a3b8;font-weight:700">ד׳</div><div style="font-size:.47rem;color:#94a3b8;font-weight:700">ה׳</div><div style="font-size:.47rem;color:#e2e8f0;background:#f1f5f9;border-radius:2px;font-weight:700">ו׳</div><div style="font-size:.47rem;color:#d1d5db;background:#f8fafc;border-radius:2px;font-weight:700">ש׳</div><div style="font-size:.55rem;padding:2px;color:#94a3b8">5</div><div style="font-size:.55rem;padding:2px;background:#dbeafe;border-radius:2px;color:#1e40af;font-weight:700">6</div><div style="font-size:.55rem;padding:2px;color:#1e293b">7</div><div style="font-size:.55rem;padding:2px;background:#d1fae5;border-radius:2px;color:#065f46;font-weight:700">8</div><div style="font-size:.55rem;padding:2px;color:#1e293b">9</div><div style="font-size:.55rem;padding:2px;color:#94a3b8;background:#f1f5f9;border-radius:2px">10</div><div style="font-size:.55rem;padding:2px;color:#d1d5db;background:#f8fafc;border-radius:2px">11</div></div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-top:3px"><div style="background:#dbeafe;border-right:2px solid #1e40af;padding:3px 5px;border-radius:0 3px 3px 0;font-size:.53rem;color:#1e3a8a">10:00 — ישראל כהן (הדגמה)</div><div style="background:#d1fae5;border-right:2px solid #059669;padding:3px 5px;border-radius:0 3px 3px 0;font-size:.53rem;color:#065f46">14:00 — רחל לוי (פגישה ראשונה)</div><div style="background:#fef3c7;border-right:2px solid #d97706;padding:3px 5px;border-radius:0 3px 3px 0;font-size:.53rem;color:#78350f">🔔 תזכורת: שלח הצעה לאבי עד 17:00</div></div>
+        </div>
+      </div></div>
+      <div class="ss-caption">יומן חכם — תורים, תזכורות, וידוא הגעה</div>
+    </div>
+  </div>
+  <div class="g2" style="margin-top:18px">
+    <div class="card">
+      <h3>📦 7 מודולים בגרסה הנוכחית</h3>
+      <ul style="margin-top:8px;padding-right:18px;color:var(--muted);font-size:.88rem;line-height:2">
+        <li><strong>ניהול לקוחות</strong> — תיקי לקוח, לידים, ציון AI</li>
+        <li><strong>יומן ותורים</strong> — סנכרון, תזכורות, ווידוא הגעה</li>
+        <li><strong>עוזר AI</strong> — ניתוח שיחות מכירה, המלצות</li>
+        <li><strong>ניהול משימות</strong> — לוח משימות חכם</li>
+        <li><strong>שיווק AI</strong> — תוכן, קמפיינים, פילוח קהלים</li>
+        <li><strong>דשבורד מדדים</strong> — ביצועים בזמן אמת</li>
+        <li><strong>ניתוח שיחות</strong> — תמלול + תובנות מכירה</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🔧 מה מתחת למכסה</h3>
+      <ul style="margin-top:8px;padding-right:18px;color:var(--muted);font-size:.88rem;line-height:2">
+        <li><strong>מוצר חי ויציב</strong> — רץ בפרודקשן 24/7</li>
+        <li><strong>מסד נתונים מקצועי</strong> — PostgreSQL עם גיבויים</li>
+        <li><strong>AI גמיש</strong> — עובד עם OpenAI, Gemini, Claude</li>
+        <li><strong>תמלול עברית</strong> — Deepgram מותאם לשיחות</li>
+        <li><strong>אבטחה</strong> — הזדהות מאובטחת + הפרדת נתונים</li>
+        <li><strong>ענן מהיר</strong> — שרתים מפוזרים (Vercel Edge)</li>
+        <li><strong>WhatsApp</strong> — אינטגרציה ישירה</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AI ===== -->
+<section id="ai">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="cpu" aria-hidden="true" class="lucide lucide-cpu"><path d="M12 20v2"></path><path d="M12 2v2"></path><path d="M17 20v2"></path><path d="M17 2v2"></path><path d="M2 12h2"></path><path d="M2 17h2"></path><path d="M2 7h2"></path><path d="M20 12h2"></path><path d="M20 17h2"></path><path d="M20 7h2"></path><path d="M7 20v2"></path><path d="M7 2v2"></path><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="8" y="8" width="8" height="8" rx="1"></rect></svg>יתרון AI</div>
+  <h1>AI שמבין עסק ישראלי — לא סתם צ'אטבוט</h1>
+  <p class="lead">ה-AI של MISRAD AI מחובר לנתוני העסק, לשיחות, ולהיסטוריה — לא "שואלים את גוגל" אלא מקבלים תשובות שמבוססות על הנתונים שלך.</p>
+  <div class="g3">
+    <div class="box bblue"><h3>🔀 ניתוב חכם בין מנועי AI</h3><p>כל משימה מופנית למנוע הכי חסכוני שיכול לבצע אותה. עלות AI: פחות מ-₪15 ללקוח בחודש.</p></div>
+    <div class="box bgreen"><h3>🧠 הקשר = כוח</h3><p>ה-AI יודע מי הלקוח, מה ההיסטוריה שלו, מה נאמר בשיחה אחרונה — ממליץ בהתאם. לא תשובות מהאוויר.</p></div>
+    <div class="box bamber"><h3>📊 ניתוח שיחות בעברית</h3><p>תמלול שיחות מכירה בעברית. ה-AI מזהה נקודות כאב, התנגדויות, ואת הרגע הנכון לסגירה.</p></div>
+  </div>
+  <div class="bar-wrap">
+    <h3 style="margin-bottom:10px;margin-top:18px">מה הלקוח חוסך מול מה שזה עולה לנו</h3>
+    <div class="bar-row"><div class="bar-lbl"><span>חסכון בשעות אדמיניסטרציה (אומדן)</span><span>₪1,500–₪2,500/חודש</span></div><div class="bar-bg"><div class="bar-fill bar-g" style="width:85%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>לקוחות שלא נשרו בזכות תזכורות</span><span>₪500–₪1,500/חודש</span></div><div class="bar-bg"><div class="bar-fill bar-b" style="width:55%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>עלות AI למשתמש (כולל API)</span><span>₪12–₪18/חודש</span></div><div class="bar-bg"><div class="bar-fill bar-a" style="width:7%"></div></div></div>
+  </div>
+  <div class="box bgreen" style="margin-top:14px"><h3>🏆 הערך ללקוח: החזר של פי 5–10 על עלות המנוי</h3><p>על כל שקל שמשלמים — חוזר ערך של 5–10 שקל בחיסכון זמן ולקוחות שלא נפלו בין הכיסאות. זה אומדן שמרני על בסיס חיסכון 10–15 שעות שבועיות של אדמיניסטרציה.</p></div>
+</section>
+
+<!-- ===== שוק ===== -->
+<section id="market">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" aria-hidden="true" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>שוק</div>
+  <h1>השוק גדול — אבל אני מכוון מדויק</h1>
+  <p class="lead">לא מתכנן לכבוש את העולם בשנה הראשונה. אני רוצה 60 לקוחות שמשלמים בממוצע ₪400 בחודש. זו נקודת האיזון. כל מה שמעבר — זה רווח.</p>
+  <div class="g3">
+    <div class="card sc"><span class="n" style="color:var(--muted)">600,000+</span><span class="l">עסקים קטנים ובינוניים בישראל</span></div>
+    <div class="card sc"><span class="n">100,000+</span><span class="l">מתאימים למוצר שלנו</span></div>
+    <div class="card sc"><span class="n">~60</span><span class="l">לקוחות לנקודת האיזון</span></div>
+  </div>
+  <div class="g2" style="margin-top:14px">
+    <div class="card">
+      <h3>🎯 מי הלקוח האידיאלי</h3>
+      <ul style="margin-top:8px;padding-right:18px;color:var(--muted);font-size:.88rem;line-height:2">
+        <li>עסק עם 1–15 עובדים</li>
+        <li>מחזור שנתי ₪500K–₪5M</li>
+        <li>ענפים: יועצים, קוסמטיקה, שיניים, נדל"ן, ייבוא, טכנולוגיה</li>
+        <li>מנהל לקוחות בוואטסאפ / אקסל כרגע</li>
+        <li>משלם כבר על Wix, Monday, או Zoho</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>📈 איך הלקוח גדל אצלנו</h3>
+      <ul style="margin-top:8px;padding-right:18px;color:var(--muted);font-size:.88rem;line-height:2">
+        <li>כניסה: מודול בודד ₪149/חודש</li>
+        <li>חודש 3: מוסיף ניתוח שיחות</li>
+        <li>חודש 6: מוסיף שיווק AI</li>
+        <li>שנה 1: חבילה מלאה ₪499/חודש</li>
+        <li>צפי: הכנסה מלקוח קיים גדלה 10–25% בשנה</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== תמחור ===== -->
+<section id="pricing">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="tag" aria-hidden="true" class="lucide lucide-tag"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>תמחור</div>
+  <h1>תמחור שמכבד את הכיס הישראלי</h1>
+  <p class="lead">בלי חוזה שנתי. בלי עמלות מוסתרות. אם לא מרוצים — הולכים. הם לא הולכים.</p>
+  <div class="g3">
+    <div class="track ta">
+      <div class="tlbl">מודול בודד</div>
+      <span class="bigr">₪149<small style="font-size:.9rem;font-weight:400">/חודש</small></span>
+      <div class="td">משתמש אחד · בחירת מודול אחד · AI בסיסי · תמיכה בוואטסאפ</div>
+    </div>
+    <div class="track tb">
+      <div class="tlbl" style="color:#059669">חבילת מכירות / שיווק — הפופולרית</div>
+      <span class="bigr" style="color:#059669">₪249–₪349<small style="font-size:.9rem;font-weight:400">/חודש</small></span>
+      <div class="td">עד 5 משתמשים · 2–3 מודולים · ניתוח שיחות + עוזר AI + שיווק · תמיכה מועדפת</div>
+    </div>
+    <div class="track tc">
+      <div class="tlbl">הכל כלול</div>
+      <span class="bigr">₪499<small style="font-size:.9rem;font-weight:400">/חודש</small></span>
+      <div class="td">עד 5 משתמשים (₪39 לכל נוסף) · כל 7 המודולים · AI מלא · תמיכה VIP</div>
+    </div>
+  </div>
+  <div class="g2" style="margin-top:14px">
+    <div class="box bblue"><h3>📊 כמה נשאר לנו מכל לקוח?</h3><p><strong>חבילת ₪349 לדוגמה:</strong><br>עלות AI: ₪15 · אירוח: ₪8 · תמיכה: ₪20 · סה"כ עלות: ~₪43<br><strong>רווח גולמי: ~88%</strong> — על כל ₪349 שנכנסים, ₪306 הם רווח לפני הוצאות קבועות.</p><div class="margin-bar"><div class="margin-fill" style="width:88%"></div></div></div>
+    <div class="box bgreen"><h3>🔄 עלות רכישת לקוח מול ערך לקוח</h3><p>יעד עלות רכישה: ₪400–₪600<br>ערך לקוח לאורך 18 חודשים: ₪5,000–₪9,000<br><strong>כל שקל שמושקע בשיווק מחזיר 10–15 שקל בהכנסות.</strong></p></div>
+  </div>
+</section>
+
+<!-- ===== תחרות ===== -->
+<section id="competition">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="swords" aria-hidden="true" class="lucide lucide-swords"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"></polyline><line x1="13" x2="19" y1="19" y2="13"></line><line x1="16" x2="20" y1="16" y2="20"></line><line x1="19" x2="21" y1="21" y2="19"></line><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"></polyline><line x1="5" x2="9" y1="14" y2="18"></line><line x1="7" x2="4" y1="17" y2="20"></line><line x1="3" x2="5" y1="19" y2="21"></line></svg>תחרות</div>
+  <h1>המתחרים הגדולים — לא בנויים לישראל</h1>
+  <p class="lead">כשאני שואל בעלי עסקים "איזה CRM אתה משתמש?" התשובה הכי נפוצה היא וואטסאפ. זו לא בדיחה — זו ההזדמנות שלנו.</p>
+  <div style="overflow-x:auto;margin-top:16px">
+    <table>
+      <thead><tr><th>תכונה</th><th style="background:#1e40af">MISRAD AI ✓</th><th>Salesforce</th><th>Zoho</th><th>Monday</th><th>כלי ישראלי קיים</th></tr></thead>
+      <tbody>
+        <tr><td>עברית מלאה</td><td class="hrow" style="background:#dbeafe;text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">חלקי</td><td style="text-align:center">חלקי</td><td style="text-align:center">✅</td></tr>
+        <tr><td>AI ניתוח שיחות</td><td class="hrow" style="background:#dbeafe;text-align:center">✅</td><td style="text-align:center">💰 יקר</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td>הכל-באחד</td><td class="hrow" style="background:#dbeafe;text-align:center">✅</td><td style="text-align:center">בתוספת</td><td style="text-align:center">חלקי</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td>שבת וחגים</td><td class="hrow" style="background:#dbeafe;text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td>מחיר/חודש</td><td class="hrow" style="background:#dbeafe;text-align:center">₪149–₪499</td><td style="text-align:center">$150–$300</td><td style="text-align:center">$49–$99</td><td style="text-align:center">$100–$200</td><td style="text-align:center">₪200–₪400</td></tr>
+        <tr><td>זמן הטמעה</td><td class="hrow" style="background:#dbeafe;text-align:center">&lt;24 שעות</td><td style="text-align:center">3–6 חודשים</td><td style="text-align:center">2–4 שבועות</td><td style="text-align:center">1–2 שבועות</td><td style="text-align:center">שבוע</td></tr>
+        <tr><td>WhatsApp</td><td class="hrow" style="background:#dbeafe;text-align:center">✅ ישיר</td><td style="text-align:center">דרך צד ג'</td><td style="text-align:center">דרך צד ג'</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="box bblue" style="margin-top:14px"><h3>🏆 סיכום: אנחנו בפינה שלנו</h3><p>הכלים הזולים — לא ניהול לקוחות אמיתי. הכלים המקצועיים — לא מתאימים לעסק ישראלי. <strong>MISRAD AI = מקצועי + עברית + מחיר הגיוני.</strong></p></div>
+</section>
+
+<!-- ===== שיווק ===== -->
+<section id="marketing">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rocket" aria-hidden="true" class="lucide lucide-rocket"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"></path><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"></path></svg>שיווק</div>
+  <h1>איך אני מגיע ל-200 לקוחות?</h1>
+  <p class="lead">לא קניתי רשימות. לא שכרתי סוכנות. פניתי לקהילות של בעלי עסקים בטלגרם ובפייסבוק ואמרתי: "יש לי מוצר, תנסו אותו 7 ימים חינם". זה עבד. זה הכיוון.</p>
+  <div class="g2">
+    <div class="card">
+      <h3>📣 ערוצי רכישה עיקריים</h3>
+      <ul style="margin-top:8px;padding-right:18px;color:var(--muted);font-size:.88rem;line-height:2">
+        <li><strong>קהילות טלגרם/פייסבוק</strong> — עסקים קטנים, 50K+ חברים</li>
+        <li><strong>וואטסאפ</strong> — ניסיון חינמי 7 ימים, בלי כרטיס אשראי</li>
+        <li><strong>לינקדאין</strong> — פנייה ממוקדת לבעלי עסקים</li>
+        <li><strong>המלצות (15% קרדיט)</strong> — כל לקוח שמביא מקבל הנחה</li>
+        <li><strong>סרטונים קצרים</strong> — תוכן "טיפ יומי לעסק"</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🎯 משפך שיווקי ויעדים</h3>
+      <table style="margin-top:8px;font-size:.85rem">
+        <tbody><tr><td><strong>שלב</strong></td><td><strong>יעד חודשי</strong></td><td><strong>המרה</strong></td></tr>
+        <tr><td>פניות נכנסות</td><td>300</td><td>100%</td></tr>
+        <tr><td>ניסיון פעיל (7 ימים)</td><td>90</td><td>30%</td></tr>
+        <tr><td>המרה למשלם</td><td>18</td><td>20%</td></tr>
+        <tr><td>שימור (חודש 6)</td><td>85%</td><td>—</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="bar-wrap">
+    <h3 style="margin-bottom:10px;margin-top:18px">תקציב שיווק חודשי — ₪8,000 בשלב ראשון</h3>
+    <div class="bar-row"><div class="bar-lbl"><span>תוכן + קהילות + פרסום ממוקד</span><span>₪3,500 (44%)</span></div><div class="bar-bg"><div class="bar-fill bar-b" style="width:44%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>פנייה ישירה + קמפיינים בוואטסאפ</span><span>₪2,500 (31%)</span></div><div class="bar-bg"><div class="bar-fill bar-g" style="width:31%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>גוגל — מודעות ממוקדות</span><span>₪2,000 (25%)</span></div><div class="bar-bg"><div class="bar-fill bar-a" style="width:25%"></div></div></div>
+  </div>
+</section>
+
+<!-- ===== הכנסות והוצאות ===== -->
+<section id="forecast">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trending-up" aria-hidden="true" class="lucide lucide-trending-up"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>הכנסות והוצאות</div>
+  <h1>המספרים — בלי עיגול פינות</h1>
+  <p class="lead">הכנסתי לכאן את המספרים האמיתיים, לא את אלה שנראים טוב במצגת. אפשר לשאול אותי על כל שורה.</p>
+  <div class="g4">
+    <div class="card sc"><span class="n">₪38,000</span><span class="l">הוצאה חודשית</span></div>
+    <div class="card sc sc-b"><span class="n">55–70</span><span class="l">לקוחות לנקודת איזון</span></div>
+    <div class="card sc sc-g"><span class="n">₪35K</span><span class="l">הכנסה חודשית — יעד חודש 12</span></div>
+    <div class="card sc sc-a"><span class="n">₪420K</span><span class="l">הכנסה שנתית — יעד שנה 1</span></div>
+  </div>
+  <div class="bar-wrap">
+    <h3 style="margin:18px 0 10px">תחזית הכנסה חודשית — 12 חודשים</h3>
+    <div class="bar-row"><div class="bar-lbl"><span>חודש 1–3 (לקוחות ראשונים)</span><span>₪5K–₪12K</span></div><div class="bar-bg"><div class="bar-fill bar-b" style="width:15%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>חודש 4–6 (האצת שיווק)</span><span>₪15K–₪25K</span></div><div class="bar-bg"><div class="bar-fill bar-b" style="width:35%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>חודש 7–9 (המלצות מתחילות לעבוד)</span><span>₪25K–₪35K</span></div><div class="bar-bg"><div class="bar-fill bar-g" style="width:55%"></div></div></div>
+    <div class="bar-row"><div class="bar-lbl"><span>חודש 10–12 (אחרי נקודת האיזון)</span><span>₪35K–₪45K</span></div><div class="bar-bg"><div class="bar-fill bar-g" style="width:75%"></div></div></div>
+  </div>
+  <h2>מבנה הוצאות חודשי מפורט (₪38,000)</h2>
+  <div class="exp-grid">
+    <div>
+      <div class="exp-cat">💻 טכנולוגיה ותשתיות</div>
+      <table style="margin-top:0"><thead><tr><th>פריט</th><th>₪/חודש</th></tr></thead><tbody>
+        <tr><td>Vercel (אירוח + שרתים)</td><td>₪400</td></tr>
+        <tr><td>PostgreSQL (מסד נתונים)</td><td>₪300</td></tr>
+        <tr><td>מנועי AI (OpenAI/Gemini/Claude)</td><td>₪1,200</td></tr>
+        <tr><td>תמלול שיחות (Deepgram)</td><td>₪400</td></tr>
+        <tr><td>אבטחה + WhatsApp API</td><td>₪600</td></tr>
+        <tr><td>כלים נוספים (ניטור, מיילים)</td><td>₪300</td></tr>
+        <tr class="exp-total"><td><strong>סה"כ טכנולוגיה</strong></td><td><strong>₪3,200</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="exp-cat">📣 שיווק ומכירות</div>
+      <table style="margin-top:0"><thead><tr><th>פריט</th><th>₪/חודש</th></tr></thead><tbody>
+        <tr><td>גוגל + טלגרם — פרסום</td><td>₪3,500</td></tr>
+        <tr><td>יצירת תוכן + עריכה</td><td>₪2,000</td></tr>
+        <tr><td>קמפיינים בוואטסאפ</td><td>₪1,000</td></tr>
+        <tr><td>קהילות + יח"צ</td><td>₪1,500</td></tr>
+        <tr><td>כלי פנייה ישירה</td><td>₪500</td></tr>
+        <tr><td style="visibility:hidden">—</td><td style="visibility:hidden">—</td></tr>
+        <tr class="exp-total"><td><strong>סה"כ שיווק</strong></td><td><strong>₪8,500</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="exp-cat">👥 כוח אדם</div>
+      <table style="margin-top:0"><thead><tr><th>פריט</th><th>₪/חודש</th></tr></thead><tbody>
+        <tr><td>מייסד (משכורת חלקית)</td><td>₪12,000</td></tr>
+        <tr><td>מכירות/תמיכה (חלקי)</td><td>₪8,000</td></tr>
+        <tr><td>פרילנסרים</td><td>₪3,000</td></tr>
+        <tr><td style="visibility:hidden">—</td><td style="visibility:hidden">—</td></tr>
+        <tr class="exp-total"><td><strong>סה"כ כוח אדם</strong></td><td><strong>₪23,000</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <div class="exp-cat">🏢 תפעול ומשפטי</div>
+      <table style="margin-top:0"><thead><tr><th>פריט</th><th>₪/חודש</th></tr></thead><tbody>
+        <tr><td>רו"ח + ייעוץ משפטי</td><td>₪1,200</td></tr>
+        <tr><td>ביטוח + רישוי</td><td>₪400</td></tr>
+        <tr><td>כלים שוטפים</td><td>₪700</td></tr>
+        <tr><td>גיבויים + אבטחה</td><td>₪500</td></tr>
+        <tr><td style="visibility:hidden">—</td><td style="visibility:hidden">—</td></tr>
+        <tr class="exp-total"><td><strong>סה"כ תפעול</strong></td><td><strong>₪2,800</strong></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;background:#f8fafc">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div><strong>סה"כ הוצאה חודשית: ₪37,500</strong></div>
+      <div><span class="badge bb">רווח גולמי ~88%</span> <span class="badge bg">נקודת איזון: ~60 לקוחות</span></div>
+    </div>
+    <p class="exp-note">* מבנה הוצאות רזה עם מייסד יחיד. בשלב הבא — תוספת ₪8K–₪12K בכוח אדם בלבד.</p>
+  </div>
+</section>
+
+<!-- ===== לאן הולך הכסף ===== -->
+<section id="investment">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wallet" aria-hidden="true" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>השקעה</div>
+  <h1>אני מחפש שותף — לא רק כסף</h1>
+  <p class="lead">המוצר בנוי. הלקוחות רוצים. מה שחסר הוא לפתוח את הגז בשיווק ולסגור כמה פינות בפיתוח. ₪100,000 מספיקים לזה — ואם אתה רוצה להיות חלק מזה, בוא נדבר.</p>
+  <div class="pie-wrap">
+    <div class="pie"></div>
+    <div class="pie-legend">
+      <div class="pie-legend-item"><div class="pie-dot" style="background:var(--blue)"></div><strong>שיווק ומכירות</strong> — ₪42K (42%)</div>
+      <div class="pie-legend-item"><div class="pie-dot" style="background:#059669"></div><strong>פיתוח מוצר</strong> — ₪33K (33%)</div>
+      <div class="pie-legend-item"><div class="pie-dot" style="background:var(--amber)"></div><strong>תפעול + משפטי</strong> — ₪15K (15%)</div>
+      <div class="pie-legend-item"><div class="pie-dot" style="background:#94a3b8"></div><strong>כרית ביטחון (3 חודשים)</strong> — ₪10K (10%)</div>
+    </div>
+  </div>
+  <h2>פירוט הקצאת הכסף</h2>
+  <div class="g2">
+    <div class="box bblue">
+      <h3>📣 שיווק ומכירות — ₪42,000</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>פרסום ממומן (3 חודשים) — ₪18,000</li>
+        <li>יצירת תוכן + סרטונים — ₪10,000</li>
+        <li>כלי פנייה ישירה — ₪6,000</li>
+        <li>יח"צ + כנסים מקצועיים — ₪8,000</li>
+      </ul>
+    </div>
+    <div class="box bgreen">
+      <h3>💻 פיתוח מוצר — ₪33,000</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>אפליקציה לנייד (iOS/Android) — ₪20,000</li>
+        <li>אינטגרציית WhatsApp ישירה — ₪8,000</li>
+        <li>כיוונון מודל AI לעברית — ₪5,000</li>
+      </ul>
+    </div>
+    <div class="box bamber">
+      <h3>🏢 תפעול + משפטי — ₪15,000</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>הסכמי משקיעים + תנאי שימוש — ₪8,000</li>
+        <li>רו"ח + רגולציה — ₪4,000</li>
+        <li>ביטוח + כלים — ₪3,000</li>
+      </ul>
+    </div>
+    <div class="box bred">
+      <h3>🔒 כרית ביטחון — ₪10,000</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>3 חודשי מרחב נשימה נוסף</li>
+        <li>הוצאות לא צפויות</li>
+        <li>בלם ביטחון לפני הסבב הבא</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box bblue" style="margin-top:6px"><h3>📅 לוח זמנים</h3><p>חודש 1–2: הקמת שיווק + אפליקציה · חודש 3–5: האצת פרסום + המלצות · חודש 6–8: נקודת איזון · חודש 9–12: סבב גיוס שני עם הוכחת שוק.</p></div>
+</section>
+
+<!-- ===== מה המשקיע מקבל ===== -->
+<section id="returns">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="handshake" aria-hidden="true" class="lucide lucide-handshake"><path d="m11 17 2 2a1 1 0 1 0 3-3"></path><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"></path><path d="m21 3 1 11h-2"></path><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"></path><path d="M3 4h8"></path></svg>מודל ההשקעה</div>
+  <h1>שני מסלולים — תבחר מה שנוח לך</h1>
+  <p class="lead">לא ניסיתי לסבך את זה. שני מסלולים, כל אחד הוגן. תקרא, תחשוב, ותגיד לי מה מדבר אליך — אין לחץ.</p>
+  <div class="roi-cmp">
+    <div class="roi-box rb">
+      <span class="roi-num">8%</span>
+      <span class="roi-sub">שותפות — אחוזים בחברה</span>
+      <div class="roi-desc"><strong>אתה שם ₪100,000 — אתה מקבל 8% מהחברה.</strong><br>אם החברה גדלה — הכסף שלך גדל איתה. אם נמכרת — אתה מרוויח ביחד איתי. בנוסף — אם נגיע להכנסה שנתית של מיליון ₪, תקבל אופציה ל-5% נוספים.</div>
+    </div>
+    <div class="roi-box rg">
+      <span class="roi-num">15%</span>
+      <span class="roi-sub">חלק מההכנסות — עד שמכפילים</span>
+      <div class="roi-desc"><strong>אתה שם ₪100,000 — אתה מקבל 15% מההכנסות החודשיות עד שקיבלת ₪200,000.</strong><br>אחרי שהכפלת — 5% מההכנסות ממשיכים אליך לצמיתות. המסלול הנוח ביותר — לא צריך לחכות ל"אקזיט".</div>
+    </div>
+  </div>
+
+  <h2>תרחישים — מה קורה עם ₪100,000 שלך?</h2>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>תרחיש</th><th>הכנסה חודשית (חודש 24)</th><th>שותפות (8%)</th><th>חלק מהכנסות (15%)</th></tr></thead>
+      <tbody>
+        <tr><td>🐢 שמרני</td><td>₪35,000</td><td>שווי אחזקה: ₪200K–₪350K</td><td>₪200K הוחזרו + 5% לצמיתות</td></tr>
+        <tr><td>📈 בסיס</td><td>₪80,000</td><td>שווי אחזקה: ₪500K–₪750K</td><td>₪200K הוחזרו + ₪4K/חודש לצמיתות</td></tr>
+        <tr><td>🚀 אופטימי</td><td>₪150,000</td><td>שווי אחזקה: ₪1M–₪2M</td><td>₪200K הוחזרו + ₪7.5K/חודש לצמיתות</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="g2" style="margin-top:14px">
+    <div class="box bblue"><h3>📌 מתי מקבלים את הכסף חזרה? (חלק מהכנסות)</h3><p>בהכנסה חודשית של ₪35K — ₪5,250 בחודש למשקיע. תוך 18–20 חודשים — ₪100,000 הוחזרו. אחרי שנה נוספת — ₪200,000. ולאחר מכן: 5% מההכנסות ממשיכים לצמיתות.</p></div>
+    <div class="box bgreen"><h3>🏆 מה קורה אם נמכרים? (שותפות)</h3><p>חברות תוכנה בישראל נמכרות ב-4–8 מכפיל הכנסה שנתית. בהכנסה שנתית של ₪1M — שווי חברה: ₪4M–₪8M. ₪100K על 8% = ₪320K–₪640K.</p></div>
+  </div>
+</section>
+
+<!-- ===== צעד-אחר-צעד ===== -->
+<section id="roadmap">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="map" aria-hidden="true" class="lucide lucide-map"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"></path><path d="M15 5.764v15"></path><path d="M9 3.236v15"></path></svg>תכנית עבודה</div>
+  <h1>הנה תכנית העבודה שלי — בלי בולשיט</h1>
+  <p class="lead">לא אכתוב לך "שנה 3 — הנפקה בבורסה". הנה מה שאני באמת הולך לעשות עם הכסף, צעד אחר צעד. תחזיק אותי לזה.</p>
+  <div style="margin-top:18px">
+    <div class="tl-item">
+      <div class="tl-dot done">Q1</div>
+      <div><h3>✅ בוצע — מוצר חי בפרודקשן</h3><p>ניהול לקוחות, יומן, עוזר AI, דשבורד מדדים, ניתוח שיחות — הכל חי עם לקוחות ראשונים.</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot done">Q2</div>
+      <div><h3>✅ בוצע — אפליקציה לאנדרואיד (Beta)</h3><p>APK זמין להורדה. התראות, מצלמה, ממשק מהיר. iOS בפיתוח.</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">Q3</div>
+      <div><h3>🔄 בפיתוח — האצת שיווק + WhatsApp</h3><p>אינטגרציית WhatsApp ישירה. 30 לקוחות משלמים. עלות רכישת לקוח מתחת ל-₪600.</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">Q4</div>
+      <div><h3>📅 יעד — נקודת איזון + אפליקציית iOS</h3><p>55–70 לקוחות. הכנסה חודשית ₪25K+. iOS בחנות. מנגנון המלצות פעיל. נטישה מתחת ל-5%.</p></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">שנה 2</div>
+      <div><h3>🚀 סבב גיוס שני — ₪1.5M</h3><p>200+ לקוחות. הכנסה חודשית ₪80K. גיוס מנהל מכירות + 2 מפתחים. כניסה לשוק עסקים בינוניים.</p></div>
+    </div>
+    <div class="tl-item" style="padding-bottom:0">
+      <div class="tl-dot">שנה 3</div>
+      <div><h3>🌍 הרחבה — שוק ערבי + אירופה</h3><p>עברית ← ערבית ← טורקית. תוכנה לשווקים עם חסם שפה דומה. יעד הכנסה שנתית: ₪5M.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== היזם ===== -->
+<section id="team">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>היזם</div>
+  <h1>מי אני — ולמה דווקא אני עושה את זה</h1>
+  <div class="founder-story">
+    <p>אני <strong>איציק דהן</strong>. מפתח Full-Stack עם 10+ שנים בפרויקטים אמיתיים — לא רק קוד, גם מכירות, גם שיווק, גם לעמוד מול לקוח בעשר בלילה ולפתור תקלה. בניתי מערכות לפני כן, ומכרתי אותן. <strong>MISRAD AI זה לא הניסיון הראשון שלי — זה הפרויקט שבו אני שם את כל מה שלמדתי.</strong></p>
+    <p style="margin-top:10px;margin-bottom:0">כרגע אני לבד. כן, לבד. זה לא חיסרון — זה אומר שאין בזבוז, אין בירוקרטיה, ושכל שקל שמשקיע נותן הולך לדבר האמיתי. <strong>הבן אדם הראשון שאגייס כשנגיע לנקודת האיזון — איש מכירות. לא עוד מפתח.</strong></p>
+  </div>
+  <div class="g3" style="margin-top:14px">
+    <div class="card sc"><span class="n">10+</span><span class="l">שנות פיתוח תוכנה</span></div>
+    <div class="card sc sc-b"><span class="n">7</span><span class="l">מודולים בפרודקשן</span></div>
+    <div class="card sc sc-g"><span class="n">Solo</span><span class="l">בנה הכל לבד</span></div>
+  </div>
+  <div class="box bblue" style="margin-top:14px"><h3>🔑 למה זה בעצם יתרון</h3><p>מייסד טכני שמבין גם מכירות + שיווק = לא צריך לבנות צוות של 5 אנשים כדי להוציא פיצ'ר חדש. שינויים בפרודקשן תוך שעות. שינוי כיוון ב-48 שעות אם צריך. זו זריזות שחברה עם 10 עובדים לא יכולה לעמוד בה.</p></div>
+</section>
+
+<!-- ===== מצב עכשווי ===== -->
+<section id="social">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="star" aria-hidden="true" class="lucide lucide-star"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg>מצב עכשווי</div>
+  <h1>רציתי להראות לך לפני שאבקש משהו</h1>
+  <p class="lead">תיכנס ל-<a href="https://misrad-ai.com" target="_blank" style="color:var(--blue)">misrad-ai.com</a> עכשיו. זה לא עיצוב, לא הדמייה, לא "בקרוב". זה פרודקשן.</p>
+  <div class="beta-stats">
+    <div class="bs-item"><span class="bs-n">Live</span><span class="bs-l">פרודקשן (לא בטא)</span></div>
+    <div class="bs-item"><span class="bs-n">7</span><span class="bs-l">מודולים פעילים</span></div>
+    <div class="bs-item"><span class="bs-n">APK</span><span class="bs-l">אפליקציית אנדרואיד</span></div>
+    <div class="bs-item"><span class="bs-n">&lt;2 שנ'</span><span class="bs-l">זמן תגובה ממוצע</span></div>
+  </div>
+  <div class="g2" style="margin-top:14px">
+    <div class="box bgreen">
+      <h3>✅ מה כבר מוכן</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>מוצר חי בפרודקשן + מסד נתונים PostgreSQL</li>
+        <li>ניהול לקוחות, יומן, דשבורד, עוזר AI</li>
+        <li>ניתוח שיחות בעברית (Deepgram)</li>
+        <li>אפליקציית אנדרואיד + גרסת דפדפן</li>
+        <li>הפרדה מלאה בין עסקים (כל עסק = מרחב נפרד)</li>
+        <li>הגנת שבת + לוח חגים ישראלי</li>
+        <li>מערכת הרשאות + ניהול תפקידים</li>
+      </ul>
+    </div>
+    <div class="box bamber">
+      <h3>🔄 בפיתוח פעיל</h3>
+      <ul style="padding-right:16px;color:var(--muted);font-size:.85rem;line-height:2;margin-top:6px">
+        <li>אפליקציית iOS</li>
+        <li>WhatsApp Business API ישיר</li>
+        <li>מודול חיוב ותשלום (Stripe)</li>
+        <li>כתיבת מיילים באמצעות AI</li>
+        <li>כיוונון מודל AI לעברית ישראלית</li>
+        <li>API לשותפים (אינטגרציה עם כלים קיימים)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box bblue" style="margin-top:14px"><h3>🔗 לראות בעצמך</h3><p>המוצר זמין לצפייה ב-<a href="https://misrad-ai.com" target="_blank" style="color:var(--blue)"><strong>misrad-ai.com</strong></a> · חשבון הדגמה זמין לבקשה · APK להורדה ישירה.</p></div>
+</section>
+
+<!-- ===== צור קשר ===== -->
+<section id="contact">
+  <div class="slbl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="phone" aria-hidden="true" class="lucide lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg>צור קשר</div>
+  <h1>אם משהו כאן תפס — בוא נדבר</h1>
+  <p class="lead">אני לא מבקש ממך להחליט עכשיו. תשלח לי הודעה, תשאל כל שאלה, תחפור כמה שצריך. אם בסוף זה לא מתאים — אין בעיה. אבל אם כן — כנראה שכדאי.</p>
+  <div class="card" style="margin-top:18px;max-width:500px">
+    <div class="crow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span><strong>איציק דהן</strong> — מייסד ומפתח ראשי, MISRAD AI</span></div>
+    <div class="crow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="mail" aria-hidden="true" class="lucide lucide-mail"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg><a href="mailto:itsik@misrad-ai.com">itsik@misrad-ai.com</a></div>
+    <div class="crow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="phone" aria-hidden="true" class="lucide lucide-phone"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"></path></svg><a href="tel:+972501234567">050-123-4567</a></div>
+    <div class="crow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="globe" aria-hidden="true" class="lucide lucide-globe"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg><a href="https://misrad-ai.com" target="_blank">misrad-ai.com</a></div>
+    <div class="crow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="linkedin" aria-hidden="true" class="lucide lucide-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg><a href="https://linkedin.com/in/itsikdahan" target="_blank">linkedin.com/in/itsikdahan</a></div>
+  </div>
+  <a href="https://wa.me/972501234567?text=היי%20איציק,%20ראיתי%20את%20מסמך%20ההשקעה%20של%20MISRAD%20AI%20ורוצה%20לדעת%20יותר" target="_blank" class="contact-cta"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="message-circle" aria-hidden="true" class="lucide lucide-message-circle"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"></path></svg>שלח WhatsApp עכשיו</a>
+  <div class="box bblue" style="margin-top:18px;max-width:500px"><h3>📅 מה קורה אחרי שתחזור אליי?</h3><p>נדבר 20 דקות — זום, טלפון, קפה, מה שנוח. אני יכול לשתף דו"ח הכנסות/הוצאות מלא, קוד מקור, כל מה שצריך. לא מסתיר כלום. ניתן לכל זה שבועיים ונחליט.</p></div>
+</section>
+
+</main>
+<script>
+lucide.createIcons();
+const mb=document.getElementById('mb'),sb=document.getElementById('sb'),sbo=document.getElementById('sbo');
+function toggleSb(){sb.classList.toggle('open');sbo.classList.toggle('open')}
+mb.addEventListener('click',toggleSb);sbo.addEventListener('click',toggleSb);
+const nis=document.querySelectorAll('.ni');
+const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){nis.forEach(n=>n.classList.remove('active'));const a=document.querySelector(`.ni[href="#${e.target.id}"]`);if(a)a.classList.add('active')}})},{threshold:.15,rootMargin:'-60px 0px -70% 0px'});
+document.querySelectorAll('section[id]').forEach(s=>observer.observe(s));
+
+/* ===== עורך מובנה ===== */
+(function(){
+  const SAVE_URL='http://localhost:3333/save';
+  let editing=false;
+  const bar=document.createElement('div');
+  bar.className='edit-bar hidden';
+  bar.innerHTML='<button id="edt-toggle">✏️ מצב עריכה</button><button id="edt-save" style="display:none">💾 שמור (Ctrl+S)</button><button id="edt-exit" class="btn-exit" style="display:none">✖ צא מעריכה</button><span class="edit-status" id="edt-status"></span>';
+  document.body.appendChild(bar);
+
+  fetch(SAVE_URL.replace('/save','/')).then(r=>{if(r.ok)bar.classList.remove('hidden')}).catch(()=>{});
+
+  const editables='h1,h2,h3,p,.lead,.td,.roi-desc,.roi-sub,.bs-l,.bs-n,.ss-caption,.n,.l,.kn,.kl,.exp-note,.tlbl,.bigr,ul li,ol li,.card ul li,.card ol li,.box ul li,.box ol li,table td,table th,span:not(.badge):not(.mock-td-badge):not(.mock-kpi *):not(.mock-dot-r):not(.mock-dot-y):not(.mock-dot-g),div.founder-story p,div.elevator p,div.box p,div.box h3,div.card p,div.card h3,div.track .td,div.crow span,div.crow a,div.pie-legend-item';
+  const toggleBtn=document.getElementById('edt-toggle');
+  const saveBtn=document.getElementById('edt-save');
+  const exitBtn=document.getElementById('edt-exit');
+  const status=document.getElementById('edt-status');
+
+  function enterEdit(){
+    editing=true;
+    document.querySelectorAll('#main '+editables).forEach(el=>{el.contentEditable='true'});
+    toggleBtn.style.display='none';saveBtn.style.display='';exitBtn.style.display='';
+    status.textContent='עורך פעיל — לחץ על כל טקסט כדי לערוך';
+  }
+  function exitEdit(){
+    editing=false;
+    document.querySelectorAll('[contenteditable]').forEach(el=>{el.removeAttribute('contenteditable')});
+    toggleBtn.style.display='';saveBtn.style.display='none';exitBtn.style.display='none';
+    status.textContent='';
+  }
+  async function saveDoc(){
+    status.textContent='שומר...';
+    const clone=document.documentElement.cloneNode(true);
+    clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    clone.querySelectorAll('.edit-bar').forEach(el=>el.remove());
+    const html='<!DOCTYPE html>\n'+clone.outerHTML+'\n';
+    try{
+      const r=await fetch(SAVE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html})});
+      const j=await r.json();
+      status.textContent=j.ok?'✅ נשמר בהצלחה!':'❌ שגיאה בשמירה';
+      if(j.ok)setTimeout(()=>{status.textContent='עורך פעיל'},2000);
+    }catch(e){status.textContent='❌ השרת לא רץ — הפעל: node docs/pitch-editor-server.js';}
+  }
+
+  toggleBtn.addEventListener('click',enterEdit);
+  exitBtn.addEventListener('click',exitEdit);
+  saveBtn.addEventListener('click',saveDoc);
+  document.addEventListener('keydown',e=>{if(editing&&e.ctrlKey&&e.key==='s'){e.preventDefault();saveDoc()}});
+})();
+</script>
+</body>
+</html>

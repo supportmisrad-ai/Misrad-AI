@@ -177,6 +177,23 @@ export async function createNexusUser(params: { orgId: string; input: Omit<User,
     throw new Error('Forbidden - Only Super Admins can create Super Admin users');
   }
 
+  // Check if user with this email already exists in this organization
+  const existingUser = await findNexusUserRowById({
+    organizationId: workspace.id,
+    userId: '', // dummy - we're using email search
+  }).catch(() => null);
+  
+  // More robust check using listNexusUserRows with email filter
+  const existingUsers = await listNexusUserRows({
+    organizationId: workspace.id,
+    where: { email: String(body.email).toLowerCase().trim() },
+    take: 1,
+  });
+
+  if (existingUsers && existingUsers.length > 0) {
+    throw new Error(`עובד עם אימייל ${body.email} כבר קיים במערכת`);
+  }
+
   const createdRow = await createNexusUserRow({
     data: {
       organizationId: workspace.id,

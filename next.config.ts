@@ -118,10 +118,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns', 'lodash', '@radix-ui/react-icons'],
     // Client-side router cache: cache dynamic page responses so soft navigations
     // (Link clicks) reuse the cached RSC payload instead of a full server round-trip.
-    // dynamic=30s means clicking back/forth between pages within 30s is instant.
+    // dynamic=180s (3 min) — navigating between module pages within 3 min is instant.
     // static=300s for statically rendered pages.
     staleTimes: {
-      dynamic: 30,
+      dynamic: 180,
       static: 300,
     },
   },

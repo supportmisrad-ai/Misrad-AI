@@ -306,22 +306,18 @@ export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async funct
   const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
   const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
 
-  // Org owners/super_admins should display as 'מנכ״ל', not the default 'עובד'.
-  // normalizeRoleFromClerk reads Clerk metadata which is empty for new signups.
-  let nexusDisplayRole = clerkRole;
-  if (clerkRole === 'עובד') {
-    const existingProfile = await prisma.profile.findFirst({
-      where: { organizationId: workspaceId, clerkUserId },
-      select: { role: true },
-    });
-    const systemRole = existingProfile?.role || '';
-    if (systemRole === 'owner' || systemRole === 'super_admin') {
-      nexusDisplayRole = 'מנכ״ל';
-    }
-  }
+  // Phase A: Run role check + profile ensure in parallel (both independent).
+  // ensureProfileRow uses clerkRole (not the corrected one), so it can start immediately.
+  // The role check determines nexusDisplayRole for ensureNexusUserRow.
+  const roleCheckPromise = clerkRole === 'עובד'
+    ? prisma.profile.findFirst({
+        where: { organizationId: workspaceId, clerkUserId },
+        select: { role: true },
+      })
+    : Promise.resolve(null);
 
-  // Run profile and nexus user creation in parallel — they are independent
-  const [profileRow, nexusUser] = await Promise.all([
+  const [existingProfile, profileRow] = await Promise.all([
+    roleCheckPromise,
     ensureProfileRow({
       organizationId: workspaceId,
       clerkUserId,
@@ -331,15 +327,24 @@ export const resolveWorkspaceCurrentUserForUiWithWorkspaceId = cache(async funct
       role: clerkRole,
       isSuperAdmin,
     }),
-    ensureNexusUserRow({
-      organizationId: workspaceId,
-      email: String(email).trim().toLowerCase(),
-      name,
-      role: nexusDisplayRole,
-      avatarUrl,
-      isSuperAdmin,
-    }),
   ]);
+
+  // Org owners/super_admins should display as 'מנכ״ל', not the default 'עובד'.
+  let nexusDisplayRole = clerkRole;
+  const systemRole = existingProfile?.role || '';
+  if (clerkRole === 'עובד' && (systemRole === 'owner' || systemRole === 'super_admin')) {
+    nexusDisplayRole = 'מנכ״ל';
+  }
+
+  // Phase B: ensureNexusUserRow needs the corrected nexusDisplayRole
+  const nexusUser = await ensureNexusUserRow({
+    organizationId: workspaceId,
+    email: String(email).trim().toLowerCase(),
+    name,
+    role: nexusDisplayRole,
+    avatarUrl,
+    isSuperAdmin,
+  });
 
   const profileObj = asObject(profileRow) ?? {};
   const nexusObj = asObject(nexusUser) ?? {};

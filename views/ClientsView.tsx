@@ -41,6 +41,8 @@ export const ClientsView: React.FC = () => {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [packageFilter, setPackageFilter] = useState<string>('all');
     
     const [newClientName, setNewClientName] = useState('');
     const [newContactPerson, setNewContactPerson] = useState('');
@@ -91,7 +93,13 @@ export const ClientsView: React.FC = () => {
 
     const [sortConfig, setSortConfig] = useState<{ key: keyof Client; direction: 'asc' | 'desc' }>({ key: 'joinedAt', direction: 'desc' });
 
-    const sortedClients = [...clients].sort((a, b) => {
+    const filteredClients = clients.filter(client => {
+        if (statusFilter !== 'all' && client.status !== statusFilter) return false;
+        if (packageFilter !== 'all' && client.package !== packageFilter) return false;
+        return true;
+    });
+
+    const sortedClients = [...filteredClients].sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         if (aValue === undefined || bValue === undefined) return 0;
@@ -255,10 +263,38 @@ export const ClientsView: React.FC = () => {
                 <button onClick={openAddClientModal} className="bg-black text-white px-6 py-3.5 rounded-2xl font-black flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"><Plus size={20} />הוספת לקוח</button>
             </div>
 
-            <div className="bg-white p-4 md:rounded-3xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 sticky top-0 z-40">
-                <div className="relative flex-1">
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input type="text" placeholder="חיפוש..." className="w-full pr-12 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <div className="bg-white p-4 md:rounded-3xl shadow-sm border border-gray-100 mb-6 flex flex-col gap-4 sticky top-0 z-40">
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input type="text" placeholder="חיפוש..." className="w-full pr-12 pl-4 py-3.5 bg-gray-50 rounded-2xl outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    </div>
+                    <div className="flex gap-2">
+                        <select 
+                            value={statusFilter} 
+                            onChange={e => setStatusFilter(e.target.value)}
+                            className="px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm"
+                        >
+                            <option value="all">כל הסטטוסים</option>
+                            <option value="Active">פעיל</option>
+                            <option value="Onboarding">אונבורדינג</option>
+                            <option value="Lead">ליד</option>
+                            <option value="Churned">עזב</option>
+                        </select>
+                        <select 
+                            value={packageFilter} 
+                            onChange={e => setPackageFilter(e.target.value)}
+                            className="px-4 py-3.5 bg-gray-50 rounded-2xl outline-none font-bold text-sm"
+                        >
+                            <option value="all">כל החבילות</option>
+                            {products.map((p: { name: string }) => (
+                                <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="flex gap-2 text-xs font-bold text-gray-500">
+                    <span>מציג {sortedClients.length} מתוך {clients.length} לקוחות</span>
                 </div>
             </div>
 

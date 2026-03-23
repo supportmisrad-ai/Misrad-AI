@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemMetadata } from '@/lib/metadata';
-import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 import OperationsLayoutShell from './OperationsLayoutShell';
 
 // Removed force-dynamic: Next.js auto-detects dynamic from auth calls
@@ -13,15 +13,8 @@ export const metadata: Metadata = getSystemMetadata('operations');
 import { getEntitlements } from '@/lib/entitlements';
 import { ArchiveModeBanner } from '@/components/shared/ArchiveModeBanner';
 
-export default async function OperationsModuleLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ orgSlug: string }> | { orgSlug: string };
-}) {
-  const { orgSlug } = await params;
-  // Only the fast access check blocks the layout — everything else streams
+// Async component for access check - wrapped in Suspense (consistent with other modules)
+async function AccessCheck({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
   const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
   
   // Fire-and-forget: don't block render for location tracking
@@ -32,6 +25,28 @@ export default async function OperationsModuleLayout({
     workspace.subscriptionPlan,
     workspace.trialEndDate
   );
+
+  return (
+    <>
+      {entitlements.banner && (
+        <ArchiveModeBanner 
+          message={entitlements.banner.message} 
+          action={entitlements.banner.action} 
+        />
+      )}
+      {children}
+    </>
+  );
+}
+
+export default async function OperationsModuleLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+}) {
+  const { orgSlug } = await params;
 
   const def = getModuleDefinition('operations');
 
@@ -52,16 +67,13 @@ export default async function OperationsModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
-      {entitlements.banner && (
-        <ArchiveModeBanner 
-          message={entitlements.banner.message} 
-          action={entitlements.banner.action} 
-        />
-      )}
-      <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="operations" /></div>}>
-        <OperationsLayoutShell orgSlug={orgSlug}>
-          {children}
-        </OperationsLayoutShell>
+      {/* Immediate shell while access check runs */}
+      <Suspense fallback={<UnifiedLoadingShell moduleKey="operations" stage="shell" />}>
+        <AccessCheck orgSlug={orgSlug}>
+          <OperationsLayoutShell orgSlug={orgSlug}>
+            {children}
+          </OperationsLayoutShell>
+        </AccessCheck>
       </Suspense>
     </div>
   );

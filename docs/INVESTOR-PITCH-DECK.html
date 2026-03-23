@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MISRAD AI — מצגת למשקיעים</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        :root {
+            --bg:      #0B0B13;
+            --surface: #111119;
+            --card:    #16161F;
+            --border:  rgba(255,255,255,0.065);
+            --gold:    #C8A96C;
+            --gold-d:  #A88845;
+            --blue:    #5B8DCF;
+            --green:   #52A870;
+            --red:     #D9634E;
+            --amber:   #D0A040;
+            --tx1:     #EDEAE3;
+            --tx2:     #8A8AA4;
+            --tx3:     #484860;
+            --sidebar: 68px;
+        }
+        
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: var(--bg);
+            color: var(--tx1);
+            line-height: 1.65;
+            font-size: 15px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── SIDEBAR ──────────────────────────────────────── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: var(--sidebar);
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 0;
+            z-index: 200;
+        }
+        .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background: var(--gold);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        .sidebar-logo svg { color: #0B0B13; }
+        .sidebar-dots {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            justify-content: center;
+        }
+        .sidebar-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--tx3);
+            cursor: pointer;
+            transition: all 0.25s;
+            border: none;
+            padding: 0;
+        }
+        .sidebar-dot:hover { background: var(--tx2); }
+        .sidebar-dot.active {
+            background: var(--gold);
+            width: 7px;
+            height: 22px;
+            border-radius: 4px;
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: auto;
+        }
+        .sidebar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--tx2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .sidebar-btn:hover { background: var(--card); color: var(--tx1); }
+
+        /* ── MAIN ─────────────────────────────────────────── */
+        main { margin-right: var(--sidebar); }
+
+        /* ── SLIDE ────────────────────────────────────────── */
+        .slide {
+            min-height: 100vh;
+            padding: 72px 80px 72px 64px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+        .slide-inner {
+            max-width: 1040px;
+            width: 100%;
+        }
+        .slide-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slide-label::after {
+            content: '';
+            flex: 1;
+            max-width: 48px;
+            height: 1px;
+            background: var(--gold-d);
+            opacity: 0.5;
+        }
+        .slide-num {
+            position: absolute;
+            bottom: 28px;
+            left: 32px;
+            font-size: 11px;
+            color: var(--tx3);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── TYPOGRAPHY ───────────────────────────────────── */
+        h1 {
+            font-size: 2.9rem;
+            font-weight: 800;
+            line-height: 1.15;
+            color: var(--tx1);
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+        h1 .accent { color: var(--gold); }
+        h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--tx1);
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+        h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--tx2);
+            margin-bottom: 14px;
+        }
+        p { font-size: 1rem; color: var(--tx2); line-height: 1.7; margin-bottom: 0; }
+        .lead { font-size: 1.2rem; color: var(--tx2); line-height: 1.7; margin-top: 12px; max-width: 680px; }
+        strong { color: var(--tx1); font-weight: 600; }
+
+        /* ── GRID ─────────────────────────────────────────── */
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+        .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+        .mt16 { margin-top: 16px; }
+        .mt24 { margin-top: 24px; }
+        .mt32 { margin-top: 32px; }
+        .mt48 { margin-top: 48px; }
+
+        /* ── CARDS ────────────────────────────────────────── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+        }
+        .card-gold {
+            border-color: rgba(200,169,108,0.25);
+            background: rgba(200,169,108,0.04);
+        }
+        .card-blue {
+            border-color: rgba(91,141,207,0.2);
+            background: rgba(91,141,207,0.04);
+        }
+        .card-green {
+            border-color: rgba(82,168,112,0.2);
+            background: rgba(82,168,112,0.04);
+        }
+        .card-red {
+            border-color: rgba(217,99,78,0.2);
+            background: rgba(217,99,78,0.04);
+        }
+        .card-center { text-align: center; }
+        .card-center h2 { justify-content: center; }
+
+        /* ── STAT BOX ─────────────────────────────────────── */
+        .stat { margin-bottom: 4px; }
+        .stat-num {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--tx1);
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        .stat-num.gold { color: var(--gold); }
+        .stat-num.blue { color: var(--blue); }
+        .stat-num.green { color: var(--green); }
+        .stat-num.red { color: var(--red); }
+        .stat-lbl {
+            font-size: 0.82rem;
+            color: var(--tx2);
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        /* ── TABLE ────────────────────────────────────────── */
+        .tbl { width: 100%; border-collapse: collapse; }
+        .tbl th {
+            text-align: right;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--tx3);
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tbl td {
+            text-align: right;
+            padding: 11px 14px;
+            font-size: 0.9rem;
+            color: var(--tx2);
+            border-bottom: 1px solid var(--border);
+        }
+        .tbl tr:last-child td { border-bottom: none; }
+        .tbl td strong { color: var(--tx1); }
+        .tbl td.gold { color: var(--gold); font-weight: 600; }
+        .tbl td.green { color: var(--green); font-weight: 600; }
+        .tbl td.red { color: var(--red); }
+        .tbl .row-hl { background: rgba(200,169,108,0.04); }
+
+        /* ── ICON ─────────────────────────────────────────── */
+        .icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .ib-gold { background: rgba(200,169,108,0.12); color: var(--gold); }
+        .ib-blue { background: rgba(91,141,207,0.12); color: var(--blue); }
+        .ib-green { background: rgba(82,168,112,0.12); color: var(--green); }
+        .ib-red { background: rgba(217,99,78,0.12); color: var(--red); }
+        .ib-muted { background: rgba(255,255,255,0.05); color: var(--tx2); }
+        .icon-inline { display:inline-flex; align-items:center; gap:6px; }
+        svg { display:block; flex-shrink:0; }
+
+        /* ── TAGS / BADGES ────────────────────────────────── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .tag-gold { background: rgba(200,169,108,0.12); color: var(--gold); }
+        .tag-blue { background: rgba(91,141,207,0.12); color: var(--blue); }
+        .tag-green { background: rgba(82,168,112,0.12); color: var(--green); }
+        .tag-red { background: rgba(217,99,78,0.12); color: var(--red); }
+        .tag-muted { background: rgba(255,255,255,0.06); color: var(--tx2); }
+
+        /* ── LIST ─────────────────────────────────────────── */
+        .check-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .check-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: var(--tx2);
+            line-height: 1.5;
+        }
+        .check-list li svg { color: var(--green); margin-top: 2px; flex-shrink: 0; }
+        .check-list li strong { color: var(--tx1); }
+
+        /* ── DIVIDER ──────────────────────────────────────── */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 20px 0;
+        }
+
+        /* ── ROW DATA ─────────────────────────────────────── */
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .data-row:last-child { border-bottom: none; }
+        .data-key { font-size: 0.88rem; color: var(--tx2); }
+        .data-val { font-size: 0.9rem; font-weight: 600; color: var(--tx1); }
+        .data-val.gold { color: var(--gold); }
+        .data-val.green { color: var(--green); }
+
+        /* ── HERO COVER ───────────────────────────────────── */
+        .cover-wordmark {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 56px;
+        }
+        .cover-wordmark-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+        }
+        .cover-h1 {
+            font-size: 3.8rem;
+            font-weight: 900;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            color: var(--tx1);
+            margin-bottom: 24px;
+        }
+        .cover-h1 .accent { color: var(--gold); }
+        .cover-sub {
+            font-size: 1.15rem;
+            color: var(--tx2);
+            margin-bottom: 52px;
+            max-width: 520px;
+            line-height: 1.7;
+        }
+        .cover-stats {
+            display: flex;
+            gap: 40px;
+        }
+        .cover-stat-item { }
+        .cover-stat-num {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--tx1);
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+        .cover-stat-lbl {
+            font-size: 0.78rem;
+            color: var(--tx2);
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        .cover-stat-div {
+            width: 1px;
+            background: var(--border);
+            align-self: stretch;
+        }
+        .cover-ask {
+            margin-top: 52px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 24px;
+            border: 1px solid rgba(200,169,108,0.3);
+            border-radius: 12px;
+            background: rgba(200,169,108,0.05);
+        }
+        .cover-ask-label { font-size: 0.78rem; color: var(--tx2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
+        .cover-ask-amount { font-size: 1.5rem; font-weight: 800; color: var(--gold); letter-spacing: -0.02em; }
+
+        /* ── SCENARIO CARDS ───────────────────────────────── */
+        .scenario-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .scenario-tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ── CTA SECTION ──────────────────────────────────── */
+        .cta-block {
+            border: 1px solid rgba(200,169,108,0.2);
+            background: rgba(200,169,108,0.04);
+            border-radius: 16px;
+            padding: 40px 48px;
+        }
+
+        /* ── PROGRESS ─────────────────────────────────────── */
+        .progress-track {
+            height: 5px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 3px;
+        }
+
+        /* ── ROADMAP TIMELINE ─────────────────────────────── */
+        .timeline { display: flex; flex-direction: column; gap: 0; }
+        .tl-item {
+            display: grid;
+            grid-template-columns: 80px 1px 1fr;
+            gap: 0 20px;
+            padding-bottom: 24px;
+        }
+        .tl-item:last-child { padding-bottom: 0; }
+        .tl-period {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--tx3);
+            text-align: left;
+            padding-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .tl-period.done { color: var(--gold); }
+        .tl-line {
+            width: 1px;
+            background: var(--border);
+            position: relative;
+        }
+        .tl-line::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--tx3);
+        }
+        .tl-line.done::before { background: var(--gold); }
+        .tl-content { padding-top: 0; }
+        .tl-content p { font-size: 0.88rem; }
+
+        /* ── RESPONSIVE ───────────────────────────────────── */
+        @media(max-width: 900px) {
+            :root { --sidebar: 0px; }
+            .sidebar { display: none; }
+            main { margin-right: 0; }
+            .slide { padding: 48px 24px; }
+            .cover-h1 { font-size: 2.4rem; }
+            h1 { font-size: 2rem; }
+            .g2, .g3, .g4 { grid-template-columns: 1fr; }
+            .cover-stats { flex-wrap: wrap; gap: 20px; }
+        }
+
+        @media print {
+            .sidebar { display: none; }
+            main { margin-right: 0; }
+            .slide { page-break-after: always; min-height: auto; padding: 40px; border: none; }
+            .slide-num { display: none; }
+        }
+        
+    </style>
+</head>
+<body>
+
+<!-- SVG ICON DEFS -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/>
+  </symbol>
+  <symbol id="ic-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </symbol>
+  <symbol id="ic-trending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+  </symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </symbol>
+  <symbol id="ic-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+  </symbol>
+  <symbol id="ic-barchart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+  </symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </symbol>
+  <symbol id="ic-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+  </symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </symbol>
+  <symbol id="ic-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </symbol>
+  <symbol id="ic-dollar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+  </symbol>
+  <symbol id="ic-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </symbol>
+  <symbol id="ic-award" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+  </symbol>
+  <symbol id="ic-briefcase" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="2" y1="14" x2="22" y2="14"/>
+  </symbol>
+  <symbol id="ic-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </symbol>
+  <symbol id="ic-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+  </symbol>
+  <symbol id="ic-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </symbol>
+  <symbol id="ic-chevup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="18 15 12 9 6 15"/>
+  </symbol>
+  <symbol id="ic-chevdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </symbol>
+  <symbol id="ic-percent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+  </symbol>
+  <symbol id="ic-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </symbol>
+</svg>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="18" height="18"><use href="#ic-building"/></svg>
+  </div>
+  <div class="sidebar-dots" id="sdots"></div>
+  <div class="sidebar-nav">
+    <button class="sidebar-btn" onclick="nav(-1)" title="שקף קודם">
+      <svg width="14" height="14"><use href="#ic-chevup"/></svg>
+    </button>
+    <button class="sidebar-btn" onclick="nav(1)" title="שקף הבא">
+      <svg width="14" height="14"><use href="#ic-chevdown"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 1 — COVER
+════════════════════════════════════════════════ -->
+<section class="slide" id="s1">
+<div class="slide-inner">
+  <div class="cover-wordmark">
+    <svg width="16" height="16"><use href="#ic-building"/></svg>
+    MISRAD AI
+    <div class="cover-wordmark-dot"></div>
+    מצגת למשקיעים · 2026
+  </div>
+
+  <h1 class="cover-h1">מערכת AI שמנהלת<br>את <span class="accent">הארגון</span></h1>
+  <p class="cover-sub">הפלטפורמה הראשונה בישראל בעברית מלאה — שישה מודולים עסקיים עם AI אמיתי, הגנת שבת, ומחיר שמתאים לעסק הישראלי.</p>
+
+  <div class="cover-stats">
+    <div class="cover-stat-item">
+      <div class="cover-stat-num">v2.0</div>
+      <div class="cover-stat-lbl">מוצר חי בפרודקשן</div>
+    </div>
+    <div class="cover-stat-div"></div>
+    <div class="cover-stat-item">
+      <div class="cover-stat-num">15+</div>
+      <div class="cover-stat-lbl">פיצ'רי AI עובדים</div>
+    </div>
+    <div class="cover-stat-div"></div>
+    <div class="cover-stat-item">
+      <div class="cover-stat-num">6+1</div>
+      <div class="cover-stat-lbl">מודולים עסקיים</div>
+    </div>
+    <div class="cover-stat-div"></div>
+    <div class="cover-stat-item">
+      <div class="cover-stat-num">₪149</div>
+      <div class="cover-stat-lbl">מחיר כניסה לחודש</div>
+    </div>
+  </div>
+
+  <div class="cover-ask">
+    <svg width="18" height="18" style="color:var(--gold)"><use href="#ic-dollar"/></svg>
+    <div>
+      <div class="cover-ask-label">מבקשים — סבב ראשון</div>
+      <div class="cover-ask-amount">₪100,000</div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">01 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 2 — THE PROBLEM
+════════════════════════════════════════════════ -->
+<section class="slide" id="s2">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-alert"/></svg>
+    הבעיה
+  </div>
+  <h1>הכאוס של ניהול<br>עסקים בישראל</h1>
+  <p class="lead">רוב העסקים בישראל מנהלים לקוחות, צוות ומכירות עם שילוב לא יציב של כלים נפרדים.</p>
+
+  <div class="g2 mt32">
+    <div>
+      <h3>כך עסק ממוצע מנוהל היום</h3>
+      <table class="tbl mt16">
+        <tbody>
+          <tr><td>תקשורת פנימית</td><td><strong>WhatsApp</strong></td></tr>
+          <tr><td>ניהול לקוחות</td><td><strong>Excel / Sheets</strong></td></tr>
+          <tr><td>חשבוניות</td><td><strong>חשבונית ירוקה</strong></td></tr>
+          <tr><td>משימות</td><td><strong>פתקים / Todoist</strong></td></tr>
+          <tr><td>שיווק</td><td><strong>Canva + Buffer</strong></td></tr>
+          <tr><td>נוכחות</td><td><strong>גיליון נייר</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card card-red">
+        <div class="icon-box ib-red"><svg width="20" height="20"><use href="#ic-alert"/></svg></div>
+        <div class="stat-num red">30–40%</div>
+        <div class="stat-lbl">מהלידים נשכחים — אין מעקב</div>
+      </div>
+      <div class="card">
+        <div class="icon-box ib-muted"><svg width="20" height="20"><use href="#ic-briefcase"/></svg></div>
+        <div class="stat-num">8–12</div>
+        <div class="stat-lbl">שעות שבועיות מבוזבזות על ניהול ידני</div>
+      </div>
+      <div class="card card-gold">
+        <p style="font-size:0.9rem;"><strong>70% מהעסקים בישראל</strong> עדיין מנהלים לקוחות באקסל או וואטסאפ. אין פתרון אחד שמחבר הכל.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">02 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 3 — THE SOLUTION
+════════════════════════════════════════════════ -->
+<section class="slide" id="s3">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-zap"/></svg>
+    הפתרון
+  </div>
+  <h1>לא עוד CRM.<br><span class="accent">מערכת AI</span> שמנהלת את הארגון.</h1>
+
+  <div class="g2 mt32">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card card-gold">
+        <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-cpu"/></svg></div>
+        <h2 style="font-size:1.1rem;margin-bottom:6px;">AI אמיתי</h2>
+        <p>לא שומר נתונים — מנתח, מחזה, וממליץ בזמן אמת.</p>
+      </div>
+      <div class="card">
+        <div class="icon-box ib-muted"><svg width="20" height="20"><use href="#ic-globe"/></svg></div>
+        <h2 style="font-size:1.1rem;margin-bottom:6px;">עברית מלאה</h2>
+        <p>ממשק, AI, לוח שנה עברי, הגנת שבת — הכל מקומי.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card">
+        <div class="icon-box ib-blue"><svg width="20" height="20"><use href="#ic-layers"/></svg></div>
+        <h2 style="font-size:1.1rem;margin-bottom:6px;">6 מודולים משולבים</h2>
+        <p>CRM, צוות, שיווק, כספים, לקוחות, תפעול — הכל במקום אחד.</p>
+      </div>
+      <div class="card card-green">
+        <div class="icon-box ib-green"><svg width="20" height="20"><use href="#ic-dollar"/></svg></div>
+        <h2 style="font-size:1.1rem;margin-bottom:6px;">מחיר נגיש</h2>
+        <p>₪149–499 לחודש. לא $50 למשתמש כמו המתחרים.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">03 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 4 — HOW IT WORKS
+════════════════════════════════════════════════ -->
+<section class="slide" id="s4">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-zap"/></svg>
+    איך זה עובד
+  </div>
+  <h1>דוגמה אמיתית —<br>ניתוח שיחת מכירה</h1>
+
+  <div class="g2 mt32" style="align-items:start">
+    <div class="card" style="padding:32px;">
+      <h3>הסיטואציה</h3>
+      <ul class="check-list mt16">
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> נציג מסיים שיחה עם ליד פוטנציאלי</li>
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> לוחץ "נתח שיחה" — AI מחזיר תוך שניות</li>
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> תקציר: "הלקוח מתעניין, ביקש הצעת מחיר"</li>
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> ציון סגירה: <strong style="color:var(--green)">72/100</strong></li>
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> המלצה: "שלח הצעה עם אופציה חודשית"</li>
+        <li><svg width="16" height="16"><use href="#ic-check"/></svg> משימה + תזכורת נוצרות אוטומטית</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card card-gold">
+        <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-target"/></svg></div>
+        <h2 style="font-size:1.05rem;margin-bottom:6px;">התוצאה</h2>
+        <p>שום ליד לא נופל בין הכיסאות. שום פולואפ לא נשכח.</p>
+      </div>
+      <div class="card">
+        <h3>עוד יכולות בזמן אמת</h3>
+        <ul class="check-list" style="gap:8px;">
+          <li><svg width="16" height="16"><use href="#ic-check"/></svg> יצירת תוכן שיווקי (3 וריאציות)</li>
+          <li><svg width="16" height="16"><use href="#ic-check"/></svg> ניתוח עלות-רווח לפרויקטים</li>
+          <li><svg width="16" height="16"><use href="#ic-check"/></svg> ניהול תורים עם buffer חכם</li>
+          <li><svg width="16" height="16"><use href="#ic-check"/></svg> דוחות נוכחות אוטומטיים + GPS</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">04 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 5 — MARKET
+════════════════════════════════════════════════ -->
+<section class="slide" id="s5">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-globe"/></svg>
+    שוק היעד
+  </div>
+  <h1>גודל השוק</h1>
+
+  <div class="g3 mt24">
+    <div class="card card-center">
+      <div class="stat-num gold">697K</div>
+      <div class="stat-lbl">עסקים פעילים בישראל<br><span style="font-size:0.75rem;color:var(--tx3)">מקור: למ"ס 2023</span></div>
+    </div>
+    <div class="card card-center">
+      <div class="stat-num">150K</div>
+      <div class="stat-lbl">עסקים דיגיטליים<br><span style="font-size:0.75rem;color:var(--tx3)">SAM — שוק ישיר</span></div>
+    </div>
+    <div class="card card-center">
+      <div class="stat-num green">700</div>
+      <div class="stat-lbl">לקוחות — יעד שנה 1<br><span style="font-size:0.75rem;color:var(--tx3)">SOM — תרחיש ריאלי</span></div>
+    </div>
+  </div>
+
+  <div class="card card-gold mt24">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div class="icon-box ib-gold" style="margin:0"><svg width="20" height="20"><use href="#ic-shield"/></svg></div>
+      <h2 style="font-size:1.15rem;margin:0;">נישה ייחודית — שומרי שבת</h2>
+      <span class="tag tag-gold" style="margin-right:auto;">אף מתחרה לא נוגע בזה</span>
+    </div>
+    <div class="g4">
+      <div><div class="data-val gold">11.4%</div><div class="data-key">חרדים</div></div>
+      <div><div class="data-val gold">12.0%</div><div class="data-key">דתיים</div></div>
+      <div><div class="data-val gold">33.5%</div><div class="data-key">מסורתיים</div></div>
+      <div><div class="data-val gold">~57%</div><div class="data-key">שומרים / מסורתיים</div></div>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:0.9rem;"><strong>~50,000–75,000 עסקים</strong> בישראל שבעליהם שומרי שבת — זקוקים למערכת שמכבדת את הגבולות שלהם. MISRAD AI היחידה שעושה זאת.</p>
+  </div>
+</div>
+<div class="slide-num">05 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 6 — MODULES
+════════════════════════════════════════════════ -->
+<section class="slide" id="s6">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-layers"/></svg>
+    המוצר
+  </div>
+  <h1>6 מודולים + Booking</h1>
+
+  <div class="g3 mt24">
+    <div class="card">
+      <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-users"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">Nexus</h2>
+      <p style="margin-bottom:10px;">ניהול צוות ומשימות</p>
+      <span class="tag tag-blue">AI: חלוקת עומסים</span>
+    </div>
+    <div class="card">
+      <div class="icon-box ib-blue"><svg width="20" height="20"><use href="#ic-briefcase"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">System</h2>
+      <p style="margin-bottom:10px;">CRM מכירות</p>
+      <span class="tag tag-blue">AI: חיזוי סגירות</span>
+    </div>
+    <div class="card">
+      <div class="icon-box ib-muted"><svg width="20" height="20"><use href="#ic-barchart"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">Social</h2>
+      <p style="margin-bottom:10px;">שיווק דיגיטלי</p>
+      <span class="tag tag-blue">AI: יצירת תוכן</span>
+    </div>
+    <div class="card card-gold">
+      <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-dollar"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">Finance</h2>
+      <p style="margin-bottom:10px;">ניהול פיננסי</p>
+      <span class="tag tag-gold">בונוס — חינם!</span>
+    </div>
+    <div class="card">
+      <div class="icon-box ib-green"><svg width="20" height="20"><use href="#ic-user"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">Client</h2>
+      <p style="margin-bottom:10px;">פורטל לקוחות</p>
+      <span class="tag tag-blue">AI: סנטימנט</span>
+    </div>
+    <div class="card">
+      <div class="icon-box ib-muted"><svg width="20" height="20"><use href="#ic-target"/></svg></div>
+      <h2 style="font-size:1.05rem;margin-bottom:6px;">Operations</h2>
+      <p style="margin-bottom:10px;">תפעול ושטח + GPS</p>
+      <span class="tag tag-blue">AI: ניתוב חכם</span>
+    </div>
+  </div>
+
+  <div class="card mt16" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="icon-box ib-muted" style="margin:0"><svg width="20" height="20"><use href="#ic-calendar"/></svg></div>
+      <div>
+        <div style="font-size:0.95rem;font-weight:600;color:var(--tx1);">Booking</div>
+        <div style="font-size:0.82rem;color:var(--tx2);">ניהול תורים עם Buffer דינמי</div>
+      </div>
+    </div>
+    <span class="tag tag-gold">בטא</span>
+  </div>
+</div>
+<div class="slide-num">06 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 7 — AI FEATURES
+════════════════════════════════════════════════ -->
+<section class="slide" id="s7">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-cpu"/></svg>
+    יכולות AI
+  </div>
+  <h1>15+ פיצ'רים<br>חיים בפרודקשן</h1>
+
+  <div class="g2 mt24" style="align-items:start">
+    <div>
+      <h3>פעיל עכשיו</h3>
+      <ul class="check-list mt16">
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> ניתוח שיחות מכירה — ציון, סנטימנט, התנגדויות</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Lead Scoring 0–100 + חיזוי סגירה</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Content Machine — 3 וריאציות לפוסט</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Hashtags חכמים מותאמי פלטפורמה</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> יצירת תמונות — DALL-E 3, Imagen 4</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> תמלול שיחות בעברית — Deepgram</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Voice Commands בעברית</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> AI Assistant — שאלות חופשיות</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Semantic Search — חיפוש הבנה</li>
+      </ul>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <h3>ספקי AI — Multi-Provider</h3>
+        <p style="font-size:0.85rem;margin-top:8px;">לא תלויים בספק אחד — fallback אוטומטי</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;">
+          <span class="tag tag-muted">OpenAI GPT-4o</span>
+          <span class="tag tag-muted">Gemini 2.5</span>
+          <span class="tag tag-muted">Claude</span>
+          <span class="tag tag-muted">Groq</span>
+          <span class="tag tag-muted">Deepgram</span>
+          <span class="tag tag-muted">DALL-E 3</span>
+          <span class="tag tag-muted">Imagen 4</span>
+        </div>
+      </div>
+      <div class="card card-gold">
+        <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-lock"/></svg></div>
+        <h2 style="font-size:1rem;margin-bottom:6px;">הגנת שבת — ייחודי</h2>
+        <p style="font-size:0.88rem;">המערכת מושבתת אוטומטית בשבת וחגים וחוזרת לפעול מעצמה. לא אופציונלי — זה ערך מרכזי. אף מתחרה לא מציע זאת.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">07 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 8 — PRICING
+════════════════════════════════════════════════ -->
+<section class="slide" id="s8">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-dollar"/></svg>
+    תמחור
+  </div>
+  <h1>פשוט, שקוף, נגיש</h1>
+
+  <div class="card mt24" style="overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>חבילה</th>
+          <th>מחיר / חודש</th>
+          <th>מודולים</th>
+          <th>משתמשים</th>
+          <th>קרדיטי AI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Solo</strong></td><td class="gold">₪149</td><td>Nexus</td><td>1</td><td>5K</td></tr>
+        <tr><td><strong>The Closer</strong></td><td class="gold">₪249</td><td>System + Nexus</td><td>1</td><td>10K</td></tr>
+        <tr><td><strong>The Authority</strong></td><td class="gold">₪349</td><td>Social + Client + Nexus</td><td>1</td><td>10K</td></tr>
+        <tr><td><strong>The Operator</strong></td><td class="gold">₪349</td><td>Operations + Nexus</td><td>1</td><td>10K</td></tr>
+        <tr class="row-hl"><td><strong>The Empire</strong> <span class="tag tag-gold" style="font-size:0.68rem">פופולרי</span></td><td class="gold">₪499</td><td>כל 6 המודולים</td><td><strong>5</strong></td><td>25K</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="g3 mt16">
+    <div class="card card-green" style="display:flex;align-items:center;gap:10px;">
+      <svg width="18" height="18" style="color:var(--green);flex-shrink:0"><use href="#ic-award"/></svg>
+      <p style="font-size:0.88rem;"><strong>בונוס:</strong> Finance חינם לכולם</p>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;">
+      <svg width="18" height="18" style="color:var(--tx2);flex-shrink:0"><use href="#ic-users"/></svg>
+      <p style="font-size:0.88rem;"><strong>+₪39</strong> לכל משתמש נוסף</p>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:10px;">
+      <svg width="18" height="18" style="color:var(--tx2);flex-shrink:0"><use href="#ic-percent"/></svg>
+      <p style="font-size:0.88rem;"><strong>20% הנחה</strong> בתשלום שנתי</p>
+    </div>
+  </div>
+</div>
+<div class="slide-num">08 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 9 — COMPETITIVE ADVANTAGE
+════════════════════════════════════════════════ -->
+<section class="slide" id="s9">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-award"/></svg>
+    יתרון תחרותי
+  </div>
+  <h1>למה אנחנו שונים?</h1>
+
+  <div class="card mt24" style="overflow:hidden">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>פיצ'ר</th>
+          <th style="color:var(--gold);">MISRAD AI</th>
+          <th>Monday</th>
+          <th>Fireberry</th>
+          <th>הכוורת</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>מחיר ל-5 משתמשים</td><td class="gold">₪499</td><td>₪220–440</td><td>₪640–820</td><td>₪675</td></tr>
+        <tr><td>משתמשים כלולים</td><td class="gold">5</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>6 מודולים משולבים</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>Finance בחינם</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>הגנת שבת</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>לוח שנה עברי</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>תמלול שיחות עברית</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>Voice Commands</td><td class="green">✓</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td><td style="color:var(--tx3)">—</td></tr>
+        <tr><td>עברית מלאה</td><td class="green">✓</td><td class="green">✓</td><td class="green">✓</td><td class="green">✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="slide-num">09 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 10 — FINANCIAL PROJECTIONS
+════════════════════════════════════════════════ -->
+<section class="slide" id="s10">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-trending"/></svg>
+    תחזית פיננסית
+  </div>
+  <h1>3 תרחישים —<br>שקיפות מלאה</h1>
+
+  <div class="g3 mt24">
+    <div class="card card-red">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <svg width="16" height="16" style="color:var(--red)"><use href="#ic-alert"/></svg>
+        <span class="scenario-tag" style="color:var(--red);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">פסימי</span>
+      </div>
+      <div class="stat-num red" style="font-size:2.2rem;">224</div>
+      <div class="stat-lbl">לקוחות — סוף שנה 1</div>
+      <div class="divider"></div>
+      <div class="data-row"><span class="data-key">MRR</span><span class="data-val">₪78K</span></div>
+      <div class="data-row"><span class="data-key">ARR</span><span class="data-val">₪938K</span></div>
+      <div class="data-row"><span class="data-key">Churn</span><span class="data-val">10%</span></div>
+    </div>
+
+    <div class="card" style="border-color:rgba(200,169,108,0.35);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <svg width="16" height="16" style="color:var(--gold)"><use href="#ic-target"/></svg>
+        <span class="scenario-tag" style="color:var(--gold);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">ריאלי</span>
+        <span class="tag tag-gold" style="margin-right:auto;font-size:0.67rem;">בסיס</span>
+      </div>
+      <div class="stat-num gold" style="font-size:2.2rem;">700</div>
+      <div class="stat-lbl">לקוחות — סוף שנה 1</div>
+      <div class="divider"></div>
+      <div class="data-row"><span class="data-key">MRR</span><span class="data-val gold">₪244K</span></div>
+      <div class="data-row"><span class="data-key">ARR</span><span class="data-val gold">₪2.93M</span></div>
+      <div class="data-row"><span class="data-key">Churn</span><span class="data-val">6%</span></div>
+    </div>
+
+    <div class="card card-green">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <svg width="16" height="16" style="color:var(--green)"><use href="#ic-trending"/></svg>
+        <span class="scenario-tag" style="color:var(--green);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">אופטימי</span>
+      </div>
+      <div class="stat-num green" style="font-size:2.2rem;">1,438</div>
+      <div class="stat-lbl">לקוחות — סוף שנה 1</div>
+      <div class="divider"></div>
+      <div class="data-row"><span class="data-key">MRR</span><span class="data-val green">₪502K</span></div>
+      <div class="data-row"><span class="data-key">ARR</span><span class="data-val green">₪6.02M</span></div>
+      <div class="data-row"><span class="data-key">Churn</span><span class="data-val">4%</span></div>
+    </div>
+  </div>
+
+  <div class="card mt16">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <span style="font-size:0.85rem;color:var(--tx2);">Break-even — ~262 לקוחות פעילים</span>
+      <span style="font-size:0.85rem;color:var(--gold);font-weight:600;">צפי: חודש 5–6</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width:38%"></div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">10 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 11 — USE OF FUNDS
+════════════════════════════════════════════════ -->
+<section class="slide" id="s11">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-dollar"/></svg>
+    שימוש בכסף
+  </div>
+  <h1>שימוש ב-<span class="accent">₪100K</span></h1>
+
+  <div class="g2 mt24" style="align-items:start">
+    <div>
+      <h3>המצב כיום — דוגרי</h3>
+      <ul class="check-list mt16">
+        <li><svg width="16" height="16"><use href="#ic-check-circle"/></svg> <strong>המוצר מוכן</strong> — v2.0.0 חי בפרודקשן, 15+ AI פיצ'רים</li>
+        <li><svg width="16" height="16"><use href="#ic-check-circle"/></svg> <strong>יש חובות קריטיים</strong> — השקעה עצמית בבנייה</li>
+        <li><svg width="16" height="16"><use href="#ic-check-circle"/></svg> <strong>פינישים</strong> — אינטגרציות תשלומים, API</li>
+        <li><svg width="16" height="16"><use href="#ic-check-circle"/></svg> <strong>צריך שיווק</strong> — המוצר טוב, אף אחד לא יודע</li>
+      </ul>
+
+      <div class="card card-gold mt24">
+        <p style="font-size:0.88rem;line-height:1.65;"><strong>Runway:</strong> 3–4 חודשים<br><strong>יעד:</strong> 50–100 לקוחות ראשונים<br><strong>MRR יעד:</strong> ₪17K–₪35K</p>
+      </div>
+    </div>
+    <div>
+      <h3>חלוקת ה-₪100K</h3>
+      <div class="card mt16">
+        <div class="data-row">
+          <span class="data-key">
+            <svg width="14" height="14" style="color:var(--red);display:inline;vertical-align:middle;margin-left:6px"><use href="#ic-briefcase"/></svg>
+            סגירת חובות קריטיים
+          </span>
+          <span class="data-val gold">₪40K · 40%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">
+            <svg width="14" height="14" style="color:var(--blue);display:inline;vertical-align:middle;margin-left:6px"><use href="#ic-zap"/></svg>
+            פינישים ואינטגרציות
+          </span>
+          <span class="data-val">₪15K · 15%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">
+            <svg width="14" height="14" style="color:var(--green);display:inline;vertical-align:middle;margin-left:6px"><use href="#ic-trending"/></svg>
+            שיווק ראשוני
+          </span>
+          <span class="data-val green">₪30K · 30%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">
+            <svg width="14" height="14" style="color:var(--tx2);display:inline;vertical-align:middle;margin-left:6px"><use href="#ic-target"/></svg>
+            תפעול שוטף
+          </span>
+          <span class="data-val">₪10K · 10%</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">
+            <svg width="14" height="14" style="color:var(--tx3);display:inline;vertical-align:middle;margin-left:6px"><use href="#ic-shield"/></svg>
+            רזרבה
+          </span>
+          <span class="data-val">₪5K · 5%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">11 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 12 — WHAT INVESTOR GETS
+════════════════════════════════════════════════ -->
+<section class="slide" id="s12">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-percent"/></svg>
+    הצעה למשקיע
+  </div>
+  <h1>רווחים גבוהים<br>לתקופה מוגדרת</h1>
+
+  <div class="g3 mt24">
+    <div class="card card-green">
+      <div class="icon-box ib-green"><svg width="20" height="20"><use href="#ic-trending"/></svg></div>
+      <h2 style="font-size:1rem;margin-bottom:10px;">מודל A — Revenue Share</h2>
+      <div class="data-row"><span class="data-key">שנה 1–2</span><span class="data-val green">30% מהכנסות</span></div>
+      <div class="data-row"><span class="data-key">שנה 3–4</span><span class="data-val">20% מהכנסות</span></div>
+      <div class="data-row"><span class="data-key">שנה 5+</span><span class="data-val">10% מהכנסות</span></div>
+      <div class="divider"></div>
+      <p style="font-size:0.82rem;">דוגמה: שנה 1+2 = <strong style="color:var(--green)">₪600K</strong> על ₪100K = <strong style="color:var(--green)">×6</strong></p>
+    </div>
+
+    <div class="card" style="border-color:rgba(200,169,108,0.3);">
+      <div class="icon-box ib-gold"><svg width="20" height="20"><use href="#ic-percent"/></svg></div>
+      <h2 style="font-size:1rem;margin-bottom:10px;">מודל B — מניות + רווח</h2>
+      <div class="data-row"><span class="data-key">אחוזי מניות</span><span class="data-val gold">5–8%</span></div>
+      <div class="data-row"><span class="data-key">רווח שנתי</span><span class="data-val gold">+20% מרווח נקי</span></div>
+      <div class="data-row"><span class="data-key">תקופה</span><span class="data-val">שנה 1–3</span></div>
+      <div class="divider"></div>
+      <p style="font-size:0.82rem;">Exit ₪20M = <strong style="color:var(--gold)">₪1M–1.6M</strong> + רווחים שוטפים</p>
+    </div>
+
+    <div class="card">
+      <div class="icon-box ib-muted"><svg width="20" height="20"><use href="#ic-dollar"/></svg></div>
+      <h2 style="font-size:1rem;margin-bottom:10px;">מודל C — הלוואה</h2>
+      <div class="data-row"><span class="data-key">ריבית שנתית</span><span class="data-val">25%</span></div>
+      <div class="data-row"><span class="data-key">תקופה</span><span class="data-val">24 חודשים</span></div>
+      <div class="data-row"><span class="data-key">החזר כולל</span><span class="data-val">₪150K מובטח</span></div>
+      <div class="divider"></div>
+      <p style="font-size:0.82rem;">ניתן לשלב בין המודלים לפי הצורך</p>
+    </div>
+  </div>
+
+  <div class="card card-red mt20">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <svg width="16" height="16" style="color:var(--red)"><use href="#ic-alert"/></svg>
+      <h3 style="margin:0;color:var(--red);">שקיפות — הסיכונים</h3>
+    </div>
+    <div class="g3">
+      <div class="data-row" style="flex-direction:column;align-items:flex-start;gap:2px;border:none;padding:0">
+        <span class="data-key">PMF לא נמצא</span>
+        <span style="font-size:0.82rem;color:var(--tx2)">Pivot לנישה ספציפית</span>
+      </div>
+      <div class="data-row" style="flex-direction:column;align-items:flex-start;gap:2px;border:none;padding:0">
+        <span class="data-key">CAC גבוה מהצפוי</span>
+        <span style="font-size:0.82rem;color:var(--tx2)">פוקוס על Referrals</span>
+      </div>
+      <div class="data-row" style="flex-direction:column;align-items:flex-start;gap:2px;border:none;padding:0">
+        <span class="data-key">מתחרה גדול נכנס</span>
+        <span style="font-size:0.82rem;color:var(--tx2)">Moat: עברית + AI + שבת</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">12 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 13 — ROADMAP
+════════════════════════════════════════════════ -->
+<section class="slide" id="s13">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-map"/></svg>
+    Roadmap
+  </div>
+  <h1>תוכנית פעולה</h1>
+
+  <div class="g2 mt24" style="align-items:start">
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-period done">Q1 2026</div>
+        <div class="tl-line done"></div>
+        <div class="tl-content">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <h2 style="font-size:0.95rem;margin:0;">השקה ✓</h2>
+            <span class="tag tag-green" style="font-size:0.68rem;">הושלם</span>
+          </div>
+          <p>v2.0.0 חי · 15+ AI · Android APK · Booking בטא · תמלול עברית</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-period">Q2</div>
+        <div class="tl-line"></div>
+        <div class="tl-content">
+          <h2 style="font-size:0.95rem;margin-bottom:6px;">Growth</h2>
+          <p>Booking יוצא מבטא · WhatsApp API · Google Calendar · יעד 300 לקוחות</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-period">Q3</div>
+        <div class="tl-line"></div>
+        <div class="tl-content">
+          <h2 style="font-size:0.95rem;margin-bottom:6px;">Scale</h2>
+          <p>Finance AI · Operations AI · iOS App · יעד 500 לקוחות</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-period">Q4</div>
+        <div class="tl-line"></div>
+        <div class="tl-content">
+          <h2 style="font-size:0.95rem;margin-bottom:6px;">Optimize</h2>
+          <p>White Label · Enterprise · תשלומים פנימיים · יעד 700 לקוחות</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="card card-gold">
+        <h3>שנה 2 — 2027</h3>
+        <ul class="check-list mt16">
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> הרחבה לשוק אנגלו</li>
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> AI Agent אוטונומי</li>
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> Voice Center</li>
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> יעד: 2,600 לקוחות · ₪11.8M ARR</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>שנה 3 — 2028</h3>
+        <ul class="check-list mt16">
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> שווקים נוספים</li>
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> App Marketplace</li>
+          <li><svg width="15" height="15"><use href="#ic-check"/></svg> יעד: 5,500 לקוחות · ₪27.7M ARR</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">13 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 14 — TEAM
+════════════════════════════════════════════════ -->
+<section class="slide" id="s14">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-users"/></svg>
+    הצוות
+  </div>
+  <h1>המייסד</h1>
+
+  <div class="g2 mt24" style="align-items:start">
+    <div class="card card-gold" style="padding:32px;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(200,169,108,0.15);border:1px solid rgba(200,169,108,0.3);display:flex;align-items:center;justify-content:center;">
+          <svg width="24" height="24" style="color:var(--gold)"><use href="#ic-user"/></svg>
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--tx1);">יצחק (איציק) דהן</div>
+          <div style="font-size:0.82rem;color:var(--tx2);">מייסד ומנכ"ל</div>
+        </div>
+      </div>
+      <ul class="check-list">
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> גיל 26</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> 7 שנים כבעל עסק</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> 1.5 שנים ליווי ארגונים</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> Full-Stack + AI/ML</li>
+        <li><svg width="15" height="15"><use href="#ic-check-circle"/></svg> <strong>בנה את כל המערכת לבד</strong></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3>גיוס מתוכנן</h3>
+      <div class="card mt16">
+        <table class="tbl">
+          <tbody>
+            <tr><td><strong>Full-Stack Developer</strong></td><td><span class="tag tag-red" style="font-size:0.7rem;">קריטי</span></td><td style="color:var(--tx3)">Q2</td></tr>
+            <tr><td><strong>Customer Success</strong></td><td><span class="tag tag-red" style="font-size:0.7rem;">קריטי</span></td><td style="color:var(--tx3)">Q2</td></tr>
+            <tr><td><strong>SDR</strong></td><td><span class="tag tag-gold" style="font-size:0.7rem;">גבוה</span></td><td style="color:var(--tx3)">Q3</td></tr>
+            <tr><td><strong>Content Creator</strong></td><td><span class="tag tag-gold" style="font-size:0.7rem;">גבוה</span></td><td style="color:var(--tx3)">Q3</td></tr>
+            <tr><td><strong>AI Engineer</strong></td><td><span class="tag tag-muted" style="font-size:0.7rem;">בינוני</span></td><td style="color:var(--tx3)">Q4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-num">14 / 15</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     SLIDE 15 — CALL TO ACTION
+════════════════════════════════════════════════ -->
+<section class="slide" id="s15">
+<div class="slide-inner">
+  <div class="slide-label">
+    <svg width="14" height="14"><use href="#ic-target"/></svg>
+    בואו נבנה
+  </div>
+
+  <div class="cta-block">
+    <h1 style="font-size:2.4rem;margin-bottom:8px;">בואו נבנה את זה ביחד</h1>
+    <p class="lead" style="max-width:580px;">סגירת חובות + פינישים + שיווק ראשוני. המוצר קיים ועובד — זה לא PowerPoint.</p>
+
+    <div class="g3 mt32">
+      <div style="text-align:center;">
+        <div class="stat-num gold" style="font-size:2rem;">₪100K</div>
+        <div class="stat-lbl">סבב ראשון</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="stat-num" style="font-size:2rem;">30%</div>
+        <div class="stat-lbl">מהכנסות / 5–8% מניות</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="stat-num green" style="font-size:2rem;">×6</div>
+        <div class="stat-lbl">ROI פוטנציאלי תוך שנתיים</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g3 mt24">
+    <div class="card" style="display:flex;align-items:center;gap:12px;">
+      <div class="icon-box ib-green" style="margin:0;flex-shrink:0"><svg width="18" height="18"><use href="#ic-check-circle"/></svg></div>
+      <p style="font-size:0.88rem;">מוצר חי ועובד — לא Idea Stage</p>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:12px;">
+      <div class="icon-box ib-gold" style="margin:0;flex-shrink:0"><svg width="18" height="18"><use href="#ic-shield"/></svg></div>
+      <p style="font-size:0.88rem;">נישה ייחודית — שומרי שבת</p>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:12px;">
+      <div class="icon-box ib-blue" style="margin:0;flex-shrink:0"><svg width="18" height="18"><use href="#ic-cpu"/></svg></div>
+      <p style="font-size:0.88rem;">AI-first, לא AI-added</p>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:32px;margin-top:32px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg width="15" height="15" style="color:var(--gold)"><use href="#ic-mail"/></svg>
+      <span style="font-size:0.9rem;color:var(--tx2);">itsikdahan1@gmail.com</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg width="15" height="15" style="color:var(--gold)"><use href="#ic-globe"/></svg>
+      <span style="font-size:0.9rem;color:var(--tx2);">misrad-ai.com</span>
+    </div>
+  </div>
+
+  <p style="font-size:0.78rem;color:var(--tx3);margin-top:24px;">זו השקעה בסיכון גבוה עם פוטנציאל תשואה גבוה. הנתונים מבוססים על תחזיות — לא ערבות.</p>
+</div>
+<div class="slide-num">15 / 15</div>
+</section>
+
+</main>
+
+<script>
+  const TOTAL = 15;
+  let cur = 1;
+
+  // Build sidebar dots
+  const sdots = document.getElementById('sdots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const b = document.createElement('button');
+    b.className = 'sidebar-dot' + (i === 1 ? ' active' : '');
+    b.title = 'שקף ' + i;
+    b.onclick = () => goTo(i);
+    sdots.appendChild(b);
+  }
+
+  function goTo(n) {
+    if (n < 1) n = 1;
+    if (n > TOTAL) n = TOTAL;
+    cur = n;
+    document.getElementById('s' + n).scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.sidebar-dot').forEach((d, i) => {
+      d.classList.toggle('active', i + 1 === n);
+    });
+  }
+
+  function nav(dir) { goTo(cur + dir); }
+
+  // Update active dot on scroll
+  const slides = Array.from({ length: TOTAL }, (_, i) => document.getElementById('s' + (i + 1)));
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = slides.indexOf(e.target) + 1;
+        if (idx > 0) {
+          cur = idx;
+          document.querySelectorAll('.sidebar-dot').forEach((d, i) => {
+            d.classList.toggle('active', i + 1 === idx);
+          });
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  slides.forEach(s => io.observe(s));
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (['ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); nav(1); }
+    if (['ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); nav(-1); }
+  });
+</script>
+</body>
+</html>
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        
+        .slide-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--light);
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+        }
+        
+        p {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        
+        .highlight {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        
+        .big-number {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .card-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+        }
+        
+        .card-success {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .card-warning {
+            border-color: var(--warning);
+            background: rgba(245, 158, 11, 0.1);
+        }
+        
+        .card-danger {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 15px 20px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        th {
+            background: rgba(79, 70, 229, 0.2);
+            font-weight: 700;
+            color: var(--light);
+        }
+        
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 4px;
+        }
+        
+        .badge-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .badge-warning {
+            background: var(--warning);
+            color: var(--dark);
+        }
+        
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        ul li {
+            padding: 10px 0;
+            padding-right: 30px;
+            position: relative;
+            font-size: 1.1rem;
+        }
+        
+        ul li::before {
+            content: '✓';
+            position: absolute;
+            right: 0;
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 2rem;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        
+        .cta-box {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .cta-box h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .cta-box p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.3rem;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stat-label {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--light);
+        }
+        
+        .emoji-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        
+        .nav {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        
+        .nav button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .nav button:hover {
+            transform: scale(1.1);
+        }
+        
+        @media (max-width: 768px) {
+            .slide {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .big-number {
+                font-size: 2.5rem;
+            }
+        }
+        
+        @media print {
+            .slide {
+                page-break-after: always;
+                min-height: auto;
+                padding: 40px;
+            }
+            
+            .nav {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Cover -->
+    <section class="slide" id="slide1">
+        <div class="slide-content" style="text-align: center;">
+            <div class="logo">🏢 MISRAD AI</div>
+            <h1>מערכת AI שמנהלת את הארגון</h1>
+            <p class="subtitle">הראשונה בישראל בעברית מלאה</p>
+            
+            <div class="grid-3" style="margin-top: 60px;">
+                <div class="card">
+                    <span class="big-number">v2.0</span>
+                    <p>מוצר חי בפרודקשן</p>
+                </div>
+                <div class="card">
+                    <span class="big-number">15+</span>
+                    <p>פיצ'רי AI עובדים</p>
+                </div>
+                <div class="card">
+                    <span class="big-number">6+1</span>
+                    <p>מודולים עסקיים</p>
+                </div>
+            </div>
+            
+            <p style="margin-top: 60px; font-size: 1.5rem;">
+                <strong>מבקשים:</strong> ₪100K (סבב ראשון)
+            </p>
+        </div>
+        <div class="slide-number">1 / 15</div>
+    </section>
+
+    <!-- Slide 2: The Problem -->
+    <section class="slide" id="slide2">
+        <div class="slide-content">
+            <h1>😰 הבעיה</h1>
+            <h2>הכאוס של ניהול עסקים בישראל</h2>
+            
+            <div class="grid-2">
+                <div>
+                    <h3>איך עסקים מנהלים היום:</h3>
+                    <table>
+                        <tr><td>תקשורת פנימית</td><td>WhatsApp 📱</td></tr>
+                        <tr><td>ניהול לקוחות</td><td>Excel / Sheets 📊</td></tr>
+                        <tr><td>חשבוניות</td><td>חשבונית ירוקה 🧾</td></tr>
+                        <tr><td>משימות</td><td>פתקים / Todoist 📝</td></tr>
+                        <tr><td>שיווק</td><td>Canva + Buffer 🎨</td></tr>
+                    </table>
+                </div>
+                <div>
+                    <h3>התוצאה:</h3>
+                    <div class="card card-danger">
+                        <span class="big-number" style="color: var(--danger);">30-40%</span>
+                        <p>מהלידים נשכחים — אין מערכת מעקב</p>
+                    </div>
+                    <div class="card card-warning" style="margin-top: 20px;">
+                        <span class="big-number" style="color: var(--warning);">8-12</span>
+                        <p>שעות שבועיות מבוזבזות על ניהול ידני</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="cta-box" style="margin-top: 40px;">
+                <p style="font-size: 1.5rem; margin: 0;">
+                    <strong>70% מהעסקים בישראל</strong> עדיין מנהלים לקוחות באקסל או וואטסאפ
+                </p>
+            </div>
+        </div>
+        <div class="slide-number">2 / 15</div>
+    </section>
+
+    <!-- Slide 3: The Solution -->
+    <section class="slide" id="slide3">
+        <div class="slide-content">
+            <h1>💡 הפתרון</h1>
+            <h2>MISRAD AI — לא עוד CRM. מערכת AI שמנהלת את הארגון.</h2>
+            
+            <div class="grid-2">
+                <div class="card card-primary">
+                    <span class="emoji-icon">🤖</span>
+                    <h3 style="color: white;">AI אמיתי</h3>
+                    <p style="color: rgba(255,255,255,0.9);">לא רק שומר נתונים — מנתח, מחזה, וממליץ בזמן אמת</p>
+                </div>
+                <div class="card card-primary">
+                    <span class="emoji-icon">🇮🇱</span>
+                    <h3 style="color: white;">עברית מלאה</h3>
+                    <p style="color: rgba(255,255,255,0.9);">ממשק, AI, לוח שנה עברי, הגנת שבת — הכל בעברית</p>
+                </div>
+                <div class="card card-primary">
+                    <span class="emoji-icon">📦</span>
+                    <h3 style="color: white;">6 מודולים</h3>
+                    <p style="color: rgba(255,255,255,0.9);">CRM, צוות, שיווק, כספים, לקוחות, תפעול — הכל במקום אחד</p>
+                </div>
+                <div class="card card-primary">
+                    <span class="emoji-icon">💰</span>
+                    <h3 style="color: white;">מחיר נגיש</h3>
+                    <p style="color: rgba(255,255,255,0.9);">₪149-499/חודש (לא $50/user כמו המתחרים)</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">3 / 15</div>
+    </section>
+
+    <!-- Slide 4: How It Works -->
+    <section class="slide" id="slide4">
+        <div class="slide-content">
+            <h1>⚡ איך זה עובד?</h1>
+            <h2>דוגמה אמיתית — ניתוח שיחת מכירה</h2>
+            
+            <div class="card" style="font-size: 1.2rem; padding: 40px;">
+                <p>🔔 <strong>נציג מכירות מסיים שיחה עם ליד</strong></p>
+                <br>
+                <p>1️⃣ לוחץ "נתח שיחה" → AI מחזיר תוך שניות:</p>
+                <ul style="margin-right: 30px;">
+                    <li>תקציר: "הלקוח מתעניין, ביקש הצעת מחיר, התנגד למחיר"</li>
+                    <li>ציון סגירה: <strong style="color: var(--success);">72%</strong></li>
+                    <li>המלצה: "שלח הצעה עם אופציה חודשית עד יום רביעי"</li>
+                </ul>
+                <br>
+                <p>2️⃣ המערכת יוצרת אוטומטית:</p>
+                <ul style="margin-right: 30px;">
+                    <li>משימה: "שלח הצעה ללקוח X"</li>
+                    <li>תזכורת: "בדוק אם הלקוח חזר — יום חמישי 14:00"</li>
+                </ul>
+                <br>
+                <p>3️⃣ אם הלקוח לא חזר:</p>
+                <ul style="margin-right: 30px;">
+                    <li>התראה למנהל: "ליד חם (72%) לא טופל 48 שעות"</li>
+                </ul>
+            </div>
+            
+            <div class="cta-box">
+                <p style="font-size: 1.5rem; margin: 0;">
+                    <strong>התוצאה:</strong> שום ליד לא נופל. שום פולואפ לא נשכח.
+                </p>
+            </div>
+        </div>
+        <div class="slide-number">4 / 15</div>
+    </section>
+
+    <!-- Slide 5: Market Size -->
+    <section class="slide" id="slide5">
+        <div class="slide-content">
+            <h1>📊 גודל השוק</h1>
+            <h2>נתונים אמיתיים (מקור: למ"ס, Coface BDI 2025)</h2>
+            
+            <div class="grid-3">
+                <div class="card">
+                    <span class="big-number">697K</span>
+                    <p>עסקים פעילים בישראל</p>
+                </div>
+                <div class="card">
+                    <span class="big-number">99.5%</span>
+                    <p>עסקים קטנים ובינוניים</p>
+                </div>
+                <div class="card">
+                    <span class="big-number">150K</span>
+                    <p>עסקים דיגיטליים (SAM)</p>
+                </div>
+            </div>
+            
+            <div class="card card-success" style="margin-top: 40px;">
+                <h3 style="color: var(--success);">🕯️ נישה ייחודית: שומרי שבת</h3>
+                <div class="grid-4" style="margin-top: 20px;">
+                    <div><span class="stat-value">11.4%</span><br><span class="stat-label">חרדים</span></div>
+                    <div><span class="stat-value">12.0%</span><br><span class="stat-label">דתיים</span></div>
+                    <div><span class="stat-value">33.5%</span><br><span class="stat-label">מסורתיים</span></div>
+                    <div><span class="stat-value">35-45%</span><br><span class="stat-label">שומרי שבת</span></div>
+                </div>
+                <p style="margin-top: 20px; font-size: 1.3rem;">
+                    <strong>~50,000-75,000 עסקים</strong> של שומרי שבת שצריכים מערכת עם הגנת שבת<br>
+                    <strong style="color: var(--success);">אף מתחרה לא פונה לקהל הזה!</strong>
+                </p>
+            </div>
+        </div>
+        <div class="slide-number">5 / 15</div>
+    </section>
+
+    <!-- Slide 6: Product -->
+    <section class="slide" id="slide6">
+        <div class="slide-content">
+            <h1>📦 המוצר</h1>
+            <h2>6 מודולים + Booking (בטא)</h2>
+            
+            <div class="grid-3">
+                <div class="card">
+                    <span class="emoji-icon">👥</span>
+                    <h3>Nexus</h3>
+                    <p>ניהול צוות ומשימות</p>
+                    <span class="badge badge-success">AI: חלוקת עומסים</span>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">💼</span>
+                    <h3>System</h3>
+                    <p>CRM מכירות</p>
+                    <span class="badge badge-success">AI: חיזוי סגירות</span>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">🎨</span>
+                    <h3>Social</h3>
+                    <p>שיווק דיגיטלי</p>
+                    <span class="badge badge-success">AI: יצירת תוכן</span>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">💰</span>
+                    <h3>Finance</h3>
+                    <p>ניהול פיננסי</p>
+                    <span class="badge badge-warning">בונוס חינם!</span>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">🤝</span>
+                    <h3>Client</h3>
+                    <p>פורטל לקוחות</p>
+                    <span class="badge badge-success">AI: סנטימנט</span>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">🔧</span>
+                    <h3>Operations</h3>
+                    <p>תפעול ושטח</p>
+                    <span class="badge badge-success">AI: ניתוב חכם</span>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 30px; text-align: center;">
+                <span class="emoji-icon">📅</span>
+                <h3>Booking (בטא)</h3>
+                <p>ניהול תורים עם Buffer דינמי</p>
+            </div>
+        </div>
+        <div class="slide-number">6 / 15</div>
+    </section>
+
+    <!-- Slide 7: AI Features -->
+    <section class="slide" id="slide7">
+        <div class="slide-content">
+            <h1>🤖 יכולות AI</h1>
+            <h2>15+ פיצ'רים חיים בפרודקשן</h2>
+            
+            <div class="grid-2">
+                <div>
+                    <h3>✅ חי עכשיו:</h3>
+                    <ul>
+                        <li>ניתוח שיחות מכירה (ציון, סנטימנט, התנגדויות)</li>
+                        <li>Lead Scoring (0-100) + חיזוי סגירה</li>
+                        <li>Content Machine (3 וריאציות לפוסט)</li>
+                        <li>Hashtags חכמים מותאמים לפלטפורמה</li>
+                        <li>יצירת תמונות AI (DALL-E 3, Imagen 4)</li>
+                        <li>תמלול שיחות בעברית (Deepgram)</li>
+                        <li>Voice Commands בעברית</li>
+                        <li>AI Assistant (שאלות חופשיות)</li>
+                        <li>Semantic Search (embeddings)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>🔧 בפיתוח:</h3>
+                    <ul style="list-style: none;">
+                        <li style="padding-right: 0;">🔧 ניתוח רווחיות לקוחות</li>
+                        <li style="padding-right: 0;">🔧 ניתוח סנטימנט לקוחות</li>
+                        <li style="padding-right: 0;">🔧 ניתוב חכם לטכנאים</li>
+                        <li style="padding-right: 0;">🔧 Voice Center (מוקד AI)</li>
+                    </ul>
+                    
+                    <div class="card" style="margin-top: 30px;">
+                        <h3>Multi-Provider AI</h3>
+                        <p>לא תלויים בספק אחד:</p>
+                        <span class="badge badge-primary">OpenAI</span>
+                        <span class="badge badge-primary">Gemini</span>
+                        <span class="badge badge-primary">Claude</span>
+                        <span class="badge badge-primary">Groq</span>
+                        <span class="badge badge-primary">Deepgram</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">7 / 15</div>
+    </section>
+
+    <!-- Slide 8: Pricing -->
+    <section class="slide" id="slide8">
+        <div class="slide-content">
+            <h1>💳 תמחור</h1>
+            <h2>פשוט, שקוף, נגיש</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>חבילה</th>
+                        <th>מחיר/חודש</th>
+                        <th>מודולים</th>
+                        <th>משתמשים</th>
+                        <th>קרדיטי AI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🎯 Solo</td>
+                        <td><strong>₪149</strong></td>
+                        <td>Nexus</td>
+                        <td>1</td>
+                        <td>5K</td>
+                    </tr>
+                    <tr>
+                        <td>💼 The Closer</td>
+                        <td><strong>₪249</strong></td>
+                        <td>System + Nexus</td>
+                        <td>1</td>
+                        <td>10K</td>
+                    </tr>
+                    <tr>
+                        <td>🎨 The Authority</td>
+                        <td><strong>₪349</strong></td>
+                        <td>Social + Client + Nexus</td>
+                        <td>1</td>
+                        <td>10K</td>
+                    </tr>
+                    <tr>
+                        <td>🔧 The Operator</td>
+                        <td><strong>₪349</strong></td>
+                        <td>Operations + Nexus</td>
+                        <td>1</td>
+                        <td>10K</td>
+                    </tr>
+                    <tr style="background: rgba(79, 70, 229, 0.2);">
+                        <td>👑 The Empire</td>
+                        <td><strong style="color: var(--primary);">₪499</strong></td>
+                        <td>כל 6 המודולים</td>
+                        <td><strong>5</strong></td>
+                        <td>25K</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="grid-3" style="margin-top: 30px;">
+                <div class="card card-success">
+                    <p style="margin: 0;"><strong>🎁 בונוס:</strong> מודול Finance חינם לכולם!</p>
+                </div>
+                <div class="card">
+                    <p style="margin: 0;"><strong>+₪39</strong> לכל משתמש נוסף</p>
+                </div>
+                <div class="card">
+                    <p style="margin: 0;"><strong>20% הנחה</strong> בתשלום שנתי</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">8 / 15</div>
+    </section>
+
+    <!-- Slide 9: Competitive Advantage -->
+    <section class="slide" id="slide9">
+        <div class="slide-content">
+            <h1>🏆 יתרון תחרותי</h1>
+            <h2>למה אנחנו שונים?</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>פיצ'ר</th>
+                        <th style="color: var(--primary);">MISRAD AI</th>
+                        <th>Monday</th>
+                        <th>Fireberry</th>
+                        <th>הכוורת</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>מחיר ל-5 משתמשים</td>
+                        <td style="color: var(--success);"><strong>₪499</strong></td>
+                        <td>₪220-440</td>
+                        <td>₪640-820</td>
+                        <td>₪675</td>
+                    </tr>
+                    <tr>
+                        <td>משתמשים כלולים</td>
+                        <td style="color: var(--success);"><strong>5</strong></td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>6 מודולים משולבים</td>
+                        <td style="color: var(--success);">✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>הגנת שבת</td>
+                        <td style="color: var(--success);">✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>לוח שנה עברי</td>
+                        <td style="color: var(--success);">✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                    </tr>
+                    <tr>
+                        <td>פקודות קוליות בעברית</td>
+                        <td style="color: var(--success);">✅</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                        <td>❌</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="slide-number">9 / 15</div>
+    </section>
+
+    <!-- Slide 10: Financial Projections -->
+    <section class="slide" id="slide10">
+        <div class="slide-content">
+            <h1>📈 תחזית פיננסית</h1>
+            <h2>3 תרחישים — שקיפות מלאה</h2>
+            
+            <div class="grid-3">
+                <div class="card card-danger">
+                    <h3 style="color: var(--danger);">😰 פסימי</h3>
+                    <span class="big-number" style="color: var(--danger); font-size: 2.5rem;">224</span>
+                    <p>לקוחות סוף שנה 1</p>
+                    <div class="stat-row">
+                        <span class="stat-label">MRR</span>
+                        <span class="stat-value">₪78K</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ARR</span>
+                        <span class="stat-value">₪938K</span>
+                    </div>
+                    <p style="font-size: 0.9rem; margin-top: 15px;">Pivot לנישה ספציפית</p>
+                </div>
+                
+                <div class="card" style="border: 2px solid var(--primary);">
+                    <h3 style="color: var(--primary);">📊 ריאלי</h3>
+                    <span class="big-number" style="font-size: 2.5rem;">700</span>
+                    <p>לקוחות סוף שנה 1</p>
+                    <div class="stat-row">
+                        <span class="stat-label">MRR</span>
+                        <span class="stat-value">₪244K</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ARR</span>
+                        <span class="stat-value">₪2.93M</span>
+                    </div>
+                    <p style="font-size: 0.9rem; margin-top: 15px;">גיוס Round A</p>
+                </div>
+                
+                <div class="card card-success">
+                    <h3 style="color: var(--success);">🚀 אופטימי</h3>
+                    <span class="big-number" style="color: var(--success); font-size: 2.5rem;">1,438</span>
+                    <p>לקוחות סוף שנה 1</p>
+                    <div class="stat-row">
+                        <span class="stat-label">MRR</span>
+                        <span class="stat-value">₪502K</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">ARR</span>
+                        <span class="stat-value">₪6.02M</span>
+                    </div>
+                    <p style="font-size: 0.9rem; margin-top: 15px;">Round A מוקדם</p>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 30px;">
+                <h3>Break-even</h3>
+                <p>~262 לקוחות פעילים | צפי: חודש 5-6</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 37%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">10 / 15</div>
+    </section>
+
+    <!-- Slide 11: Use of Funds -->
+    <section class="slide" id="slide11">
+        <div class="slide-content">
+            <h1>💵 שימוש ב-₪100K</h1>
+            <h2>דוגרי: למה צריך את הכסף עכשיו?</h2>
+            
+            <div class="grid-2">
+                <div>
+                    <h3>המצב היום:</h3>
+                    <ul>
+                        <li>המוצר מוכן — v2.0.0 חי בפרודקשן</li>
+                        <li>יש חובות קריטיים — השקעה עצמית בבנייה</li>
+                        <li>צריך לסגור פינישים — תשלומים, אינטגרציות</li>
+                        <li>צריך להתחיל שיווק — המוצר טוב, אף אחד לא יודע</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card card-primary">
+                        <h3 style="color: white;">סבב ראשון: ₪100K</h3>
+                        <table style="color: white;">
+                            <tr><td>סגירת חובות קריטיים</td><td>₪40K (40%)</td></tr>
+                            <tr><td>פינישים</td><td>₪15K (15%)</td></tr>
+                            <tr><td>שיווק ראשוני</td><td>₪30K (30%)</td></tr>
+                            <tr><td>תפעול</td><td>₪10K (10%)</td></tr>
+                            <tr><td>רזרבה</td><td>₪5K (5%)</td></tr>
+                        </table>
+                        <p style="margin-top: 15px; color: rgba(255,255,255,0.9);">
+                            <strong>Runway:</strong> 3-4 חודשים<br>
+                            <strong>יעד:</strong> 50-100 לקוחות ראשונים
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">11 / 15</div>
+    </section>
+
+    <!-- Slide 12: What Investor Gets -->
+    <section class="slide" id="slide12">
+        <div class="slide-content">
+            <h1>🤝 מה המשקיע מקבל?</h1>
+            <h2>💰 רווחים גבוהים לתקופה מוגדרת</h2>
+            
+            <div class="grid-3">
+                <div class="card card-success">
+                    <h3 style="color: var(--success);">מודל A: Revenue Share</h3>
+                    <p><strong>30%</strong> מכל ההכנסות (שנה 1-2)</p>
+                    <p><strong>20%</strong> מכל ההכנסות (שנה 3-4)</p>
+                    <p><strong>10%</strong> מכל ההכנסות (שנה 5+)</p>
+                    <br>
+                    <p style="font-size: 0.9rem;">דוגמה: שנה 1+2 = ₪600K<br><strong style="color: var(--success);">x6 על ₪100K!</strong></p>
+                </div>
+                
+                <div class="card" style="border: 2px solid var(--primary);">
+                    <h3 style="color: var(--primary);">מודל B: מניות + רווחים</h3>
+                    <p><strong>5-8%</strong> אחוזי מניות</p>
+                    <p><strong>+20%</strong> מהרווח הנקי (שנה 1-3)</p>
+                    <br>
+                    <p style="font-size: 0.9rem;">Exit ₪20M = ₪1M-1.6M<br><strong>+ רווחים שוטפים</strong></p>
+                </div>
+                
+                <div class="card card-warning">
+                    <h3 style="color: var(--warning);">מודל C: הלוואה</h3>
+                    <p><strong>25%</strong> ריבית שנתית</p>
+                    <p><strong>24</strong> חודשים</p>
+                    <br>
+                    <p style="font-size: 0.9rem;">₪100K → ₪150K<br><strong>החזר מובטח</strong></p>
+                </div>
+            </div>
+            
+            <p style="margin-top: 30px; text-align: center; font-size: 1.2rem;">
+                ניתן לשלב בין המודלים לפי העדפת המשקיע
+            </p>
+            
+            <div class="card card-warning" style="margin-top: 20px;">
+                <h3 style="color: var(--warning);">⚠️ שקיפות — הסיכונים</h3>
+                <table>
+                    <tr><td>לא מוצאים PMF</td><td>בינונית</td><td>Pivot לנישה</td></tr>
+                    <tr><td>CAC גבוה</td><td>בינונית</td><td>פוקוס Referrals</td></tr>
+                    <tr><td>מתחרה גדול</td><td>נמוכה</td><td>Moat: עברית+AI+שבת</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="slide-number">12 / 15</div>
+    </section>
+
+    <!-- Slide 13: Roadmap -->
+    <section class="slide" id="slide13">
+        <div class="slide-content">
+            <h1>🗺️ Roadmap</h1>
+            <h2>שנה 1 (2026)</h2>
+            
+            <div class="grid-4">
+                <div class="card card-success">
+                    <h3 style="color: var(--success);">Q1 ✅</h3>
+                    <ul style="font-size: 0.9rem;">
+                        <li>השקת v2.0.0</li>
+                        <li>15+ פיצ'רי AI</li>
+                        <li>Android APK</li>
+                        <li>Booking בטא</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Q2</h3>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Booking יוצא מבטא</li>
+                        <li>WhatsApp API</li>
+                        <li>Google Calendar</li>
+                        <li>300 לקוחות</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Q3</h3>
+                    <ul style="font-size: 0.9rem;">
+                        <li>Finance AI</li>
+                        <li>Operations AI</li>
+                        <li>iOS App</li>
+                        <li>500 לקוחות</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Q4</h3>
+                    <ul style="font-size: 0.9rem;">
+                        <li>White Label</li>
+                        <li>Enterprise (SSO)</li>
+                        <li>תשלומים</li>
+                        <li>700 לקוחות</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="grid-2" style="margin-top: 30px;">
+                <div class="card">
+                    <h3>שנה 2 (2027)</h3>
+                    <p>🌍 הרחבה לשוק אנגלו | 🤖 AI Agent | 📱 Voice Center</p>
+                    <p><strong>יעד: 2,600 לקוחות, ₪11.8M ARR</strong></p>
+                </div>
+                <div class="card">
+                    <h3>שנה 3 (2028)</h3>
+                    <p>🌍 שווקים נוספים | 🤖 AI Copilot | 📱 Marketplace</p>
+                    <p><strong>יעד: 5,500 לקוחות, ₪27.7M ARR</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">13 / 15</div>
+    </section>
+
+    <!-- Slide 14: Team -->
+    <section class="slide" id="slide14">
+        <div class="slide-content">
+            <h1>👤 הצוות</h1>
+            
+            <div class="grid-2">
+                <div class="card card-primary">
+                    <span class="emoji-icon">👨‍💻</span>
+                    <h3 style="color: white;">יצחק (איציק) דהן</h3>
+                    <p style="color: rgba(255,255,255,0.9);">מייסד ו-CEO</p>
+                    <ul style="color: rgba(255,255,255,0.9); font-size: 1rem;">
+                        <li>גיל 26</li>
+                        <li>7 שנים כבעל עסק</li>
+                        <li>1.5 שנים ליווי ארגונים</li>
+                        <li>Full-Stack + AI/ML</li>
+                        <li>בנה את כל המערכת לבד</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>גיוס מתוכנן:</h3>
+                    <table>
+                        <tr>
+                            <td>Full-Stack Developer</td>
+                            <td><span class="badge badge-primary">קריטי</span></td>
+                            <td>Q2</td>
+                        </tr>
+                        <tr>
+                            <td>Customer Success</td>
+                            <td><span class="badge badge-primary">קריטי</span></td>
+                            <td>Q2</td>
+                        </tr>
+                        <tr>
+                            <td>SDR</td>
+                            <td><span class="badge badge-warning">גבוה</span></td>
+                            <td>Q3</td>
+                        </tr>
+                        <tr>
+                            <td>Content Creator</td>
+                            <td><span class="badge badge-warning">גבוה</span></td>
+                            <td>Q3</td>
+                        </tr>
+                        <tr>
+                            <td>AI Engineer</td>
+                            <td><span class="badge badge-success">בינוני</span></td>
+                            <td>Q4</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">14 / 15</div>
+    </section>
+
+    <!-- Slide 15: Call to Action -->
+    <section class="slide" id="slide15">
+        <div class="slide-content" style="text-align: center;">
+            <h1>🚀 בואו נבנה את זה ביחד</h1>
+            
+            <div class="cta-box" style="max-width: 800px; margin: 40px auto;">
+                <h2>מבקשים: ₪100K (סבב ראשון)</h2>
+                <p>סגירת חובות + פינישים + שיווק ראשוני</p>
+                <p style="font-size: 1.3rem; margin-top: 20px;">
+                    <strong>תמורה:</strong> 30% מההכנסות / 5-8% מניות / הלוואה 25%
+                </p>
+                <p style="font-size: 1.5rem; margin-top: 10px;">
+                    <strong>יעד:</strong> 50-100 לקוחות תוך 4 חודשים
+                </p>
+            </div>
+            
+            <div class="grid-3" style="max-width: 900px; margin: 40px auto;">
+                <div class="card">
+                    <span class="emoji-icon">✅</span>
+                    <p>מוצר חי ועובד</p>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">🇮🇱</span>
+                    <p>שוק ייחודי (שומרי שבת)</p>
+                </div>
+                <div class="card">
+                    <span class="emoji-icon">🤖</span>
+                    <p>AI-first, לא AI-added</p>
+                </div>
+            </div>
+            
+            <div style="margin-top: 60px;">
+                <p style="font-size: 1.5rem;">
+                    📧 <strong>itsikdahan1@gmail.com</strong>
+                </p>
+                <p style="font-size: 1.3rem; margin-top: 10px;">
+                    🌐 <a href="https://misrad-ai.com" style="color: var(--primary);">misrad-ai.com</a>
+                </p>
+            </div>
+            
+            <p style="margin-top: 60px; font-size: 1rem; color: #64748b;">
+                זו השקעה בסיכון גבוה עם פוטנציאל תשואה גבוה.<br>
+                המוצר קיים ועובד — זה לא PowerPoint.
+            </p>
+        </div>
+        <div class="slide-number">15 / 15</div>
+    </section>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <button onclick="prevSlide()">↑</button>
+        <button onclick="nextSlide()">↓</button>
+    </nav>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 15;
+        
+        function goToSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+            document.getElementById('slide' + n).scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function nextSlide() {
+            goToSlide(currentSlide + 1);
+        }
+        
+        function prevSlide() {
+            goToSlide(currentSlide - 1);
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+        
+        // Update current slide on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    currentSlide = parseInt(entry.target.id.replace('slide', ''));
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        for (let i = 1; i <= totalSlides; i++) {
+            observer.observe(document.getElementById('slide' + i));
+        }
+    </script>
+</body>
+</html>

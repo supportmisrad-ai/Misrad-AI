@@ -48,28 +48,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
-        // Voicenter often passes data in different formats depending on the specific webhook config
-        // Let's support both CDR and ScreenPop formats based on common Voicenter patterns
-        const {
-            event_type, // Custom field we might ask them to set, or we infer from payload
-            caller_number,
-            destination_number,
-            call_duration,
-            recording_url,
-            status,
-            call_id,
-            organization_id, // We'll need some way to map this back to our tenant
-        } = body;
-
-        // Note: Voicenter typically sends query params or form data, but can be configured for JSON.
-        // If they send data without organization_id, we might need a dynamic URL like /api/webhooks/voicenter/[orgId]
-        
-        // For now, let's log the payload to understand the shape if it's the first time
+        // VoiceCenter External CDR sends fields like:
+        // CallerNumber, TargetNumber, Duration, CallID, RecordURL, DialStatus, CdrType, Date, etc.
+        // We also support generic field names for flexibility.
         if (!IS_PROD) {
             console.log('[Voicenter Webhook] Received payload:', body);
         }
 
-        // We need the orgId to know which tenant this belongs to.
+        // Resolve orgId from query param (set when configuring webhook URL in CPanel)
         const searchParams = request.nextUrl.searchParams;
         const orgId = searchParams.get('orgId') || body.organizationId || body.organization_id;
 
@@ -77,11 +63,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
         }
 
-        const phone = caller_number || body.caller || body.CallerID || body.from;
-        const targetPhone = destination_number || body.target || body.CalledNumber || body.to;
-        const duration = call_duration || body.duration || body.Duration || 0;
-        const recordUrl = recording_url || body.recording || body.RecordURL;
-        const isIncoming = body.direction === 'inbound' || body.Direction === 'inbound';
+        // Map VoiceCenter CDR fields (official names) with generic fallbacks
+        const phone = body.CallerNumber || body.caller_number || body.caller || body.CallerID || body.from;
+        const targetPhone = body.TargetNumber || body.destination_number || body.target || body.CalledNumber || body.to;
+        const duration = body.Duration || body.call_duration || body.duration || 0;
+        const recordUrl = body.RecordURL || body.recording_url || body.recording;
+        const callId = body.CallID || body.call_id || body.callId;
+        const dialStatus = body.DialStatus || body.status;
+        const cdrType = body.CdrType || body.cdr_type;
+        // CdrType: 1=Incoming, 4=Extension Outgoing, 9/10=Click2Call legs
+        const isIncoming = cdrType === 1 || body.direction === 'inbound' || body.Direction === 'inbound';
+        const event_type = body.event_type;
         
         const customerPhone = isIncoming ? phone : targetPhone;
         const agentPhone = isIncoming ? targetPhone : phone;
@@ -140,10 +132,10 @@ export async function POST(request: NextRequest) {
                     metadata: {
                         duration,
                         recordingUrl: recordUrl,
-                        callId: call_id || body.CallID,
+                        callId,
                         agentPhone,
                         source: 'voicenter_webhook'
-                    } as any
+                    } as unknown as any
                 }
             });
             

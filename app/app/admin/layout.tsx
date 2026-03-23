@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
@@ -9,16 +9,15 @@ import { hasAuditLogAccess } from '@/lib/auth';
 import AdminBiometricGate from '@/components/admin/AdminBiometricGate';
 import AdminPushSetup from '@/components/admin/AdminPushSetup';
 import AdminNativeUpdatePrompt from '@/components/admin/AdminNativeUpdatePrompt';
+import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = getSystemMetadata('admin');
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Async component for auth check + data — wrapped in Suspense so the layout
+// returns instantly with a skeleton instead of blocking on Clerk + DB calls.
+async function AdminAccessGate({ children }: { children: React.ReactNode }) {
   const clerk = await currentUser();
 
   if (!clerk?.id) {
@@ -68,5 +67,17 @@ export default async function AdminLayout({
         <AdminShell>{children}</AdminShell>
       </AdminBiometricGate>
     </DataProvider>
+  );
+}
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<UnifiedLoadingShell moduleKey="default" stage="shell" />}>
+      <AdminAccessGate>{children}</AdminAccessGate>
+    </Suspense>
   );
 }

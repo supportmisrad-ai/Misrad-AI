@@ -4,18 +4,19 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useData } from '../../context/DataContext';
-import { Phone, Save, CircleCheckBig, CircleAlert } from 'lucide-react';
-import { CustomSelect } from '@/components/CustomSelect';
+import { Phone, Save, CircleCheckBig, CircleAlert, ChevronDown, ChevronUp, Eye, EyeOff, KeyRound, Headphones } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { usePathname } from 'next/navigation';
 
-// Zod schema for form validation
+// Zod schema matching real VoiceCenter credentials
 const telephonyConfigSchema = z.object({
     provider: z.literal('voicenter'),
     credentials: z.object({
-        UserCode: z.string().min(1, 'UserCode הוא שדה חובה'),
-        OrganizationCode: z.string().min(1, 'OrganizationCode הוא שדה חובה')
+        code: z.string().min(1, 'קוד Click2Call הוא שדה חובה'),
+        defaultExtension: z.string().optional(),
+        eventsToken: z.string().optional(),
+        email: z.string().optional(),
+        password: z.string().optional(),
     }),
     isActive: z.boolean()
 });
@@ -36,14 +37,40 @@ interface TelephonyConfigResponse {
     integrations: TelephonyIntegration[];
 }
 
+// Simple toast component without external dependencies
+const SimpleToast: React.FC<{
+    message: string;
+    type: 'success' | 'error';
+    onClose: () => void;
+}> = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-bold ${
+            type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+            {type === 'success' ? <CircleCheckBig size={16} /> : <CircleAlert size={16} />}
+            {message}
+        </div>
+    );
+};
+
 export const TelephonyConfigForm: React.FC = () => {
-    const { addToast } = useData();
     const pathname = usePathname();
     const orgSlug = pathname?.match(/\/w\/([^/]+)/)?.[1] || '';
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [existingIntegration, setExistingIntegration] = useState<TelephonyIntegration | null>(null);
-    const [credentials, setCredentials] = useState<{ UserCode?: string; OrganizationCode?: string }>({});
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    const addToast = (message: string, type: 'success' | 'error') => {
+        setToast({ message, type });
+    };
 
     const {
         register,
@@ -56,14 +83,16 @@ export const TelephonyConfigForm: React.FC = () => {
         defaultValues: {
             provider: 'voicenter',
             credentials: {
-                UserCode: '',
-                OrganizationCode: ''
+                code: '',
+                defaultExtension: '',
+                eventsToken: '',
+                email: '',
+                password: '',
             },
             isActive: false
         }
     });
 
-    const provider = watch('provider');
     const isActive = watch('isActive');
 
     // Fetch existing configuration on mount
@@ -80,7 +109,6 @@ export const TelephonyConfigForm: React.FC = () => {
 
                 const data: TelephonyConfigResponse = await response.json();
                 
-                // Find Voicenter integration if exists
                 const voicenterIntegration = data.integrations.find(
                     (int) => int.provider.toLowerCase() === 'voicenter'
                 );
@@ -91,7 +119,6 @@ export const TelephonyConfigForm: React.FC = () => {
                 }
             } catch (error: unknown) {
                 console.error('Error fetching telephony config:', error);
-                // Don't show error toast on initial load if no config exists
                 if (!(error instanceof Error) || error.message !== 'שגיאה בטעינת התצורה') {
                     addToast('שגיאה בטעינת תצורת הטלפוניה', 'error');
                 }
@@ -101,24 +128,7 @@ export const TelephonyConfigForm: React.FC = () => {
         };
 
         fetchConfig();
-    }, [setValue, addToast]);
-
-    // Load credentials if integration exists (separate call to get credentials)
-    useEffect(() => {
-        const loadCredentials = async () => {
-            if (existingIntegration) {
-                try {
-                    // Note: The GET endpoint doesn't return credentials for security
-                    // So we'll just use the stored credentials from state
-                    // In a real implementation, you might want to decrypt them here
-                } catch (error) {
-                    console.error('Error loading credentials:', error);
-                }
-            }
-        };
-
-        loadCredentials();
-    }, [existingIntegration]);
+    }, [setValue, orgSlug]);
 
     const onSubmit = async (data: TelephonyConfigFormData) => {
         setIsSaving(true);
@@ -144,7 +154,6 @@ export const TelephonyConfigForm: React.FC = () => {
             const result = await response.json();
             addToast('תצורת הטלפוניה נשמרה בהצלחה', 'success');
             
-            // Update existing integration state
             if (result.integration) {
                 setExistingIntegration({
                     id: result.integration.id,
@@ -175,138 +184,195 @@ export const TelephonyConfigForm: React.FC = () => {
     }
 
     return (
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-indigo-600" />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">הגדרות טלפוניה</h2>
-                    <p className="text-sm text-gray-500 mt-1">הגדר את ספק הטלפוניה שלך (BYOC)</p>
-                </div>
-            </div>
-
-            {existingIntegration && existingIntegration.configured && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                    <CircleCheckBig className="w-5 h-5 text-green-600 flex-shrink-0" />
+        <>
+            <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center border border-rose-200">
+                        <Phone className="w-5 h-5 text-rose-600" />
+                    </div>
                     <div>
-                        <p className="text-sm font-bold text-green-900">תצורה קיימת נמצאה</p>
-                        <p className="text-xs text-green-700 mt-1">
-                            ספק: {existingIntegration.provider} | 
-                            סטטוס: {existingIntegration.isActive ? 'פעיל' : 'לא פעיל'}
-                        </p>
+                        <h2 className="text-lg font-black text-gray-900">הגדרות Voicenter</h2>
+                        <p className="text-xs text-gray-500">הפרטים מה-CPanel של Voicenter</p>
                     </div>
                 </div>
-            )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Provider Selection */}
-                <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">
-                        ספק טלפוניה
-                    </label>
-                    <CustomSelect
-                        value={provider || 'voicenter'}
-                        onChange={(val) => setValue('provider', val as 'voicenter')}
-                        options={[
-                            { value: 'voicenter', label: 'Voicenter' },
-                        ]}
-                    />
-                    {errors.provider && (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                            <CircleAlert className="w-3 h-3" />
-                            {errors.provider.message}
+                {existingIntegration && existingIntegration.configured && (
+                    <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+                        <CircleCheckBig className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                        <p className="text-xs font-bold text-emerald-800">
+                            מוגדר — {existingIntegration.isActive ? 'פעיל' : 'לא פעיל'}
                         </p>
-                    )}
-                </div>
-
-                {/* Voicenter Credentials */}
-                {provider === 'voicenter' && (
-                    <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <h3 className="text-sm font-bold text-gray-900 mb-4">פרטי התחברות Voicenter</h3>
-                        
-                        {/* UserCode */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">
-                                UserCode <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                {...register('credentials.UserCode')}
-                                placeholder="הזן את ה-UserCode שלך"
-                                className="w-full bg-white border border-gray-300 rounded-xl p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                            {errors.credentials?.UserCode && (
-                                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                    <CircleAlert className="w-3 h-3" />
-                                    {errors.credentials.UserCode.message}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* OrganizationCode */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">
-                                OrganizationCode <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                {...register('credentials.OrganizationCode')}
-                                placeholder="הזן את ה-OrganizationCode שלך"
-                                className="w-full bg-white border border-gray-300 rounded-xl p-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                            {errors.credentials?.OrganizationCode && (
-                                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                    <CircleAlert className="w-3 h-3" />
-                                    {errors.credentials.OrganizationCode.message}
-                                </p>
-                            )}
-                        </div>
                     </div>
                 )}
 
-                {/* Active Toggle */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <div>
-                        <label className="block text-sm font-bold text-gray-900 mb-1">
-                            הפעל אינטגרציה
-                        </label>
-                        <p className="text-xs text-gray-500">
-                            כאשר מופעל, האינטגרציה תהיה זמינה לשימוש במערכת
-                        </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            {...register('isActive')}
-                            className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                    </label>
-                </div>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                    {/* ⁤⁤ Required: Click2Call Code ⁤⁤ */}
+                    <div className="space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                            <KeyRound size={14} />
+                            פרטי חיבור (חובה)
+                        </h3>
 
-                {/* Submit Button */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                    <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSaving ? (
-                            <>
-                                <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
-                                שומר...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-4 h-4" />
-                                שמור הגדרות
-                            </>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                קוד Click2Call <span className="text-red-500">*</span>
+                            </label>
+                            <p className="text-[11px] text-gray-400 mb-2">
+                                נמצא ב-CPanel → API → קליק2קול (שורת &quot;code&quot;)
+                            </p>
+                            <input
+                                type="text"
+                                {...register('credentials.code')}
+                                placeholder="למשל: UsANIssbzdmsSwrXDMsM"
+                                dir="ltr"
+                                className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                            />
+                            {errors.credentials?.code && (
+                                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                    <CircleAlert className="w-3 h-3" />
+                                    {errors.credentials.code.message}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                שלוחת ברירת מחדל
+                            </label>
+                            <p className="text-[11px] text-gray-400 mb-2">
+                                מספר השלוחה שלך ב-Voicenter (הגדרות → משתמשים)
+                            </p>
+                            <input
+                                type="text"
+                                {...register('credentials.defaultExtension')}
+                                placeholder="למשל: 1131"
+                                dir="ltr"
+                                className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                            />
+                        </div>
+                    </div>
+
+                    {/* ⁤⁤ Advanced: Events SDK ⁤⁤ */}
+                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                        >
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <Headphones size={14} />
+                                הגדרות מתקדמות (Events SDK)
+                            </span>
+                            {showAdvanced ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                        </button>
+
+                        {showAdvanced && (
+                            <div className="p-4 space-y-4 border-t border-slate-200">
+                                <p className="text-[11px] text-gray-400">
+                                    לצפייה בשיחות בזמן אמת, הקפצת מסך, ו-WebRTC widget. נמצא ב-CPanel → API → דיווחי זמן אמת.
+                                </p>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        טוקן Real-Time Events
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register('credentials.eventsToken')}
+                                        placeholder="הטוקן מלשונית 'טוקן' בדיווחי זמן אמת"
+                                        dir="ltr"
+                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400 text-[13px]"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        אימייל CPanel
+                                    </label>
+                                    <input
+                                        type="email"
+                                        {...register('credentials.email')}
+                                        placeholder="האימייל שהגדרת ב-Voicenter CPanel"
+                                        dir="ltr"
+                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        סיסמת CPanel
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            {...register('credentials.password')}
+                                            placeholder="הסיסמה שהגדרת ב-Voicenter CPanel"
+                                            dir="ltr"
+                                            className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 pl-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         )}
-                    </button>
-                </div>
-            </form>
-        </div>
+                    </div>
+
+                    {/* Active Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-900 mb-0.5">
+                                הפעל אינטגרציה
+                            </label>
+                            <p className="text-[11px] text-gray-400">
+                                {isActive ? 'המרכזייה פעילה — שיחות, הקלטות ו-Screen Pop מופעלים' : 'כבוי — לא ייצאו/ייכנסו שיחות דרך המערכת'}
+                            </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                {...register('isActive')}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                        </label>
+                    </div>
+
+                    {/* Submit */}
+                    <div className="flex justify-end pt-3">
+                        <button
+                            type="submit"
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
+                                    שומר...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    שמור הגדרות
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {toast && (
+                <SimpleToast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
+        </>
     );
 };
 

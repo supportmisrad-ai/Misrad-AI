@@ -1,17 +1,11 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import ClientMeShell from './ClientMeShell';
+import { DashboardContentSkeleton } from '@/components/shared/ModuleLoadingScreen';
 
-export default async function ClientMeLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ orgSlug: string }> | { orgSlug: string };
-}) {
-  const { orgSlug } = await params;
-
+// Async component wrapped in Suspense so parent layout returns instantly
+async function ClientMeShellLoader({ orgSlug, children }: { orgSlug: string; children: React.ReactNode }) {
   // Both calls are React.cache-wrapped — zero cost if page.tsx triggers them too
   const [workspace, user] = await Promise.all([
     requireWorkspaceAccessByOrgSlugUi(orgSlug),
@@ -37,5 +31,23 @@ export default async function ClientMeLayout({
     >
       {children}
     </ClientMeShell>
+  );
+}
+
+export default async function ClientMeLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+}) {
+  const { orgSlug } = await params;
+
+  return (
+    <Suspense fallback={<div className="p-4 md:p-6"><DashboardContentSkeleton moduleKey="client" /></div>}>
+      <ClientMeShellLoader orgSlug={orgSlug}>
+        {children}
+      </ClientMeShellLoader>
+    </Suspense>
   );
 }
