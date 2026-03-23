@@ -11,7 +11,7 @@ import { Avatar } from '@/components/Avatar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
-import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
 import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';

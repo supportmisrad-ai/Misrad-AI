@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { Avatar } from '@/components/Avatar';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
-import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 
 export default function NexusMasterLayout({
   title,
@@ -60,7 +60,7 @@ export default function NexusMasterLayout({
         onOpenSupportAction={undefined}
         actionsSlot={<ModuleHelpVideos moduleKey="nexus" />}
         switcherSlot={null}
-        notificationsSlot={<GlobalNotificationsBell />}
+        notificationsSlot={<UnifiedNotificationsBell />}
         user={{ name: user.name, role: user.role || null }}
         onProfileClickAction={undefined}
         profileHref={profileHref}

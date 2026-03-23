@@ -17,6 +17,8 @@ const telephonyConfigSchema = z.object({
         eventsToken: z.string().optional(),
         email: z.string().optional(),
         password: z.string().optional(),
+        sipUsername: z.string().optional(),
+        sipPassword: z.string().optional(),
     }),
     isActive: z.boolean()
 });
@@ -88,6 +90,8 @@ export const TelephonyConfigForm: React.FC = () => {
                 eventsToken: '',
                 email: '',
                 password: '',
+                sipUsername: '',
+                sipPassword: '',
             },
             isActive: false
         }
@@ -318,6 +322,41 @@ export const TelephonyConfigForm: React.FC = () => {
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
+                                </div>
+
+                                <hr className="border-slate-200 my-4" />
+
+                                <p className="text-[11px] text-slate-500 font-bold uppercase">
+                                    🔐 פרטי SIP (ל-WebRTC Widget)
+                                </p>
+                                <p className="text-[11px] text-gray-400">
+                                    נמצא ב-CPanel → הגדרות → שלוחות → גלגל שיניים על השלוחה
+                                </p>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        שם משתמש SIP
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register('credentials.sipUsername')}
+                                        placeholder="למשל: 1131 (מספר השלוחה)"
+                                        dir="ltr"
+                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-1.5">
+                                        סיסמת SIP
+                                    </label>
+                                    <input
+                                        type="password"
+                                        {...register('credentials.sipPassword')}
+                                        placeholder="הסיסמה משדה 'סיסמת SIP' ב-CPanel"
+                                        dir="ltr"
+                                        className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 font-mono outline-none focus:ring-2 focus:ring-rose-300 focus:border-rose-400"
+                                    />
                                 </div>
                             </div>
                         )}

@@ -24,7 +24,7 @@ import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
-import { GlobalNotificationsBell } from '@/components/shared/GlobalNotificationsBell';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 import { GlobalSearchModal } from '@/components/shared/GlobalSearchModal';
 import { GlobalSupportModal } from '@/components/shared/GlobalSupportModal';
 import { getOSModule } from '@/types/os-modules';
@@ -275,7 +275,7 @@ function SystemShellGateClientCore({
     setIsMobileMenuOpen(true);
   };
 
-  const notificationsSlot = <GlobalNotificationsBell />;
+  const notificationsSlot = <UnifiedNotificationsBell />;
 
   return (
     <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser ?? null }}>

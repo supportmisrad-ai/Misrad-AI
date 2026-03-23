@@ -38,7 +38,6 @@ export const Layout = ({ children }: LayoutProps) => {
   const mainScrollRef = useRef<HTMLElement>(null);
   const { showMorningBrief, setShowMorningBrief, notifications, lastDeletedTask, undoDelete, currentUser, users, isCreateTaskOpen, openCreateTask, closeCreateTask, incomingCall, dismissCall, toasts, removeToast, openedTaskId, closeTask, tasks, hasPermission, setCommandPaletteOpen, isCommandPaletteOpen, organization, taskToComplete, isSupportModalOpen, openSupport, activeCelebration, startTutorial, leads } = useData();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
   const urgentLeavePushShownRef = useRef<Set<string>>(new Set());
   
@@ -269,11 +268,6 @@ export const Layout = ({ children }: LayoutProps) => {
     [basePath, location.pathname, orgSlug]
   );
   
-  // Filter notifications for current user only
-  const hasUnread = notifications
-    .filter((n: Notification) => n.recipientId === 'all' || n.recipientId === currentUser.id)
-    .some((n: Notification) => !n.read);
-
   const headerCurrentUser = useMemo(() => {
     const base = (currentUser || { name: 'משתמש', role: '' }) as unknown as Record<string, unknown>;
     return {
@@ -540,9 +534,6 @@ export const Layout = ({ children }: LayoutProps) => {
           currentDate={currentDate}
           organization={organization}
           currentUser={headerCurrentUser}
-          isNotificationsOpen={isNotificationsOpen}
-          setIsNotificationsOpen={setIsNotificationsOpen}
-          hasUnread={hasUnread}
           setCommandPaletteOpen={setCommandPaletteOpen}
           navigate={navigate}
           openSupport={openSupport}

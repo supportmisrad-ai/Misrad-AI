@@ -1,9 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Bell } from 'lucide-react';
 import { Avatar } from '../Avatar';
-import { NotificationsPanel } from '../NotificationsPanel';
+import { UnifiedNotificationsBell } from '@/components/shared/UnifiedNotificationsBell';
 import { RoomSwitcher } from '../shared/RoomSwitcher';
 import { WorkspaceSwitcher } from '../os/WorkspaceSwitcher';
 import { NAV_ITEMS } from './layout.types';
@@ -23,9 +22,6 @@ interface HeaderProps {
     role: string;
     avatar?: string;
   };
-  isNotificationsOpen: boolean;
-  setIsNotificationsOpen: (open: boolean) => void;
-  hasUnread: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   navigate: (path: string) => void;
   openSupport: () => void;
@@ -36,18 +32,10 @@ export const Header: React.FC<HeaderProps> = ({
   currentDate,
   organization,
   currentUser,
-  isNotificationsOpen,
-  setIsNotificationsOpen,
-  hasUnread,
   setCommandPaletteOpen,
   navigate,
   openSupport,
 }) => {
-  const [isHydrated, setIsHydrated] = React.useState(false);
-  React.useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
   const { room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(location?.pathname?.startsWith('/w/'));
 
@@ -60,21 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const mobileFallbackIcon = organization.logo ? null : room ? <OSModuleSquircleIcon moduleKey={room} boxSize={32} iconSize={16} className="shadow-none" /> : null;
 
-  const notificationsSlot = (
-    <>
-      <button
-        id="notification-trigger"
-        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-        className={`relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors ${isNotificationsOpen ? 'bg-black text-white' : 'hover:bg-white/50 text-gray-600'}`}
-        aria-label={isHydrated && hasUnread ? 'התראות - יש התראות חדשות' : 'התראות'}
-        type="button"
-      >
-        <Bell size={18} />
-        {isHydrated && hasUnread ? <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> : null}
-      </button>
-      <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
-    </>
-  );
+  const notificationsSlot = <UnifiedNotificationsBell />;
 
   const switcherSlot = isWorkspaceRoute ? (
     <div className="flex items-center gap-2">

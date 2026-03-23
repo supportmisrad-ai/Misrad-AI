@@ -38,6 +38,9 @@ export interface TelephonyCredentials {
     email?: string;
     // CPanel user password (for Events SDK / WebRTC widget login)
     password?: string;
+    // SIP credentials for WebRTC softphone widget
+    sipUsername?: string;  // Extension number from CPanel → Settings → Extensions
+    sipPassword?: string;  // SIP password from extension settings (may differ from CPanel password)
 
     // ── Twilio credentials ────────────────────────────────────────
     account_sid?: string;
