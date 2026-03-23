@@ -18,6 +18,101 @@ async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; 
 }
 
 // ============================================================
+// Update Organization Subscription Status (Manual Admin Override)
+// ============================================================
+
+const VALID_SUBSCRIPTION_STATUSES = ['trial', 'active', 'past_due', 'cancelled'] as const;
+type SubscriptionStatus = typeof VALID_SUBSCRIPTION_STATUSES[number];
+
+export async function updateOrganizationStatus(
+  organizationId: string,
+  newStatus: SubscriptionStatus,
+  reason?: string
+) {
+  try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    if (!VALID_SUBSCRIPTION_STATUSES.includes(newStatus)) {
+      return { ok: false, error: 'סטטוס לא תקין. אפשרויות: trial, active, past_due, cancelled' };
+    }
+
+    const result = await withTenantIsolationContext(
+      {
+        source: 'app/actions/manage-organization.updateOrganizationStatus',
+        reason: 'global_admin_manual_status_override',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        const org = await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: {
+            id: true,
+            name: true,
+            subscription_status: true,
+            trial_start_date: true,
+            trial_days: true,
+          },
+        });
+
+        if (!org) {
+          throw new Error('ארגון לא נמצא');
+        }
+
+        const updateData: Record<string, unknown> = {
+          subscription_status: newStatus,
+          updated_at: new Date(),
+        };
+
+        // If changing to trial, ensure trial_start_date exists
+        if (newStatus === 'trial' && !org.trial_start_date) {
+          updateData.trial_start_date = new Date();
+          updateData.trial_days = org.trial_days || 14;
+        }
+
+        // If cancelling, record cancellation date
+        if (newStatus === 'cancelled') {
+          updateData.cancellation_date = new Date();
+          updateData.cancellation_reason = reason || 'manual_admin_override';
+        }
+
+        // If reactivating from cancelled, clear cancellation fields
+        if (org.subscription_status === 'cancelled' && (newStatus === 'active' || newStatus === 'trial')) {
+          updateData.cancellation_date = null;
+          updateData.cancellation_reason = null;
+        }
+
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: updateData,
+        });
+
+        return {
+          organizationId: org.id,
+          organizationName: org.name,
+          previousStatus: org.subscription_status,
+          newStatus,
+          reason,
+        };
+      }
+    );
+
+    logger.info('updateOrganizationStatus', 'Organization status manually updated', {
+      organizationId,
+      result,
+    });
+
+    return { ok: true, data: result };
+  } catch (error) {
+    logger.error('updateOrganizationStatus', 'Error updating organization status', error);
+    const errorMessage = error instanceof Error ? error.message : 'שגיאה בעדכון סטטוס ארגון';
+    return { ok: false, error: errorMessage };
+  }
+}
+
+// ============================================================
 // Get Organization Details
 // ============================================================
 
@@ -124,6 +219,7 @@ export async function updateOrganizationPackage(
     subscription_plan?: string;
     seats_allowed?: number;
     custom_mrr?: number;
+    override_mrr?: boolean;
     has_nexus?: boolean;
     has_social?: boolean;
     has_finance?: boolean;
@@ -160,11 +256,20 @@ export async function updateOrganizationPackage(
           updateData.seats_allowed = data.seats_allowed;
         }
 
-        if (data.custom_mrr !== undefined && data.subscription_plan === 'custom') {
+        // Update MRR if override is enabled (for any package)
+        if (data.override_mrr && data.custom_mrr !== undefined) {
           updateData.mrr = String(data.custom_mrr);
         }
 
-        if (data.has_nexus !== undefined) updateData.has_nexus = data.has_nexus;
+        // Enforce Nexus requirement: if any non-nexus module is active, Nexus must be active too
+        const hasNonNexusModules = data.has_social || data.has_finance || data.has_client || data.has_operations;
+        if (hasNonNexusModules && data.has_nexus === false) {
+          // Auto-enable Nexus if other modules are active
+          updateData.has_nexus = true;
+        } else if (data.has_nexus !== undefined) {
+          updateData.has_nexus = data.has_nexus;
+        }
+
         if (data.has_social !== undefined) updateData.has_social = data.has_social;
         if (data.has_finance !== undefined) updateData.has_finance = data.has_finance;
         if (data.has_client !== undefined) updateData.has_client = data.has_client;

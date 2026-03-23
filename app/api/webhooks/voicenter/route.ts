@@ -40,12 +40,22 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
         }
 
+        // Handle empty body (ping/test requests)
+        if (!bodyText || bodyText.trim() === '') {
+            return NextResponse.json({ success: true, message: 'Webhook active (empty body received)' });
+        }
+
         // Parse the JSON body
         let body;
         try {
             body = JSON.parse(bodyText);
         } catch {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+        }
+
+        // Handle test/ping requests from Voicenter
+        if (body.test === true || body.ping === true) {
+            return NextResponse.json({ success: true, message: 'Webhook active (test received)' });
         }
 
         // VoiceCenter External CDR sends fields like:
@@ -128,7 +138,7 @@ export async function POST(request: NextRequest) {
                     leadId: leadId,
                     type: 'call',
                     direction: isIncoming ? 'inbound' : 'outbound',
-                    content: `שיחה ${isIncoming ? 'נכנסת מ-' : 'יוצאת אל'} ${customerPhone}. משך: ${duration} שניות. סטטוס: ${status || 'הסתיימה'}`,
+                    content: `שיחה ${isIncoming ? 'נכנסת מ-' : 'יוצאת אל'} ${customerPhone}. משך: ${duration} שניות. סטטוס: ${dialStatus || 'הסתיימה'}`,
                     metadata: {
                         duration,
                         recordingUrl: recordUrl,
@@ -153,22 +163,40 @@ export async function GET(request: NextRequest) {
     // Some providers use GET for screen pop to instantly redirect the agent's browser
     const searchParams = request.nextUrl.searchParams;
     const orgId = searchParams.get('orgId');
-    const caller = searchParams.get('caller') || searchParams.get('CallerID');
+    const caller = searchParams.get('caller') || searchParams.get('CallerID') || searchParams.get('CallerNumber');
     
-    if (!orgId || !caller) {
-        return NextResponse.json({ error: 'Missing orgId or caller' }, { status: 400 });
+    if (!orgId) {
+        return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
+    }
+
+    // Handle test/ping requests
+    if (!caller) {
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Webhook active (GET)', 
+            orgId,
+            hint: 'Add ?caller=PHONE_NUMBER to test screen pop' 
+        });
     }
 
     try {
         const normalizedPhone = extractPhoneDigits(caller);
+        if (!IS_PROD) {
+            console.log('[Voicenter Webhook GET] Looking for phone:', normalizedPhone, 'in org:', orgId);
+        }
+        
         if (normalizedPhone && normalizedPhone.length >= 8) {
             const lead = await prisma.systemLead.findFirst({
                 where: {
                     organizationId: orgId,
                     phone: { contains: normalizedPhone },
                 },
-                select: { id: true },
+                select: { id: true, name: true },
             });
+            
+            if (!IS_PROD) {
+                console.log('[Voicenter Webhook GET] Lead found:', lead);
+            }
             
             if (lead) {
                 // Return a redirect to the lead page
@@ -179,6 +207,19 @@ export async function GET(request: NextRequest) {
         // Redirect to general dialer if not found
         return NextResponse.redirect(new URL(`/w/${orgId}/system/dialer`, request.url));
     } catch (error) {
+        console.error('[Voicenter Webhook GET] Error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
+}
+
+// Handle CORS preflight requests
+export async function OPTIONS() {
+    return new NextResponse(null, {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, x-voicenter-signature, x-webhook-signature',
+        },
+    });
 }

@@ -396,6 +396,19 @@ export async function createCoupon(params: {
 
     const allowedModules = normalizeCouponModules(params.allowedModules);
 
+    // Validate minOrderAmount before converting to Decimal
+    let minOrderDecimal: Prisma.Decimal | null = null;
+    if (params.minOrderAmount != null) {
+      const minOrderNum = Number(params.minOrderAmount);
+      if (Number.isFinite(minOrderNum) && minOrderNum > 0) {
+        try {
+          minOrderDecimal = new Prisma.Decimal(minOrderNum);
+        } catch {
+          return { ok: false, error: 'סכום מינימום הזמנה לא תקין' };
+        }
+      }
+    }
+
     const coupon = await prisma.coupons.create({
       data: {
         code_hash: codeHash,
@@ -405,7 +418,7 @@ export async function createCoupon(params: {
         discount_type: params.discountType,
         discount_percent: params.discountType === 'PERCENT' ? (params.discountPercent ?? 0) : null,
         discount_amount: params.discountType === 'FIXED_AMOUNT' ? (params.discountAmount ?? 0) : null,
-        min_order_amount: params.minOrderAmount ? new Prisma.Decimal(params.minOrderAmount) : null,
+        min_order_amount: minOrderDecimal,
         starts_at: params.startsAt ? new Date(params.startsAt) : null,
         ends_at: params.endsAt ? new Date(params.endsAt) : null,
         max_redemptions_total: params.maxRedemptionsTotal ?? null,

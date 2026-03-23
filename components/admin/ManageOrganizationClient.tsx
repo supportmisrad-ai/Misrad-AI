@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { safeBrowserUrl } from '@/lib/shared/safe-browser-url';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
 import {
   Settings,
   Package,
@@ -42,6 +43,7 @@ import {
   deactivateOrganization,
   reactivateOrganization,
   softDeleteOrganization,
+  updateOrganizationStatus,
 } from '@/app/actions/manage-organization';
 import { generatePaymentLink, adjustBalanceManually, getOrganizationInvoices, createOrganizationInvoice, type AdminInvoice } from '@/app/actions/app-billing';
 import { generateBusinessClientMagicLink } from '@/app/actions/business-client-auth';
@@ -128,10 +130,15 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
   });
 
   // Tab 2: Package
+  const currentPlan = initialData.subscription_plan as PackageType;
+  const currentMRR = initialData.mrr ? parseFloat(initialData.mrr) : 0;
+  const defaultMRR = currentMRR || BILLING_PACKAGES[currentPlan]?.monthlyPrice || 0;
+  
   const [packageData, setPackageData] = useState({
     subscription_plan: initialData.subscription_plan || '',
     seats_allowed: initialData.seats_allowed,
-    custom_mrr: initialData.mrr ? parseFloat(initialData.mrr) : 0,
+    custom_mrr: defaultMRR,
+    override_mrr: false,
     has_nexus: initialData.has_nexus,
     has_social: initialData.has_social,
     has_finance: initialData.has_finance,
@@ -181,6 +188,11 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
   // Deactivate Organization (soft)
   const [isDeactivating, setIsDeactivating] = useState(false);
 
+  // Subscription Status Override (Admin)
+  const [newStatus, setNewStatus] = useState(initialData.subscription_status || 'trial');
+  const [statusReason, setStatusReason] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   const tabs = [
     { id: 'settings' as Tab, label: 'הגדרות', icon: Settings },
     { id: 'package' as Tab, label: 'חבילה ומודולים', icon: Package },
@@ -210,6 +222,25 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
       isActive: daysRemaining > 0,
       endDate: trialEnd.toLocaleDateString('he-IL'),
     };
+  };
+
+  // Helper: Get modules for a package
+  const getPackageModules = (planValue: string) => {
+    const pkg = BILLING_PACKAGES[planValue as PackageType];
+    if (!pkg) return { has_nexus: false, has_social: false, has_finance: false, has_client: false, has_operations: false };
+    
+    return {
+      has_nexus: pkg.modules.includes('nexus'),
+      has_social: pkg.modules.includes('social'),
+      has_finance: pkg.modules.includes('finance') || pkg.modules.includes('system'), // system includes finance
+      has_client: pkg.modules.includes('client'),
+      has_operations: pkg.modules.includes('operations'),
+    };
+  };
+
+  // Helper: Check if any non-nexus module is active
+  const hasNonNexusModules = (data: typeof packageData) => {
+    return data.has_social || data.has_finance || data.has_client || data.has_operations;
   };
 
   const trialStatus = calculateTrialStatus();
@@ -287,6 +318,8 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
         has_finance: packageData.has_finance || undefined,
         has_client: packageData.has_client || undefined,
         has_operations: packageData.has_operations || undefined,
+        override_mrr: packageData.override_mrr,
+        custom_mrr: packageData.custom_mrr,
       });
       if (result.ok) {
         showMessage('success', 'החבילה והמודולים עודכנו בהצלחה');
@@ -483,6 +516,53 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
     } finally {
       setIsDeactivating(false);
     }
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!newStatus) {
+      showMessage('error', 'יש לבחור סטטוס');
+      return;
+    }
+
+    if (!statusReason.trim()) {
+      showMessage('error', 'יש לציין סיבה לשינוי');
+      return;
+    }
+
+    setIsUpdatingStatus(true);
+    try {
+      const result = await updateOrganizationStatus(initialData.id, newStatus as any, statusReason.trim());
+      if (result.ok) {
+        showMessage('success', `סטטוס המנוי עודכן ל-${getStatusLabel(newStatus)} בהצלחה!`);
+        router.refresh();
+      } else {
+        showMessage('error', result.error || 'שגיאה בעדכון סטטוס');
+      }
+    } catch (error) {
+      showMessage('error', 'שגיאה בעדכון סטטוס מנוי');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      trial: 'תקופת ניסיון',
+      active: 'פעיל',
+      past_due: 'תשלום באיחור',
+      cancelled: 'מבוטל',
+    };
+    return labels[status] || status;
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      trial: 'bg-blue-100 text-blue-700 border-blue-200',
+      active: 'bg-green-100 text-green-700 border-green-200',
+      past_due: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      cancelled: 'bg-red-100 text-red-700 border-red-200',
+    };
+    return colors[status] || 'bg-slate-100 text-slate-700';
   };
 
   return (
@@ -716,7 +796,18 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   <Label htmlFor="plan">חבילת מנוי</Label>
                   <CustomSelect
                     value={packageData.subscription_plan}
-                    onChange={(val) => setPackageData({ ...packageData, subscription_plan: val })}
+                    onChange={(val) => {
+                      const newModules = getPackageModules(val);
+                      setPackageData({ 
+                        ...packageData, 
+                        subscription_plan: val,
+                        // Auto-sync modules when package changes (only for non-custom packages)
+                        ...(val !== 'custom' ? newModules : {}),
+                        // Reset manual MRR override when package changes
+                        override_mrr: false,
+                        custom_mrr: val === 'custom' ? packageData.custom_mrr : (BILLING_PACKAGES[val as PackageType]?.monthlyPrice || 0),
+                      });
+                    }}
                     options={PLANS.map((plan) => ({ value: plan.value, label: `${plan.label} - ${plan.price}` }))}
                   />
                 </div>
@@ -734,26 +825,59 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                   />
                 </div>
 
-                {packageData.subscription_plan === 'custom' && (
-                  <div>
-                    <Label htmlFor="custom_mrr">MRR מותאם (₪)</Label>
-                    <Input
-                      id="custom_mrr"
-                      type="number"
-                      min="0"
-                      max="99999"
-                      value={packageData.custom_mrr}
-                      onChange={(e) => setPackageData({ ...packageData, custom_mrr: parseFloat(e.target.value) || 0 })}
-                      placeholder="499"
-                      className="mt-2"
+                {/* MRR Override Option - for all packages */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Checkbox
+                      checked={packageData.override_mrr}
+                      onCheckedChange={(checked) => setPackageData({ ...packageData, override_mrr: checked === true })}
                     />
-                    <p className="text-xs text-slate-500 mt-1">מחיר חודשי בשקלים</p>
+                    <span className="font-bold text-sm text-blue-900">עקוף MRR ידנית</span>
                   </div>
-                )}
+                  {packageData.override_mrr && (
+                    <div className="mt-3">
+                      <Label htmlFor="custom_mrr_override">MRR ידני (₪)</Label>
+                      <Input
+                        id="custom_mrr_override"
+                        type="number"
+                        min="0"
+                        max="99999"
+                        value={packageData.custom_mrr}
+                        onChange={(e) => setPackageData({ ...packageData, custom_mrr: parseFloat(e.target.value) || 0 })}
+                        placeholder="499"
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-blue-700 mt-1">המחיר הזה ישמר כ-MRR החודשי</p>
+                    </div>
+                  )}
+                  {!packageData.override_mrr && (
+                    <p className="text-xs text-blue-700">
+                      MRR אוטומטי: ₪{BILLING_PACKAGES[packageData.subscription_plan as PackageType]?.monthlyPrice || 0} (לפי החבילה)
+                    </p>
+                  )}
+                </div>
 
                 <div className="space-y-4 pt-4 border-t border-slate-200">
-                  <h4 className="font-bold text-slate-900">מודולים פעילים</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-slate-900">מודולים פעילים</h4>
+                    {packageData.subscription_plan !== 'custom' && (
+                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                        🔒 מוגדר אוטומטית לפי החבילה
+                      </span>
+                    )}
+                  </div>
                   
+                  {/* Module Info Banner */}
+                  {packageData.subscription_plan !== 'custom' && packageData.subscription_plan !== '' && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>ℹ️ מודולים לחבילת &quot;{PLANS.find(p => p.value === packageData.subscription_plan)?.label || packageData.subscription_plan}&quot;:</strong>
+                        <br />
+                        המודולים נקבעים אוטומטית לפי החבילה שנבחרה. לבחירה ידנית, בחר &quot;חבילה מותאמת אישית&quot;.
+                      </p>
+                    </div>
+                  )}
+
                   {/* SOLO Package Warning */}
                   {packageData.subscription_plan === 'solo' && (() => {
                     const activeModules = [
@@ -772,7 +896,7 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                             <div>
                               <div className="font-bold text-sm text-red-900">⚠️ שגיאה: יותר מדי מודולים</div>
                               <div className="text-xs text-red-700 mt-1">
-                                חבילת "נקסוס בלבד" (149₪) מוגבלת למודול אחד בלבד.
+                                חבילת &quot;נקסוס בלבד&quot; (149₪) מוגבלת למודול אחד בלבד.
                                 <br />
                                 <strong>כרגע פעילים {activeModules} מודולים</strong> - זה לא תקין!
                                 <br />
@@ -782,34 +906,38 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                           </div>
                         </div>
                       );
-                    } else if (activeModules === 1) {
-                      return (
-                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <CircleCheckBig className="w-4 h-4 text-green-600" />
-                            <span className="text-xs font-bold text-green-800">✓ נקסוס בלבד מוגדר נכון</span>
+                    }
+                    return null;
+                  })()}
+
+                  {/* Nexus Warning */}
+                  {!packageData.has_nexus && hasNonNexusModules(packageData) && (
+                    <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <CircleAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div className="font-bold text-sm text-amber-900">⚠️ חסר מודול Nexus</div>
+                          <div className="text-xs text-amber-700 mt-1">
+                            נקסוס הוא המודול הבסיסי - חובה להפעיל אותו כשיש מודולים אחרים.
+                            <br />
+                            <strong>המערכת תסמן אוטומטית את נקסוס בעת שמירה.</strong>
                           </div>
                         </div>
-                      );
-                    } else {
-                      return (
-                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                          <div className="text-xs font-bold text-amber-800">⚡ בחר מודול אחד להפעלה</div>
-                        </div>
-                      );
-                    }
-                  })()}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
-                      { key: 'has_nexus', label: '📋 Nexus (משימות)', color: 'blue' },
-                      { key: 'has_social', label: '🎨 Social (שיווק)', color: 'purple' },
-                      { key: 'has_finance', label: '💰 Finance (כספים)', color: 'green' },
-                      { key: 'has_client', label: '👥 Client (ניהול לקוחות)', color: 'orange' },
-                      { key: 'has_operations', label: '🔧 Operations (תפעול)', color: 'red' },
+                      { key: 'has_nexus', label: '📋 Nexus (משימות)', color: 'blue', required: true },
+                      { key: 'has_social', label: '🎨 Social (שיווק)', color: 'purple', required: false },
+                      { key: 'has_finance', label: '💰 Finance (כספים)', color: 'green', required: false },
+                      { key: 'has_client', label: '👥 Client (ניהול לקוחות)', color: 'orange', required: false },
+                      { key: 'has_operations', label: '🔧 Operations (תפעול)', color: 'red', required: false },
                     ].map((module) => {
                       const isChecked = packageData[module.key as keyof typeof packageData] as boolean;
                       const isSoloPlan = packageData.subscription_plan === 'solo';
+                      const isCustomPlan = packageData.subscription_plan === 'custom';
                       const activeModulesCount = [
                         packageData.has_nexus,
                         packageData.has_social,
@@ -818,35 +946,77 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                         packageData.has_operations
                       ].filter(Boolean).length;
                       
-                      // Disable other modules if SOLO and one is already selected
-                      const isDisabled = isSoloPlan && !isChecked && activeModulesCount >= 1;
+                      // Disable editing for non-custom packages
+                      const isReadOnly = !isCustomPlan;
+                      
+                      // Disable other modules if SOLO and one is already selected (and it's not nexus)
+                      const isSoloDisabled = isSoloPlan && !isChecked && activeModulesCount >= 1 && module.key !== 'has_nexus';
+                      
+                      // Disable unchecking Nexus if other modules are active
+                      const isNexusLocked = module.key === 'has_nexus' && isChecked && hasNonNexusModules(packageData);
+                      
+                      const isDisabled = isReadOnly || isSoloDisabled || isNexusLocked;
+
+                      const labelClasses = `flex items-center gap-3 p-3 border rounded-lg transition-all ${
+                        isDisabled
+                          ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
+                          : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                      } ${isChecked ? 'border-blue-300 bg-blue-50' : ''}`;
                       
                       return (
                         <label
                           key={module.key}
-                          className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
-                            isDisabled
-                              ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
-                              : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
-                          } ${isChecked && isSoloPlan ? 'border-blue-300 bg-blue-50' : ''}`}
+                          className={labelClasses}
                         >
                           <Checkbox
                             checked={isChecked}
-                            disabled={isDisabled}
-                            onCheckedChange={(checked) =>
-                              setPackageData({ ...packageData, [module.key]: checked })
-                            }
+                            disabled={!!isDisabled}
+                            onCheckedChange={(checked) => {
+                              if (isDisabled) return;
+                              
+                              const newData = { ...packageData, [module.key]: checked };
+                              
+                              // Auto-check Nexus when selecting any other module
+                              if (checked && module.key !== 'has_nexus') {
+                                newData.has_nexus = true;
+                              }
+                              
+                              // Auto-uncheck all other modules when unchecking Nexus
+                              if (!checked && module.key === 'has_nexus') {
+                                newData.has_social = false;
+                                newData.has_finance = false;
+                                newData.has_client = false;
+                                newData.has_operations = false;
+                              }
+                              
+                              setPackageData(newData);
+                            }}
                           />
                           <span className={`text-sm font-medium ${
                             isDisabled ? 'text-slate-400' : 'text-slate-900'
-                          }`}>{module.label}</span>
-                          {isChecked && isSoloPlan && (
+                          }`}>
+                            {module.label}
+                            {module.required && <span className="text-red-500 mr-1">*</span>}
+                          </span>
+                          {isReadOnly && isChecked && (
+                            <span className="mr-auto text-xs font-bold text-slate-400">🔒</span>
+                          )}
+                          {isNexusLocked && (
+                            <span className="mr-auto text-xs font-bold text-amber-600" title="נדרש כשיש מודולים אחרים">🔒</span>
+                          )}
+                          {isChecked && isSoloPlan && module.key !== 'has_nexus' && (
                             <span className="mr-auto text-xs font-bold text-blue-600">✓ נבחר</span>
                           )}
                         </label>
                       );
                     })}
                   </div>
+                  
+                  {packageData.subscription_plan === 'custom' && (
+                    <p className="text-xs text-slate-500">
+                      * Nexus הוא מודול חובה כשיש מודולים נוספים פעילים
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
@@ -1390,6 +1560,83 @@ export default function ManageOrganizationClient({ initialData }: { initialData:
                           ✓ בגבול
                         </span>
                       )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin Override: Manual Status Change */}
+                <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-amber-100">
+                      <CircleAlert className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-black text-slate-900 mb-1">⚡ שינוי סטטוס מנוי ידני</h4>
+                      <p className="text-sm text-slate-600 mb-4">
+                        שנה את סטטוס המנוי ידנית. שימושי למקרים מיוחדים (למשל: לפתוח את המערכת לאח/חבר ללא תשלום).
+                      </p>
+
+                      {/* Current Status Display */}
+                      <div className="flex items-center gap-3 mb-4 p-3 bg-white rounded-lg border border-slate-200">
+                        <span className="text-sm text-slate-600">סטטוס נוכחי:</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold border ${getStatusColor(initialData.subscription_status || 'trial')}`}>
+                          {getStatusLabel(initialData.subscription_status || 'trial')}
+                        </span>
+                      </div>
+
+                      {/* Status Selection */}
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="new_status">סטטוס חדש</Label>
+                          <CustomSelect
+                            value={newStatus}
+                            onChange={(val) => setNewStatus(val)}
+                            options={[
+                              { value: 'trial', label: '🔄 תקופת ניסיון' },
+                              { value: 'active', label: '✅ פעיל' },
+                              { value: 'past_due', label: '⚠️ תשלום באיחור' },
+                              { value: 'cancelled', label: '❌ מבוטל' },
+                            ]}
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="status_reason">סיבה לשינוי *</Label>
+                          <Textarea
+                            id="status_reason"
+                            value={statusReason}
+                            onChange={(e) => setStatusReason(e.target.value)}
+                            placeholder="למשל: פתיחה לאח בלי תשלום, תקופת ניסיון מורחבת, וכו׳"
+                            className="mt-2"
+                            rows={2}
+                            disabled={isUpdatingStatus}
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleUpdateStatus}
+                          disabled={isUpdatingStatus || !statusReason.trim() || newStatus === initialData.subscription_status}
+                          className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700"
+                        >
+                          {isUpdatingStatus ? (
+                            <>
+                              <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                              מעדכן...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4 ml-2" />
+                              עדכן סטטוס
+                            </>
+                          )}
+                        </Button>
+
+                        {newStatus === initialData.subscription_status && (
+                          <p className="text-xs text-amber-700">
+                            ℹ️ בחר סטטוס שונה מהסטטוס הנוכחי כדי לעדכן
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

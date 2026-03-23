@@ -9,6 +9,7 @@ import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets, ClientOnlyPwaBiometric
 import { ClerkProviderWithRouter } from './ClerkProviderWithRouter';
 import { GlobalContextMenuProvider } from '@/components/shared/GlobalContextMenu';
 import { UnifiedLoadingShell } from '@/components/shared/UnifiedLoadingShell';
+import { PrefetchProvider } from '@/contexts/PrefetchContext';
 
 // Heebo - Main text font (font-sans)
 const heebo = Heebo({
@@ -69,6 +70,7 @@ export default function RootLayout({
         <GlobalContextMenuProvider>
         <ToastProvider>
           <ReactQueryProvider>
+          <PrefetchProvider>
           {clerkPublishableKey ? (
             <ClerkProviderWithRouter
               publishableKey={clerkPublishableKey}
@@ -102,6 +104,7 @@ export default function RootLayout({
           )}
 
           <ClientOnlyGlobalWidgets />
+          </PrefetchProvider>
           </ReactQueryProvider>
         </ToastProvider>
         </GlobalContextMenuProvider>
