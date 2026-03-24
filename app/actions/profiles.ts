@@ -141,32 +141,35 @@ async function bootstrapProfile(params: {
   orgSlug: string;
   clerkUserId: string;
 }): Promise<ActionResult<{ profile: ProfileRecord; workspace: { id: string } }>> {
+  // Resolve organizationUser BEFORE entering tenant context.
+  // organizationUser.findUnique({ clerk_user_id }) is unscoped and the tenant guard
+  // only allows it when expected.organizationId is null (no context set).
+  let socialUser: unknown = null;
+  try {
+    socialUser = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: String(params.clerkUserId) },
+      select: { email: true, full_name: true, avatar_url: true },
+    });
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] organizationUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+      );
+    }
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/profiles.bootstrapProfile',
+        reason: 'organizationUser lookup schema mismatch (fallback to null)',
+        error,
+        extras: { orgSlug: params.orgSlug },
+      });
+    }
+    socialUser = null;
+  }
+
   return await withWorkspaceTenantContext(
     params.orgSlug,
     async ({ organizationId }) => {
-      let socialUser: unknown = null;
-      try {
-        socialUser = await prisma.organizationUser.findUnique({
-          where: { clerk_user_id: String(params.clerkUserId) },
-          select: { email: true, full_name: true, avatar_url: true },
-        });
-      } catch (error: unknown) {
-        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
-          throw new Error(
-            `[SchemaMismatch] organizationUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
-          );
-        }
-
-        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-          reportSchemaFallback({
-            source: 'app/actions/profiles.bootstrapProfile',
-            reason: 'organizationUser lookup schema mismatch (fallback to null)',
-            error,
-            extras: { orgSlug: params.orgSlug },
-          });
-        }
-        socialUser = null;
-      }
 
       const socialUserObj = asObject(socialUser) ?? {};
 
