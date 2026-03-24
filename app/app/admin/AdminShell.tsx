@@ -398,6 +398,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                       bot: 'bg-teal-600',
                       ai: 'bg-indigo-600',
                       analytics: 'bg-amber-600',
+                      telephony: 'bg-cyan-600',
                     };
 
                     return (
