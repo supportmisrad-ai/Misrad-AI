@@ -15,9 +15,13 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
   const forcePoolerTransaction =
     String(process.env.MISRAD_PRISMA_FORCE_POOLER_TRANSACTION || '').trim().toLowerCase() === 'true';
   
-  // ⚡ NEW: Prefer direct connection over pooler (solves "Can't reach database server" for pooler)
-  const preferDirectConnection =
-    String(process.env.MISRAD_PRISMA_PREFER_DIRECT || '').trim().toLowerCase() === 'true';
+  // ⚡ Prefer direct connection over pooler
+  // In production, default to true to avoid Supabase RLS "Tenant or user not found" errors
+  // (RLS requires JWT claims that Prisma doesn't send through the pooler)
+  const preferDirectConnectionEnv = String(process.env.MISRAD_PRISMA_PREFER_DIRECT || '').trim().toLowerCase();
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const preferDirectConnection = preferDirectConnectionEnv === 'true' || 
+    (preferDirectConnectionEnv !== 'false' && isProduction);
 
   const readPositiveIntEnv = (name: string): number | null => {
     const raw = String(process.env[name] || '').trim();
@@ -106,14 +110,16 @@ export function getEffectiveDatabaseUrlForPrisma(): string | null {
     }
   };
 
-  // ⚡ UPDATED: Support preferDirectConnection to bypass PgBouncer issues
-  // When MISRAD_PRISMA_PREFER_DIRECT=true, use DIRECT_URL if it's a non-pooler connection
+  // ⚡ UPDATED: Support preferDirectConnection to bypass PgBouncer/RLS issues
+  // In production, default to DIRECT_URL to avoid Supabase RLS "Tenant or user not found" errors
   if (preferDirectConnection && envDirectUrl) {
     const directParsed = normalizeCandidate(envDirectUrl);
     const isDirectPooler = directParsed && getPoolerMode(directParsed) !== 'none';
     if (directParsed && !isDirectPooler) {
-      console.log('[Prisma] MISRAD_PRISMA_PREFER_DIRECT enabled - using DIRECT_URL (non-pooler connection)');
+      console.log(`[Prisma] Using DIRECT_URL (non-pooler) - preferDirectConnection=${preferDirectConnection} isProduction=${isProduction}`);
       return directParsed;
+    } else if (isDirectPooler) {
+      console.warn('[Prisma] DIRECT_URL is a pooler URL - falling back to DATABASE_URL');
     }
   }
 
