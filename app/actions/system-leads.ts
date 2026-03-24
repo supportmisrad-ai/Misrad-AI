@@ -279,29 +279,32 @@ export async function getSystemLeadsPage(params: {
     const orgSlug = String(params.orgSlug || '').trim();
     if (!orgSlug) return { success: false, error: 'orgSlug חסר' };
 
+    // Resolve user role BEFORE entering tenant context.
+    // organizationUser.findUnique({ clerk_user_id }) is unscoped — the tenant guard
+    // only allows this bypass when expected.organizationId is null (no context set).
+    // Calling it inside withWorkspaceTenantContext throws a Tenant Guard Violation.
+    const { userId: clerkUserId } = await auth();
+    let userRole: SystemLeadUserRole = 'agent';
+    let currentNexusUserId: string | null = null;
+
+    if (clerkUserId) {
+      const orgUser = await prisma.organizationUser.findUnique({
+        where: { clerk_user_id: clerkUserId },
+        select: { id: true, role: true },
+      });
+      if (orgUser) {
+        currentNexusUserId = orgUser.id;
+        const role = String(orgUser.role || '').toLowerCase();
+        if (['super_admin', 'admin', 'owner'].includes(role)) {
+          userRole = 'admin';
+        }
+      }
+    }
+
     return await withWorkspaceTenantContext(
       orgSlug,
       async ({ organizationId }) => {
         requireOrganizationId('getSystemLeadsPage', organizationId);
-
-        // Resolve current user role for RBAC filtering
-        const { userId: clerkUserId } = await auth();
-        let userRole: SystemLeadUserRole = 'agent';
-        let currentNexusUserId: string | null = null;
-
-        if (clerkUserId) {
-          const orgUser = await prisma.organizationUser.findUnique({
-            where: { clerk_user_id: clerkUserId },
-            select: { id: true, role: true },
-          });
-          if (orgUser) {
-            currentNexusUserId = orgUser.id;
-            const role = String(orgUser.role || '').toLowerCase();
-            if (['super_admin', 'admin', 'owner'].includes(role)) {
-              userRole = 'admin';
-            }
-          }
-        }
 
         const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
         const cursor = decodeSystemLeadsCursor(params.cursor);
