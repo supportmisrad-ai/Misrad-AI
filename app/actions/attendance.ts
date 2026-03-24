@@ -69,14 +69,25 @@ export async function getActiveShift(orgSlugOrId: string) {
   };
 }
 
+const MAX_SHIFT_DURATION_MS = 24 * 60 * 60 * 1000;
+
 export async function punchIn(orgSlugOrId: string, note: string | undefined, location: AttendanceGeoLocationInput) {
   const resolved = await resolveWorkspaceCurrentUserForApi(String(orgSlugOrId));
   const workspace = resolved.workspace;
   const dbUser = resolved.user;
 
   const existing = await getActiveShift(String(orgSlugOrId));
+  
+  // Auto-close shift if it exceeded 24 hours
   if (existing.activeShift) {
-    return { success: true, activeShift: existing.activeShift, alreadyActive: true };
+    const shiftDurationMs = Date.now() - new Date(existing.activeShift.startTime).getTime();
+    if (shiftDurationMs >= MAX_SHIFT_DURATION_MS) {
+      // Close the stale shift first
+      await punchOut(String(orgSlugOrId), 'המשמרת נעצרה אוטומטית לאחר 24 שעות', location);
+      // Continue to create new shift below
+    } else {
+      return { success: true, activeShift: existing.activeShift, alreadyActive: true };
+    }
   }
 
   const now = new Date();

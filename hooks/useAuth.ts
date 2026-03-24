@@ -16,6 +16,9 @@ import { getAttendanceCache, setAttendanceCache } from '@/lib/attendance-cache';
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const ATTENDANCE_BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
+// Maximum shift duration: 24 hours (in milliseconds)
+const MAX_SHIFT_DURATION_MS = 24 * 60 * 60 * 1000;
+
 function broadcastAttendanceUpdate(orgSlug: string, entryId: string | null, startTime: string | null) {
     if (typeof window === 'undefined') return;
     try {
@@ -178,6 +181,17 @@ export const useAuth = (
     const activeShift = useMemo(() => {
         return timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
     }, [timeEntries, currentUser.id]);
+
+    // Auto clock-out after 24 hours to prevent runaway shifts
+    useEffect(() => {
+        if (!activeShift?.startTime || !orgSlug) return;
+        const shiftDurationMs = Date.now() - new Date(activeShift.startTime).getTime();
+        if (shiftDurationMs >= MAX_SHIFT_DURATION_MS) {
+            // Shift exceeded 24 hours - auto punch out
+            addToast('המשמרת נעצרה אוטומטית לאחר 24 שעות', 'warning');
+            clockOut();
+        }
+    }, [activeShift, orgSlug]);
 
     // Keep module-level cache in sync — must be a useEffect, not useMemo (no side effects in useMemo)
     useEffect(() => {

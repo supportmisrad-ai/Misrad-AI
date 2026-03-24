@@ -12,6 +12,9 @@ import { getAttendanceCache, subscribeAttendanceCache } from '@/lib/attendance-c
 // Attendance clock is enabled in all OS modules with unified state across modules
 const OS_MODULES_WITH_ATTENDANCE = new Set(['nexus', 'client', 'social', 'operations', 'system']);
 
+// Maximum shift duration: 24 hours (in milliseconds)
+const MAX_SHIFT_DURATION_MS = 24 * 60 * 60 * 1000;
+
 export function formatAttendanceDuration(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -87,11 +90,21 @@ export function useAttendanceTile(): UseAttendanceTileResult {
   // Calculate elapsed time from the moment isActive becomes true
   // When ticker starts (now becomes Date.now()), calculate from startTime
   // If now is 0 (initial state), show 0 elapsed time
-  const elapsedMs = startTime && now > 0 ? now - new Date(startTime).getTime() : 0;
+  const rawElapsedMs = startTime && now > 0 ? now - new Date(startTime).getTime() : 0;
+  // Cap at 24 hours max - both for display and safety
+  const elapsedMs = Math.min(rawElapsedMs, MAX_SHIFT_DURATION_MS);
 
   // Anti-double-click guard with safety timeout
   const [isBusy, setIsBusy] = useState(false);
   const busyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto clock-out after 24 hours
+  useEffect(() => {
+    if (rawElapsedMs >= MAX_SHIFT_DURATION_MS && isActive && !isBusy && authClockOut) {
+      // Shift exceeded 24 hours - auto punch out
+      authClockOut();
+    }
+  }, [rawElapsedMs, isActive, isBusy, authClockOut]);
 
   // Auto-reset isBusy when activeShift changes (means clockIn/clockOut completed)
   const prevShiftIdRef = useRef(activeShift?.id ?? null);
